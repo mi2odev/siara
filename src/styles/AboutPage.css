@@ -1,0 +1,144 @@
+.about-root{
+	min-height:100vh;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	padding:48px 24px;
+	background:radial-gradient(circle at top left, rgba(124,58,237,0.06), transparent 55%),
+						 radial-gradient(circle at bottom right, rgba(37,99,235,0.05), transparent 55%),
+						 #F3F4F6;
+}
+
+.about-card{
+	max-width:620px;
+	width:100%;
+	background:#fff;
+	border-radius:28px;
+	padding:80px 60px 40px;
+	box-shadow:0 40px 120px -48px rgba(15,23,42,0.5);
+	border:1px solid rgba(148,163,184,0.22);
+}
+
+.about-header{
+	text-align:center;
+	margin-bottom:16px;
+}
+
+.about-logo{
+	height:52px;
+	margin-bottom:4px;
+}
+
+.about-kicker{
+	font-size:12px;
+	color:var(--siara-btn-accent);
+	text-transform:uppercase;
+	letter-spacing:.08em;
+	margin-bottom:8px;
+}
+
+.about-title{
+	font-size:30px;
+	font-weight:700;
+	color:var(--siara-heading);
+	margin:0 0 4px;
+}
+
+.about-subtitle{
+	font-size:14px;
+	color:var(--siara-text-dark);
+	opacity:0.9;
+	line-height:1.5;
+}
+
+.about-section{
+	margin-top:30px;
+	font-size:14px;
+	color:var(--siara-text-dark);
+	line-height:1.7;
+	text-align:center;
+}
+
+.about-section h2,
+.about-section h3{
+	font-size:17px;
+	font-weight:650;
+	margin:0 0 8px;
+	color:var(--siara-heading);
+	position:relative;
+	display:inline-block;
+}
+
+.about-section h2::after,
+.about-section h3::after{
+	content:"";
+	position:absolute;
+	left:50%;
+	bottom:-6px;
+	width:46%;
+	height:2px;
+	border-radius:999px;
+	background:linear-gradient(90deg,#7C3AED,#4F46E5);
+	transform:translateX(-50%);
+}
+
+.about-grid{
+	display:grid;
+	grid-template-columns:1.1fr 1fr;
+	column-gap:40px;
+	row-gap:0;
+	align-items:flex-start;
+}
+
+.about-section ul{
+	padding-left:18px;
+}
+
+.about-section li{
+	margin-bottom:6px;
+	list-style:none;
+	position:relative;
+	padding-left:14px;
+}
+
+.about-section li::before{
+	content:"";
+	position:absolute;
+	left:2px;
+	top:0.7em;
+	width:6px;
+	height:6px;
+.about-grid::before{
+	content:"";
+	position:absolute;
+	left:50%;
+	top:0;
+	bottom:0;
+	width:1px;
+	background:#E5E7EB;
+	transform:translateX(-50%);
+}
+
+.about-grid{
+	position:relative;
+}
+
+	border-radius:999px;
+	background:linear-gradient(135deg, #7C3AED, #4F46E5);
+	transform:translateY(-50%);
+}
+
+.about-footer{
+	margin-top:32px;
+	padding-top:20px;
+	border-top:1px solid #E5E7EB;
+	font-size:12px;
+	color:#6B7280;
+	opacity:0.6;
+}
+
+@media (max-width:768px){
+	.about-root{padding:32px 16px;}
+	.about-card{padding:28px 18px;}
+	.about-grid{grid-template-columns:1fr;}
+}

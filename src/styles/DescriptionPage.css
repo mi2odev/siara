@@ -1,0 +1,13 @@
+.description-root{padding:40px 20px;background:var(--siara-bg);min-height:calc(100vh - 80px)}
+.description-container{max-width:980px;margin:0 auto;background:var(--siara-surface);border-radius:12px;padding:28px;box-shadow:var(--siara-card-shadow)}
+.description-header h1{margin:0;font-size:28px;color:var(--siara-heading);font-weight:700}
+.description-header .lead{margin-top:8px;color:var(--siara-subtext);line-height:1.6}
+.description-section{margin-top:18px}
+.description-section h2{font-size:18px;margin:6px 0;color:var(--siara-primary)}
+.description-section p, .description-section li{color:var(--siara-text);line-height:1.7}
+.description-section ul{margin-left:18px}
+
+@media (max-width:700px){
+  .description-container{padding:20px;border-radius:10px}
+  .description-header h1{font-size:22px}
+}

@@ -1,0 +1,187 @@
+/* GLOBAL LAYOUT */
+.siara-login-root{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:40px 70px;
+  background:#F7F8FC;
+}
+
+.siara-login-grid{
+  display:grid;
+  grid-template-columns:1.1fr 0.9fr;
+  gap:32px;
+  max-width:1200px;
+  width:100%;
+  align-items:center;
+}
+
+/* LEFT COLUMN (branding) */
+.siara-hero{
+  position:relative;
+  height:100%;
+  min-height:480px;
+  border-radius:30px;
+  padding:26px 34px 26px;
+  overflow:hidden;
+  background:linear-gradient(135deg,var(--siara-gradient-start),var(--siara-gradient-end));
+  color:var(--siara-text-light);
+  display:flex;
+  flex-direction:column;
+}
+.siara-hero .logo{
+  height:138px;
+  width:auto;
+  padding:14px 18px;
+  display:block;
+  object-fit:contain;
+  image-rendering:auto;
+}
+.siara-hero-main{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:18px;}
+.siara-hero-illustration{width:360px;max-width:100%;height:220px;border-radius:24px;background:radial-gradient(circle at 20% 20%,rgba(255,255,255,0.35),transparent 60%),radial-gradient(circle at 80% 80%,rgba(15,169,88,0.28),transparent 60%),rgba(0,0,0,0.12);box-shadow:0 22px 52px -26px rgba(0,0,0,0.7);position:relative;overflow:hidden;}
+.siara-hero-illustration::before{content:"";position:absolute;inset:-18%;background:radial-gradient(circle at 50% 0%,rgba(122,61,240,0.6),transparent 60%);filter:blur(10px);opacity:0.7;}
+.siara-hero-illustration::after{content:"";position:absolute;inset:18%;border-radius:999px;border:2px dashed rgba(255,255,255,0.32);}
+.hero-kicker{font-size:13px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.siara-hero .title{font-size:40px;font-weight:600;margin:0 0 10px;color:#fff;max-width:520px;}
+.siara-hero .subtitle{font-size:17px;line-height:1.6;max-width:480px;color:rgba(255,255,255,0.85);margin-top:6px;}
+.hero-badges{display:flex;gap:10px;margin-top:10px;}
+.hero-badge{font-size:11px;padding:6px 10px;border-radius:999px;background:rgba(15,169,88,0.18);color:#fff;border:1px solid rgba(255,255,255,0.38);}
+.hero-orbits span{position:absolute;border-radius:999px;border:1px solid rgba(255,255,255,0.25);animation:float 14s ease-in-out infinite;}
+.hero-orbits span:nth-child(1){width:160px;height:160px;top:12%;left:6%;}
+.hero-orbits span:nth-child(2){width:220px;height:220px;top:46%;left:38%;animation-duration:18s;}
+.hero-orbits span:nth-child(3){width:110px;height:110px;top:18%;right:4%;animation-duration:20s;}
+@keyframes float{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(6px,-10px,0)}}
+
+/* RIGHT COLUMN (card) */
+.siara-form-column{display:flex;align-items:center;justify-content:center;}
+
+.siara-form-wrap{
+  width:380px;
+  max-width:100%;
+  background:#fff;
+  padding:32px 30px 22px;
+  border-radius:24px;
+  box-shadow:0 26px 70px -26px rgba(15,23,42,0.48);
+  border:1px solid rgba(148,163,184,0.25);
+}
+
+.siara-brand{display:flex;flex-direction:column;align-items:center;margin-bottom:12px;text-align:center;}
+.siara-brand img{
+  height:76px;
+  width:auto;
+  display:block;
+  margin:0 auto 14px;
+  object-fit:contain;
+  image-rendering:auto;
+}
+.siara-brand .brand-name{display:none;}
+.siara-brand .tag{font-size:12px;color:var(--siara-btn-accent);opacity:0.9}
+
+.siara-form-title{font-size:24px;margin:6px 0 6px;color:var(--siara-heading);font-weight:700;text-align:center;}
+.siara-form-sub{font-size:13px;color:var(--siara-text-dark);opacity:0.9;margin-bottom:12px;line-height:1.6;text-align:center;}
+.siara-form-helper{font-size:12px;color:rgba(55,65,81,0.75);margin-bottom:16px;text-align:center;}
+
+.field-label{font-size:13px;color:var(--siara-text-dark);margin:10px 0 6px;display:block;}
+.input-shell{position:relative;}
+.input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--siara-subtext);display:flex;align-items:center;justify-content:center;}
+.siara-input{width:100%;padding:14px 16px 14px 38px;border-radius:12px;border:1px solid rgba(15,23,42,0.12);background:#F9FAFB;color:var(--siara-text-dark);outline:none;transition:box-shadow var(--siara-transition-fast),transform var(--siara-transition-fast),border-color var(--siara-transition-fast)}
+.siara-input::placeholder{color:var(--siara-subtext);opacity:0.7}
+.siara-input:focus{box-shadow:0 8px 20px rgba(124,58,237,0.18);border-color:#7A3DF0;transform:translateY(-1px);background:#fff;}
+
+.siara-row{display:flex;gap:8px;align-items:center;margin:8px 0}
+.siara-remember{font-size:13px;color:var(--siara-text-dark);opacity:0.95}
+
+.link-accent{
+  font-size:13px;
+  color:var(--siara-accent-violet);
+  font-weight:500;
+  text-decoration:none;
+  transition:opacity 0.16s ease,text-decoration-color 0.16s ease;
+}
+.link-accent:hover{
+  text-decoration:underline;
+  opacity:0.95;
+}
+
+.siara-cta{display:inline-flex;align-items:center;justify-content:center;width:100%;padding:12px 14px;border-radius:18px;background:linear-gradient(90deg,var(--siara-btn-accent),var(--siara-btn-primary));color:var(--siara-text-light);border:0;font-weight:700;cursor:pointer;transition:transform var(--siara-transition-fast),box-shadow var(--siara-transition-fast),filter var(--siara-transition-fast)}
+.siara-cta:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 16px 40px rgba(37,99,235,0.35);filter:brightness(1.03)}
+.siara-cta:active{transform:translateY(-1px)}
+.siara-cta[disabled]{opacity:0.6;cursor:default;transform:none;box-shadow:none}
+
+/* Google button */
+.siara-alt{width:100%;padding:11px 12px;border-radius:14px;border:1px solid #E5E7EB;background:#fff;color:var(--siara-text-dark);margin-top:10px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 14px -8px rgba(15,23,42,0.18);}
+
+.siara-footer-links{display:flex;justify-content:space-between;margin-top:16px;font-size:13px;color:var(--siara-subtext);opacity:0.95;border-top:1px solid #E5E7EB;padding:10px 0 20px;}
+.siara-footer-links a{
+  color:var(--siara-accent-violet);
+  font-weight:500;
+  text-decoration:none;
+  transition:opacity 0.16s ease,text-decoration-color 0.16s ease;
+}
+.siara-footer-links a:hover{
+  text-decoration:underline;
+  opacity:0.95;
+}
+.siara-footer-links a:first-child{
+  color:rgba(55,65,81,0.9);
+}
+
+/* Responsive */
+@media (max-width: 960px){
+  .siara-login-root{padding:40px 24px;}
+  .siara-login-grid{grid-template-columns:1fr;}
+  .siara-hero{min-height:360px;margin-bottom:28px;}
+}
+@media (max-width: 640px){
+  .siara-login-root{padding:24px 16px;}
+  .siara-hero{display:none;}
+  .siara-form-wrap{width:100%;padding:24px 18px;}
+}
+
+/* subtle transitions for micro-interactions */
+.siara-input,
+.siara-cta,
+.siara-alt{transition:all var(--siara-transition-fast) ease}
+
+.eye-toggle{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  background:transparent;
+  border:none;
+  color:#111827; /* black-ish */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  cursor:pointer;
+  /* smooth open/close transition */
+  transition:transform 0.22s ease, opacity 0.22s ease;
+}
+.eye-toggle svg{
+  transition:transform 0.22s ease, opacity 0.22s ease;
+  transform-origin:center;
+}
+
+/* subtle hover lift */
+.eye-toggle:hover{
+  transform:translateY(-50%) scale(1.02);
+}
+
+/* when password is visible add a class in JSX: eye-toggle eye-open */
+.eye-toggle.eye-open svg{
+  transform:scale(1) rotate(0deg);
+  opacity:1;
+}
+
+/* when password is hidden add a class in JSX: eye-toggle eye-closed */
+.eye-toggle.eye-closed svg{
+  transform:scale(0.8) rotate(-20deg);
+  opacity:0.2;
+}
+
+.eye-toggle:active{
+  transform:translateY(-50%) scale(0.9);
+}
