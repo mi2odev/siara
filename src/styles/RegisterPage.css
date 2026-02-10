@@ -1,0 +1,234 @@
+/* align global layout with Login page */
+.register-root{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:40px 70px;
+  background:#F7F8FC;
+}
+
+.register-shell{
+  display:grid;
+  grid-template-columns:1.1fr 0.9fr;
+  gap:32px;
+  max-width:1200px;
+  width:100%;
+  align-items:center;
+}
+
+.register-visual{
+  position:relative;
+  height:100%;
+  min-height:480px;
+  border-radius:30px;
+  padding:26px 34px 26px;
+  overflow:hidden;
+  background:linear-gradient(135deg,var(--siara-gradient-start),var(--siara-gradient-end));
+  color:var(--siara-text-light);
+  display:flex;
+  flex-direction:column;
+}
+
+.register-visual .logo{
+  height:138px;
+  width:auto;
+  padding:14px 18px;
+  display:block;
+  object-fit:contain;
+  image-rendering:auto;
+}
+
+.register-visual-main{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:18px;}
+
+.register-visual-illustration{width:360px;max-width:100%;height:220px;border-radius:24px;background:radial-gradient(circle at 20% 20%,rgba(255,255,255,0.35),transparent 60%),radial-gradient(circle at 80% 80%,rgba(15,169,88,0.28),transparent 60%),rgba(0,0,0,0.12);box-shadow:0 22px 52px -26px rgba(0,0,0,0.7);position:relative;overflow:hidden;}
+.register-visual-illustration::before{content:"";position:absolute;inset:-18%;background:radial-gradient(circle at 50% 0%,rgba(122,61,240,0.6),transparent 60%);filter:blur(10px);opacity:0.7;}
+.register-visual-illustration::after{content:"";position:absolute;inset:18%;border-radius:999px;border:2px dashed rgba(255,255,255,0.32);}
+.register-hero-kicker{font-size:13px;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.register-visual .title{font-size:40px;font-weight:600;margin:0 0 10px;color:#fff;max-width:520px;}
+.register-visual .subtitle{font-size:17px;line-height:1.6;max-width:480px;color:rgba(255,255,255,0.85);margin-top:6px;}
+
+.register-hero-badges{display:flex;gap:10px;margin-top:10px;}
+.register-hero-badge{font-size:11px;padding:6px 10px;border-radius:999px;background:rgba(15,169,88,0.18);color:#fff;border:1px solid rgba(255,255,255,0.38);}
+
+.register-header h1{
+  margin:0;
+  font-size:28px; /* plus grand pour hiérarchie */
+  color:var(--siara-heading);
+  font-weight:700;
+}
+
+.register-header .lead{
+  margin-top:10px; /* plus d'espace entre le titre et la description */
+  color:var(--siara-subtext);
+  line-height:1.6;
+  font-size:13px;
+}
+
+.register-subtitle{
+  margin-top:6px;
+  font-size:11px; /* plus petit, plus léger */
+  color:#4B5563;
+}
+
+/* registration-specific tweaks INSIDE the shared siara-form-wrap card */
+.register-form{
+  margin-top:8px;
+  display:flex;
+  flex-direction:column;
+  gap:6px; /* un peu moins d'espace vertical entre les champs */
+}
+
+.field-label{
+  font-size:12px;
+  color:#6B7280;
+  margin-bottom:6px;
+}
+
+.input-shell{
+  position:relative;
+}
+
+.input-icon{
+  position:absolute;
+  left:12px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:15px;
+  color:var(--siara-subtext);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* inputs now reuse .siara-input from LoginPage.css to ensure identical styling */
+
+.register-form .field-error{
+  color:var(--siara-error);
+  font-size:13px;
+}
+
+.form-error{
+  color:var(--siara-error);
+  background:rgba(230,57,70,0.06);
+  padding:8px;
+  border-radius:8px;
+}
+
+.agree{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  color:var(--siara-subtext);
+  font-size:13px;
+}
+
+.agree input[type="checkbox"]{
+  width:18px;
+  height:18px; /* slightly bigger checkbox */
+  border-radius:999px;
+  border:1px solid rgba(148,163,184,0.9);
+  appearance:none;
+  -webkit-appearance:none;
+  background:#fff;
+  display:inline-block;
+  position:relative;
+  cursor:pointer;
+}
+
+.agree input[type="checkbox"]:hover{
+  box-shadow:0 0 0 2px rgba(148,163,184,0.35);
+}
+
+.agree input[type="checkbox"]:checked{
+  background:#7C3AED;
+  border-color:#7C3AED;
+}
+
+.agree input[type="checkbox"]:checked::after{
+  content:"";
+  position:absolute;
+  left:4px;
+  top:1px;
+  width:6px;
+  height:10px;
+  border:2px solid #fff;
+  border-top:none;
+  border-left:none;
+  transform:rotate(45deg);
+}
+
+.terms-link{
+  color:#7C3AED;
+  font-weight:500;
+  text-decoration:none;
+}
+
+.terms-link:hover{
+  text-decoration:underline;
+}
+
+.register-container{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.register-card{
+  width:380px;
+  max-width:100%;
+  background:#fff;
+  padding:32px 30px 22px;
+  border-radius:24px;
+  box-shadow:0 26px 70px -26px rgba(15,23,42,0.48);
+  border:1px solid rgba(148,163,184,0.25);
+}
+
+.register-card .siara-brand img{
+	height:76px; /* match login card logo size, slightly smaller */
+	width:auto;
+	display:block;
+	margin:0 auto 14px;
+	object-fit:contain;
+	image-rendering:auto;
+}
+
+.register-footer{
+  font-size:13px;
+  margin-top:14px; /* un peu plus d'espace avant la zone 'Déjà inscrit ?' */
+  color:var(--siara-subtext);
+  padding-top:10px;
+  border-top:1px solid rgba(15,23,42,0.06);
+}
+
+.register-footer a{
+  color:#7C3AED;
+  font-weight:600; /* un peu plus gras pour 'Se connecter' */
+  text-decoration:none;
+}
+
+.register-footer a:hover{
+  text-decoration:underline;
+}
+
+@media (max-width:700px){
+  .register-root{
+    padding:24px 16px;
+  }
+
+  .register-shell{
+    grid-template-columns:1fr;
+    border-radius:22px;
+  }
+
+  .register-visual{
+    display:none; /* cacher le bloc visuel sur mobile pour simplifier */
+  }
+
+  .register-container{
+    border-radius:22px;
+    padding:22px 18px 18px;
+  }
+
+  .register-header h1{font-size:22px}
+}

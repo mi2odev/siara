@@ -1,0 +1,94 @@
+/* Global styles and CSS variables for SIARA
+   Includes font import and color tokens. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root {
+  /* --- Core brand colors (updated palette) --- */
+  --siara-primary: #7A3DF0;        /* Violet principal */
+  --siara-secondary: #1D4ED8;      /* Bleu professionnel */
+  --siara-accent: #0FA958;         /* Vert succès accents */
+
+  /* --- Backgrounds --- */
+  --siara-bg: #F6F7FB;             /* Gris très clair */
+  --siara-surface: #FFFFFF;        /* Card / panel surfaces */
+  --siara-gradient-start: #7A3DF0; /* Hero gradient start (violet) */
+  --siara-gradient-end: #1D4ED8;   /* Hero gradient end (blue) */
+
+  /* --- Text --- */
+  --siara-text-dark: #353535;      /* Primary text dark gray */
+  --siara-text: #4A4A4A;           /* Secondary text */
+  --siara-text-light: #FFFFFF;     /* Text on dark surfaces */
+  --siara-subtext: #6B7280;        /* Muted text / labels */
+
+  /* --- Buttons & interactive --- */
+  --siara-btn-primary: #7C3AED;    /* Main CTA (light violet) */
+  --siara-btn-primary-hover: #6D28D9;
+  --siara-btn-border: #7C3AED;
+  --siara-btn-accent: #7C3AED;     /* Single accent */
+
+  /* --- Status / feedback --- */
+  --siara-success: #7C3AED;        /* Positive/accent state aligned to violet */
+  --siara-warning: #F4A261;        /* Amber warning */
+  --siara-error: #DC2626;          /* Red for alerts */
+
+  /* --- Shadows & overlays --- */
+  --siara-card-shadow: rgba(0,0,0,0.08);
+  --siara-overlay: rgba(25, 32, 44, 0.45);
+
+  /* Additional UI tokens */
+  --siara-heading: #232323;        /* heading color */
+  --siara-accent-violet: #7C3AED;  /* unify accent violet */
+  --siara-shadow-md: 0 10px 28px -4px rgba(32,41,60,0.15);
+  --siara-transition-fast: 0.18s;
+
+  /* --- Layout tokens --- */
+  --radius-lg: 20px;
+  --card-width: 440px;
+  --content-max: 1200px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body,#root{
+  height:100%;
+  width:100%;
+  overflow-x: hidden;
+  background: #f8fafc;
+}
+html {
+  overflow-y: scroll; /* Always show scrollbar to prevent layout shift */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+html::-webkit-scrollbar {
+  width: 8px;
+}
+html::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+html::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+body{
+  margin:0;
+  padding:0;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background: var(--siara-bg);
+  color: var(--siara-text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+.sr-only{position:absolute!important;left:-9999px!important}
+
+/* Utility centered container used by pages */
+.siara-center{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+
+/* Enable smooth scrolling for in-page navigation */
+html{scroll-behavior:smooth}
+
