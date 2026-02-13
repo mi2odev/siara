@@ -44,8 +44,7 @@
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:26px;max-width:var(--content-max);margin:0 auto;}
 .stat-card{background:rgba(255,255,255,0.08);backdrop-filter:blur(2px);border:1px solid rgba(255,255,255,0.14);border-radius:22px;padding:28px 24px;text-align:center;color:#fff;position:relative;overflow:hidden;transition:.28s;}
 .stat-card:hover{transform:translateY(-6px);box-shadow:0 16px 42px -14px rgba(0,0,0,0.35);}
-.stat-icon{font-size:28px;margin-bottom:12px;}
-.stat-value{font-size:30px;font-weight:700;margin-bottom:6px;}
+.stat-icon{font-size:18px;margin-bottom:12px;}
 .stat-label{font-size:13px;letter-spacing:.5px;text-transform:uppercase;opacity:.85;}
 
 /* SERVICES */
