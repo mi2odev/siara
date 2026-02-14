@@ -724,6 +724,19 @@
   overflow: hidden;
 }
 
+.dash-map-wrapper {
+  border-radius: var(--siara-radius-md);
+  min-height: 420px;
+  position: relative;
+  overflow: hidden;
+}
+
+.dash-map-wrapper .map-canvas {
+  width: 100%;
+  height: 420px;
+  border-radius: var(--siara-radius-md);
+}
+
 .map-loader {
   display: flex;
   flex-direction: column;

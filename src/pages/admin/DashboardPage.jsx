@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
+import SiaraMap from '../../components/map/SiaraMap'
+import DrivingQuiz from '../../components/ui/DrivingQuiz'
 
 export default function DashboardPage(){
   const navigate = useNavigate()
@@ -9,6 +11,18 @@ export default function DashboardPage(){
   const [showFilterBanner, setShowFilterBanner] = useState(false)
   const [activeKPI, setActiveKPI] = useState(null)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [mapLayer, setMapLayer] = useState('heatmap')
+  const [selectedIncident, setSelectedIncident] = useState(null)
+  const [showQuiz, setShowQuiz] = useState(false)
+
+  // Mock markers for the dashboard map
+  const mockMarkers = [
+    { id: 1, lat: 36.7525, lng: 3.04197, severity: 'high', title: 'Boulevard Zirout Youcef' },
+    { id: 2, lat: 36.7600, lng: 3.05500, severity: 'medium', title: 'RN11 – Industrial Zone' },
+    { id: 3, lat: 36.7450, lng: 3.03000, severity: 'low', title: 'Rue Didouche Mourad' },
+    { id: 4, lat: 36.7700, lng: 3.06000, severity: 'high', title: 'El Harrach Bridge' },
+    { id: 5, lat: 36.7380, lng: 3.02500, severity: 'medium', title: 'Place des Martyrs' },
+  ]
 
   const handleFilterApply = () => {
     setShowFilterBanner(true)
@@ -28,8 +42,21 @@ export default function DashboardPage(){
     console.log('Center map on:', incident)
   }
 
+  const handleQuizComplete = (result) => {
+    console.log('Quiz completed:', result)
+    setShowQuiz(false)
+  }
+
+  const handleOpenQuiz = () => {
+    setShowQuiz(true)
+    setShowDropdown(false)
+  }
+
   return (
     <div className="siara-dashboard-root">
+      {/* DRIVING QUIZ POPUP - Shows only first time or when manually opened */}
+      <DrivingQuiz onComplete={handleQuizComplete} forceShow={showQuiz} />
+
       {/* HEADER */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
@@ -65,6 +92,7 @@ export default function DashboardPage(){
                   <button className="dropdown-item" onClick={() => navigate('/profile')}>👤 Mon profil</button>
                   <button className="dropdown-item">⚙️ Paramètres</button>
                   <button className="dropdown-item" onClick={() => navigate('/notifications')}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={handleOpenQuiz}>🚗 Quiz Conducteur</button>
                   <div className="dropdown-divider"></div>
                   <button className="dropdown-item logout">🚪 Déconnexion</button>
                 </div>
@@ -247,20 +275,30 @@ export default function DashboardPage(){
 
             {/* MAP CONTAINER */}
             <div className="dash-map-container">
-              <div className="dash-map-placeholder">
-                <div className="map-loader">
-                  <div className="loader-spinner"></div>
-                  <span>Loading risk map...</span>
-                </div>
+              <div className="dash-map-wrapper">
+                <SiaraMap
+                  mockMarkers={mockMarkers}
+                  mapLayer={mapLayer}
+                  setSelectedIncident={setSelectedIncident}
+                  userPosition={null}
+                />
               </div>
               
               {/* MAP LAYER TOGGLES */}
               <div className="dash-map-layers">
-                <button className="layer-toggle active" aria-label="Heatmap layer">
+                <button 
+                  className={`layer-toggle ${mapLayer === 'heatmap' ? 'active' : ''}`} 
+                  aria-label="Heatmap layer"
+                  onClick={() => setMapLayer('heatmap')}
+                >
                   <span className="layer-indicator"></span>
                   Heatmap
                 </button>
-                <button className="layer-toggle" aria-label="Points layer">
+                <button 
+                  className={`layer-toggle ${mapLayer === 'points' ? 'active' : ''}`} 
+                  aria-label="Points layer"
+                  onClick={() => setMapLayer('points')}
+                >
                   <span className="layer-indicator"></span>
                   Points
                 </button>

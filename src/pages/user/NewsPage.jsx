@@ -4,14 +4,24 @@ import '../../styles/NewsPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
+import DrivingQuiz from '../../components/ui/DrivingQuiz'
 
 export default function NewsPage() {
   const navigate = useNavigate()
   const [showDropdown, setShowDropdown] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(true)
+  const [showQuiz, setShowQuiz] = useState(false)
+
+  const handleQuizComplete = (result) => {
+    console.log('Quiz completed:', result)
+    setShowQuiz(false)
+  }
 
   return (
     <div className="siara-news-root">
+      {/* DRIVING QUIZ POPUP */}
+      <DrivingQuiz onComplete={handleQuizComplete} forceShow={showQuiz} />
+
       {/* 1. FLOATING HEADER */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
@@ -75,6 +85,7 @@ export default function NewsPage() {
             <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-accent"></span><span className="nav-icon">🗺️</span><span className="nav-label">Carte des incidents</span></button>
             
             <div className="nav-section-label">OUTILS</div>
+            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">🚗</span><span className="nav-label">Quiz Conducteur</span></button>
             <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">📊</span><span className="nav-label">Statistiques</span></button>
             <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alertes</span></button>
             
