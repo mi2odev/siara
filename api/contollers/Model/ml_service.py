@@ -5,9 +5,9 @@ import numpy as np
 
 app = Flask(__name__)
 
-model = joblib.load(r"E:\WebSites\siara\siara\api\driver-quiz-model\driver_model.joblib")
-scaler = joblib.load(r"E:\WebSites\siara\siara\api\driver-quiz-model\scaler.joblib")
-label_encoder = joblib.load(r"E:\WebSites\siara\siara\api\driver-quiz-model\label_encoder.joblib")
+model = joblib.load(r"E:\WebSites\siara\api\driver-quiz-model\driver_model.joblib")
+scaler = joblib.load(r"E:\WebSites\siara\api\driver-quiz-model\scaler.joblib")
+label_encoder = joblib.load(r"E:\WebSites\siara\api\driver-quiz-model\label_encoder.joblib")
 
 FEATURES = [
     "dissociative",
