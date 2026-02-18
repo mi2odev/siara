@@ -1,8 +1,9 @@
-import React from 'react'
+
 import '../../styles/HomePage.css'
 import logo from '../../assets/logos/siara-logo.png'
 import MapPreview from '../../components/map/MapPreview'
 import Footer from '../../components/layout/Footer'
+import { Divider } from '@mui/material'
 
 export default function HomePage(){
   return (
@@ -23,10 +24,10 @@ export default function HomePage(){
           </div>
         </div>
       </section>
-
+ <Divider variant="middle"  />
       {/* HOW IT WORKS */}
       <section id="how" className="how-section">
-        <h2 className="section-title">Comment fonctionne SIARA ?</h2>
+        <h2 className="home-section-title">Comment fonctionne SIARA ?</h2>
         <div className="how-cards">
           <div className="how-card">
             <div className="how-icon">📝</div>
@@ -57,10 +58,10 @@ export default function HomePage(){
       {/* GLOBAL STATS */}
       <section id="stats" className="stats-section">
         <div className="stats-grid">
-          <div className="stat-card"><div className="stat-icon">🌍</div><div className="stat-value">1,35M</div><div className="stat-label">décès/an dans le monde</div></div>
-          <div className="stat-card"><div className="stat-icon">🎯</div><div className="stat-value">50%</div><div className="stat-label">Objectif de réduction 2030</div></div>
-          <div className="stat-card"><div className="stat-icon">📊</div><div className="stat-value">92%</div><div className="stat-label">Précision simulée</div></div>
-          <div className="stat-card"><div className="stat-icon">🗺️</div><div className="stat-value">+1000</div><div className="stat-label">Zones à haut risque</div></div>
+          <div className="stat-card"><div className="stat-icon">🌍</div><div className="home-stat-value">1,35M</div><div className="home-stat-label">décès/an dans le monde</div></div>
+          <div className="stat-card"><div className="stat-icon">🎯</div><div className="home-stat-value">50%</div><div className="home-stat-label">Objectif de réduction 2030</div></div>
+          <div className="stat-card"><div className="stat-icon">📊</div><div className="home-stat-value">92%</div><div className="home-stat-label">Précision simulée</div></div>
+          <div className="stat-card"><div className="stat-icon">🗺️</div><div className="home-stat-value">+1000</div><div className="home-stat-label">Zones à haut risque</div></div>
         </div>
       </section>
 
