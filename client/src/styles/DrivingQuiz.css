@@ -595,6 +595,16 @@
   margin: 0;
 }
 
+.results-advice {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(124, 58, 237, 0.08);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
 /* ================================================
    FINISH BUTTON
    ================================================ */

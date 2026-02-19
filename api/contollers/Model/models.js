@@ -4,7 +4,11 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000/pred
 
 exports.predictDriverRisk = async (req, res) => {
   try {
-    const response = await axios.post(ML_SERVICE_URL, req.body);
+    const response = await axios.post(ML_SERVICE_URL, req.body, {timeout: 5000 });
+if (!req.body || Object.keys(req.body).length === 0) {
+  return res.status(400).json({ error: "Empty request body" });
+}
+
     return res.json(response.data);
   } catch (err) {
     const status = err.response?.status || 500;

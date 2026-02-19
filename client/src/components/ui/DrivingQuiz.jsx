@@ -160,6 +160,8 @@ export default function DrivingQuiz({ onComplete, forceShow = false }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [featureScores, setFeatureScores] = useState({})
+  const [xai, setXai] = useState(null)
+  const [advice, setAdvice] = useState(null)
 
   useEffect(() => {
     const hasCompleted = localStorage.getItem(STORAGE_KEY)
@@ -205,6 +207,85 @@ function getRiskLevel(value) {
   const totalQuestions = useMemo(() => QUIZ_SECTIONS.reduce((acc, s) => acc + s.questions.length, 0), [])
   const answeredCount = Object.keys(answers).length
   const progress = (answeredCount / totalQuestions) * 100
+  const pretty = (s) => s.replaceAll('_',' ').replace(/\b\w/g, c => c.toUpperCase());
+// 1) Define your label order ONCE (same as the model training)
+const ORDERED_LABELS = ['very_low', 'low', 'moderate', 'elevated', 'high', 'extreme'];
+
+// 2) Convert predicted label -> severity index (0..5)
+const labelToIndex = (label) => {
+  if (!label) return null;
+  const norm = String(label).trim().toLowerCase();
+  const idx = ORDERED_LABELS.indexOf(norm);
+  return idx === -1 ? null : idx;
+};
+
+// 3) IMPORTANT: interpret SHAP sign correctly for the UI
+// SHAP sign means: pushes TOWARD predicted class (+) or away (-)
+// But what users care about is: does it increase overall risk?
+function getImpact(xai, feature) {
+  if (!xai?.shap_per_feature || xai.shap_per_feature[feature] == null) {
+    return null
+  }
+
+  const v = xai.shap_per_feature[feature]
+
+  const direction =
+    v > 0 ? 'pushes_higher'
+    : v < 0 ? 'pulls_lower'
+    : 'neutral'
+
+  return {
+    value: v,
+    direction,
+
+    // Arrow semantics (MODEL REASONING, not morality)
+    arrow: v > 0 ? '↑' : v < 0 ? '↓' : '→',
+
+    // Color semantics
+    color: v > 0 ? '#ef4444' : v < 0 ? '#22c55e' : '#9ca3af',
+
+    // Human-friendly explanation
+    text:
+      v > 0
+        ? 'pushed risk higher'
+        : v < 0
+        ? 'helped reduce risk'
+        : 'no noticeable impact'
+  }
+}
+
+
+// 4) Optional: convert a feature’s SHAP magnitude into a % contribution
+// This is NOT a probability; it's "share of total explanation magnitude".
+function getImpactPercent(xai, feature) {
+  if (!xai?.shap_per_feature) return null
+
+  const values = Object.values(xai.shap_per_feature).map(Math.abs)
+  const total = values.reduce((a, b) => a + b, 0)
+
+  if (!total) return null
+
+  const v = Math.abs(xai.shap_per_feature[feature] || 0)
+  return Math.round((v / total) * 100)
+}
+
+
+const PROTECTIVE_TRAITS = new Set([
+  'patient',
+  'careful',
+  'distress_reduction'
+])
+
+const getDisplayText = (feature, impact) => {
+  if (!impact) return ''
+
+  if (PROTECTIVE_TRAITS.has(feature) && impact.direction === 'pushes_higher') {
+    return 'limited protective effect'
+  }
+
+  return impact.text
+}
+
 
   const computeSectionMeans = (sourceAnswers) => {
     const sections = {}
@@ -252,20 +333,41 @@ function getRiskLevel(value) {
       })
 
       const data = await response.json()
+      setXai(data.xai || null)
+
 
       if (!response.ok) {
         throw new Error(data?.error || 'Model service error')
       }
+setPrediction(data.risk_label) // ✅
+setRiskPercent(typeof data.risk_percent === 'number' ? data.risk_percent : null) // ✅
+setAdvice(data.advice_text || null) // ✅
+localStorage.setItem(
+  ANSWERS_KEY,
+  JSON.stringify({
+    answers: sourceAnswers,
+    featureScores: rawFeatureScores,
+    prediction: data.risk_label,     // ✅
+    riskPercent: data.risk_percent,  // ✅
+    classProbabilities: data.class_probabilities || null, // optional
+    xai: data.xai || null, // optional
+    advice : data.advice_text || null, // optional
+    timestamp: Date.now(),
+  })
+)
 
-      setPrediction(data.prediction)
-      setRiskPercent(typeof data.risk_percent === 'number' ? data.risk_percent : null)
-      localStorage.setItem(STORAGE_KEY, 'completed')
-      localStorage.setItem(
-        ANSWERS_KEY,
-        JSON.stringify({ answers: sourceAnswers, featureScores: rawFeatureScores, prediction: data.prediction, riskPercent: data.risk_percent, timestamp: Date.now() })
-      )
+onComplete?.({
+  skipped: false,
+  prediction: data.risk_label,      // ✅
+  riskPercent: data.risk_percent,   // ✅
+  classProbabilities: data.class_probabilities || null, // optional
+  xai: data.xai || null, // optional
+  featureScores: rawFeatureScores,
+  answers: sourceAnswers,
+  advice : data.advice_text || null, // optional
 
-      onComplete?.({ skipped: false, prediction: data.prediction, riskPercent: data.risk_percent, featureScores: rawFeatureScores, answers: sourceAnswers })
+})
+
     } catch (error) {
       setSubmitError(error.message || 'Could not get model prediction')
     } finally {
@@ -395,10 +497,10 @@ function getRiskLevel(value) {
             <div className="results-header">
               <h3 className="results-title">Model Result</h3>
               {isSubmitting && <div className="results-message"><p>Sending feature scores to model service...</p></div>}
-              {!isSubmitting && prediction && <div className="results-overall-score" style={{ color: getRiskLevel(riskPercent)?.color || '#000' }}>{prediction}</div>}
+              {!isSubmitting && prediction && <div className="results-overall-score" style={{ color: getRiskLevel(riskPercent)?.color || '#000' }}>{pretty(prediction)}</div>}
               {!isSubmitting && prediction && typeof riskPercent === 'number' && (
                 <div className="results-message">
-                  <p>Risk score: {riskPercent.toFixed(2)}% ({getRiskLevel(riskPercent).label})</p>
+                  <p>Risk score: {riskPercent.toFixed(2)}% ({pretty(prediction)})</p>
                 </div>
               )}
               {!isSubmitting && submitError && <div className="results-message"><p>{submitError}</p></div>}
@@ -408,9 +510,42 @@ function getRiskLevel(value) {
               {Object.entries(featureScores).map(([key, value]) => (
                 <div key={key} className="results-section-item">
                   <div className="results-section-info">
-                    <span className="results-section-icon">{getRiskLevel(scoreToPercent(value)).emoji}</span>
-                    <span className="results-section-name">{key.replaceAll('_', ' ')}</span>
-                  </div>
+  <span className="results-section-icon">{getRiskLevel(scoreToPercent(value)).emoji}</span>
+
+  <span className="results-section-name">
+    {key.replaceAll('_', ' ')}
+
+    {(() => {
+      const impact = getImpact(xai, key)
+      if (!impact) return null
+      const impactPct = getImpactPercent(xai, key)
+
+      return (
+        <span
+          style={{
+            marginLeft: 10,
+            fontSize: 12,
+            padding: '2px 8px',
+            borderRadius: 999,
+            backgroundColor: `${impact.color}20`, // light background
+            color: impact.color,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6
+          }}
+          title={`SHAP: ${impact.value.toFixed(4)} (${impact.text})`}
+        >
+          <span>{impact.arrow}</span>
+          <span>{getDisplayText(key, impact)}</span>
+          {impactPct != null && <span>• {impactPct}%</span>}
+        </span>
+      )
+    })()}
+  </span>
+</div>
+
+
+
 
                   <div className="results-section-bar-container">
                     <div className="results-section-bar" style={{ width: `${scoreToPercent(value)}%`, backgroundColor: getRiskLevel(scoreToPercent(value)).color }} />
@@ -420,7 +555,7 @@ function getRiskLevel(value) {
                 </div>
               ))}
             </div>
-
+<div className="results-advice">{advice}</div>
             {!isSubmitting && prediction && (
               <button className="quiz-finish-btn" onClick={handleClose}>
                 Continue
