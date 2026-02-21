@@ -170,7 +170,7 @@ export default function MapPage() {
                   >
                     👤 Mon profil
                   </button>
-                  <button className="dropdown-item">⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
                   <button
                     className="dropdown-item"
                     onClick={() => navigate("/notifications")}
