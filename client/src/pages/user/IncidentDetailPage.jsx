@@ -121,9 +121,9 @@ Authorities advise all motorists to avoid this section of the highway until furt
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => navigate('/profile')}>👤 Mon profil</button>
-                  <button className="dropdown-item">⚙️ Paramètres</button>
-                  <button className="dropdown-item" onClick={() => navigate('/notifications')}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
                   <button className="dropdown-item logout">🚪 Déconnexion</button>
                 </div>

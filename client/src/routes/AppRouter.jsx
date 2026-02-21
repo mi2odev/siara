@@ -18,6 +18,7 @@ import CreateAlertPage from "../pages/user/CreateAlertPage";
 import ReportIncidentPage from "../pages/user/ReportIncidentPage";
 import DashboardPage from "../pages/admin/DashboardPage";
 import ServiceControlPage from "../pages/admin/ServiceControlPage";
+import SettingsPage from "../pages/user/SettingsPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 export default function AppRouter() {
@@ -41,6 +42,7 @@ export default function AppRouter() {
         <Route path="/predictions" element={<PredictionsPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
 
         {/* Admin routes: dashboard visible to any logged-in user, services admin-only */}
         <Route

@@ -1,16 +1,39 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
 import '../../styles/NewsPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 
+const nearbyIncidents = [
+  { id: 1, lat: 36.7525, lng: 3.04197, severity: 'high', label: 'Accident' },
+  { id: 2, lat: 36.7580, lng: 3.05000, severity: 'medium', label: 'Danger' },
+  { id: 3, lat: 36.7460, lng: 3.03500, severity: 'low', label: 'Normal' },
+]
+
+function getMarkerIcon(severity) {
+  const color = severity === 'high' ? '#ff3b30' : severity === 'medium' ? '#ff9500' : '#34c759'
+  return {
+    path: window.google.maps.SymbolPath.CIRCLE,
+    fillColor: color,
+    fillOpacity: 1,
+    scale: 7,
+    strokeWeight: 2,
+    strokeColor: '#ffffff',
+  }
+}
+
 export default function NewsPage() {
   const navigate = useNavigate()
   const [showDropdown, setShowDropdown] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(true)
   const [showQuiz, setShowQuiz] = useState(false)
+
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY,
+  })
 
   const handleQuizComplete = (result) => {
     console.log('Quiz completed:', result)
@@ -46,9 +69,9 @@ export default function NewsPage() {
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => navigate('/profile')}>👤 Mon profil</button>
-                  <button className="dropdown-item">⚙️ Paramètres</button>
-                  <button className="dropdown-item" onClick={() => navigate('/notifications')}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
                   <button className="dropdown-item logout">🚪 Déconnexion</button>
                 </div>
@@ -90,7 +113,7 @@ export default function NewsPage() {
             <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alertes</span></button>
             
             <div className="nav-section-label">PARAMÈTRES</div>
-            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Paramètres</span></button>
+            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Paramètres</span></button>
           </nav>
 
           {/* C. Smart Filters */}
@@ -243,8 +266,27 @@ export default function NewsPage() {
                 <span className="map-legend"><span className="legend-dot normal"></span>Normal</span>
               </div>
             </div>
-            <div className="map-placeholder"><div className="map-marker"></div><div className="map-marker"></div></div>
-            <button className="btn-open-map">Ouvrir la carte complète</button>
+            <div className="map-widget-container" style={{ width: '100%', height: 200, borderRadius: 12, overflow: 'hidden' }}>
+              {isLoaded ? (
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '100%' }}
+                  center={{ lat: 36.7525, lng: 3.04197 }}
+                  zoom={13}
+                  options={{ disableDefaultUI: true }}
+                >
+                  {nearbyIncidents.map((m) => (
+                    <Marker
+                      key={m.id}
+                      position={{ lat: m.lat, lng: m.lng }}
+                      icon={getMarkerIcon(m.severity)}
+                    />
+                  ))}
+                </GoogleMap>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#f0f0f0' }}>Chargement de la carte…</div>
+              )}
+            </div>
+            <button className="btn-open-map" onClick={() => navigate('/map')}>Ouvrir la carte complète</button>
           </div>
 
           {/* B. Trending Incidents */}
