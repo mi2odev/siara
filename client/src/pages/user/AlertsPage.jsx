@@ -1,83 +1,116 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import '../../styles/AlertsPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
+// Default seed alerts (used only when localStorage is empty)
+const SEED_ALERTS = [
+  {
+    id: 1,
+    name: 'Accidents A1 Highway',
+    status: 'active',
+    severity: 'high',
+    area: { name: 'A1 Highway, KM 10-50', wilaya: 'Alger' },
+    incidentTypes: ['accident', 'traffic'],
+    timeWindow: '24/7',
+    lastTriggered: '15 min',
+    triggerCount: 8,
+    notifications: { app: true, email: true, sms: false },
+    recentTriggers: [
+      { id: 101, type: 'accident', severity: 'high', time: '15m', title: 'Multi-car collision' },
+      { id: 102, type: 'traffic', severity: 'medium', time: '2h', title: 'Heavy congestion' },
+      { id: 103, type: 'accident', severity: 'low', time: '1d', title: 'Minor incident' }
+    ]
+  },
+  {
+    id: 2,
+    name: 'Zone Bab Ezzouar',
+    status: 'active',
+    severity: 'medium',
+    area: { name: 'Bab Ezzouar District', wilaya: 'Alger' },
+    incidentTypes: ['accident', 'danger', 'roadworks'],
+    timeWindow: '06:00 - 22:00',
+    lastTriggered: '3h',
+    triggerCount: 23,
+    notifications: { app: true, email: false, sms: false },
+    recentTriggers: [
+      { id: 104, type: 'roadworks', severity: 'low', time: '3h', title: 'Lane closure' },
+      { id: 105, type: 'danger', severity: 'medium', time: '1d', title: 'Pothole reported' }
+    ]
+  },
+  {
+    id: 3,
+    name: 'Night Watch Oran',
+    status: 'paused',
+    severity: 'high',
+    area: { name: 'Oran Centre', wilaya: 'Oran' },
+    incidentTypes: ['accident', 'danger'],
+    timeWindow: '22:00 - 06:00',
+    lastTriggered: '2d',
+    triggerCount: 5,
+    notifications: { app: true, email: true, sms: true },
+    recentTriggers: [
+      { id: 106, type: 'accident', severity: 'high', time: '2d', title: 'Night collision' }
+    ]
+  },
+  {
+    id: 4,
+    name: 'Constantine N3',
+    status: 'expired',
+    severity: 'low',
+    area: { name: 'Route N3', wilaya: 'Constantine' },
+    incidentTypes: ['traffic'],
+    timeWindow: 'Rush hours',
+    lastTriggered: '1w',
+    triggerCount: 12,
+    notifications: { app: true, email: false, sms: false },
+    recentTriggers: []
+  }
+]
+
+function loadAlerts() {
+  try {
+    const stored = localStorage.getItem('siara_alerts')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    }
+  } catch { /* ignore */ }
+  // First visit: seed and persist
+  localStorage.setItem('siara_alerts', JSON.stringify(SEED_ALERTS))
+  return SEED_ALERTS
+}
+
 export default function AlertsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [showDropdown, setShowDropdown] = useState(false)
   const [activeNav, setActiveNav] = useState('active')
   const [selectedAlert, setSelectedAlert] = useState(null)
   const [severityFilter, setSeverityFilter] = useState('all')
   const [areaFilter, setAreaFilter] = useState('all')
+  const [toast, setToast] = useState(null)
 
-  // Mock alerts data
-  const [alerts, setAlerts] = useState([
-    {
-      id: 1,
-      name: 'Accidents A1 Highway',
-      status: 'active',
-      severity: 'high',
-      area: { name: 'A1 Highway, KM 10-50', wilaya: 'Alger' },
-      incidentTypes: ['accident', 'traffic'],
-      timeWindow: '24/7',
-      lastTriggered: '15 min',
-      triggerCount: 8,
-      notifications: { app: true, email: true, sms: false },
-      recentTriggers: [
-        { id: 101, type: 'accident', severity: 'high', time: '15m', title: 'Multi-car collision' },
-        { id: 102, type: 'traffic', severity: 'medium', time: '2h', title: 'Heavy congestion' },
-        { id: 103, type: 'accident', severity: 'low', time: '1d', title: 'Minor incident' }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Zone Bab Ezzouar',
-      status: 'active',
-      severity: 'medium',
-      area: { name: 'Bab Ezzouar District', wilaya: 'Alger' },
-      incidentTypes: ['accident', 'danger', 'roadworks'],
-      timeWindow: '06:00 - 22:00',
-      lastTriggered: '3h',
-      triggerCount: 23,
-      notifications: { app: true, email: false, sms: false },
-      recentTriggers: [
-        { id: 104, type: 'roadworks', severity: 'low', time: '3h', title: 'Lane closure' },
-        { id: 105, type: 'danger', severity: 'medium', time: '1d', title: 'Pothole reported' }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Night Watch Oran',
-      status: 'paused',
-      severity: 'high',
-      area: { name: 'Oran Centre', wilaya: 'Oran' },
-      incidentTypes: ['accident', 'danger'],
-      timeWindow: '22:00 - 06:00',
-      lastTriggered: '2d',
-      triggerCount: 5,
-      notifications: { app: true, email: true, sms: true },
-      recentTriggers: [
-        { id: 106, type: 'accident', severity: 'high', time: '2d', title: 'Night collision' }
-      ]
-    },
-    {
-      id: 4,
-      name: 'Constantine N3',
-      status: 'expired',
-      severity: 'low',
-      area: { name: 'Route N3', wilaya: 'Constantine' },
-      incidentTypes: ['traffic'],
-      timeWindow: 'Rush hours',
-      lastTriggered: '1w',
-      triggerCount: 12,
-      notifications: { app: true, email: false, sms: false },
-      recentTriggers: []
-    }
-  ])
+  const [alerts, setAlerts] = useState(() => loadAlerts())
 
   const wilayas = ['Alger', 'Oran', 'Constantine', 'Annaba', 'Blida']
+
+  // Persist alerts to localStorage on every change
+  useEffect(() => {
+    localStorage.setItem('siara_alerts', JSON.stringify(alerts))
+  }, [alerts])
+
+  // Show toast when arriving from CreateAlertPage
+  useEffect(() => {
+    if (location.state?.newAlert) {
+      setToast(`✅ Alerte « ${location.state.newAlert} » créée avec succès`)
+      // Clear the state so refresh doesn't re-show toast
+      window.history.replaceState({}, '')
+      const timer = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(timer)
+    }
+  }, [location.state])
 
   // Auto-select first alert
   useEffect(() => {
@@ -85,7 +118,7 @@ export default function AlertsPage() {
     if (activeAlerts.length > 0 && !selectedAlert) {
       setSelectedAlert(activeAlerts[0])
     }
-  }, [])
+  }, [alerts])
 
   // Stats
   const stats = {
@@ -160,6 +193,13 @@ export default function AlertsPage() {
           </div>
         </div>
       </header>
+
+      {/* TOAST */}
+      {toast && (
+        <div className="al-toast" onClick={() => setToast(null)}>
+          {toast}
+        </div>
+      )}
 
       {/* GRID */}
       <div className="al-grid">

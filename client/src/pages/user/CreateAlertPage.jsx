@@ -96,11 +96,62 @@ export default function CreateAlertPage() {
 
   const createAlert = () => {
     setIsCreating(true)
-    // Simulate API call
+
+    // Build alert object matching AlertsPage format
+    const zoneNameMap = {
+      location: `Rayon ${alertData.zoneRadius} km`,
+      wilaya: alertData.zoneWilaya || 'Wilaya',
+      road: alertData.zoneRoad || 'Route',
+      draw: 'Zone personnalisée'
+    }
+    const wilayaMap = {
+      location: 'Alger',
+      wilaya: alertData.zoneWilaya || 'Alger',
+      road: 'Alger',
+      draw: 'Alger'
+    }
+    const timeWindowMap = {
+      all: '24/7',
+      day: '06:00 - 22:00',
+      night: '22:00 - 06:00',
+      custom: `${alertData.timeStart} - ${alertData.timeEnd}`
+    }
+    const highestSeverity = alertData.severities.includes('high') ? 'high'
+      : alertData.severities.includes('medium') ? 'medium' : 'low'
+
+    const newAlert = {
+      id: Date.now(),
+      name: alertData.name || 'Nouvelle alerte',
+      status: 'active',
+      severity: highestSeverity,
+      area: {
+        name: zoneNameMap[alertData.zoneType] || '—',
+        wilaya: wilayaMap[alertData.zoneType] || 'Alger'
+      },
+      incidentTypes: alertData.types,
+      timeWindow: timeWindowMap[alertData.timeRange] || '24/7',
+      lastTriggered: 'Jamais',
+      triggerCount: 0,
+      notifications: {
+        app: alertData.deliveryApp,
+        email: alertData.deliveryEmail,
+        sms: alertData.deliverySms
+      },
+      recentTriggers: [],
+      createdAt: new Date().toISOString()
+    }
+
+    // Persist to localStorage
+    try {
+      const existing = JSON.parse(localStorage.getItem('siara_alerts') || '[]')
+      existing.push(newAlert)
+      localStorage.setItem('siara_alerts', JSON.stringify(existing))
+    } catch { /* ignore */ }
+
     setTimeout(() => {
       setIsCreating(false)
       navigate('/alerts', { state: { newAlert: alertData.name } })
-    }, 1500)
+    }, 800)
   }
 
   // Generate alert name suggestion
