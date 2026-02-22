@@ -24,6 +24,29 @@
   outline: none;
 }
 
+/* ======================== TOAST ======================== */
+.al-toast {
+  position: fixed;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  padding: 12px 24px;
+  background: linear-gradient(90deg, #10B981, #059669);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(16,185,129,.25);
+  cursor: pointer;
+  animation: toastIn .3s ease;
+  white-space: nowrap;
+}
+@keyframes toastIn {
+  from { opacity:0; transform: translateX(-50%) translateY(-12px); }
+  to   { opacity:1; transform: translateX(-50%) translateY(0); }
+}
+
 /* ======================== GRID ======================== */
 .al-grid {
   display: grid;
