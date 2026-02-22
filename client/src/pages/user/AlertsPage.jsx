@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
 import '../../styles/AlertsPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -105,8 +106,15 @@ export default function AlertsPage() {
   useEffect(() => {
     if (location.state?.newAlert) {
       setToast(`✅ Alerte « ${location.state.newAlert} » créée avec succès`)
-      // Clear the state so refresh doesn't re-show toast
       window.history.replaceState({}, '')
+      const timer = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(timer)
+    }
+    if (location.state?.editedAlert) {
+      setToast(`✅ Alerte « ${location.state.editedAlert} » modifiée avec succès`)
+      window.history.replaceState({}, '')
+      // Reload alerts from localStorage to reflect edits
+      setAlerts(loadAlerts())
       const timer = setTimeout(() => setToast(null), 4000)
       return () => clearTimeout(timer)
     }
@@ -152,6 +160,10 @@ export default function AlertsPage() {
       if (selectedAlert?.id === id) setSelectedAlert(null)
     }
   }
+
+  const { isLoaded: mapReady } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '',
+  })
 
   const color = (sev) => ({ high: '#DC2626', medium: '#F59E0B', low: '#10B981' }[sev] || '#64748B')
   const icon = (type) => ({ accident: '🚗', traffic: '🚦', danger: '⚠️', roadworks: '🚧', weather: '🌧️' }[type] || '📍')
@@ -283,10 +295,30 @@ export default function AlertsPage() {
                     </div>
                   </div>
                   <div className="card-foot">
-                    <button className={`act-btn toggle ${alert.status === 'active' ? 'on' : ''}`} onClick={e => toggleAlert(e, alert.id)}>{alert.status === 'active' ? '🟢' : '⚪'}</button>
-                    <button className="act-btn" onClick={e => e.stopPropagation()}>✏️</button>
-                    <button className="act-btn" onClick={e => toggleAlert(e, alert.id)}>{alert.status === 'active' ? '⏸️' : '▶️'}</button>
-                    <button className="act-btn del" onClick={e => deleteAlert(e, alert.id)}>🗑️</button>
+                    <button className={`act-btn act-toggle ${alert.status === 'active' ? 'on' : 'off'}`} onClick={e => toggleAlert(e, alert.id)} title={alert.status === 'active' ? 'Désactiver' : 'Activer'}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        {alert.status === 'active' ? <><circle cx="12" cy="12" r="10"/><path d="M10 15V9l5 3-5 3z"/></> : <><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></>}
+                      </svg>
+                      <span>{alert.status === 'active' ? 'Actif' : 'Pausé'}</span>
+                    </button>
+                    <button className="act-btn act-edit" onClick={e => { e.stopPropagation(); navigate('/alerts/create', { state: { editAlert: alert } }) }} title="Modifier">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                      <span>Modifier</span>
+                    </button>
+                    <button className="act-btn act-pause" onClick={e => toggleAlert(e, alert.id)} title={alert.status === 'active' ? 'Mettre en pause' : 'Reprendre'}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        {alert.status === 'active' ? <><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></> : <polygon points="5 3 19 12 5 21 5 3"/>}
+                      </svg>
+                      <span>{alert.status === 'active' ? 'Pause' : 'Reprendre'}</span>
+                    </button>
+                    <button className="act-btn act-delete" onClick={e => deleteAlert(e, alert.id)} title="Supprimer">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                      </svg>
+                      <span>Supprimer</span>
+                    </button>
                   </div>
                 </div>
               ))
@@ -313,13 +345,25 @@ export default function AlertsPage() {
 
               <div className="al-panel map">
                 <span className="panel-label">Zone surveillée</span>
-                <div className="mini-map">
-                  <span className="map-bg">🗺️</span>
-                  <div className="zone-ring" style={{ borderColor: color(selectedAlert.severity) }}></div>
-                  <span className="map-pin">📍</span>
+                <div className="mini-map-wrap">
+                  {mapReady ? (
+                    <GoogleMap
+                      mapContainerClassName="al-gmap"
+                      center={{ lat: selectedAlert.area.wilaya === 'Oran' ? 35.6969 : selectedAlert.area.wilaya === 'Constantine' ? 36.365 : 36.753, lng: selectedAlert.area.wilaya === 'Oran' ? -0.6331 : selectedAlert.area.wilaya === 'Constantine' ? 6.6147 : 3.0588 }}
+                      zoom={12}
+                      options={{ disableDefaultUI: true, zoomControl: false, gestureHandling: 'none', styles: [{ featureType: 'all', elementType: 'labels', stylers: [{ visibility: 'simplified' }] }] }}
+                    >
+                      <Marker position={{ lat: selectedAlert.area.wilaya === 'Oran' ? 35.6969 : selectedAlert.area.wilaya === 'Constantine' ? 36.365 : 36.753, lng: selectedAlert.area.wilaya === 'Oran' ? -0.6331 : selectedAlert.area.wilaya === 'Constantine' ? 6.6147 : 3.0588 }} />
+                    </GoogleMap>
+                  ) : (
+                    <div className="mini-map-fallback">🗺️ Chargement...</div>
+                  )}
                 </div>
                 <span className="map-text">{selectedAlert.area.name}</span>
-                <button className="map-btn" onClick={() => navigate('/map')}>Ouvrir la carte</button>
+                <button className="map-btn" onClick={() => navigate('/map')}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                  Ouvrir la carte
+                </button>
               </div>
 
               <div className="al-panel triggers">

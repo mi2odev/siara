@@ -466,19 +466,27 @@
   margin: 0;
 }
 
-.map-draw-btn {
-  padding: 10px 20px;
-  background: var(--create-accent);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s ease;
+/* Embedded Google Map in zone step */
+.zone-map-embed {
+  margin-top: 12px;
 }
 
-.map-draw-btn:hover {
-  background: var(--create-accent-hover);
+.zone-gmap {
+  width: 100%;
+  height: 200px;
+  border-radius: 12px;
+  border: 1px solid var(--create-border);
+}
+
+.zone-gmap-lg {
+  height: 280px;
+}
+
+.zone-map-hint {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: var(--create-muted);
+  text-align: center;
 }
 
 /* ============================================
