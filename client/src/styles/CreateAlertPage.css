@@ -126,7 +126,7 @@
   color: white;
 }
 
-.step.disabled .step-indicator {
+.step.upcoming .step-indicator {
   background: var(--create-bg);
   color: #cbd5e1;
 }
@@ -151,7 +151,7 @@
   color: var(--create-success);
 }
 
-.step.disabled .step-label {
+.step.upcoming .step-label {
   color: #cbd5e1;
 }
 
@@ -197,6 +197,7 @@
   flex-direction: column;
   min-height: calc(100vh - var(--header-height));
   background: var(--create-bg);
+  overflow-y: auto;
 }
 
 .step-panel {
@@ -1070,9 +1071,25 @@
   background: var(--create-accent-hover);
 }
 
-.nav-btn.primary:disabled {
+.nav-btn.primary:disabled,
+.nav-btn.primary.btn-disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Shake animation for invalid proceed attempts */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-6px); }
+  30% { transform: translateX(6px); }
+  45% { transform: translateX(-4px); }
+  60% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+  90% { transform: translateX(2px); }
+}
+
+.nav-btn.shake {
+  animation: shake 0.5s ease-in-out;
 }
 
 .nav-btn.create {
