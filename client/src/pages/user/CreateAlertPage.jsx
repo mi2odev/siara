@@ -1,37 +1,94 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { GoogleMap, Marker, Circle, useLoadScript } from '@react-google-maps/api'
 import '../../styles/CreateAlertPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
+const ALGIERS = { lat: 36.753, lng: 3.0588 }
+
 export default function CreateAlertPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const editAlert = location.state?.editAlert || null
+  const isEditMode = !!editAlert
+  const { isLoaded: mapReady } = useLoadScript({ googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '' })
   const [showDropdown, setShowDropdown] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
+  const [mapCenter, setMapCenter] = useState(ALGIERS)
+  const [drawPin, setDrawPin] = useState(ALGIERS)
   const [isCreating, setIsCreating] = useState(false)
   const [shakeNav, setShakeNav] = useState(false)
 
+  // Derive zone type from stored alert data
+  const deriveZoneType = (alert) => {
+    if (!alert) return ''
+    const areaName = alert.area?.name || ''
+    if (areaName.startsWith('Rayon')) return 'location'
+    if (areaName === 'Zone personnalisée') return 'draw'
+    // Check if area name matches a known road
+    if (areaName.includes('Autoroute') || areaName.startsWith('RN') || areaName.includes('Rocade')) return 'road'
+    return 'wilaya'
+  }
+
+  const deriveTimeRange = (alert) => {
+    if (!alert) return 'all'
+    const tw = alert.timeWindow || '24/7'
+    if (tw === '24/7') return 'all'
+    if (tw === '06:00 - 22:00') return 'day'
+    if (tw === '22:00 - 06:00') return 'night'
+    return 'custom'
+  }
+
   // Form state
-  const [alertData, setAlertData] = useState({
-    name: '',
-    types: [],
-    zoneType: '',
-    zoneRadius: 5,
-    zoneWilaya: '',
-    zoneRoad: '',
-    zoneCustom: null,
-    severities: ['high', 'medium'],
-    timeRange: 'all',
-    timeStart: '00:00',
-    timeEnd: '23:59',
-    weatherRelated: false,
-    aiConfidence: 70,
-    frequency: 'immediate',
-    digestInterval: 'daily',
-    muteduplicates: true,
-    deliveryApp: true,
-    deliveryEmail: false,
-    deliverySms: false
+  const [alertData, setAlertData] = useState(() => {
+    if (editAlert) {
+      const zt = deriveZoneType(editAlert)
+      const tr = deriveTimeRange(editAlert)
+      const timeParts = (editAlert.timeWindow || '').split(' - ')
+      return {
+        name: editAlert.name || '',
+        types: editAlert.incidentTypes || [],
+        zoneType: zt,
+        zoneRadius: zt === 'location' ? parseInt((editAlert.area?.name || '').match(/\d+/)?.[0] || '5') : 5,
+        zoneWilaya: zt === 'wilaya' ? (editAlert.area?.wilaya || '') : '',
+        zoneRoad: zt === 'road' ? (editAlert.area?.name || '') : '',
+        zoneCustom: null,
+        severities: editAlert.severity === 'high' ? ['high', 'medium'] : editAlert.severity === 'medium' ? ['medium'] : ['low'],
+        timeRange: tr,
+        timeStart: tr === 'custom' && timeParts[0] ? timeParts[0] : '00:00',
+        timeEnd: tr === 'custom' && timeParts[1] ? timeParts[1] : '23:59',
+        weatherRelated: false,
+        aiConfidence: 70,
+        frequency: 'immediate',
+        digestInterval: 'daily',
+        muteduplicates: true,
+        deliveryApp: editAlert.notifications?.app ?? true,
+        deliveryEmail: editAlert.notifications?.email ?? false,
+        deliverySms: editAlert.notifications?.sms ?? false,
+      }
+    }
+    return {
+      name: '',
+      types: [],
+      zoneType: '',
+      zoneRadius: 5,
+      zoneWilaya: '',
+      zoneRoad: '',
+      zoneCustom: null,
+      severities: ['high', 'medium'],
+      timeRange: 'all',
+      timeStart: '00:00',
+      timeEnd: '23:59',
+      weatherRelated: false,
+      aiConfidence: 70,
+      frequency: 'immediate',
+      digestInterval: 'daily',
+      muteduplicates: true,
+      deliveryApp: true,
+      deliveryEmail: false,
+      deliverySms: false,
+    }
   })
 
   const steps = [
@@ -154,10 +211,10 @@ export default function CreateAlertPage() {
     const highestSeverity = alertData.severities.includes('high') ? 'high'
       : alertData.severities.includes('medium') ? 'medium' : 'low'
 
-    const newAlert = {
-      id: Date.now(),
+    const alertPayload = {
+      id: isEditMode ? editAlert.id : Date.now(),
       name: alertData.name || 'Nouvelle alerte',
-      status: 'active',
+      status: isEditMode ? (editAlert.status || 'active') : 'active',
       severity: highestSeverity,
       area: {
         name: zoneNameMap[alertData.zoneType] || '—',
@@ -165,33 +222,42 @@ export default function CreateAlertPage() {
       },
       incidentTypes: alertData.types,
       timeWindow: timeWindowMap[alertData.timeRange] || '24/7',
-      lastTriggered: 'Jamais',
-      triggerCount: 0,
+      lastTriggered: isEditMode ? (editAlert.lastTriggered || 'Jamais') : 'Jamais',
+      triggerCount: isEditMode ? (editAlert.triggerCount || 0) : 0,
       notifications: {
         app: alertData.deliveryApp,
         email: alertData.deliveryEmail,
         sms: alertData.deliverySms
       },
-      recentTriggers: [],
-      createdAt: new Date().toISOString()
+      recentTriggers: isEditMode ? (editAlert.recentTriggers || []) : [],
+      createdAt: isEditMode ? (editAlert.createdAt || new Date().toISOString()) : new Date().toISOString()
     }
 
     // Persist to localStorage
     try {
       const existing = JSON.parse(localStorage.getItem('siara_alerts') || '[]')
-      existing.push(newAlert)
+      if (isEditMode) {
+        const idx = existing.findIndex(a => a.id === editAlert.id)
+        if (idx !== -1) {
+          existing[idx] = alertPayload
+        } else {
+          existing.push(alertPayload)
+        }
+      } else {
+        existing.push(alertPayload)
+      }
       localStorage.setItem('siara_alerts', JSON.stringify(existing))
     } catch { /* ignore */ }
 
     setTimeout(() => {
       setIsCreating(false)
-      navigate('/alerts', { state: { newAlert: alertData.name } })
+      navigate('/alerts', { state: isEditMode ? { editedAlert: alertData.name } : { newAlert: alertData.name } })
     }, 800)
   }
 
-  // Generate alert name suggestion
+  // Generate alert name suggestion (only in create mode)
   useEffect(() => {
-    if (alertData.types.length > 0 && alertData.zoneType && !alertData.name) {
+    if (!isEditMode && alertData.types.length > 0 && alertData.zoneType && !alertData.name) {
       const typeLabels = alertData.types.map(t => alertTypes.find(at => at.id === t)?.label).join(' + ')
       const zoneName = alertData.zoneType === 'location' ? 'Ma position' :
                        alertData.zoneType === 'wilaya' ? alertData.zoneWilaya :
@@ -254,8 +320,8 @@ export default function CreateAlertPage() {
         {/* LEFT - STEPPER */}
         <aside className="create-left">
           <div className="stepper-header">
-            <span className="stepper-icon">➕</span>
-            <h2>Nouvelle alerte</h2>
+            <span className="stepper-icon">{isEditMode ? '✏️' : '➕'}</span>
+            <h2>{isEditMode ? 'Modifier l\'alerte' : 'Nouvelle alerte'}</h2>
           </div>
           <div className="stepper">
             {steps.map((step, index) => (
@@ -342,6 +408,21 @@ export default function CreateAlertPage() {
                       />
                       <span className="radius-value">{alertData.zoneRadius} km</span>
                     </div>
+                    {mapReady && (
+                      <div className="zone-map-embed">
+                        <GoogleMap
+                          mapContainerClassName="zone-gmap"
+                          center={mapCenter}
+                          zoom={11 - Math.floor(alertData.zoneRadius / 10)}
+                          options={{ disableDefaultUI: true, zoomControl: true, gestureHandling: 'cooperative', styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }] }}
+                          onClick={e => setMapCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() })}
+                        >
+                          <Marker position={mapCenter} />
+                          <Circle center={mapCenter} radius={alertData.zoneRadius * 1000} options={{ fillColor: '#6366F1', fillOpacity: 0.12, strokeColor: '#6366F1', strokeOpacity: 0.6, strokeWeight: 2 }} />
+                        </GoogleMap>
+                        <p className="zone-map-hint">Cliquez pour déplacer le centre du rayon</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -409,11 +490,25 @@ export default function CreateAlertPage() {
 
                 {alertData.zoneType === 'draw' && (
                   <div className="zone-config map-config">
-                    <div className="map-placeholder">
-                      <span className="map-icon">🗺️</span>
-                      <p>Cliquez et glissez pour dessiner votre zone</p>
-                      <button className="map-draw-btn">Commencer le dessin</button>
-                    </div>
+                    {mapReady ? (
+                      <div className="zone-map-embed">
+                        <GoogleMap
+                          mapContainerClassName="zone-gmap zone-gmap-lg"
+                          center={drawPin}
+                          zoom={13}
+                          options={{ disableDefaultUI: true, zoomControl: true, gestureHandling: 'cooperative', styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }] }}
+                          onClick={e => setDrawPin({ lat: e.latLng.lat(), lng: e.latLng.lng() })}
+                        >
+                          <Marker position={drawPin} />
+                        </GoogleMap>
+                        <p className="zone-map-hint">Cliquez sur la carte pour placer votre zone personnalisée</p>
+                      </div>
+                    ) : (
+                      <div className="map-placeholder">
+                        <span className="map-icon">🗺️</span>
+                        <p>Chargement de la carte…</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -737,7 +832,7 @@ export default function CreateAlertPage() {
               </button>
             ) : (
               <button className={`nav-btn create ${shakeNav ? 'shake' : ''}`} onClick={createAlert} disabled={!canProceed() || isCreating}>
-                {isCreating ? '⏳ Création...' : '✓ Créer l\'alerte'}
+                {isCreating ? '⏳ Enregistrement...' : isEditMode ? '✓ Enregistrer les modifications' : '✓ Créer l\'alerte'}
               </button>
             )}
           </div>

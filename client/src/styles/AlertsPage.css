@@ -239,20 +239,59 @@
 .meta { font-size: 12px; color: var(--al-muted); }
 
 .card-foot {
-  display: flex; align-items: center; gap: 6px;
-  padding-top: 10px;
+  display: flex; align-items: center; gap: 8px;
+  padding-top: 12px;
 }
 .act-btn {
-  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px;
   background: var(--al-card2);
   border: 1px solid var(--al-border);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 12px; font-weight: 500;
+  color: var(--al-muted);
   cursor: pointer;
-  transition: 0.15s;
+  transition: all 0.18s ease;
+  white-space: nowrap;
 }
-.act-btn:hover { background: rgba(0,0,0,0.06); }
-.act-btn.del:hover { background: rgba(239, 68, 68, 0.15); }
+.act-btn svg { flex-shrink: 0; }
+.act-btn:hover { background: rgba(99, 102, 241, 0.08); border-color: var(--al-accent); color: var(--al-accent); }
+
+/* Toggle active/paused */
+.act-btn.act-toggle.on {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--al-green);
+  color: var(--al-green);
+}
+.act-btn.act-toggle.off {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: var(--al-orange);
+  color: var(--al-orange);
+}
+
+/* Edit */
+.act-btn.act-edit:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--al-accent);
+  color: var(--al-accent);
+}
+
+/* Pause */
+.act-btn.act-pause:hover {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: var(--al-orange);
+  color: var(--al-orange);
+}
+
+/* Delete */
+.act-btn.act-delete {
+  margin-left: auto;
+}
+.act-btn.act-delete:hover {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: var(--al-red);
+  color: var(--al-red);
+}
 
 /* ======================== RIGHT ======================== */
 .al-right {
@@ -315,39 +354,43 @@
 
 /* Map */
 .al-panel.map { text-align: center; }
-.mini-map {
-  position: relative;
-  height: 100px;
-  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-  border-radius: 10px;
-  margin-bottom: 10px;
-  display: flex; align-items: center; justify-content: center;
+.mini-map-wrap {
+  border-radius: 12px;
   overflow: hidden;
+  margin-bottom: 12px;
+  height: 140px;
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
 }
-.map-bg { font-size: 40px; opacity: 0.2; }
-.zone-ring {
-  position: absolute;
-  width: 60px; height: 60px;
-  border: 2px dashed;
-  border-radius: 50%;
-  animation: pulse 2s infinite;
+.al-gmap {
+  width: 100%;
+  height: 140px;
 }
-@keyframes pulse {
-  0%, 100% { opacity: 0.4; transform: scale(0.9); }
-  50% { opacity: 0.8; transform: scale(1.1); }
+.mini-map-fallback {
+  width: 100%;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--al-muted);
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
 }
-.map-pin { position: absolute; font-size: 22px; }
 .map-text { font-size: 13px; color: var(--al-muted); margin-bottom: 10px; display: block; }
 .map-btn {
-  padding: 8px 16px;
-  background: rgba(99, 102, 241, 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: rgba(99, 102, 241, 0.08);
   border: 1px solid var(--al-accent);
   border-radius: 8px;
   color: var(--al-accent);
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
-.map-btn:hover { background: rgba(99, 102, 241, 0.2); }
+.map-btn:hover { background: rgba(99, 102, 241, 0.18); transform: translateY(-1px); }
 
 /* Triggers */
 .trigger-list { display: flex; flex-direction: column; gap: 6px; }
