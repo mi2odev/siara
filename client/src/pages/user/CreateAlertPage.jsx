@@ -9,6 +9,7 @@ export default function CreateAlertPage() {
   const [showDropdown, setShowDropdown] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [isCreating, setIsCreating] = useState(false)
+  const [shakeNav, setShakeNav] = useState(false)
 
   // Form state
   const [alertData, setAlertData] = useState({
@@ -83,14 +84,48 @@ export default function CreateAlertPage() {
   }
 
   const nextStep = () => {
-    if (canProceed() && currentStep < 5) {
-      setCurrentStep(prev => prev + 1)
+    if (currentStep >= 5) return
+    if (!canProceed()) {
+      setShakeNav(true)
+      setTimeout(() => setShakeNav(false), 600)
+      return
     }
+    setCurrentStep(prev => prev + 1)
   }
 
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1)
+    }
+  }
+
+  // Check if a given step is reachable (all previous steps valid)
+  const canReachStep = (targetStep) => {
+    if (targetStep <= currentStep) return true
+    for (let s = currentStep; s < targetStep; s++) {
+      switch (s) {
+        case 1: if (alertData.types.length === 0) return false; break
+        case 2: if (alertData.zoneType === '') return false; break
+        case 3: if (alertData.severities.length === 0) return false; break
+        case 4: break // always ok
+        default: break
+      }
+    }
+    return true
+  }
+
+  const goToStep = (targetStep) => {
+    if (targetStep === currentStep) return
+    if (targetStep < currentStep) {
+      setCurrentStep(targetStep)
+      return
+    }
+    // Going forward: validate all intermediate steps
+    if (canReachStep(targetStep)) {
+      setCurrentStep(targetStep)
+    } else {
+      setShakeNav(true)
+      setTimeout(() => setShakeNav(false), 600)
     }
   }
 
@@ -226,8 +261,9 @@ export default function CreateAlertPage() {
             {steps.map((step, index) => (
               <div
                 key={step.id}
-                className={`step ${currentStep === step.id ? 'active' : ''} ${currentStep > step.id ? 'completed' : ''} ${currentStep < step.id ? 'disabled' : ''}`}
-                onClick={() => currentStep > step.id && setCurrentStep(step.id)}
+                className={`step ${currentStep === step.id ? 'active' : ''} ${currentStep > step.id ? 'completed' : ''} ${currentStep < step.id ? 'upcoming' : ''}`}
+                onClick={() => goToStep(step.id)}
+                style={{ cursor: 'pointer' }}
               >
                 <div className="step-indicator">
                   {currentStep > step.id ? '✓' : step.id}
@@ -696,11 +732,11 @@ export default function CreateAlertPage() {
             )}
             <div className="nav-spacer"></div>
             {currentStep < 5 ? (
-              <button className="nav-btn primary" onClick={nextStep} disabled={!canProceed()}>
+              <button className={`nav-btn primary ${!canProceed() ? 'btn-disabled' : ''} ${shakeNav ? 'shake' : ''}`} onClick={nextStep}>
                 Continuer →
               </button>
             ) : (
-              <button className="nav-btn create" onClick={createAlert} disabled={!canProceed() || isCreating}>
+              <button className={`nav-btn create ${shakeNav ? 'shake' : ''}`} onClick={createAlert} disabled={!canProceed() || isCreating}>
                 {isCreating ? '⏳ Création...' : '✓ Créer l\'alerte'}
               </button>
             )}
