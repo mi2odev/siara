@@ -1,83 +1,124 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
 import '../../styles/AlertsPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
+// Default seed alerts (used only when localStorage is empty)
+const SEED_ALERTS = [
+  {
+    id: 1,
+    name: 'Accidents A1 Highway',
+    status: 'active',
+    severity: 'high',
+    area: { name: 'A1 Highway, KM 10-50', wilaya: 'Alger' },
+    incidentTypes: ['accident', 'traffic'],
+    timeWindow: '24/7',
+    lastTriggered: '15 min',
+    triggerCount: 8,
+    notifications: { app: true, email: true, sms: false },
+    recentTriggers: [
+      { id: 101, type: 'accident', severity: 'high', time: '15m', title: 'Multi-car collision' },
+      { id: 102, type: 'traffic', severity: 'medium', time: '2h', title: 'Heavy congestion' },
+      { id: 103, type: 'accident', severity: 'low', time: '1d', title: 'Minor incident' }
+    ]
+  },
+  {
+    id: 2,
+    name: 'Zone Bab Ezzouar',
+    status: 'active',
+    severity: 'medium',
+    area: { name: 'Bab Ezzouar District', wilaya: 'Alger' },
+    incidentTypes: ['accident', 'danger', 'roadworks'],
+    timeWindow: '06:00 - 22:00',
+    lastTriggered: '3h',
+    triggerCount: 23,
+    notifications: { app: true, email: false, sms: false },
+    recentTriggers: [
+      { id: 104, type: 'roadworks', severity: 'low', time: '3h', title: 'Lane closure' },
+      { id: 105, type: 'danger', severity: 'medium', time: '1d', title: 'Pothole reported' }
+    ]
+  },
+  {
+    id: 3,
+    name: 'Night Watch Oran',
+    status: 'paused',
+    severity: 'high',
+    area: { name: 'Oran Centre', wilaya: 'Oran' },
+    incidentTypes: ['accident', 'danger'],
+    timeWindow: '22:00 - 06:00',
+    lastTriggered: '2d',
+    triggerCount: 5,
+    notifications: { app: true, email: true, sms: true },
+    recentTriggers: [
+      { id: 106, type: 'accident', severity: 'high', time: '2d', title: 'Night collision' }
+    ]
+  },
+  {
+    id: 4,
+    name: 'Constantine N3',
+    status: 'expired',
+    severity: 'low',
+    area: { name: 'Route N3', wilaya: 'Constantine' },
+    incidentTypes: ['traffic'],
+    timeWindow: 'Rush hours',
+    lastTriggered: '1w',
+    triggerCount: 12,
+    notifications: { app: true, email: false, sms: false },
+    recentTriggers: []
+  }
+]
+
+function loadAlerts() {
+  try {
+    const stored = localStorage.getItem('siara_alerts')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    }
+  } catch { /* ignore */ }
+  // First visit: seed and persist
+  localStorage.setItem('siara_alerts', JSON.stringify(SEED_ALERTS))
+  return SEED_ALERTS
+}
+
 export default function AlertsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [showDropdown, setShowDropdown] = useState(false)
   const [activeNav, setActiveNav] = useState('active')
   const [selectedAlert, setSelectedAlert] = useState(null)
   const [severityFilter, setSeverityFilter] = useState('all')
   const [areaFilter, setAreaFilter] = useState('all')
+  const [toast, setToast] = useState(null)
 
-  // Mock alerts data
-  const [alerts, setAlerts] = useState([
-    {
-      id: 1,
-      name: 'Accidents A1 Highway',
-      status: 'active',
-      severity: 'high',
-      area: { name: 'A1 Highway, KM 10-50', wilaya: 'Alger' },
-      incidentTypes: ['accident', 'traffic'],
-      timeWindow: '24/7',
-      lastTriggered: '15 min',
-      triggerCount: 8,
-      notifications: { app: true, email: true, sms: false },
-      recentTriggers: [
-        { id: 101, type: 'accident', severity: 'high', time: '15m', title: 'Multi-car collision' },
-        { id: 102, type: 'traffic', severity: 'medium', time: '2h', title: 'Heavy congestion' },
-        { id: 103, type: 'accident', severity: 'low', time: '1d', title: 'Minor incident' }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Zone Bab Ezzouar',
-      status: 'active',
-      severity: 'medium',
-      area: { name: 'Bab Ezzouar District', wilaya: 'Alger' },
-      incidentTypes: ['accident', 'danger', 'roadworks'],
-      timeWindow: '06:00 - 22:00',
-      lastTriggered: '3h',
-      triggerCount: 23,
-      notifications: { app: true, email: false, sms: false },
-      recentTriggers: [
-        { id: 104, type: 'roadworks', severity: 'low', time: '3h', title: 'Lane closure' },
-        { id: 105, type: 'danger', severity: 'medium', time: '1d', title: 'Pothole reported' }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Night Watch Oran',
-      status: 'paused',
-      severity: 'high',
-      area: { name: 'Oran Centre', wilaya: 'Oran' },
-      incidentTypes: ['accident', 'danger'],
-      timeWindow: '22:00 - 06:00',
-      lastTriggered: '2d',
-      triggerCount: 5,
-      notifications: { app: true, email: true, sms: true },
-      recentTriggers: [
-        { id: 106, type: 'accident', severity: 'high', time: '2d', title: 'Night collision' }
-      ]
-    },
-    {
-      id: 4,
-      name: 'Constantine N3',
-      status: 'expired',
-      severity: 'low',
-      area: { name: 'Route N3', wilaya: 'Constantine' },
-      incidentTypes: ['traffic'],
-      timeWindow: 'Rush hours',
-      lastTriggered: '1w',
-      triggerCount: 12,
-      notifications: { app: true, email: false, sms: false },
-      recentTriggers: []
-    }
-  ])
+  const [alerts, setAlerts] = useState(() => loadAlerts())
 
   const wilayas = ['Alger', 'Oran', 'Constantine', 'Annaba', 'Blida']
+
+  // Persist alerts to localStorage on every change
+  useEffect(() => {
+    localStorage.setItem('siara_alerts', JSON.stringify(alerts))
+  }, [alerts])
+
+  // Show toast when arriving from CreateAlertPage
+  useEffect(() => {
+    if (location.state?.newAlert) {
+      setToast(`✅ Alerte « ${location.state.newAlert} » créée avec succès`)
+      window.history.replaceState({}, '')
+      const timer = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(timer)
+    }
+    if (location.state?.editedAlert) {
+      setToast(`✅ Alerte « ${location.state.editedAlert} » modifiée avec succès`)
+      window.history.replaceState({}, '')
+      // Reload alerts from localStorage to reflect edits
+      setAlerts(loadAlerts())
+      const timer = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(timer)
+    }
+  }, [location.state])
 
   // Auto-select first alert
   useEffect(() => {
@@ -85,7 +126,7 @@ export default function AlertsPage() {
     if (activeAlerts.length > 0 && !selectedAlert) {
       setSelectedAlert(activeAlerts[0])
     }
-  }, [])
+  }, [alerts])
 
   // Stats
   const stats = {
@@ -120,6 +161,10 @@ export default function AlertsPage() {
     }
   }
 
+  const { isLoaded: mapReady } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '',
+  })
+
   const color = (sev) => ({ high: '#DC2626', medium: '#F59E0B', low: '#10B981' }[sev] || '#64748B')
   const icon = (type) => ({ accident: '🚗', traffic: '🚦', danger: '⚠️', roadworks: '🚧', weather: '🌧️' }[type] || '📍')
 
@@ -149,9 +194,9 @@ export default function AlertsPage() {
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => navigate('/profile')}>👤 Mon profil</button>
-                  <button className="dropdown-item">⚙️ Paramètres</button>
-                  <button className="dropdown-item" onClick={() => navigate('/notifications')}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
                   <button className="dropdown-item logout">🚪 Déconnexion</button>
                 </div>
@@ -160,6 +205,13 @@ export default function AlertsPage() {
           </div>
         </div>
       </header>
+
+      {/* TOAST */}
+      {toast && (
+        <div className="al-toast" onClick={() => setToast(null)}>
+          {toast}
+        </div>
+      )}
 
       {/* GRID */}
       <div className="al-grid">
@@ -243,10 +295,30 @@ export default function AlertsPage() {
                     </div>
                   </div>
                   <div className="card-foot">
-                    <button className={`act-btn toggle ${alert.status === 'active' ? 'on' : ''}`} onClick={e => toggleAlert(e, alert.id)}>{alert.status === 'active' ? '🟢' : '⚪'}</button>
-                    <button className="act-btn" onClick={e => e.stopPropagation()}>✏️</button>
-                    <button className="act-btn" onClick={e => toggleAlert(e, alert.id)}>{alert.status === 'active' ? '⏸️' : '▶️'}</button>
-                    <button className="act-btn del" onClick={e => deleteAlert(e, alert.id)}>🗑️</button>
+                    <button className={`act-btn act-toggle ${alert.status === 'active' ? 'on' : 'off'}`} onClick={e => toggleAlert(e, alert.id)} title={alert.status === 'active' ? 'Désactiver' : 'Activer'}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        {alert.status === 'active' ? <><circle cx="12" cy="12" r="10"/><path d="M10 15V9l5 3-5 3z"/></> : <><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></>}
+                      </svg>
+                      <span>{alert.status === 'active' ? 'Actif' : 'Pausé'}</span>
+                    </button>
+                    <button className="act-btn act-edit" onClick={e => { e.stopPropagation(); navigate('/alerts/create', { state: { editAlert: alert } }) }} title="Modifier">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                      <span>Modifier</span>
+                    </button>
+                    <button className="act-btn act-pause" onClick={e => toggleAlert(e, alert.id)} title={alert.status === 'active' ? 'Mettre en pause' : 'Reprendre'}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        {alert.status === 'active' ? <><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></> : <polygon points="5 3 19 12 5 21 5 3"/>}
+                      </svg>
+                      <span>{alert.status === 'active' ? 'Pause' : 'Reprendre'}</span>
+                    </button>
+                    <button className="act-btn act-delete" onClick={e => deleteAlert(e, alert.id)} title="Supprimer">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                      </svg>
+                      <span>Supprimer</span>
+                    </button>
                   </div>
                 </div>
               ))
@@ -273,13 +345,25 @@ export default function AlertsPage() {
 
               <div className="al-panel map">
                 <span className="panel-label">Zone surveillée</span>
-                <div className="mini-map">
-                  <span className="map-bg">🗺️</span>
-                  <div className="zone-ring" style={{ borderColor: color(selectedAlert.severity) }}></div>
-                  <span className="map-pin">📍</span>
+                <div className="mini-map-wrap">
+                  {mapReady ? (
+                    <GoogleMap
+                      mapContainerClassName="al-gmap"
+                      center={{ lat: selectedAlert.area.wilaya === 'Oran' ? 35.6969 : selectedAlert.area.wilaya === 'Constantine' ? 36.365 : 36.753, lng: selectedAlert.area.wilaya === 'Oran' ? -0.6331 : selectedAlert.area.wilaya === 'Constantine' ? 6.6147 : 3.0588 }}
+                      zoom={12}
+                      options={{ disableDefaultUI: true, zoomControl: false, gestureHandling: 'none', styles: [{ featureType: 'all', elementType: 'labels', stylers: [{ visibility: 'simplified' }] }] }}
+                    >
+                      <Marker position={{ lat: selectedAlert.area.wilaya === 'Oran' ? 35.6969 : selectedAlert.area.wilaya === 'Constantine' ? 36.365 : 36.753, lng: selectedAlert.area.wilaya === 'Oran' ? -0.6331 : selectedAlert.area.wilaya === 'Constantine' ? 6.6147 : 3.0588 }} />
+                    </GoogleMap>
+                  ) : (
+                    <div className="mini-map-fallback">🗺️ Chargement...</div>
+                  )}
                 </div>
                 <span className="map-text">{selectedAlert.area.name}</span>
-                <button className="map-btn" onClick={() => navigate('/map')}>Ouvrir la carte</button>
+                <button className="map-btn" onClick={() => navigate('/map')}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                  Ouvrir la carte
+                </button>
               </div>
 
               <div className="al-panel triggers">

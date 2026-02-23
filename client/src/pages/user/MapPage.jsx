@@ -170,7 +170,7 @@ export default function MapPage() {
                   >
                     👤 Mon profil
                   </button>
-                  <button className="dropdown-item">⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
                   <button
                     className="dropdown-item"
                     onClick={() => navigate("/notifications")}
@@ -417,6 +417,39 @@ export default function MapPage() {
               </span>
             </div>
           </div>
+
+          {selectedIncident?.explanation && (
+            <div className="context-section">
+              <h4 className="section-title">Segment Insight</h4>
+              <div className="map-alert-item">
+                <span className="map-alert-icon">IA</span>
+                <div className="map-alert-info">
+                  <span className="map-alert-title">
+                    {selectedIncident.title || `Segment ${selectedIncident.id}`}
+                  </span>
+                  <span className="map-alert-time">
+                    Risk: {selectedIncident.explanation.danger_percent}% (
+                    {selectedIncident.explanation.danger_level})
+                  </span>
+                </div>
+              </div>
+              <div className="map-alerts-list">
+                {(selectedIncident.explanation?.xai?.top_reasons || []).slice(0, 3).map((reason) => (
+                  <div key={reason.feature} className="map-alert-item">
+                    <span className="map-alert-icon">
+                      {reason.direction === "increases_risk" ? "+" : "-"}
+                    </span>
+                    <div className="map-alert-info">
+                      <span className="map-alert-title">{reason.feature}</span>
+                      <span className="map-alert-time">
+                        impact: {Number(reason.impact || 0).toFixed(4)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Legend */}
           <div className="context-section">
