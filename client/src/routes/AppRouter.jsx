@@ -21,6 +21,18 @@ import ServiceControlPage from "../pages/admin/ServiceControlPage";
 import SettingsPage from "../pages/user/SettingsPage";
 import ProtectedRoute from "./ProtectedRoute";
 
+/* ── Admin Panel pages ── */
+import AdminLayout from "../components/layout/AdminLayout";
+import AdminOverviewPage from "../pages/admin/AdminOverviewPage";
+import AdminIncidentsPage from "../pages/admin/AdminIncidentsPage";
+import AdminIncidentReviewPage from "../pages/admin/AdminIncidentReviewPage";
+import AdminAlertsPage from "../pages/admin/AdminAlertsPage";
+import AdminAIMonitoringPage from "../pages/admin/AdminAIMonitoringPage";
+import AdminUsersPage from "../pages/admin/AdminUsersPage";
+import AdminZonesPage from "../pages/admin/AdminZonesPage";
+import AdminSystemSettingsPage from "../pages/admin/AdminSystemSettingsPage";
+import AdminAnalyticsPage from "../pages/admin/AdminAnalyticsPage";
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -44,7 +56,7 @@ export default function AppRouter() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
 
-        {/* Admin routes: dashboard visible to any logged-in user, services admin-only */}
+        {/* Legacy admin routes (user dashboard + service control) */}
         <Route
           path="/admin/dashboard"
           element={
@@ -61,6 +73,27 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+
+        {/* ═══ ADMIN PANEL — Full authority interface ═══ */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/admin/overview" replace />} />
+          <Route path="overview" element={<AdminOverviewPage />} />
+          <Route path="incidents" element={<AdminIncidentsPage />} />
+          <Route path="incidents/:id" element={<AdminIncidentReviewPage />} />
+          <Route path="alerts" element={<AdminAlertsPage />} />
+          <Route path="ai" element={<AdminAIMonitoringPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="zones" element={<AdminZonesPage />} />
+          <Route path="system" element={<AdminSystemSettingsPage />} />
+          <Route path="analytics" element={<AdminAnalyticsPage />} />
+        </Route>
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/home" replace />} />

@@ -53,7 +53,7 @@ export default function LoginPage() {
       const res = await login(identifier, password, remember)
       // brief success visual then navigate
       setTimeout(() => {
-        if (res.role === 'admin') navigate('/admin/dashboard')
+        if (res.role === 'admin') navigate('/admin/overview')
         else navigate('/news')
       }, 300)
     } catch (err) {
@@ -178,6 +178,45 @@ export default function LoginPage() {
               </span>
               <span>Se connecter avec Google</span>
             </button>
+
+            {/* Quick demo access */}
+            <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(59,130,246,0.08)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.18)' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#3b82f6', marginBottom: 8 }}>Accès démo rapide</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  className="siara-alt"
+                  style={{ flex: 1, fontSize: 12.5, padding: '8px 12px', margin: 0 }}
+                  onClick={async () => {
+                    setLoading(true)
+                    try {
+                      await login('admin@siara.dz', 'admin1234', false)
+                      setTimeout(() => navigate('/admin/overview'), 300)
+                    } catch { setError('Demo login failed') }
+                    finally { setLoading(false) }
+                  }}
+                  disabled={loading}
+                >
+                  🛡️ Admin Panel
+                </button>
+                <button
+                  type="button"
+                  className="siara-alt"
+                  style={{ flex: 1, fontSize: 12.5, padding: '8px 12px', margin: 0 }}
+                  onClick={async () => {
+                    setLoading(true)
+                    try {
+                      await login('user@siara.dz', 'user12345', false)
+                      setTimeout(() => navigate('/news'), 300)
+                    } catch { setError('Demo login failed') }
+                    finally { setLoading(false) }
+                  }}
+                  disabled={loading}
+                >
+                  👤 User Demo
+                </button>
+              </div>
+            </div>
 
             <div className="siara-footer-links">
               <Link to="/about">À propos de SIARA</Link>
