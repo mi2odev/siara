@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -13,11 +13,13 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.heat";
 
 const DEFAULT_CENTER = [28.0339, 1.6596];
-const DEFAULT_ZOOM = 6;
+const DEFAULT_ZOOM = 5;
 const USER_ZOOM = 15;
+const NEARBY_RADIUS_KM = 25;
+const NEARBY_MAX_DESTINATIONS = 4;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
-async function postJson(url, body) {
+const postJson = async (url, body) => {
   const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
   const response = await fetch(fullUrl, {
     method: "POST",
@@ -41,6 +43,12 @@ function normalizePosition(pos) {
   return [lat, lng];
 }
 
+function toNearbyRequestKey(pos) {
+  const normalized = normalizePosition(pos);
+  if (!normalized) return "";
+  return `${normalized[0].toFixed(3)}:${normalized[1].toFixed(3)}`;
+}
+
 function getWeight(sev) {
   if (sev === "high") return 1;
   if (sev === "medium") return 0.7;
@@ -58,6 +66,10 @@ function getDangerColor(level) {
   if (level === "high") return "#ef4444";
   if (level === "moderate") return "#f59e0b";
   return "#22c55e";
+}
+
+function getContrastTextColor(bgColor) {
+  return bgColor === getDangerColor("low") ? "#111827" : "#ffffff";
 }
 
 function getSegmentPath(marker) {
@@ -83,13 +95,53 @@ function getSegmentPath(marker) {
   return normalized.length >= 2 ? normalized : null;
 }
 
-function FlyToUser({ userPosition }) {
+const FlyToUser = ({ userPosition, mapLayer }) => {
   const map = useMap();
   useEffect(() => {
     const target = normalizePosition(userPosition);
     if (!target) return;
+    if (mapLayer === "nearbyRoads") {
+      map.panTo(target, { animate: true });
+      return;
+    }
     map.flyTo(target, USER_ZOOM, { animate: true, duration: 0.8 });
-  }, [map, userPosition]);
+  }, [map, userPosition, mapLayer]);
+  return null;
+}
+
+const FitNearbyRoutes = ({ mapLayer, nearbyRoutes }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (mapLayer !== "nearbyRoads" || !Array.isArray(nearbyRoutes) || nearbyRoutes.length === 0) {
+      return;
+    }
+
+    const allPoints = [];
+    for (const route of nearbyRoutes) {
+      const segments = Array.isArray(route?.segments) ? route.segments : [];
+      if (segments.length > 0) {
+        for (const segment of segments) {
+          const segmentPath = getSegmentPath({ path: segment?.path });
+          if (segmentPath) {
+            allPoints.push(...segmentPath);
+          }
+        }
+        continue;
+      }
+
+      const routePath = getSegmentPath({ path: route?.path });
+      if (routePath) {
+        allPoints.push(...routePath);
+      }
+    }
+
+    if (allPoints.length < 2) return;
+    const bounds = L.latLngBounds(allPoints.map(([lat, lng]) => L.latLng(lat, lng)));
+    if (!bounds.isValid()) return;
+    map.fitBounds(bounds, { padding: [30, 30] });
+  }, [map, mapLayer, nearbyRoutes]);
+
   return null;
 }
 
@@ -125,7 +177,57 @@ export default function SiaraMap({
   const [overlayBySegment, setOverlayBySegment] = useState({});
   const [overlayState, setOverlayState] = useState("idle");
   const [overlayError, setOverlayError] = useState("");
+  const [nearbyRoutes, setNearbyRoutes] = useState([]);
+  const [nearbyRoutesState, setNearbyRoutesState] = useState("idle");
+  const [nearbyRoutesError, setNearbyRoutesError] = useState("");
   const [tileError, setTileError] = useState("");
+  const nearbyRequestKeyRef = useRef("");
+
+
+  const MapResizeFix = ({ deps = [] }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    // Run once after mount/render
+    const id = requestAnimationFrame(() => {
+      map.invalidateSize({ pan: false, animate: false });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [map]);
+
+  useEffect(() => {
+    const container = map.getContainer();
+    if (!container) return;
+
+    const ro = new ResizeObserver(() => {
+      // wait one frame so layout finishes first
+      requestAnimationFrame(() => {
+        map.invalidateSize({ pan: false, animate: false });
+      });
+    });
+
+    ro.observe(container);
+
+    // also handle window resize
+    const onResize = () => map.invalidateSize({ pan: false, animate: false });
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onResize);
+    };
+  }, [map]);
+
+  useEffect(() => {
+    // If your UI changes on layer switch / data load, force refresh too
+    const id = setTimeout(() => {
+      map.invalidateSize({ pan: false, animate: false });
+    }, 50);
+    return () => clearTimeout(id);
+  }, [map, ...deps]);
+
+  return null;
+}
 
   useEffect(() => {
     if (!userPosition) return;
@@ -206,6 +308,66 @@ export default function SiaraMap({
     };
   }, [mapLayer, mockMarkers]);
 
+  useEffect(() => {
+    if (mapLayer !== "nearbyRoads") {
+      nearbyRequestKeyRef.current = "";
+      setNearbyRoutesState("idle");
+      setNearbyRoutesError("");
+      return;
+    }
+
+    if (!userPosition) {
+      setNearbyRoutes([]);
+      setNearbyRoutesState("idle");
+      setNearbyRoutesError("");
+      return;
+    }
+
+    const requestKey = toNearbyRequestKey(userPosition);
+    if (!requestKey || requestKey === nearbyRequestKeyRef.current) {
+      return;
+    }
+
+    const body = {
+      lat: userPosition.lat,
+      lng: userPosition.lng,
+      radius_km: NEARBY_RADIUS_KM,
+      max_destinations: NEARBY_MAX_DESTINATIONS,
+      timestamp: new Date().toISOString(),
+    };
+    console.log("[React -> Node] /api/risk/nearby-zones body:", body);
+
+    let cancelled = false;
+    const fetchNearbyRoutes = async () => {
+      setNearbyRoutesState("loading");
+      setNearbyRoutesError("");
+      try {
+        const data = await postJson("/api/risk/nearby-zones", body);
+        if (cancelled) return;
+        setNearbyRoutes(Array.isArray(data?.routes) ? data.routes : []);
+        setNearbyRoutesState("success");
+        nearbyRequestKeyRef.current = requestKey;
+      
+console.log("[Node -> React] nearby-zones response:", data);
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Nearby routes error:", error);
+        setNearbyRoutesState("error");
+        setNearbyRoutesError(error.message || "Failed to load nearby routes");
+      }
+    };
+
+    fetchNearbyRoutes();
+    return () => {
+      cancelled = true;
+    };
+  }, [mapLayer, userPosition]);
+
+  useEffect(() => {
+    if (mapLayer !== "nearbyRoads" || nearbyRoutes.length === 0) return;
+    console.log("[nearbyRoads] first path point:", nearbyRoutes?.[0]?.path?.[0]);
+  }, [mapLayer, nearbyRoutes]);
+
   const heatPoints = useMemo(
     () =>
       (mockMarkers || [])
@@ -246,6 +408,8 @@ export default function SiaraMap({
 
   const userLatLng = normalizePosition(userPosition);
 
+
+  
   return (
     <div className="siara-map-shell">
       <div className="siara-map-error-stack">
@@ -259,32 +423,136 @@ export default function SiaraMap({
             Overlay error: {overlayError}
           </div>
         )}
+        {nearbyRoutesState === "error" && (
+          <div className="siara-map-error">
+            Nearby routes error: {nearbyRoutesError}
+          </div>
+        )}
       </div>
 
       <MapContainer
         center={userLatLng || DEFAULT_CENTER}
         zoom={userLatLng ? USER_ZOOM : DEFAULT_ZOOM}
         className="siara-leaflet-map"
-        zoomControl={false}
+        zoomControl={true}
       >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          eventHandlers={{
-            tileerror: () => {
-              setTileError("Unable to fetch OpenStreetMap tiles.");
-            },
-            load: () => {
-              setTileError("");
-            },
-          }}
-        />
+          <MapResizeFix deps={[mapLayer, !!userLatLng, mockMarkers?.length, nearbyRoutes.length]} />
 
-        <FlyToUser userPosition={userPosition} />
+  <TileLayer
+    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    eventHandlers={{
+      tileerror: () => setTileError("Unable to fetch OpenStreetMap tiles."),
+      load: () => setTileError(""),
+    }}
+  />
+
+        <FlyToUser userPosition={userPosition} mapLayer={mapLayer} />
+        {mapLayer === "nearbyRoads" && nearbyRoutes.length > 0 && (
+          <FitNearbyRoutes mapLayer={mapLayer} nearbyRoutes={nearbyRoutes} />
+        )}
 
         {mapLayer === "heatmap" && heatPoints.length > 0 && <HeatLayer points={heatPoints} />}
 
-        <Pane name="risk-layer" style={{ zIndex: 100 }}>
+        <Pane name="risk-layer" style={{ zIndex: 9999 }}>
+          {mapLayer === "nearbyRoads" &&
+            nearbyRoutes.flatMap((route) => {
+              const destinationPos = normalizePosition(route?.destination);
+              const destinationName =
+                route?.destination?.name || route?.destination?.id || "Nearby route";
+              const routePercent = Number(route?.summary?.danger_percent);
+              const routeLevel = route?.summary?.danger_level || "low";
+              const routeColor = getDangerColor(routeLevel);
+              const routeTooltipStyle = {
+                "--risk-color": routeColor,
+                "--risk-text-color": getContrastTextColor(routeColor),
+              };
+
+              const candidateSegments =
+                Array.isArray(route?.segments) && route.segments.length > 0
+                  ? route.segments
+                  : [
+                      {
+                        path: route?.path,
+                        danger_percent: route?.summary?.danger_percent,
+                        danger_level: route?.summary?.danger_level,
+                      },
+                    ];
+
+              const rendered = [];
+
+              candidateSegments.forEach((segment, index) => {
+                const segmentPath = getSegmentPath({ path: segment?.path });
+                if (!segmentPath) return;
+
+                const segmentPercent = Number(segment?.danger_percent);
+                const segmentLevel = segment?.danger_level || routeLevel;
+                const segmentColor = getDangerColor(segmentLevel);
+                const segmentTooltipStyle = {
+                  "--risk-color": segmentColor,
+                  "--risk-text-color": getContrastTextColor(segmentColor),
+                };
+
+                rendered.push(
+                  <Polyline
+                    key={`${route.route_id || destinationName}-seg-${index}`}
+                    positions={segmentPath}
+                    pathOptions={{ color: segmentColor, weight: 5, opacity: 0.9 }}
+                  >
+                    {Number.isFinite(segmentPercent) && (
+                      <Tooltip sticky direction="top" className="siara-risk-tooltip">
+                        <span className="siara-risk-tooltip__pill" style={segmentTooltipStyle}>
+                          {destinationName} - {Math.round(segmentPercent)}% ({segmentLevel})
+                        </span>
+                      </Tooltip>
+                    )}
+                  </Polyline>,
+                );
+              });
+
+              if (destinationPos) {
+                rendered.push(
+                  <CircleMarker
+                    key={`${route.route_id || destinationName}-dest`}
+                    center={destinationPos}
+                    radius={6}
+                    pathOptions={{
+                      color: "#ffffff",
+                      weight: 2,
+                      fillColor: routeColor,
+                      fillOpacity: 0.95,
+                    }}
+                  >
+                    {Number.isFinite(routePercent) && (
+                      <Tooltip direction="top" className="siara-risk-tooltip">
+                        <span className="siara-risk-tooltip__pill" style={routeTooltipStyle}>
+                          {destinationName} - {Math.round(routePercent)}% ({routeLevel})
+                        </span>
+                      </Tooltip>
+                    )}
+                  </CircleMarker>,
+                );
+              }
+
+              if (userLatLng && destinationPos) {
+                rendered.push(
+                  <Polyline
+                    key={`${route.route_id || destinationName}-debug-link`}
+                    positions={[userLatLng, destinationPos]}
+                    pathOptions={{
+                      color: "#3b82f6",
+                      weight: 1,
+                      opacity: 0.6,
+                      dashArray: "4 6",
+                    }}
+                    interactive={false}
+                  />,
+                );
+              }
+
+              return rendered;
+            })}
+
           {(mapLayer === "points" || mapLayer === "ai") &&
             (mockMarkers || []).map((marker) => {
               const position = normalizePosition(marker);
@@ -297,6 +565,12 @@ export default function SiaraMap({
                 ? getDangerColor(overlay?.danger_level)
                 : getIncidentColor(marker.severity);
               const percent = overlay?.danger_percent;
+              const aiTooltipStyle = isAi
+                ? {
+                    "--risk-color": color,
+                    "--risk-text-color": getContrastTextColor(color),
+                  }
+                : undefined;
 
               if (isAi && segmentPath) {
                 return (
@@ -309,8 +583,10 @@ export default function SiaraMap({
                     }}
                   >
                     {Number.isFinite(percent) && (
-                      <Tooltip sticky direction="top">
-                        {Math.round(percent)}% - {overlay?.danger_level || "unknown"}
+                      <Tooltip sticky direction="top" className="siara-risk-tooltip">
+                        <span className="siara-risk-tooltip__pill" style={aiTooltipStyle}>
+                          {Math.round(percent)}% - {overlay?.danger_level || "unknown"}
+                        </span>
                       </Tooltip>
                     )}
                   </Polyline>
@@ -333,8 +609,15 @@ export default function SiaraMap({
                   }}
                 >
                   {isAi && Number.isFinite(percent) && (
-                    <Tooltip permanent direction="top" offset={[0, -8]}>
-                      {Math.round(percent)}%
+                    <Tooltip
+                      permanent
+                      direction="top"
+                      offset={[0, -8]}
+                      className="siara-risk-tooltip"
+                    >
+                      <span className="siara-risk-tooltip__pill" style={aiTooltipStyle}>
+                        {Math.round(percent)}%
+                      </span>
                     </Tooltip>
                   )}
                 </CircleMarker>
@@ -349,7 +632,7 @@ export default function SiaraMap({
             pathOptions={{
               color: "#ffffff",
               weight: 2,
-              fillColor: "#1a73e8",
+              fillColor: "#7c3aed",
               fillOpacity: 1,
             }}
           >
@@ -366,7 +649,7 @@ export default function SiaraMap({
         {currentRiskState === "success" && currentRisk && (
           <>
             <p>
-              <strong>{currentRisk.danger_percent}%</strong> ({currentRisk.danger_level})
+              <strong className="risk-debug-percent" style={{ color: getDangerColor(currentRisk.danger_level) }}>{currentRisk.danger_percent}%</strong> 
             </p>
             <p>confidence: {currentRisk.confidence}%</p>
             <p>quality: {currentRisk.quality}</p>

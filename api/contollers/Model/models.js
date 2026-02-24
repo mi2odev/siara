@@ -14,6 +14,14 @@ const RISK_TIMEZONE = process.env.RISK_TIMEZONE || "Africa/Algiers";
 
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 const SUN_API_URL = "https://api.sunrise-sunset.org/json";
+const OSRM_ROUTE_URL =
+  process.env.OSRM_ROUTE_URL || "https://router.project-osrm.org/route/v1/driving";
+const OSRM_TIMEOUT_MS = Number(process.env.OSRM_TIMEOUT_MS || 8000);
+const DEFAULT_NEARBY_RADIUS_KM = Number(process.env.NEARBY_RADIUS_KM || 25);
+const DEFAULT_MAX_DESTINATIONS = Number(process.env.NEARBY_MAX_DESTINATIONS || 4);
+const MAX_NEARBY_DESTINATIONS = Number(process.env.NEARBY_MAX_DESTINATIONS_CAP || 8);
+const DEFAULT_ROUTE_SAMPLES = Number(process.env.NEARBY_ROUTE_SAMPLES || 5);
+const MAX_ROUTE_SAMPLES = Number(process.env.NEARBY_ROUTE_SAMPLES_CAP || 12);
 
 const ROAD_FLAG_KEYS = [
   "Amenity",
@@ -42,6 +50,31 @@ const weatherCache = new Map();
 const twilightCache = new Map();
 const segmentRowCache = new Map();
 const MAX_SEGMENT_CACHE = 2000;
+const EARTH_RADIUS_KM = 6371;
+
+const FALLBACK_DESTINATIONS = Object.freeze([
+  { id: "alger", name: "Alger", lat: 36.7538, lng: 3.0588 },
+  { id: "oran", name: "Oran", lat: 35.6981, lng: -0.6348 },
+  { id: "constantine", name: "Constantine", lat: 36.365, lng: 6.6147 },
+  { id: "annaba", name: "Annaba", lat: 36.9, lng: 7.7669 },
+  { id: "blida", name: "Blida", lat: 36.4701, lng: 2.8277 },
+  { id: "setif", name: "Setif", lat: 36.1911, lng: 5.4137 },
+  { id: "batna", name: "Batna", lat: 35.5559, lng: 6.1741 },
+  { id: "bejaia", name: "Bejaia", lat: 36.7525, lng: 5.0556 },
+  { id: "tebessa", name: "Tebessa", lat: 35.4042, lng: 8.1242 },
+  { id: "jijel", name: "Jijel", lat: 36.8219, lng: 5.7667 },
+  { id: "skikda", name: "Skikda", lat: 36.8775, lng: 6.9092 },
+  { id: "tlemcen", name: "Tlemcen", lat: 34.8783, lng: -1.315 },
+  { id: "sidi_bel_abbes", name: "Sidi Bel Abbes", lat: 35.1899, lng: -0.6308 },
+  { id: "mostaganem", name: "Mostaganem", lat: 35.9371, lng: 0.0901 },
+  { id: "tipaza", name: "Tipaza", lat: 36.5897, lng: 2.4475 },
+  { id: "boumerdes", name: "Boumerdes", lat: 36.7564, lng: 3.4764 },
+  { id: "tizi_ouzou", name: "Tizi Ouzou", lat: 36.7118, lng: 4.0459 },
+  { id: "ghardaia", name: "Ghardaia", lat: 32.4909, lng: 3.6735 },
+  { id: "biskra", name: "Biskra", lat: 34.8504, lng: 5.7281 },
+  { id: "msila", name: "M'Sila", lat: 35.7047, lng: 4.5451 },
+  { id: "chlef", name: "Chlef", lat: 36.1653, lng: 1.3345 },
+]);
 
 function cToF(celsius) {
   return (celsius * 9) / 5 + 32;
@@ -63,9 +96,134 @@ function metersToMiles(meters) {
   return meters / 1609.344;
 }
 
+function toRadians(degrees) {
+  return (degrees * Math.PI) / 180;
+}
+
+function toDegrees(radians) {
+  return (radians * 180) / Math.PI;
+}
+
+function haversineDistanceKm(aLat, aLng, bLat, bLng) {
+  const dLat = toRadians(bLat - aLat);
+  const dLng = toRadians(bLng - aLng);
+  const lat1 = toRadians(aLat);
+  const lat2 = toRadians(bLat);
+
+  const sinLat = Math.sin(dLat / 2);
+  const sinLng = Math.sin(dLng / 2);
+  const h =
+    sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLng * sinLng;
+
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function destinationFromBearing(originLat, originLng, bearingDeg, distanceKm) {
+  const angularDistance = distanceKm / EARTH_RADIUS_KM;
+  const bearing = toRadians(bearingDeg);
+  const lat1 = toRadians(originLat);
+  const lng1 = toRadians(originLng);
+
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(angularDistance) +
+      Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing),
+  );
+  const lng2 =
+    lng1 +
+    Math.atan2(
+      Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
+      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2),
+    );
+
+  return {
+    lat: toDegrees(lat2),
+    lng: toDegrees(lng2),
+  };
+}
+
+function normalizeDangerLevel(level, dangerPercent = null) {
+  const text = String(level || "").trim().toLowerCase();
+  if (text === "extreme" || text === "high" || text === "moderate" || text === "low") {
+    return text;
+  }
+
+  const percent = safeNumber(dangerPercent);
+  if (percent == null) {
+    return "low";
+  }
+  if (percent < 25) return "low";
+  if (percent < 50) return "moderate";
+  if (percent < 75) return "high";
+  return "extreme";
+}
+
+function normalizeLatLngPoint(point) {
+  if (!Array.isArray(point) || point.length < 2) {
+    return null;
+  }
+  const lat = safeNumber(point[0]);
+  const lng = safeNumber(point[1]);
+  if (lat == null || lng == null) {
+    return null;
+  }
+  return [lat, lng];
+}
+
+function dedupePathPoints(path) {
+  if (!Array.isArray(path)) {
+    return [];
+  }
+
+  const deduped = [];
+  const seen = new Set();
+  for (const rawPoint of path) {
+    const point = normalizeLatLngPoint(rawPoint);
+    if (!point) {
+      continue;
+    }
+    const key = `${point[0].toFixed(6)}:${point[1].toFixed(6)}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    deduped.push(point);
+  }
+  return deduped;
+}
+
 function safeNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function roundNumber(value, digits = 2) {
+  const n = safeNumber(value);
+  if (n == null) {
+    return null;
+  }
+  const factor = 10 ** digits;
+  return Math.round(n * factor) / factor;
+}
+
+function parseBoundedNumber(value, fallback, { min, max, integer = false }) {
+  const n = safeNumber(value);
+  if (n == null) {
+    return fallback;
+  }
+  const bounded = clampNumber(n, min, max);
+  return integer ? Math.round(bounded) : bounded;
+}
+
+function isValidLatitude(lat) {
+  return lat >= -90 && lat <= 90;
+}
+
+function isValidLongitude(lng) {
+  return lng >= -180 && lng <= 180;
 }
 
 function toIsoTimestamp(input) {
@@ -365,6 +523,262 @@ function validateLatLng(body) {
   return { lat, lng };
 }
 
+function validateLatLngStrict(body) {
+  const point = validateLatLng(body);
+  if (!point) {
+    return null;
+  }
+  if (!isValidLatitude(point.lat) || !isValidLongitude(point.lng)) {
+    return null;
+  }
+  return point;
+}
+
+function buildSyntheticDestinations(origin, radiusKm, count, usedIds) {
+  if (count <= 0) {
+    return [];
+  }
+
+  const results = [];
+  for (let i = 0; i < count; i += 1) {
+    const bearing = ((360 / count) * i + 35) % 360;
+    const distanceKm = Math.max(2, Math.min(radiusKm * (0.45 + i * 0.1), radiusKm - 0.5));
+    if (distanceKm <= 0) {
+      continue;
+    }
+
+    const point = destinationFromBearing(origin.lat, origin.lng, bearing, distanceKm);
+    const id = `nearby_target_${i + 1}`;
+    if (usedIds.has(id)) {
+      continue;
+    }
+    if (!isValidLatitude(point.lat) || !isValidLongitude(point.lng)) {
+      continue;
+    }
+
+    usedIds.add(id);
+    results.push({
+      id,
+      name: `Nearby route ${i + 1}`,
+      lat: point.lat,
+      lng: point.lng,
+      distance_km: roundNumber(
+        haversineDistanceKm(origin.lat, origin.lng, point.lat, point.lng),
+        2,
+      ),
+    });
+  }
+  return results;
+}
+
+function selectNearbyDestinations(origin, radiusKm, maxDestinations) {
+  const usedIds = new Set();
+  const fromCities = FALLBACK_DESTINATIONS
+    .map((item) => {
+      const distanceKm = haversineDistanceKm(origin.lat, origin.lng, item.lat, item.lng);
+      return {
+        ...item,
+        distance_km: roundNumber(distanceKm, 2),
+      };
+    })
+    .filter((item) => item.distance_km != null && item.distance_km <= radiusKm)
+    .sort((a, b) => a.distance_km - b.distance_km)
+    .slice(0, maxDestinations)
+    .map((item) => {
+      usedIds.add(item.id);
+      return item;
+    });
+
+  if (fromCities.length >= maxDestinations) {
+    return fromCities;
+  }
+
+  const needed = maxDestinations - fromCities.length;
+  const synthetic = buildSyntheticDestinations(origin, radiusKm, needed, usedIds);
+  return [...fromCities, ...synthetic].slice(0, maxDestinations);
+}
+
+function decodeOsrmPathCoordinates(rawCoordinates) {
+  if (!Array.isArray(rawCoordinates)) {
+    return null;
+  }
+
+  const path = rawCoordinates
+    .map((point) => {
+      if (!Array.isArray(point) || point.length < 2) {
+        return null;
+      }
+      const lng = safeNumber(point[0]);
+      const lat = safeNumber(point[1]);
+      if (lat == null || lng == null) {
+        return null;
+      }
+      return [lat, lng];
+    })
+    .filter(Boolean);
+
+  return path.length >= 2 ? path : null;
+}
+
+function buildStraightLinePath(origin, destination) {
+  return [
+    [origin.lat, origin.lng],
+    [destination.lat, destination.lng],
+  ];
+}
+
+function buildEvenSampleIndices(totalPoints, requestedSamples) {
+  if (totalPoints <= 0) {
+    return [];
+  }
+  if (totalPoints === 1) {
+    return [0];
+  }
+
+  const sampleCount = Math.max(2, Math.min(totalPoints, requestedSamples));
+  const indices = [];
+  for (let i = 0; i < sampleCount; i += 1) {
+    const idx = Math.round((i * (totalPoints - 1)) / (sampleCount - 1));
+    if (indices.length === 0 || indices[indices.length - 1] !== idx) {
+      indices.push(idx);
+    }
+  }
+
+  if (indices[0] !== 0) {
+    indices.unshift(0);
+  }
+  if (indices[indices.length - 1] !== totalPoints - 1) {
+    indices.push(totalPoints - 1);
+  }
+
+  return indices;
+}
+
+function sampleRoutePoints(path, requestedSamples) {
+  const normalizedPath = dedupePathPoints(path);
+  if (normalizedPath.length === 0) {
+    return [];
+  }
+
+  const indices = buildEvenSampleIndices(normalizedPath.length, requestedSamples);
+  return indices.map((idx) => normalizedPath[idx]);
+}
+
+function summarizeRouteSamples(samples) {
+  const percents = samples
+    .map((sample) => safeNumber(sample?.danger_percent))
+    .filter((value) => value != null);
+
+  if (!percents.length) {
+    return {
+      danger_percent: 0,
+      danger_level: "low",
+    };
+  }
+
+  const maxPercent = Math.max(...percents);
+  const meanPercent = percents.reduce((acc, value) => acc + value, 0) / percents.length;
+  const aggregated = roundNumber(0.6 * maxPercent + 0.4 * meanPercent, 2) ?? 0;
+
+  return {
+    danger_percent: aggregated,
+    danger_level: normalizeDangerLevel(null, aggregated),
+  };
+}
+
+async function getRoutePathWithFallback(origin, destination) {
+  const straightDistanceKm = haversineDistanceKm(
+    origin.lat,
+    origin.lng,
+    destination.lat,
+    destination.lng,
+  );
+
+  const url = `${OSRM_ROUTE_URL}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
+
+  try {
+    const { data } = await axios.get(url, {
+      params: {
+        overview: "full",
+        geometries: "geojson",
+        steps: false,
+      },
+      timeout: OSRM_TIMEOUT_MS,
+    });
+
+    const route = data?.routes?.[0];
+    const path = decodeOsrmPathCoordinates(route?.geometry?.coordinates);
+    if (!path) {
+      throw new Error("OSRM route geometry unavailable");
+    }
+
+    const routeDistanceKm = safeNumber(route?.distance);
+    return {
+      path,
+      distance_km: roundNumber(
+        routeDistanceKm == null ? straightDistanceKm : routeDistanceKm / 1000,
+        2,
+      ),
+      routing_source: "osrm",
+    };
+  } catch (error) {
+    console.warn(`[Node] OSRM fallback for ${destination.id}: ${error.message}`);
+    return {
+      path: buildStraightLinePath(origin, destination),
+      distance_km: roundNumber(straightDistanceKm, 2),
+      routing_source: "straight_line",
+    };
+  }
+}
+
+function normalizeOverlaySamplePrediction(prediction) {
+  const percentRaw = safeNumber(prediction?.danger_percent);
+  const percent = percentRaw == null ? 0 : roundNumber(percentRaw, 2);
+  const level = normalizeDangerLevel(prediction?.danger_level, percent);
+  const confidence = safeNumber(prediction?.confidence);
+  const quality = prediction?.quality == null ? null : String(prediction.quality);
+
+  return {
+    danger_percent: percent == null ? 0 : percent,
+    danger_level: level,
+    confidence: confidence == null ? null : roundNumber(confidence, 2),
+    quality,
+  };
+}
+
+function buildRouteSegmentsFromSamples(samples, fallbackSummary) {
+  if (!Array.isArray(samples) || samples.length < 2) {
+    return [];
+  }
+
+  const fallbackPercent = safeNumber(fallbackSummary?.danger_percent) ?? 0;
+  const fallbackLevel = normalizeDangerLevel(fallbackSummary?.danger_level, fallbackPercent);
+
+  const segments = [];
+  for (let i = 0; i < samples.length - 1; i += 1) {
+    const start = samples[i];
+    const end = samples[i + 1];
+    if (!start || !end) {
+      continue;
+    }
+
+    const endPercent = safeNumber(end.danger_percent);
+    const segmentPercent = endPercent == null ? fallbackPercent : roundNumber(endPercent, 2);
+    const segmentLevel = normalizeDangerLevel(end.danger_level, segmentPercent);
+
+    segments.push({
+      path: [
+        [start.lat, start.lng],
+        [end.lat, end.lng],
+      ],
+      danger_percent: segmentPercent == null ? fallbackPercent : segmentPercent,
+      danger_level: segmentLevel || fallbackLevel,
+    });
+  }
+
+  return segments;
+}
+
 function pruneSegmentCacheIfNeeded() {
   if (segmentRowCache.size <= MAX_SEGMENT_CACHE) {
     return;
@@ -486,6 +900,170 @@ exports.predictRiskOverlay = async (req, res) => {
     const payload = err.response?.data || { error: "Risk overlay model service error" };
     console.error("[Node] /api/risk/overlay error:", err.message);
     return res.status(status).json(payload);
+  }
+};
+
+exports.predictNearbyZones = async (req, res) => {
+  console.log("[React -> Node] /api/risk/nearby-zones body:", req.body);
+
+  const origin = validateLatLngStrict(req.body);
+  if (!origin) {
+    return res.status(400).json({ error: "Valid lat and lng are required" });
+  }
+
+  const radiusKm = parseBoundedNumber(req.body?.radius_km, DEFAULT_NEARBY_RADIUS_KM, {
+    min: 2,
+    max: 100,
+  });
+  const maxDestinations = parseBoundedNumber(
+    req.body?.max_destinations,
+    DEFAULT_MAX_DESTINATIONS,
+    {
+      min: 1,
+      max: MAX_NEARBY_DESTINATIONS,
+      integer: true,
+    },
+  );
+  const samplesPerRoute = parseBoundedNumber(
+    req.body?.samples_per_route ?? req.body?.sample_points,
+    DEFAULT_ROUTE_SAMPLES,
+    {
+      min: 2,
+      max: MAX_ROUTE_SAMPLES,
+      integer: true,
+    },
+  );
+  const timestampIso = toIsoTimestamp(req.body?.timestamp);
+
+  try {
+    const destinations = selectNearbyDestinations(origin, radiusKm, maxDestinations);
+    if (!destinations.length) {
+      return res.json({ origin, routes: [] });
+    }
+
+    const routedRoutes = await Promise.all(
+      destinations.map(async (destination, index) => {
+        const routed = await getRoutePathWithFallback(origin, destination);
+        return {
+          route_id: `r${index + 1}`,
+          destination: {
+            id: destination.id,
+            name: destination.name,
+            lat: destination.lat,
+            lng: destination.lng,
+            distance_km: routed.distance_km,
+          },
+          path: routed.path,
+          routing_source: routed.routing_source,
+        };
+      }),
+    );
+
+    const sampleJobs = [];
+    const routeSamplesByRouteId = new Map();
+
+    for (const route of routedRoutes) {
+      let sampledPoints = sampleRoutePoints(route.path, samplesPerRoute);
+      if (sampledPoints.length === 0) {
+        sampledPoints = sampleRoutePoints(
+          buildStraightLinePath(origin, route.destination),
+          samplesPerRoute,
+        );
+      }
+
+      const routeSamples = sampledPoints.map(([lat, lng], sampleIndex) => {
+        const sampleId = `${route.route_id}:s${sampleIndex}`;
+        sampleJobs.push({
+          sample_id: sampleId,
+          route_id: route.route_id,
+          sample_index: sampleIndex,
+          lat,
+          lng,
+        });
+        return { sample_id: sampleId, lat, lng };
+      });
+
+      routeSamplesByRouteId.set(route.route_id, routeSamples);
+    }
+
+    if (sampleJobs.length === 0) {
+      const routes = routedRoutes.map((route) => ({
+        ...route,
+        summary: { danger_percent: 0, danger_level: "low" },
+        segments: [],
+        samples: [],
+      }));
+      return res.json({ origin, routes });
+    }
+
+    const modelRows = await Promise.all(
+      sampleJobs.map(async (job) => {
+        const row = await buildDangerRow({
+          lat: job.lat,
+          lng: job.lng,
+          timestamp: timestampIso,
+          roadFlags: ROAD_FLAG_ZEROES,
+        });
+        return {
+          segment_id: job.sample_id,
+          ...row,
+        };
+      }),
+    );
+
+    const overlayResponse = await postToFlask("/risk/overlay", { rows: modelRows });
+    const overlayResults = Array.isArray(overlayResponse?.data?.results)
+      ? overlayResponse.data.results
+      : [];
+
+    const predictionBySampleId = new Map();
+    for (let i = 0; i < overlayResults.length; i += 1) {
+      const item = overlayResults[i];
+      const sampleId = String(item?.segment_id ?? modelRows[i]?.segment_id ?? "");
+      if (!sampleId) {
+        continue;
+      }
+      predictionBySampleId.set(sampleId, normalizeOverlaySamplePrediction(item));
+    }
+
+    const routes = routedRoutes.map((route) => {
+      const sampled = routeSamplesByRouteId.get(route.route_id) || [];
+      const samples = sampled.map((sample) => {
+        const predicted =
+          predictionBySampleId.get(sample.sample_id) || {
+            danger_percent: 0,
+            danger_level: "low",
+            confidence: null,
+            quality: null,
+          };
+        return {
+          lat: sample.lat,
+          lng: sample.lng,
+          danger_percent: predicted.danger_percent,
+          danger_level: predicted.danger_level,
+          confidence: predicted.confidence,
+          quality: predicted.quality,
+        };
+      });
+
+      const summary = summarizeRouteSamples(samples);
+      const segments = buildRouteSegmentsFromSamples(samples, summary);
+
+      return {
+        ...route,
+        summary,
+        segments,
+        samples,
+      };
+    });
+
+    return res.json({
+      origin,
+      routes,
+    });
+  } catch (err) {
+    console.error("[Node] /api/risk/nearby-zones error:", err.message);
+    return res.status(500).json({ error: "Failed to compute nearby danger routes" });
   }
 };
 

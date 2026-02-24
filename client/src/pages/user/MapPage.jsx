@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import "../../styles/MapPage.css";
 import siaraLogo from "../../assets/logos/siara-logo.png";
 import SiaraMap from "../../components/map/SiaraMap";
-
+import LocationOnTwoToneIcon from '@mui/icons-material/LocationOnTwoTone';
+import FullscreenTwoToneIcon from '@mui/icons-material/FullscreenTwoTone';
+import FullscreenExitTwoToneIcon from '@mui/icons-material/FullscreenExitTwoTone';
 export default function MapPage() {
   const navigate = useNavigate();
 
@@ -16,6 +18,7 @@ export default function MapPage() {
   const [mapLayer, setMapLayer] = useState("points");
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [userPosition, setUserPosition] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
 
   // Mock data
@@ -301,9 +304,9 @@ export default function MapPage() {
         </aside>
 
         {/* ========== CENTER - MAP ========== */}
-        <main className="map-main">
+        <main className="map-main" style={{height: isFullscreen ? "100vh" : "" , width: isFullscreen ? "100vw" : "" , top: isFullscreen ? 0 : "" , left: isFullscreen ? 0 : "" , position: isFullscreen ? "fixed" : "relative" , zIndex: isFullscreen ? 9999 : ""}}>
           {/* Map Container */}
-          <div className="map-container">
+          <div className="map-container" style={{height: isFullscreen ? "100vh" : "" , width: isFullscreen ? "100vw" : "" , top: isFullscreen ? 0 : "" , left: isFullscreen ? 0 : "" , position: isFullscreen ? "absolute" : "relative" , zIndex: isFullscreen ? 9999 : ""}}>
             {/* Floating Map Controls */}
             <div className="map-controls-top">
               <div className="layer-switcher">
@@ -312,6 +315,7 @@ export default function MapPage() {
                   { id: "heatmap", label: "Heatmap" },
                   { id: "clusters", label: "Clusters" },
                   { id: "ai", label: "IA Risques" },
+                  { id: "nearbyRoads", label: "Nearby Roads" },
                 ].map((l) => (
                   <button
                     key={l.id}
@@ -325,6 +329,17 @@ export default function MapPage() {
             </div>
 
             <div className="map-controls-right">
+              {isFullscreen ? (
+                <button className="map-ctrl-btn" title="exit fullscreen" onClick={() => setIsFullscreen(false)}>
+                  <FullscreenExitTwoToneIcon className="btn-icon" />
+                </button>
+              ) : (
+                <button className="map-ctrl-btn" title="fullscreen" onClick={() => setIsFullscreen(true)}>
+                  <FullscreenTwoToneIcon className="btn-icon" />
+                </button>
+              )}
+                
+              
             <button
   className="map-ctrl-btn"
   title="Ma position"
@@ -342,48 +357,9 @@ export default function MapPage() {
       }
     );
   }}
-/>
-              <button className="map-ctrl-btn" title="Zoom +">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-              </button>
-              <button className="map-ctrl-btn" title="Zoom −">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-              </button>
-              <button className="map-ctrl-btn" title="Recentrer">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="3"></circle>
-                  <line x1="12" y1="2" x2="12" y2="6"></line>
-                  <line x1="12" y1="18" x2="12" y2="22"></line>
-                  <line x1="2" y1="12" x2="6" y2="12"></line>
-                  <line x1="18" y1="12" x2="22" y2="12"></line>
-                </svg>
-              </button>
+><LocationOnTwoToneIcon className="btn-icon" /></button>
+              
+             
             </div>
 
             {/* Map Canvas (Placeholder - replace with real map library) */}
