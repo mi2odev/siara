@@ -181,7 +181,7 @@ export default function AlertsPage() {
               <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab dash-tab-active">Alerts</button>
-              <button className="dash-tab" onClick={() => navigate('/admin/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
             </nav>
           </div>
           <div className="dash-header-center">

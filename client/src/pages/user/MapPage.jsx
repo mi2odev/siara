@@ -131,7 +131,7 @@ export default function MapPage() {
               </button>
               <button
                 className="dash-tab"
-                onClick={() => navigate("/admin/dashboard")}
+                onClick={() => navigate("/dashboard")}
               >
                 Dashboard
               </button>

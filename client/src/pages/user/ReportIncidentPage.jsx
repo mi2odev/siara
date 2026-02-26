@@ -168,7 +168,7 @@ export default function ReportIncidentPage() {
                 <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
                 <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
                 <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-                <button className="dash-tab" onClick={() => navigate('/admin/dashboard')}>Dashboard</button>
+                <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               </nav>
             </div>
             <div className="dash-header-center">
@@ -263,7 +263,7 @@ export default function ReportIncidentPage() {
               <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-              <button className="dash-tab" onClick={() => navigate('/admin/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
             </nav>
           </div>
           <div className="dash-header-center">

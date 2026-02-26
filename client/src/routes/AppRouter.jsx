@@ -17,6 +17,7 @@ import NotificationsPage from "../pages/user/NotificationsPage";
 import CreateAlertPage from "../pages/user/CreateAlertPage";
 import ReportIncidentPage from "../pages/user/ReportIncidentPage";
 import DashboardPage from "../pages/admin/DashboardPage";
+import UserDashboardPage from "../pages/user/UserDashboardPage";
 import ServiceControlPage from "../pages/admin/ServiceControlPage";
 import SettingsPage from "../pages/user/SettingsPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -56,11 +57,14 @@ export default function AppRouter() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
 
-        {/* Legacy admin routes (user dashboard + service control) */}
+        {/* User dashboard — accessible to everyone */}
+        <Route path="/dashboard" element={<UserDashboardPage />} />
+
+        {/* Admin-only dashboard (legacy) */}
         <Route
           path="/admin/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={["admin"]}>
               <DashboardPage />
             </ProtectedRoute>
           }
