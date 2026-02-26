@@ -1,10 +1,13 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { AuthContext } from '../../contexts/AuthContext'
 import logo from '../../../assets/logos/siara-logo.png'
 
 export default function Header() {
   const location = useLocation()
+  const { user } = useContext(AuthContext)
   const isHome = location.pathname === '/home'
+  const dashboardPath = user?.role === 'admin' ? '/admin/dashboard' : '/dashboard'
 
   function scrollTo(id){
     const el = document.getElementById(id)
@@ -29,7 +32,7 @@ export default function Header() {
           )}
           <Link to="/map" className="nav-link">Carte</Link>
           <Link to="/predictions" className="nav-link">Prédictions</Link>
-          <Link to="/admin/dashboard" className="nav-link">Dashboard</Link>
+          <Link to={dashboardPath} className="nav-link">Dashboard</Link>
           <Link to="/contact" className="nav-link">Contact</Link>
         </nav>
 
