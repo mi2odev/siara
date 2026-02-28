@@ -9,6 +9,7 @@ const {
   predictRiskOverlay,
   predictRiskExplain,
   predictNearbyZones,
+  predictRouteGuide,
 } = require("./contollers/Model/models");
 
 const app = express();
@@ -23,12 +24,14 @@ app.post("/api/risk/current", predictCurrentRisk);
 app.post("/api/risk/overlay", predictRiskOverlay);
 app.post("/api/risk/explain", predictRiskExplain);
 app.post("/api/risk/nearby-zones", predictNearbyZones);
+app.post("/api/risk/route", predictRouteGuide);
 
 // Compatibility aliases
 app.post("/api/model/risk/current", predictCurrentRisk);
 app.post("/api/model/risk/overlay", predictRiskOverlay);
 app.post("/api/model/risk/explain", predictRiskExplain);
 app.post("/api/model/risk/nearby-zones", predictNearbyZones);
+app.post("/api/model/risk/route", predictRouteGuide);
 
 app.listen(process.env.PORT_NUM || 5000, () => {
   console.log("Backend server is running !!");

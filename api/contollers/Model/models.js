@@ -1,4 +1,5 @@
 const axios = require("axios");
+const crypto = require("crypto");
 
 const LEGACY_ML_SERVICE_URL = process.env.ML_SERVICE_URL;
 const ML_SERVICE_BASE_URL =
@@ -22,6 +23,8 @@ const DEFAULT_MAX_DESTINATIONS = Number(process.env.NEARBY_MAX_DESTINATIONS || 4
 const MAX_NEARBY_DESTINATIONS = Number(process.env.NEARBY_MAX_DESTINATIONS_CAP || 8);
 const DEFAULT_ROUTE_SAMPLES = Number(process.env.NEARBY_ROUTE_SAMPLES || 5);
 const MAX_ROUTE_SAMPLES = Number(process.env.NEARBY_ROUTE_SAMPLES_CAP || 12);
+const DEFAULT_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT || 12);
+const MAX_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT_CAP || 40);
 
 const ROAD_FLAG_KEYS = [
   "Amenity",
@@ -369,11 +372,13 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
     hourly: "visibility",
     forecast_days: 1,
     timezone: "auto",
+    wind_speed_unit: "ms"
   };
 
   const { data } = await axios.get(OPEN_METEO_URL, {
     params,
     timeout: WEATHER_TIMEOUT_MS,
+    
   });
 
   const current = data?.current || {};
@@ -664,7 +669,56 @@ function sampleRoutePoints(path, requestedSamples) {
   return indices.map((idx) => normalizedPath[idx]);
 }
 
-function summarizeRouteSamples(samples) {
+function sampleRouteIndices(pathLength, requestedSamples) {
+  if (!Number.isFinite(pathLength) || pathLength <= 0) {
+    return [];
+  }
+  if (pathLength === 1) {
+    return [0];
+  }
+
+  const sampleCount = parseBoundedNumber(requestedSamples, DEFAULT_GUIDE_SAMPLE_COUNT, {
+    min: 5,
+    max: MAX_GUIDE_SAMPLE_COUNT,
+    integer: true,
+  });
+  const targetCount = Math.max(2, Math.min(pathLength, sampleCount));
+
+  const indices = [];
+  for (let i = 0; i < targetCount; i += 1) {
+    const idx = Math.round((i * (pathLength - 1)) / (targetCount - 1));
+    if (indices.length === 0 || indices[indices.length - 1] !== idx) {
+      indices.push(idx);
+    }
+  }
+
+  if (indices[0] !== 0) {
+    indices.unshift(0);
+  }
+  if (indices[indices.length - 1] !== pathLength - 1) {
+    indices.push(pathLength - 1);
+  }
+
+  return indices;
+}
+
+function buildSamplePointsFromIndices(path, sampleIndices) {
+  if (!Array.isArray(path) || !Array.isArray(sampleIndices)) {
+    return [];
+  }
+
+  const points = [];
+  for (const idx of sampleIndices) {
+    const point = normalizeLatLngPoint(path[idx]);
+    if (!point) {
+      continue;
+    }
+    points.push(point);
+  }
+  return points;
+}
+
+function aggregateRouteSummary(samples) {
   const percents = samples
     .map((sample) => safeNumber(sample?.danger_percent))
     .filter((value) => value != null);
@@ -684,6 +738,61 @@ function summarizeRouteSamples(samples) {
     danger_percent: aggregated,
     danger_level: normalizeDangerLevel(null, aggregated),
   };
+}
+
+function summarizeRouteSamples(samples) {
+  return aggregateRouteSummary(samples);
+}
+
+function buildRouteGuideHash(origin, destination, timestampIso) {
+  const input = [
+    roundNumber(origin.lat, 5),
+    roundNumber(origin.lng, 5),
+    roundNumber(destination.lat, 5),
+    roundNumber(destination.lng, 5),
+    timestampIso,
+  ].join("|");
+
+  return crypto.createHash("sha1").update(input).digest("hex").slice(0, 10);
+}
+
+async function getOsrmRoutePath(origin, destination) {
+  const url = `${OSRM_ROUTE_URL}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
+
+  try {
+    const { data } = await axios.get(url, {
+      params: {
+        overview: "full",
+        geometries: "geojson",
+        steps: false,
+      },
+      timeout: OSRM_TIMEOUT_MS,
+    });
+
+    if (data?.code && data.code !== "Ok") {
+      throw new Error(`OSRM returned code=${data.code}`);
+    }
+
+    const route = data?.routes?.[0];
+    const path = decodeOsrmPathCoordinates(route?.geometry?.coordinates);
+    if (!path) {
+      throw new Error("OSRM route geometry unavailable");
+    }
+
+    const distanceMeters = safeNumber(route?.distance);
+    const durationSeconds = safeNumber(route?.duration);
+
+    return {
+      path,
+      routing_source: "osrm",
+      distance_km: distanceMeters == null ? null : roundNumber(distanceMeters / 1000, 2),
+      duration_min: durationSeconds == null ? null : roundNumber(durationSeconds / 60, 2),
+    };
+  } catch (error) {
+    const wrapped = new Error(`OSRM route lookup failed: ${error.message}`);
+    wrapped.isOsrmError = true;
+    throw wrapped;
+  }
 }
 
 async function getRoutePathWithFallback(origin, destination) {
@@ -744,6 +853,141 @@ function normalizeOverlaySamplePrediction(prediction) {
     confidence: confidence == null ? null : roundNumber(confidence, 2),
     quality,
   };
+}
+
+async function scoreRouteSamplesWithOverlay({ sampledPoints, routeHash, timestampIso }) {
+  const scoredRows = await Promise.all(
+    sampledPoints.map(async ([lat, lng], idx) => {
+      const sampleId = `route_${routeHash}_s${idx}`;
+      const row = await buildDangerRow({
+        lat,
+        lng,
+        timestamp: timestampIso,
+        roadFlags: ROAD_FLAG_ZEROES,
+      });
+
+      setCachedSegmentRow(sampleId, row);
+
+      return {
+        sample_id: sampleId,
+        lat,
+        lng,
+        row,
+        model_row: {
+          segment_id: sampleId,
+          ...row,
+        },
+      };
+    }),
+  );
+
+  const overlayResponse = await postToFlask("/risk/overlay", {
+    rows: scoredRows.map((item) => item.model_row),
+  });
+
+  const overlayResults = Array.isArray(overlayResponse?.data?.results)
+    ? overlayResponse.data.results
+    : [];
+  const predictionBySampleId = new Map();
+
+  for (let i = 0; i < overlayResults.length; i += 1) {
+    const item = overlayResults[i];
+    const sampleId = String(item?.segment_id ?? scoredRows[i]?.sample_id ?? "");
+    if (!sampleId) {
+      continue;
+    }
+    predictionBySampleId.set(sampleId, normalizeOverlaySamplePrediction(item));
+  }
+
+  const sampleRowById = new Map();
+  const samples = scoredRows.map((item) => {
+    const prediction =
+      predictionBySampleId.get(item.sample_id) || {
+        danger_percent: 0,
+        danger_level: "low",
+        confidence: null,
+        quality: null,
+      };
+
+    sampleRowById.set(item.sample_id, item.row);
+
+    return {
+      segment_id: item.sample_id,
+      sample_id: item.sample_id,
+      lat: item.lat,
+      lng: item.lng,
+      danger_percent: prediction.danger_percent,
+      danger_level: prediction.danger_level,
+      confidence: prediction.confidence,
+      quality: prediction.quality,
+    };
+  });
+
+  return { samples, sampleRowById };
+}
+
+function buildRouteGuideSegments({
+  fullPath,
+  sampleIndices,
+  samples,
+  fallbackSummary,
+  routeHash,
+  sampleRowById,
+  useStraightSegments = false,
+}) {
+  if (!Array.isArray(samples) || samples.length < 2 || !Array.isArray(sampleIndices)) {
+    return [];
+  }
+
+  const fallbackPercent = safeNumber(fallbackSummary?.danger_percent) ?? 0;
+  const fallbackLevel = normalizeDangerLevel(fallbackSummary?.danger_level, fallbackPercent);
+  const segments = [];
+
+  for (let i = 0; i < samples.length - 1 && i < sampleIndices.length - 1; i += 1) {
+    const start = samples[i];
+    const end = samples[i + 1];
+    if (!start || !end) {
+      continue;
+    }
+
+    const i0 = Math.max(0, Number(sampleIndices[i]));
+    const i1 = Math.max(i0, Number(sampleIndices[i + 1]));
+    const endPercent = safeNumber(end.danger_percent);
+    const segmentPercent = endPercent == null ? fallbackPercent : roundNumber(endPercent, 2);
+    const segmentLevel = normalizeDangerLevel(end.danger_level, segmentPercent);
+    const segmentId = `route_${routeHash}_seg${i}`;
+
+    if (sampleRowById?.has(end.sample_id)) {
+      setCachedSegmentRow(segmentId, sampleRowById.get(end.sample_id));
+    }
+
+    let segmentPath = [];
+    if (useStraightSegments) {
+      segmentPath = [
+        [start.lat, start.lng],
+        [end.lat, end.lng],
+      ];
+    } else if (Array.isArray(fullPath)) {
+      segmentPath = dedupePathPoints(fullPath.slice(i0, i1 + 1));
+    }
+    if (!Array.isArray(segmentPath) || segmentPath.length < 2) {
+      segmentPath = [
+        [start.lat, start.lng],
+        [end.lat, end.lng],
+      ];
+    }
+
+    segments.push({
+      segment_id: segmentId,
+      path: segmentPath,
+      danger_percent: segmentPercent == null ? fallbackPercent : segmentPercent,
+      danger_level: segmentLevel || fallbackLevel,
+      sample_from: i,
+      sample_to: i + 1,
+    });
+  }
+
+  return segments;
 }
 
 function buildRouteSegmentsFromSamples(samples, fallbackSummary) {
@@ -900,6 +1144,101 @@ exports.predictRiskOverlay = async (req, res) => {
     const payload = err.response?.data || { error: "Risk overlay model service error" };
     console.error("[Node] /api/risk/overlay error:", err.message);
     return res.status(status).json(payload);
+  }
+};
+
+exports.predictRouteGuide = async (req, res) => {
+  console.log("[React -> Node] /api/risk/route body:", req.body);
+
+  const origin = validateLatLngStrict(req.body?.origin);
+  const destinationPoint = validateLatLngStrict(req.body?.destination);
+  if (!origin || !destinationPoint) {
+    return res.status(400).json({
+      error: "origin and destination with valid lat/lng are required",
+    });
+  }
+
+  const timestampIso = toIsoTimestamp(req.body?.timestamp);
+  const sampleCount = parseBoundedNumber(
+    req.body?.sample_count,
+    DEFAULT_GUIDE_SAMPLE_COUNT,
+    {
+      min: 5,
+      max: MAX_GUIDE_SAMPLE_COUNT,
+      integer: true,
+    },
+  );
+  const routeHash = buildRouteGuideHash(origin, destinationPoint, timestampIso);
+
+  try {
+    let routed = null;
+    let routeWarning = null;
+
+    try {
+      routed = await getOsrmRoutePath(origin, destinationPoint);
+    } catch (osrmError) {
+      const straightDistanceKm = haversineDistanceKm(
+        origin.lat,
+        origin.lng,
+        destinationPoint.lat,
+        destinationPoint.lng,
+      );
+      console.warn("[Node] /api/risk/route OSRM fallback:", osrmError.message);
+
+      routed = {
+        path: buildStraightLinePath(origin, destinationPoint),
+        routing_source: "straight_line",
+        distance_km: roundNumber(straightDistanceKm, 2),
+        duration_min: null,
+      };
+      routeWarning = "routing_fallback_straight_line";
+    }
+
+    const fullPath = dedupePathPoints(routed.path);
+    const sampleIndices = sampleRouteIndices(fullPath.length, sampleCount);
+    const sampledPoints = buildSamplePointsFromIndices(fullPath, sampleIndices);
+
+    if (sampledPoints.length < 2) {
+      return res.status(500).json({ error: "Failed to sample enough route points" });
+    }
+
+    const { samples, sampleRowById } = await scoreRouteSamplesWithOverlay({
+      sampledPoints,
+      routeHash,
+      timestampIso,
+    });
+    const summary = aggregateRouteSummary(samples);
+    const segments = buildRouteGuideSegments({
+      fullPath,
+      sampleIndices,
+      samples,
+      fallbackSummary: summary,
+      routeHash,
+      sampleRowById,
+      useStraightSegments: routed.routing_source === "straight_line",
+    });
+
+    return res.json({
+      origin,
+      destination: {
+        name: req.body?.destination?.name || "Destination",
+        lat: destinationPoint.lat,
+        lng: destinationPoint.lng,
+      },
+      routing_source: routed.routing_source,
+      path: fullPath,
+      sample_indices: sampleIndices,
+      samples,
+      segments,
+      summary,
+      distance_km: routed.distance_km,
+      eta_min: routed.duration_min,
+      duration_min: routed.duration_min,
+      route_warning: routeWarning,
+    });
+  } catch (err) {
+    console.error("[Node] /api/risk/route scoring error:", err.message);
+    return res.status(500).json({ error: "Route danger scoring failed" });
   }
 };
 

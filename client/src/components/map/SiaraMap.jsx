@@ -11,12 +11,17 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.heat";
+import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
+import IconButton from "@mui/material/IconButton";
+import MuiTooltip from "@mui/material/Tooltip";
 
 const DEFAULT_CENTER = [28.0339, 1.6596];
 const DEFAULT_ZOOM = 5;
 const USER_ZOOM = 15;
 const NEARBY_RADIUS_KM = 25;
 const NEARBY_MAX_DESTINATIONS = 4;
+const ROUTE_SAMPLE_COUNT = 12;
+const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const postJson = async (url, body) => {
@@ -72,6 +77,20 @@ function getContrastTextColor(bgColor) {
   return bgColor === getDangerColor("low") ? "#111827" : "#ffffff";
 }
 
+function normalizeDangerLevel(level, dangerPercent = null) {
+  const text = String(level || "").trim().toLowerCase();
+  if (text === "extreme" || text === "high" || text === "moderate" || text === "low") {
+    return text;
+  }
+
+  const percent = Number(dangerPercent);
+  if (!Number.isFinite(percent)) return "low";
+  if (percent < 25) return "low";
+  if (percent < 50) return "moderate";
+  if (percent < 75) return "high";
+  return "extreme";
+}
+
 function getSegmentPath(marker) {
   const path = marker?.path || marker?.segment || marker?.coords;
   if (!Array.isArray(path)) return null;
@@ -93,6 +112,38 @@ function getSegmentPath(marker) {
     .filter(Boolean);
 
   return normalized.length >= 2 ? normalized : null;
+}
+
+function formatPercent(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n);
+}
+
+function normalizeNominatimResult(item, fallbackName) {
+  if (!item || typeof item !== "object") return null;
+
+  const lat = Number(item.lat);
+  const lng = Number(item.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+  const displayName = String(item.display_name || "").trim();
+  const parts = displayName ? displayName.split(",").map((part) => part.trim()) : [];
+  const name = String(item.name || parts[0] || fallbackName || "Destination").trim();
+  const country = item?.address?.country || parts[parts.length - 1] || "";
+  const region =
+    item?.address?.state ||
+    item?.address?.county ||
+    (parts.length > 1 ? parts[parts.length - 2] : "");
+
+  return {
+    id: String(item.place_id || `${lat}:${lng}`),
+    name,
+    subtitle: [region, country].filter(Boolean).join(", "),
+    full_name: displayName || name,
+    lat,
+    lng,
+  };
 }
 
 const FlyToUser = ({ userPosition, mapLayer }) => {
@@ -145,6 +196,26 @@ const FitNearbyRoutes = ({ mapLayer, nearbyRoutes }) => {
   return null;
 }
 
+const FitGuidedRoute = ({ route }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const routePath = getSegmentPath({ path: route?.path });
+    if (!routePath || routePath.length < 2) {
+      return;
+    }
+
+    const bounds = L.latLngBounds(routePath.map(([lat, lng]) => L.latLng(lat, lng)));
+    if (!bounds.isValid()) {
+      return;
+    }
+
+    map.fitBounds(bounds, { padding: [40, 40] });
+  }, [map, route]);
+
+  return null;
+}
+
 function HeatLayer({ points }) {
   const map = useMap();
 
@@ -181,7 +252,24 @@ export default function SiaraMap({
   const [nearbyRoutesState, setNearbyRoutesState] = useState("idle");
   const [nearbyRoutesError, setNearbyRoutesError] = useState("");
   const [tileError, setTileError] = useState("");
+  const [destinationQuery, setDestinationQuery] = useState("");
+  const [destinationResults, setDestinationResults] = useState([]);
+  const [destinationSearchState, setDestinationSearchState] = useState("idle");
+  const [destinationSearchError, setDestinationSearchError] = useState("");
+  const [selectedDestination, setSelectedDestination] = useState(null);
+  const [guidedRoute, setGuidedRoute] = useState(null);
+  const [guidedRouteState, setGuidedRouteState] = useState("idle");
+  const [guidedRouteError, setGuidedRouteError] = useState("");
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpHover, setHelpHover] = useState(false);
+  const [routeExplainState, setRouteExplainState] = useState("idle");
+  const [routeExplainError, setRouteExplainError] = useState("");
+  const [selectedRouteExplanation, setSelectedRouteExplanation] = useState(null);
   const nearbyRequestKeyRef = useRef("");
+
+  useEffect(() => {
+    console.log("[SiaraMap] selectedRouteExplanation updated:", selectedRouteExplanation);
+  }, [selectedRouteExplanation]);
 
 
   const MapResizeFix = ({ deps = [] }) => {
@@ -406,7 +494,167 @@ console.log("[Node -> React] nearby-zones response:", data);
     }
   };
 
+  const runDestinationSearch = async () => {
+    const query = destinationQuery.trim();
+    if (!query) {
+      setDestinationSearchState("idle");
+      setDestinationResults([]);
+      setDestinationSearchError("Type a destination first.");
+      return;
+    }
+
+    setDestinationSearchState("loading");
+    setDestinationResults([]);
+    setDestinationSearchError("");
+
+    try {
+      const url = new URL(NOMINATIM_SEARCH_URL);
+      url.searchParams.set("format", "json");
+      url.searchParams.set("q", query);
+      url.searchParams.set("limit", "5");
+
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+      const data = await response.json().catch(() => []);
+      if (!response.ok) {
+        throw new Error(`Destination search failed (${response.status})`);
+      }
+
+      const normalized = (Array.isArray(data) ? data : [])
+        .map((item) => normalizeNominatimResult(item, query))
+        .filter(Boolean);
+
+      setDestinationResults(normalized);
+      setDestinationSearchState("success");
+      if (normalized.length === 0) {
+        setDestinationSearchError("No destination found for that query.");
+      }
+    } catch (error) {
+      setDestinationSearchState("error");
+      setDestinationSearchError(error.message || "Failed to search destination");
+    }
+  };
+
+  const selectDestination = (destination) => {
+    setSelectedDestination(destination);
+    setDestinationQuery(destination?.full_name || destination?.name || "");
+    setDestinationResults([]);
+    setDestinationSearchError("");
+  };
+
+  const clearGuidance = () => {
+    setGuidedRoute(null);
+    setGuidedRouteState("idle");
+    setGuidedRouteError("");
+    setSelectedRouteExplanation(null);
+    setRouteExplainState("idle");
+    setRouteExplainError("");
+    setSelectedIncident(null);
+  };
+
+  const startGuidance = async () => {
+    const origin = normalizePosition(userPosition);
+    if (!origin) {
+      setGuidedRouteState("error");
+      setGuidedRouteError("Location is required. Use the locate button first.");
+      return;
+    }
+
+    if (!selectedDestination) {
+      setGuidedRouteState("error");
+      setGuidedRouteError("Select a destination before starting guidance.");
+      return;
+    }
+
+    setGuidedRouteState("loading");
+    setGuidedRouteError("");
+    setSelectedRouteExplanation(null);
+    setRouteExplainState("idle");
+    setRouteExplainError("");
+
+    const body = {
+      origin: { lat: origin[0], lng: origin[1] },
+      destination: {
+        name: selectedDestination.name,
+        lat: selectedDestination.lat,
+        lng: selectedDestination.lng,
+      },
+      timestamp: new Date().toISOString(),
+      sample_count: ROUTE_SAMPLE_COUNT,
+    };
+
+    try {
+      const data = await postJson("/api/risk/route", body);
+      const path = getSegmentPath({ path: data?.path }) || [];
+      const segments = (Array.isArray(data?.segments) ? data.segments : [])
+        .map((segment, idx) => {
+          const segmentPath = getSegmentPath({ path: segment?.path });
+          if (!segmentPath) return null;
+          const dangerPercent = Number(segment?.danger_percent);
+          return {
+            segment_id: String(segment?.segment_id || `segment_${idx}`),
+            path: segmentPath,
+            danger_percent: Number.isFinite(dangerPercent) ? dangerPercent : null,
+            danger_level: normalizeDangerLevel(segment?.danger_level, dangerPercent),
+          };
+        })
+        .filter(Boolean);
+
+      setGuidedRoute({
+        ...data,
+        path,
+        segments,
+      });
+      setGuidedRouteState("success");
+    } catch (error) {
+      setGuidedRouteState("error");
+      setGuidedRouteError(error.message || "Failed to compute guidance route");
+    }
+  };
+
+  const handleGuidedSegmentClick = async (segment) => {
+    if (!segment?.segment_id) {
+      return;
+    }
+
+    setRouteExplainState("loading");
+    setRouteExplainError("");
+
+    try {
+      const response = await postJson("/api/risk/explain", {
+        segment_id: String(segment.segment_id),
+        top_k: 8,
+      });
+      const explanation = {
+        ...response,
+        danger_percent: Number.isFinite(Number(response?.danger_percent))
+          ? Number(response.danger_percent)
+          : segment.danger_percent,
+        danger_level: response?.danger_level || segment.danger_level,
+      };
+
+      setSelectedRouteExplanation({ segment, explanation });
+      setRouteExplainState("success");
+      setSelectedIncident({
+        id: segment.segment_id,
+        title: `Guided segment ${segment.segment_id}`,
+        explanation,
+      });
+    } catch (error) {
+      setRouteExplainState("error");
+      setRouteExplainError(error.message || "Failed to load segment explanation");
+    }
+  };
+
   const userLatLng = normalizePosition(userPosition);
+  const routeSummaryPercent = Number(guidedRoute?.summary?.danger_percent);
+  const routeSummaryLevel = normalizeDangerLevel(
+    guidedRoute?.summary?.danger_level,
+    routeSummaryPercent,
+  );
+  const showGuideControls = Boolean(userLatLng) || mapLayer === "nearbyRoads" || Boolean(guidedRoute);
 
 
   
@@ -428,7 +676,22 @@ console.log("[Node -> React] nearby-zones response:", data);
             Nearby routes error: {nearbyRoutesError}
           </div>
         )}
+        {guidedRouteState === "error" && (
+          <div className="siara-map-error">
+            Guidance error: {guidedRouteError}
+          </div>
+        )}
+        {routeExplainState === "error" && (
+          <div className="siara-map-error">
+            Explain error: {routeExplainError}
+          </div>
+        )}
+
+        
       </div>
+      
+
+      
 
       <MapContainer
         center={userLatLng || DEFAULT_CENTER}
@@ -436,7 +699,16 @@ console.log("[Node -> React] nearby-zones response:", data);
         className="siara-leaflet-map"
         zoomControl={true}
       >
-          <MapResizeFix deps={[mapLayer, !!userLatLng, mockMarkers?.length, nearbyRoutes.length]} />
+          <MapResizeFix
+            deps={[
+              mapLayer,
+              !!userLatLng,
+              mockMarkers?.length,
+              nearbyRoutes.length,
+              guidedRoute?.path?.length || 0,
+              helpOpen,
+            ]}
+          />
 
   <TileLayer
     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -448,20 +720,101 @@ console.log("[Node -> React] nearby-zones response:", data);
   />
 
         <FlyToUser userPosition={userPosition} mapLayer={mapLayer} />
-        {mapLayer === "nearbyRoads" && nearbyRoutes.length > 0 && (
+        {mapLayer === "nearbyRoads" && !guidedRoute && nearbyRoutes.length > 0 && (
           <FitNearbyRoutes mapLayer={mapLayer} nearbyRoutes={nearbyRoutes} />
         )}
+        {guidedRoute && <FitGuidedRoute route={guidedRoute} />}
 
         {mapLayer === "heatmap" && heatPoints.length > 0 && <HeatLayer points={heatPoints} />}
 
         <Pane name="risk-layer" style={{ zIndex: 9999 }}>
-          {mapLayer === "nearbyRoads" &&
+          {guidedRoute?.path?.length > 1 && (
+            <Polyline
+              positions={guidedRoute.path}
+              pathOptions={{
+                color: "#334155",
+                weight: 4,
+                opacity: 0.35,
+              }}
+              interactive={false}
+            />
+          )}
+          
+
+          {guidedRoute?.segments?.map((segment) => {
+            const segmentPath = getSegmentPath({ path: segment?.path });
+            if (!segmentPath) return null;
+
+            const segmentPercent = formatPercent(segment?.danger_percent);
+            const segmentLevel = normalizeDangerLevel(segment?.danger_level, segment?.danger_percent);
+            const segmentColor = getDangerColor(segmentLevel);
+            const segmentTooltipStyle = {
+              "--risk-color": segmentColor,
+              "--risk-text-color": getContrastTextColor(segmentColor),
+            };
+
+            return (
+              <Polyline
+                key={segment.segment_id}
+                positions={segmentPath}
+                pathOptions={{ color: segmentColor, weight: 6, opacity: 0.9 }}
+                eventHandlers={{
+                  click: () => handleGuidedSegmentClick(segment),
+                }}
+              >
+                {segmentPercent != null && (
+                  <Tooltip sticky direction="top" className="siara-risk-tooltip">
+                    <span className="siara-risk-tooltip__pill" style={segmentTooltipStyle}>
+                      {segmentPercent}% ({segmentLevel})
+                    </span>
+                  </Tooltip>
+                )}
+              </Polyline>
+            );
+          })}
+
+          {guidedRoute && (
+            <>
+              {userLatLng && (
+                <CircleMarker
+                  center={userLatLng}
+                  radius={7}
+                  pathOptions={{
+                    color: "#ffffff",
+                    weight: 2,
+                    fillColor: "#2563eb",
+                    fillOpacity: 0.95,
+                  }}
+                >
+                  <Tooltip direction="top">Start</Tooltip>
+                </CircleMarker>
+              )}
+              {normalizePosition(guidedRoute?.destination) && (
+                <CircleMarker
+                  center={normalizePosition(guidedRoute.destination)}
+                  radius={7}
+                  pathOptions={{
+                    color: "#ffffff",
+                    weight: 2,
+                    fillColor: "#111827",
+                    fillOpacity: 0.95,
+                  }}
+                >
+                  <Tooltip direction="top">
+                    {guidedRoute?.destination?.name || "Destination"}
+                  </Tooltip>
+                </CircleMarker>
+              )}
+            </>
+          )}
+
+          {mapLayer === "nearbyRoads" && !guidedRoute &&
             nearbyRoutes.flatMap((route) => {
               const destinationPos = normalizePosition(route?.destination);
               const destinationName =
                 route?.destination?.name || route?.destination?.id || "Nearby route";
               const routePercent = Number(route?.summary?.danger_percent);
-              const routeLevel = route?.summary?.danger_level || "low";
+              const routeLevel = normalizeDangerLevel(route?.summary?.danger_level, routePercent);
               const routeColor = getDangerColor(routeLevel);
               const routeTooltipStyle = {
                 "--risk-color": routeColor,
@@ -486,7 +839,7 @@ console.log("[Node -> React] nearby-zones response:", data);
                 if (!segmentPath) return;
 
                 const segmentPercent = Number(segment?.danger_percent);
-                const segmentLevel = segment?.danger_level || routeLevel;
+                const segmentLevel = normalizeDangerLevel(segment?.danger_level, segmentPercent);
                 const segmentColor = getDangerColor(segmentLevel);
                 const segmentTooltipStyle = {
                   "--risk-color": segmentColor,
@@ -625,7 +978,7 @@ console.log("[Node -> React] nearby-zones response:", data);
             })}
         </Pane>
 
-        {userLatLng && (
+        {userLatLng && !guidedRoute && (
           <CircleMarker
             center={userLatLng}
             radius={8}
@@ -641,8 +994,30 @@ console.log("[Node -> React] nearby-zones response:", data);
         )}
       </MapContainer>
 
-      <aside className="siara-risk-debug">
-        <h4>Current Risk</h4>
+      <aside className="siara-map-aside" >
+<div className="siara-risk-debug">
+
+        <div className="siara-map-help-wrap">
+        <h4>
+        Current Risk 
+        </h4>
+        
+        
+        <MuiTooltip title="Explain danger colors">
+          <IconButton  
+          type="button"
+         
+          style={{width: 24, height: 24, borderRadius: 50, border: "1px solid", background: '#1d1d1dfa', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+          onClick={() => setHelpOpen((prev) => !prev)}
+          onMouseEnter={() => setHelpHover(true)}
+          onMouseLeave={() => setHelpHover(false)}
+          aria-label="Explain danger colors"
+          >
+          <QuestionMarkIcon style={{ fontSize: 16 }} />
+          </IconButton>
+          </MuiTooltip>
+        
+      </div>
         {currentRiskState === "idle" && <p>Waiting for location...</p>}
         {currentRiskState === "loading" && <p>Loading current risk...</p>}
         {currentRiskState === "error" && <p className="risk-debug-error">{currentRiskError}</p>}
@@ -655,7 +1030,187 @@ console.log("[Node -> React] nearby-zones response:", data);
             <p>quality: {currentRisk.quality}</p>
           </>
         )}
+        {guidedRoute && (
+          <>
+            <hr />
+            <p>
+              Route risk:{" "}
+              <strong style={{ color: getDangerColor(routeSummaryLevel) }}>
+                {formatPercent(routeSummaryPercent) ?? 0}% ({routeSummaryLevel})
+              </strong>
+            </p>
+            {Number.isFinite(Number(guidedRoute?.distance_km)) && (
+              <p>distance: {Number(guidedRoute.distance_km).toFixed(2)} km</p>
+            )}
+            {Number.isFinite(Number(guidedRoute?.duration_min)) && (
+              <p>eta: {Number(guidedRoute.duration_min).toFixed(1)} min</p>
+            )}
+          </>
+        )}
+        </div>
+
+        {helpOpen && (
+        <div className="siara-help-panel">
+          <div className="siara-help-panel__header">
+            <h4>Route Danger Guide</h4>
+            <button
+              type="button"
+              className="siara-help-panel__close"
+              onClick={() => setHelpOpen(false)}
+              aria-label="Close guide help"
+            >
+              x
+            </button>
+          </div>
+          <div className="siara-help-panel__content">
+            <p>Danger% = 100 * P(severe).</p>
+            <p>Colors are model-estimated risk levels from weather, time, and road signals.</p>
+            <p>This estimate is not a guarantee of safety.</p>
+            <div className="siara-help-legend">
+              {["low", "moderate", "high", "extreme"].map((level) => (
+                <div key={level} className="siara-help-legend__row">
+                  <span
+                    className="siara-help-legend__swatch"
+                    style={{ background: getDangerColor(level) }}
+                    />
+                  <span className="siara-help-legend__label">{level}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       </aside>
+
+      
+
+      {selectedRouteExplanation && (
+        <div className="siara-segment-panel">
+          <div className="siara-segment-panel__header">
+            <h4>Segment Explanation</h4>
+            <button
+              type="button"
+              className="siara-segment-panel__close"
+              onClick={() => setSelectedRouteExplanation(null)}
+              aria-label="Close segment explanation"
+            >
+              x
+            </button>
+          </div>
+          <div className="siara-segment-panel__meta">
+            <p>
+              danger:{" "}
+              <strong
+                style={{
+                  color: getDangerColor(
+                    selectedRouteExplanation?.explanation?.danger_level ||
+                      selectedRouteExplanation?.segment?.danger_level,
+                  ),
+                }}
+              >
+                {formatPercent(selectedRouteExplanation?.explanation?.danger_percent) ??
+                  formatPercent(selectedRouteExplanation?.segment?.danger_percent) ??
+                  0}
+                % (
+                {selectedRouteExplanation?.explanation?.danger_level ||
+                  selectedRouteExplanation?.segment?.danger_level ||
+                  "low"}
+                )
+              </strong>
+            </p>
+            <p>confidence: {selectedRouteExplanation?.explanation?.confidence ?? "n/a"}</p>
+            <p>quality: {selectedRouteExplanation?.explanation?.quality ?? "n/a"}</p>
+          </div>
+          <div className="siara-segment-panel__reasons">
+            <h5>Top SHAP reasons</h5>
+            {(selectedRouteExplanation?.explanation?.xai?.top_reasons || [])
+              .slice(0, 8)
+              .map((reason, index) => (
+                <div key={`${reason.feature || "feature"}-${index}`} className="siara-segment-reason">
+                  <span className="siara-segment-reason__feature">{reason.feature}</span>
+                  <span className="siara-segment-reason__direction">
+                    {reason.direction === "increases_risk" ? "increases" : "decreases"}
+                  </span>
+                  <span className="siara-segment-reason__value">
+                    value: {String(reason.value ?? "n/a")}
+                  </span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+      {showGuideControls && (
+        <div className="siara-guide-controls">
+          <div className="siara-guide-row">
+            <input
+              type="text"
+              className="siara-guide-input"
+              placeholder="Destination..."
+              value={destinationQuery}
+              onChange={(e) => setDestinationQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  runDestinationSearch();
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="siara-guide-btn"
+              onClick={runDestinationSearch}
+              disabled={destinationSearchState === "loading"}
+            >
+              {destinationSearchState === "loading" ? "Searching..." : "Search"}
+            </button>
+          </div>
+
+          {destinationSearchError && (
+            <div className="siara-guide-note siara-guide-note-error">{destinationSearchError}</div>
+          )}
+
+          {destinationResults.length > 0 && (
+            <div className="siara-guide-results">
+              {destinationResults.map((destination) => (
+                <button
+                  key={destination.id}
+                  type="button"
+                  className="siara-guide-result"
+                  onClick={() => selectDestination(destination)}
+                >
+                  <span className="siara-guide-result-name">{destination.name}</span>
+                  {destination.subtitle && (
+                    <span className="siara-guide-result-subtitle">{destination.subtitle}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {selectedDestination && (
+            <div className="siara-guide-note">
+              Destination: <strong>{selectedDestination.name}</strong>
+              {selectedDestination.subtitle ? ` (${selectedDestination.subtitle})` : ""}
+            </div>
+          )}
+
+          <div className="siara-guide-actions">
+            <button
+              type="button"
+              className="siara-guide-btn siara-guide-btn-primary"
+              onClick={startGuidance}
+              disabled={guidedRouteState === "loading" || !selectedDestination || !userLatLng}
+            >
+              {guidedRouteState === "loading" ? "Computing route..." : "Start guidance"}
+            </button>
+            {guidedRoute && (
+              <button type="button" className="siara-guide-btn" onClick={clearGuidance}>
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
