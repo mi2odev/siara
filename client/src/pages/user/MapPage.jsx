@@ -560,16 +560,7 @@ export default function MapPage() {
         </aside>
       </div>
 
-      {/* ═══ BOTTOM NAVIGATION (Retour / Suivant) ═══ */}
-      <div className="map-step-nav">
-        <button className="map-nav-btn secondary" onClick={() => navigate(-1)}>
-          ← Retour
-        </button>
-        <div className="map-nav-spacer"></div>
-        <button className="map-nav-btn primary" onClick={() => navigate("/alerts/create")}>
-          Suivant →
-        </button>
-      </div>
+      
     </div>
   );
 }
