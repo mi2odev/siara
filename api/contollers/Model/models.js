@@ -1,5 +1,7 @@
 const axios = require("axios");
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 
 const LEGACY_ML_SERVICE_URL = process.env.ML_SERVICE_URL;
 const ML_SERVICE_BASE_URL =
@@ -25,6 +27,17 @@ const DEFAULT_ROUTE_SAMPLES = Number(process.env.NEARBY_ROUTE_SAMPLES || 5);
 const MAX_ROUTE_SAMPLES = Number(process.env.NEARBY_ROUTE_SAMPLES_CAP || 12);
 const DEFAULT_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT || 12);
 const MAX_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT_CAP || 40);
+const DEBUG_WEATHER_UNITS = String(process.env.DEBUG_WEATHER_UNITS || "0") === "1";
+const DEBUG_OSM_FLAGS = String(process.env.DEBUG_OSM_FLAGS || "0") === "1";
+const DANGER_METADATA_PATH =
+  process.env.DANGER_METADATA_PATH ||
+  path.join(__dirname, "../../danger-zone-model/siara_v1_artifacts/siara_severe_metadata.json");
+const OVERPASS_URL = process.env.OVERPASS_URL || "https://overpass-api.de/api/interpreter";
+const OVERPASS_TIMEOUT_MS = Number(process.env.OVERPASS_TIMEOUT_MS || 7000);
+const OVERPASS_GRID_DECIMALS = Number(process.env.OVERPASS_GRID_DECIMALS || 3);
+const OVERPASS_SLEEP_MS = Number(process.env.OVERPASS_SLEEP_MS || 150);
+const ROAD_CACHE_MAX = Number(process.env.ROAD_CACHE_MAX || 5000);
+const ENABLE_OSM_FLAGS = String(process.env.ENABLE_OSM_FLAGS || "1") === "1";
 
 const ROAD_FLAG_KEYS = [
   "Amenity",
@@ -51,9 +64,12 @@ const ROAD_FLAG_ZEROES = Object.freeze(
 
 const weatherCache = new Map();
 const twilightCache = new Map();
+const roadCache = new Map();
 const segmentRowCache = new Map();
 const MAX_SEGMENT_CACHE = 2000;
 const EARTH_RADIUS_KM = 6371;
+let roadCacheHits = 0;
+let roadCacheMisses = 0;
 
 const FALLBACK_DESTINATIONS = Object.freeze([
   { id: "alger", name: "Alger", lat: 36.7538, lng: 3.0588 },
@@ -78,6 +94,47 @@ const FALLBACK_DESTINATIONS = Object.freeze([
   { id: "msila", name: "M'Sila", lat: 35.7047, lng: 4.5451 },
   { id: "chlef", name: "Chlef", lat: 36.1653, lng: 1.3345 },
 ]);
+
+function buildAllowedCategorySet(values) {
+  if (!Array.isArray(values)) {
+    return null;
+  }
+
+  const normalized = values
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+  return normalized.length ? new Set(normalized) : null;
+}
+
+function loadDangerCategoricalLevelSets() {
+  try {
+    if (!fs.existsSync(DANGER_METADATA_PATH)) {
+      return {
+        weatherConditionAllowedSet: null,
+        windDirectionAllowedSet: null,
+      };
+    }
+
+    const raw = fs.readFileSync(DANGER_METADATA_PATH, "utf8");
+    const parsed = JSON.parse(raw);
+    const levels = parsed?.categorical_levels || {};
+
+    return {
+      weatherConditionAllowedSet: buildAllowedCategorySet(levels?.Weather_Condition),
+      windDirectionAllowedSet: buildAllowedCategorySet(levels?.Wind_Direction),
+    };
+  } catch (error) {
+    console.warn("[Node] danger metadata load fallback:", error.message);
+    return {
+      weatherConditionAllowedSet: null,
+      windDirectionAllowedSet: null,
+    };
+  }
+}
+
+const { weatherConditionAllowedSet, windDirectionAllowedSet } = loadDangerCategoricalLevelSets();
+let weatherUnitsLogged = false;
 
 function cToF(celsius) {
   return (celsius * 9) / 5 + 32;
@@ -293,7 +350,7 @@ function mapWindDirection(degrees, windSpeedMph = null) {
 function mapWeatherCondition(code) {
   const c = safeNumber(code);
   if (c == null) {
-    return "Other";
+    return "Unknown";
   }
 
   if (c === 0) return "Clear";
@@ -301,23 +358,34 @@ function mapWeatherCondition(code) {
   if (c === 2) return "Partly Cloudy";
   if (c === 3) return "Overcast";
   if ([45, 48].includes(c)) return "Fog";
-  if ([51, 53, 55].includes(c)) return "Drizzle";
-  if ([56, 57].includes(c)) return "Freezing Drizzle";
-  if ([61].includes(c)) return "Light Rain";
-  if ([63].includes(c)) return "Rain";
-  if ([65].includes(c)) return "Heavy Rain";
-  if ([66, 67].includes(c)) return "Freezing Rain";
-  if ([71].includes(c)) return "Light Snow";
-  if ([73, 77].includes(c)) return "Snow";
-  if ([75].includes(c)) return "Heavy Snow";
-  if ([80].includes(c)) return "Light Rain Shower";
-  if ([81].includes(c)) return "Rain Shower";
-  if ([82].includes(c)) return "Heavy Rain Showers";
-  if ([85].includes(c)) return "Light Snow Showers";
-  if ([86].includes(c)) return "Snow";
-  if ([95].includes(c)) return "Thunderstorm";
-  if ([96, 99].includes(c)) return "Thunder and Hail";
+  if ([51, 53, 55, 56, 57].includes(c)) return "Drizzle";
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(c)) return "Rain";
+  if ([71, 73, 75, 77, 85, 86].includes(c)) return "Snow";
+  if ([95, 96, 99].includes(c)) return "Thunderstorm";
   return "Other";
+}
+
+function clampCategoricalValue(
+  value,
+  allowedSet,
+  { fallbackIfEmpty = "Unknown", fallbackIfDisallowed = "Unknown" } = {},
+) {
+  const normalized = String(value || "").trim();
+  const candidate = normalized || fallbackIfEmpty;
+
+  if (!allowedSet || allowedSet.size === 0) {
+    return candidate;
+  }
+  if (allowedSet.has(candidate)) {
+    return candidate;
+  }
+  if (allowedSet.has(fallbackIfDisallowed)) {
+    return fallbackIfDisallowed;
+  }
+  if (allowedSet.has("Unknown")) {
+    return "Unknown";
+  }
+  return candidate;
 }
 
 function findNearestVisibility(hourly, currentTimeIso) {
@@ -371,38 +439,57 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
     ].join(","),
     hourly: "visibility",
     forecast_days: 1,
+    // Critical bugfix: Open-Meteo defaults can vary. We pin units to model features explicitly.
+    // Previous code treated wind_speed_10m as m/s and converted again, which can inflate mph ~3.6x.
+    temperature_unit: "fahrenheit",
+    wind_speed_unit: "mph",
+    precipitation_unit: "inch",
     timezone: "auto",
-    wind_speed_unit: "ms"
   };
 
   const { data } = await axios.get(OPEN_METEO_URL, {
     params,
     timeout: WEATHER_TIMEOUT_MS,
-    
   });
+
+  if (DEBUG_WEATHER_UNITS && !weatherUnitsLogged) {
+    weatherUnitsLogged = true;
+    console.log("[Node][weather-units] current_units:", data?.current_units);
+    console.log("[Node][weather-units] hourly_units:", data?.hourly_units);
+  }
 
   const current = data?.current || {};
   const hourly = data?.hourly || {};
 
-  const temperatureC = safeNumber(current.temperature_2m);
+  const temperatureF = safeNumber(current.temperature_2m);
   const humidityPct = safeNumber(current.relative_humidity_2m);
   const pressureHPa = safeNumber(current.pressure_msl);
-  const precipitationMm = safeNumber(current.precipitation);
-  const windSpeedMps = safeNumber(current.wind_speed_10m);
+  const precipitationIn = safeNumber(current.precipitation);
+  const windSpeedMph = safeNumber(current.wind_speed_10m);
   const weatherCode = safeNumber(current.weather_code);
 
   const visibilityMeters = findNearestVisibility(hourly, current.time || timestampIso);
-  const windSpeedMph = windSpeedMps == null ? null : mpsToMph(windSpeedMps);
+  const mappedWeatherCondition = mapWeatherCondition(weatherCode);
+  const mappedWindDirection = mapWindDirection(current.wind_direction_10m, windSpeedMph);
+  const weatherCondition = clampCategoricalValue(mappedWeatherCondition, weatherConditionAllowedSet, {
+    fallbackIfEmpty: "Unknown",
+    fallbackIfDisallowed: "Other",
+  });
+  const windDirection = clampCategoricalValue(mappedWindDirection, windDirectionAllowedSet, {
+    fallbackIfEmpty: "Unknown",
+    fallbackIfDisallowed: "Unknown",
+  });
 
   const row = {
-    "Temperature(F)": temperatureC == null ? null : cToF(temperatureC),
+    // Bugfix: Open-Meteo now returns F/mph/inch directly, so we avoid double-conversion.
+    "Temperature(F)": temperatureF,
     "Humidity(%)": humidityPct,
     "Pressure(in)": pressureHPa == null ? null : hPaToInHg(pressureHPa),
     "Visibility(mi)": visibilityMeters == null ? null : metersToMiles(visibilityMeters),
     "Wind_Speed(mph)": windSpeedMph,
-    "Precipitation(in)": precipitationMm == null ? null : mmToIn(precipitationMm),
-    Wind_Direction: mapWindDirection(current.wind_direction_10m, windSpeedMph),
-    Weather_Condition: mapWeatherCondition(weatherCode),
+    "Precipitation(in)": precipitationIn,
+    Wind_Direction: windDirection,
+    Weather_Condition: weatherCondition,
   };
 
   weatherCache.set(key, row);
@@ -492,27 +579,263 @@ async function getTwilightFields(lat, lng, timestampIso) {
   }
 }
 
+function toBinaryRoadFlag(value) {
+  if (value === true) return 1;
+  if (value === false || value == null) return 0;
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value !== 0 ? 1 : 0;
+  }
+
+  if (typeof value === "string") {
+    const text = value.trim().toLowerCase();
+    if (!text) return 0;
+    if (["true", "1", "yes", "y", "on"].includes(text)) return 1;
+    if (["false", "0", "no", "n", "off"].includes(text)) return 0;
+
+    const maybeNumber = safeNumber(text);
+    return maybeNumber != null && maybeNumber !== 0 ? 1 : 0;
+  }
+
+  return 0;
+}
+
 function toRoadFlags(flags) {
   const obj = {};
   for (const key of ROAD_FLAG_KEYS) {
     const raw = flags?.[key];
-    obj[key] = raw ? 1 : 0;
+    obj[key] = toBinaryRoadFlag(raw);
   }
   return obj;
 }
 
+function roadCacheKey(lat, lng) {
+  const latNum = safeNumber(lat);
+  const lngNum = safeNumber(lng);
+  if (latNum == null || lngNum == null) {
+    return "nan:nan";
+  }
+
+  const rawDecimals = safeNumber(OVERPASS_GRID_DECIMALS);
+  const decimals = rawDecimals == null ? 3 : clampNumber(Math.round(rawDecimals), 0, 6);
+  return `${latNum.toFixed(decimals)}:${lngNum.toFixed(decimals)}`;
+}
+
+function pruneRoadCacheIfNeeded() {
+  const maxSizeRaw = safeNumber(ROAD_CACHE_MAX);
+  const maxSize = maxSizeRaw == null ? 5000 : Math.max(1, Math.round(maxSizeRaw));
+  if (roadCache.size <= maxSize) {
+    return;
+  }
+
+  const excess = roadCache.size - maxSize;
+  const keys = roadCache.keys();
+  for (let i = 0; i < excess; i += 1) {
+    const k = keys.next().value;
+    if (k == null) {
+      break;
+    }
+    roadCache.delete(k);
+  }
+}
+
+function setCachedRoadFlags(key, flags) {
+  if (!key) {
+    return;
+  }
+  roadCache.set(key, toRoadFlags(flags || ROAD_FLAG_ZEROES));
+  pruneRoadCacheIfNeeded();
+}
+
+function toLowerTag(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function buildOverpassRoadFlagsQuery(lat, lng) {
+  const latText = Number(lat).toFixed(6);
+  const lngText = Number(lng).toFixed(6);
+  const timeoutSeconds = Math.max(5, Math.ceil(OVERPASS_TIMEOUT_MS / 1000));
+
+  return `
+[out:json][timeout:${timeoutSeconds}];
+(
+  node(around:35,${latText},${lngText})[highway=traffic_signals];
+  node(around:35,${latText},${lngText})[highway=stop];
+  node(around:35,${latText},${lngText})[highway=give_way];
+  node(around:35,${latText},${lngText})[highway=crossing];
+  node(around:35,${latText},${lngText})[crossing];
+  way(around:35,${latText},${lngText})[crossing];
+  node(around:35,${latText},${lngText})[traffic_calming];
+  way(around:35,${latText},${lngText})[traffic_calming];
+  node(around:60,${latText},${lngText})[railway];
+  way(around:60,${latText},${lngText})[railway];
+  way(around:60,${latText},${lngText})[junction];
+  way(around:60,${latText},${lngText})[junction=roundabout];
+  node(around:120,${latText},${lngText})[highway=motorway_junction];
+  node(around:60,${latText},${lngText})[noexit=yes];
+  way(around:60,${latText},${lngText})[noexit=yes];
+  node(around:120,${latText},${lngText})[amenity];
+  way(around:120,${latText},${lngText})[amenity];
+  node(around:120,${latText},${lngText})[railway=station];
+  way(around:120,${latText},${lngText})[railway=station];
+  node(around:120,${latText},${lngText})[public_transport=station];
+  way(around:120,${latText},${lngText})[public_transport=station];
+  node(around:120,${latText},${lngText})[amenity=bus_station];
+  way(around:120,${latText},${lngText})[amenity=bus_station];
+  node(around:35,${latText},${lngText})[highway=turning_loop];
+  way(around:35,${latText},${lngText})[highway=turning_loop];
+);
+out tags;
+`.trim();
+}
+
+function parseOverpassRoadFlags(elements) {
+  const flags = { ...ROAD_FLAG_ZEROES };
+  const items = Array.isArray(elements) ? elements : [];
+
+  for (const element of items) {
+    const tags = element?.tags;
+    if (!tags || typeof tags !== "object") {
+      continue;
+    }
+
+    const highwayTag = toLowerTag(tags.highway);
+    const junctionTag = toLowerTag(tags.junction);
+    const trafficCalmingTag = toLowerTag(tags.traffic_calming);
+    const crossingTag = String(tags.crossing || "").trim();
+    const railwayTag = toLowerTag(tags.railway);
+    const amenityTag = toLowerTag(tags.amenity);
+    const publicTransportTag = toLowerTag(tags.public_transport);
+    const noExitTag = toLowerTag(tags.noexit);
+
+    if (highwayTag === "traffic_signals") flags.Traffic_Signal = 1;
+    if (highwayTag === "stop") flags.Stop = 1;
+    if (highwayTag === "give_way") flags.Give_Way = 1;
+    if (highwayTag === "turning_loop") flags.Turning_Loop = 1;
+    if (highwayTag === "crossing" || crossingTag) flags.Crossing = 1;
+    if (highwayTag === "motorway_junction") flags.Junction = 1;
+
+    if (junctionTag) flags.Junction = 1;
+    if (junctionTag === "roundabout") {
+      flags.Roundabout = 1;
+      flags.Junction = 1;
+    }
+
+    if (trafficCalmingTag) {
+      flags.Traffic_Calming = 1;
+      if (["hump", "bump", "table", "yes"].includes(trafficCalmingTag)) {
+        flags.Bump = 1;
+      }
+    }
+
+    if (railwayTag) flags.Railway = 1;
+    if (railwayTag === "station") flags.Station = 1;
+
+    if (amenityTag) flags.Amenity = 1;
+    if (amenityTag === "bus_station") flags.Station = 1;
+    if (publicTransportTag === "station") flags.Station = 1;
+
+    if (noExitTag === "yes") flags.No_Exit = 1;
+  }
+
+  if (flags.Roundabout === 1) {
+    flags.Junction = 1;
+  }
+
+  return toRoadFlags(flags);
+}
+
+function sleepMs(ms) {
+  const delay = safeNumber(ms);
+  if (delay == null || delay <= 0) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => setTimeout(resolve, Math.round(delay)));
+}
+
+async function getRoadFlagsAsync(lat, lng, providedRoadFlags) {
+  if (providedRoadFlags && typeof providedRoadFlags === "object") {
+    return toRoadFlags(providedRoadFlags);
+  }
+
+  if (!ENABLE_OSM_FLAGS) {
+    return toRoadFlags(ROAD_FLAG_ZEROES);
+  }
+
+  const point = validateLatLngStrict({ lat, lng });
+  if (!point) {
+    return toRoadFlags(ROAD_FLAG_ZEROES);
+  }
+
+  const key = roadCacheKey(point.lat, point.lng);
+  if (roadCache.has(key)) {
+    roadCacheHits += 1;
+    if (DEBUG_OSM_FLAGS) {
+      console.log(`[Node][osm-flags] cache hit h=${roadCacheHits} m=${roadCacheMisses} key=${key}`);
+    }
+    return roadCache.get(key);
+  }
+
+  roadCacheMisses += 1;
+  if (DEBUG_OSM_FLAGS) {
+    console.log(`[Node][osm-flags] cache miss h=${roadCacheHits} m=${roadCacheMisses} key=${key}`);
+  }
+
+  let flags = toRoadFlags(ROAD_FLAG_ZEROES);
+  try {
+    const query = buildOverpassRoadFlagsQuery(point.lat, point.lng);
+    const { data } = await axios.post(OVERPASS_URL, query, {
+      headers: { "Content-Type": "text/plain" },
+      timeout: OVERPASS_TIMEOUT_MS,
+    });
+
+    flags = parseOverpassRoadFlags(data?.elements);
+  } catch (error) {
+    console.warn("[Node][osm-flags] Overpass fallback to zeroes:", error.message);
+  }
+
+  setCachedRoadFlags(key, flags);
+  if (DEBUG_OSM_FLAGS) {
+    console.log(`[Node][osm-flags] flags key=${key} ${JSON.stringify(flags)}`);
+  }
+
+  await sleepMs(OVERPASS_SLEEP_MS);
+  return flags;
+}
+
+function safeRowNumber(value, fallback = 0) {
+  const n = safeNumber(value);
+  return n == null ? fallback : n;
+}
+
+function safeRowCategory(value, fallback = "Unknown") {
+  const text = String(value || "").trim();
+  return text || fallback;
+}
+
 async function buildDangerRow({ lat, lng, timestamp, roadFlags }) {
   const timestampIso = toIsoTimestamp(timestamp);
-  const [weather, twilight] = await Promise.all([
+  const [weather, twilight, resolvedRoadFlags] = await Promise.all([
     getWeatherFeatures(lat, lng, timestampIso),
     getTwilightFields(lat, lng, timestampIso),
+    getRoadFlagsAsync(lat, lng, roadFlags),
   ]);
 
   const finalRow = {
     Start_Time: timestampIso,
-    ...weather,
-    ...twilight,
-    ...toRoadFlags(roadFlags || ROAD_FLAG_ZEROES),
+    "Temperature(F)": safeRowNumber(weather?.["Temperature(F)"], 0),
+    "Humidity(%)": safeRowNumber(weather?.["Humidity(%)"], 0),
+    "Pressure(in)": safeRowNumber(weather?.["Pressure(in)"], 0),
+    "Visibility(mi)": safeRowNumber(weather?.["Visibility(mi)"], 0),
+    "Wind_Speed(mph)": safeRowNumber(weather?.["Wind_Speed(mph)"], 0),
+    "Precipitation(in)": safeRowNumber(weather?.["Precipitation(in)"], 0),
+    Wind_Direction: safeRowCategory(weather?.Wind_Direction, "Unknown"),
+    Weather_Condition: safeRowCategory(weather?.Weather_Condition, "Unknown"),
+    Sunrise_Sunset: safeRowCategory(twilight?.Sunrise_Sunset, "Night"),
+    Civil_Twilight: safeRowCategory(twilight?.Civil_Twilight, "Night"),
+    Nautical_Twilight: safeRowCategory(twilight?.Nautical_Twilight, "Night"),
+    Astronomical_Twilight: safeRowCategory(twilight?.Astronomical_Twilight, "Night"),
+    ...resolvedRoadFlags,
   };
 
   console.log("\n[DANGER ROW][FINAL INPUT TO FLASK]:", finalRow);
