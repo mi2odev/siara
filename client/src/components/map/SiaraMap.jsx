@@ -994,59 +994,66 @@ console.log("[Node -> React] nearby-zones response:", data);
         )}
       </MapContainer>
 
-      <aside className="siara-map-aside" >
-<div className="siara-risk-debug">
-
-        <div className="siara-map-help-wrap">
-        <h4>
-        Current Risk 
-        </h4>
-        
-        
-        <MuiTooltip title="Explain danger colors">
-          <IconButton  
-          type="button"
-         
-          style={{width: 24, height: 24, borderRadius: 50, border: "1px solid", background: '#1d1d1dfa', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
-          onClick={() => setHelpOpen((prev) => !prev)}
-          onMouseEnter={() => setHelpHover(true)}
-          onMouseLeave={() => setHelpHover(false)}
-          aria-label="Explain danger colors"
-          >
-          <QuestionMarkIcon style={{ fontSize: 16 }} />
-          </IconButton>
-          </MuiTooltip>
-        
-      </div>
-        {currentRiskState === "idle" && <p>Waiting for location...</p>}
-        {currentRiskState === "loading" && <p>Loading current risk...</p>}
-        {currentRiskState === "error" && <p className="risk-debug-error">{currentRiskError}</p>}
-        {currentRiskState === "success" && currentRisk && (
-          <>
-            <p>
-              <strong className="risk-debug-percent" style={{ color: getDangerColor(currentRisk.danger_level) }}>{currentRisk.danger_percent}%</strong> 
-            </p>
-            <p>confidence: {currentRisk.confidence}%</p>
-            <p>quality: {currentRisk.quality}</p>
-          </>
-        )}
-        {guidedRoute && (
-          <>
-            <hr />
-            <p>
-              Route risk:{" "}
-              <strong style={{ color: getDangerColor(routeSummaryLevel) }}>
-                {formatPercent(routeSummaryPercent) ?? 0}% ({routeSummaryLevel})
-              </strong>
-            </p>
-            {Number.isFinite(Number(guidedRoute?.distance_km)) && (
-              <p>distance: {Number(guidedRoute.distance_km).toFixed(2)} km</p>
-            )}
-            {Number.isFinite(Number(guidedRoute?.duration_min)) && (
-              <p>eta: {Number(guidedRoute.duration_min).toFixed(1)} min</p>
-            )}
-          </>
-        )}
+      <aside className="siara-map-aside">
+        <div className="siara-risk-debug">
+          <div className="siara-map-help-wrap">
+            <h4>Current Risk</h4>
+            <MuiTooltip title="Explain danger colors">
+              <IconButton
+                type="button"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: 'rgba(124, 58, 237, 0.10)',
+                  color: '#7A3DF0',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.15s',
+                }}
+                onClick={() => setHelpOpen((prev) => !prev)}
+                onMouseEnter={() => setHelpHover(true)}
+                onMouseLeave={() => setHelpHover(false)}
+                aria-label="Explain danger colors"
+              >
+                <QuestionMarkIcon style={{ fontSize: 14 }} />
+              </IconButton>
+            </MuiTooltip>
+          </div>
+          {currentRiskState === "idle" && <p>Waiting for location...</p>}
+          {currentRiskState === "loading" && <p>Loading current risk...</p>}
+          {currentRiskState === "error" && <p className="risk-debug-error">{currentRiskError}</p>}
+          {currentRiskState === "success" && currentRisk && (
+            <>
+              <p>
+                <strong className="risk-debug-percent" style={{ color: getDangerColor(currentRisk.danger_level) }}>
+                  {currentRisk.danger_percent}%
+                </strong>
+              </p>
+              <p>confidence: {currentRisk.confidence}%</p>
+              <p>quality: {currentRisk.quality}</p>
+            </>
+          )}
+          {guidedRoute && (
+            <>
+              <hr />
+              <p>
+                Route risk:{" "}
+                <strong style={{ color: getDangerColor(routeSummaryLevel) }}>
+                  {formatPercent(routeSummaryPercent) ?? 0}% ({routeSummaryLevel})
+                </strong>
+              </p>
+              {Number.isFinite(Number(guidedRoute?.distance_km)) && (
+                <p>distance: {Number(guidedRoute.distance_km).toFixed(2)} km</p>
+              )}
+              {Number.isFinite(Number(guidedRoute?.duration_min)) && (
+                <p>eta: {Number(guidedRoute.duration_min).toFixed(1)} min</p>
+              )}
+            </>
+          )}
         </div>
 
         {helpOpen && (
@@ -1128,11 +1135,11 @@ console.log("[Node -> React] nearby-zones response:", data);
               .map((reason, index) => (
                 <div key={`${reason.feature || "feature"}-${index}`} className="siara-segment-reason">
                   <span className="siara-segment-reason__feature">{reason.feature}</span>
-                  <span className="siara-segment-reason__direction">
+                  <span className={`siara-segment-reason__direction ${reason.direction === "increases_risk" ? "siara-segment-reason__direction--increases" : "siara-segment-reason__direction--decreases"}`}>
                     {reason.direction === "increases_risk" ? "increases" : "decreases"}
                   </span>
                   <span className="siara-segment-reason__value">
-                    value: {String(reason.value ?? "n/a")}
+                    {reason.value == null ? "n/a" : typeof reason.value === "number" ? reason.value.toFixed(2) : String(reason.value)}
                   </span>
                 </div>
               ))}
