@@ -1,7 +1,30 @@
+/**
+ * @file AdminAnalyticsPage.jsx
+ * @description Advanced analytics dashboard with 5 tabbed views.
+ *
+ * Tabs:
+ *   1. Hourly Heatmap   — 7×24 grid (day × hour) color-coded by incident volume
+ *   2. Severity Dist.    — progress bars + SVG donut chart
+ *   3. Dangerous Roads   — ranked table of most dangerous road segments
+ *   4. Correlations      — weather, road-type, and time-of-day breakdowns
+ *   5. 7-Day Prediction  — actual vs AI-predicted bar chart with summary
+ *
+ * Features:
+ *   - Uses `useSearchParams` for tab routing (sharable URLs)
+ *   - Summary KPI strip (total incidents, avg/day, peak hour, most dangerous)
+ *   - Date-range selector (30d / 90d / 6mo / 1yr)
+ *   - Export PDF button placeholder
+ *
+ * All data is currently mocked.
+ */
 import React, { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
-/* ── Mock analytics data ── */
+/* ═══════════════════════════════════════════════════════════
+   MOCK ANALYTICS DATA
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Heatmap: 7 rows (Mon–Sun) × 24 cols (hours 00–23) ── */
 const hourlyHeatmap = [
   /* rows = days (Mon-Sun), cols = hours (0-23) */
   [0,0,0,0,1,2,5,8,12,10,6,4,3,4,5,7,9,11,8,5,3,1,0,0],
@@ -13,7 +36,9 @@ const hourlyHeatmap = [
   [0,0,1,1,2,4,7,10,15,12,8,6,4,5,6,9,12,14,10,7,4,2,1,0],
 ]
 const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const maxHeatVal = 22
+const maxHeatVal = 22 // ceiling used to normalise heatmap cell intensity
+
+/* ── Severity breakdown (4 levels) with absolute count + percentage ── */
 
 const severityDistribution = [
   { label: 'Critical', count: 23, pct: 8, color: '#DC2626' },
@@ -22,6 +47,7 @@ const severityDistribution = [
   { label: 'Low', count: 80, pct: 27, color: '#22C55E' },
 ]
 
+/* ── Dangerous road segments ranked by incident count ── */
 const dangerousRoads = [
   { road: 'East-West Highway (km 80-160)', incidents: 34, severity: 'high', type: 'Collision' },
   { road: 'RN1 Algiers — Blida', incidents: 28, severity: 'high', type: 'Multi-vehicle' },
@@ -33,6 +59,7 @@ const dangerousRoads = [
   { road: 'Annaba Port Access', incidents: 7, severity: 'low', type: 'Roadwork' },
 ]
 
+/* ── Correlations: weather conditions vs incidents ── */
 const weatherCorrelation = [
   { condition: 'Clear', incidents: 112, pctOfTotal: 38 },
   { condition: 'Rain', incidents: 98, pctOfTotal: 33 },
@@ -41,6 +68,7 @@ const weatherCorrelation = [
   { condition: 'Snow / Ice', incidents: 16, pctOfTotal: 5 },
 ]
 
+/* ── Correlations: road categories vs incidents ── */
 const roadTypeCorrelation = [
   { type: 'Highway / Autoroute', incidents: 124, pct: 42 },
   { type: 'National Road (RN)', incidents: 89, pct: 30 },
@@ -48,6 +76,8 @@ const roadTypeCorrelation = [
   { type: 'Rural / Mountain', incidents: 27, pct: 9 },
 ]
 
+/* ── Weekly trend: actual (past 7d) + predicted (next 7d) ──
+   `actual: null` marks future predictions (shown as dashed bars) */
 const weeklyTrend = [
   { day: 'Mon', actual: 40, predicted: 38 },
   { day: 'Tue', actual: 65, predicted: 60 },
@@ -64,8 +94,9 @@ const weeklyTrend = [
   { day: 'Sat+', actual: null, predicted: 88 },
   { day: 'Sun+', actual: null, predicted: 48 },
 ]
-const maxTrend = 90
+const maxTrend = 90 // max bar value for normalising bar heights
 
+/* Navigation tabs — key is used in the URL search param (?tab=<key>) */
 const tabs = [
   { key: 'heatmap', label: 'Hourly Heatmap' },
   { key: 'severity', label: 'Severity Distribution' },
@@ -74,12 +105,16 @@ const tabs = [
   { key: 'predictions', label: '7-Day Prediction' },
 ]
 
+/* ═══════════════════════════════════════════════════════════
+   COMPONENT
+   ═══════════════════════════════════════════════════════════ */
 export default function AdminAnalyticsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const currentTab = searchParams.get('tab') || 'heatmap'
+  const currentTab = searchParams.get('tab') || 'heatmap' // default to heatmap view
 
   return (
     <>
+      {/* ═══ PAGE HEADER ═══ */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Advanced Analytics</h1>
@@ -96,6 +131,7 @@ export default function AdminAnalyticsPage() {
         </div>
       </div>
 
+      {/* ═══ SUMMARY KPI STRIP ═══ */}
       {/* Summary KPIs */}
       <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 14 }}>
         {[
@@ -114,6 +150,8 @@ export default function AdminAnalyticsPage() {
         ))}
       </div>
 
+      {/* ═══ TAB BAR ═══ */}
+      {/* Updates URL search param so tab selection is sharable/bookmarkable */}
       <div className="admin-tabs" style={{ marginBottom: 14 }}>
         {tabs.map(t => (
           <button key={t.key}
@@ -125,6 +163,8 @@ export default function AdminAnalyticsPage() {
         ))}
       </div>
 
+      {/* ═══ TAB: HOURLY HEATMAP ═══ */}
+      {/* 7×24 CSS grid of cells; colour opacity proportional to incident count */}
       {/* Heatmap Tab */}
       {currentTab === 'heatmap' && (
         <div className="admin-card">
@@ -175,6 +215,8 @@ export default function AdminAnalyticsPage() {
         </div>
       )}
 
+      {/* ═══ TAB: SEVERITY DISTRIBUTION ═══ */}
+      {/* Left: progress bars per severity level; Right: SVG donut chart */}
       {/* Severity Distribution Tab */}
       {currentTab === 'severity' && (
         <div className="admin-card">
@@ -217,6 +259,8 @@ export default function AdminAnalyticsPage() {
         </div>
       )}
 
+      {/* ═══ TAB: DANGEROUS ROADS ═══ */}
+      {/* Ranked table of road segments with incident count, severity pill, visual bar */}
       {/* Dangerous Roads Tab */}
       {currentTab === 'roads' && (
         <div className="admin-card">
@@ -255,6 +299,8 @@ export default function AdminAnalyticsPage() {
         </div>
       )}
 
+      {/* ═══ TAB: CORRELATIONS ═══ */}
+      {/* 2-col grid: weather + road-type, full-width: time-of-day (4 periods) */}
       {/* Correlations Tab */}
       {currentTab === 'correlations' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -318,6 +364,8 @@ export default function AdminAnalyticsPage() {
         </div>
       )}
 
+      {/* ═══ TAB: 7-DAY PREDICTION ═══ */}
+      {/* Solid bars = actual last 7 days; dashed outline bars = AI forecast next 7 days */}
       {/* Predictions Tab */}
       {currentTab === 'predictions' && (
         <div className="admin-card">

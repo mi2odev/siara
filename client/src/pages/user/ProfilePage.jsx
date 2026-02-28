@@ -1,3 +1,23 @@
+/**
+ * @file ProfilePage.jsx
+ * @description User profile page with a 3-column layout.
+ *
+ * Layout:
+ *   - Left:   user card with avatar, role badge, edit button;
+ *              profile completion indicator (progress bar + task checklist);
+ *              sidebar navigation links
+ *   - Center: cover photo + profile overview with stats;
+ *              tabbed activity section (posts / reports / badges / history / timeline)
+ *              with full keyboard navigation (ArrowLeft/Right/Home/End);
+ *              saved locations grid
+ *   - Right:  safety score gauge (SVG donut), contribution impact stats,
+ *             recent triggered alerts, account health checklist
+ *
+ * Features:
+ *   - Accessible tab navigation using ARIA roles and roving tabIndex
+ *   - Auto-scroll to focused tab button on keyboard navigation
+ *   - All data is mock/static for prototype purposes
+ */
 import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/ProfilePage.css'
@@ -6,13 +26,19 @@ import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png' // Using logo as placeholder avatar
 
 export default function ProfilePage(){
+  /* ═══ STATE ═══ */
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('posts')
-  const [showDropdown, setShowDropdown] = useState(false)
-  const tabsRef = useRef(null)
+  const [activeTab, setActiveTab] = useState('posts')       // Currently selected activity tab
+  const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
+  const tabsRef = useRef(null)                              // Ref to the tab-list container for scroll/focus
 
+  // Ordered list of tab identifiers (matches button order)
   const tabs = ['posts', 'reports', 'badges', 'history', 'timeline']
 
+  /* ═══ KEYBOARD NAVIGATION FOR TABS ═══ */
+  // Implements WAI-ARIA roving tabIndex pattern:
+  //   ArrowRight/Left → cycle through tabs
+  //   Home / End       → jump to first / last tab
   const handleKeyDown = (e, currentIndex) => {
     let newIndex = currentIndex
     
@@ -32,6 +58,7 @@ export default function ProfilePage(){
       return
     }
 
+    // Update active tab and auto-scroll + focus the target button
     const newTab = tabs[newIndex]
     setActiveTab(newTab)
     
@@ -45,9 +72,10 @@ export default function ProfilePage(){
     }, 0)
   }
 
+  /* ═══ RENDER ═══ */
   return (
     <div className="siara-profile-root">
-      {/* HEADER */}
+      {/* ═══ FLOATING HEADER ═══ */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
@@ -59,6 +87,7 @@ export default function ProfilePage(){
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
             </nav>
           </div>
           <div className="dash-header-center">
@@ -83,9 +112,9 @@ export default function ProfilePage(){
         </div>
       </header>
 
-      {/* MAIN LAYOUT - 3 Columns */}
+      {/* ═══ MAIN 3-COLUMN LAYOUT ═══ */}
       <div className="profile-layout">
-        {/* LEFT COLUMN - User Card + Navigation */}
+        {/* ═══ LEFT COLUMN — User Card + Completion + Nav ═══ */}
         <aside className="profile-sidebar-left">
           <div className="user-card">
             <div className="user-card-avatar">
@@ -98,7 +127,7 @@ export default function ProfilePage(){
             <button className="btn-edit-profile">✏️ Modifier le profil</button>
           </div>
 
-          {/* Profile Completion Indicator */}
+          {/* Profile Completion Indicator — progress bar + task checklist (65%) */}
           <div className="profile-completion-card">
             <div className="completion-header">
               <h3 className="completion-title">Compléter votre profil</h3>
@@ -155,7 +184,7 @@ export default function ProfilePage(){
           </nav>
         </aside>
 
-        {/* MIDDLE COLUMN - Main Profile Content */}
+        {/* ═══ MIDDLE COLUMN — Profile Overview + Activities + Saved Locations ═══ */}
         <main className="profile-main">
           {/* Profile Overview */}
           <section className="profile-overview">
@@ -195,7 +224,7 @@ export default function ProfilePage(){
             </div>
           </section>
 
-          {/* Activities Section */}
+          {/* ═══ TABBED ACTIVITIES SECTION ═══ */}
           <section className="profile-activities">
             <div className="activity-tabs" role="tablist" ref={tabsRef}>
               <button 
@@ -250,7 +279,9 @@ export default function ProfilePage(){
               </button>
             </div>
 
+            {/* ═══ TAB CONTENT PANELS ═══ */}
             <div className="activity-content">
+              {/* Posts tab — mock incident cards */}
               {activeTab === 'posts' && (
                 <div className="activity-grid">
                   {[1, 2, 3, 4].map(i => (
@@ -269,6 +300,7 @@ export default function ProfilePage(){
                 </div>
               )}
 
+              {/* Badges tab — unlocked/locked badge grid */}
               {activeTab === 'badges' && (
                 <div className="badges-grid">
                   {[
@@ -287,6 +319,7 @@ export default function ProfilePage(){
                 </div>
               )}
 
+              {/* Timeline tab — chronological event list with colored markers */}
               {activeTab === 'timeline' && (
                 <div className="activity-timeline">
                   {[
@@ -383,7 +416,7 @@ export default function ProfilePage(){
             </div>
           </section>
 
-          {/* Saved Locations */}
+          {/* ═══ SAVED LOCATIONS GRID ═══ */}
           <section className="saved-locations">
             <h2 className="section-title">📍 Lieux Enregistrés</h2>
             <div className="locations-grid">
@@ -407,7 +440,7 @@ export default function ProfilePage(){
           </section>
         </main>
 
-        {/* RIGHT COLUMN - Profile Insights */}
+        {/* ═══ RIGHT COLUMN — Profile Insights (score, impact, alerts, health) ═══ */}
         <aside className="profile-sidebar-right">
           {/* Safety Score */}
           <div className="insight-card safety-score">

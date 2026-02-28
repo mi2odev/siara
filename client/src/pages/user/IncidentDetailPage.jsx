@@ -1,3 +1,21 @@
+/**
+ * @file IncidentDetailPage.jsx
+ * @description Full-detail view for a single road incident.
+ *
+ * Layout  — 3-column design:
+ *   Left   : sidebar navigation, user mini-card, related incidents list
+ *   Center : incident header, severity/trust block, description, media gallery,
+ *            chronological timeline, and community signals
+ *   Right  : mini-map, safety recommendations with alternative routes,
+ *            follow/alert actions, and incident metadata
+ *
+ * Features:
+ *   • useParams to extract the incident ID from the URL
+ *   • Mock incident object with timeline events, media, tags, coordinates
+ *   • Severity & trust indicators (user verifications, authority confirmation, AI confidence)
+ *   • Expandable description, photo gallery, community confirmation counter
+ *   • Related incidents sidebar linking to other detail pages
+ */
 import React, { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import '../../styles/IncidentDetailPage.css'
@@ -6,12 +24,15 @@ import siaraLogo from '../../assets/logos/siara-logo.png'
 
 export default function IncidentDetailPage() {
   const navigate = useNavigate()
-  const { id } = useParams()
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [isFollowing, setIsFollowing] = useState(false)
-  const [showFullDescription, setShowFullDescription] = useState(false)
+  const { id } = useParams() // incident ID extracted from route params
 
-  // Mock incident data (would come from API based on id)
+  /* ═══ LOCAL UI STATE ═══ */
+  const [showDropdown, setShowDropdown] = useState(false)           // header user-menu toggle
+  const [isFollowing, setIsFollowing] = useState(false)             // follow-incident toggle
+  const [showFullDescription, setShowFullDescription] = useState(false) // expand/collapse long description
+
+  /* ═══ MOCK INCIDENT DATA ═══ */
+  // In production this would be fetched from the API using the `id` param.
   const incident = {
     id: id || '1',
     type: 'accident',
@@ -56,11 +77,16 @@ Authorities advise all motorists to avoid this section of the highway until furt
     lastUpdated: '09:08'
   }
 
+  /* ═══ RELATED / NEARBY INCIDENTS ═══ */
+  // Shown in the left sidebar to let the user jump between nearby events.
   const relatedIncidents = [
     { id: '2', title: 'Traffic jam near Rouiba', type: 'traffic', severity: 'medium' },
     { id: '3', title: 'Road works on N5', type: 'roadworks', severity: 'low' }
   ]
 
+  /* ═══ HELPER FUNCTIONS ═══ */
+
+  /** Map severity level → hex colour for badges, dots, borders */
   const getSeverityColor = (severity) => {
     switch (severity) {
       case 'high': return '#DC2626'
@@ -70,6 +96,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
     }
   }
 
+  /** Map severity level → human-readable label */
   const getSeverityLabel = (severity) => {
     switch (severity) {
       case 'high': return 'High Severity'
@@ -79,6 +106,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
     }
   }
 
+  /** Map timeline event source → emoji icon */
   const getSourceIcon = (source) => {
     switch (source) {
       case 'user': return '👤'
@@ -102,6 +130,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
             </nav>
           </div>
           <div className="dash-header-center">
@@ -219,7 +248,8 @@ Authorities advise all motorists to avoid this section of the highway until furt
             </div>
           </div>
 
-          {/* 2️⃣ Severity & Trust Block */}
+          {/* ═══ SEVERITY & TRUST BLOCK ═══ */}
+          {/* Visual severity indicator + trust signals (user count, authority, AI score) */}
           <div className="severity-trust-block">
             <div 
               className="severity-indicator"
@@ -258,7 +288,8 @@ Authorities advise all motorists to avoid this section of the highway until furt
             </div>
           </div>
 
-          {/* 3️⃣ Incident Description */}
+          {/* ═══ INCIDENT DESCRIPTION ═══ */}
+          {/* Expandable multi-paragraph description with show more/less toggle */}
           <div className="incident-description">
             <h2 className="section-title">Description</h2>
             <div className={`description-text ${showFullDescription ? 'expanded' : ''}`}>
@@ -277,7 +308,8 @@ Authorities advise all motorists to avoid this section of the highway until furt
             )}
           </div>
 
-          {/* 4️⃣ Media Gallery */}
+          {/* ═══ MEDIA GALLERY ═══ */}
+          {/* Conditionally rendered grid of photos/videos attached to the incident */}
           {incident.media && incident.media.length > 0 && (
             <div className="incident-media">
               <h2 className="section-title">Photos & Médias</h2>
@@ -294,7 +326,8 @@ Authorities advise all motorists to avoid this section of the highway until furt
             </div>
           )}
 
-          {/* 5️⃣ Timeline / Updates */}
+          {/* ═══ TIMELINE / UPDATES ═══ */}
+          {/* Chronological list of events: citizen reports, system verifications, authority dispatches */}
           <div className="incident-timeline">
             <h2 className="section-title">Chronologie</h2>
             <div className="timeline-list">
@@ -317,7 +350,8 @@ Authorities advise all motorists to avoid this section of the highway until furt
             </div>
           </div>
 
-          {/* 6️⃣ Community Signals */}
+          {/* ═══ COMMUNITY SIGNALS ═══ */}
+          {/* Aggregated citizen confirmations, comment count, and a confirm action button */}
           <div className="community-signals">
             <h2 className="section-title">Signaux communautaires</h2>
             <div className="signals-row">
@@ -338,7 +372,8 @@ Authorities advise all motorists to avoid this section of the highway until furt
 
         {/* ========== RIGHT COLUMN — CONTEXT & ACTIONS ========== */}
         <aside className="incident-sidebar-right">
-          {/* 1️⃣ Mini Map */}
+          {/* ═══ MINI MAP ═══ */}
+          {/* Placeholder map with severity-coloured pin; links to the full map page */}
           <div className="context-card mini-map-card">
             <h3 className="context-title">Localisation</h3>
             <div className="mini-map-container">
@@ -359,7 +394,8 @@ Authorities advise all motorists to avoid this section of the highway until furt
             </button>
           </div>
 
-          {/* 2️⃣ Safety & Recommendations */}
+          {/* ═══ SAFETY & RECOMMENDATIONS ═══ */}
+          {/* Estimated delay, avoidance warning, and a list of alternative routes */}
           <div className="context-card safety-card">
             <h3 className="context-title">Recommandations</h3>
             <div className="safety-alert">
@@ -383,7 +419,8 @@ Authorities advise all motorists to avoid this section of the highway until furt
             </div>
           </div>
 
-          {/* 3️⃣ Alerts & Follow Actions */}
+          {/* ═══ ALERTS & FOLLOW ACTIONS ═══ */}
+          {/* Follow toggle, zone-alert creation, and update-reporting buttons */}
           <div className="context-card actions-card">
             <h3 className="context-title">Actions</h3>
             <button 
@@ -400,7 +437,8 @@ Authorities advise all motorists to avoid this section of the highway until furt
             </button>
           </div>
 
-          {/* 4️⃣ Incident Metadata */}
+          {/* ═══ INCIDENT METADATA ═══ */}
+          {/* Technical details: ID, source count, category tags, last update timestamp */}
           <div className="context-card metadata-card">
             <h3 className="context-title">Métadonnées</h3>
             <div className="metadata-list">

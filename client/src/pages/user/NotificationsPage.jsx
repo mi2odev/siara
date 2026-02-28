@@ -1,3 +1,20 @@
+/**
+ * @file NotificationsPage.jsx
+ * @description Notification center with 3-column layout: filter sidebar, inbox list, detail panel.
+ *
+ * Layout:
+ *   Left   : filter buttons — category (alerts/incidents/AI/system), read/unread status,
+ *            severity level, and time period
+ *   Center : grouped notification list (Today / Yesterday / Older) with unread badges
+ *   Right  : detail panel showing explanation, context, mini-map, and action buttons
+ *
+ * Features:
+ *   • 8 mock notifications spanning multiple types and severities
+ *   • groupByDate function buckets notifications into today / yesterday / older
+ *   • Keyboard navigation (ArrowUp / ArrowDown to browse, Enter to mark read)
+ *   • “Mark all read” and “Clear all” bulk actions
+ *   • Detail panel renders contextual actions depending on notification type
+ */
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/NotificationsPage.css'
@@ -6,17 +23,22 @@ import siaraLogo from '../../assets/logos/siara-logo.png'
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [selectedNotification, setSelectedNotification] = useState(null)
-  const [selectedIndex, setSelectedIndex] = useState(-1)
-  
-  // Filters
-  const [categoryFilter, setCategoryFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [severityFilter, setSeverityFilter] = useState('all')
-  const [timeFilter, setTimeFilter] = useState('all')
 
-  // Mock notifications data
+  /* ═══ LOCAL UI STATE ═══ */
+  const [showDropdown, setShowDropdown] = useState(false)          // header avatar menu
+  const [selectedNotification, setSelectedNotification] = useState(null) // detail-panel target
+  const [selectedIndex, setSelectedIndex] = useState(-1)           // keyboard-nav index
+  
+  /* ═══ FILTER STATE ═══ */
+  // Each filter defaults to 'all'; changing triggers a re-filter of the notification list
+  const [categoryFilter, setCategoryFilter] = useState('all')  // alerts | incidents | ai | system
+  const [statusFilter, setStatusFilter] = useState('all')      // unread | read
+  const [severityFilter, setSeverityFilter] = useState('all')  // high | medium | low
+  const [timeFilter, setTimeFilter] = useState('all')          // today | week
+
+  /* ═══ MOCK NOTIFICATIONS DATA ═══ */
+  // Each notification carries: type, category, severity, timestamp, read flag,
+  // an explanation string (shown in detail panel), and optional coordinates.
   const [notifications, setNotifications] = useState([
     {
       id: 1,
@@ -137,7 +159,8 @@ export default function NotificationsPage() {
     }
   ])
 
-  // Filter notifications
+  /* ═══ FILTER PIPELINE ═══ */
+  // Chain of predicates applied to the master notifications array.
   const filteredNotifications = notifications.filter(n => {
     if (categoryFilter !== 'all' && n.category !== categoryFilter) return false
     if (statusFilter === 'unread' && n.read) return false
@@ -155,7 +178,8 @@ export default function NotificationsPage() {
     return true
   })
 
-  // Group notifications
+  /* ═══ GROUP BY DATE ═══ */
+  // Buckets filtered notifications into { today, yesterday, older } for the inbox list.
   const groupNotifications = (notifs) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -175,7 +199,9 @@ export default function NotificationsPage() {
 
   const groupedNotifications = groupNotifications(filteredNotifications)
 
-  // Get icon for notification type
+  /* ═══ ICON / COLOUR HELPERS ═══ */
+
+  /** Map notification type → emoji icon for the list item */
   const getIcon = (type) => {
     switch (type) {
       case 'alert': return '🔔'
@@ -186,6 +212,7 @@ export default function NotificationsPage() {
     }
   }
 
+  /** Map severity level → hex colour used for badges and backgrounds */
   const getSeverityColor = (severity) => {
     switch (severity) {
       case 'high': return '#DC2626'
@@ -195,22 +222,27 @@ export default function NotificationsPage() {
     }
   }
 
-  // Handlers
+  /* ═══ NOTIFICATION HANDLERS ═══ */
+
+  /** Select a notification → opens detail panel on the right */
   const selectNotification = (notif, index) => {
     setSelectedNotification(notif)
     setSelectedIndex(index)
   }
 
+  /** Mark a single notification as read by its ID */
   const markAsRead = (id) => {
     setNotifications(prev => prev.map(n => 
       n.id === id ? { ...n, read: true } : n
     ))
   }
 
+  /** Bulk action — marks every notification as read */
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
   }
 
+  /** Dispatch contextual actions (view incident, open map, etc.) */
   const handleAction = (action, notif) => {
     switch (action) {
       case 'view-incident':
@@ -231,7 +263,8 @@ export default function NotificationsPage() {
     }
   }
 
-  // Keyboard navigation
+  /* ═══ KEYBOARD NAVIGATION ═══ */
+  // ArrowDown/ArrowUp cycle through the flat list; Enter marks the selected item as read.
   const handleKeyDown = useCallback((e) => {
     const allNotifs = [...groupedNotifications.today, ...groupedNotifications.yesterday, ...groupedNotifications.older]
     
@@ -250,14 +283,18 @@ export default function NotificationsPage() {
     }
   }, [selectedIndex, groupedNotifications, selectedNotification])
 
+  // Attach / detach global keydown listener for keyboard navigation
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
 
-  const unreadCount = notifications.filter(n => !n.read).length
-  const totalCount = filteredNotifications.length
+  /* ═══ DERIVED VALUES ═══ */
+  const unreadCount = notifications.filter(n => !n.read).length    // badge counter
+  const totalCount = filteredNotifications.length                   // shown after filtering
 
+  /* ═══ NOTIFICATION LIST ITEM RENDERER ═══ */
+  // Renders a single row in the inbox; highlights unread & selected items.
   const renderNotificationItem = (notif, globalIndex) => (
     <div
       key={notif.id}
@@ -282,7 +319,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="notifications-page">
-      {/* HEADER */}
+      {/* ═══ HEADER ═══ */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
@@ -294,6 +331,7 @@ export default function NotificationsPage() {
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
             </nav>
           </div>
           <div className="dash-header-center">
@@ -321,9 +359,11 @@ export default function NotificationsPage() {
         </div>
       </header>
 
-      {/* MAIN GRID */}
+      {/* ═══ MAIN GRID ═══ */}
       <div className="notif-grid">
-        {/* LEFT - FILTERS */}
+
+        {/* ═══ LEFT SIDEBAR — FILTERS ═══ */}
+        {/* Category, status, severity, and time-period filter button groups */}
         <aside className="notif-left">
           <div className="filter-section">
             <span className="filter-label">Catégories</span>
@@ -399,7 +439,8 @@ export default function NotificationsPage() {
           </div>
         </aside>
 
-        {/* CENTER - INBOX */}
+        {/* ═══ CENTER — INBOX LIST ═══ */}
+        {/* Grouped notification items (Today / Yesterday / Older) with empty-state fallback */}
         <main className="notif-center">
           <div className="notif-header">
             <div className="notif-header-left">
@@ -459,7 +500,8 @@ export default function NotificationsPage() {
           </div>
         </main>
 
-        {/* RIGHT - DETAIL PANEL */}
+        {/* ═══ RIGHT — DETAIL PANEL ═══ */}
+        {/* Shows full context, explanation, mini-map, and contextual actions for the selected notification */}
         <aside className="notif-right">
           {selectedNotification ? (
             <>

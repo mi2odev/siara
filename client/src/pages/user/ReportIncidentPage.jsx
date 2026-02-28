@@ -1,33 +1,79 @@
+/**
+ * @file ReportIncidentPage.jsx
+ * @description 5-step wizard for reporting road incidents, plus a post-submission success screen.
+ *
+ * Wizard steps: Type → Location → Details → Media → Verification
+ *
+ * Layout: 3-column grid
+ *   - Left:   vertical stepper + trust notice + cancel button
+ *   - Center: step-specific form panels
+ *   - Right:  live preview sidebar (incident card preview, mini-map, verification status)
+ *
+ * Features:
+ *   - 3 location input methods: GPS auto-detect, address search, map click
+ *   - Media upload with image/video preview (max 5 files, 10 MB each)
+ *   - Severity level selector (high / medium / low)
+ *   - Simulated API submit with random tracking ID
+ *   - Success screen with next-steps explainer and quick-action buttons
+ */
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import '../../styles/ReportIncidentPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
-export default function ReportIncidentPage() {
-  const navigate = useNavigate()
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [currentStep, setCurrentStep] = useState(1)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const [submittedId, setSubmittedId] = useState(null)
+/* Fix default Leaflet marker icon paths (broken by bundlers) */
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
-  // Form state
+/**
+ * Inner component that listens for map clicks and calls the parent handler.
+ */
+function MapClickHandler({ onClick }) {
+  useMapEvents({
+    click(e) {
+      onClick(e.latlng);
+    },
+  });
+  return null;
+}
+
+export default function ReportIncidentPage() {
+  /* ═══ ROUTING ═══ */
+  const navigate = useNavigate()
+
+  /* ═══ UI STATE ═══ */
+  const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
+  const [currentStep, setCurrentStep] = useState(1)         // Active wizard step (1-5)
+  const [isSubmitting, setIsSubmitting] = useState(false)   // Loading spinner during submit
+  const [isSubmitted, setIsSubmitted] = useState(false)     // Switches to success screen
+  const [submittedId, setSubmittedId] = useState(null)      // Generated tracking reference
+
+  /* ═══ FORM STATE ═══ */
+  // All report fields consolidated in a single state object
   const [reportData, setReportData] = useState({
-    type: '',
-    locationType: '',
-    locationCoords: null,
-    locationAddress: '',
-    locationAccuracy: null,
-    title: '',
-    description: '',
-    severity: 'medium',
-    timeOption: 'now',
-    customTime: '',
-    media: [],
-    mediaPreview: []
+    type: '',                  // Selected incident type id
+    locationType: '',          // 'gps' | 'search' | 'map'
+    locationCoords: null,      // { lat, lng } or null
+    locationAddress: '',       // Human-readable address string
+    locationAccuracy: null,    // Accuracy label (e.g. 'GPS haute précision')
+    title: '',                 // Incident title (min 5 chars)
+    description: '',           // Optional free-text description (max 500 chars)
+    severity: 'medium',        // 'high' | 'medium' | 'low'
+    timeOption: 'now',         // 'now' | 'earlier'
+    customTime: '',            // ISO datetime string when timeOption === 'earlier'
+    media: [],                 // Array of { file, name, type, preview } objects
+    mediaPreview: []           // Array of object-URL strings for thumbnails
   })
 
+  /* ═══ WIZARD STEP DEFINITIONS ═══ */
   const steps = [
     { id: 1, label: "Type d'incident", icon: '🎯' },
     { id: 2, label: 'Localisation', icon: '📍' },
@@ -36,6 +82,7 @@ export default function ReportIncidentPage() {
     { id: 5, label: 'Vérification', icon: '✅' }
   ]
 
+  /* ═══ STATIC DATA — incident types & severity levels ═══ */
   const incidentTypes = [
     { id: 'accident', icon: '🚗', label: 'Accident', desc: 'Collision, accident de la route' },
     { id: 'traffic', icon: '🚦', label: 'Trafic', desc: 'Embouteillage, ralentissement' },
@@ -51,7 +98,8 @@ export default function ReportIncidentPage() {
     { id: 'low', label: 'Basse', color: '#10B981', desc: 'Mineur, information' }
   ]
 
-  // Simulate getting current location
+  /* ═══ LOCATION HANDLERS ═══ */
+  // Simulate getting current GPS location (hardcoded Algiers coordinates)
   const getCurrentLocation = () => {
     setReportData(prev => ({
       ...prev,
@@ -62,7 +110,7 @@ export default function ReportIncidentPage() {
     }))
   }
 
-  // Handle address search
+  // Simulate address geocoding — accepts query after 3+ characters
   const searchAddress = (query) => {
     if (query.length > 3) {
       setReportData(prev => ({
@@ -75,18 +123,22 @@ export default function ReportIncidentPage() {
     }
   }
 
-  // Handle map click simulation
-  const handleMapClick = () => {
+  /**
+   * Handle a real click on the Leaflet map — store the selected coords.
+   * @param {L.LatLng} latlng - The coordinates from the map click event.
+   */
+  const handleMapClick = (latlng) => {
     setReportData(prev => ({
       ...prev,
       locationType: 'map',
-      locationCoords: { lat: 36.7600, lng: 3.0500 },
+      locationCoords: { lat: latlng.lat, lng: latlng.lng },
       locationAddress: 'Position sélectionnée sur la carte',
       locationAccuracy: 'Sélection sur carte'
     }))
   }
 
-  // Handle media upload
+  /* ═══ MEDIA HANDLERS ═══ */
+  // Process file input: create object-URLs for previews, cap at 5 files
   const handleMediaUpload = (e) => {
     const files = Array.from(e.target.files)
     const newMedia = files.map(file => ({
@@ -102,6 +154,7 @@ export default function ReportIncidentPage() {
     }))
   }
 
+  // Remove a media item by index
   const removeMedia = (index) => {
     setReportData(prev => ({
       ...prev,
@@ -110,12 +163,13 @@ export default function ReportIncidentPage() {
     }))
   }
 
-  // Validation
+  /* ═══ STEP VALIDATION & NAVIGATION ═══ */
+  // Per-step validation: returns true if the step’s required fields are filled
   const canProceed = () => {
     switch (currentStep) {
       case 1: return reportData.type !== ''
       case 2: return reportData.locationCoords !== null
-      case 3: return reportData.title.trim().length >= 5
+      case 3: return reportData.title.trim().length >= 2
       case 4: return true // Media is optional
       case 5: return true
       default: return false
@@ -134,6 +188,8 @@ export default function ReportIncidentPage() {
     }
   }
 
+  /* ═══ SUBMIT HANDLER ═══ */
+  // Simulates an API call with a 2 s delay, then switches to the success screen
   const submitReport = () => {
     setIsSubmitting(true)
     // Simulate API call
@@ -144,6 +200,7 @@ export default function ReportIncidentPage() {
     }, 2000)
   }
 
+  /* ═══ DERIVED HELPERS ═══ */
   // Get type info
   const getTypeInfo = () => incidentTypes.find(t => t.id === reportData.type)
 
@@ -154,6 +211,7 @@ export default function ReportIncidentPage() {
     return typeInfo ? `${typeInfo.label} signalé` : 'Nouvel incident'
   }
 
+  /* ═══ SUCCESS SCREEN (shown after submission) ═══ */
   // Success screen
   if (isSubmitted) {
     return (
@@ -169,6 +227,7 @@ export default function ReportIncidentPage() {
                 <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
                 <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
                 <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+                <button className="dash-tab dash-tab-active">Report</button>
               </nav>
             </div>
             <div className="dash-header-center">
@@ -250,9 +309,10 @@ export default function ReportIncidentPage() {
     )
   }
 
+  /* ═══ MAIN RENDER (wizard form) ═══ */
   return (
     <div className="report-page">
-      {/* HEADER */}
+      {/* ═══ FLOATING HEADER ═══ */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
@@ -264,6 +324,7 @@ export default function ReportIncidentPage() {
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="dash-tab dash-tab-active">Report</button>
             </nav>
           </div>
           <div className="dash-header-center">
@@ -290,9 +351,9 @@ export default function ReportIncidentPage() {
         </div>
       </header>
 
-      {/* MAIN GRID */}
+      {/* ═══ MAIN 3-COLUMN GRID ═══ */}
       <div className="report-grid">
-        {/* LEFT - STEPPER */}
+        {/* ═══ LEFT COLUMN — VERTICAL STEPPER ═══ */}
         <aside className="report-left">
           <div className="stepper-header">
             <span className="stepper-icon">📢</span>
@@ -329,9 +390,9 @@ export default function ReportIncidentPage() {
           </button>
         </aside>
 
-        {/* CENTER - FORM */}
+        {/* ═══ CENTER COLUMN — STEP FORM PANELS ═══ */}
         <main className="report-center">
-          {/* STEP 1 - Incident Type */}
+          {/* STEP 1 — Incident Type Selection (single-select cards) */}
           {currentStep === 1 && (
             <div className="step-panel">
               <div className="step-header">
@@ -358,7 +419,7 @@ export default function ReportIncidentPage() {
             </div>
           )}
 
-          {/* STEP 2 - Location */}
+          {/* STEP 2 — Location (GPS / search / map click) */}
           {currentStep === 2 && (
             <div className="step-panel">
               <div className="step-header">
@@ -393,14 +454,27 @@ export default function ReportIncidentPage() {
 
                 <div className="map-section">
                   <label>Ou sélectionner sur la carte</label>
-                  <div className="map-interactive" onClick={handleMapClick}>
-                    <div className="map-bg">
-                      🗺️
+                  <div className="map-interactive-leaflet">
+                    <MapContainer
+                      center={reportData.locationCoords
+                        ? [reportData.locationCoords.lat, reportData.locationCoords.lng]
+                        : [28.0339, 1.6596]}
+                      zoom={reportData.locationCoords ? 13 : 5}
+                      style={{ width: '100%', height: '100%' }}
+                      scrollWheelZoom={true}
+                    >
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      />
+                      <MapClickHandler onClick={handleMapClick} />
                       {reportData.locationCoords && (
-                        <div className="map-marker">📍</div>
+                        <Marker position={[reportData.locationCoords.lat, reportData.locationCoords.lng]} />
                       )}
-                    </div>
-                    <p className="map-hint">Cliquez pour placer le marqueur</p>
+                    </MapContainer>
+                    {!reportData.locationCoords && (
+                      <p className="map-hint">Cliquez pour placer le marqueur</p>
+                    )}
                   </div>
                 </div>
 
@@ -423,7 +497,7 @@ export default function ReportIncidentPage() {
             </div>
           )}
 
-          {/* STEP 3 - Details */}
+          {/* STEP 3 — Details (title, description, severity, time) */}
           {currentStep === 3 && (
             <div className="step-panel">
               <div className="step-header">
@@ -443,8 +517,8 @@ export default function ReportIncidentPage() {
                   />
                   <div className="input-meta">
                     <span className="char-count">{reportData.title.length}/100</span>
-                    {reportData.title.length < 5 && reportData.title.length > 0 && (
-                      <span className="input-error">Minimum 5 caractères</span>
+                    {reportData.title.length < 2 && reportData.title.length > 0 && (
+                      <span className="input-error">Minimum 2 caractères</span>
                     )}
                   </div>
                 </div>
@@ -524,7 +598,7 @@ export default function ReportIncidentPage() {
             </div>
           )}
 
-          {/* STEP 4 - Media */}
+          {/* STEP 4 — Media Upload (photos / videos, optional) */}
           {currentStep === 4 && (
             <div className="step-panel">
               <div className="step-header">
@@ -583,7 +657,7 @@ export default function ReportIncidentPage() {
             </div>
           )}
 
-          {/* STEP 5 - Review */}
+          {/* STEP 5 — Review & Submit */}
           {currentStep === 5 && (
             <div className="step-panel">
               <div className="step-header">
@@ -654,7 +728,7 @@ export default function ReportIncidentPage() {
             </div>
           )}
 
-          {/* NAVIGATION */}
+          {/* ═══ BOTTOM NAVIGATION (Back / Continue / Submit) ═══ */}
           <div className="step-nav">
             {currentStep > 1 && (
               <button className="nav-btn secondary" onClick={prevStep}>
@@ -674,7 +748,7 @@ export default function ReportIncidentPage() {
           </div>
         </main>
 
-        {/* RIGHT - PREVIEW */}
+        {/* ═══ RIGHT COLUMN — LIVE PREVIEW SIDEBAR ═══ */}
         <aside className="report-right">
           <div className="preview-header">
             <span className="preview-icon">👁️</span>

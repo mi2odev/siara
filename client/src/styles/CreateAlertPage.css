@@ -1071,12 +1071,14 @@
 }
 
 .nav-btn.primary {
-  background: var(--create-accent);
-  color: white;
+  background: var(--create-card);
+  border: 1px solid var(--create-border);
+  color: var(--create-text);
 }
 
 .nav-btn.primary:hover:not(:disabled) {
-  background: var(--create-accent-hover);
+  border-color: var(--create-accent);
+  color: var(--create-accent);
 }
 
 .nav-btn.primary:disabled,

@@ -1,7 +1,30 @@
+/**
+ * @file AdminAlertsPage.jsx
+ * @description Alert operations centre for managing geo-based alerts, emergency broadcasts and notifications.
+ *
+ * Layout:
+ *   1. Emergency mode banner (conditional) — red bar when emergency mode is active
+ *   2. Confirmation modal for emergency activation
+ *   3. Page header with emergency toggle + "New Alert" button
+ *   4. Create alert form (collapsible) — 3-column grid with title, zone, severity, type, duration, message
+ *   5. Tab bar — 6 tabs: All | Active | Scheduled | Expiring/Expired | Emergency | Templates
+ *   6. Templates gallery (card grid) OR alerts table with CRUD actions
+ *
+ * Features:
+ *   - Emergency mode: broadcasts all alerts at max priority (requires confirmation)
+ *   - Alert templates for quick creation
+ *   - URL-driven tab routing via useSearchParams
+ *
+ * All data is currently mocked (allAlerts, templates).
+ */
 import React, { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
-/* ── Mock data ── */
+/* ═══════════════════════════════════════════════════════════
+   MOCK DATA
+   ═══════════════════════════════════════════════════════════ */
+
+/* 6 sample alerts with severity, status, trigger type, audience reach */
 const allAlerts = [
   { id: 'ALR-0501', title: 'Severe flooding — Algiers coastal road', zone: 'Algiers Centre', severity: 'critical', status: 'active', type: 'Weather', trigger: 'auto', duration: '4h remaining', created: '2025-01-18T06:00:00', audience: 12400 },
   { id: 'ALR-0500', title: 'Multi-vehicle collision — Highway E-W km120', zone: 'Sétif Corridor', severity: 'high', status: 'active', type: 'Incident', trigger: 'manual', duration: '2h remaining', created: '2025-01-18T07:15:00', audience: 8200 },
@@ -11,6 +34,7 @@ const allAlerts = [
   { id: 'ALR-0496', title: 'Icy road conditions — Batna mountain pass', zone: 'Batna', severity: 'high', status: 'active', type: 'Weather', trigger: 'auto', duration: '6h remaining', created: '2025-01-18T04:30:00', audience: 4500 },
 ]
 
+/* Pre-built alert templates for quick creation with default durations */
 const templates = [
   { name: 'Severe Weather', description: 'Standard weather advisory for extreme conditions', severity: 'high', defaultDuration: '6h' },
   { name: 'Road Closure', description: 'Full road closure notification', severity: 'medium', defaultDuration: '24h' },
@@ -19,6 +43,7 @@ const templates = [
   { name: 'Emergency Evacuation', description: 'Critical — Immediate area evacuation', severity: 'critical', defaultDuration: '12h' },
 ]
 
+/* Tab definitions — key maps to URL search param (?tab=<key>) */
 const tabs = [
   { key: 'all', label: 'All Alerts' },
   { key: 'active', label: 'Active' },
@@ -28,14 +53,19 @@ const tabs = [
   { key: 'templates', label: 'Templates' },
 ]
 
+/* ═══════════════════════════════════════════════════════════
+   COMPONENT
+   ═══════════════════════════════════════════════════════════ */
 export default function AdminAlertsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const currentTab = searchParams.get('tab') || 'all'
-  const [emergencyMode, setEmergencyMode] = useState(false)
-  const [emergencyConfirm, setEmergencyConfirm] = useState(false)
-  const [showCreate, setShowCreate] = useState(false)
+  const currentTab = searchParams.get('tab') || 'all' // active tab from URL
+  const [emergencyMode, setEmergencyMode] = useState(false)       // global emergency broadcast flag
+  const [emergencyConfirm, setEmergencyConfirm] = useState(false) // controls confirmation modal visibility
+  const [showCreate, setShowCreate] = useState(false)             // toggles create-alert form
+  // Form state for new alert creation
   const [newAlert, setNewAlert] = useState({ title: '', zone: '', severity: 'medium', type: 'Incident', duration: '4h', message: '' })
 
+  // Derive filtered alerts based on active tab
   const filtered = useMemo(() => {
     if (currentTab === 'active') return allAlerts.filter(a => a.status === 'active')
     if (currentTab === 'scheduled') return allAlerts.filter(a => a.status === 'scheduled')
@@ -44,6 +74,7 @@ export default function AdminAlertsPage() {
     return allAlerts
   }, [currentTab])
 
+  // Pre-compute counts per tab for badge display
   const tabCounts = {
     all: allAlerts.length,
     active: allAlerts.filter(a => a.status === 'active').length,
@@ -53,6 +84,7 @@ export default function AdminAlertsPage() {
     templates: templates.length,
   }
 
+  // Toggle emergency mode; requires confirmation dialog before activating
   const handleEmergencyToggle = () => {
     if (!emergencyMode) {
       setEmergencyConfirm(true)
@@ -63,6 +95,8 @@ export default function AdminAlertsPage() {
 
   return (
     <>
+      {/* ═══ EMERGENCY MODE BANNER ═══ */}
+      {/* Shown only when emergency mode is active — red prominent bar */}
       {/* Emergency Mode Banner */}
       {emergencyMode && (
         <div className="admin-critical-bar" style={{ background: 'rgba(239, 68, 68, 0.15)', borderColor: 'var(--admin-danger)' }}>
@@ -74,6 +108,8 @@ export default function AdminAlertsPage() {
         </div>
       )}
 
+      {/* ═══ EMERGENCY CONFIRMATION MODAL ═══ */}
+      {/* Full-screen overlay with confirm/cancel — warns about SMS/push impact */}
       {/* Confirmation Modal */}
       {emergencyConfirm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -93,6 +129,8 @@ export default function AdminAlertsPage() {
         </div>
       )}
 
+      {/* ═══ PAGE HEADER ═══ */}
+      {/* Emergency toggle switch + New Alert CTA */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Alert Operations</h1>
@@ -111,6 +149,8 @@ export default function AdminAlertsPage() {
         </div>
       </div>
 
+      {/* ═══ CREATE ALERT FORM ═══ */}
+      {/* Collapsible 3-column grid: title, zone, severity, type, duration, publish CTA + message textarea */}
       {/* Create Alert Form */}
       {showCreate && (
         <div className="admin-card" style={{ marginBottom: 14 }}>
@@ -179,6 +219,7 @@ export default function AdminAlertsPage() {
         </div>
       )}
 
+      {/* ═══ TAB BAR ═══ */}
       {/* Tabs */}
       <div className="admin-tabs" style={{ marginBottom: 12 }}>
         {tabs.map(t => (
@@ -191,6 +232,8 @@ export default function AdminAlertsPage() {
         ))}
       </div>
 
+      {/* ═══ TEMPLATES GALLERY ═══ */}
+      {/* When Templates tab is active, show card grid; otherwise show alerts table */}
       {/* Templates Tab */}
       {currentTab === 'templates' ? (
         <div className="admin-grid-3">
@@ -209,6 +252,8 @@ export default function AdminAlertsPage() {
           ))}
         </div>
       ) : (
+        /* ═══ ALERTS TABLE ═══ */
+        /* Full CRUD table: ID, title, zone, severity, type, trigger, duration, audience, status, actions */
         /* Alerts Table */
         <div className="admin-card">
           <div className="admin-table-wrapper">

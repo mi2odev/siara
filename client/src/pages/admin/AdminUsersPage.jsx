@@ -1,7 +1,28 @@
+/**
+ * @file AdminUsersPage.jsx
+ * @description Admin user-governance page for managing platform users.
+ *
+ * Layout:
+ *   - Page header with search input and export button
+ *   - Trust Score Algorithm breakdown card (5 weighted factors)
+ *   - 5 filter tabs: All | Active | Trusted | At Risk | Suspended/Banned
+ *   - Sortable user table with inline actions and pagination stub
+ *
+ * Features:
+ *   - Trust scores color-coded green (≥75), yellow (≥40), red (<40)
+ *   - Risk levels displayed as pills: low / medium / high / critical
+ *   - Conditional action buttons per user status (warn, suspend, ban, promote)
+ *   - Text search across name, email, and user ID
+ *   - Users sorted ascending by trust score (lowest-trust first)
+ *
+ * Data: 10 mock users with trust scores, false-report ratios, and risk scores.
+ */
 import React, { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
-/* ── Mock data ── */
+/* ═══════════════════════════════════════════════════════════════
+   MOCK DATA — 10 users with trust/risk metrics
+   ═══════════════════════════════════════════════════════════════ */
 const allUsers = [
   { id: 'U-1001', name: 'Ahmed Benali', email: 'ahmed.b@mail.dz', role: 'trusted', status: 'active', trustScore: 92, totalReports: 48, verified: 45, falseReports: 3, falseRatio: 6.3, riskScore: 'low', joinDate: '2023-06-12', lastActive: '2h ago' },
   { id: 'U-1002', name: 'Fatima Khaldi', email: 'fatima.k@mail.dz', role: 'user', status: 'active', trustScore: 88, totalReports: 32, verified: 28, falseReports: 4, falseRatio: 12.5, riskScore: 'low', joinDate: '2023-09-20', lastActive: '30m ago' },
@@ -15,6 +36,7 @@ const allUsers = [
   { id: 'U-1010', name: 'Omar Hadj', email: 'omar.h@mail.dz', role: 'user', status: 'banned', trustScore: 5, totalReports: 30, verified: 2, falseReports: 28, falseRatio: 93.3, riskScore: 'critical', joinDate: '2024-07-15', lastActive: '14d ago' },
 ]
 
+/** Filter-tab definitions — each key maps to a filter predicate  */
 const tabs = [
   { key: 'all', label: 'All Users' },
   { key: 'active', label: 'Active' },
@@ -23,13 +45,24 @@ const tabs = [
   { key: 'suspended', label: 'Suspended / Banned' },
 ]
 
+/* ═══════════════════════════════════════════════════════════════
+   COMPONENT
+   ═══════════════════════════════════════════════════════════════ */
 export default function AdminUsersPage() {
+  /* --- URL-driven filter tab (persisted in query string) --- */
   const [searchParams, setSearchParams] = useSearchParams()
   const currentTab = searchParams.get('filter') || 'all'
-  const [search, setSearch] = useState('')
-  const [selectedUser, setSelectedUser] = useState(null)
-  const [actionModal, setActionModal] = useState(null)
 
+  /* --- Local UI state --- */
+  const [search, setSearch] = useState('')           // text-search query
+  const [selectedUser, setSelectedUser] = useState(null)   // currently inspected user (future detail panel)
+  const [actionModal, setActionModal] = useState(null)     // active moderation action modal
+
+  /* --- Filtered & sorted user list (memoized) ---
+   * 1. Apply tab filter (status / role / risk)
+   * 2. Apply text-search filter (name, email, id)
+   * 3. Sort ascending by trust score so riskiest users appear first
+   */
   const filtered = useMemo(() => {
     let list = allUsers
     if (currentTab === 'active') list = list.filter(u => u.status === 'active')
@@ -43,6 +76,7 @@ export default function AdminUsersPage() {
     return list.sort((a, b) => a.trustScore - b.trustScore)
   }, [currentTab, search])
 
+  /** Pre-computed badge counts for each tab */
   const tabCounts = {
     all: allUsers.length,
     active: allUsers.filter(u => u.status === 'active').length,
@@ -51,13 +85,16 @@ export default function AdminUsersPage() {
     suspended: allUsers.filter(u => u.status === 'suspended' || u.status === 'banned').length,
   }
 
+  /** Placeholder handler — would dispatch moderation action to the API */
   const handleAction = (user, action) => {
     alert(`Action "${action}" applied to ${user.name}`)
     setActionModal(null)
   }
 
+  /* ═══ RENDER ═══ */
   return (
     <>
+      {/* ═══ PAGE HEADER — title + search + export ═══ */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">User Governance</h1>
@@ -69,7 +106,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Trust Score Algorithm Info */}
+      {/* ═══ TRUST SCORE ALGORITHM CARD — 5-factor breakdown ═══ */}
       <div className="admin-card" style={{ marginBottom: 14 }}>
         <div className="admin-card-header">
           <h3 className="admin-card-title">Trust Score Algorithm</h3>
@@ -92,7 +129,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* ═══ FILTER TABS — All | Active | Trusted | At Risk | Suspended ═══ */}
       <div className="admin-tabs" style={{ marginBottom: 12 }}>
         {tabs.map(t => (
           <button key={t.key}
@@ -104,7 +141,7 @@ export default function AdminUsersPage() {
         ))}
       </div>
 
-      {/* Users Table */}
+      {/* ═══ USERS TABLE — sortable columns with inline actions ═══ */}
       <div className="admin-card">
         <div className="admin-table-wrapper">
           <table className="admin-table">
@@ -155,23 +192,29 @@ export default function AdminUsersPage() {
                   <td><span className={`admin-pill ${user.riskScore}`}>{user.riskScore}</span></td>
                   <td><span className={`admin-pill ${user.status}`}>{user.status}</span></td>
                   <td style={{ fontSize: 10.5, color: 'var(--admin-text-muted)' }}>{user.lastActive}</td>
+                  {/* Conditional action buttons based on user status */}
                   <td>
                     <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                      {/* Active users can be warned or suspended */}
                       {user.status !== 'banned' && user.status !== 'suspended' && (
                         <>
                           <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => handleAction(user, 'warn')}>Warn</button>
                           <button className="admin-btn admin-btn-sm admin-btn-warning" onClick={() => handleAction(user, 'suspend')}>Suspend</button>
                         </>
                       )}
+                      {/* Suspended users can be restored */}
                       {user.status === 'suspended' && (
                         <button className="admin-btn admin-btn-sm admin-btn-primary" onClick={() => handleAction(user, 'unsuspend')}>Unsuspend</button>
                       )}
+                      {/* Anyone not already banned can be banned */}
                       {user.status !== 'banned' && (
                         <button className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => handleAction(user, 'ban')}>Ban</button>
                       )}
+                      {/* Banned users can be unbanned */}
                       {user.status === 'banned' && (
                         <button className="admin-btn admin-btn-sm admin-btn-primary" onClick={() => handleAction(user, 'unban')}>Unban</button>
                       )}
+                      {/* Promote to trusted if score ≥80 and not already trusted */}
                       {user.role !== 'trusted' && user.trustScore >= 80 && (
                         <button className="admin-btn admin-btn-sm admin-btn-primary" onClick={() => handleAction(user, 'promote')}>Promote</button>
                       )}
@@ -179,12 +222,14 @@ export default function AdminUsersPage() {
                   </td>
                 </tr>
               ))}
+              {/* Empty-state row when no users pass the current filters */}
               {filtered.length === 0 && (
                 <tr><td colSpan={10} style={{ textAlign: 'center', padding: 32, color: 'var(--admin-text-muted)' }}>No users match filters</td></tr>
               )}
             </tbody>
           </table>
         </div>
+        {/* ── Pagination footer (stub — prev/next not wired) ── */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderTop: '1px solid var(--admin-border)', fontSize: 11, color: 'var(--admin-text-muted)' }}>
           <span>Showing {filtered.length} of {allUsers.length} users</span>
           <div style={{ display: 'flex', gap: 4 }}>

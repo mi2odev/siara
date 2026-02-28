@@ -1,7 +1,24 @@
+/**
+ * @file AdminSystemSettingsPage.jsx
+ * @description System-wide settings panel for the Siara admin area.
+ *
+ *   Layout: Tabbed interface with 4 sections:
+ *     1. Severity Rules    — Editable table of AI auto-classification thresholds
+ *     2. Notification Logic — Toggle channels (push, SMS, in-app, email, webhook)
+ *                             with per-channel minimum severity selector
+ *     3. Geo-fencing        — Define geographic zones and their monitored event types
+ *     4. General            — System toggles (auto-approve, maintenance mode),
+ *                             data retention policy, and API rate-limit config
+ *
+ *   Data: Static mock arrays (severityRules, notificationChannels, geoFenceRules).
+ *   Routing: Active tab is synced to the URL search param `?tab=`.
+ */
 import React, { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 /* ── Mock settings data ── */
+
+/** Rules mapping incident types to auto-assigned severity levels with confidence thresholds. */
 const severityRules = [
   { id: 1, name: 'Multi-vehicle collision', autoSeverity: 'high', minConfidence: 80, enabled: true },
   { id: 2, name: 'Pedestrian incident', autoSeverity: 'high', minConfidence: 70, enabled: true },
@@ -11,6 +28,7 @@ const severityRules = [
   { id: 6, name: 'Night-time incident', autoSeverity: 'medium', minConfidence: 60, enabled: true },
 ]
 
+/** Available notification delivery channels with enabled state and minimum severity trigger. */
 const notificationChannels = [
   { name: 'Push Notifications', enabled: true, minSeverity: 'medium', description: 'Mobile push alerts to affected users' },
   { name: 'SMS Alerts', enabled: true, minSeverity: 'high', description: 'SMS to registered users in zone' },
@@ -19,6 +37,7 @@ const notificationChannels = [
   { name: 'Webhook (External)', enabled: false, minSeverity: 'high', description: 'POST to external API endpoints' },
 ]
 
+/** Geographic boundary rules scoping alert delivery to specific regions and event types. */
 const geoFenceRules = [
   { id: 1, name: 'Algiers Metro Area', radius: 15, unit: 'km', events: ['collision', 'weather'], active: true },
   { id: 2, name: 'Highway E-W Corridor', radius: 5, unit: 'km', events: ['collision', 'roadwork'], active: true },
@@ -26,6 +45,7 @@ const geoFenceRules = [
   { id: 4, name: 'University Districts', radius: 3, unit: 'km', events: ['collision', 'traffic'], active: false },
 ]
 
+/** Tab definitions — `key` matches the URL search param, `label` is the visible text. */
 const tabs = [
   { key: 'severity', label: 'Severity Rules' },
   { key: 'notifications', label: 'Notification Logic' },
@@ -35,9 +55,9 @@ const tabs = [
 
 export default function AdminSystemSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const currentTab = searchParams.get('tab') || 'severity'
-  const [autoApprove, setAutoApprove] = useState(false)
-  const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const currentTab = searchParams.get('tab') || 'severity' // Active tab from URL; defaults to "severity"
+  const [autoApprove, setAutoApprove] = useState(false)     // Toggle: auto-approve high-confidence reports
+  const [maintenanceMode, setMaintenanceMode] = useState(false) // Toggle: disable public-facing features
 
   return (
     <>
@@ -60,7 +80,7 @@ export default function AdminSystemSettingsPage() {
         ))}
       </div>
 
-      {/* Severity Rules Tab */}
+      {/* ═══ TAB: Severity Rules — AI auto-classification threshold table ═══ */}
       {currentTab === 'severity' && (
         <div className="admin-card">
           <div className="admin-card-header">
@@ -111,7 +131,7 @@ export default function AdminSystemSettingsPage() {
         </div>
       )}
 
-      {/* Notification Logic Tab */}
+      {/* ═══ TAB: Notification Logic — Channel toggles & severity thresholds ═══ */}
       {currentTab === 'notifications' && (
         <div className="admin-card">
           <h3 className="admin-card-title">Notification Channels</h3>
@@ -144,7 +164,7 @@ export default function AdminSystemSettingsPage() {
         </div>
       )}
 
-      {/* Geo-fencing Tab */}
+      {/* ═══ TAB: Geo-fencing — Geographic boundary rules for targeted alerts ═══ */}
       {currentTab === 'geofencing' && (
         <div className="admin-card">
           <div className="admin-card-header">
@@ -196,7 +216,7 @@ export default function AdminSystemSettingsPage() {
         </div>
       )}
 
-      {/* General Tab */}
+      {/* ═══ TAB: General — System controls, data retention & API config ═══ */}
       {currentTab === 'general' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="admin-card">

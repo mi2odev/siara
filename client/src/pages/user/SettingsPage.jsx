@@ -1,9 +1,27 @@
+/**
+ * @file SettingsPage.jsx
+ * @description Multi-section user settings page with a 2-column layout:
+ *   Left  — Vertical navigation list (Profile, Account, Security, Notifications, Privacy, Data)
+ *   Right — Content panel that renders one section at a time via conditional rendering.
+ *
+ * Features:
+ *   - Inline editing with save feedback animation ("Saved ✓" badge)
+ *   - Toggle switches for notification preferences
+ *   - Radio-button groups for privacy controls
+ *   - 2FA enable/disable toggle
+ *   - Expandable "Delete Account" confirmation with typed-input safeguard
+ *
+ * All state is local (no backend calls); this serves as a UI prototype.
+ *
+ * Dependencies: react-router-dom
+ */
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/DashboardPage.css'
 import '../../styles/SettingsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
+/** Sidebar navigation items — each key maps to a conditionally rendered <section> below */
 const sections = [
   { key: 'profile', label: 'Profile' },
   { key: 'account', label: 'Account' },
@@ -15,10 +33,11 @@ const sections = [
 
 export default function SettingsPage() {
   const navigate = useNavigate()
-  const [activeSection, setActiveSection] = useState('profile')
-  const [showDropdown, setShowDropdown] = useState(false)
+  const [activeSection, setActiveSection] = useState('profile')   // currently visible settings section
+  const [showDropdown, setShowDropdown] = useState(false)          // header user-menu dropdown
 
-  /* ---- inline edit state ---- */
+  /* ---- Inline edit state ---- */
+  /** profileData holds the editable user fields displayed in Profile & Account sections */
   const [profileData, setProfileData] = useState({
     name: 'Sofiane Ahmed',
     bio: 'Contributeur actif pour une route plus sûre en Algérie 🇩🇿',
@@ -27,10 +46,12 @@ export default function SettingsPage() {
     phone: '+213 555 123 456',
     language: 'Français',
   })
-  const [editing, setEditing] = useState(null)
-  const [saved, setSaved] = useState(null)
+  const [editing, setEditing] = useState(null)  // field key currently being edited (or null)
+  const [saved, setSaved] = useState(null)       // field key that just saved (shows "Saved ✓" badge briefly)
 
+  /** Enter inline-edit mode for a given profile field */
   const handleEdit = (field) => setEditing(field)
+  /** Commit an inline edit, persist to state, and trigger the "Saved" animation */
   const handleSave = (field, value) => {
     setProfileData(prev => ({ ...prev, [field]: value }))
     setEditing(null)
@@ -38,32 +59,35 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(null), 1800)
   }
 
-  /* ---- notification toggles ---- */
+  /* ---- Notification toggle state ---- */
+  /** Boolean map of notification preference toggles */
   const [notifs, setNotifs] = useState({
-    emailNearby: true,
-    emailSevere: false,
-    emailDigest: true,
-    pushRealtime: true,
-    pushPredictions: false,
+    emailNearby: true,       // incidents near the user
+    emailSevere: false,      // high-severity only emails
+    emailDigest: true,       // weekly summary email
+    pushRealtime: true,      // real-time push alerts
+    pushPredictions: false,  // AI prediction push alerts
   })
+  /** Flip one notification toggle by key */
   const toggleNotif = (key) => setNotifs(prev => ({ ...prev, [key]: !prev[key] }))
 
-  /* ---- privacy radios ---- */
+  /* ---- Privacy radio-button state ---- */
+  /** Controls for three independent privacy dimensions */
   const [privacy, setPrivacy] = useState({
-    visibility: 'public',
-    identity: 'show',
-    location: 'reporting',
+    visibility: 'public',    // profile visibility: 'public' | 'private'
+    identity: 'show',        // report identity: 'show' | 'anonymous'
+    location: 'reporting',   // location sharing: 'always' | 'reporting' | 'never'
   })
 
-  /* ---- security ---- */
-  const [twoFA, setTwoFA] = useState(true)
+  /* ---- Security state ---- */
+  const [twoFA, setTwoFA] = useState(true)  // whether 2FA is currently enabled
 
-  /* ---- delete confirm ---- */
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  /* ---- Delete-account confirmation ---- */
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)  // expandable danger zone
 
   return (
     <div className="settings-root">
-      {/* HEADER — same as all pages */}
+      {/* ═══ HEADER — shared dashboard header (same as other pages) ═══ */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
@@ -75,6 +99,7 @@ export default function SettingsPage() {
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
             </nav>
           </div>
           <div className="dash-header-center">
@@ -99,9 +124,10 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      {/* SETTINGS LAYOUT — 2 columns */}
+      {/* ═══ SETTINGS LAYOUT — 2-column (sidebar nav + content panel) ═══ */}
       <div className="settings-layout">
-        {/* LEFT NAV */}
+
+        {/* ═══ LEFT NAV — vertical section list ═══ */}
         <nav className="settings-nav">
           <h2 className="settings-nav-title">Settings</h2>
           {sections.map(s => (
@@ -115,10 +141,11 @@ export default function SettingsPage() {
           ))}
         </nav>
 
-        {/* RIGHT PANEL */}
+        {/* ═══ RIGHT CONTENT PANEL — conditionally renders one section at a time ═══ */}
         <main className="settings-panel">
 
-          {/* ═══════ PROFILE ═══════ */}
+          {/* ═══════ PROFILE SECTION ═══════ */}
+          {/* Editable rows for name, bio, location + profile photo placeholder */}
           {activeSection === 'profile' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Profile</h3>
@@ -161,7 +188,8 @@ export default function SettingsPage() {
             </section>
           )}
 
-          {/* ═══════ ACCOUNT ═══════ */}
+          {/* ═══════ ACCOUNT SECTION ═══════ */}
+          {/* Editable rows for email, phone, language + read-only member-since */}
           {activeSection === 'account' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Account</h3>
@@ -199,7 +227,8 @@ export default function SettingsPage() {
             </section>
           )}
 
-          {/* ═══════ SECURITY ═══════ */}
+          {/* ═══════ SECURITY SECTION ═══════ */}
+          {/* Password change, 2FA toggle, active sessions */}
           {activeSection === 'security' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Security</h3>
@@ -226,7 +255,8 @@ export default function SettingsPage() {
             </section>
           )}
 
-          {/* ═══════ NOTIFICATIONS ═══════ */}
+          {/* ═══════ NOTIFICATIONS SECTION ═══════ */}
+          {/* Toggle switches grouped by channel: email & push notifications */}
           {activeSection === 'notifications' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Notifications</h3>
@@ -274,7 +304,8 @@ export default function SettingsPage() {
             </section>
           )}
 
-          {/* ═══════ PRIVACY ═══════ */}
+          {/* ═══════ PRIVACY SECTION ═══════ */}
+          {/* Radio-button groups for profile visibility, report identity, location sharing */}
           {activeSection === 'privacy' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Privacy</h3>
@@ -337,7 +368,8 @@ export default function SettingsPage() {
             </section>
           )}
 
-          {/* ═══════ DATA ═══════ */}
+          {/* ═══════ DATA MANAGEMENT SECTION ═══════ */}
+          {/* Export data, clear history, and expandable delete-account danger zone */}
           {activeSection === 'data' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Data</h3>
@@ -354,7 +386,7 @@ export default function SettingsPage() {
                 <button className="settings-action settings-action-warn">Clear</button>
               </div>
 
-              {/* DELETE ACCOUNT */}
+              {/* DELETE ACCOUNT — expandable danger zone with typed confirmation */}
               <div className="settings-danger-zone">
                 <h4 className="settings-danger-title">Delete Account</h4>
                 <p className="settings-danger-text">This action is permanent. All your data, reports, and contributions will be removed and cannot be recovered.</p>

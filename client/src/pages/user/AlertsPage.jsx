@@ -1,11 +1,39 @@
+/**
+ * @file AlertsPage.jsx
+ * @description Full alert-management page with list view, detail panel, and CRUD operations.
+ *
+ * Layout (3-column grid):
+ *   Left   — Sidebar navigation (Active / Paused / Expired / History) + stats + "New alert" CTA
+ *   Center — Filterable alert list with cards (severity & area dropdowns)
+ *   Right  — Detail panel for the selected alert: summary, mini Google Map, recent triggers, notification channels
+ *
+ * Persistence: alerts are stored in localStorage under key "siara_alerts".
+ *              On first visit SEED_ALERTS are written as default data.
+ *
+ * Features:
+ *   - Filter by severity / wilaya (area)
+ *   - Toggle active ↔ paused
+ *   - Delete with confirmation
+ *   - Edit via navigation to CreateAlertPage with pre-filled state
+ *   - Toast feedback when creating / editing an alert
+ *   - Mini Google Map (via @react-google-maps/api) in the detail panel
+ *
+ * Dependencies: react-router-dom, @react-google-maps/api, localStorage
+ */
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
+import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api' // Google Maps components
 import '../../styles/AlertsPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
-// Default seed alerts (used only when localStorage is empty)
+/**
+ * SEED_ALERTS — default alert data used to populate localStorage on the user's
+ * very first visit. Each alert object contains:
+ *   id, name, status (active|paused|expired), severity (high|medium|low),
+ *   area {name, wilaya}, incidentTypes[], timeWindow, lastTriggered,
+ *   triggerCount, notifications {app, email, sms}, recentTriggers[]
+ */
 const SEED_ALERTS = [
   {
     id: 1,
@@ -70,6 +98,11 @@ const SEED_ALERTS = [
   }
 ]
 
+/**
+ * loadAlerts — reads "siara_alerts" from localStorage.
+ * Returns the parsed array if valid and non-empty; otherwise seeds
+ * localStorage with SEED_ALERTS and returns them.
+ */
 function loadAlerts() {
   try {
     const stored = localStorage.getItem('siara_alerts')
@@ -86,23 +119,27 @@ function loadAlerts() {
 export default function AlertsPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [activeNav, setActiveNav] = useState('active')
-  const [selectedAlert, setSelectedAlert] = useState(null)
-  const [severityFilter, setSeverityFilter] = useState('all')
-  const [areaFilter, setAreaFilter] = useState('all')
-  const [toast, setToast] = useState(null)
 
+  // --- UI state ---
+  const [showDropdown, setShowDropdown] = useState(false)  // header user-menu dropdown
+  const [activeNav, setActiveNav] = useState('active')     // sidebar nav: 'active' | 'paused' | 'expired' | 'history'
+  const [selectedAlert, setSelectedAlert] = useState(null) // currently highlighted alert for the detail panel
+  const [severityFilter, setSeverityFilter] = useState('all')  // severity dropdown: 'all' | 'high' | 'medium' | 'low'
+  const [areaFilter, setAreaFilter] = useState('all')          // wilaya dropdown filter
+  const [toast, setToast] = useState(null)                     // transient success message string
+
+  // --- Core alerts data (initialised from localStorage via loadAlerts) ---
   const [alerts, setAlerts] = useState(() => loadAlerts())
 
+  /** Available wilaya options for the area filter dropdown */
   const wilayas = ['Alger', 'Oran', 'Constantine', 'Annaba', 'Blida']
 
-  // Persist alerts to localStorage on every change
+  // Persist alerts to localStorage whenever the array changes
   useEffect(() => {
     localStorage.setItem('siara_alerts', JSON.stringify(alerts))
   }, [alerts])
 
-  // Show toast when arriving from CreateAlertPage
+  // Show a toast notification when arriving back from CreateAlertPage (create or edit)
   useEffect(() => {
     if (location.state?.newAlert) {
       setToast(`✅ Alerte « ${location.state.newAlert} » créée avec succès`)
@@ -120,7 +157,7 @@ export default function AlertsPage() {
     }
   }, [location.state])
 
-  // Auto-select first alert
+  // Auto-select the first active alert if nothing is selected yet
   useEffect(() => {
     const activeAlerts = alerts.filter(a => a.status === 'active')
     if (activeAlerts.length > 0 && !selectedAlert) {
@@ -128,14 +165,14 @@ export default function AlertsPage() {
     }
   }, [alerts])
 
-  // Stats
+  // --- Derived stats shown in the left sidebar ---
   const stats = {
-    active: alerts.filter(a => a.status === 'active').length,
-    today: alerts.filter(a => a.lastTriggered?.includes('m') || a.lastTriggered?.includes('h')).length,
-    high: alerts.filter(a => a.severity === 'high' && a.status === 'active').length
+    active: alerts.filter(a => a.status === 'active').length,       // total active alerts
+    today:  alerts.filter(a => a.lastTriggered?.includes('m') || a.lastTriggered?.includes('h')).length, // triggered today (minutes or hours ago)
+    high:   alerts.filter(a => a.severity === 'high' && a.status === 'active').length  // high-severity active alerts
   }
 
-  // Filter
+  // --- Filtering: combine nav tab, severity, and area filters ---
   const filteredAlerts = alerts.filter(alert => {
     if (activeNav === 'active' && alert.status !== 'active') return false
     if (activeNav === 'paused' && alert.status !== 'paused') return false
@@ -145,7 +182,9 @@ export default function AlertsPage() {
     return true
   })
 
-  // Handlers
+  // --- Event handlers ---
+
+  /** Toggle an alert between 'active' and 'paused'. Stops event propagation to avoid selecting the card. */
   const toggleAlert = (e, id) => {
     e.stopPropagation()
     setAlerts(prev => prev.map(a => 
@@ -153,6 +192,7 @@ export default function AlertsPage() {
     ))
   }
 
+  /** Delete an alert after confirmation. Clears selectedAlert if it was the deleted one. */
   const deleteAlert = (e, id) => {
     e.stopPropagation()
     if (confirm('Supprimer cette alerte ?')) {
@@ -161,16 +201,19 @@ export default function AlertsPage() {
     }
   }
 
+  /** Load Google Maps script (lazy). Uses env var VITE_GOOGLE_MAP_KEY. */
   const { isLoaded: mapReady } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '',
   })
 
+  /** Map severity → hex colour for badges and dots */
   const color = (sev) => ({ high: '#DC2626', medium: '#F59E0B', low: '#10B981' }[sev] || '#64748B')
+  /** Map incident type → emoji icon */
   const icon = (type) => ({ accident: '🚗', traffic: '🚦', danger: '⚠️', roadworks: '🚧', weather: '🌧️' }[type] || '📍')
 
   return (
     <div className="alerts-page">
-      {/* HEADER */}
+      {/* ═══ HEADER (shared dashboard header) ═══ */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
@@ -182,6 +225,7 @@ export default function AlertsPage() {
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab dash-tab-active">Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
             </nav>
           </div>
           <div className="dash-header-center">
@@ -206,16 +250,18 @@ export default function AlertsPage() {
         </div>
       </header>
 
-      {/* TOAST */}
+      {/* ═══ TOAST NOTIFICATION ═══ */}
+      {/* Transient success message shown after creating / editing an alert */}
       {toast && (
         <div className="al-toast" onClick={() => setToast(null)}>
           {toast}
         </div>
       )}
 
-      {/* GRID */}
+      {/* ═══ MAIN 3-COLUMN GRID ═══ */}
       <div className="al-grid">
-        {/* LEFT */}
+
+        {/* ═══ LEFT SIDEBAR: nav tabs, quick stats, new-alert CTA ═══ */}
         <aside className="al-left">
           <nav className="al-nav">
             {[
@@ -241,7 +287,7 @@ export default function AlertsPage() {
           <button className="al-cta" onClick={() => navigate('/alerts/create')}>➕ Nouvelle alerte</button>
         </aside>
 
-        {/* CENTER */}
+        {/* ═══ CENTER: page heading, filters, alert card list ═══ */}
         <main className="al-center">
           <div className="al-page-head">
             <h1>Mes Alertes</h1>
@@ -264,8 +310,10 @@ export default function AlertsPage() {
             )}
           </div>
 
+          {/* Alert card list — empty state or iterable cards */}
           <div className="al-list">
             {filteredAlerts.length === 0 ? (
+              /* Empty state placeholder with CTA */
               <div className="al-empty">
                 <span className="empty-icon">🔔</span>
                 <h3>Aucune alerte</h3>
@@ -326,7 +374,7 @@ export default function AlertsPage() {
           </div>
         </main>
 
-        {/* RIGHT */}
+        {/* ═══ RIGHT DETAIL PANEL: selected alert info + mini map + triggers ═══ */}
         <aside className="al-right">
           {selectedAlert ? (
             <>

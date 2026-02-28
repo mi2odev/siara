@@ -1,14 +1,31 @@
-
+/**
+ * @file HomePage.jsx
+ * @description SIARA landing / marketing page. Fully static with no component state.
+ *
+ * Layout (top → bottom):
+ *   1. Hero — logo, headline, CTA buttons
+ *   2. How It Works — 3-step cards (Collect → Analyse → Alert)
+ *   3. Mission — short manifesto block
+ *   4. Global Stats — 4 key metric cards
+ *   5. Services Grid — alternating text/art blocks with links
+ *   6. Map Preview — embedded <MapPreview /> prototype
+ *   7. Join CTA — registration call-to-action
+ *   8. <Footer />
+ *
+ * Dependencies: MapPreview, Footer, MUI Divider
+ */
 import '../../styles/HomePage.css'
 import logo from '../../assets/logos/siara-logo.png'
-import MapPreview from '../../components/map/MapPreview'
-import Footer from '../../components/layout/Footer'
-import { Divider } from '@mui/material'
+import MapPreview from '../../components/map/MapPreview' // interactive map widget
+import Footer from '../../components/layout/Footer'      // shared site footer
+import { Divider } from '@mui/material'                   // visual separator between hero & content
 
 export default function HomePage(){
   return (
     <div className="home-root">
-      {/* HERO */}
+
+      {/* ═══════════════════ HERO SECTION ═══════════════════ */}
+      {/* Full-width hero with centred logo, headline, sub-text, and two CTA buttons */}
       <section id="hero" className="hero-section">
         <div className="hero-inner">
           <div className="home-hero-logo-top">
@@ -25,7 +42,9 @@ export default function HomePage(){
         </div>
       </section>
  <Divider variant="middle"  />
-      {/* HOW IT WORKS */}
+
+      {/* ═══════════════════ HOW IT WORKS ═══════════════════ */}
+      {/* Three-card grid explaining the SIARA pipeline: data → AI → alerts */}
       <section id="how" className="how-section">
         <h2 className="home-section-title">Comment fonctionne SIARA ?</h2>
         <div className="how-cards">
@@ -47,7 +66,8 @@ export default function HomePage(){
         </div>
       </section>
 
-      {/* MISSION */}
+      {/* ═══════════════════ MISSION STATEMENT ═══════════════════ */}
+      {/* Short manifesto describing SIARA's goal */}
       <section id="mission" className="mission-section">
         <div className="mission-inner">
           <h2 className="mission-title">Notre mission <span className="mission-icon">🚦</span></h2>
@@ -55,7 +75,8 @@ export default function HomePage(){
         </div>
       </section>
 
-      {/* GLOBAL STATS */}
+      {/* ═══════════════════ GLOBAL STATS ═══════════════════ */}
+      {/* 4-column grid of key road-safety metrics */}
       <section id="stats" className="stats-section">
         <div className="stats-grid">
           <div className="stat-card"><div className="stat-icon">🌍</div><div className="home-stat-value">1,35M</div><div className="home-stat-label">décès/an dans le monde</div></div>
@@ -65,7 +86,8 @@ export default function HomePage(){
         </div>
       </section>
 
-      {/* SERVICES */}
+      {/* ═══════════════════ SERVICES GRID ═══════════════════ */}
+      {/* Alternating text-left / art-right blocks showcasing the 3 main products */}
       <section id="services" className="services-section">
         <h2 className="section-title">Services SIARA</h2>
         <div className="service-block alt">
@@ -94,7 +116,8 @@ export default function HomePage(){
         </div>
       </section>
 
-      {/* MAP PREVIEW (optional visual) */}
+      {/* ═══════════════════ MAP PREVIEW ═══════════════════ */}
+      {/* Embedded interactive map prototype via <MapPreview /> component */}
       <section className="map-preview-section" aria-labelledby="map-preview-heading">
         <h2 id="map-preview-heading" className="section-title">Aperçu de carte (prototype)</h2>
         <div className="map-frame">
@@ -102,7 +125,8 @@ export default function HomePage(){
         </div>
       </section>
 
-      {/* JOIN */}
+      {/* ═══════════════════ JOIN CTA ═══════════════════ */}
+      {/* Final call-to-action encouraging user registration */}
       <section id="join" className="join-section">
         <div className="join-inner">
           <h2>Rejoignez l’initiative</h2>
@@ -111,6 +135,7 @@ export default function HomePage(){
         </div>
       </section>
 
+      {/* ═══════════════════ FOOTER ═══════════════════ */}
       <Footer />
     </div>
   )
