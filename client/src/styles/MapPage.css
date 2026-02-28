@@ -50,6 +50,52 @@
   padding: 0;
 }
 
+/* ── Bottom step-nav bar (Retour / Suivant) ── */
+.map-step-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 32px;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.map-nav-spacer {
+  flex: 1;
+}
+
+.map-nav-btn {
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.map-nav-btn.secondary {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+.map-nav-btn.secondary:hover {
+  border-color: var(--siara-primary, #6366f1);
+  color: var(--siara-primary, #6366f1);
+}
+
+.map-nav-btn.primary {
+  background: var(--siara-primary, #6366f1);
+  color: #fff;
+}
+
+.map-nav-btn.primary:hover {
+  background: var(--siara-accent, #8b5cf6);
+}
+
 /* ==================== TOP NAVIGATION (Dashboard Style) ==================== */
 .map-page .siara-dashboard-header {
   position: fixed;
@@ -294,9 +340,9 @@
   display: grid;
   grid-template-columns: 300px 1fr 340px;
   grid-template-rows: 1fr;
-  height: calc(100vh - 80px);
   margin-top: 80px;
   overflow: hidden;
+  min-height: 0;
   /* No gaps, no margins - columns touch each other */
 }
 
@@ -1164,3 +1210,5 @@
   color: #64748B;
   font-weight: 500;
 }
+
+

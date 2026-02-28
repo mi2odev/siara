@@ -1,3 +1,19 @@
+/**
+ * @file CreateAlertPage.jsx
+ * @description 5-step wizard for creating or editing geographic safety alerts.
+ *
+ * Layout: 3-column grid
+ *   - Left:   vertical stepper navigation (clickable, with validation guards)
+ *   - Center: step-specific form panels (Type → Zone → Conditions → Frequency → Confirmation)
+ *   - Right:  live preview sidebar (alert card, notification sample, mini-map, explanation)
+ *
+ * Features:
+ *   - Edit mode: pre-populates form from `location.state.editAlert` (passed via react-router)
+ *   - Google Maps integration with Circle overlay for radius-based zones
+ *   - localStorage persistence for created/updated alerts
+ *   - Step validation with shake animation on blocked navigation
+ *   - Auto-generated alert name suggestion based on selected type + zone
+ */
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { GoogleMap, Marker, Circle, useLoadScript } from '@react-google-maps/api'
@@ -5,22 +21,27 @@ import '../../styles/CreateAlertPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
+/* ═══ DEFAULT MAP CENTER ═══ */
 const ALGIERS = { lat: 36.753, lng: 3.0588 }
 
 export default function CreateAlertPage() {
+  /* ═══ ROUTING & EDIT MODE ═══ */
   const navigate = useNavigate()
   const location = useLocation()
-  const editAlert = location.state?.editAlert || null
-  const isEditMode = !!editAlert
+  const editAlert = location.state?.editAlert || null   // Alert object passed when editing
+  const isEditMode = !!editAlert                         // true → update flow; false → create flow
   const { isLoaded: mapReady } = useLoadScript({ googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '' })
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [currentStep, setCurrentStep] = useState(1)
-  const [mapCenter, setMapCenter] = useState(ALGIERS)
-  const [drawPin, setDrawPin] = useState(ALGIERS)
-  const [isCreating, setIsCreating] = useState(false)
-  const [shakeNav, setShakeNav] = useState(false)
 
-  // Derive zone type from stored alert data
+  /* ═══ UI STATE ═══ */
+  const [showDropdown, setShowDropdown] = useState(false) // Header profile dropdown visibility
+  const [currentStep, setCurrentStep] = useState(1)       // Active wizard step (1-5)
+  const [mapCenter, setMapCenter] = useState(ALGIERS)     // Center of the radius-zone map
+  const [drawPin, setDrawPin] = useState(ALGIERS)         // Pin for custom-draw zone map
+  const [isCreating, setIsCreating] = useState(false)     // Loading state during alert save
+  const [shakeNav, setShakeNav] = useState(false)         // Triggers CSS shake animation on blocked nav
+
+  /* ═══ EDIT-MODE DERIVATION HELPERS ═══ */
+  // Reverse-engineer zone type from the stored area name string
   const deriveZoneType = (alert) => {
     if (!alert) return ''
     const areaName = alert.area?.name || ''
@@ -31,6 +52,7 @@ export default function CreateAlertPage() {
     return 'wilaya'
   }
 
+  // Reverse-engineer time range preset from the stored timeWindow string
   const deriveTimeRange = (alert) => {
     if (!alert) return 'all'
     const tw = alert.timeWindow || '24/7'
@@ -40,7 +62,8 @@ export default function CreateAlertPage() {
     return 'custom'
   }
 
-  // Form state
+  /* ═══ FORM STATE (lazy initializer) ═══ */
+  // When editing, fields are pre-populated from editAlert; otherwise defaults are used
   const [alertData, setAlertData] = useState(() => {
     if (editAlert) {
       const zt = deriveZoneType(editAlert)
@@ -91,6 +114,7 @@ export default function CreateAlertPage() {
     }
   })
 
+  /* ═══ WIZARD STEP DEFINITIONS ═══ */
   const steps = [
     { id: 1, label: "Type d'alerte", icon: '🎯' },
     { id: 2, label: 'Zone', icon: '📍' },
@@ -99,6 +123,7 @@ export default function CreateAlertPage() {
     { id: 5, label: 'Confirmation', icon: '✅' }
   ]
 
+  /* ═══ STATIC DATA — incident types, wilayas, roads ═══ */
   const alertTypes = [
     { id: 'accident', icon: '🚗', label: 'Accident', desc: 'Collisions, accidents de la route' },
     { id: 'roadworks', icon: '🚧', label: 'Travaux', desc: 'Chantiers, fermetures de voies' },
@@ -110,7 +135,8 @@ export default function CreateAlertPage() {
   const wilayas = ['Alger', 'Oran', 'Constantine', 'Annaba', 'Blida', 'Boumerdès', 'Tizi Ouzou', 'Béjaïa']
   const roads = ['A1 - Autoroute Est-Ouest', 'RN1', 'RN5', 'RN11', 'RN12', 'Rocade Sud Alger']
 
-  // Handlers
+  /* ═══ FORM HANDLERS ═══ */
+  // Toggle an incident type in the multi-select array
   const toggleType = (typeId) => {
     setAlertData(prev => ({
       ...prev,
@@ -120,6 +146,7 @@ export default function CreateAlertPage() {
     }))
   }
 
+  // Toggle a severity level in the multi-select array
   const toggleSeverity = (sev) => {
     setAlertData(prev => ({
       ...prev,
@@ -129,6 +156,8 @@ export default function CreateAlertPage() {
     }))
   }
 
+  /* ═══ STEP VALIDATION ═══ */
+  // Returns true if the current step's required fields are filled
   const canProceed = () => {
     switch (currentStep) {
       case 1: return alertData.types.length > 0
@@ -140,6 +169,7 @@ export default function CreateAlertPage() {
     }
   }
 
+  // Advance to the next step, with shake animation on validation failure
   const nextStep = () => {
     if (currentStep >= 5) return
     if (!canProceed()) {
@@ -156,7 +186,7 @@ export default function CreateAlertPage() {
     }
   }
 
-  // Check if a given step is reachable (all previous steps valid)
+  // Check if a given step is reachable — all intermediate steps must be valid
   const canReachStep = (targetStep) => {
     if (targetStep <= currentStep) return true
     for (let s = currentStep; s < targetStep; s++) {
@@ -171,6 +201,7 @@ export default function CreateAlertPage() {
     return true
   }
 
+  // Direct jump to a step (from clicking the stepper) with forward-validation
   const goToStep = (targetStep) => {
     if (targetStep === currentStep) return
     if (targetStep < currentStep) {
@@ -186,6 +217,8 @@ export default function CreateAlertPage() {
     }
   }
 
+  /* ═══ CREATE / UPDATE ALERT ═══ */
+  // Builds the alert payload, persists to localStorage, then navigates back to AlertsPage
   const createAlert = () => {
     setIsCreating(true)
 
@@ -255,7 +288,8 @@ export default function CreateAlertPage() {
     }, 800)
   }
 
-  // Generate alert name suggestion (only in create mode)
+  /* ═══ AUTO-NAME SUGGESTION (create mode only) ═══ */
+  // Generates a default alert name from selected types + zone when user hasn't typed one
   useEffect(() => {
     if (!isEditMode && alertData.types.length > 0 && alertData.zoneType && !alertData.name) {
       const typeLabels = alertData.types.map(t => alertTypes.find(at => at.id === t)?.label).join(' + ')
@@ -266,7 +300,8 @@ export default function CreateAlertPage() {
     }
   }, [alertData.types, alertData.zoneType, alertData.zoneWilaya, alertData.zoneRoad])
 
-  // Estimate frequency
+  /* ═══ ESTIMATED NOTIFICATION FREQUENCY ═══ */
+  // Rough heuristic: more types / lower severity / wider zone = more alerts
   const getEstimatedFrequency = () => {
     let base = alertData.types.length * 2
     if (alertData.severities.includes('low')) base += 3
@@ -275,9 +310,10 @@ export default function CreateAlertPage() {
     return base < 3 ? '1-2 par semaine' : base < 7 ? '3-6 par semaine' : '1-2 par jour'
   }
 
+  /* ═══ RENDER ═══ */
   return (
     <div className="create-alert-page">
-      {/* HEADER */}
+      {/* ═══ FLOATING HEADER ═══ */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
@@ -289,6 +325,7 @@ export default function CreateAlertPage() {
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
             </nav>
           </div>
           <div className="dash-header-center">
@@ -315,9 +352,9 @@ export default function CreateAlertPage() {
         </div>
       </header>
 
-      {/* MAIN GRID */}
+      {/* ═══ MAIN 3-COLUMN GRID ═══ */}
       <div className="create-grid">
-        {/* LEFT - STEPPER */}
+        {/* ═══ LEFT COLUMN — VERTICAL STEPPER ═══ */}
         <aside className="create-left">
           <div className="stepper-header">
             <span className="stepper-icon">{isEditMode ? '✏️' : '➕'}</span>
@@ -346,9 +383,9 @@ export default function CreateAlertPage() {
           </button>
         </aside>
 
-        {/* CENTER - FORM */}
+        {/* ═══ CENTER COLUMN — STEP FORM PANELS ═══ */}
         <main className="create-center">
-          {/* STEP 1 - Alert Type */}
+          {/* STEP 1 — Alert Type Selection (multi-select cards) */}
           {currentStep === 1 && (
             <div className="step-panel">
               <div className="step-header">
@@ -375,7 +412,7 @@ export default function CreateAlertPage() {
             </div>
           )}
 
-          {/* STEP 2 - Zone */}
+          {/* STEP 2 — Zone Selection (location/wilaya/road/custom draw) */}
           {currentStep === 2 && (
             <div className="step-panel">
               <div className="step-header">
@@ -515,7 +552,7 @@ export default function CreateAlertPage() {
             </div>
           )}
 
-          {/* STEP 3 - Conditions */}
+          {/* STEP 3 — Conditions (severity, time range, advanced options) */}
           {currentStep === 3 && (
             <div className="step-panel">
               <div className="step-header">
@@ -623,7 +660,7 @@ export default function CreateAlertPage() {
             </div>
           )}
 
-          {/* STEP 4 - Frequency */}
+          {/* STEP 4 — Notification Frequency & Delivery Channels */}
           {currentStep === 4 && (
             <div className="step-panel">
               <div className="step-header">
@@ -750,7 +787,7 @@ export default function CreateAlertPage() {
             </div>
           )}
 
-          {/* STEP 5 - Confirmation */}
+          {/* STEP 5 — Confirmation & Summary */}
           {currentStep === 5 && (
             <div className="step-panel">
               <div className="step-header">
@@ -818,7 +855,7 @@ export default function CreateAlertPage() {
             </div>
           )}
 
-          {/* NAVIGATION */}
+          {/* ═══ BOTTOM NAVIGATION (Back / Continue / Create) ═══ */}
           <div className="step-nav">
             {currentStep > 1 && (
               <button className="nav-btn secondary" onClick={prevStep}>
@@ -827,7 +864,7 @@ export default function CreateAlertPage() {
             )}
             <div className="nav-spacer"></div>
             {currentStep < 5 ? (
-              <button className={`nav-btn primary ${!canProceed() ? 'btn-disabled' : ''} ${shakeNav ? 'shake' : ''}`} onClick={nextStep}>
+              <button className={`nav-btn secondary ${!canProceed() ? 'btn-disabled' : ''} ${shakeNav ? 'shake' : ''}`} onClick={nextStep}>
                 Continuer →
               </button>
             ) : (
@@ -838,7 +875,7 @@ export default function CreateAlertPage() {
           </div>
         </main>
 
-        {/* RIGHT - PREVIEW */}
+        {/* ═══ RIGHT COLUMN — LIVE PREVIEW SIDEBAR ═══ */}
         <aside className="create-right">
           <div className="preview-header">
             <span className="preview-icon">👁️</span>

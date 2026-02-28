@@ -1,8 +1,31 @@
+/**
+ * @file AdminZonesPage.jsx
+ * @description Admin risk-zone geo-management page.
+ *
+ * Layout:
+ *   - Page header with zone count, export & add-zone buttons
+ *   - 4 tabs: Map | Zone Management | Wilaya Ranking | Threshold Config
+ *   - Edit-zone modal overlay (form: risk level, threshold, lat/lng)
+ *
+ * Features:
+ *   - Interactive Google Map with risk-colored circle markers
+ *   - Marker size scales with incident count; InfoWindow shows zone stats
+ *   - CRUD table with AI-override toggle and trend indicators
+ *   - Wilaya ranking by total incidents with per-100k rate
+ *   - Per-zone threshold configuration with AI-override toggles
+ *
+ * Data: 8 mock zones across Algerian wilayas (Algiers, Oran, Constantine, etc.)
+ *       with coordinates, risk level, incident count, and population.
+ *
+ * Dependencies: @react-google-maps/api (GoogleMap, Marker, InfoWindow)
+ */
 import React, { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { GoogleMap, Marker, InfoWindow, useLoadScript } from '@react-google-maps/api'
 
-/* ── Mock zone data with coordinates ── */
+/* ═══════════════════════════════════════════════════════════════
+   MOCK DATA — 8 risk zones with geo-coordinates and metrics
+   ═══════════════════════════════════════════════════════════════ */
 const allZones = [
   { id: 'Z-01', name: 'Algiers Centre', wilaya: 'Algiers', lat: 36.7538, lng: 3.0588, risk: 'high', incidents: 18, population: 1200000, threshold: 15, aiOverride: false, trend: 'rising' },
   { id: 'Z-02', name: 'Oran Industrial', wilaya: 'Oran', lat: 35.6969, lng: -0.6331, risk: 'high', incidents: 12, population: 850000, threshold: 12, aiOverride: false, trend: 'stable' },
@@ -14,8 +37,9 @@ const allZones = [
   { id: 'Z-08', name: 'Tlemcen City Ring', wilaya: 'Tlemcen', lat: 34.8784, lng: -1.3150, risk: 'low', incidents: 2, population: 180000, threshold: 5, aiOverride: false, trend: 'stable' },
 ]
 
+/* ── Google Maps configuration ── */
 const mapContainerStyle = { width: '100%', height: '100%', borderRadius: 8 }
-const mapCenter = { lat: 36.0, lng: 3.0 }
+const mapCenter = { lat: 36.0, lng: 3.0 }  // roughly centered on northern Algeria
 const mapOptions = {
   styles: [
     { featureType: 'poi', stylers: [{ visibility: 'off' }] },
@@ -25,8 +49,10 @@ const mapOptions = {
   zoomControl: true,
 }
 
+/** Color map for risk-level markers and pills */
 const riskColors = { high: '#EF4444', medium: '#F59E0B', low: '#22C55E' }
 
+/** Tab definitions for the 4 zone-management views */
 const tabs = [
   { key: 'map', label: 'Zone Map' },
   { key: 'table', label: 'Zone Management' },
@@ -34,16 +60,28 @@ const tabs = [
   { key: 'thresholds', label: 'Threshold Config' },
 ]
 
+/* ═══════════════════════════════════════════════════════════════
+   COMPONENT
+   ═══════════════════════════════════════════════════════════════ */
 export default function AdminZonesPage() {
+  /* --- URL-driven tab state (defaults to 'map') --- */
   const [searchParams, setSearchParams] = useSearchParams()
   const currentTab = searchParams.get('tab') || 'map'
-  const [selectedZone, setSelectedZone] = useState(null)
-  const [editZone, setEditZone] = useState(null)
 
+  /* --- Local UI state --- */
+  const [selectedZone, setSelectedZone] = useState(null)  // zone whose InfoWindow is open on map
+  const [editZone, setEditZone] = useState(null)          // zone being edited in modal
+
+  /* Load Google Maps script — API key from env variable */
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '',
   })
 
+  /**
+   * Aggregate zones by wilaya for the ranking tab.
+   * Computes total incidents, population, high-risk zone count per wilaya.
+   * Sorted descending by total incidents.
+   */
   const wilayaRanking = useMemo(() => {
     const map = {}
     allZones.forEach(z => {
@@ -56,8 +94,10 @@ export default function AdminZonesPage() {
     return Object.values(map).sort((a, b) => b.totalIncidents - a.totalIncidents)
   }, [])
 
+  /* ═══ RENDER ═══ */
   return (
     <>
+      {/* ═══ PAGE HEADER — zone/wilaya counts, export & add actions ═══ */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Risk Zones & Geo Management</h1>
@@ -69,7 +109,7 @@ export default function AdminZonesPage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* ═══ TAB BAR — Map | Table | Ranking | Thresholds ═══ */}
       <div className="admin-tabs" style={{ marginBottom: 14 }}>
         {tabs.map(t => (
           <button key={t.key}
@@ -81,18 +121,19 @@ export default function AdminZonesPage() {
         ))}
       </div>
 
-      {/* Map Tab */}
+      {/* ═══ TAB: ZONE MAP — Google Maps with risk-colored markers ═══ */}
       {currentTab === 'map' && (
         <div className="admin-card" style={{ height: 500, padding: 0, overflow: 'hidden' }}>
           {isLoaded ? (
             <GoogleMap mapContainerStyle={mapContainerStyle} center={mapCenter} zoom={6} options={mapOptions}>
+              {/* Render a circle marker per zone; size ∝ incident count */}
               {allZones.map(zone => (
                 <Marker
                   key={zone.id}
                   position={{ lat: zone.lat, lng: zone.lng }}
                   icon={{
                     path: window.google?.maps?.SymbolPath?.CIRCLE,
-                    scale: 8 + zone.incidents * 0.5,
+                    scale: 8 + zone.incidents * 0.5,  // larger circle = more incidents
                     fillColor: riskColors[zone.risk],
                     fillOpacity: 0.85,
                     strokeColor: '#ffffff',
@@ -101,6 +142,7 @@ export default function AdminZonesPage() {
                   onClick={() => setSelectedZone(zone)}
                 />
               ))}
+              {/* InfoWindow tooltip for the clicked zone */}
               {selectedZone && (
                 <InfoWindow
                   position={{ lat: selectedZone.lat, lng: selectedZone.lng }}
@@ -128,7 +170,7 @@ export default function AdminZonesPage() {
         </div>
       )}
 
-      {/* Table Tab */}
+      {/* ═══ TAB: ZONE MANAGEMENT TABLE — CRUD with AI override toggle ═══ */}
       {currentTab === 'table' && (
         <div className="admin-card">
           <div className="admin-table-wrapper">
@@ -179,7 +221,7 @@ export default function AdminZonesPage() {
         </div>
       )}
 
-      {/* Wilaya Ranking Tab */}
+      {/* ═══ TAB: WILAYA RANKING — aggregated by province ═══ */}
       {currentTab === 'ranking' && (
         <div className="admin-card">
           <h3 className="admin-card-title">Wilaya Risk Ranking</h3>
@@ -214,6 +256,7 @@ export default function AdminZonesPage() {
                       )}
                     </td>
                     <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>{w.population.toLocaleString()}</td>
+                    {/* Incident rate normalized per 100,000 population */}
                     <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                       {((w.totalIncidents / w.population) * 100000).toFixed(1)}
                     </td>
@@ -225,7 +268,7 @@ export default function AdminZonesPage() {
         </div>
       )}
 
-      {/* Threshold Config Tab */}
+      {/* ═══ TAB: THRESHOLD CONFIG — per-zone escalation settings ═══ */}
       {currentTab === 'thresholds' && (
         <div className="admin-card">
           <h3 className="admin-card-title">Alert Threshold Configuration</h3>
@@ -256,7 +299,7 @@ export default function AdminZonesPage() {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* ═══ EDIT ZONE MODAL — overlay form for risk/threshold/coords ═══ */}
       {editZone && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="admin-card" style={{ width: 440, padding: 24 }}>

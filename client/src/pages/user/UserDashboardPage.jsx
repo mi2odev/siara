@@ -1,3 +1,21 @@
+/**
+ * @file UserDashboardPage.jsx
+ * @description Personal user dashboard providing an at-a-glance overview of road safety.
+ *
+ * Layout:
+ *   • Top header with navigation tabs, search bar, and user avatar dropdown
+ *   • Welcome bar with real-time data-freshness indicator
+ *   • KPI cards row (reports count, active alerts, nearby incidents, quiz CTA)
+ *   • Two-column section: interactive SiaraMap + side cards (alerts, saved routes, weather)
+ *   • Reports table listing the user’s own incident submissions
+ *   • Quick-actions grid for common tasks
+ *
+ * Features:
+ *   • AuthContext integration for user name / logout
+ *   • SiaraMap component with mock severity markers
+ *   • DrivingQuiz pop-up triggered from multiple entry points
+ *   • Weather conditions widget (visibility, wind, rain, temperature)
+ */
 import React, { useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
@@ -8,25 +26,30 @@ import siaraLogo from '../../assets/logos/siara-logo.png'
 import SiaraMap from '../../components/map/SiaraMap'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 
-/* ── Simulated user data ── */
+/* ═══ MOCK DATA (simulated API responses) ═══ */
+
+/** Nearby incidents used as map markers — each has lat/lng and a severity level */
 const nearbyIncidents = [
   { id: 1, lat: 36.7525, lng: 3.04197, severity: 'high', title: 'Boulevard Zirout Youcef' },
   { id: 2, lat: 36.7600, lng: 3.05500, severity: 'medium', title: 'RN11 – Industrial Zone' },
   { id: 3, lat: 36.7450, lng: 3.03000, severity: 'low', title: 'Rue Didouche Mourad' },
 ]
 
+/** User’s own submitted reports shown in the reports table */
 const myReports = [
   { id: 1, title: 'Accident sur RN5', status: 'verified', date: '25 Feb 2026', severity: 'high' },
   { id: 2, title: 'Route glissante — Bab el Oued', status: 'pending', date: '24 Feb 2026', severity: 'medium' },
   { id: 3, title: 'Feu de signalisation en panne', status: 'verified', date: '22 Feb 2026', severity: 'low' },
 ]
 
+/** Saved commute routes with risk assessment */
 const savedRoutes = [
   { id: 1, from: 'Alger Centre', to: 'Bab Ezzouar', risk: 'low', time: '25 min' },
   { id: 2, from: 'Hussein Dey', to: 'Rouiba', risk: 'medium', time: '40 min' },
   { id: 3, from: 'El Harrach', to: 'Blida', risk: 'high', time: '1h 15min' },
 ]
 
+/** Priority alerts relevant to the user’s zone */
 const recentAlerts = [
   { id: 1, text: 'Zone scolaire — heure de sortie', level: 'high' },
   { id: 2, text: 'Brouillard dense — Autoroute Est-Ouest', level: 'medium' },
@@ -35,14 +58,18 @@ const recentAlerts = [
 
 export default function UserDashboardPage() {
   const navigate = useNavigate()
-  const { user, logout } = useContext(AuthContext)
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [showQuiz, setShowQuiz] = useState(false)
+  const { user, logout } = useContext(AuthContext) // current user session + logout action
 
+  /* ═══ LOCAL UI STATE ═══ */
+  const [showDropdown, setShowDropdown] = useState(false) // header avatar dropdown visibility
+  const [showQuiz, setShowQuiz] = useState(false)          // DrivingQuiz modal visibility
+
+  /* ═══ EVENT HANDLERS ═══ */
   const handleQuizComplete = (result) => { console.log('Quiz completed:', result); setShowQuiz(false) }
   const handleOpenQuiz = () => { setShowQuiz(true); setShowDropdown(false) }
   const handleLogout = () => { logout(); navigate('/home') }
 
+  /** Derive up-to-2-letter initials from user name for the avatar button */
   const initials = user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'
 
   return (
@@ -61,6 +88,7 @@ export default function UserDashboardPage() {
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab dash-tab-active">Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
             </nav>
           </div>
           <div className="dash-header-center">

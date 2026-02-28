@@ -1,3 +1,20 @@
+/**
+ * @file PredictionsPage.jsx
+ * @description AI-powered predictions page showcasing the SIARA risk-analysis engine.
+ *
+ * Layout: 3-column (sidebar-left / center feed / sidebar-right)
+ *   - Left sidebar:  user profile card, navigation menu, model summary, data sources widget
+ *   - Center:        hero banner with KPIs, feature preview cards, mock chart visualization,
+ *                    risk-zone ranking table, "how it works" explainer, tech stack banner
+ *   - Right sidebar: model status metrics, forecast snapshot, feature importance bars,
+ *                    live activity feed, CTA card, predictive alerts widget
+ *
+ * Features:
+ *   - Live clock updated every minute (displayed in hero)
+ *   - DrivingQuiz integration (popup triggered from sidebar nav)
+ *   - Mock risk-zone data with severity scoring & trend arrows
+ *   - Tabbed visualization placeholder (heatmap / timeline / clusters)
+ */
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/NewsPage.css'
@@ -7,7 +24,7 @@ import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 
-/* ── Mock data ── */
+/* ═══ MOCK DATA — risk zones ranked by predicted score ═══ */
 const riskZones = [
   { rank: 1, name: 'Alger Centre', wilaya: 'Alger',    score: 92, trend: '+8',  severity: 'high' },
   { rank: 2, name: 'Bab Ezzouar',  wilaya: 'Alger',    score: 84, trend: '+3',  severity: 'high' },
@@ -16,6 +33,7 @@ const riskZones = [
   { rank: 5, name: 'Hydra',        wilaya: 'Alger',    score: 48, trend: '-5',  severity: 'low' },
 ]
 
+/* Mock real-time activity log entries */
 const activityFeed = [
   { id: 1, icon: '🔴', text: 'Pic de risque détecté – RN5 Alger', time: 'Il y a 2 min', type: 'critical' },
   { id: 2, icon: '🟡', text: 'Modèle recalibré – zone Bab Ezzouar', time: 'Il y a 15 min', type: 'warning' },
@@ -24,6 +42,7 @@ const activityFeed = [
   { id: 5, icon: '🟡', text: 'Alerte scolaire – Bir Mourad Raïs 08h', time: 'Il y a 1h 20', type: 'warning' },
 ]
 
+/* Data sources feeding the ML model */
 const dataSources = [
   { name: 'Signalements citoyens', count: '12 847', status: 'live', icon: '👥' },
   { name: 'Capteurs météo (ONM)',  count: '48 stations', status: 'live', icon: '🌤️' },
@@ -32,25 +51,30 @@ const dataSources = [
 ]
 
 export default function PredictionsPage() {
+  /* ═══ STATE ═══ */
   const navigate = useNavigate()
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [showQuiz, setShowQuiz] = useState(false)
-  const [vizTab, setVizTab] = useState('heatmap')
-  const [liveTime, setLiveTime] = useState(new Date())
+  const [showDropdown, setShowDropdown] = useState(false)  // Header avatar dropdown
+  const [showQuiz, setShowQuiz] = useState(false)          // DrivingQuiz popup visibility
+  const [vizTab, setVizTab] = useState('heatmap')          // Active visualization tab
+  const [liveTime, setLiveTime] = useState(new Date())     // Clock displayed in hero banner
 
+  /* ═══ LIVE CLOCK EFFECT — ticks every 60 s ═══ */
   /* live clock */
   useEffect(() => {
     const t = setInterval(() => setLiveTime(new Date()), 60_000)
     return () => clearInterval(t)
   }, [])
 
+  // Callback when DrivingQuiz finishes
   const handleQuizComplete = (result) => {
     console.log('Quiz completed:', result)
     setShowQuiz(false)
   }
 
+  // Format Date as HH:MM (French-Algerian locale)
   const fmtTime = (d) => d.toLocaleTimeString('fr-DZ', { hour: '2-digit', minute: '2-digit' })
 
+  /* ═══ RENDER ═══ */
   return (
     <div className="siara-news-root">
       {/* DRIVING QUIZ POPUP */}
@@ -68,6 +92,7 @@ export default function PredictionsPage() {
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
               <button className="dash-tab dash-tab-active">Prédictions</button>
             </nav>
           </div>
@@ -93,10 +118,10 @@ export default function PredictionsPage() {
         </div>
       </header>
 
-      {/* ── MAIN LAYOUT – 3 Columns ── */}
+      {/* ═══ MAIN LAYOUT — 3 Columns ═══ */}
       <div className="siara-news-layout">
 
-        {/* ── 2. LEFT SIDEBAR ── */}
+        {/* ═══ LEFT SIDEBAR — profile, nav, model info, data sources ═══ */}
         <aside className="sidebar-left">
           {/* Profile Summary */}
           <div className="card profile-summary">
@@ -159,10 +184,10 @@ export default function PredictionsPage() {
           </div>
         </aside>
 
-        {/* ── 3. CENTER FEED ── */}
+        {/* ═══ CENTER FEED — hero, features, viz, risk table, how-it-works, tech stack ═══ */}
         <main className="feed-center">
 
-          {/* A. Hero Section */}
+          {/* A. Hero Section — live badge, clock, KPI strip */}
           <div className="pred-hero">
             <div className="pred-hero-top">
               <div className="pred-hero-badge">
@@ -200,7 +225,7 @@ export default function PredictionsPage() {
             </div>
           </div>
 
-          {/* B. Feature Preview Cards */}
+          {/* B. Feature Preview Cards — heatmaps, time series, export */}
           <div className="pred-features-grid">
             <div className="pred-feature-card">
               <div className="pred-feature-top-row">
@@ -242,7 +267,7 @@ export default function PredictionsPage() {
             </div>
           </div>
 
-          {/* C. Mock Visualization */}
+          {/* C. Mock Visualization — tabbed bar chart with lock overlay */}
           <div className="pred-viz-card">
             <div className="pred-viz-header">
               <h3>📊 Aperçu prédictif — Distribution du risque par zone</h3>
@@ -271,7 +296,7 @@ export default function PredictionsPage() {
             </div>
           </div>
 
-          {/* D. Top Risk Zones Table */}
+          {/* D. Top Risk Zones Table — ranked by AI score */}
           <div className="pred-zones-card">
             <div className="pred-zones-header">
               <h3>🏙️ Classement des zones à risque</h3>
@@ -310,7 +335,7 @@ export default function PredictionsPage() {
             </table>
           </div>
 
-          {/* E. How it Works */}
+          {/* E. How it Works — 4-step pipeline explainer */}
           <div className="pred-how-card">
             <h3>💡 Comment ça fonctionne ?</h3>
             <div className="pred-how-steps">
@@ -348,7 +373,7 @@ export default function PredictionsPage() {
             </div>
           </div>
 
-          {/* F. Tech Stack Banner */}
+          {/* F. Tech Stack Banner — icons for Python, LightGBM, CatBoost, etc. */}
           <div className="pred-tech-card">
             <h3>🛠️ Stack technologique</h3>
             <div className="pred-tech-grid">
@@ -365,10 +390,10 @@ export default function PredictionsPage() {
 
         </main>
 
-        {/* ── 4. RIGHT SIDEBAR ── */}
+        {/* ═══ RIGHT SIDEBAR — model status, forecast, feature importance, activity, CTA ═══ */}
         <aside className="sidebar-right">
 
-          {/* A. Prediction Status */}
+          {/* A. Prediction Status — model version, algo, confidence + metric trio */}
           <div className="pred-status-card">
             <h3>⚡ État du modèle</h3>
             <div className="pred-status-row">
@@ -397,7 +422,7 @@ export default function PredictionsPage() {
             </div>
           </div>
 
-          {/* B. Forecast Snapshot */}
+          {/* B. Forecast Snapshot — risk level bars at 6h / 12h / 18h / 24h / 48h */}
           <div className="pred-forecast-card">
             <h3>📅 Prévision du risque</h3>
             <div className="pred-forecast-items">
@@ -429,7 +454,7 @@ export default function PredictionsPage() {
             </div>
           </div>
 
-          {/* C. Model Transparency */}
+          {/* C. Model Transparency — feature importance horizontal bars */}
           <div className="pred-transparency-card">
             <h3>🔍 Importance des features</h3>
             <div className="pred-factor">
@@ -464,7 +489,7 @@ export default function PredictionsPage() {
             </div>
           </div>
 
-          {/* D. Live Activity Feed */}
+          {/* D. Live Activity Feed — real-time model events */}
           <div className="pred-activity-card">
             <h3>📡 Activité en direct</h3>
             <div className="pred-activity-list">
@@ -480,14 +505,14 @@ export default function PredictionsPage() {
             </div>
           </div>
 
-          {/* E. CTA */}
+          {/* E. CTA — early access call-to-action */}
           <div className="pred-cta-card">
             <h4>🚀 Accès anticipé</h4>
             <p>Soyez parmi les premiers à tester les prédictions en temps réel sur votre itinéraire quotidien.</p>
             <button className="pred-cta-btn" onClick={() => navigate('/map')}>Voir sur la carte</button>
           </div>
 
-          {/* F. Predictive Alerts */}
+          {/* F. Predictive Alerts — upcoming risk warnings */}
           <div className="card widget-alerts">
             <h3 className="widget-title">Alertes prédictives</h3>
             <div className="alert-item">• Pic de risque prévu à 17h – Alger Centre</div>

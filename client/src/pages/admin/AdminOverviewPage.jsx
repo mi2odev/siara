@@ -1,7 +1,24 @@
+/**
+ * @file AdminOverviewPage.jsx
+ * @description System overview dashboard for national risk supervision.
+ *
+ * Layout:
+ *   1. Critical alerts bar — urgent action items displayed at the top
+ *   2. Page header with time-range selector and export button
+ *   3. KPI grid — 6 real-time metrics (incidents, pending, AI confidence, risk zones, alerts, rate)
+ *   4. Review queue table — all incidents sorted by AI confidence (desc)
+ *   5. Bottom stats grid (3-col): weekly volume chart, severity distribution, top risk zones
+ *
+ * Data is currently mocked (liveIncidents, criticalAlerts).
+ */
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-/* ── Mock data ── */
+/* ═══════════════════════════════════════════════════════════
+   MOCK DATA
+   ═══════════════════════════════════════════════════════════ */
+
+/* 7 sample incidents with AI confidence, reporter reliability, severity & status */
 const liveIncidents = [
   { id: 'INC-2401', location: 'Blvd Zirout Youcef, Algiers', severity: 'high', confidence: 94, status: 'pending', type: 'Collision', reporter: 'ahmed_b', reliability: 92, time: '08:34', ago: '12m' },
   { id: 'INC-2400', location: 'RN11 Industrial Zone, Oran', severity: 'medium', confidence: 78, status: 'pending', type: 'Roadwork', reporter: 'fatima_k', reliability: 88, time: '07:18', ago: '1h 28m' },
@@ -12,20 +29,26 @@ const liveIncidents = [
   { id: 'INC-2395', location: 'Route Nationale 5, Blida', severity: 'low', confidence: 58, status: 'rejected', type: 'False alarm', reporter: 'karim_d', reliability: 22, time: '03:30', ago: '5h 16m' },
 ]
 
+/* Urgent alerts shown in the red bar at the top of the page */
 const criticalAlerts = [
   { text: '3 unreviewed high-severity incidents older than 1 hour', action: 'Review Queue' },
   { text: 'AI confidence below 70% on 2 recent predictions', action: 'View AI' },
 ]
 
+/* ═══════════════════════════════════════════════════════════
+   COMPONENT
+   ═══════════════════════════════════════════════════════════ */
 export default function AdminOverviewPage() {
   const navigate = useNavigate()
-  const [timeRange, setTimeRange] = useState('24h')
+  const [timeRange, setTimeRange] = useState('24h') // active time-range filter (1h | 24h | 7d | 30d)
 
+  // Derived: count incidents still awaiting review
   const pendingCount = liveIncidents.filter(i => i.status === 'pending').length
 
   return (
     <>
-      {/* Critical Bar */}
+      {/* ═══ CRITICAL ALERTS BAR ═══ */}
+      {/* Renders a red banner per critical alert with a CTA button */}
       {criticalAlerts.map((alert, i) => (
         <div className="admin-critical-bar" key={i}>
           <span className="critical-dot"></span>
@@ -36,7 +59,7 @@ export default function AdminOverviewPage() {
         </div>
       ))}
 
-      {/* Header */}
+      {/* ═══ PAGE HEADER ═══ */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">System Overview</h1>
@@ -53,7 +76,8 @@ export default function AdminOverviewPage() {
         </div>
       </div>
 
-      {/* KPI Grid — 6 metrics */}
+      {/* ═══ KPI METRICS GRID (6 cards) ═══ */}
+      {/* Incidents 24h | Pending Review | AI Confidence | High Risk Zones | Active Alerts | Reports/min */}
       <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
         <div className="admin-kpi">
           <div className="admin-kpi-icon danger">⚡</div>
@@ -105,7 +129,8 @@ export default function AdminOverviewPage() {
         </div>
       </div>
 
-      {/* Review Queue Table */}
+      {/* ═══ REVIEW QUEUE TABLE ═══ */}
+      {/* Sorted by confidence (desc); shows ID, location, severity pill, confidence bar, reporter score, time, status, review CTA */}
       <div className="admin-card" style={{ marginBottom: 14 }}>
         <div className="admin-card-header">
           <div>
@@ -131,6 +156,7 @@ export default function AdminOverviewPage() {
               </tr>
             </thead>
             <tbody>
+              {/* Spread + sort so we don't mutate the original array */}
               {[...liveIncidents].sort((a, b) => b.confidence - a.confidence).map((inc) => (
                 <tr key={inc.id}>
                   <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{inc.id}</td>
@@ -165,11 +191,13 @@ export default function AdminOverviewPage() {
         </div>
       </div>
 
-      {/* Bottom Grid — compressed stats */}
+      {/* ═══ BOTTOM STATS GRID (3-column) ═══ */}
       <div className="admin-grid-3">
+        {/* --- Weekly Incident Volume bar chart --- */}
         <div className="admin-card">
           <h3 className="admin-card-title">Weekly Incident Volume</h3>
           <div className="admin-chart-placeholder" style={{ height: 120 }}>
+            {/* Each value = bar height %, Mon–Sun */}
             {[40, 65, 30, 80, 55, 90, 47].map((h, i) => (
               <div key={i} className="admin-chart-bar" style={{ height: `${h}%` }}></div>
             ))}
@@ -179,6 +207,7 @@ export default function AdminOverviewPage() {
           </div>
         </div>
 
+        {/* --- Severity Distribution progress bars --- */}
         <div className="admin-card">
           <h3 className="admin-card-title">Severity Distribution</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
@@ -200,6 +229,7 @@ export default function AdminOverviewPage() {
           </div>
         </div>
 
+        {/* --- Top Risk Zones list --- */}
         <div className="admin-card">
           <h3 className="admin-card-title">Top Risk Zones</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>

@@ -1,7 +1,29 @@
+/**
+ * @file AdminIncidentReviewPage.jsx
+ * @description Admin page for reviewing a single incident report in a 3-column
+ *   split layout.
+ *
+ *   Layout:
+ *     LEFT   — Incident details, evidence photos, reporter profile, AI
+ *              classification, and event timeline.
+ *     CENTER — Map placeholder showing incident location & nearby report cluster.
+ *     RIGHT  — Decision engine (approve / change severity / merge / request info /
+ *              flag / reject) and an internal notes thread.
+ *
+ *   Data:
+ *     Uses mock incident objects keyed by ID; falls back to a default stub when
+ *     the requested ID is not found.
+ *
+ *   Key features:
+ *     • Decision engine with 6 action types and a confirmation step
+ *     • Internal notes system with real-time append
+ *     • AI classification display with confidence bar and contributing factors
+ *     • Nearby-report cluster detection with visual warning
+ */
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
-/* ── Mock incident data ── */
+/* ── Mock incident data (keyed by incident ID) ── */
 const mockIncidents = {
   'INC-2401': {
     id: 'INC-2401', location: 'Blvd Zirout Youcef, Algiers', lat: 36.7538, lng: 3.0588,
@@ -23,6 +45,7 @@ const mockIncidents = {
   },
 }
 
+/** Fallback stub used when the requested incident ID is not found in mock data. */
 const defaultInc = {
   id: 'INC-0000', location: 'Unknown Location', lat: 36.75, lng: 3.06,
   severity: 'medium', confidence: 75, status: 'pending', type: 'Unknown',
@@ -33,20 +56,23 @@ const defaultInc = {
 }
 
 export default function AdminIncidentReviewPage() {
-  const { id } = useParams()
+  const { id } = useParams()      // Incident ID from URL (e.g. /admin/incidents/:id)
   const navigate = useNavigate()
+  // Resolve the incident from mock store; fall back to defaultInc stub
   const inc = mockIncidents[id] || { ...defaultInc, id: id || 'INC-0000' }
 
-  const [decision, setDecision] = useState('')
-  const [newSeverity, setNewSeverity] = useState(inc.severity)
-  const [internalNote, setInternalNote] = useState('')
-  const [notes, setNotes] = useState(inc.notes)
+  /* ── State ── */
+  const [decision, setDecision] = useState('')           // Currently selected action (approve|change|merge|info|flag|reject)
+  const [newSeverity, setNewSeverity] = useState(inc.severity)  // Severity override for "Change Severity" action
+  const [internalNote, setInternalNote] = useState('')   // Text input for a new internal note
+  const [notes, setNotes] = useState(inc.notes)          // Accumulated internal notes array
 
+  /** Set the active decision; in production this would also POST to the API. */
   const handleDecision = (d) => {
     setDecision(d)
-    // In real app, POST to API
   }
 
+  /** Append a timestamped internal note from the current admin user. */
   const addNote = () => {
     if (!internalNote.trim()) return
     setNotes([...notes, { author: 'Super Admin', time: new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' }), text: internalNote }])
@@ -55,7 +81,7 @@ export default function AdminIncidentReviewPage() {
 
   return (
     <div className="admin-review-split">
-      {/* LEFT — Incident Details */}
+      {/* ═══ LEFT PANEL — Incident Details, Photos, Reporter, AI, Timeline ═══ */}
       <div className="admin-review-left">
         <button className="admin-btn admin-btn-ghost" onClick={() => navigate('/admin/incidents')} style={{ marginBottom: 10, fontSize: 11 }}>
           ← Back to Queue
@@ -157,7 +183,7 @@ export default function AdminIncidentReviewPage() {
         </div>
       </div>
 
-      {/* CENTER — Map & Nearby */}
+      {/* ═══ CENTER PANEL — Map Location & Nearby Reports ═══ */}
       <div className="admin-review-center">
         <div className="admin-card" style={{ flex: 1, minHeight: 300 }}>
           <h3 className="admin-card-title">Incident Location</h3>
@@ -191,6 +217,7 @@ export default function AdminIncidentReviewPage() {
           ) : (
             <p style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 8 }}>No nearby reports found</p>
           )}
+          {/* Cluster warning — shown when 2+ nearby reports exist within 5 km */}
           {inc.nearby.length >= 2 && (
             <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: 6, border: '1px solid rgba(245, 158, 11, 0.2)' }}>
               <span style={{ fontSize: 10.5, color: 'var(--admin-warning)', fontWeight: 600 }}>⚠ Cluster Detected — {inc.nearby.length + 1} incidents within 5km radius</span>
@@ -199,7 +226,7 @@ export default function AdminIncidentReviewPage() {
         </div>
       </div>
 
-      {/* RIGHT — Decision Engine */}
+      {/* ═══ RIGHT PANEL — Decision Engine & Internal Notes ═══ */}
       <div className="admin-review-right">
         <div className="admin-card">
           <h3 className="admin-card-title">Decision Engine</h3>
@@ -212,6 +239,7 @@ export default function AdminIncidentReviewPage() {
             <button className={`admin-btn admin-btn-full ${decision === 'change' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => handleDecision('change')}>
               ✎ Change Severity
             </button>
+            {/* Severity dropdown — only visible when "Change Severity" is the active decision */}
             {decision === 'change' && (
               <select className="admin-select" value={newSeverity} onChange={e => setNewSeverity(e.target.value)} style={{ marginLeft: 8 }}>
                 <option value="low">Low</option>
@@ -234,6 +262,7 @@ export default function AdminIncidentReviewPage() {
             </button>
           </div>
 
+          {/* Show confirmation button only after a decision is selected */}
           {decision && (
             <div style={{ marginTop: 12 }}>
               <button className="admin-btn admin-btn-primary admin-btn-full" onClick={() => { alert(`Decision "${decision}" submitted for ${inc.id}`); navigate('/admin/incidents') }}>

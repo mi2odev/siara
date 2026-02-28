@@ -1,3 +1,20 @@
+/**
+ * @file RegisterPage.jsx
+ * @description Page d'inscription de la plateforme SIARA.
+ *
+ * Disposition en deux colonnes (identique à LoginPage) :
+ *   - Gauche : panneau héro avec logo, illustration et badges.
+ *   - Droite : formulaire d'inscription.
+ *
+ * Champs du formulaire :
+ *   - Nom complet, email/téléphone, mot de passe, confirmation, conditions d'utilisation.
+ *
+ * Fonctionnalités :
+ *   - Validation côté client de tous les champs.
+ *   - Afficher / masquer le mot de passe et la confirmation.
+ *   - Inscription via AuthContext.mockRegister().
+ *   - Redirection vers /login après inscription réussie.
+ */
 import React, { useState, useContext } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
@@ -6,19 +23,29 @@ import '../../styles/RegisterPage.css'
 import logo from '../../assets/logos/siara-logo.png'
 
 export default function RegisterPage() {
-  const [name,setName] = useState('')
-  const [identifier,setIdentifier] = useState('')
-  const [password,setPassword] = useState('')
-  const [confirm,setConfirm] = useState('')
-  const [showPassword,setShowPassword] = useState(false)
-  const [showConfirm,setShowConfirm] = useState(false)
-  const [agree,setAgree] = useState(false)
-  const [errors,setErrors] = useState({})
-  const [loading,setLoading] = useState(false)
+  // --- Variables d'état du formulaire ---
+  const [name,setName] = useState('')               // Nom complet de l'utilisateur
+  const [identifier,setIdentifier] = useState('')   // Email ou numéro de téléphone
+  const [password,setPassword] = useState('')        // Mot de passe choisi
+  const [confirm,setConfirm] = useState('')          // Confirmation du mot de passe
+  const [showPassword,setShowPassword] = useState(false)  // Bascule visibilité mot de passe
+  const [showConfirm,setShowConfirm] = useState(false)    // Bascule visibilité confirmation
+  const [agree,setAgree] = useState(false)           // Acceptation des conditions d'utilisation
+  const [errors,setErrors] = useState({})            // Erreurs de validation par champ
+  const [loading,setLoading] = useState(false)       // Indicateur de chargement
 
   const navigate = useNavigate()
-  const { mockRegister } = useContext(AuthContext) || {}
+  const { mockRegister } = useContext(AuthContext) || {} // Fonction d'inscription fournie par AuthContext
 
+  /**
+   * Valide tous les champs du formulaire d'inscription.
+   * - Nom : requis.
+   * - Identifiant : requis (email ou téléphone).
+   * - Mot de passe : requis, ≥ 8 caractères.
+   * - Confirmation : doit correspondre au mot de passe.
+   * - Conditions : doivent être acceptées.
+   * @returns {Object} Objet d'erreurs par champ (vide si tout est valide).
+   */
   function validate(){
     const e = {}
     if(!name) e.name = "Le nom est requis."
@@ -30,6 +57,12 @@ export default function RegisterPage() {
     return e
   }
 
+  /**
+   * Gère la soumission du formulaire d'inscription.
+   * 1. Valide les champs, affiche les erreurs si nécessaire.
+   * 2. Appelle mockRegister() via AuthContext.
+   * 3. Redirige vers /login après inscription réussie.
+   */
   async function handleSubmit(e) {
     e.preventDefault()
     const eobj = validate(); setErrors(eobj)
@@ -39,17 +72,22 @@ export default function RegisterPage() {
       if(mockRegister){
         await mockRegister({name,identifier,password})
       }
-      // simple redirect after register
+      // Redirection vers la page de connexion après inscription réussie
       navigate('/login')
     }catch(err){
+      // Affiche l'erreur renvoyée par le serveur ou un message par défaut
       setErrors({form: err.message || 'Erreur lors de l\'inscription.'})
     }finally{setLoading(false)}
   }
 
+  // =====================================================================
+  // RENDU JSX
+  // =====================================================================
   return (
     <div className="siara-login-root">
       <div className="siara-login-grid">
-        {/* LEFT HERO: identical to LoginPage */}
+        {/* ==================== PANNEAU HÉRO (gauche) ==================== */}
+        {/* Identique au panneau héro de LoginPage */}
         <aside className="siara-hero">
           <img src={logo} alt="SIARA" className="logo" />
           <div className="siara-hero-main">
@@ -73,9 +111,11 @@ export default function RegisterPage() {
           </div>
         </aside>
 
-        {/* RIGHT CARD: same shell as login, register-specific form inside */}
+        {/* ==================== COLONNE FORMULAIRE (droite) ==================== */}
+        {/* Même structure que LoginPage, contenu spécifique à l'inscription */}
         <main className="siara-form-column">
           <div className="siara-form-wrap" role="region" aria-labelledby="registerTitle">
+            {/* --- En-tête de marque --- */}
             <div className="siara-brand">
               <img src={logo} alt="SIARA logo" />
               <div>
@@ -84,13 +124,17 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* --- Titre et description du formulaire --- */}
             <h2 id="registerTitle" className="siara-form-title">Créer un compte</h2>
             <div className="siara-form-sub">Inscrivez-vous pour accéder au tableau de bord et aux cartes de risques.</div>
             <div className="siara-form-helper">Accès réservé aux utilisateurs autorisés de SIARA.</div>
 
+            {/* --- Formulaire d'inscription --- */}
             <form className="register-form" onSubmit={handleSubmit}>
+              {/* Erreur globale du formulaire (ex: erreur serveur) */}
               {errors.form && <div className="form-error" role="alert">{errors.form}</div>}
 
+          {/* --- Champ nom complet --- */}
           <label className="field-label">Nom complet</label>
           <div className="input-shell">
             <span className="input-icon" aria-hidden="true">
@@ -103,6 +147,7 @@ export default function RegisterPage() {
           </div>
           {errors.name && <div className="field-error">{errors.name}</div>}
 
+          {/* --- Champ email ou numéro de téléphone --- */}
           <label className="field-label">Email ou numéro</label>
           <div className="input-shell">
             <span className="input-icon" aria-hidden="true">
@@ -115,6 +160,7 @@ export default function RegisterPage() {
           </div>
           {errors.identifier && <div className="field-error">{errors.identifier}</div>}
 
+          {/* --- Champ mot de passe avec bascule visibilité --- */}
           <label className="field-label">Mot de passe</label>
           <div className="input-shell">
             <span className="input-icon" aria-hidden="true">
@@ -153,6 +199,7 @@ export default function RegisterPage() {
           </div>
           {errors.password && <div className="field-error">{errors.password}</div>}
 
+          {/* --- Champ confirmation du mot de passe --- */}
           <label className="field-label">Confirmez le mot de passe</label>
           <div className="input-shell">
             <span className="input-icon" aria-hidden="true">
@@ -191,6 +238,7 @@ export default function RegisterPage() {
           </div>
           {errors.confirm && <div className="field-error">{errors.confirm}</div>}
 
+          {/* --- Case à cocher : acceptation des conditions d'utilisation --- */}
           <label className="agree">
             <input type="checkbox" checked={agree} onChange={e=>setAgree(e.target.checked)} />
             <span>
@@ -199,8 +247,10 @@ export default function RegisterPage() {
           </label>
           {errors.agree && <div className="field-error">{errors.agree}</div>}
 
+          {/* Bouton de soumission principal */}
           <button className="siara-cta" type="submit" disabled={loading}>{loading ? 'Création...' : "S'inscrire"}</button>
 
+          {/* Lien vers la page de connexion pour les utilisateurs déjà inscrits */}
           <div className="register-footer">Déjà inscrit ? <Link to="/login" className="link-accent">Se connecter</Link></div>
         </form>
           </div>

@@ -1,7 +1,30 @@
+/**
+ * @file AdminAIMonitoringPage.jsx
+ * @description Admin AI & Model Supervision dashboard.
+ *
+ * Layout:
+ *   - Page header with re-train and download-report buttons
+ *   - Conditional model-drift alert banner (when drift > 0.5%)
+ *   - 4 tabs: Performance | Confusion Matrix | Confidence Analysis | Override Log
+ *
+ * Features:
+ *   - Performance KPIs: accuracy, precision, recall, F1, drift
+ *   - False-positive and false-negative breakdown cards
+ *   - Color-coded 4×4 confusion matrix (Low / Medium / High / Critical)
+ *   - Confidence histogram with dynamic bar heights and color bands
+ *   - Manual override log table (who changed what severity and why)
+ *
+ * Data: Mock model metrics, 4×4 confusion matrix, 10-bucket histogram,
+ *       4 override log entries, 3 false-positive & 3 false-negative categories.
+ */
 import React, { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
-/* ── Mock AI data ── */
+/* ═══════════════════════════════════════════════════════════════
+   MOCK DATA — AI model metrics & analysis artifacts
+   ═══════════════════════════════════════════════════════════════ */
+
+/** Core model metadata and evaluation scores */
 const modelInfo = {
   name: 'SiaraNet v2.3',
   lastTrained: '2025-01-15 03:00 UTC',
@@ -14,6 +37,10 @@ const modelInfo = {
   driftStatus: 'stable',
 }
 
+/**
+ * 4×4 confusion matrix — rows = actual severity, columns = predicted.
+ * Diagonal cells are correct predictions; off-diagonal are misclassifications.
+ */
 const confusionMatrix = [
   /* predicted → */
   /* actual ↓   Low   Med   High  Crit  */
@@ -24,6 +51,7 @@ const confusionMatrix = [
 ]
 const matrixLabels = ['Low', 'Medium', 'High', 'Critical']
 
+/** 10-bucket histogram of prediction confidence scores (last 30 days) */
 const confidenceHistogram = [
   { range: '0-10%', count: 2 },
   { range: '10-20%', count: 5 },
@@ -36,8 +64,10 @@ const confidenceHistogram = [
   { range: '80-90%', count: 186 },
   { range: '90-100%', count: 98 },
 ]
+/** Used to normalize bar heights in the histogram visualization */
 const maxHistCount = Math.max(...confidenceHistogram.map(h => h.count))
 
+/** Admin manual severity-override audit trail */
 const overrideLogs = [
   { id: 1, incident: 'INC-2389', admin: 'Super Admin', from: 'low', to: 'high', reason: 'Multi-vehicle collision confirmed on-site', time: '2025-01-17 14:22' },
   { id: 2, incident: 'INC-2374', admin: 'Mod. Amine', from: 'high', to: 'medium', reason: 'Single vehicle, minor damage — AI over-predicted', time: '2025-01-16 09:45' },
@@ -45,18 +75,21 @@ const overrideLogs = [
   { id: 4, incident: 'INC-2358', admin: 'Mod. Sara', from: 'low', to: 'high', reason: 'Pedestrian involved — severity escalated', time: '2025-01-15 16:33' },
 ]
 
+/** Common false-positive patterns — AI over-predicted severity */
 const falsePositives = [
   { type: 'Construction → Collision', count: 12, pct: 1.8 },
   { type: 'Heavy Traffic → Accident', count: 8, pct: 1.2 },
   { type: 'Parked Vehicles → Roadblock', count: 5, pct: 0.7 },
 ]
 
+/** Common false-negative patterns — AI under-predicted severity */
 const falseNegatives = [
   { type: 'Multi-vehicle → Minor', count: 6, pct: 0.9 },
   { type: 'Pedestrian Incident → Low', count: 4, pct: 0.6 },
   { type: 'Night-time underestimation', count: 3, pct: 0.4 },
 ]
 
+/** Tab definitions for the 4 monitoring views */
 const tabs = [
   { key: 'performance', label: 'Model Performance' },
   { key: 'confusion', label: 'Confusion Matrix' },
@@ -64,12 +97,18 @@ const tabs = [
   { key: 'overrides', label: 'Override Log' },
 ]
 
+/* ═══════════════════════════════════════════════════════════════
+   COMPONENT
+   ═══════════════════════════════════════════════════════════════ */
 export default function AdminAIMonitoringPage() {
+  /* URL-driven tab state — defaults to 'performance' */
   const [searchParams, setSearchParams] = useSearchParams()
   const currentTab = searchParams.get('tab') || 'performance'
 
+  /* ═══ RENDER ═══ */
   return (
     <>
+      {/* ═══ PAGE HEADER — model name, re-train & download actions ═══ */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">AI & Model Supervision</h1>
@@ -81,7 +120,7 @@ export default function AdminAIMonitoringPage() {
         </div>
       </div>
 
-      {/* Model Drift Alert */}
+      {/* ═══ MODEL DRIFT ALERT — shown only when drift exceeds 0.5% ═══ */}
       {modelInfo.drift > 0.5 && (
         <div className="admin-critical-bar">
           <span className="critical-dot"></span>
@@ -89,7 +128,7 @@ export default function AdminAIMonitoringPage() {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* ═══ TAB BAR — Performance | Confusion | Confidence | Overrides ═══ */}
       <div className="admin-tabs" style={{ marginBottom: 14 }}>
         {tabs.map(t => (
           <button key={t.key}
@@ -101,10 +140,10 @@ export default function AdminAIMonitoringPage() {
         ))}
       </div>
 
-      {/* Performance Tab */}
+      {/* ═══ TAB: PERFORMANCE — KPIs, false pos/neg, model info ═══ */}
       {currentTab === 'performance' && (
         <>
-          {/* Key Metrics */}
+          {/* ── Key metric KPI cards (5 columns) ── */}
           <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginBottom: 14 }}>
             {[
               { label: 'Accuracy', value: `${modelInfo.accuracy}%`, color: 'var(--admin-success)' },
@@ -122,7 +161,7 @@ export default function AdminAIMonitoringPage() {
             ))}
           </div>
 
-          {/* False Pos / Neg side by side */}
+          {/* ── False Positives & False Negatives — side-by-side cards ── */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
             <div className="admin-card">
               <h3 className="admin-card-title" style={{ color: 'var(--admin-danger)' }}>False Positives</h3>
@@ -156,7 +195,7 @@ export default function AdminAIMonitoringPage() {
             </div>
           </div>
 
-          {/* Training Info */}
+          {/* ── Model metadata card (name, dataset, last trained, drift) ── */}
           <div className="admin-card">
             <h3 className="admin-card-title">Model Information</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 12 }}>
@@ -176,7 +215,7 @@ export default function AdminAIMonitoringPage() {
         </>
       )}
 
-      {/* Confusion Matrix Tab */}
+      {/* ═══ TAB: CONFUSION MATRIX — 4×4 actual vs predicted ═══ */}
       {currentTab === 'confusion' && (
         <div className="admin-card">
           <h3 className="admin-card-title">Confusion Matrix</h3>
@@ -194,9 +233,10 @@ export default function AdminAIMonitoringPage() {
                   <tr key={ri}>
                     <td style={{ fontWeight: 600, fontSize: 11, color: 'var(--admin-text)' }}>{matrixLabels[ri]}</td>
                     {row.map((cell, ci) => {
-                      const isDiag = ri === ci
-                      const maxCell = Math.max(...row)
+                      const isDiag = ri === ci         // diagonal = correct prediction
+                      const maxCell = Math.max(...row)  // max in row for opacity scaling
                       const opacity = cell / maxCell
+                      /* Green background for diagonal (correct), red tint for misclassifications > 10 */
                       return (
                         <td key={ci} className={isDiag ? 'matrix-diag' : ''} style={{
                           background: isDiag
@@ -222,11 +262,12 @@ export default function AdminAIMonitoringPage() {
         </div>
       )}
 
-      {/* Confidence Analysis Tab */}
+      {/* ═══ TAB: CONFIDENCE ANALYSIS — histogram + summary stats ═══ */}
       {currentTab === 'confidence' && (
         <div className="admin-card">
           <h3 className="admin-card-title">Confidence Distribution</h3>
           <p className="admin-card-subtitle">Distribution of AI confidence scores across all predictions (last 30 days)</p>
+          {/* Bar chart — height proportional to count/maxHistCount, color by confidence tier */}
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 180, marginTop: 16, padding: '0 8px' }}>
             {confidenceHistogram.map((bar, i) => (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -234,6 +275,7 @@ export default function AdminAIMonitoringPage() {
                 <div style={{
                   width: '100%',
                   height: `${(bar.count / maxHistCount) * 140}px`,
+                  /* Color bands: 0-30% danger, 30-50% warning, 50-70% primary, 70-100% success */
                   background: i >= 7 ? 'var(--admin-success)' : i >= 5 ? 'var(--admin-primary)' : i >= 3 ? 'var(--admin-warning)' : 'var(--admin-danger)',
                   borderRadius: '4px 4px 0 0',
                   opacity: 0.8,
@@ -260,7 +302,7 @@ export default function AdminAIMonitoringPage() {
         </div>
       )}
 
-      {/* Override Log Tab */}
+      {/* ═══ TAB: OVERRIDE LOG — admin severity-change audit trail ═══ */}
       {currentTab === 'overrides' && (
         <div className="admin-card">
           <div className="admin-card-header">

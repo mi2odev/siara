@@ -1,3 +1,22 @@
+/**
+ * @file DashboardPage.jsx
+ * @description Full-featured user-facing dashboard for the Siara road safety platform.
+ *
+ *   Layout (top → bottom):
+ *     • Header bar — logo, nav tabs, search, notifications, user dropdown (with quiz)
+ *     • KPI cards  — 4 clickable metrics (risk zones, AI precision, accidents, alerts)
+ *     • Interactive map — SiaraMap component with filter controls, layer switches, legend
+ *     • Incidents table + sidebar — recent incidents list, trending reports, priority
+ *       alerts, and weather conditions
+ *     • AI Predictions — risk forecasts with score bars
+ *     • Analytics charts — weekly bar chart, wilaya horizontal bars, type breakdown,
+ *       peak-hours heat dots
+ *     • Footer
+ *
+ *   Components: SiaraMap (map), DrivingQuiz (modal quiz)
+ *   Routing: useNavigate for page transitions; dropdown links to profile/settings/etc.
+ *   Data: Entirely mock — mockMarkers, barData, wilayaData, typeData.
+ */
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/DashboardPage.css'
@@ -6,6 +25,8 @@ import SiaraMap from '../../components/map/SiaraMap'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 
 /* ── Simulated data ── */
+
+/** Map marker positions with severity for the SiaraMap heatmap/points layer. */
 const mockMarkers = [
   { id: 1, lat: 36.7525, lng: 3.04197, severity: 'high', title: 'Boulevard Zirout Youcef' },
   { id: 2, lat: 36.7600, lng: 3.05500, severity: 'medium', title: 'RN11 – Industrial Zone' },
@@ -14,6 +35,7 @@ const mockMarkers = [
   { id: 5, lat: 36.7380, lng: 3.02500, severity: 'medium', title: 'Place des Martyrs' },
 ]
 
+/** Daily incident counts for the weekly bar chart. */
 const barData = [
   { label: 'Mon', value: 12 },
   { label: 'Tue', value: 19 },
@@ -23,16 +45,18 @@ const barData = [
   { label: 'Sat', value: 14 },
   { label: 'Sun', value: 9 },
 ]
-const maxBar = Math.max(...barData.map(d => d.value))
+const maxBar = Math.max(...barData.map(d => d.value)) // Normalizer for bar chart heights
 
+/** Per-wilaya incident totals for the horizontal bar chart. */
 const wilayaData = [
   { label: 'Alger', value: 42, color: '#6366F1' },
   { label: 'Oran', value: 28, color: '#8B5CF6' },
   { label: 'Constantine', value: 18, color: '#A78BFA' },
   { label: 'Blida', value: 12, color: '#C4B5FD' },
 ]
-const maxWilaya = Math.max(...wilayaData.map(d => d.value))
+const maxWilaya = Math.max(...wilayaData.map(d => d.value)) // Normalizer for horizontal bar widths
 
+/** Incident type distribution (percentages) for the stacked type-breakdown bar. */
 const typeData = [
   { label: 'Collision', pct: 38, color: '#DC2626' },
   { label: 'Roadwork', pct: 24, color: '#F59E0B' },
@@ -42,31 +66,36 @@ const typeData = [
 
 export default function DashboardPage(){
   const navigate = useNavigate()
-  const [filters, setFilters] = useState({ date: '', wilaya: '', severity: '' })
-  const [showFilterBanner, setShowFilterBanner] = useState(false)
-  const [activeKPI, setActiveKPI] = useState(null)
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [mapLayer, setMapLayer] = useState('heatmap')
-  const [selectedIncident, setSelectedIncident] = useState(null)
-  const [showQuiz, setShowQuiz] = useState(false)
 
+  /* ── State ── */
+  const [filters, setFilters] = useState({ date: '', wilaya: '', severity: '' }) // Active filter selections
+  const [showFilterBanner, setShowFilterBanner] = useState(false)  // Temporary "filters applied" toast
+  const [activeKPI, setActiveKPI] = useState(null)       // Which KPI card is highlighted (null|'zones'|'ai'|'accidents'|'alerts')
+  const [showDropdown, setShowDropdown] = useState(false) // User avatar dropdown visibility
+  const [mapLayer, setMapLayer] = useState('heatmap')     // Active map layer: 'heatmap' | 'points'
+  const [selectedIncident, setSelectedIncident] = useState(null) // Incident focused on the map
+  const [showQuiz, setShowQuiz] = useState(false)         // DrivingQuiz modal visibility
+
+  /** Apply current filters and show a temporary confirmation banner for 4 s. */
   const handleFilterApply = () => {
     setShowFilterBanner(true)
     setTimeout(() => setShowFilterBanner(false), 4000)
   }
 
+  /** Reset every filter value and dismiss the banner. */
   const handleFilterClear = () => {
     setFilters({ date: '', wilaya: '', severity: '' })
     setShowFilterBanner(false)
   }
 
-  const handleKPIClick = (kpi) => setActiveKPI(kpi)
-  const handleIncidentClick = (incident) => console.log('Center map on:', incident)
-  const handleQuizComplete = (result) => { console.log('Quiz completed:', result); setShowQuiz(false) }
-  const handleOpenQuiz = () => { setShowQuiz(true); setShowDropdown(false) }
+  const handleKPIClick = (kpi) => setActiveKPI(kpi)                  // Highlight the clicked KPI card
+  const handleIncidentClick = (incident) => console.log('Center map on:', incident) // Stub: would pan the map
+  const handleQuizComplete = (result) => { console.log('Quiz completed:', result); setShowQuiz(false) } // Close quiz on completion
+  const handleOpenQuiz = () => { setShowQuiz(true); setShowDropdown(false) } // Open quiz from dropdown
 
   return (
     <div className="siara-dashboard-root">
+      {/* DrivingQuiz modal — controlled via showQuiz state, triggered from dropdown */}
       <DrivingQuiz onComplete={handleQuizComplete} forceShow={showQuiz} />
 
       {/* ═══ HEADER ═══ */}
@@ -106,6 +135,7 @@ export default function DashboardPage(){
         </div>
       </header>
 
+      {/* Temporary banner confirming filters were applied */}
       {showFilterBanner && (
         <div className="filter-banner">
           <span>✓ Filters applied — 3 results showing on map</span>

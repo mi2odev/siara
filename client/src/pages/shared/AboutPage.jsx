@@ -1,11 +1,23 @@
+/**
+ * @file AboutPage.jsx
+ * @description Page "À propos" — présente le projet SIARA, ses objectifs,
+ *   ses fonctionnalités clés et le statut actuel du prototype.
+ */
+
+// Import React, styles et logo du projet
 import React from 'react'
 import '../../styles/AboutPage.css'
 import logo from '../../assets/logos/siara-logo.png'
 
+/**
+ * Composant de la page À propos.
+ * Affiche une carte descriptive avec en-tête, sections et pied de page.
+ */
 export default function AboutPage(){
   return (
     <div className="about-root">
       <div className="about-card">
+        {/* --- En-tête : logo, accroche et description courte --- */}
         <header className="about-header">
           <img src={logo} alt="SIARA" className="about-logo" />
           <div className="about-kicker">Prédiction des risques routiers — Prototype</div>
@@ -16,6 +28,7 @@ export default function AboutPage(){
           </p>
         </header>
 
+        {/* --- Section : motivation du projet --- */}
         <section className="about-section">
           <h2>Pourquoi SIARA ?</h2>
           <p>
@@ -24,6 +37,7 @@ export default function AboutPage(){
           </p>
         </section>
 
+        {/* --- Grille : fonctionnalités clés + statut du projet --- */}
         <section className="about-section about-grid">
           <div>
             <h3>Fonctionnalités clés</h3>
@@ -42,6 +56,7 @@ export default function AboutPage(){
           </div>
         </section>
 
+        {/* --- Pied de page : avertissement légal --- */}
         <footer className="about-footer">
           <p>
             Ce prototype a été conçu à des fins d'expérimentation pédagogique et de démonstration. Il ne remplace pas

@@ -1,7 +1,29 @@
+/**
+ * @file AdminIncidentsPage.jsx
+ * @description Incident management page for reviewing, classifying and actioning reported incidents.
+ *
+ * Layout:
+ *   1. Page header with search bar and Export CSV button
+ *   2. Tab bar — 6 filter tabs: All | Pending | AI-Flagged | Community | Merged | Archived
+ *   3. Sortable data table (9 columns) with inline confidence bar, severity pill, status pill
+ *   4. Pagination footer
+ *
+ * Features:
+ *   - Search by incident ID, location, or reporter username
+ *   - Clickable column headers for multi-field sorting (ID, severity, confidence, reliability)
+ *   - Row highlighting for high-severity + pending incidents
+ *   - URL-driven filtering via useSearchParams (?filter=<key>)
+ *
+ * Mock data: 11 incidents with categories (ai-flagged / community).
+ */
 import React, { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
-/* ── Mock data ── */
+/* ═══════════════════════════════════════════════════════════
+   MOCK DATA
+   ═══════════════════════════════════════════════════════════ */
+
+/* 11 sample incidents; each has an AI confidence score, reporter reliability, and category (ai-flagged | community) */
 const allIncidents = [
   { id: 'INC-2401', location: 'Blvd Zirout Youcef, Algiers', severity: 'high', confidence: 94, status: 'pending', type: 'Collision', reporter: 'ahmed_b', reliability: 92, time: '2025-01-18T08:34:00', ago: '12m', category: 'ai-flagged' },
   { id: 'INC-2400', location: 'RN11 Industrial Zone, Oran', severity: 'medium', confidence: 78, status: 'pending', type: 'Roadwork', reporter: 'fatima_k', reliability: 88, time: '2025-01-18T07:18:00', ago: '1h 28m', category: 'community' },
@@ -16,8 +38,8 @@ const allIncidents = [
   { id: 'INC-2391', location: 'Batna Ain Touta Road', severity: 'medium', confidence: 74, status: 'archived', type: 'Roadwork', reporter: 'mehdi_b', reliability: 78, time: '2025-01-17T12:45:00', ago: '20h 01m', category: 'community' },
 ]
 
+/* Filter tab definitions — count is computed dynamically at render time */
 const tabs = [
-  { key: 'all', label: 'All Incidents', count: null },
   { key: 'pending', label: 'Pending', count: null },
   { key: 'ai-flagged', label: 'AI-Flagged', count: null },
   { key: 'community', label: 'Community', count: null },
@@ -25,14 +47,18 @@ const tabs = [
   { key: 'archived', label: 'Archived', count: null },
 ]
 
+/* ═══════════════════════════════════════════════════════════
+   COMPONENT
+   ═══════════════════════════════════════════════════════════ */
 export default function AdminIncidentsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const filterParam = searchParams.get('filter') || 'all'
-  const [search, setSearch] = useState('')
-  const [sortField, setSortField] = useState('confidence')
-  const [sortDir, setSortDir] = useState('desc')
+  const filterParam = searchParams.get('filter') || 'all' // active filter from URL
+  const [search, setSearch] = useState('')                // free-text search query
+  const [sortField, setSortField] = useState('confidence') // column currently sorted by
+  const [sortDir, setSortDir] = useState('desc')           // 'asc' or 'desc'
 
+  // Derive visible incidents: filter by tab → filter by search → sort
   const filtered = useMemo(() => {
     let list = allIncidents
     if (filterParam === 'pending') list = list.filter(i => i.status === 'pending')
@@ -40,10 +66,12 @@ export default function AdminIncidentsPage() {
     else if (filterParam === 'community') list = list.filter(i => i.category === 'community')
     else if (filterParam === 'merged') list = list.filter(i => i.status === 'merged')
     else if (filterParam === 'archived') list = list.filter(i => i.status === 'archived')
+    // Text search across ID, location and reporter fields
     if (search) {
       const q = search.toLowerCase()
       list = list.filter(i => i.id.toLowerCase().includes(q) || i.location.toLowerCase().includes(q) || i.reporter.toLowerCase().includes(q))
     }
+    // Sort: numeric compare for numbers, locale compare for strings
     list.sort((a, b) => {
       const valA = a[sortField], valB = b[sortField]
       const cmp = typeof valA === 'number' ? valA - valB : String(valA).localeCompare(String(valB))
@@ -52,6 +80,7 @@ export default function AdminIncidentsPage() {
     return list
   }, [filterParam, search, sortField, sortDir])
 
+  // Pre-compute counts for each tab badge
   const tabCounts = {
     all: allIncidents.length,
     pending: allIncidents.filter(i => i.status === 'pending').length,
@@ -61,17 +90,20 @@ export default function AdminIncidentsPage() {
     archived: allIncidents.filter(i => i.status === 'archived').length,
   }
 
+  // Toggle sort direction if same column clicked, otherwise set new column descending
   const toggleSort = (field) => {
     if (sortField === field) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
     else { setSortField(field); setSortDir('desc') }
   }
 
+  // Small arrow indicator shown next to the currently sorted column header
   const SortIcon = ({ field }) => sortField === field
     ? <span style={{ marginLeft: 3, fontSize: 9 }}>{sortDir === 'desc' ? '▼' : '▲'}</span>
     : null
 
   return (
     <>
+      {/* ═══ PAGE HEADER ═══ */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Incident Management</h1>
@@ -83,6 +115,7 @@ export default function AdminIncidentsPage() {
         </div>
       </div>
 
+      {/* ═══ FILTER TABS ═══ */}
       {/* Tabs */}
       <div className="admin-tabs" style={{ marginBottom: 12 }}>
         {tabs.map(t => (
@@ -95,6 +128,8 @@ export default function AdminIncidentsPage() {
         ))}
       </div>
 
+      {/* ═══ INCIDENTS TABLE ═══ */}
+      {/* Sortable columns: ID, severity, confidence, reliability. Rows highlighted when high + pending. */}
       {/* Table */}
       <div className="admin-card">
         <div className="admin-table-wrapper">
@@ -113,6 +148,7 @@ export default function AdminIncidentsPage() {
               </tr>
             </thead>
             <tbody>
+              {/* Highlight row if high-severity AND still pending */}
               {filtered.map(inc => (
                 <tr key={inc.id} className={inc.severity === 'high' && inc.status === 'pending' ? 'row-highlight' : ''}>
                   <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{inc.id}</td>
@@ -141,12 +177,14 @@ export default function AdminIncidentsPage() {
                   </td>
                 </tr>
               ))}
+              {/* Empty-state row when no incidents match */}
               {filtered.length === 0 && (
                 <tr><td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--admin-text-muted)' }}>No incidents match current filters</td></tr>
               )}
             </tbody>
           </table>
         </div>
+        {/* ═══ PAGINATION FOOTER ═══ */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderTop: '1px solid var(--admin-border)', fontSize: 11, color: 'var(--admin-text-muted)' }}>
           <span>Showing {filtered.length} of {allIncidents.length} incidents</span>
           <div style={{ display: 'flex', gap: 4 }}>
