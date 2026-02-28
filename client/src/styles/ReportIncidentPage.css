@@ -574,6 +574,7 @@
   border-radius: 10px;
   font-size: 1rem;
   color: var(--report-text);
+  background: #ffffff;
   transition: border-color 0.2s ease;
 }
 
@@ -589,6 +590,7 @@
   border-radius: 10px;
   font-size: 0.95rem;
   color: var(--report-text);
+  background: #ffffff;
   resize: vertical;
   min-height: 100px;
   font-family: inherit;

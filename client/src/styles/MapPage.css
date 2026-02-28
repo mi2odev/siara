@@ -673,44 +673,56 @@
 }
 
 .siara-risk-debug {
-
   right: 16px;
   bottom: 16px;
   z-index: 900;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(6px);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  padding: 10px 12px;
-  min-width: 200px;
-  min-height: 120px;
-  max-width: 400px;
+  background: var(--siara-surface, #fff);
+  backdrop-filter: blur(12px);
+  border-radius: 14px;
+  border: 1px solid rgba(124, 58, 237, 0.10);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 14px 16px;
+  min-width: 220px;
+  min-height: 100px;
   max-width: 360px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .siara-risk-debug h4 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
+  margin: 0;
+  font-size: 14px;
   font-weight: 700;
-  color: #111827;
+  color: var(--siara-heading, #232323);
+  letter-spacing: -0.01em;
 }
 
-
 .siara-risk-debug p {
-  margin: 0 0 4px 0;
+  margin: 0 0 3px 0;
   font-size: 12px;
-  color: #334155;
+  color: var(--siara-subtext, #6B7280);
+  line-height: 1.5;
 }
 
 .siara-risk-debug .risk-debug-percent {
-  font-weight: 700;
-  font-size: 24px;
-  
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  display: block;
+  margin: 4px 0 6px;
 }
 
 .siara-risk-debug .risk-debug-error {
-  color: #b91c1c;
+  color: var(--siara-error, #DC2626);
   font-weight: 600;
+  font-size: 12px;
+}
+
+.siara-risk-debug hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.15), transparent);
+  margin: 8px 0;
 }
 
 .siara-leaflet-map .leaflet-control-attribution {
@@ -750,12 +762,13 @@
   left: 64px;
   z-index: 850;
   width: min(360px, calc(100% - 72px));
-  padding: 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(6px);
-  
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--siara-surface, #fff);
+  border: 1px solid rgba(124, 58, 237, 0.10);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(12px);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .siara-guide-row {
@@ -765,25 +778,38 @@
 
 .siara-guide-input {
   flex: 1;
-  height: 34px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 0 10px;
+  height: 36px;
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 10px;
+  padding: 0 12px;
   font-size: 13px;
-  color: #0f172a;
-  background: #fff;
+  color: var(--siara-text-dark, #353535);
+  background: #F9FAFB;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.siara-guide-input:focus {
+  border-color: var(--siara-primary, #7A3DF0);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.10);
 }
 
 .siara-guide-btn {
-  height: 34px;
-  border: 1px solid #94a3b8;
-  border-radius: 8px;
-  padding: 0 10px;
-  background: #f8fafc;
-  color: #0f172a;
+  height: 36px;
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 10px;
+  padding: 0 14px;
+  background: #F9FAFB;
+  color: var(--siara-text-dark, #353535);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.siara-guide-btn:hover:not(:disabled) {
+  border-color: var(--siara-primary, #7A3DF0);
+  background: rgba(124, 58, 237, 0.04);
 }
 
 .siara-guide-btn:disabled {
@@ -792,8 +818,15 @@
 }
 
 .siara-guide-btn-primary {
-  background: #7c3aed;
+  background: linear-gradient(135deg, var(--siara-primary, #7A3DF0), var(--siara-secondary, #1D4ED8));
   color: #fff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+}
+
+.siara-guide-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--siara-btn-primary-hover, #6D28D9), var(--siara-secondary, #1D4ED8));
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
 }
 
 .siara-guide-note {
@@ -812,14 +845,14 @@
  bottom: 16px;
  right: 16px;
  z-index: 800;
- width: min(360px, calc(100% - 72px));
- height:fit-content;
+ width: min(340px, calc(100% - 72px));
+ height: fit-content;
  max-height: 600px;
  overflow-y: auto;
  display: flex;
  flex-direction: column;
- align-items: end;
- gap: 16px;
+ align-items: stretch;
+ gap: 12px;
 }
 
 .siara-guide-result {
@@ -862,56 +895,51 @@
   display: flex;
   flex-direction: row;
   width: 100%;
-  gap: 6px;
+  gap: 8px;
   justify-content: space-between;
   align-items: center;
-  align-content: center;
-  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.08);
+  margin-bottom: 6px;
 }
-.siara-map-help-wrap > h4{
+.siara-map-help-wrap > h4 {
   margin: 0;
-}
-
-.siara-help-panel,
-.siara-segment-panel {
- 
-  z-index: 910;
-  right: 16px;
-  background: rgba(255, 255, 255, 0.98);
-  border-radius: 12px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px);
-  padding: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--siara-heading, #232323);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .siara-help-panel {
-  top: 64px;
-  width: min(360px, calc(100% - 32px));
-}
-
-.siara-segment-panel {
- 
   z-index: 910;
   right: 16px;
-  background: rgba(255, 255, 255, 0.98);
-  border-radius: 12px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px);
-  padding: 12px;
+  top: 64px;
+  width: min(360px, calc(100% - 32px));
+  background: var(--siara-surface, #fff);
+  border-radius: 14px;
+  border: 1px solid rgba(124, 58, 237, 0.10);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(12px);
+  padding: 14px 16px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .siara-segment-panel {
   position: absolute;
   top: 90px;
   right: 16px;
-  z-index: 99999;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
-  padding: 12px;
+  z-index: 910;
+  background: var(--siara-surface, #fff);
+  border-radius: 14px;
+  border: 1px solid rgba(124, 58, 237, 0.10);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(12px);
+  padding: 16px 18px;
   width: min(400px, calc(100% - 32px));
   max-height: 52%;
   overflow-y: auto;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .siara-help-panel__header,
@@ -919,37 +947,52 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.08);
 }
 
 .siara-help-panel__header h4,
 .siara-segment-panel__header h4 {
   margin: 0;
-  font-size: 15px;
-  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--siara-heading, #232323);
+  letter-spacing: -0.01em;
 }
 
 .siara-help-panel__close,
 .siara-segment-panel__close {
   border: 0;
-  background: #e2e8f0;
-  color: #0f172a;
+  background: rgba(124, 58, 237, 0.08);
+  color: var(--siara-primary, #7A3DF0);
   border-radius: 999px;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.siara-help-panel__close:hover,
+.siara-segment-panel__close:hover {
+  background: var(--siara-primary, #7A3DF0);
+  color: #fff;
 }
 
 .siara-help-panel__content p {
   margin: 0 0 6px 0;
   font-size: 12px;
-  color: #334155;
+  color: var(--siara-subtext, #6B7280);
+  line-height: 1.5;
 }
 
 .siara-help-legend {
-  margin-top: 8px;
+  margin-top: 10px;
   display: grid;
   gap: 6px;
 }
@@ -957,57 +1000,104 @@
 .siara-help-legend__row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(124, 58, 237, 0.025);
 }
 
 .siara-help-legend__swatch {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .siara-help-legend__label {
   font-size: 12px;
-  font-weight: 700;
-  color: #0f172a;
+  font-weight: 600;
+  color: var(--siara-text-dark, #353535);
   text-transform: capitalize;
 }
 
+.siara-segment-panel__meta {
+  background: rgba(124, 58, 237, 0.04);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
 .siara-segment-panel__meta p {
-  margin: 0 0 5px 0;
+  margin: 0 0 4px 0;
   font-size: 12px;
-  color: #334155;
+  color: var(--siara-subtext, #6B7280);
+  line-height: 1.5;
+}
+
+.siara-segment-panel__meta p:last-child {
+  margin-bottom: 0;
 }
 
 .siara-segment-panel__reasons h5 {
-  margin: 10px 0 8px 0;
-  font-size: 13px;
-  color: #0f172a;
+  margin: 6px 0 8px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--siara-primary, #7A3DF0);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .siara-segment-reason {
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: 8px;
+  gap: 6px;
   font-size: 11px;
-  padding: 6px 0;
-  border-bottom: 1px solid #e2e8f0;
-  border: solid;
-  z-index: 999;
+  padding: 7px 10px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  background: rgba(124, 58, 237, 0.025);
+  border: 1px solid rgba(124, 58, 237, 0.06);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.siara-segment-reason:hover {
+  background: rgba(124, 58, 237, 0.06);
+  border-color: rgba(124, 58, 237, 0.12);
 }
 
 .siara-segment-reason:last-child {
-  border-bottom: 0;
+  margin-bottom: 0;
 }
 
 .siara-segment-reason__feature {
   font-weight: 700;
-  color: #0f172a;
+  color: var(--siara-text-dark, #353535);
 }
 
-.siara-segment-reason__direction,
+.siara-segment-reason__direction {
+  font-weight: 600;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.siara-segment-reason__direction--increases {
+  background: rgba(220, 38, 38, 0.08);
+  color: #DC2626;
+}
+
+.siara-segment-reason__direction--decreases {
+  background: rgba(15, 169, 88, 0.08);
+  color: #0FA958;
+}
+
 .siara-segment-reason__value {
-  color: #475569;
+  color: var(--siara-subtext, #6B7280);
+  font-size: 10px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 

@@ -4,18 +4,22 @@ import joblib
 import numpy as np
 import pandas as pd
 import shap
+import os
 
 app = Flask(__name__)
 
+# Base directory (api folder)
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
 # Driver mentality model artifacts
-MODEL_PATH = r"E:\WebSites\siara\api\driver-quiz-model\driver_model.joblib"
-RAW_MODEL_PATH = r"E:\WebSites\siara\api\driver-quiz-model\driver_model_raw.joblib"
-META_PATH = r"E:\WebSites\siara\api\driver-quiz-model\metadata.json"
+MODEL_PATH = os.path.join(BASE_DIR, "driver-quiz-model", "driver_model.joblib")
+RAW_MODEL_PATH = os.path.join(BASE_DIR, "driver-quiz-model", "driver_model_raw.joblib")
+META_PATH = os.path.join(BASE_DIR, "driver-quiz-model", "metadata.json")
 
 # Danger-zone model artifacts (production-safe, no bundle class dependency)
-CAL_MODEL_PATH = r"E:\WebSites\siara\api\danger-zone-model\siara_v1_artifacts\siara_severe_model.joblib"
-BASE_MODEL_PATH = r"E:\WebSites\siara\api\danger-zone-model\siara_v1_artifacts\base_lightgbm.joblib"
-DANGER_META_PATH = r"E:\WebSites\siara\api\danger-zone-model\siara_v1_artifacts\siara_severe_metadata.json"
+CAL_MODEL_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "siara_severe_model.joblib")
+BASE_MODEL_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "base_lightgbm.joblib")
+DANGER_META_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "siara_severe_metadata.json")
 
 # ---- Load driver-quiz artifacts
 model = joblib.load(MODEL_PATH)
