@@ -771,6 +771,44 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+.siara-time-row {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.siara-time-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.siara-time-select,
+.siara-time-custom {
+  width: 100%;
+  height: 34px;
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 9px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: #0f172a;
+  background: #f9fafb;
+  outline: none;
+}
+
+.siara-time-select:focus,
+.siara-time-custom:focus {
+  border-color: var(--siara-primary, #7A3DF0);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.10);
+}
+
+.siara-time-hint {
+  font-size: 11px;
+  color: #64748b;
+}
+
 .siara-guide-row {
   display: flex;
   gap: 8px;

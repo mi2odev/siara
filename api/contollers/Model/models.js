@@ -38,6 +38,8 @@ const OVERPASS_GRID_DECIMALS = Number(process.env.OVERPASS_GRID_DECIMALS || 3);
 const OVERPASS_SLEEP_MS = Number(process.env.OVERPASS_SLEEP_MS || 150);
 const ROAD_CACHE_MAX = Number(process.env.ROAD_CACHE_MAX || 5000);
 const ENABLE_OSM_FLAGS = String(process.env.ENABLE_OSM_FLAGS || "1") === "1";
+const ENABLE_OSM_FLAGS_FOR_ROUTES =
+  String(process.env.ENABLE_OSM_FLAGS_FOR_ROUTES || "0") === "1";
 
 const ROAD_FLAG_KEYS = [
   "Amenity",
@@ -70,6 +72,8 @@ const MAX_SEGMENT_CACHE = 2000;
 const EARTH_RADIUS_KM = 6371;
 let roadCacheHits = 0;
 let roadCacheMisses = 0;
+let overpassActiveRequests = 0;
+const overpassWaitQueue = [];
 
 const FALLBACK_DESTINATIONS = Object.freeze([
   { id: "alger", name: "Alger", lat: 36.7538, lng: 3.0588 },
@@ -306,7 +310,15 @@ function roundCoord(value) {
 }
 
 function weatherCacheKey(lat, lng, iso) {
-  return `${roundCoord(lat)}:${roundCoord(lng)}:${iso.slice(0, 13)}`;
+  const targetMs = Date.parse(iso);
+  const nowMs = Date.now();
+  const safeTargetMs = Number.isNaN(targetMs) ? nowMs : targetMs;
+  const diffMs = Math.abs(safeTargetMs - nowMs);
+  const useQuarterHourBucket = diffMs > 15 * 60 * 1000 && diffMs <= 3 * 60 * 60 * 1000;
+  const bucketMs = useQuarterHourBucket ? 15 * 60 * 1000 : 60 * 60 * 1000;
+  const bucketStart = Math.floor(safeTargetMs / bucketMs) * bucketMs;
+  const bucketType = useQuarterHourBucket ? "m15" : "h1";
+  return `${roundCoord(lat)}:${roundCoord(lng)}:${bucketType}:${new Date(bucketStart).toISOString()}`;
 }
 
 function twilightCacheKey(lat, lng, iso) {
@@ -388,35 +400,116 @@ function clampCategoricalValue(
   return candidate;
 }
 
-function findNearestVisibility(hourly, currentTimeIso) {
-  if (!hourly || !Array.isArray(hourly.time) || !Array.isArray(hourly.visibility)) {
-    return null;
+function findNearestIndexUnix(timeArraySeconds, targetSeconds) {
+  if (!Array.isArray(timeArraySeconds) || timeArraySeconds.length === 0) {
+    return -1;
   }
 
-  if (!currentTimeIso) {
-    return safeNumber(hourly.visibility[0]);
+  const target = safeNumber(targetSeconds);
+  if (target == null) {
+    return 0;
   }
 
-  const nowMs = Date.parse(currentTimeIso);
-  if (Number.isNaN(nowMs)) {
-    return safeNumber(hourly.visibility[0]);
-  }
-
-  let bestIndex = 0;
+  let bestIndex = -1;
   let bestDiff = Number.POSITIVE_INFINITY;
-  for (let i = 0; i < hourly.time.length; i += 1) {
-    const tMs = Date.parse(hourly.time[i]);
-    if (Number.isNaN(tMs)) {
+  for (let i = 0; i < timeArraySeconds.length; i += 1) {
+    const candidate = safeNumber(timeArraySeconds[i]);
+    if (candidate == null) {
       continue;
     }
-    const diff = Math.abs(tMs - nowMs);
+
+    const diff = Math.abs(candidate - target);
     if (diff < bestDiff) {
       bestDiff = diff;
       bestIndex = i;
     }
   }
 
-  return safeNumber(hourly.visibility[bestIndex]);
+  return bestIndex;
+}
+
+function extractCurrentSnapshot(current) {
+  if (!current || typeof current !== "object") {
+    return null;
+  }
+
+  return {
+    selected_time_unix: safeNumber(current.time),
+    temperature_2m: safeNumber(current.temperature_2m),
+    relative_humidity_2m: safeNumber(current.relative_humidity_2m),
+    pressure_msl: safeNumber(current.pressure_msl),
+    visibility: safeNumber(current.visibility),
+    wind_speed_10m: safeNumber(current.wind_speed_10m),
+    wind_direction_10m: safeNumber(current.wind_direction_10m),
+    precipitation: safeNumber(current.precipitation),
+    weather_code: safeNumber(current.weather_code),
+  };
+}
+
+function extractForecastSnapshot(series, targetSeconds) {
+  if (!series || typeof series !== "object") {
+    return null;
+  }
+
+  const index = findNearestIndexUnix(series.time, targetSeconds);
+  if (index < 0) {
+    return null;
+  }
+
+  return {
+    selected_time_unix: safeNumber(series.time?.[index]),
+    temperature_2m: safeNumber(series.temperature_2m?.[index]),
+    relative_humidity_2m: safeNumber(series.relative_humidity_2m?.[index]),
+    pressure_msl: safeNumber(series.pressure_msl?.[index]),
+    visibility: safeNumber(series.visibility?.[index]),
+    wind_speed_10m: safeNumber(series.wind_speed_10m?.[index]),
+    wind_direction_10m: safeNumber(series.wind_direction_10m?.[index]),
+    precipitation: safeNumber(series.precipitation?.[index]),
+    weather_code: safeNumber(series.weather_code?.[index]),
+  };
+}
+
+function buildWeatherSourceOrder(absDiffSeconds) {
+  if (absDiffSeconds <= 15 * 60) {
+    return ["current", "minutely_15", "hourly"];
+  }
+  if (absDiffSeconds <= 3 * 60 * 60) {
+    return ["minutely_15", "hourly", "current"];
+  }
+  return ["hourly", "current", "minutely_15"];
+}
+
+function pickWeatherSnapshot(data, targetSeconds, absDiffSeconds) {
+  const orderedSources = buildWeatherSourceOrder(absDiffSeconds);
+  for (const source of orderedSources) {
+    if (source === "current") {
+      const snapshot = extractCurrentSnapshot(data?.current);
+      if (snapshot) {
+        return { source: "current", snapshot };
+      }
+      continue;
+    }
+
+    const snapshot = extractForecastSnapshot(data?.[source], targetSeconds);
+    if (snapshot) {
+      return { source, snapshot };
+    }
+  }
+
+  return {
+    source: "fallback_empty",
+    snapshot: {
+      selected_time_unix: null,
+      temperature_2m: null,
+      relative_humidity_2m: null,
+      pressure_msl: null,
+      visibility: null,
+      wind_speed_10m: null,
+      wind_direction_10m: null,
+      precipitation: null,
+      weather_code: null,
+    },
+  };
 }
 
 async function getWeatherFeatures(lat, lng, timestampIso) {
@@ -425,63 +518,104 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
     return weatherCache.get(key);
   }
 
+  const seriesFields = [
+    "temperature_2m",
+    "relative_humidity_2m",
+    "pressure_msl",
+    "precipitation",
+    "wind_speed_10m",
+    "wind_direction_10m",
+    "weather_code",
+    "visibility",
+  ].join(",");
   const params = {
     latitude: lat,
     longitude: lng,
-    current: [
-      "temperature_2m",
-      "relative_humidity_2m",
-      "pressure_msl",
-      "precipitation",
-      "wind_speed_10m",
-      "wind_direction_10m",
-      "weather_code",
-    ].join(","),
-    hourly: "visibility",
-    forecast_days: 1,
-    // Critical bugfix: Open-Meteo defaults can vary. We pin units to model features explicitly.
-    // Previous code treated wind_speed_10m as m/s and converted again, which can inflate mph ~3.6x.
+    current: seriesFields,
+    hourly: seriesFields,
+    minutely_15: seriesFields,
+    forecast_days: 7,
     temperature_unit: "fahrenheit",
     wind_speed_unit: "mph",
     precipitation_unit: "inch",
-    timezone: "auto",
+    timezone: "GMT",
+    timeformat: "unixtime",
   };
 
-  const { data } = await axios.get(OPEN_METEO_URL, {
-    params,
-    timeout: WEATHER_TIMEOUT_MS,
-  });
+  let data = null;
+  try {
+    const response = await axios.get(OPEN_METEO_URL, {
+      params,
+      timeout: WEATHER_TIMEOUT_MS,
+    });
+    data = response.data;
+  } catch (error) {
+    if (error?.response?.status === 400) {
+      const fallbackParams = { ...params };
+      delete fallbackParams.minutely_15;
+      const fallbackResponse = await axios.get(OPEN_METEO_URL, {
+        params: fallbackParams,
+        timeout: WEATHER_TIMEOUT_MS,
+      });
+      data = fallbackResponse.data;
+    } else {
+      throw error;
+    }
+  }
 
   if (DEBUG_WEATHER_UNITS && !weatherUnitsLogged) {
     weatherUnitsLogged = true;
     console.log("[Node][weather-units] current_units:", data?.current_units);
     console.log("[Node][weather-units] hourly_units:", data?.hourly_units);
+    console.log("[Node][weather-units] minutely_15_units:", data?.minutely_15_units);
   }
 
-  const current = data?.current || {};
-  const hourly = data?.hourly || {};
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const targetSecondsRaw = Math.floor(Date.parse(timestampIso) / 1000);
+  const targetSeconds = Number.isFinite(targetSecondsRaw) ? targetSecondsRaw : nowSeconds;
+  const absDiffSeconds = Math.abs(targetSeconds - nowSeconds);
 
-  const temperatureF = safeNumber(current.temperature_2m);
-  const humidityPct = safeNumber(current.relative_humidity_2m);
-  const pressureHPa = safeNumber(current.pressure_msl);
-  const precipitationIn = safeNumber(current.precipitation);
-  const windSpeedMph = safeNumber(current.wind_speed_10m);
-  const weatherCode = safeNumber(current.weather_code);
+  const { source: weatherSource, snapshot } = pickWeatherSnapshot(
+    data,
+    targetSeconds,
+    absDiffSeconds,
+  );
+  if (DEBUG_WEATHER_UNITS) {
+    const selectedIso =
+      snapshot.selected_time_unix == null
+        ? "n/a"
+        : new Date(snapshot.selected_time_unix * 1000).toISOString();
+    console.log(
+      `[Node][weather-select] source=${weatherSource} target=${new Date(
+        targetSeconds * 1000,
+      ).toISOString()} selected=${selectedIso}`,
+    );
+  }
 
-  const visibilityMeters = findNearestVisibility(hourly, current.time || timestampIso);
+  const temperatureF = snapshot.temperature_2m;
+  const humidityPct = snapshot.relative_humidity_2m;
+  const pressureHPa = snapshot.pressure_msl;
+  const precipitationIn = snapshot.precipitation;
+  const windSpeedMph = snapshot.wind_speed_10m;
+  const weatherCode = snapshot.weather_code;
+  const visibilityMeters = snapshot.visibility;
+
   const mappedWeatherCondition = mapWeatherCondition(weatherCode);
-  const mappedWindDirection = mapWindDirection(current.wind_direction_10m, windSpeedMph);
-  const weatherCondition = clampCategoricalValue(mappedWeatherCondition, weatherConditionAllowedSet, {
-    fallbackIfEmpty: "Unknown",
-    fallbackIfDisallowed: "Other",
-  });
+  const mappedWindDirection = mapWindDirection(snapshot.wind_direction_10m, windSpeedMph);
+  const weatherCondition = clampCategoricalValue(
+    mappedWeatherCondition,
+    weatherConditionAllowedSet,
+    {
+      fallbackIfEmpty: "Unknown",
+      fallbackIfDisallowed: "Other",
+    },
+  );
   const windDirection = clampCategoricalValue(mappedWindDirection, windDirectionAllowedSet, {
     fallbackIfEmpty: "Unknown",
     fallbackIfDisallowed: "Unknown",
   });
 
   const row = {
-    // Bugfix: Open-Meteo now returns F/mph/inch directly, so we avoid double-conversion.
     "Temperature(F)": temperatureF,
     "Humidity(%)": humidityPct,
     "Pressure(in)": pressureHPa == null ? null : hPaToInHg(pressureHPa),
@@ -753,17 +887,44 @@ function sleepMs(ms) {
   return new Promise((resolve) => setTimeout(resolve, Math.round(delay)));
 }
 
+async function runWithOverpassLimiter(task) {
+  if (overpassActiveRequests >= 2) {
+    await new Promise((resolve) => overpassWaitQueue.push(resolve));
+  }
+
+  overpassActiveRequests += 1;
+  try {
+    return await task();
+  } finally {
+    overpassActiveRequests = Math.max(0, overpassActiveRequests - 1);
+    const next = overpassWaitQueue.shift();
+    if (typeof next === "function") {
+      next();
+    }
+  }
+}
+
 async function getRoadFlagsAsync(lat, lng, providedRoadFlags) {
   if (providedRoadFlags && typeof providedRoadFlags === "object") {
-    return toRoadFlags(providedRoadFlags);
+    const flags = toRoadFlags(providedRoadFlags);
+    if (DEBUG_OSM_FLAGS) {
+      console.log(`[Node][osm-flags] source=provided flags=${JSON.stringify(flags)}`);
+    }
+    return flags;
   }
 
   if (!ENABLE_OSM_FLAGS) {
+    if (DEBUG_OSM_FLAGS) {
+      console.log("[Node][osm-flags] source=fallback_zeroes reason=osm_disabled");
+    }
     return toRoadFlags(ROAD_FLAG_ZEROES);
   }
 
   const point = validateLatLngStrict({ lat, lng });
   if (!point) {
+    if (DEBUG_OSM_FLAGS) {
+      console.log("[Node][osm-flags] source=fallback_zeroes reason=invalid_point");
+    }
     return toRoadFlags(ROAD_FLAG_ZEROES);
   }
 
@@ -771,32 +932,48 @@ async function getRoadFlagsAsync(lat, lng, providedRoadFlags) {
   if (roadCache.has(key)) {
     roadCacheHits += 1;
     if (DEBUG_OSM_FLAGS) {
-      console.log(`[Node][osm-flags] cache hit h=${roadCacheHits} m=${roadCacheMisses} key=${key}`);
+      console.log(
+        `[Node][osm-flags] source=cache key=${key} hits=${roadCacheHits} misses=${roadCacheMisses}`,
+      );
     }
     return roadCache.get(key);
   }
 
   roadCacheMisses += 1;
   if (DEBUG_OSM_FLAGS) {
-    console.log(`[Node][osm-flags] cache miss h=${roadCacheHits} m=${roadCacheMisses} key=${key}`);
+    console.log(
+      `[Node][osm-flags] source=cache_miss key=${key} hits=${roadCacheHits} misses=${roadCacheMisses}`,
+    );
   }
 
   let flags = toRoadFlags(ROAD_FLAG_ZEROES);
+  let source = "overpass";
+  let sourceError = "";
   try {
     const query = buildOverpassRoadFlagsQuery(point.lat, point.lng);
-    const { data } = await axios.post(OVERPASS_URL, query, {
-      headers: { "Content-Type": "text/plain" },
-      timeout: OVERPASS_TIMEOUT_MS,
-    });
+    const { data } = await runWithOverpassLimiter(() =>
+      axios.post(OVERPASS_URL, query, {
+        headers: { "Content-Type": "text/plain" },
+        timeout: OVERPASS_TIMEOUT_MS,
+      }),
+    );
 
     flags = parseOverpassRoadFlags(data?.elements);
   } catch (error) {
-    console.warn("[Node][osm-flags] Overpass fallback to zeroes:", error.message);
+    source = "fallback_zeroes";
+    sourceError = error?.message || "unknown_overpass_error";
+    flags = toRoadFlags(ROAD_FLAG_ZEROES);
   }
 
   setCachedRoadFlags(key, flags);
   if (DEBUG_OSM_FLAGS) {
-    console.log(`[Node][osm-flags] flags key=${key} ${JSON.stringify(flags)}`);
+    if (source === "overpass") {
+      console.log(`[Node][osm-flags] source=overpass key=${key} flags=${JSON.stringify(flags)}`);
+    } else {
+      console.log(
+        `[Node][osm-flags] source=fallback_zeroes key=${key} error=${sourceError} flags=${JSON.stringify(flags)}`,
+      );
+    }
   }
 
   await sleepMs(OVERPASS_SLEEP_MS);
@@ -1186,7 +1363,7 @@ async function scoreRouteSamplesWithOverlay({ sampledPoints, routeHash, timestam
         lat,
         lng,
         timestamp: timestampIso,
-        roadFlags: ROAD_FLAG_ZEROES,
+        roadFlags: ENABLE_OSM_FLAGS_FOR_ROUTES ? null : ROAD_FLAG_ZEROES,
       });
 
       setCachedSegmentRow(sampleId, row);
@@ -1443,7 +1620,7 @@ exports.predictRiskOverlay = async (req, res) => {
           lat: point.lat,
           lng: point.lng,
           timestamp: row?.timestamp || req.body?.timestamp,
-          roadFlags: row?.roadFlags,
+          roadFlags: row?.roadFlags ?? (ENABLE_OSM_FLAGS_FOR_ROUTES ? null : ROAD_FLAG_ZEROES),
         });
 
         const segmentId = row.segment_id ?? row.segmentId ?? index;
@@ -1664,7 +1841,7 @@ exports.predictNearbyZones = async (req, res) => {
           lat: job.lat,
           lng: job.lng,
           timestamp: timestampIso,
-          roadFlags: ROAD_FLAG_ZEROES,
+          roadFlags: ENABLE_OSM_FLAGS_FOR_ROUTES ? null : ROAD_FLAG_ZEROES,
         });
         return {
           segment_id: job.sample_id,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -23,6 +23,15 @@ const NEARBY_MAX_DESTINATIONS = 4;
 const ROUTE_SAMPLE_COUNT = 12;
 const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const TIME_PRESET_OPTIONS = [
+  { value: "0", label: "Now" },
+  { value: String(5 * 60 * 1000), label: "+5 min" },
+  { value: String(15 * 60 * 1000), label: "+15 min" },
+  { value: String(60 * 60 * 1000), label: "+1h" },
+  { value: String(3 * 60 * 60 * 1000), label: "+3h" },
+  { value: String(6 * 60 * 60 * 1000), label: "+6h" },
+  { value: "custom", label: "Custom" },
+];
 
 const postJson = async (url, body) => {
   const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
@@ -146,6 +155,15 @@ function normalizeNominatimResult(item, fallbackName) {
   };
 }
 
+function toDateTimeLocalValue(dateInput) {
+  const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
 const FlyToUser = ({ userPosition, mapLayer }) => {
   const map = useMap();
   useEffect(() => {
@@ -265,7 +283,34 @@ export default function SiaraMap({
   const [routeExplainState, setRouteExplainState] = useState("idle");
   const [routeExplainError, setRouteExplainError] = useState("");
   const [selectedRouteExplanation, setSelectedRouteExplanation] = useState(null);
+  const [timePresetMs, setTimePresetMs] = useState("0");
+  const [customTimestampLocal, setCustomTimestampLocal] = useState("");
   const nearbyRequestKeyRef = useRef("");
+
+  const selectedTimeKey = `${timePresetMs}|${customTimestampLocal}`;
+
+  const resolveSelectedTimestampIso = useCallback(() => {
+    if (timePresetMs === "custom") {
+      const customDate = new Date(customTimestampLocal);
+      if (!Number.isNaN(customDate.getTime())) {
+        return customDate.toISOString();
+      }
+      return new Date().toISOString();
+    }
+
+    const offsetMs = Number(timePresetMs);
+    const safeOffsetMs = Number.isFinite(offsetMs) ? offsetMs : 0;
+    return new Date(Date.now() + safeOffsetMs).toISOString();
+  }, [timePresetMs, customTimestampLocal]);
+
+  const selectedTimestampPreview = useMemo(() => {
+    const timestampIso = resolveSelectedTimestampIso();
+    const dt = new Date(timestampIso);
+    if (Number.isNaN(dt.getTime())) {
+      return "Invalid time";
+    }
+    return dt.toLocaleString();
+  }, [resolveSelectedTimestampIso]);
 
   useEffect(() => {
     console.log("[SiaraMap] selectedRouteExplanation updated:", selectedRouteExplanation);
@@ -323,7 +368,7 @@ export default function SiaraMap({
     const body = {
       lat: userPosition.lat,
       lng: userPosition.lng,
-      timestamp: new Date().toISOString(),
+      timestamp: resolveSelectedTimestampIso(),
     };
     console.log("[React -> Node] /api/risk/current body:", body);
 
@@ -348,7 +393,7 @@ export default function SiaraMap({
     return () => {
       cancelled = true;
     };
-  }, [userPosition]);
+  }, [userPosition, selectedTimeKey, resolveSelectedTimestampIso]);
 
   useEffect(() => {
     if (!currentRisk) return;
@@ -359,7 +404,7 @@ export default function SiaraMap({
     if (!mockMarkers?.length || mapLayer !== "ai") return;
 
     const body = {
-      timestamp: new Date().toISOString(),
+      timestamp: resolveSelectedTimestampIso(),
       rows: mockMarkers.map((marker) => ({
         segment_id: String(marker.id),
         lat: marker.lat,
@@ -394,7 +439,7 @@ export default function SiaraMap({
     return () => {
       cancelled = true;
     };
-  }, [mapLayer, mockMarkers]);
+  }, [mapLayer, mockMarkers, selectedTimeKey, resolveSelectedTimestampIso]);
 
   useEffect(() => {
     if (mapLayer !== "nearbyRoads") {
@@ -411,7 +456,7 @@ export default function SiaraMap({
       return;
     }
 
-    const requestKey = toNearbyRequestKey(userPosition);
+    const requestKey = `${toNearbyRequestKey(userPosition)}:${selectedTimeKey}`;
     if (!requestKey || requestKey === nearbyRequestKeyRef.current) {
       return;
     }
@@ -421,7 +466,7 @@ export default function SiaraMap({
       lng: userPosition.lng,
       radius_km: NEARBY_RADIUS_KM,
       max_destinations: NEARBY_MAX_DESTINATIONS,
-      timestamp: new Date().toISOString(),
+      timestamp: resolveSelectedTimestampIso(),
     };
     console.log("[React -> Node] /api/risk/nearby-zones body:", body);
 
@@ -449,7 +494,7 @@ console.log("[Node -> React] nearby-zones response:", data);
     return () => {
       cancelled = true;
     };
-  }, [mapLayer, userPosition]);
+  }, [mapLayer, userPosition, selectedTimeKey, resolveSelectedTimestampIso]);
 
   useEffect(() => {
     if (mapLayer !== "nearbyRoads" || nearbyRoutes.length === 0) return;
@@ -477,7 +522,7 @@ console.log("[Node -> React] nearby-zones response:", data);
       segment_id: String(marker.id),
       lat: marker.lat,
       lng: marker.lng,
-      timestamp: new Date().toISOString(),
+      timestamp: resolveSelectedTimestampIso(),
     };
     console.log("[React -> Node] /api/risk/explain body:", body);
 
@@ -554,6 +599,14 @@ console.log("[Node -> React] nearby-zones response:", data);
     setSelectedIncident(null);
   };
 
+  const handleTimePresetChange = (event) => {
+    const value = event.target.value;
+    setTimePresetMs(value);
+    if (value === "custom" && !customTimestampLocal) {
+      setCustomTimestampLocal(toDateTimeLocalValue(new Date()));
+    }
+  };
+
   const startGuidance = async () => {
     const origin = normalizePosition(userPosition);
     if (!origin) {
@@ -581,7 +634,7 @@ console.log("[Node -> React] nearby-zones response:", data);
         lat: selectedDestination.lat,
         lng: selectedDestination.lng,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: resolveSelectedTimestampIso(),
       sample_count: ROUTE_SAMPLE_COUNT,
     };
 
@@ -1148,6 +1201,33 @@ console.log("[Node -> React] nearby-zones response:", data);
       )}
       {showGuideControls && (
         <div className="siara-guide-controls">
+          <div className="siara-time-row">
+            <label className="siara-time-label" htmlFor="siara-time-preset">
+              Prediction time
+            </label>
+            <select
+              id="siara-time-preset"
+              className="siara-time-select"
+              value={timePresetMs}
+              onChange={handleTimePresetChange}
+            >
+              {TIME_PRESET_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {timePresetMs === "custom" && (
+              <input
+                type="datetime-local"
+                className="siara-time-custom"
+                value={customTimestampLocal}
+                onChange={(event) => setCustomTimestampLocal(event.target.value)}
+              />
+            )}
+            <div className="siara-time-hint">Using: {selectedTimestampPreview}</div>
+          </div>
+
           <div className="siara-guide-row">
             <input
               type="text"
