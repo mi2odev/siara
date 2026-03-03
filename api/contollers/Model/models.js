@@ -20,6 +20,9 @@ const SUN_API_URL = "https://api.sunrise-sunset.org/json";
 const OSRM_ROUTE_URL =
   process.env.OSRM_ROUTE_URL || "https://router.project-osrm.org/route/v1/driving";
 const OSRM_TIMEOUT_MS = Number(process.env.OSRM_TIMEOUT_MS || 8000);
+const DEBUG_OSRM = String(process.env.DEBUG_OSRM || "0") === "1";
+const MAX_OSRM_CONCURRENCY = Number(process.env.MAX_OSRM_CONCURRENCY || 2);
+const OSRM_ROUTE_CACHE_MAX = Number(process.env.OSRM_ROUTE_CACHE_MAX || 2000);
 const DEFAULT_NEARBY_RADIUS_KM = Number(process.env.NEARBY_RADIUS_KM || 25);
 const DEFAULT_MAX_DESTINATIONS = Number(process.env.NEARBY_MAX_DESTINATIONS || 4);
 const MAX_NEARBY_DESTINATIONS = Number(process.env.NEARBY_MAX_DESTINATIONS_CAP || 8);
@@ -29,6 +32,7 @@ const DEFAULT_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT |
 const MAX_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT_CAP || 40);
 const DEBUG_WEATHER_UNITS = String(process.env.DEBUG_WEATHER_UNITS || "0") === "1";
 const DEBUG_OSM_FLAGS = String(process.env.DEBUG_OSM_FLAGS || "0") === "1";
+const DEBUG_FORECAST = String(process.env.DEBUG_FORECAST || "0") === "1";
 const DANGER_METADATA_PATH =
   process.env.DANGER_METADATA_PATH ||
   path.join(__dirname, "../../danger-zone-model/siara_v1_artifacts/siara_severe_metadata.json");
@@ -65,15 +69,24 @@ const ROAD_FLAG_ZEROES = Object.freeze(
 );
 
 const weatherCache = new Map();
+const currentWeatherCache = new Map();
+const forecastWeatherCache = new Map();
+const riskForecastCache = new Map();
+const osrmRouteCache = new Map();
 const twilightCache = new Map();
 const roadCache = new Map();
 const segmentRowCache = new Map();
 const MAX_SEGMENT_CACHE = 2000;
+const MAX_CURRENT_WEATHER_CACHE = Number(process.env.MAX_CURRENT_WEATHER_CACHE || 1000);
+const MAX_FORECAST_WEATHER_CACHE = Number(process.env.MAX_FORECAST_WEATHER_CACHE || 1000);
+const MAX_RISK_FORECAST_CACHE = Number(process.env.MAX_RISK_FORECAST_CACHE || 1000);
 const EARTH_RADIUS_KM = 6371;
 let roadCacheHits = 0;
 let roadCacheMisses = 0;
 let overpassActiveRequests = 0;
+let osrmActiveRequests = 0;
 const overpassWaitQueue = [];
+const osrmWaitQueue = [];
 
 const FALLBACK_DESTINATIONS = Object.freeze([
   { id: "alger", name: "Alger", lat: 36.7538, lng: 3.0588 },
@@ -150,6 +163,16 @@ function hPaToInHg(hPa) {
 
 function mpsToMph(mps) {
   return mps * 2.2369362921;
+}
+
+function kmhToMph(kmh) {
+  const n = safeNumber(kmh);
+  return n == null ? null : n * 0.621371;
+}
+
+function mphToKmh(mph) {
+  const n = safeNumber(mph);
+  return n == null ? null : n / 0.621371;
 }
 
 function mmToIn(mm) {
@@ -309,6 +332,82 @@ function roundCoord(value) {
   return n.toFixed(3);
 }
 
+function floorToHourMs(ms) {
+  return Math.floor(ms / (60 * 60 * 1000)) * (60 * 60 * 1000);
+}
+
+function roundToHourMs(ms) {
+  return Math.round(ms / (60 * 60 * 1000)) * (60 * 60 * 1000);
+}
+
+function snapToNearestHourIso(input) {
+  const parsedMs = Date.parse(input || "");
+  const fallbackMs = Date.now();
+  const sourceMs = Number.isNaN(parsedMs) ? fallbackMs : parsedMs;
+  return new Date(roundToHourMs(sourceMs)).toISOString();
+}
+
+function buildHourlyIsoPoints(startIso, hours = 24) {
+  const parsedMs = Date.parse(startIso);
+  if (Number.isNaN(parsedMs)) {
+    return [];
+  }
+
+  const points = [];
+  for (let i = 0; i < hours; i += 1) {
+    points.push(new Date(parsedMs + i * 60 * 60 * 1000).toISOString());
+  }
+  return points;
+}
+
+function formatHourLabel(timeIso) {
+  const dt = new Date(timeIso);
+  if (Number.isNaN(dt.getTime())) {
+    return "n/a";
+  }
+  return dt.toISOString().slice(11, 16);
+}
+
+function currentWeatherCacheKey(lat, lng, referenceIso = null) {
+  const parsedMs = Date.parse(referenceIso || "");
+  const sourceMs = Number.isNaN(parsedMs) ? Date.now() : parsedMs;
+  const hourBucket = new Date(floorToHourMs(sourceMs)).toISOString();
+  return `${roundCoord(lat)}:${roundCoord(lng)}:${hourBucket}`;
+}
+
+function forecastWeatherCacheKey(lat, lng, startIso) {
+  return `${roundCoord(lat)}:${roundCoord(lng)}:${startIso}`;
+}
+
+function riskForecastCacheKey(lat, lng, startIso) {
+  return `${roundCoord(lat)}:${roundCoord(lng)}:${startIso}`;
+}
+
+function pruneCacheMapIfNeeded(cacheMap, maxSizeRaw) {
+  const maxSize = Math.max(1, Math.round(safeNumber(maxSizeRaw) || 1));
+  if (cacheMap.size <= maxSize) {
+    return;
+  }
+
+  const excess = cacheMap.size - maxSize;
+  const keys = cacheMap.keys();
+  for (let i = 0; i < excess; i += 1) {
+    const key = keys.next().value;
+    if (key == null) {
+      break;
+    }
+    cacheMap.delete(key);
+  }
+}
+
+function setCacheEntry(cacheMap, key, value, maxSizeRaw) {
+  if (!key) {
+    return;
+  }
+  cacheMap.set(key, value);
+  pruneCacheMapIfNeeded(cacheMap, maxSizeRaw);
+}
+
 function weatherCacheKey(lat, lng, iso) {
   const targetMs = Date.parse(iso);
   const nowMs = Date.now();
@@ -375,6 +474,135 @@ function mapWeatherCondition(code) {
   if ([71, 73, 75, 77, 85, 86].includes(c)) return "Snow";
   if ([95, 96, 99].includes(c)) return "Thunderstorm";
   return "Other";
+}
+
+function normalizeUnitText(unit) {
+  return String(unit || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+}
+
+function detectWindUnitKind(unit) {
+  const text = normalizeUnitText(unit);
+  if (!text) return "unknown";
+  if (text.includes("mph") || text.includes("milesperhour")) return "mph";
+  if (
+    text.includes("km/h") ||
+    text.includes("km_h") ||
+    text.includes("kmh") ||
+    text.includes("kph") ||
+    text.includes("kilometerperhour") ||
+    text.includes("kilometreperhour")
+  ) {
+    return "kmh";
+  }
+  if (
+    text.includes("m/s") ||
+    text.includes("meterpersecond") ||
+    text.includes("metrepersecond")
+  ) {
+    return "mps";
+  }
+  return "unknown";
+}
+
+function detectPrecipUnitKind(unit) {
+  const text = normalizeUnitText(unit);
+  if (!text) return "unknown";
+  if (text === "in" || text.includes("inch")) return "inch";
+  if (text === "mm" || text.includes("millimeter") || text.includes("millimetre")) return "mm";
+  return "unknown";
+}
+
+function detectTemperatureUnitKind(unit) {
+  const text = normalizeUnitText(unit);
+  if (!text) return "unknown";
+  if (text === "f" || text === "°f" || text.endsWith("f") || text.includes("fahrenheit")) {
+    return "fahrenheit";
+  }
+  if (text === "c" || text === "°c" || text.endsWith("c") || text.includes("celsius")) {
+    return "celsius";
+  }
+  return "unknown";
+}
+
+function getUnitsForWeatherSource(data, source) {
+  if (source === "current") {
+    return data?.current_units || null;
+  }
+  if (source === "hourly") {
+    return data?.hourly_units || null;
+  }
+  if (source === "minutely_15") {
+    return data?.minutely_15_units || null;
+  }
+  return data?.current_units || data?.hourly_units || data?.minutely_15_units || null;
+}
+
+function normalizeSnapshotForModelUnits(snapshot, units, sourceLabel = "unknown") {
+  const normalized = {
+    ...snapshot,
+  };
+  const selectedWindUnit = units?.wind_speed_10m;
+  const selectedPrecipUnit = units?.precipitation;
+  const selectedTempUnit = units?.temperature_2m;
+
+  const windBefore = safeNumber(normalized.wind_speed_10m);
+  const windUnitKind = detectWindUnitKind(selectedWindUnit);
+  if (windBefore != null) {
+    if (windUnitKind === "kmh") {
+      normalized.wind_speed_10m = kmhToMph(windBefore);
+    } else if (windUnitKind === "mps") {
+      normalized.wind_speed_10m = mpsToMph(windBefore);
+    }
+  }
+
+  const precipBefore = safeNumber(normalized.precipitation);
+  const precipUnitKind = detectPrecipUnitKind(selectedPrecipUnit);
+  if (precipBefore != null && precipUnitKind === "mm") {
+    normalized.precipitation = mmToIn(precipBefore);
+  }
+
+  const tempBefore = safeNumber(normalized.temperature_2m);
+  const tempUnitKind = detectTemperatureUnitKind(selectedTempUnit);
+  if (tempBefore != null && tempUnitKind === "celsius") {
+    normalized.temperature_2m = cToF(tempBefore);
+  }
+
+  if (DEBUG_WEATHER_UNITS) {
+    const windAfter = safeNumber(normalized.wind_speed_10m);
+    const precipAfter = safeNumber(normalized.precipitation);
+    console.log(
+      `[Node][weather-unit-guard] source=${sourceLabel} wind_unit=${selectedWindUnit || "n/a"} wind_before=${
+        windBefore == null ? "n/a" : roundNumber(windBefore, 4)
+      } wind_after=${windAfter == null ? "n/a" : roundNumber(windAfter, 4)} precip_unit=${
+        selectedPrecipUnit || "n/a"
+      } precip_before=${precipBefore == null ? "n/a" : roundNumber(precipBefore, 4)} precip_after=${
+        precipAfter == null ? "n/a" : roundNumber(precipAfter, 4)
+      }`,
+    );
+  }
+
+  return normalized;
+}
+
+function mapWeatherConditionLabel(code) {
+  const normalized = mapWeatherCondition(code);
+  const labels = {
+    Clear: "Ciel degage",
+    Fair: "Beau",
+    "Partly Cloudy": "Partiellement nuageux",
+    Overcast: "Couvert",
+    Fog: "Brouillard",
+    Drizzle: "Bruine",
+    Rain: "Pluie",
+    Snow: "Neige",
+    Thunderstorm: "Orage",
+    Other: "Variable",
+    Unknown: "Inconnu",
+  };
+  return labels[normalized] || "Inconnu";
 }
 
 function clampCategoricalValue(
@@ -512,13 +740,8 @@ function pickWeatherSnapshot(data, targetSeconds, absDiffSeconds) {
   };
 }
 
-async function getWeatherFeatures(lat, lng, timestampIso) {
-  const key = weatherCacheKey(lat, lng, timestampIso);
-  if (weatherCache.has(key)) {
-    return weatherCache.get(key);
-  }
-
-  const seriesFields = [
+function getBaseWeatherFieldList() {
+  return [
     "temperature_2m",
     "relative_humidity_2m",
     "pressure_msl",
@@ -527,7 +750,145 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
     "wind_direction_10m",
     "weather_code",
     "visibility",
-  ].join(",");
+  ];
+}
+
+function buildModelWeatherRowFromSnapshot(snapshot) {
+  const windSpeedMph = safeNumber(snapshot?.wind_speed_10m);
+  const weatherCode = safeNumber(snapshot?.weather_code);
+  const mappedWeatherCondition = mapWeatherCondition(weatherCode);
+  const mappedWindDirection = mapWindDirection(snapshot?.wind_direction_10m, windSpeedMph);
+  const weatherCondition = clampCategoricalValue(
+    mappedWeatherCondition,
+    weatherConditionAllowedSet,
+    {
+      fallbackIfEmpty: "Unknown",
+      fallbackIfDisallowed: "Other",
+    },
+  );
+  const windDirection = clampCategoricalValue(mappedWindDirection, windDirectionAllowedSet, {
+    fallbackIfEmpty: "Unknown",
+    fallbackIfDisallowed: "Unknown",
+  });
+
+  return {
+    "Temperature(F)": safeNumber(snapshot?.temperature_2m),
+    "Humidity(%)": safeNumber(snapshot?.relative_humidity_2m),
+    "Pressure(in)":
+      safeNumber(snapshot?.pressure_msl) == null ? null : hPaToInHg(safeNumber(snapshot.pressure_msl)),
+    "Visibility(mi)":
+      safeNumber(snapshot?.visibility) == null ? null : metersToMiles(safeNumber(snapshot.visibility)),
+    "Wind_Speed(mph)": windSpeedMph,
+    "Precipitation(in)": safeNumber(snapshot?.precipitation),
+    Wind_Direction: windDirection,
+    Weather_Condition: weatherCondition,
+  };
+}
+
+async function fetchCurrentWeatherPayload(lat, lng) {
+  const fields = getBaseWeatherFieldList();
+  const seriesFields = fields.join(",");
+  const baseParams = {
+    latitude: lat,
+    longitude: lng,
+    current: seriesFields,
+    hourly: seriesFields,
+    forecast_days: 2,
+    temperature_unit: "celsius",
+    wind_speed_unit: "kmh",
+    precipitation_unit: "mm",
+    timezone: "auto",
+    timeformat: "unixtime",
+  };
+
+  try {
+    const response = await axios.get(OPEN_METEO_URL, {
+      params: baseParams,
+      timeout: WEATHER_TIMEOUT_MS,
+    });
+    return response.data;
+  } catch (error) {
+    if (error?.response?.status !== 400) {
+      throw error;
+    }
+
+    const fallbackParams = {
+      ...baseParams,
+      current: fields.filter((field) => field !== "visibility").join(","),
+    };
+    const fallbackResponse = await axios.get(OPEN_METEO_URL, {
+      params: fallbackParams,
+      timeout: WEATHER_TIMEOUT_MS,
+    });
+    return fallbackResponse.data;
+  }
+}
+
+async function getCurrentWeatherUi(lat, lng) {
+  const cacheKey = currentWeatherCacheKey(lat, lng);
+  if (currentWeatherCache.has(cacheKey)) {
+    return currentWeatherCache.get(cacheKey);
+  }
+
+  const payload = await fetchCurrentWeatherPayload(lat, lng);
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const currentSnapshot = extractCurrentSnapshot(payload?.current);
+  const hourlyFallback = extractForecastSnapshot(payload?.hourly, nowSeconds);
+  const snapshot = currentSnapshot || hourlyFallback || {};
+  const windSpeedKmh = safeNumber(snapshot.wind_speed_10m);
+  const windSpeedMph = windSpeedKmh == null ? null : windSpeedKmh * 0.621371;
+
+  const weather = {
+    temperature_c: roundNumber(snapshot.temperature_2m, 1),
+    condition: mapWeatherConditionLabel(snapshot.weather_code),
+    visibility_km:
+      safeNumber(snapshot.visibility) == null ? null : roundNumber(snapshot.visibility / 1000, 1),
+    wind_kmh: roundNumber(windSpeedKmh, 1),
+    wind_direction: mapWindDirection(snapshot.wind_direction_10m, windSpeedMph),
+    humidity_pct: roundNumber(snapshot.relative_humidity_2m, 0),
+    pressure_hpa: roundNumber(snapshot.pressure_msl, 1),
+    precipitation_mm: roundNumber(snapshot.precipitation, 2),
+    fetched_at_iso: new Date().toISOString(),
+  };
+
+  setCacheEntry(currentWeatherCache, cacheKey, weather, MAX_CURRENT_WEATHER_CACHE);
+  return weather;
+}
+
+async function getForecastWeatherSeries(lat, lng, startIso) {
+  const cacheKey = forecastWeatherCacheKey(lat, lng, startIso);
+  if (forecastWeatherCache.has(cacheKey)) {
+    return forecastWeatherCache.get(cacheKey);
+  }
+
+  const seriesFields = getBaseWeatherFieldList().join(",");
+  const response = await axios.get(OPEN_METEO_URL, {
+    params: {
+      latitude: lat,
+      longitude: lng,
+      hourly: seriesFields,
+      forecast_days: 2,
+      temperature_unit: "fahrenheit",
+      wind_speed_unit: "mph",
+      precipitation_unit: "inch",
+      timezone: "GMT",
+      timeformat: "unixtime",
+    },
+    timeout: WEATHER_TIMEOUT_MS,
+  });
+
+  const payload = response.data;
+  setCacheEntry(forecastWeatherCache, cacheKey, payload, MAX_FORECAST_WEATHER_CACHE);
+  return payload;
+}
+
+async function getWeatherFeatures(lat, lng, timestampIso) {
+  const key = weatherCacheKey(lat, lng, timestampIso);
+  if (weatherCache.has(key)) {
+    return weatherCache.get(key);
+  }
+
+  const seriesFields = getBaseWeatherFieldList().join(",");
   const params = {
     latitude: lat,
     longitude: lng,
@@ -580,11 +941,17 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
     targetSeconds,
     absDiffSeconds,
   );
+  const selectedUnits = getUnitsForWeatherSource(data, weatherSource);
+  const normalizedSnapshot = normalizeSnapshotForModelUnits(
+    snapshot,
+    selectedUnits,
+    weatherSource,
+  );
   if (DEBUG_WEATHER_UNITS) {
     const selectedIso =
-      snapshot.selected_time_unix == null
+      normalizedSnapshot.selected_time_unix == null
         ? "n/a"
-        : new Date(snapshot.selected_time_unix * 1000).toISOString();
+        : new Date(normalizedSnapshot.selected_time_unix * 1000).toISOString();
     console.log(
       `[Node][weather-select] source=${weatherSource} target=${new Date(
         targetSeconds * 1000,
@@ -592,39 +959,7 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
     );
   }
 
-  const temperatureF = snapshot.temperature_2m;
-  const humidityPct = snapshot.relative_humidity_2m;
-  const pressureHPa = snapshot.pressure_msl;
-  const precipitationIn = snapshot.precipitation;
-  const windSpeedMph = snapshot.wind_speed_10m;
-  const weatherCode = snapshot.weather_code;
-  const visibilityMeters = snapshot.visibility;
-
-  const mappedWeatherCondition = mapWeatherCondition(weatherCode);
-  const mappedWindDirection = mapWindDirection(snapshot.wind_direction_10m, windSpeedMph);
-  const weatherCondition = clampCategoricalValue(
-    mappedWeatherCondition,
-    weatherConditionAllowedSet,
-    {
-      fallbackIfEmpty: "Unknown",
-      fallbackIfDisallowed: "Other",
-    },
-  );
-  const windDirection = clampCategoricalValue(mappedWindDirection, windDirectionAllowedSet, {
-    fallbackIfEmpty: "Unknown",
-    fallbackIfDisallowed: "Unknown",
-  });
-
-  const row = {
-    "Temperature(F)": temperatureF,
-    "Humidity(%)": humidityPct,
-    "Pressure(in)": pressureHPa == null ? null : hPaToInHg(pressureHPa),
-    "Visibility(mi)": visibilityMeters == null ? null : metersToMiles(visibilityMeters),
-    "Wind_Speed(mph)": windSpeedMph,
-    "Precipitation(in)": precipitationIn,
-    Wind_Direction: windDirection,
-    Weather_Condition: weatherCondition,
-  };
+  const row = buildModelWeatherRowFromSnapshot(normalizedSnapshot);
 
   weatherCache.set(key, row);
   return row;
@@ -652,10 +987,46 @@ function inRange(now, startIso, endIso) {
   return now >= start && now <= end;
 }
 
+function twilightFromSunData(sunResult, timestampIso) {
+  const parsedTs = Date.parse(timestampIso);
+  if (Number.isNaN(parsedTs)) {
+    return buildTwilightFallback(timestampIso);
+  }
+
+  if (!sunResult) {
+    return buildTwilightFallback(timestampIso);
+  }
+
+  return {
+    Sunrise_Sunset: inRange(parsedTs, sunResult.sunrise, sunResult.sunset) ? "Day" : "Night",
+    Civil_Twilight: inRange(
+      parsedTs,
+      sunResult.civil_twilight_begin,
+      sunResult.civil_twilight_end,
+    )
+      ? "Day"
+      : "Night",
+    Nautical_Twilight: inRange(
+      parsedTs,
+      sunResult.nautical_twilight_begin,
+      sunResult.nautical_twilight_end,
+    )
+      ? "Day"
+      : "Night",
+    Astronomical_Twilight: inRange(
+      parsedTs,
+      sunResult.astronomical_twilight_begin,
+      sunResult.astronomical_twilight_end,
+    )
+      ? "Day"
+      : "Night",
+  };
+}
+
 async function getTwilightFields(lat, lng, timestampIso) {
   const key = twilightCacheKey(lat, lng, timestampIso);
   if (twilightCache.has(key)) {
-    return twilightCache.get(key);
+    return twilightFromSunData(twilightCache.get(key), timestampIso);
   }
 
   const now = Date.parse(timestampIso);
@@ -681,35 +1052,12 @@ async function getTwilightFields(lat, lng, timestampIso) {
       throw new Error(`Sun API error status=${data?.status || "UNKNOWN"}`);
     }
 
-    const result = data.results;
-    const fields = {
-      Sunrise_Sunset: inRange(now, result.sunrise, result.sunset) ? "Day" : "Night",
-      Civil_Twilight: inRange(now, result.civil_twilight_begin, result.civil_twilight_end)
-        ? "Day"
-        : "Night",
-      Nautical_Twilight: inRange(
-        now,
-        result.nautical_twilight_begin,
-        result.nautical_twilight_end,
-      )
-        ? "Day"
-        : "Night",
-      Astronomical_Twilight: inRange(
-        now,
-        result.astronomical_twilight_begin,
-        result.astronomical_twilight_end,
-      )
-        ? "Day"
-        : "Night",
-    };
-
-    twilightCache.set(key, fields);
-    return fields;
+    twilightCache.set(key, data.results);
+    return twilightFromSunData(data.results, timestampIso);
   } catch (error) {
     console.warn("[Node] sunrise-sunset fallback:", error.message);
-    const fallback = buildTwilightFallback(timestampIso);
-    twilightCache.set(key, fallback);
-    return fallback;
+    twilightCache.set(key, null);
+    return buildTwilightFallback(timestampIso);
   }
 }
 
@@ -1256,38 +1604,162 @@ function buildRouteGuideHash(origin, destination, timestampIso) {
   return crypto.createHash("sha1").update(input).digest("hex").slice(0, 10);
 }
 
-async function getOsrmRoutePath(origin, destination) {
-  const url = `${OSRM_ROUTE_URL}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
+function roundCoordForOsrm(value) {
+  const n = safeNumber(value);
+  if (n == null) {
+    return "nan";
+  }
+  return n.toFixed(5);
+}
 
+function osrmRouteCacheKey(origin, destination) {
+  return [
+    OSRM_ROUTE_URL,
+    roundCoordForOsrm(origin?.lat),
+    roundCoordForOsrm(origin?.lng),
+    roundCoordForOsrm(destination?.lat),
+    roundCoordForOsrm(destination?.lng),
+    "overview=full",
+    "geometries=geojson",
+  ].join("|");
+}
+
+function clonePath(path) {
+  if (!Array.isArray(path)) {
+    return [];
+  }
+  return path.map((point) => {
+    if (!Array.isArray(point) || point.length < 2) {
+      return point;
+    }
+    return [point[0], point[1]];
+  });
+}
+
+function cloneOsrmRoute(route) {
+  if (!route || typeof route !== "object") {
+    return null;
+  }
+  return {
+    ...route,
+    path: clonePath(route.path),
+  };
+}
+
+function pruneOsrmRouteCacheIfNeeded() {
+  const maxSize = Math.max(1, Math.round(safeNumber(OSRM_ROUTE_CACHE_MAX) || 1));
+  if (osrmRouteCache.size <= maxSize) {
+    return;
+  }
+
+  const excess = osrmRouteCache.size - maxSize;
+  const keys = osrmRouteCache.keys();
+  for (let i = 0; i < excess; i += 1) {
+    const key = keys.next().value;
+    if (key == null) {
+      break;
+    }
+    osrmRouteCache.delete(key);
+  }
+}
+
+function setCachedOsrmRoute(key, route) {
+  if (!key) {
+    return;
+  }
+  osrmRouteCache.set(key, cloneOsrmRoute(route));
+  pruneOsrmRouteCacheIfNeeded();
+}
+
+async function runWithOsrmLimiter(task) {
+  const maxConcurrency = Math.max(1, Math.round(safeNumber(MAX_OSRM_CONCURRENCY) || 1));
+  if (osrmActiveRequests >= maxConcurrency) {
+    await new Promise((resolve) => osrmWaitQueue.push(resolve));
+  }
+
+  osrmActiveRequests += 1;
   try {
-    const { data } = await axios.get(url, {
-      params: {
-        overview: "full",
-        geometries: "geojson",
-        steps: false,
-      },
-      timeout: OSRM_TIMEOUT_MS,
-    });
-
-    if (data?.code && data.code !== "Ok") {
-      throw new Error(`OSRM returned code=${data.code}`);
+    return await task();
+  } finally {
+    osrmActiveRequests = Math.max(0, osrmActiveRequests - 1);
+    const next = osrmWaitQueue.shift();
+    if (typeof next === "function") {
+      next();
     }
+  }
+}
 
-    const route = data?.routes?.[0];
-    const path = decodeOsrmPathCoordinates(route?.geometry?.coordinates);
-    if (!path) {
-      throw new Error("OSRM route geometry unavailable");
+async function fetchOsrmRoute(origin, destination) {
+  const cacheKey = osrmRouteCacheKey(origin, destination);
+  if (osrmRouteCache.has(cacheKey)) {
+    if (DEBUG_OSRM) {
+      console.log(`[Node][osrm] source=cache key=${cacheKey}`);
     }
+    return cloneOsrmRoute(osrmRouteCache.get(cacheKey));
+  }
 
-    const distanceMeters = safeNumber(route?.distance);
-    const durationSeconds = safeNumber(route?.duration);
+  const url = `${OSRM_ROUTE_URL}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
+  let lastError = null;
 
-    return {
-      path,
-      routing_source: "osrm",
-      distance_km: distanceMeters == null ? null : roundNumber(distanceMeters / 1000, 2),
-      duration_min: durationSeconds == null ? null : roundNumber(durationSeconds / 60, 2),
-    };
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const { data } = await runWithOsrmLimiter(() =>
+        axios.get(url, {
+          params: {
+            overview: "full",
+            geometries: "geojson",
+            steps: false,
+          },
+          timeout: OSRM_TIMEOUT_MS + (attempt - 1) * 2000,
+        }),
+      );
+
+      if (data?.code && data.code !== "Ok") {
+        throw new Error(`OSRM returned code=${data.code}`);
+      }
+
+      const route = data?.routes?.[0];
+      const path = decodeOsrmPathCoordinates(route?.geometry?.coordinates);
+      if (!path) {
+        throw new Error("OSRM route geometry unavailable");
+      }
+
+      const distanceMeters = safeNumber(route?.distance);
+      const durationSeconds = safeNumber(route?.duration);
+      const normalizedRoute = {
+        path,
+        routing_source: "osrm",
+        route_warning: null,
+        distance_km: distanceMeters == null ? null : roundNumber(distanceMeters / 1000, 2),
+        duration_min: durationSeconds == null ? null : roundNumber(durationSeconds / 60, 2),
+      };
+
+      setCachedOsrmRoute(cacheKey, normalizedRoute);
+      if (DEBUG_OSRM) {
+        console.log(`[Node][osrm] source=remote key=${cacheKey} attempt=${attempt}`);
+      }
+      return cloneOsrmRoute(normalizedRoute);
+    } catch (error) {
+      lastError = error;
+      if (DEBUG_OSRM) {
+        console.log(
+          `[Node][osrm] source=error key=${cacheKey} attempt=${attempt} message=${error.message}`,
+        );
+      }
+      if (attempt < 2) {
+        await sleepMs(120);
+      }
+    }
+  }
+
+  const wrapped = new Error(`OSRM route lookup failed: ${lastError?.message || "unknown_error"}`);
+  wrapped.isOsrmError = true;
+  throw wrapped;
+}
+
+async function getOsrmRoutePath(origin, destination) {
+  try {
+    return await fetchOsrmRoute(origin, destination);
   } catch (error) {
     const wrapped = new Error(`OSRM route lookup failed: ${error.message}`);
     wrapped.isOsrmError = true;
@@ -1303,39 +1775,26 @@ async function getRoutePathWithFallback(origin, destination) {
     destination.lng,
   );
 
-  const url = `${OSRM_ROUTE_URL}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
-
   try {
-    const { data } = await axios.get(url, {
-      params: {
-        overview: "full",
-        geometries: "geojson",
-        steps: false,
-      },
-      timeout: OSRM_TIMEOUT_MS,
-    });
-
-    const route = data?.routes?.[0];
-    const path = decodeOsrmPathCoordinates(route?.geometry?.coordinates);
-    if (!path) {
-      throw new Error("OSRM route geometry unavailable");
-    }
-
-    const routeDistanceKm = safeNumber(route?.distance);
+    const routed = await fetchOsrmRoute(origin, destination);
     return {
-      path,
+      path: routed.path,
       distance_km: roundNumber(
-        routeDistanceKm == null ? straightDistanceKm : routeDistanceKm / 1000,
+        routed.distance_km == null ? straightDistanceKm : routed.distance_km,
         2,
       ),
       routing_source: "osrm",
+      route_warning: null,
     };
   } catch (error) {
-    console.warn(`[Node] OSRM fallback for ${destination.id}: ${error.message}`);
+    if (DEBUG_OSRM) {
+      console.warn(`[Node][osrm] fallback destination=${destination.id} message=${error.message}`);
+    }
     return {
       path: buildStraightLinePath(origin, destination),
       distance_km: roundNumber(straightDistanceKm, 2),
       routing_source: "straight_line",
+      route_warning: "osrm_failed",
     };
   }
 }
@@ -1523,6 +1982,70 @@ function buildRouteSegmentsFromSamples(samples, fallbackSummary) {
   return segments;
 }
 
+function buildRouteSegmentsFromIndexedPath({
+  routeId,
+  fullPath,
+  sampleIndices,
+  samples,
+  fallbackSummary,
+  useStraightSegments = false,
+}) {
+  if (
+    !Array.isArray(samples) ||
+    samples.length < 2 ||
+    !Array.isArray(sampleIndices) ||
+    sampleIndices.length < 2
+  ) {
+    return [];
+  }
+
+  const fallbackPercent = safeNumber(fallbackSummary?.danger_percent) ?? 0;
+  const fallbackLevel = normalizeDangerLevel(fallbackSummary?.danger_level, fallbackPercent);
+  const segments = [];
+
+  for (let i = 0; i < samples.length - 1 && i < sampleIndices.length - 1; i += 1) {
+    const start = samples[i];
+    const end = samples[i + 1];
+    if (!start || !end) {
+      continue;
+    }
+
+    const i0 = Math.max(0, Number(sampleIndices[i]));
+    const i1 = Math.max(i0, Number(sampleIndices[i + 1]));
+    const endPercent = safeNumber(end.danger_percent);
+    const segmentPercent = endPercent == null ? fallbackPercent : roundNumber(endPercent, 2);
+    const segmentLevel = normalizeDangerLevel(end.danger_level, segmentPercent);
+
+    let segmentPath = [];
+    if (useStraightSegments) {
+      segmentPath = [
+        [start.lat, start.lng],
+        [end.lat, end.lng],
+      ];
+    } else if (Array.isArray(fullPath)) {
+      segmentPath = dedupePathPoints(fullPath.slice(i0, i1 + 1));
+    }
+
+    if (!Array.isArray(segmentPath) || segmentPath.length < 2) {
+      segmentPath = [
+        [start.lat, start.lng],
+        [end.lat, end.lng],
+      ];
+    }
+
+    segments.push({
+      segment_id: `${routeId || "route"}:seg${i}`,
+      path: segmentPath,
+      danger_percent: segmentPercent == null ? fallbackPercent : segmentPercent,
+      danger_level: segmentLevel || fallbackLevel,
+      sample_from: i,
+      sample_to: i + 1,
+    });
+  }
+
+  return segments;
+}
+
 function pruneSegmentCacheIfNeeded() {
   if (segmentRowCache.size <= MAX_SEGMENT_CACHE) {
     return;
@@ -1565,6 +2088,184 @@ exports.predictDriverRisk = async (req, res) => {
     const status = err.response?.status || 500;
     const payload = err.response?.data || { error: "Model service error" };
     console.error("[Node] /predict error:", err.message);
+    return res.status(status).json(payload);
+  }
+};
+
+exports.getCurrentWeather = async (req, res) => {
+  const point = validateLatLngStrict(req.query);
+  if (!point) {
+    return res.status(400).json({ error: "valid lat and lng query params are required" });
+  }
+
+  try {
+    const weather = await getCurrentWeatherUi(point.lat, point.lng);
+    return res.json(weather);
+  } catch (err) {
+    const status = err.response?.status || 500;
+    const payload = err.response?.data || { error: "Current weather fetch failed" };
+    console.error("[Node] /api/weather/current error:", err.message);
+    return res.status(status).json(payload);
+  }
+};
+
+exports.getRiskForecast24h = async (req, res) => {
+  const point = validateLatLngStrict(req.query);
+  if (!point) {
+    return res.status(400).json({ error: "valid lat and lng query params are required" });
+  }
+
+  const timestampIso = toIsoTimestamp(req.query?.timestamp);
+  const parsedTimestampMs = Date.parse(timestampIso);
+  const safeTimestampMs = Number.isNaN(parsedTimestampMs) ? Date.now() : parsedTimestampMs;
+  const hour0Iso = new Date(floorToHourMs(safeTimestampMs)).toISOString();
+  const cacheKey = riskForecastCacheKey(point.lat, point.lng, hour0Iso);
+
+  try {
+    const nowRoadFlags = await getRoadFlagsAsync(point.lat, point.lng, null);
+    const nowRow = await buildDangerRow({
+      lat: point.lat,
+      lng: point.lng,
+      timestamp: timestampIso,
+      roadFlags: nowRoadFlags,
+    });
+
+    let cachedHourly = riskForecastCache.get(cacheKey) || null;
+    let nowPredictionRaw = null;
+
+    if (!cachedHourly) {
+      const weatherSeries = await getForecastWeatherSeries(point.lat, point.lng, hour0Iso);
+      const hourlyIsoPoints = buildHourlyIsoPoints(hour0Iso, 24);
+      const forecastRoadFlags = ENABLE_OSM_FLAGS_FOR_ROUTES
+        ? nowRoadFlags
+        : toRoadFlags(ROAD_FLAG_ZEROES);
+      const rowPreview = [];
+      const modelRows = [
+        {
+          segment_id: "__now__",
+          ...nowRow,
+        },
+      ];
+
+      for (let i = 0; i < hourlyIsoPoints.length; i += 1) {
+        const timeIso = hourlyIsoPoints[i];
+        const targetSeconds = Math.floor(Date.parse(timeIso) / 1000);
+        const snapshot = extractForecastSnapshot(weatherSeries?.hourly, targetSeconds) || {};
+        const normalizedSnapshot = normalizeSnapshotForModelUnits(
+          snapshot,
+          getUnitsForWeatherSource(weatherSeries, "hourly"),
+          "hourly",
+        );
+        const weatherRow = buildModelWeatherRowFromSnapshot(normalizedSnapshot);
+        const twilightFields = await getTwilightFields(point.lat, point.lng, timeIso);
+
+        const row = {
+          Start_Time: timeIso,
+          "Temperature(F)": safeRowNumber(weatherRow?.["Temperature(F)"], 0),
+          "Humidity(%)": safeRowNumber(weatherRow?.["Humidity(%)"], 0),
+          "Pressure(in)": safeRowNumber(weatherRow?.["Pressure(in)"], 0),
+          "Visibility(mi)": safeRowNumber(weatherRow?.["Visibility(mi)"], 0),
+          "Wind_Speed(mph)": safeRowNumber(weatherRow?.["Wind_Speed(mph)"], 0),
+          "Precipitation(in)": safeRowNumber(weatherRow?.["Precipitation(in)"], 0),
+          Wind_Direction: safeRowCategory(weatherRow?.Wind_Direction, "Unknown"),
+          Weather_Condition: safeRowCategory(weatherRow?.Weather_Condition, "Unknown"),
+          Sunrise_Sunset: safeRowCategory(twilightFields?.Sunrise_Sunset, "Night"),
+          Civil_Twilight: safeRowCategory(twilightFields?.Civil_Twilight, "Night"),
+          Nautical_Twilight: safeRowCategory(twilightFields?.Nautical_Twilight, "Night"),
+          Astronomical_Twilight: safeRowCategory(twilightFields?.Astronomical_Twilight, "Night"),
+          ...forecastRoadFlags,
+        };
+
+        modelRows.push({
+          segment_id: `h${i}`,
+          ...row,
+        });
+
+        if (DEBUG_FORECAST && rowPreview.length < 2) {
+          rowPreview.push({
+            segment_id: `h${i}`,
+            time_iso: timeIso,
+            danger_inputs: {
+              temperature_f: row["Temperature(F)"],
+              humidity_pct: row["Humidity(%)"],
+              weather_condition: row.Weather_Condition,
+            },
+          });
+        }
+      }
+
+      const overlayResponse = await postToFlask("/risk/overlay", { rows: modelRows });
+      const overlayResults = Array.isArray(overlayResponse?.data?.results)
+        ? overlayResponse.data.results
+        : [];
+      const overlayBySegment = new Map();
+      for (let i = 0; i < overlayResults.length; i += 1) {
+        const item = overlayResults[i];
+        const fallbackId = i === 0 ? "__now__" : `h${i - 1}`;
+        const segmentId = String(item?.segment_id ?? fallbackId);
+        overlayBySegment.set(segmentId, item || {});
+      }
+
+      nowPredictionRaw = overlayBySegment.get("__now__") || null;
+
+      const points = hourlyIsoPoints.map((timeIso, index) => {
+        const normalized = normalizeOverlaySamplePrediction(overlayBySegment.get(`h${index}`) || {});
+        return {
+          time_iso: timeIso,
+          time_label: formatHourLabel(timeIso),
+          danger_percent: normalized.danger_percent,
+          danger_level: normalized.danger_level,
+        };
+      });
+
+      cachedHourly = {
+        start_time_iso: hour0Iso,
+        horizon_hours: 24,
+        points,
+      };
+      setCacheEntry(riskForecastCache, cacheKey, cachedHourly, MAX_RISK_FORECAST_CACHE);
+
+      if (DEBUG_FORECAST) {
+        console.log(
+          `[Node][forecast24] timestampIso=${timestampIso} hour0=${hour0Iso} lat=${point.lat} lng=${point.lng}`,
+        );
+        console.log("[Node][forecast24] hourly_units:", weatherSeries?.hourly_units);
+        console.log("[Node][forecast24] row_preview:", rowPreview);
+      }
+    } else {
+      const overlayNowResponse = await postToFlask("/risk/overlay", {
+        rows: [{ segment_id: "__now__", ...nowRow }],
+      });
+      nowPredictionRaw = Array.isArray(overlayNowResponse?.data?.results)
+        ? overlayNowResponse.data.results[0] || null
+        : null;
+    }
+
+    const normalizedNow = normalizeOverlaySamplePrediction(nowPredictionRaw || {});
+    const nowPoint = {
+      time_iso: timestampIso,
+      time_label: formatHourLabel(timestampIso),
+      danger_percent: normalizedNow.danger_percent,
+      danger_level: normalizedNow.danger_level,
+    };
+
+    if (DEBUG_FORECAST) {
+      console.log("[Node][forecast24] now_point:", nowPoint);
+      console.log("[Node][forecast24] points_preview:", (cachedHourly?.points || []).slice(0, 2));
+    }
+
+    return res.json({
+      lat: point.lat,
+      lng: point.lng,
+      now_point: nowPoint,
+      start_time_iso: cachedHourly?.start_time_iso || hour0Iso,
+      horizon_hours: 24,
+      points: Array.isArray(cachedHourly?.points) ? cachedHourly.points : [],
+    });
+  } catch (err) {
+    const status = err.response?.status || 500;
+    const payload = err.response?.data || { error: "Risk forecast model service error" };
+    console.error("[Node] /api/risk/forecast24h error:", err.message);
     return res.status(status).json(payload);
   }
 };
@@ -1683,7 +2384,9 @@ exports.predictRouteGuide = async (req, res) => {
         destinationPoint.lat,
         destinationPoint.lng,
       );
-      console.warn("[Node] /api/risk/route OSRM fallback:", osrmError.message);
+      if (DEBUG_OSRM) {
+        console.warn("[Node][osrm] /api/risk/route fallback:", osrmError.message);
+      }
 
       routed = {
         path: buildStraightLinePath(origin, destinationPoint),
@@ -1691,7 +2394,7 @@ exports.predictRouteGuide = async (req, res) => {
         distance_km: roundNumber(straightDistanceKm, 2),
         duration_min: null,
       };
-      routeWarning = "routing_fallback_straight_line";
+      routeWarning = "osrm_failed";
     }
 
     const fullPath = dedupePathPoints(routed.path);
@@ -1794,20 +2497,28 @@ exports.predictNearbyZones = async (req, res) => {
           },
           path: routed.path,
           routing_source: routed.routing_source,
+          route_warning: routed.route_warning || null,
         };
       }),
     );
 
     const sampleJobs = [];
     const routeSamplesByRouteId = new Map();
+    const routeSampleMetaByRouteId = new Map();
 
     for (const route of routedRoutes) {
-      let sampledPoints = sampleRoutePoints(route.path, samplesPerRoute);
+      const osrmPath = dedupePathPoints(route.path);
+      const fallbackPath = dedupePathPoints(buildStraightLinePath(origin, route.destination));
+      const fullPath = osrmPath.length >= 2 ? osrmPath : fallbackPath;
+      const sampleIndices = sampleRouteIndices(fullPath.length, samplesPerRoute);
+      const sampledPoints = buildSamplePointsFromIndices(fullPath, sampleIndices);
       if (sampledPoints.length === 0) {
-        sampledPoints = sampleRoutePoints(
-          buildStraightLinePath(origin, route.destination),
-          samplesPerRoute,
-        );
+        routeSamplesByRouteId.set(route.route_id, []);
+        routeSampleMetaByRouteId.set(route.route_id, {
+          fullPath,
+          sampleIndices: [],
+        });
+        continue;
       }
 
       const routeSamples = sampledPoints.map(([lat, lng], sampleIndex) => {
@@ -1823,11 +2534,16 @@ exports.predictNearbyZones = async (req, res) => {
       });
 
       routeSamplesByRouteId.set(route.route_id, routeSamples);
+      routeSampleMetaByRouteId.set(route.route_id, {
+        fullPath,
+        sampleIndices,
+      });
     }
 
     if (sampleJobs.length === 0) {
       const routes = routedRoutes.map((route) => ({
         ...route,
+        sample_indices: [],
         summary: { danger_percent: 0, danger_level: "low" },
         segments: [],
         samples: [],
@@ -1867,6 +2583,10 @@ exports.predictNearbyZones = async (req, res) => {
 
     const routes = routedRoutes.map((route) => {
       const sampled = routeSamplesByRouteId.get(route.route_id) || [];
+      const routeMeta = routeSampleMetaByRouteId.get(route.route_id) || {
+        fullPath: dedupePathPoints(route.path),
+        sampleIndices: [],
+      };
       const samples = sampled.map((sample) => {
         const predicted =
           predictionBySampleId.get(sample.sample_id) || {
@@ -1886,10 +2606,19 @@ exports.predictNearbyZones = async (req, res) => {
       });
 
       const summary = summarizeRouteSamples(samples);
-      const segments = buildRouteSegmentsFromSamples(samples, summary);
+      const segments = buildRouteSegmentsFromIndexedPath({
+        routeId: route.route_id,
+        fullPath: routeMeta.fullPath,
+        sampleIndices: routeMeta.sampleIndices,
+        samples,
+        fallbackSummary: summary,
+        useStraightSegments: route.routing_source === "straight_line",
+      });
 
       return {
         ...route,
+        path: routeMeta.fullPath,
+        sample_indices: routeMeta.sampleIndices,
         summary,
         segments,
         samples,
@@ -1952,3 +2681,4 @@ exports.predictRiskExplain = async (req, res) => {
     return res.status(status).json(payload);
   }
 };
+

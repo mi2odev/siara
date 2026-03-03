@@ -129,6 +129,21 @@ function formatPercent(value) {
   return Math.round(n);
 }
 
+function formatFeatureValue(feature, value) {
+  if (value == null) return "n/a";
+
+  const featureName = String(feature || "").trim().toLowerCase();
+  const isWindSpeed = featureName.includes("wind_speed") || featureName.includes("wind speed");
+
+  if (typeof value === "number") {
+    const formatted = value.toFixed(2);
+    return isWindSpeed ? `${formatted} mph` : formatted;
+  }
+
+  const formatted = String(value);
+  return isWindSpeed ? `${formatted} mph` : formatted;
+}
+
 function normalizeNominatimResult(item, fallbackName) {
   if (!item || typeof item !== "object") return null;
 
@@ -707,6 +722,23 @@ console.log("[Node -> React] nearby-zones response:", data);
     guidedRoute?.summary?.danger_level,
     routeSummaryPercent,
   );
+  const nearbyRouteWarnings = useMemo(() => {
+    if (mapLayer !== "nearbyRoads" || guidedRoute || !Array.isArray(nearbyRoutes)) {
+      return [];
+    }
+
+    return nearbyRoutes
+      .filter(
+        (route) =>
+          route?.routing_source === "straight_line" || String(route?.route_warning || "").trim(),
+      )
+      .map((route) => {
+        const destinationName =
+          route?.destination?.name || route?.destination?.id || route?.route_id || "route";
+        return `${destinationName}: Routing fallback (not snapped to road)`;
+      })
+      .slice(0, 4);
+  }, [mapLayer, guidedRoute, nearbyRoutes]);
   const showGuideControls = Boolean(userLatLng) || mapLayer === "nearbyRoads" || Boolean(guidedRoute);
 
 
@@ -739,6 +771,11 @@ console.log("[Node -> React] nearby-zones response:", data);
             Explain error: {routeExplainError}
           </div>
         )}
+        {nearbyRouteWarnings.map((warningText, index) => (
+          <div key={`${warningText}-${index}`} className="siara-map-warning">
+            {warningText}
+          </div>
+        ))}
 
         
       </div>
@@ -866,9 +903,11 @@ console.log("[Node -> React] nearby-zones response:", data);
               const destinationPos = normalizePosition(route?.destination);
               const destinationName =
                 route?.destination?.name || route?.destination?.id || "Nearby route";
+              const isFallbackRoute =
+                route?.routing_source === "straight_line" || route?.route_warning === "osrm_failed";
               const routePercent = Number(route?.summary?.danger_percent);
               const routeLevel = normalizeDangerLevel(route?.summary?.danger_level, routePercent);
-              const routeColor = getDangerColor(routeLevel);
+              const routeColor = isFallbackRoute ? "#64748b" : getDangerColor(routeLevel);
               const routeTooltipStyle = {
                 "--risk-color": routeColor,
                 "--risk-text-color": getContrastTextColor(routeColor),
@@ -893,7 +932,7 @@ console.log("[Node -> React] nearby-zones response:", data);
 
                 const segmentPercent = Number(segment?.danger_percent);
                 const segmentLevel = normalizeDangerLevel(segment?.danger_level, segmentPercent);
-                const segmentColor = getDangerColor(segmentLevel);
+                const segmentColor = isFallbackRoute ? "#64748b" : getDangerColor(segmentLevel);
                 const segmentTooltipStyle = {
                   "--risk-color": segmentColor,
                   "--risk-text-color": getContrastTextColor(segmentColor),
@@ -903,7 +942,12 @@ console.log("[Node -> React] nearby-zones response:", data);
                   <Polyline
                     key={`${route.route_id || destinationName}-seg-${index}`}
                     positions={segmentPath}
-                    pathOptions={{ color: segmentColor, weight: 5, opacity: 0.9 }}
+                    pathOptions={{
+                      color: segmentColor,
+                      weight: isFallbackRoute ? 4 : 5,
+                      opacity: 0.9,
+                      dashArray: isFallbackRoute ? "8 8" : undefined,
+                    }}
                   >
                     {Number.isFinite(segmentPercent) && (
                       <Tooltip sticky direction="top" className="siara-risk-tooltip">
@@ -937,22 +981,6 @@ console.log("[Node -> React] nearby-zones response:", data);
                       </Tooltip>
                     )}
                   </CircleMarker>,
-                );
-              }
-
-              if (userLatLng && destinationPos) {
-                rendered.push(
-                  <Polyline
-                    key={`${route.route_id || destinationName}-debug-link`}
-                    positions={[userLatLng, destinationPos]}
-                    pathOptions={{
-                      color: "#3b82f6",
-                      weight: 1,
-                      opacity: 0.6,
-                      dashArray: "4 6",
-                    }}
-                    interactive={false}
-                  />,
                 );
               }
 
@@ -1192,7 +1220,7 @@ console.log("[Node -> React] nearby-zones response:", data);
                     {reason.direction === "increases_risk" ? "increases" : "decreases"}
                   </span>
                   <span className="siara-segment-reason__value">
-                    {reason.value == null ? "n/a" : typeof reason.value === "number" ? reason.value.toFixed(2) : String(reason.value)}
+                    {formatFeatureValue(reason.feature, reason.value)}
                   </span>
                 </div>
               ))}

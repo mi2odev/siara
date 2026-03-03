@@ -8,7 +8,7 @@
  * Layout: Header  |  Left sidebar (filters)  |  Center map  |  Right sidebar (context)
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 /* ── Styles ── */
@@ -18,12 +18,87 @@ import "../../styles/MapPage.css";
 import siaraLogo from "../../assets/logos/siara-logo.png";
 
 /* ── Components ── */
+import DangerForecastChart from "../../components/map/DangerForecastChart";
 import SiaraMap from "../../components/map/SiaraMap";
 
 /* ── MUI Icons ── */
 import LocationOnTwoToneIcon from "@mui/icons-material/LocationOnTwoTone";
 import FullscreenTwoToneIcon from "@mui/icons-material/FullscreenTwoTone";
 import FullscreenExitTwoToneIcon from "@mui/icons-material/FullscreenExitTwoTone";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const WEATHER_DEBOUNCE_MS = 700;
+
+async function getJson(path, signal) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    signal,
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || `Request failed (${response.status})`);
+  }
+  return data;
+}
+
+function toFiniteNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizePoint(point) {
+  if (!point || typeof point !== "object") {
+    return null;
+  }
+
+  const lat = toFiniteNumber(point.lat);
+  const lng = toFiniteNumber(point.lng);
+  if (lat == null || lng == null) {
+    return null;
+  }
+
+  return { lat, lng };
+}
+
+function resolveContextPoint(selectedIncident, userPosition) {
+  const incidentPoint = normalizePoint(selectedIncident);
+  if (incidentPoint) {
+    return incidentPoint;
+  }
+
+  if (Array.isArray(selectedIncident?.path) && selectedIncident.path.length > 0) {
+    const firstPoint = selectedIncident.path[0];
+    if (Array.isArray(firstPoint) && firstPoint.length >= 2) {
+      const lat = toFiniteNumber(firstPoint[0]);
+      const lng = toFiniteNumber(firstPoint[1]);
+      if (lat != null && lng != null) {
+        return { lat, lng };
+      }
+    }
+  }
+
+  return normalizePoint(userPosition);
+}
+
+function toPointKey(point) {
+  if (!point) {
+    return "";
+  }
+  return `${point.lat.toFixed(4)}:${point.lng.toFixed(4)}`;
+}
+
+function weatherIconFromCondition(condition) {
+  const text = String(condition || "").toLowerCase();
+  if (text.includes("orage")) return "⛈️";
+  if (text.includes("pluie") || text.includes("bruine")) return "🌧️";
+  if (text.includes("neige")) return "🌨️";
+  if (text.includes("brouillard")) return "🌫️";
+  if (text.includes("couvert")) return "☁️";
+  if (text.includes("nuage")) return "⛅";
+  return "☀️";
+}
 
 export default function MapPage() {
   const navigate = useNavigate();
@@ -56,6 +131,107 @@ export default function MapPage() {
 
   // Whether the map is displayed in fullscreen mode
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState("");
+  const [weatherData, setWeatherData] = useState(null);
+  const [forecastLoading, setForecastLoading] = useState(false);
+  const [forecastError, setForecastError] = useState("");
+  const [forecastPoints, setForecastPoints] = useState([]);
+
+  const contextPoint = useMemo(
+    () => resolveContextPoint(selectedIncident, userPosition),
+    [selectedIncident, userPosition],
+  );
+  const contextPointKey = useMemo(() => toPointKey(contextPoint), [contextPoint]);
+
+  useEffect(() => {
+    if (!contextPoint) {
+      setWeatherLoading(false);
+      setWeatherError("");
+      setWeatherData(null);
+      setForecastLoading(false);
+      setForecastError("");
+      setForecastPoints([]);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setWeatherLoading(true);
+      setWeatherError("");
+      setForecastLoading(true);
+      setForecastError("");
+
+      const query = `lat=${encodeURIComponent(contextPoint.lat)}&lng=${encodeURIComponent(contextPoint.lng)}`;
+      const [weatherResult, forecastResult] = await Promise.allSettled([
+        getJson(`/api/weather/current?${query}`, controller.signal),
+        getJson(`/api/risk/forecast24h?${query}`, controller.signal),
+      ]);
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      if (weatherResult.status === "fulfilled") {
+        setWeatherData(weatherResult.value || null);
+        setWeatherError("");
+      } else if (weatherResult.reason?.name !== "AbortError") {
+        setWeatherData(null);
+        setWeatherError(weatherResult.reason?.message || "Meteo indisponible.");
+      }
+
+      if (forecastResult.status === "fulfilled") {
+        const payload = forecastResult.value || {};
+        const basePoints = Array.isArray(payload?.points) ? payload.points : [];
+        const nowPoint = payload?.now_point && typeof payload.now_point === "object"
+          ? payload.now_point
+          : null;
+        const points = nowPoint
+          ? [nowPoint, ...basePoints.slice(1)]
+          : basePoints;
+        setForecastPoints(points);
+        setForecastError("");
+      } else if (forecastResult.reason?.name !== "AbortError") {
+        setForecastPoints([]);
+        setForecastError(forecastResult.reason?.message || "Forecast indisponible.");
+      }
+
+      setWeatherLoading(false);
+      setForecastLoading(false);
+    }, WEATHER_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [contextPointKey, contextPoint]);
+
+  const weatherIcon = weatherIconFromCondition(weatherData?.condition);
+  const weatherTempText = weatherData?.temperature_c == null
+    ? "--°C"
+    : `${Math.round(Number(weatherData.temperature_c))}°C`;
+  const weatherDescText = weatherLoading && !weatherData
+    ? "Chargement meteo..."
+    : weatherError
+      ? "Meteo indisponible"
+      : weatherData?.condition || "Meteo";
+  const visibilityText = weatherData?.visibility_km == null
+    ? "n/a"
+    : `${Number(weatherData.visibility_km).toFixed(1)} km`;
+  const windText = weatherData?.wind_kmh == null
+    ? "n/a"
+    : `${Number(weatherData.wind_kmh).toFixed(1)} km/h`;
+  const windDirectionText = weatherData?.wind_direction
+    && weatherData.wind_direction !== "Unknown"
+    && weatherData.wind_direction !== "CALM"
+    ? ` (${weatherData.wind_direction})`
+    : "";
+  const humidityText = weatherData?.humidity_pct == null
+    ? "n/a"
+    : `${Math.round(Number(weatherData.humidity_pct))}%`;
+  const pressureText = weatherData?.pressure_hpa == null
+    ? "n/a"
+    : `${Number(weatherData.pressure_hpa).toFixed(0)} hPa`;
 
   /* ──────────────────────── Static / Mock Data ──────────────────────── */
 
@@ -425,12 +601,32 @@ export default function MapPage() {
 
           {/* ── Current weather widget ── */}
           <div className="context-weather">
-            <div className="weather-icon">⛅</div>
+            <div className="weather-icon">{weatherIcon}</div>
             <div className="weather-info">
-              <span className="weather-temp">18°C</span>
-              <span className="weather-desc">Partly cloudy</span>
-              <span className="weather-detail">Visibility: Good • Wind: 12 km/h</span>
+
+              <span className="weather-temp">{weatherTempText}</span>
+              <span className="weather-desc">{weatherDescText}</span>
+              <span className="weather-detail">
+                {contextPoint
+                  ? `Visibilite: ${visibilityText} • Vent: ${windText}${windDirectionText}`
+                  : "Activez votre position pour charger la meteo"}
+              </span>
+              <span className="weather-detail weather-detail-muted">
+                Humidite: {humidityText} • Pression: {pressureText}
+              </span>
+
             </div>
+          </div>
+
+          <div className="context-section danger-forecast-section">
+            <h4 className="section-title">Danger - next 24h</h4>
+            <DangerForecastChart points={forecastPoints} loading={forecastLoading} />
+            {forecastError && (
+              <p className="chart-note chart-note-error">{forecastError}</p>
+            )}
+            {!forecastLoading && !forecastError && forecastPoints.length === 0 && (
+              <p className="chart-note">Aucune prevision disponible.</p>
+            )}
           </div>
 
           {/* ── AI Segment Insight (visible only when an AI segment is selected) ── */}
