@@ -1,19 +1,19 @@
 ﻿/**
  * @file ServicesPage.jsx
- * @description Page des services — placeholder en attente d'implémentation.
+ * @description Services page — placeholder awaiting implementation.
  */
 
-// Imports React et feuille de styles associée
+// React imports and associated stylesheet
 import React from 'react'
 import '../../styles/ServicesPage.css'
 
 /**
- * Composant placeholder pour la page des services.
- * Présentera la liste des services offerts par la plateforme SIARA.
+ * Placeholder component for the services page.
+ * Will display the list of services offered by the SIARA platform.
  */
 export default function ServicesPage(){
   return (
-    // Conteneur principal de la page des services
+    // Main container for the services page
     <div className="services-page">ServicesPage (placeholder)</div>
   )
 }

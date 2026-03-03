@@ -1,19 +1,19 @@
 /**
  * @file ServiceControlPage.jsx
- * @description Page admin de contrôle des services — placeholder en attente d'implémentation.
+ * @description Admin service control page — placeholder awaiting implementation.
  */
 
-// Imports React et feuille de styles associée
+// React imports and associated stylesheet
 import React from 'react'
 import '../../styles/ServiceControlPage.css'
 
 /**
- * Composant placeholder pour le panneau de contrôle des services (admin).
- * Permettra d'activer / désactiver et configurer les services de la plateforme.
+ * Placeholder component for the service control panel (admin).
+ * Will allow enabling/disabling and configuring platform services.
  */
 export default function ServiceControlPage(){
   return (
-    // Conteneur principal du panneau de contrôle des services
+    // Main container for the service control panel
     <div className="service-control-page">ServiceControlPage (placeholder)</div>
   )
 }

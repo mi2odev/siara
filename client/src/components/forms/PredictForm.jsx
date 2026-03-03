@@ -13,9 +13,9 @@ export default function PredictForm({ onSubmit }){
 
   return (
     <form className="predict-form" onSubmit={handleSubmit}>
-      <Input id="predict-location" label="Localisation" value={location} onChange={(e)=>setLocation(e.target.value)} placeholder="Ville, wilaya ou coordonnées" />
-      <Input id="predict-date" label="Date (optionnel)" value={date} onChange={(e)=>setDate(e.target.value)} placeholder="YYYY-MM-DD" />
-      <Button type="submit">Lancer la prédiction</Button>
+      <Input id="predict-location" label="Location" value={location} onChange={(e)=>setLocation(e.target.value)} placeholder="City, state or coordinates" />
+      <Input id="predict-date" label="Date (optional)" value={date} onChange={(e)=>setDate(e.target.value)} placeholder="YYYY-MM-DD" />
+      <Button type="submit">Run prediction</Button>
     </form>
   )
 }

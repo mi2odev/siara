@@ -1,19 +1,19 @@
 /**
  * @file ContactPage.jsx
- * @description Page de contact — placeholder en attente d'implémentation.
+ * @description Contact page — placeholder awaiting implementation.
  */
 
-// Imports React et feuille de styles associée
+// React imports and associated stylesheet
 import React from 'react'
 import '../../styles/ContactPage.css'
 
 /**
- * Composant placeholder pour la page de contact utilisateur.
- * Sera enrichi avec un formulaire de contact (nom, email, message).
+ * Placeholder component for the user contact page.
+ * Will be enhanced with a contact form (name, email, message).
  */
 export default function ContactPage(){
   return (
-    // Conteneur principal de la page de contact
+    // Main container for the contact page
     <div className="contact-page">ContactPage (placeholder)</div>
   )
 }

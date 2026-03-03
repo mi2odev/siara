@@ -37,9 +37,9 @@ const nearbyIncidents = [
 
 /** User’s own submitted reports shown in the reports table */
 const myReports = [
-  { id: 1, title: 'Accident sur RN5', status: 'verified', date: '25 Feb 2026', severity: 'high' },
-  { id: 2, title: 'Route glissante — Bab el Oued', status: 'pending', date: '24 Feb 2026', severity: 'medium' },
-  { id: 3, title: 'Feu de signalisation en panne', status: 'verified', date: '22 Feb 2026', severity: 'low' },
+  { id: 1, title: 'Accident on RN5', status: 'verified', date: '25 Feb 2026', severity: 'high' },
+  { id: 2, title: 'Slippery road — Bab el Oued', status: 'pending', date: '24 Feb 2026', severity: 'medium' },
+  { id: 3, title: 'Traffic light out of order', status: 'verified', date: '22 Feb 2026', severity: 'low' },
 ]
 
 /** Saved commute routes with risk assessment */
@@ -51,9 +51,9 @@ const savedRoutes = [
 
 /** Priority alerts relevant to the user’s zone */
 const recentAlerts = [
-  { id: 1, text: 'Zone scolaire — heure de sortie', level: 'high' },
-  { id: 2, text: 'Brouillard dense — Autoroute Est-Ouest', level: 'medium' },
-  { id: 3, text: 'Travaux de nuit prévus — RN11', level: 'low' },
+  { id: 1, text: 'School zone — dismissal time', level: 'high' },
+  { id: 2, text: 'Dense fog — East-West Highway', level: 'medium' },
+  { id: 3, text: 'Night roadwork planned — RN11', level: 'low' },
 ]
 
 export default function UserDashboardPage() {
@@ -92,7 +92,7 @@ export default function UserDashboardPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Rechercher un incident, une route, une wilaya…" aria-label="Search dashboard" />
+            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya…" aria-label="Search dashboard" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
@@ -101,12 +101,12 @@ export default function UserDashboardPage() {
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{initials}</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
-                  <button className="dropdown-item" onClick={handleOpenQuiz}>🚗 Quiz Conducteur</button>
+                  <button className="dropdown-item" onClick={handleOpenQuiz}>🚗 Driving Quiz</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={handleLogout}>🚪 Déconnexion</button>
+                  <button className="dropdown-item logout" onClick={handleLogout}>🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -118,13 +118,13 @@ export default function UserDashboardPage() {
         {/* ═══ WELCOME ═══ */}
         <div className="dash-welcome-bar">
           <div className="welcome-text">
-            <h1 className="welcome-title">Bonjour, {user?.name || 'Utilisateur'} 👋</h1>
-            <p className="welcome-sub">Votre tableau de bord personnel — sécurité routière en temps réel</p>
+            <h1 className="welcome-title">Hello, {user?.name || 'User'} 👋</h1>
+            <p className="welcome-sub">Your personal dashboard — real-time road safety</p>
           </div>
           <div className="welcome-right">
             <div className="data-freshness">
               <span className="freshness-dot"></span>
-              En direct — Mis à jour il y a 3 min
+              Live — Updated 3 min ago
             </div>
           </div>
         </div>
@@ -137,11 +137,11 @@ export default function UserDashboardPage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               </div>
               <div className="kpi-body">
-                <span className="kpi-label">Mes signalements</span>
+                <span className="kpi-label">My Reports</span>
                 <div className="kpi-main">
                   <span className="kpi-value">{myReports.length}</span>
                 </div>
-                <span className="kpi-period">total soumis</span>
+                <span className="kpi-period">total submitted</span>
               </div>
             </article>
 
@@ -150,11 +150,11 @@ export default function UserDashboardPage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
               </div>
               <div className="kpi-body">
-                <span className="kpi-label">Alertes actives</span>
+                <span className="kpi-label">Active Alerts</span>
                 <div className="kpi-main">
                   <span className="kpi-value">{recentAlerts.length}</span>
                 </div>
-                <span className="kpi-period">dans votre zone</span>
+                <span className="kpi-period">in your area</span>
               </div>
             </article>
 
@@ -163,11 +163,11 @@ export default function UserDashboardPage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
               </div>
               <div className="kpi-body">
-                <span className="kpi-label">Incidents proches</span>
+                <span className="kpi-label">Nearby Incidents</span>
                 <div className="kpi-main">
                   <span className="kpi-value">{nearbyIncidents.length}</span>
                 </div>
-                <span className="kpi-period">rayon 25 km</span>
+                <span className="kpi-period">25 km radius</span>
               </div>
             </article>
 
@@ -176,11 +176,11 @@ export default function UserDashboardPage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
               </div>
               <div className="kpi-body">
-                <span className="kpi-label">Quiz Conducteur</span>
+                <span className="kpi-label">Driving Quiz</span>
                 <div className="kpi-main">
                   <span className="kpi-value">🚗</span>
                 </div>
-                <span className="kpi-period">évaluez votre profil</span>
+                <span className="kpi-period">evaluate your profile</span>
               </div>
             </article>
           </div>
@@ -190,18 +190,18 @@ export default function UserDashboardPage() {
         <section className="dash-section udash-two-col">
           <div className="dash-card udash-map-card">
             <div className="dash-card-header">
-              <h2 className="dash-card-title">Incidents à proximité</h2>
-              <button className="btn-outline-small" onClick={() => navigate('/map')}>Voir carte complète →</button>
+              <h2 className="dash-card-title">Nearby Incidents</h2>
+              <button className="btn-outline-small" onClick={() => navigate('/map')}>View full map →</button>
             </div>
             <div className="dash-map-container">
               <div className="dash-map-wrapper">
                 <SiaraMap mockMarkers={nearbyIncidents} mapLayer="points" setSelectedIncident={() => {}} userPosition={{ lat: 36.7525, lng: 3.04197 }} />
               </div>
               <div className="dash-map-legend">
-                <div className="legend-title">Niveau de risque</div>
-                <div className="legend-item"><span className="legend-dot danger"></span>Élevé</div>
-                <div className="legend-item"><span className="legend-dot warning"></span>Moyen</div>
-                <div className="legend-item"><span className="legend-dot info"></span>Faible</div>
+                <div className="legend-title">Risk Level</div>
+                <div className="legend-item"><span className="legend-dot danger"></span>High</div>
+                <div className="legend-item"><span className="legend-dot warning"></span>Medium</div>
+                <div className="legend-item"><span className="legend-dot info"></span>Low</div>
               </div>
             </div>
           </div>
@@ -211,7 +211,7 @@ export default function UserDashboardPage() {
             <div className="dash-card side-card priority-card">
               <div className="card-icon-header">
                 <span className="header-icon">⚠️</span>
-                <h2 className="dash-card-title">Alertes prioritaires</h2>
+                <h2 className="dash-card-title">Priority Alerts</h2>
               </div>
               <ul className="alert-list">
                 {recentAlerts.map(a => (
@@ -220,12 +220,12 @@ export default function UserDashboardPage() {
                   </li>
                 ))}
               </ul>
-              <button className="btn-primary-full" onClick={() => navigate('/alerts')}>🔔 Gérer mes alertes</button>
+              <button className="btn-primary-full" onClick={() => navigate('/alerts')}>🔔 Manage my alerts</button>
             </div>
 
             {/* Saved Routes */}
             <div className="dash-card side-card">
-              <h2 className="dash-card-title">Itinéraires sauvegardés</h2>
+              <h2 className="dash-card-title">Saved Routes</h2>
               <ul className="side-list">
                 {savedRoutes.map(r => (
                   <li key={r.id} className="side-item">
@@ -233,7 +233,7 @@ export default function UserDashboardPage() {
                       <span className="trend-icon">{r.risk === 'high' ? '🔴' : r.risk === 'medium' ? '🟠' : '🟢'}</span>
                       <div className="side-text">
                         <p className="side-label">{r.from} → {r.to}</p>
-                        <span className="side-meta">{r.time} • Risque {r.risk === 'high' ? 'élevé' : r.risk === 'medium' ? 'moyen' : 'faible'}</span>
+                        <span className="side-meta">{r.time} • Risk: {r.risk === 'high' ? 'high' : r.risk === 'medium' ? 'medium' : 'low'}</span>
                       </div>
                     </div>
                   </li>
@@ -243,12 +243,12 @@ export default function UserDashboardPage() {
 
             {/* Weather */}
             <div className="dash-card side-card">
-              <h2 className="dash-card-title">Conditions météo</h2>
+              <h2 className="dash-card-title">Weather Conditions</h2>
               <div className="weather-grid">
-                <div className="weather-item good"><span className="weather-icon">👁️</span><span className="weather-label">Visibilité</span><span className="weather-value">Bonne</span></div>
-                <div className="weather-item moderate"><span className="weather-icon">💨</span><span className="weather-label">Vent</span><span className="weather-value">Modéré</span></div>
-                <div className="weather-item risk"><span className="weather-icon">🌧️</span><span className="weather-label">Pluie</span><span className="weather-value">Risque léger</span></div>
-                <div className="weather-item"><span className="weather-icon">🌡️</span><span className="weather-label">Température</span><span className="weather-value">18°C</span></div>
+                <div className="weather-item good"><span className="weather-icon">👁️</span><span className="weather-label">Visibility</span><span className="weather-value">Good</span></div>
+                <div className="weather-item moderate"><span className="weather-icon">💨</span><span className="weather-label">Wind</span><span className="weather-value">Moderate</span></div>
+                <div className="weather-item risk"><span className="weather-icon">🌧️</span><span className="weather-label">Rain</span><span className="weather-value">Light risk</span></div>
+                <div className="weather-item"><span className="weather-icon">🌡️</span><span className="weather-label">Temperature</span><span className="weather-value">18°C</span></div>
               </div>
             </div>
           </div>
@@ -258,28 +258,28 @@ export default function UserDashboardPage() {
         <section className="dash-section">
           <div className="dash-card incidents-card">
             <div className="dash-card-header">
-              <h2 className="dash-card-title">Mes signalements récents</h2>
-              <button className="btn-outline-small" onClick={() => navigate('/report')}>+ Nouveau signalement</button>
+              <h2 className="dash-card-title">My Recent Reports</h2>
+              <button className="btn-outline-small" onClick={() => navigate('/report')}>+ New Report</button>
             </div>
             <div className="incidents-table-wrapper">
               <table className="incidents-table">
                 <thead>
                   <tr>
-                    <th>Gravité</th>
+                    <th>Severity</th>
                     <th>Description</th>
                     <th>Date</th>
-                    <th>Statut</th>
+                    <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {myReports.map(r => (
                     <tr key={r.id} className="incident-row" onClick={() => navigate(`/incident/${r.id}`)}>
-                      <td><span className={`pill pill-${r.severity}`}>{r.severity === 'high' ? 'Élevé' : r.severity === 'medium' ? 'Moyen' : 'Faible'}</span></td>
+                      <td><span className={`pill pill-${r.severity}`}>{r.severity === 'high' ? 'High' : r.severity === 'medium' ? 'Medium' : 'Low'}</span></td>
                       <td>{r.title}</td>
                       <td>{r.date}</td>
-                      <td><span className={`status-badge ${r.status}`}>{r.status === 'verified' ? '✓ Vérifié' : '⏳ En attente'}</span></td>
-                      <td><button className="link-action">Voir →</button></td>
+                      <td><span className={`status-badge ${r.status}`}>{r.status === 'verified' ? '✓ Verified' : '⏳ Pending'}</span></td>
+                      <td><button className="link-action">View →</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -290,23 +290,23 @@ export default function UserDashboardPage() {
 
         {/* ═══ QUICK ACTIONS ═══ */}
         <section className="dash-section udash-actions-section">
-          <h2 className="section-heading">Actions rapides</h2>
+          <h2 className="section-heading">Quick Actions</h2>
           <div className="udash-actions-grid">
             <button className="udash-action-card" onClick={() => navigate('/report')}>
               <span className="action-icon">📝</span>
-              <span className="action-label">Signaler un incident</span>
+              <span className="action-label">Report an Incident</span>
             </button>
             <button className="udash-action-card" onClick={() => navigate('/predictions')}>
               <span className="action-icon">🤖</span>
-              <span className="action-label">Prédictions IA</span>
+              <span className="action-label">AI Predictions</span>
             </button>
             <button className="udash-action-card" onClick={() => navigate('/alerts/create')}>
               <span className="action-icon">🔔</span>
-              <span className="action-label">Créer une alerte</span>
+              <span className="action-label">Create an Alert</span>
             </button>
             <button className="udash-action-card" onClick={handleOpenQuiz}>
               <span className="action-icon">🚗</span>
-              <span className="action-label">Quiz Conducteur</span>
+              <span className="action-label">Driving Quiz</span>
             </button>
           </div>
         </section>
@@ -315,9 +315,9 @@ export default function UserDashboardPage() {
         <footer className="dash-footer">
           <span>© 2026 SIARA — Prototype</span>
           <span className="footer-divider">•</span>
-          <span>Données simulées</span>
+          <span>Simulated Data</span>
           <span className="footer-divider">•</span>
-          <button className="footer-link" onClick={() => navigate('/about')}>À propos</button>
+          <button className="footer-link" onClick={() => navigate('/about')}>About</button>
           <span className="footer-divider">•</span>
           <button className="footer-link" onClick={() => navigate('/contact')}>Contact</button>
         </footer>

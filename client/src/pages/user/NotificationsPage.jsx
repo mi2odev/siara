@@ -335,7 +335,7 @@ export default function NotificationsPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Rechercher..." aria-label="Search notifications" />
+            <input type="search" className="dash-search" placeholder="Search..." aria-label="Search notifications" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn dash-icon-active" aria-label="Notifications">
@@ -347,11 +347,11 @@ export default function NotificationsPage() {
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Déconnexion</button>
+                  <button className="dropdown-item logout">🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -366,13 +366,13 @@ export default function NotificationsPage() {
         {/* Category, status, severity, and time-period filter button groups */}
         <aside className="notif-left">
           <div className="filter-section">
-            <span className="filter-label">Catégories</span>
+            <span className="filter-label">Categories</span>
             {[
-              { key: 'all', label: 'Toutes', icon: '📥' },
-              { key: 'alerts', label: 'Alertes', icon: '🔔' },
+              { key: 'all', label: 'All', icon: '📥' },
+              { key: 'alerts', label: 'Alerts', icon: '🔔' },
               { key: 'incidents', label: 'Incidents', icon: '🚗' },
-              { key: 'system', label: 'Système', icon: '⚙️' },
-              { key: 'ai', label: 'IA Insights', icon: '🤖' }
+              { key: 'system', label: 'System', icon: '⚙️' },
+              { key: 'ai', label: 'AI Insights', icon: '🤖' }
             ].map(cat => (
               <button
                 key={cat.key}
@@ -386,11 +386,11 @@ export default function NotificationsPage() {
           </div>
 
           <div className="filter-section">
-            <span className="filter-label">Statut</span>
+            <span className="filter-label">Status</span>
             {[
-              { key: 'all', label: 'Toutes' },
-              { key: 'unread', label: 'Non lues' },
-              { key: 'read', label: 'Lues' }
+              { key: 'all', label: 'All' },
+              { key: 'unread', label: 'Unread' },
+              { key: 'read', label: 'Read' }
             ].map(s => (
               <button
                 key={s.key}
@@ -403,12 +403,12 @@ export default function NotificationsPage() {
           </div>
 
           <div className="filter-section">
-            <span className="filter-label">Sévérité</span>
+            <span className="filter-label">Severity</span>
             {[
-              { key: 'all', label: 'Toutes' },
-              { key: 'high', label: 'Haute', color: '#DC2626' },
-              { key: 'medium', label: 'Moyenne', color: '#F59E0B' },
-              { key: 'low', label: 'Basse', color: '#10B981' }
+              { key: 'all', label: 'All' },
+              { key: 'high', label: 'High', color: '#DC2626' },
+              { key: 'medium', label: 'Medium', color: '#F59E0B' },
+              { key: 'low', label: 'Low', color: '#10B981' }
             ].map(s => (
               <button
                 key={s.key}
@@ -422,11 +422,11 @@ export default function NotificationsPage() {
           </div>
 
           <div className="filter-section">
-            <span className="filter-label">Période</span>
+            <span className="filter-label">Period</span>
             {[
-              { key: 'all', label: 'Tout' },
-              { key: 'today', label: "Aujourd'hui" },
-              { key: 'week', label: '7 derniers jours' }
+              { key: 'all', label: 'All' },
+              { key: 'today', label: 'Today' },
+              { key: 'week', label: 'Last 7 days' }
             ].map(t => (
               <button
                 key={t.key}
@@ -445,12 +445,12 @@ export default function NotificationsPage() {
           <div className="notif-header">
             <div className="notif-header-left">
               <h1>Notifications</h1>
-              <span className="notif-count">{unreadCount} non lues</span>
+              <span className="notif-count">{unreadCount} unread</span>
             </div>
             <div className="notif-header-right">
               {unreadCount > 0 && (
                 <button className="mark-all-btn" onClick={markAllAsRead}>
-                  ✓ Tout marquer comme lu
+                  ✓ Mark all as read
                 </button>
               )}
             </div>
@@ -460,14 +460,14 @@ export default function NotificationsPage() {
             {totalCount === 0 ? (
               <div className="notif-empty">
                 <div className="empty-icon">✨</div>
-                <h3>Vous êtes à jour</h3>
-                <p>Aucune notification pour le moment.</p>
+                <h3>You're all caught up</h3>
+                <p>No notifications at the moment.</p>
                 <div className="empty-actions">
                   <button className="empty-btn primary" onClick={() => navigate('/alerts')}>
-                    Créer une alerte
+                    Create an alert
                   </button>
                   <button className="empty-btn secondary" onClick={() => navigate('/map')}>
-                    Explorer la carte
+                    Explore the map
                   </button>
                 </div>
               </div>
@@ -475,13 +475,13 @@ export default function NotificationsPage() {
               <>
                 {groupedNotifications.today.length > 0 && (
                   <div className="notif-group">
-                    <div className="group-header">Aujourd'hui</div>
+                    <div className="group-header">Today</div>
                     {groupedNotifications.today.map((n, i) => renderNotificationItem(n, i))}
                   </div>
                 )}
                 {groupedNotifications.yesterday.length > 0 && (
                   <div className="notif-group">
-                    <div className="group-header">Hier</div>
+                    <div className="group-header">Yesterday</div>
                     {groupedNotifications.yesterday.map((n, i) => 
                       renderNotificationItem(n, groupedNotifications.today.length + i)
                     )}
@@ -489,7 +489,7 @@ export default function NotificationsPage() {
                 )}
                 {groupedNotifications.older.length > 0 && (
                   <div className="notif-group">
-                    <div className="group-header">Plus ancien</div>
+                    <div className="group-header">Older</div>
                     {groupedNotifications.older.map((n, i) => 
                       renderNotificationItem(n, groupedNotifications.today.length + groupedNotifications.yesterday.length + i)
                     )}
@@ -514,7 +514,7 @@ export default function NotificationsPage() {
                   <h2 className="detail-title">{selectedNotification.title}</h2>
                   <div className="detail-meta">
                     <span className="detail-badge" style={{ background: `${getSeverityColor(selectedNotification.severity)}15`, color: getSeverityColor(selectedNotification.severity) }}>
-                      {selectedNotification.severity === 'high' ? 'Haute' : selectedNotification.severity === 'medium' ? 'Moyenne' : 'Basse'}
+                      {selectedNotification.severity === 'high' ? 'High' : selectedNotification.severity === 'medium' ? 'Medium' : 'Low'}
                     </span>
                     <span className="detail-time">{selectedNotification.time}</span>
                   </div>
@@ -523,33 +523,33 @@ export default function NotificationsPage() {
 
               {/* Explanation */}
               <div className="detail-section explanation">
-                <span className="section-label">Pourquoi cette notification ?</span>
+                <span className="section-label">Why this notification?</span>
                 <p className="explanation-text">{selectedNotification.explanation}</p>
               </div>
 
               {/* Context */}
               <div className="detail-section context">
-                <span className="section-label">Contexte</span>
+                <span className="section-label">Context</span>
                 <div className="context-card">
                   <div className="context-row">
                     <span className="context-label">Type</span>
-                    <span className="context-value">{selectedNotification.type === 'alert' ? 'Alerte' : selectedNotification.type === 'incident' ? 'Incident' : selectedNotification.type === 'ai' ? 'IA Insight' : 'Système'}</span>
+                    <span className="context-value">{selectedNotification.type === 'alert' ? 'Alert' : selectedNotification.type === 'incident' ? 'Incident' : selectedNotification.type === 'ai' ? 'AI Insight' : 'System'}</span>
                   </div>
                   {selectedNotification.location && (
                     <div className="context-row">
-                      <span className="context-label">Lieu</span>
+                      <span className="context-label">Location</span>
                       <span className="context-value">{selectedNotification.location}</span>
                     </div>
                   )}
                   {selectedNotification.alertName && (
                     <div className="context-row">
-                      <span className="context-label">Alerte</span>
+                      <span className="context-label">Alert</span>
                       <span className="context-value">{selectedNotification.alertName}</span>
                     </div>
                   )}
                   {selectedNotification.aiConfidence && (
                     <div className="context-row">
-                      <span className="context-label">Confiance IA</span>
+                      <span className="context-label">AI Confidence</span>
                       <span className="context-value">{selectedNotification.aiConfidence}%</span>
                     </div>
                   )}
@@ -559,7 +559,7 @@ export default function NotificationsPage() {
               {/* Mini Map */}
               {selectedNotification.coordinates && (
                 <div className="detail-section map-section">
-                  <span className="section-label">Localisation</span>
+                  <span className="section-label">Location</span>
                   <div className="mini-map">
                     <div className="map-placeholder">
                       <span className="map-icon">🗺️</span>
@@ -567,7 +567,7 @@ export default function NotificationsPage() {
                     </div>
                     <span className="map-location">{selectedNotification.location}</span>
                     <button className="map-btn" onClick={() => handleAction('open-map', selectedNotification)}>
-                      Ouvrir la carte
+                      Open map
                     </button>
                   </div>
                 </div>
@@ -579,21 +579,21 @@ export default function NotificationsPage() {
                 <div className="action-buttons">
                   {selectedNotification.incidentId && (
                     <button className="action-btn primary" onClick={() => handleAction('view-incident', selectedNotification)}>
-                      👁️ Voir l'incident
+                      👁️ View incident
                     </button>
                   )}
                   {selectedNotification.type === 'alert' && (
                     <button className="action-btn" onClick={() => handleAction('view-alert', selectedNotification)}>
-                      🔔 Gérer l'alerte
+                      🔔 Manage alert
                     </button>
                   )}
                   {!selectedNotification.read && (
                     <button className="action-btn" onClick={() => handleAction('mark-read', selectedNotification)}>
-                      ✓ Marquer comme lu
+                      ✓ Mark as read
                     </button>
                   )}
                   <button className="action-btn mute" onClick={() => handleAction('mute', selectedNotification)}>
-                    🔇 Ignorer similaires
+                    🔇 Mute similar
                   </button>
                 </div>
               </div>
@@ -601,8 +601,8 @@ export default function NotificationsPage() {
           ) : (
             <div className="detail-empty">
               <div className="empty-illustration">📬</div>
-              <p>Sélectionnez une notification pour voir les détails</p>
-              <span className="empty-hint">Utilisez ↑ ↓ pour naviguer</span>
+              <p>Select a notification to view details</p>
+              <span className="empty-hint">Use ↑ ↓ to navigate</span>
             </div>
           )}
         </aside>

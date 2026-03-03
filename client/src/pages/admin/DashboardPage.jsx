@@ -113,7 +113,7 @@ export default function DashboardPage(){
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Rechercher un incident, une route, une wilaya…" aria-label="Search dashboard" />
+            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a province…" aria-label="Search dashboard" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
@@ -122,12 +122,12 @@ export default function DashboardPage(){
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <button className="dropdown-item" onClick={handleOpenQuiz}>🚗 Quiz Conducteur</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Déconnexion</button>
+                  <button className="dropdown-item logout">🚪 Log Out</button>
                 </div>
               )}
             </div>

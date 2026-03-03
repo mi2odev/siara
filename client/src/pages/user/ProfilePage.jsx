@@ -91,7 +91,7 @@ export default function ProfilePage(){
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Rechercher un incident, une route, une wilaya…" aria-label="Search" />
+            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya…" aria-label="Search" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
@@ -100,11 +100,11 @@ export default function ProfilePage(){
               <button className="dash-avatar dash-avatar-active" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Déconnexion</button>
+                  <button className="dropdown-item logout">🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -122,15 +122,15 @@ export default function ProfilePage(){
               <span className="verified-badge">✓</span>
             </div>
             <h2 className="user-card-name">Sofiane Ahmed</h2>
-            <span className="user-role-badge citoyen">Citoyen</span>
-            <p className="user-bio">Contributeur actif pour une route plus sûre en Algérie 🇩🇿</p>
-            <button className="btn-edit-profile">✏️ Modifier le profil</button>
+            <span className="user-role-badge citoyen">Citizen</span>
+            <p className="user-bio">Active contributor for safer roads in Algeria 🇩🇿</p>
+            <button className="btn-edit-profile">✏️ Edit Profile</button>
           </div>
 
           {/* Profile Completion Indicator — progress bar + task checklist (65%) */}
           <div className="profile-completion-card">
             <div className="completion-header">
-              <h3 className="completion-title">Compléter votre profil</h3>
+              <h3 className="completion-title">Complete Your Profile</h3>
               <span className="completion-percentage">65%</span>
             </div>
             <div className="completion-progress-bar">
@@ -139,23 +139,23 @@ export default function ProfilePage(){
             <div className="completion-tasks">
               <div className="completion-task completed">
                 <div className="task-icon completed">✓</div>
-                <span className="task-label">Photo de profil</span>
+                <span className="task-label">Profile Photo</span>
               </div>
               <div className="completion-task">
                 <div className="task-icon">📍</div>
-                <span className="task-label">Ajouter votre localisation</span>
+                <span className="task-label">Add Your Location</span>
               </div>
               <div className="completion-task completed">
                 <div className="task-icon completed">✓</div>
-                <span className="task-label">Vérifier le téléphone</span>
+                <span className="task-label">Verify Phone</span>
               </div>
               <div className="completion-task">
                 <div className="task-icon">🌍</div>
-                <span className="task-label">Activer la géolocalisation</span>
+                <span className="task-label">Enable Geolocation</span>
               </div>
               <div className="completion-task">
                 <div className="task-icon">🆘</div>
-                <span className="task-label">Contact d'urgence</span>
+                <span className="task-label">Emergency Contact</span>
               </div>
             </div>
           </div>
@@ -163,23 +163,23 @@ export default function ProfilePage(){
           <nav className="profile-nav">
             <button className="profile-nav-item active">
               <span className="nav-icon">👤</span>
-              <span className="nav-label">Mon Profil</span>
+              <span className="nav-label">My Profile</span>
             </button>
             <button className="profile-nav-item">
               <span className="nav-icon">📝</span>
-              <span className="nav-label">Mes Signalements</span>
+              <span className="nav-label">My Reports</span>
             </button>
             <button className="profile-nav-item">
               <span className="nav-icon">📍</span>
-              <span className="nav-label">Lieux Enregistrés</span>
+              <span className="nav-label">Saved Locations</span>
             </button>
             <button className="profile-nav-item">
               <span className="nav-icon">⚙️</span>
-              <span className="nav-label">Paramètres du Compte</span>
+              <span className="nav-label">Account Settings</span>
             </button>
             <button className="profile-nav-item">
               <span className="nav-icon">🔒</span>
-              <span className="nav-label">Confidentialité & Sécurité</span>
+              <span className="nav-label">Privacy & Security</span>
             </button>
           </nav>
         </aside>
@@ -197,9 +197,9 @@ export default function ProfilePage(){
               <div className="profile-info">
                 <h1 className="profile-name">Sofiane Ahmed</h1>
                 <div className="profile-meta">
-                  <span className="meta-item">📍 Alger, Algérie</span>
-                  <span className="meta-item">📅 Membre depuis Mars 2024</span>
-                  <span className="verified-text">✓ Compte vérifié</span>
+                  <span className="meta-item">📍 Algiers, Algeria</span>
+                  <span className="meta-item">📅 Member since March 2024</span>
+                  <span className="verified-text">✓ Verified Account</span>
                 </div>
               </div>
             </div>
@@ -207,15 +207,15 @@ export default function ProfilePage(){
             <div className="profile-stats">
               <div className="stat-item">
                 <span className="stat-value">124</span>
-                <span className="stat-label">Signalements</span>
+                <span className="stat-label">Reports</span>
               </div>
               <div className="stat-item">
                 <span className="stat-value">92%</span>
-                <span className="stat-label">Taux de Vérification</span>
+                <span className="stat-label">Verification Rate</span>
               </div>
               <div className="stat-item">
                 <span className="stat-value">3.4K</span>
-                <span className="stat-label">Score d'Impact</span>
+                <span className="stat-label">Impact Score</span>
               </div>
               <div className="stat-item">
                 <span className="stat-value">18</span>
@@ -235,7 +235,7 @@ export default function ProfilePage(){
                 aria-selected={activeTab === 'posts'}
                 tabIndex={activeTab === 'posts' ? 0 : -1}
               >
-                📝 Publications
+                📝 Posts
               </button>
               <button 
                 className={`activity-tab ${activeTab === 'reports' ? 'active' : ''}`}
@@ -245,7 +245,7 @@ export default function ProfilePage(){
                 aria-selected={activeTab === 'reports'}
                 tabIndex={activeTab === 'reports' ? 0 : -1}
               >
-                🚨 Signalements
+                🚨 Reports
               </button>
               <button 
                 className={`activity-tab ${activeTab === 'badges' ? 'active' : ''}`}
@@ -265,7 +265,7 @@ export default function ProfilePage(){
                 aria-selected={activeTab === 'history'}
                 tabIndex={activeTab === 'history' ? 0 : -1}
               >
-                📊 Historique
+                📊 History
               </button>
               <button 
                 className={`activity-tab ${activeTab === 'timeline' ? 'active' : ''}`}
@@ -288,13 +288,13 @@ export default function ProfilePage(){
                     <div key={i} className="activity-card">
                       <div className="activity-header">
                         <span className="activity-type">🚗 Accident</span>
-                        <span className="severity-badge high">Élevé</span>
+                        <span className="severity-badge high">High</span>
                       </div>
-                      <h3 className="activity-title">Collision multiple sur Autoroute Est-Ouest</h3>
-                      <p className="activity-location">📍 Bab Ezzouar, Alger</p>
-                      <p className="activity-time">Il y a 2 heures</p>
+                      <h3 className="activity-title">Multi-vehicle collision on East-West Highway</h3>
+                      <p className="activity-location">📍 Bab Ezzouar, Algiers</p>
+                      <p className="activity-time">2 hours ago</p>
                       <div className="activity-map-thumb"></div>
-                      <div className="activity-status verified">✓ Vérifié par l'IA</div>
+                      <div className="activity-status verified">✓ Verified by AI</div>
                     </div>
                   ))}
                 </div>
@@ -304,12 +304,12 @@ export default function ProfilePage(){
               {activeTab === 'badges' && (
                 <div className="badges-grid">
                   {[
-                    { icon: '🛡️', name: 'Signaleur Vérifié', unlocked: true },
-                    { icon: '🚨', name: 'Assistant d\'Urgence', unlocked: true },
-                    { icon: '🌧️', name: 'Observateur Météo', unlocked: true },
-                    { icon: '👁️', name: 'Vigilance du Quartier', unlocked: true },
-                    { icon: '⭐', name: 'Contributeur Elite', unlocked: false },
-                    { icon: '🔥', name: 'Streak 30 jours', unlocked: false }
+                    { icon: '🛡️', name: 'Verified Reporter', unlocked: true },
+                    { icon: '🚨', name: 'Emergency Assistant', unlocked: true },
+                    { icon: '🌧️', name: 'Weather Observer', unlocked: true },
+                    { icon: '👁️', name: 'Neighborhood Watch', unlocked: true },
+                    { icon: '⭐', name: 'Elite Contributor', unlocked: false },
+                    { icon: '🔥', name: '30-Day Streak', unlocked: false }
                   ].map((badge, i) => (
                     <div key={i} className={`badge-card ${badge.unlocked ? 'unlocked' : 'locked'}`}>
                       <div className="badge-icon">{badge.icon}</div>
@@ -326,73 +326,73 @@ export default function ProfilePage(){
                     {
                       type: 'report',
                       icon: '🚨',
-                      title: 'Nouveau signalement créé',
-                      description: 'Collision multiple sur Autoroute Est-Ouest',
-                      time: 'Il y a 2 heures',
+                      title: 'New report created',
+                      description: 'Multi-vehicle collision on East-West Highway',
+                      time: '2 hours ago',
                       color: '#EF4444'
                     },
                     {
                       type: 'validation',
                       icon: '🤖',
-                      title: 'Validation par l\'IA',
-                      description: 'Votre signalement a été vérifié et confirmé par l\'IA',
-                      time: 'Il y a 3 heures',
+                      title: 'AI Validation',
+                      description: 'Your report has been verified and confirmed by AI',
+                      time: '3 hours ago',
                       color: '#10B981'
                     },
                     {
                       type: 'badge',
                       icon: '🏆',
-                      title: 'Badge débloqué',
-                      description: 'Vous avez obtenu le badge "Assistant d\'Urgence"',
-                      time: 'Il y a 1 jour',
+                      title: 'Badge Unlocked',
+                      description: 'You earned the "Emergency Assistant" badge',
+                      time: '1 day ago',
                       color: '#F59E0B'
                     },
                     {
                       type: 'alert',
                       icon: '🔔',
-                      title: 'Alerte déclenchée',
-                      description: '2,340 utilisateurs ont été notifiés de votre signalement',
-                      time: 'Il y a 1 jour',
+                      title: 'Alert Triggered',
+                      description: '2,340 users were notified of your report',
+                      time: '1 day ago',
                       color: '#8B5CF6'
                     },
                     {
                       type: 'reaction',
                       icon: '👍',
-                      title: 'Réaction reçue',
-                      description: '15 utilisateurs ont trouvé votre signalement utile',
-                      time: 'Il y a 2 jours',
+                      title: 'Reaction Received',
+                      description: '15 users found your report helpful',
+                      time: '2 days ago',
                       color: '#3B82F6'
                     },
                     {
                       type: 'report',
                       icon: '🚗',
-                      title: 'Signalement soumis',
-                      description: 'Ralentissement sur Rue Didouche Mourad',
-                      time: 'Il y a 3 jours',
+                      title: 'Report Submitted',
+                      description: 'Slowdown on Rue Didouche Mourad',
+                      time: '3 days ago',
                       color: '#EF4444'
                     },
                     {
                       type: 'profile',
                       icon: '✏️',
-                      title: 'Profil mis à jour',
-                      description: 'Photo de profil et bio modifiées',
-                      time: 'Il y a 5 jours',
+                      title: 'Profile Updated',
+                      description: 'Profile photo and bio updated',
+                      time: '5 days ago',
                       color: '#64748B'
                     },
                     {
                       type: 'validation',
                       icon: '✓',
-                      title: 'Signalement vérifié',
-                      description: 'Taux de précision: 95%',
-                      time: 'Il y a 1 semaine',
+                      title: 'Report Verified',
+                      description: 'Accuracy rate: 95%',
+                      time: '1 week ago',
                       color: '#10B981'
                     },
                     {
                       type: 'badge',
                       icon: '🛡️',
-                      title: 'Badge débloqué',
-                      description: 'Badge "Signaleur Vérifié" obtenu',
-                      time: 'Il y a 2 semaines',
+                      title: 'Badge Unlocked',
+                      description: '"Verified Reporter" badge earned',
+                      time: '2 weeks ago',
                       color: '#F59E0B'
                     }
                   ].map((event, i) => (
@@ -418,13 +418,13 @@ export default function ProfilePage(){
 
           {/* ═══ SAVED LOCATIONS GRID ═══ */}
           <section className="saved-locations">
-            <h2 className="section-title">📍 Lieux Enregistrés</h2>
+            <h2 className="section-title">📍 Saved Locations</h2>
             <div className="locations-grid">
               {[
-                { name: 'Domicile', address: 'Bab Ezzouar, Alger' },
-                { name: 'Travail', address: 'Hydra, Alger' },
-                { name: 'Route Préférée', address: 'Autoroute Est-Ouest' },
-                { name: 'Intersection Dangereuse', address: 'Carrefour El Madania' }
+                { name: 'Home', address: 'Bab Ezzouar, Algiers' },
+                { name: 'Work', address: 'Hydra, Algiers' },
+                { name: 'Preferred Route', address: 'East-West Highway' },
+                { name: 'Dangerous Intersection', address: 'El Madania Intersection' }
               ].map((loc, i) => (
                 <div key={i} className="location-card">
                   <div className="location-map-thumb"></div>
@@ -444,7 +444,7 @@ export default function ProfilePage(){
         <aside className="profile-sidebar-right">
           {/* Safety Score */}
           <div className="insight-card safety-score">
-            <h3 className="insight-title">🛡️ Score de Sécurité</h3>
+            <h3 className="insight-title">🛡️ Safety Score</h3>
             <div className="score-gauge">
               <svg className="gauge-svg" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="50" fill="none" stroke="#E5E7EB" strokeWidth="10"/>
@@ -460,34 +460,34 @@ export default function ProfilePage(){
               <div className="score-value">85</div>
             </div>
             <div className="score-factors">
-              <div className="factor-item">✓ Signalements vérifiés</div>
-              <div className="factor-item">✓ Taux de précision élevé</div>
-              <div className="factor-item">✓ Engagement actif</div>
+              <div className="factor-item">✓ Verified reports</div>
+              <div className="factor-item">✓ High accuracy rate</div>
+              <div className="factor-item">✓ Active engagement</div>
             </div>
           </div>
 
           {/* Contribution Impact */}
           <div className="insight-card impact">
-            <h3 className="insight-title">📊 Impact de Contribution</h3>
+            <h3 className="insight-title">📊 Contribution Impact</h3>
             <div className="impact-stats">
               <div className="impact-item">
                 <span className="impact-value">3,460</span>
-                <span className="impact-label">utilisateurs notifiés (30j)</span>
+                <span className="impact-label">users notified (30d)</span>
               </div>
               <div className="impact-item">
                 <span className="impact-value">82%</span>
-                <span className="impact-label">validés par l'IA</span>
+                <span className="impact-label">validated by AI</span>
               </div>
               <div className="impact-item">
                 <span className="impact-value">Bab Ezzouar</span>
-                <span className="impact-label">zone la plus active</span>
+                <span className="impact-label">most active zone</span>
               </div>
             </div>
           </div>
 
           {/* Recent Alerts */}
           <div className="insight-card recent-alerts">
-            <h3 className="insight-title">🚨 Alertes Récentes Déclenchées</h3>
+            <h3 className="insight-title">🚨 Recent Triggered Alerts</h3>
             <div className="alerts-list">
               {[
                 { severity: 'high', location: 'Autoroute Est', users: 2340 },
@@ -498,7 +498,7 @@ export default function ProfilePage(){
                   <span className={`alert-severity ${alert.severity}`}></span>
                   <div className="alert-info">
                     <div className="alert-location">{alert.location}</div>
-                    <div className="alert-users">{alert.users.toLocaleString()} utilisateurs affectés</div>
+                    <div className="alert-users">{alert.users.toLocaleString()} affected users</div>
                   </div>
                 </div>
               ))}
@@ -507,23 +507,23 @@ export default function ProfilePage(){
 
           {/* Account Health */}
           <div className="insight-card account-health">
-            <h3 className="insight-title">✓ État du Compte</h3>
+            <h3 className="insight-title">✓ Account Health</h3>
             <div className="health-items">
               <div className="health-item ok">
                 <span className="health-icon">✓</span>
-                <span className="health-label">Email vérifié</span>
+                <span className="health-label">Email verified</span>
               </div>
               <div className="health-item ok">
                 <span className="health-icon">✓</span>
-                <span className="health-label">Téléphone vérifié</span>
+                <span className="health-label">Phone verified</span>
               </div>
               <div className="health-item ok">
                 <span className="health-icon">✓</span>
-                <span className="health-label">Localisation activée</span>
+                <span className="health-label">Location enabled</span>
               </div>
               <div className="health-item warning">
                 <span className="health-icon">⚠</span>
-                <span className="health-label">Partage de données</span>
+                <span className="health-label">Data sharing</span>
               </div>
             </div>
           </div>

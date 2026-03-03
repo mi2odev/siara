@@ -1,53 +1,53 @@
 /**
  * @file DescriptionPage.jsx
- * @description Page de description du projet SIARA — présente le but,
- *   les fonctionnalités clés et les instructions de démarrage.
+ * @description SIARA project description page — presents the purpose,
+ *   key features, and getting-started instructions.
  */
 
-// Import React et feuille de styles associée
+// Import React and associated stylesheet
 import React from 'react'
 import '../../styles/DescriptionPage.css'
 
 /**
- * Composant de la page Description.
- * Fournit un aperçu textuel du projet, de ses fonctionnalités et de la prise en main.
+ * Description page component.
+ * Provides a textual overview of the project, its features, and how to get started.
  */
 export default function DescriptionPage(){
   return (
     <div className="description-root">
       <main className="description-container">
-        {/* --- En-tête avec titre et sous-titre --- */}
+        {/* --- Header with title and subtitle --- */}
         <header className="description-header">
           <h1>SIARA — Description</h1>
-          <p className="lead">Visualisation et prototype de prédiction des risques routiers — aperçu et objectifs du projet.</p>
+          <p className="lead">Visualization and road risk prediction prototype — project overview and objectives.</p>
         </header>
 
-        {/* --- Section : objectif principal du projet --- */}
+        {/* --- Section: main project objective --- */}
         <section className="description-section">
-          <h2>But du projet</h2>
+          <h2>Project Purpose</h2>
           <p>
-            SIARA est un prototype visant à fournir une interface de visualisation des zones à risque
-            et de simulation des prédictions de sinistralité routière. L'objectif est d'aider
-            les décideurs et les équipes techniques à identifier les corridors à risques
-            et tester des actions préventives.
+            SIARA is a prototype designed to provide an interface for visualizing risk zones
+            and simulating road accident predictions. The goal is to help
+            decision-makers and technical teams identify risk corridors
+            and test preventive measures.
           </p>
         </section>
 
-        {/* --- Section : liste des fonctionnalités clés --- */}
+        {/* --- Section: key features list --- */}
         <section className="description-section">
-          <h2>Fonctionnalités clés</h2>
+          <h2>Key Features</h2>
           <ul>
-            <li>Cartes interactives avec couches de risque et marqueurs</li>
-            <li>Prédictions simulées et contrôle des paramètres</li>
-            <li>Tableaux de bord administratifs pour le suivi</li>
-            <li>Exports simples et partage d'aperçus</li>
+            <li>Interactive maps with risk layers and markers</li>
+            <li>Simulated predictions and parameter controls</li>
+            <li>Administrative dashboards for monitoring</li>
+            <li>Simple exports and snapshot sharing</li>
           </ul>
         </section>
 
-        {/* --- Section : instructions de démarrage --- */}
+        {/* --- Section: getting-started instructions --- */}
         <section className="description-section">
-          <h2>Pour commencer</h2>
-          <p>Connectez-vous via la page de connexion pour accéder aux cartes et outils de simulation.</p>
+          <h2>Getting Started</h2>
+          <p>Log in via the login page to access the maps and simulation tools.</p>
         </section>
       </main>
     </div>

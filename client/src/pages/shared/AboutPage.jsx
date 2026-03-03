@@ -1,66 +1,66 @@
 /**
  * @file AboutPage.jsx
- * @description Page "À propos" — présente le projet SIARA, ses objectifs,
- *   ses fonctionnalités clés et le statut actuel du prototype.
+ * @description "About" page — presents the SIARA project, its objectives,
+ *   its key features and the current status of the prototype.
  */
 
-// Import React, styles et logo du projet
+// Import React, styles and project logo
 import React from 'react'
 import '../../styles/AboutPage.css'
 import logo from '../../assets/logos/siara-logo.png'
 
 /**
- * Composant de la page À propos.
- * Affiche une carte descriptive avec en-tête, sections et pied de page.
+ * About page component.
+ * Displays a descriptive card with header, sections and footer.
  */
 export default function AboutPage(){
   return (
     <div className="about-root">
       <div className="about-card">
-        {/* --- En-tête : logo, accroche et description courte --- */}
+        {/* --- Header: logo, tagline and short description --- */}
         <header className="about-header">
           <img src={logo} alt="SIARA" className="about-logo" />
-          <div className="about-kicker">Prédiction des risques routiers — Prototype</div>
-          <h1 className="about-title">À propos de SIARA</h1>
+          <div className="about-kicker">Road Risk Prediction — Prototype</div>
+          <h1 className="about-title">About SIARA</h1>
           <p className="about-subtitle">
-            SIARA est une plateforme expérimentale qui utilise l'intelligence artificielle et les données routières
-            pour visualiser et anticiper les risques d'accidents en Algérie.
+            SIARA is an experimental platform that uses artificial intelligence and road data
+            to visualize and anticipate accident risks in Algeria.
           </p>
         </header>
 
-        {/* --- Section : motivation du projet --- */}
+        {/* --- Section: project motivation --- */}
         <section className="about-section">
-          <h2>Pourquoi SIARA ?</h2>
+          <h2>Why SIARA?</h2>
           <p>
-            L'objectif de SIARA est d'offrir aux acteurs de la sécurité routière (collectivités, décideurs, chercheurs)
-            un outil moderne pour explorer les zones à risque, suivre l'évolution des accidents et tester des scénarios de prévention.
+            SIARA's objective is to provide road safety stakeholders (local authorities, decision-makers, researchers)
+            with a modern tool to explore risk areas, track accident trends and test prevention scenarios.
           </p>
         </section>
 
-        {/* --- Grille : fonctionnalités clés + statut du projet --- */}
+        {/* --- Grid: key features + project status --- */}
         <section className="about-section about-grid">
           <div>
-            <h3>Fonctionnalités clés</h3>
+            <h3>Key Features</h3>
             <ul>
-              <li>Cartes interactives avec zones de risques routiers.</li>
-              <li>Prédictions basées sur des modèles d'IA.</li>
-              <li>Visualisation temporelle des incidents et tendances.</li>
+              <li>Interactive maps with road risk zones.</li>
+              <li>Predictions based on AI models.</li>
+              <li>Temporal visualization of incidents and trends.</li>
             </ul>
           </div>
           <div>
-            <h3>Statut du projet</h3>
+            <h3>Project Status</h3>
             <p>
-              Cette interface est un prototype frontend. Certaines données et services sont simulés afin d'illustrer
-              l'expérience utilisateur et les parcours clés de la plateforme.
+              This interface is a frontend prototype. Some data and services are simulated to illustrate
+              the user experience and key workflows of the platform.
             </p>
           </div>
         </section>
 
-        {/* --- Pied de page : avertissement légal --- */}
+        {/* --- Footer: legal disclaimer --- */}
         <footer className="about-footer">
           <p>
-            Ce prototype a été conçu à des fins d'expérimentation pédagogique et de démonstration. Il ne remplace pas
-            les dispositifs officiels de suivi et de prévention des accidents.
+            This prototype was designed for educational experimentation and demonstration purposes. It does not replace
+            official accident monitoring and prevention systems.
           </p>
         </footer>
       </div>

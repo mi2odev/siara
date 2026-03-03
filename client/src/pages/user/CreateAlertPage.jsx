@@ -46,7 +46,7 @@ export default function CreateAlertPage() {
     if (!alert) return ''
     const areaName = alert.area?.name || ''
     if (areaName.startsWith('Rayon')) return 'location'
-    if (areaName === 'Zone personnalisée') return 'draw'
+    if (areaName === 'Custom zone') return 'draw'
     // Check if area name matches a known road
     if (areaName.includes('Autoroute') || areaName.startsWith('RN') || areaName.includes('Rocade')) return 'road'
     return 'wilaya'
@@ -116,20 +116,20 @@ export default function CreateAlertPage() {
 
   /* ═══ WIZARD STEP DEFINITIONS ═══ */
   const steps = [
-    { id: 1, label: "Type d'alerte", icon: '🎯' },
+    { id: 1, label: "Alert Type", icon: '🎯' },
     { id: 2, label: 'Zone', icon: '📍' },
     { id: 3, label: 'Conditions', icon: '⚙️' },
-    { id: 4, label: 'Fréquence', icon: '🔔' },
+    { id: 4, label: 'Frequency', icon: '🔔' },
     { id: 5, label: 'Confirmation', icon: '✅' }
   ]
 
   /* ═══ STATIC DATA — incident types, wilayas, roads ═══ */
   const alertTypes = [
-    { id: 'accident', icon: '🚗', label: 'Accident', desc: 'Collisions, accidents de la route' },
-    { id: 'roadworks', icon: '🚧', label: 'Travaux', desc: 'Chantiers, fermetures de voies' },
-    { id: 'traffic', icon: '🚦', label: 'Trafic dense', desc: 'Embouteillages, ralentissements' },
-    { id: 'danger', icon: '🔥', label: 'Danger', desc: 'Obstacles, conditions dangereuses' },
-    { id: 'ai', icon: '🤖', label: 'Prédiction IA', desc: 'Alertes basées sur nos modèles prédictifs' }
+    { id: 'accident', icon: '🚗', label: 'Accident', desc: 'Collisions, road accidents' },
+    { id: 'roadworks', icon: '🚧', label: 'Roadworks', desc: 'Construction sites, lane closures' },
+    { id: 'traffic', icon: '🚦', label: 'Heavy Traffic', desc: 'Traffic jams, slowdowns' },
+    { id: 'danger', icon: '🔥', label: 'Danger', desc: 'Obstacles, hazardous conditions' },
+    { id: 'ai', icon: '🤖', label: 'AI Prediction', desc: 'Alerts based on our predictive models' }
   ]
 
   const wilayas = ['Alger', 'Oran', 'Constantine', 'Annaba', 'Blida', 'Boumerdès', 'Tizi Ouzou', 'Béjaïa']
@@ -224,10 +224,10 @@ export default function CreateAlertPage() {
 
     // Build alert object matching AlertsPage format
     const zoneNameMap = {
-      location: `Rayon ${alertData.zoneRadius} km`,
-      wilaya: alertData.zoneWilaya || 'Wilaya',
-      road: alertData.zoneRoad || 'Route',
-      draw: 'Zone personnalisée'
+      location: `${alertData.zoneRadius} km radius`,
+      wilaya: alertData.zoneWilaya || 'Province',
+      road: alertData.zoneRoad || 'Road',
+      draw: 'Custom zone'
     }
     const wilayaMap = {
       location: 'Alger',
@@ -246,7 +246,7 @@ export default function CreateAlertPage() {
 
     const alertPayload = {
       id: isEditMode ? editAlert.id : Date.now(),
-      name: alertData.name || 'Nouvelle alerte',
+      name: alertData.name || 'New alert',
       status: isEditMode ? (editAlert.status || 'active') : 'active',
       severity: highestSeverity,
       area: {
@@ -255,7 +255,7 @@ export default function CreateAlertPage() {
       },
       incidentTypes: alertData.types,
       timeWindow: timeWindowMap[alertData.timeRange] || '24/7',
-      lastTriggered: isEditMode ? (editAlert.lastTriggered || 'Jamais') : 'Jamais',
+      lastTriggered: isEditMode ? (editAlert.lastTriggered || 'Never') : 'Never',
       triggerCount: isEditMode ? (editAlert.triggerCount || 0) : 0,
       notifications: {
         app: alertData.deliveryApp,
@@ -293,9 +293,9 @@ export default function CreateAlertPage() {
   useEffect(() => {
     if (!isEditMode && alertData.types.length > 0 && alertData.zoneType && !alertData.name) {
       const typeLabels = alertData.types.map(t => alertTypes.find(at => at.id === t)?.label).join(' + ')
-      const zoneName = alertData.zoneType === 'location' ? 'Ma position' :
+      const zoneName = alertData.zoneType === 'location' ? 'My location' :
                        alertData.zoneType === 'wilaya' ? alertData.zoneWilaya :
-                       alertData.zoneType === 'road' ? alertData.zoneRoad : 'Zone personnalisée'
+                       alertData.zoneType === 'road' ? alertData.zoneRoad : 'Custom zone'
       setAlertData(prev => ({ ...prev, name: `${typeLabels} - ${zoneName}` }))
     }
   }, [alertData.types, alertData.zoneType, alertData.zoneWilaya, alertData.zoneRoad])
@@ -307,7 +307,7 @@ export default function CreateAlertPage() {
     if (alertData.severities.includes('low')) base += 3
     if (alertData.zoneType === 'wilaya') base += 2
     if (alertData.frequency === 'digest') base = Math.ceil(base / 3)
-    return base < 3 ? '1-2 par semaine' : base < 7 ? '3-6 par semaine' : '1-2 par jour'
+    return base < 3 ? '1-2 per week' : base < 7 ? '3-6 per week' : '1-2 per day'
   }
 
   /* ═══ RENDER ═══ */
@@ -329,7 +329,7 @@ export default function CreateAlertPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Rechercher..." aria-label="Search" />
+            <input type="search" className="dash-search" placeholder="Search..." aria-label="Search" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
@@ -340,11 +340,11 @@ export default function CreateAlertPage() {
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Déconnexion</button>
+                  <button className="dropdown-item logout">🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -358,7 +358,7 @@ export default function CreateAlertPage() {
         <aside className="create-left">
           <div className="stepper-header">
             <span className="stepper-icon">{isEditMode ? '✏️' : '➕'}</span>
-            <h2>{isEditMode ? 'Modifier l\'alerte' : 'Nouvelle alerte'}</h2>
+            <h2>{isEditMode ? 'Edit Alert' : 'New Alert'}</h2>
           </div>
           <div className="stepper">
             {steps.map((step, index) => (
@@ -379,7 +379,7 @@ export default function CreateAlertPage() {
             ))}
           </div>
           <button className="cancel-btn" onClick={() => navigate('/alerts')}>
-            ✕ Annuler
+            ✕ Cancel
           </button>
         </aside>
 
@@ -389,8 +389,8 @@ export default function CreateAlertPage() {
           {currentStep === 1 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Quel type d'incident souhaitez-vous surveiller ?</h1>
-                <p>Sélectionnez un ou plusieurs types d'alertes.</p>
+                <h1>What type of incident do you want to monitor?</h1>
+                <p>Select one or more alert types.</p>
               </div>
               <div className="type-grid">
                 {alertTypes.map(type => (
@@ -407,7 +407,7 @@ export default function CreateAlertPage() {
                 ))}
               </div>
               {alertData.types.length === 0 && (
-                <p className="step-hint">⚠️ Sélectionnez au moins un type pour continuer.</p>
+                <p className="step-hint">⚠️ Select at least one type to continue.</p>
               )}
             </div>
           )}
@@ -416,8 +416,8 @@ export default function CreateAlertPage() {
           {currentStep === 2 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Où souhaitez-vous être alerté ?</h1>
-                <p>Définissez la zone géographique de surveillance.</p>
+                <h1>Where do you want to be alerted?</h1>
+                <p>Define the geographic monitoring zone.</p>
               </div>
               <div className="zone-options">
                 <div
@@ -426,15 +426,15 @@ export default function CreateAlertPage() {
                 >
                   <span className="zone-icon">📍</span>
                   <div className="zone-info">
-                    <span className="zone-label">Autour de ma position</span>
-                    <span className="zone-desc">Alertes dans un rayon autour de vous</span>
+                    <span className="zone-label">Around my location</span>
+                    <span className="zone-desc">Alerts within a radius around you</span>
                   </div>
                   <div className="zone-check">{alertData.zoneType === 'location' ? '✓' : ''}</div>
                 </div>
 
                 {alertData.zoneType === 'location' && (
                   <div className="zone-config">
-                    <label>Rayon de surveillance</label>
+                    <label>Monitoring radius</label>
                     <div className="radius-slider">
                       <input
                         type="range"
@@ -457,7 +457,7 @@ export default function CreateAlertPage() {
                           <Marker position={mapCenter} />
                           <Circle center={mapCenter} radius={alertData.zoneRadius * 1000} options={{ fillColor: '#6366F1', fillOpacity: 0.12, strokeColor: '#6366F1', strokeOpacity: 0.6, strokeWeight: 2 }} />
                         </GoogleMap>
-                        <p className="zone-map-hint">Cliquez pour déplacer le centre du rayon</p>
+                        <p className="zone-map-hint">Click to move the center of the radius</p>
                       </div>
                     )}
                   </div>
@@ -469,20 +469,20 @@ export default function CreateAlertPage() {
                 >
                   <span className="zone-icon">🏙️</span>
                   <div className="zone-info">
-                    <span className="zone-label">Wilaya / Commune</span>
-                    <span className="zone-desc">Alertes dans une région administrative</span>
+                    <span className="zone-label">Province / Municipality</span>
+                    <span className="zone-desc">Alerts in an administrative region</span>
                   </div>
                   <div className="zone-check">{alertData.zoneType === 'wilaya' ? '✓' : ''}</div>
                 </div>
 
                 {alertData.zoneType === 'wilaya' && (
                   <div className="zone-config">
-                    <label>Sélectionnez une wilaya</label>
+                    <label>Select a province</label>
                     <select
                       value={alertData.zoneWilaya}
                       onChange={e => setAlertData(prev => ({ ...prev, zoneWilaya: e.target.value }))}
                     >
-                      <option value="">Choisir...</option>
+                      <option value="">Choose...</option>
                       {wilayas.map(w => <option key={w} value={w}>{w}</option>)}
                     </select>
                   </div>
@@ -494,20 +494,20 @@ export default function CreateAlertPage() {
                 >
                   <span className="zone-icon">🛣️</span>
                   <div className="zone-info">
-                    <span className="zone-label">Route spécifique</span>
-                    <span className="zone-desc">Alertes sur un axe routier précis</span>
+                    <span className="zone-label">Specific Road</span>
+                    <span className="zone-desc">Alerts on a specific road axis</span>
                   </div>
                   <div className="zone-check">{alertData.zoneType === 'road' ? '✓' : ''}</div>
                 </div>
 
                 {alertData.zoneType === 'road' && (
                   <div className="zone-config">
-                    <label>Sélectionnez une route</label>
+                    <label>Select a road</label>
                     <select
                       value={alertData.zoneRoad}
                       onChange={e => setAlertData(prev => ({ ...prev, zoneRoad: e.target.value }))}
                     >
-                      <option value="">Choisir...</option>
+                      <option value="">Choose...</option>
                       {roads.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
@@ -519,8 +519,8 @@ export default function CreateAlertPage() {
                 >
                   <span className="zone-icon">✏️</span>
                   <div className="zone-info">
-                    <span className="zone-label">Dessiner sur la carte</span>
-                    <span className="zone-desc">Définir une zone personnalisée</span>
+                    <span className="zone-label">Draw on the map</span>
+                    <span className="zone-desc">Define a custom zone</span>
                   </div>
                   <div className="zone-check">{alertData.zoneType === 'draw' ? '✓' : ''}</div>
                 </div>
@@ -538,12 +538,12 @@ export default function CreateAlertPage() {
                         >
                           <Marker position={drawPin} />
                         </GoogleMap>
-                        <p className="zone-map-hint">Cliquez sur la carte pour placer votre zone personnalisée</p>
+                        <p className="zone-map-hint">Click on the map to place your custom zone</p>
                       </div>
                     ) : (
                       <div className="map-placeholder">
                         <span className="map-icon">🗺️</span>
-                        <p>Chargement de la carte…</p>
+                        <p>Loading map…</p>
                       </div>
                     )}
                   </div>
@@ -556,18 +556,18 @@ export default function CreateAlertPage() {
           {currentStep === 3 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Affinez vos conditions d'alerte</h1>
-                <p>Personnalisez quand vous souhaitez être notifié.</p>
+                <h1>Refine your alert conditions</h1>
+                <p>Customize when you want to be notified.</p>
               </div>
               <div className="conditions-sections">
                 <div className="condition-section">
-                  <h3>Niveau de gravité</h3>
-                  <p className="condition-desc">Quels niveaux de gravité doivent déclencher une alerte ?</p>
+                  <h3>Severity Level</h3>
+                  <p className="condition-desc">Which severity levels should trigger an alert?</p>
                   <div className="severity-options">
                     {[
-                      { id: 'high', label: 'Haute', color: '#DC2626', desc: 'Urgences, accidents graves' },
-                      { id: 'medium', label: 'Moyenne', color: '#F59E0B', desc: 'Incidents modérés' },
-                      { id: 'low', label: 'Basse', color: '#10B981', desc: 'Incidents mineurs, infos' }
+                      { id: 'high', label: 'High', color: '#DC2626', desc: 'Emergencies, serious accidents' },
+                      { id: 'medium', label: 'Medium', color: '#F59E0B', desc: 'Moderate incidents' },
+                      { id: 'low', label: 'Low', color: '#10B981', desc: 'Minor incidents, info' }
                     ].map(sev => (
                       <div
                         key={sev.id}
@@ -586,14 +586,14 @@ export default function CreateAlertPage() {
                 </div>
 
                 <div className="condition-section">
-                  <h3>Plage horaire</h3>
-                  <p className="condition-desc">Quand souhaitez-vous recevoir des alertes ?</p>
+                  <h3>Time Range</h3>
+                  <p className="condition-desc">When do you want to receive alerts?</p>
                   <div className="time-options">
                     {[
-                      { id: 'all', label: '24/7', desc: 'Toujours' },
-                      { id: 'day', label: 'Journée', desc: '06:00 - 22:00' },
-                      { id: 'night', label: 'Nuit', desc: '22:00 - 06:00' },
-                      { id: 'custom', label: 'Personnalisé', desc: 'Définir...' }
+                      { id: 'all', label: '24/7', desc: 'Always' },
+                      { id: 'day', label: 'Daytime', desc: '06:00 - 22:00' },
+                      { id: 'night', label: 'Night', desc: '22:00 - 06:00' },
+                      { id: 'custom', label: 'Custom', desc: 'Define...' }
                     ].map(time => (
                       <button
                         key={time.id}
@@ -608,7 +608,7 @@ export default function CreateAlertPage() {
                   {alertData.timeRange === 'custom' && (
                     <div className="custom-time">
                       <div className="time-input">
-                        <label>De</label>
+                        <label>From</label>
                         <input
                           type="time"
                           value={alertData.timeStart}
@@ -616,7 +616,7 @@ export default function CreateAlertPage() {
                         />
                       </div>
                       <div className="time-input">
-                        <label>À</label>
+                        <label>To</label>
                         <input
                           type="time"
                           value={alertData.timeEnd}
@@ -628,7 +628,7 @@ export default function CreateAlertPage() {
                 </div>
 
                 <details className="advanced-section">
-                  <summary>Options avancées</summary>
+                  <summary>Advanced Options</summary>
                   <div className="advanced-content">
                     <label className="checkbox-label">
                       <input
@@ -636,11 +636,11 @@ export default function CreateAlertPage() {
                         checked={alertData.weatherRelated}
                         onChange={e => setAlertData(prev => ({ ...prev, weatherRelated: e.target.checked }))}
                       />
-                      <span>Inclure les alertes liées à la météo</span>
+                      <span>Include weather-related alerts</span>
                     </label>
                     {alertData.types.includes('ai') && (
                       <div className="ai-threshold">
-                        <label>Seuil de confiance IA minimum</label>
+                        <label>Minimum AI confidence threshold</label>
                         <div className="threshold-slider">
                           <input
                             type="range"
@@ -651,7 +651,7 @@ export default function CreateAlertPage() {
                           />
                           <span className="threshold-value">{alertData.aiConfidence}%</span>
                         </div>
-                        <p className="threshold-hint">Plus le seuil est élevé, moins d'alertes mais plus fiables.</p>
+                        <p className="threshold-hint">The higher the threshold, fewer alerts but more reliable.</p>
                       </div>
                     )}
                   </div>
@@ -664,12 +664,12 @@ export default function CreateAlertPage() {
           {currentStep === 4 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Comment souhaitez-vous être notifié ?</h1>
-                <p>Contrôlez la fréquence et les canaux de notification.</p>
+                <h1>How do you want to be notified?</h1>
+                <p>Control the frequency and notification channels.</p>
               </div>
               <div className="frequency-sections">
                 <div className="freq-section">
-                  <h3>Fréquence des notifications</h3>
+                  <h3>Notification Frequency</h3>
                   <div className="freq-options">
                     <div
                       className={`freq-card ${alertData.frequency === 'immediate' ? 'selected' : ''}`}
@@ -677,8 +677,8 @@ export default function CreateAlertPage() {
                     >
                       <span className="freq-icon">⚡</span>
                       <div className="freq-info">
-                        <span className="freq-label">Immédiat</span>
-                        <span className="freq-desc">Notification dès qu'un incident correspond</span>
+                        <span className="freq-label">Immediate</span>
+                        <span className="freq-desc">Notification as soon as an incident matches</span>
                       </div>
                       <div className="freq-check">{alertData.frequency === 'immediate' ? '✓' : ''}</div>
                     </div>
@@ -688,8 +688,8 @@ export default function CreateAlertPage() {
                     >
                       <span className="freq-icon">📋</span>
                       <div className="freq-info">
-                        <span className="freq-label">Résumé</span>
-                        <span className="freq-desc">Regrouper les alertes en un digest</span>
+                        <span className="freq-label">Digest</span>
+                        <span className="freq-desc">Group alerts into a digest</span>
                       </div>
                       <div className="freq-check">{alertData.frequency === 'digest' ? '✓' : ''}</div>
                     </div>
@@ -699,8 +699,8 @@ export default function CreateAlertPage() {
                     >
                       <span className="freq-icon">1️⃣</span>
                       <div className="freq-info">
-                        <span className="freq-label">Première occurrence</span>
-                        <span className="freq-desc">Une seule notification par nouvel incident</span>
+                        <span className="freq-label">First Occurrence</span>
+                        <span className="freq-desc">One notification per new incident</span>
                       </div>
                       <div className="freq-check">{alertData.frequency === 'first' ? '✓' : ''}</div>
                     </div>
@@ -708,7 +708,7 @@ export default function CreateAlertPage() {
 
                   {alertData.frequency === 'digest' && (
                     <div className="digest-config">
-                      <label>Intervalle du résumé</label>
+                      <label>Digest interval</label>
                       <div className="digest-options">
                         {['hourly', 'daily', 'weekly'].map(int => (
                           <button
@@ -716,7 +716,7 @@ export default function CreateAlertPage() {
                             className={`digest-btn ${alertData.digestInterval === int ? 'selected' : ''}`}
                             onClick={() => setAlertData(prev => ({ ...prev, digestInterval: int }))}
                           >
-                            {int === 'hourly' ? 'Horaire' : int === 'daily' ? 'Quotidien' : 'Hebdomadaire'}
+                            {int === 'hourly' ? 'Hourly' : int === 'daily' ? 'Daily' : 'Weekly'}
                           </button>
                         ))}
                       </div>
@@ -726,7 +726,7 @@ export default function CreateAlertPage() {
                   {alertData.frequency === 'immediate' && (
                     <div className="immediate-warning">
                       <span className="warning-icon">💡</span>
-                      <p>Les alertes immédiates peuvent générer plus de notifications. Utilisez les filtres de gravité pour réduire le bruit.</p>
+                      <p>Immediate alerts may generate more notifications. Use severity filters to reduce noise.</p>
                     </div>
                   )}
 
@@ -736,12 +736,12 @@ export default function CreateAlertPage() {
                       checked={alertData.muteduplicates}
                       onChange={e => setAlertData(prev => ({ ...prev, muteduplicates: e.target.checked }))}
                     />
-                    <span>Ignorer les doublons (incidents similaires dans un court délai)</span>
+                    <span>Ignore duplicates (similar incidents within a short time)</span>
                   </label>
                 </div>
 
                 <div className="freq-section">
-                  <h3>Canaux de livraison</h3>
+                  <h3>Delivery Channels</h3>
                   <div className="delivery-options">
                     <label className={`delivery-card ${alertData.deliveryApp ? 'selected' : ''}`}>
                       <input
@@ -752,7 +752,7 @@ export default function CreateAlertPage() {
                       <span className="delivery-icon">📱</span>
                       <div className="delivery-info">
                         <span className="delivery-label">Application</span>
-                        <span className="delivery-desc">Notifications dans SIARA</span>
+                        <span className="delivery-desc">Notifications in SIARA</span>
                       </div>
                     </label>
                     <label className={`delivery-card ${alertData.deliveryEmail ? 'selected' : ''}`}>
@@ -764,9 +764,9 @@ export default function CreateAlertPage() {
                       <span className="delivery-icon">📧</span>
                       <div className="delivery-info">
                         <span className="delivery-label">Email</span>
-                        <span className="delivery-desc">Recevoir par email</span>
+                        <span className="delivery-desc">Receive by email</span>
                       </div>
-                      <span className="coming-soon">Bientôt</span>
+                      <span className="coming-soon">Coming Soon</span>
                     </label>
                     <label className={`delivery-card ${alertData.deliverySms ? 'selected' : ''}`}>
                       <input
@@ -777,9 +777,9 @@ export default function CreateAlertPage() {
                       <span className="delivery-icon">💬</span>
                       <div className="delivery-info">
                         <span className="delivery-label">SMS</span>
-                        <span className="delivery-desc">Alertes critiques par SMS</span>
+                        <span className="delivery-desc">Critical alerts by SMS</span>
                       </div>
-                      <span className="coming-soon">Bientôt</span>
+                      <span className="coming-soon">Coming Soon</span>
                     </label>
                   </div>
                 </div>
@@ -791,12 +791,12 @@ export default function CreateAlertPage() {
           {currentStep === 5 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Vérifiez et créez votre alerte</h1>
-                <p>Revoyez les détails avant de confirmer.</p>
+                <h1>Review and create your alert</h1>
+                <p>Check the details before confirming.</p>
               </div>
               <div className="confirmation-content">
                 <div className="confirm-section">
-                  <label>Nom de l'alerte</label>
+                  <label>Alert Name</label>
                   <input
                     type="text"
                     className="alert-name-input"
@@ -808,7 +808,7 @@ export default function CreateAlertPage() {
 
                 <div className="confirm-summary">
                   <div className="summary-row">
-                    <span className="summary-label">Types d'incidents</span>
+                    <span className="summary-label">Incident Types</span>
                     <span className="summary-value">
                       {alertData.types.map(t => alertTypes.find(at => at.id === t)?.icon).join(' ')}
                       {' '}
@@ -818,38 +818,38 @@ export default function CreateAlertPage() {
                   <div className="summary-row">
                     <span className="summary-label">Zone</span>
                     <span className="summary-value">
-                      {alertData.zoneType === 'location' && `📍 Rayon de ${alertData.zoneRadius} km`}
+                      {alertData.zoneType === 'location' && `📍 ${alertData.zoneRadius} km radius`}
                       {alertData.zoneType === 'wilaya' && `🏙️ ${alertData.zoneWilaya}`}
                       {alertData.zoneType === 'road' && `🛣️ ${alertData.zoneRoad}`}
-                      {alertData.zoneType === 'draw' && `✏️ Zone personnalisée`}
+                      {alertData.zoneType === 'draw' && `✏️ Custom zone`}
                     </span>
                   </div>
                   <div className="summary-row">
-                    <span className="summary-label">Gravité</span>
+                    <span className="summary-label">Severity</span>
                     <span className="summary-value">
-                      {alertData.severities.map(s => s === 'high' ? '🔴 Haute' : s === 'medium' ? '🟡 Moyenne' : '🟢 Basse').join(', ')}
+                      {alertData.severities.map(s => s === 'high' ? '🔴 High' : s === 'medium' ? '🟡 Medium' : '🟢 Low').join(', ')}
                     </span>
                   </div>
                   <div className="summary-row">
-                    <span className="summary-label">Horaires</span>
+                    <span className="summary-label">Schedule</span>
                     <span className="summary-value">
-                      {alertData.timeRange === 'all' ? '24/7' : alertData.timeRange === 'day' ? 'Journée' : alertData.timeRange === 'night' ? 'Nuit' : `${alertData.timeStart} - ${alertData.timeEnd}`}
+                      {alertData.timeRange === 'all' ? '24/7' : alertData.timeRange === 'day' ? 'Daytime' : alertData.timeRange === 'night' ? 'Night' : `${alertData.timeStart} - ${alertData.timeEnd}`}
                     </span>
                   </div>
                   <div className="summary-row">
-                    <span className="summary-label">Fréquence</span>
+                    <span className="summary-label">Frequency</span>
                     <span className="summary-value">
-                      {alertData.frequency === 'immediate' ? '⚡ Immédiat' : alertData.frequency === 'digest' ? `📋 Résumé ${alertData.digestInterval === 'hourly' ? 'horaire' : alertData.digestInterval === 'daily' ? 'quotidien' : 'hebdomadaire'}` : '1️⃣ Première occurrence'}
+                      {alertData.frequency === 'immediate' ? '⚡ Immediate' : alertData.frequency === 'digest' ? `📋 ${alertData.digestInterval === 'hourly' ? 'Hourly' : alertData.digestInterval === 'daily' ? 'Daily' : 'Weekly'} digest` : '1️⃣ First occurrence'}
                     </span>
                   </div>
                   <div className="summary-row highlight">
-                    <span className="summary-label">Fréquence estimée</span>
+                    <span className="summary-label">Estimated Frequency</span>
                     <span className="summary-value">{getEstimatedFrequency()}</span>
                   </div>
                 </div>
 
                 {alertData.name.trim() === '' && (
-                  <p className="step-hint">⚠️ Donnez un nom à votre alerte pour continuer.</p>
+                  <p className="step-hint">⚠️ Give your alert a name to continue.</p>
                 )}
               </div>
             </div>
@@ -859,17 +859,17 @@ export default function CreateAlertPage() {
           <div className="step-nav">
             {currentStep > 1 && (
               <button className="nav-btn secondary" onClick={prevStep}>
-                ← Retour
+                ← Back
               </button>
             )}
             <div className="nav-spacer"></div>
             {currentStep < 5 ? (
               <button className={`nav-btn secondary ${!canProceed() ? 'btn-disabled' : ''} ${shakeNav ? 'shake' : ''}`} onClick={nextStep}>
-                Continuer →
+                Continue →
               </button>
             ) : (
               <button className={`nav-btn create ${shakeNav ? 'shake' : ''}`} onClick={createAlert} disabled={!canProceed() || isCreating}>
-                {isCreating ? '⏳ Enregistrement...' : isEditMode ? '✓ Enregistrer les modifications' : '✓ Créer l\'alerte'}
+                {isCreating ? '⏳ Saving...' : isEditMode ? '✓ Save Changes' : '✓ Create Alert'}
               </button>
             )}
           </div>
@@ -879,12 +879,12 @@ export default function CreateAlertPage() {
         <aside className="create-right">
           <div className="preview-header">
             <span className="preview-icon">👁️</span>
-            <h3>Aperçu en direct</h3>
+            <h3>Live Preview</h3>
           </div>
 
           {/* Alert Card Preview */}
           <div className="preview-section">
-            <span className="preview-label">Carte d'alerte</span>
+            <span className="preview-label">Alert Card</span>
             <div className="alert-preview-card">
               <div className="apc-header">
                 <span className="apc-icons">
@@ -892,23 +892,23 @@ export default function CreateAlertPage() {
                     ? alertData.types.map(t => alertTypes.find(at => at.id === t)?.icon).join(' ')
                     : '🔔'}
                 </span>
-                <span className="apc-name">{alertData.name || 'Nouvelle alerte'}</span>
-                <span className="apc-status">● Actif</span>
+                <span className="apc-name">{alertData.name || 'New alert'}</span>
+                <span className="apc-status">● Active</span>
               </div>
               <div className="apc-body">
                 <div className="apc-row">
                   <span className="apc-label">Zone</span>
                   <span className="apc-value">
                     {alertData.zoneType === 'location' ? `${alertData.zoneRadius} km` :
-                     alertData.zoneType === 'wilaya' ? alertData.zoneWilaya || 'Wilaya' :
-                     alertData.zoneType === 'road' ? alertData.zoneRoad || 'Route' :
-                     alertData.zoneType === 'draw' ? 'Personnalisée' : '—'}
+                     alertData.zoneType === 'wilaya' ? alertData.zoneWilaya || 'Province' :
+                     alertData.zoneType === 'road' ? alertData.zoneRoad || 'Road' :
+                     alertData.zoneType === 'draw' ? 'Custom' : '—'}
                   </span>
                 </div>
                 <div className="apc-row">
-                  <span className="apc-label">Horaires</span>
+                  <span className="apc-label">Schedule</span>
                   <span className="apc-value">
-                    {alertData.timeRange === 'all' ? '24/7' : alertData.timeRange === 'day' ? 'Jour' : alertData.timeRange === 'night' ? 'Nuit' : 'Perso'}
+                    {alertData.timeRange === 'all' ? '24/7' : alertData.timeRange === 'day' ? 'Day' : alertData.timeRange === 'night' ? 'Night' : 'Custom'}
                   </span>
                 </div>
               </div>
@@ -917,28 +917,28 @@ export default function CreateAlertPage() {
 
           {/* Notification Preview */}
           <div className="preview-section">
-            <span className="preview-label">Exemple de notification</span>
+            <span className="preview-label">Notification Example</span>
             <div className="notif-preview">
               <div className="np-icon" style={{ background: alertData.severities.includes('high') ? 'rgba(220, 38, 38, 0.1)' : 'rgba(245, 158, 11, 0.1)' }}>
                 {alertData.types[0] ? alertTypes.find(at => at.id === alertData.types[0])?.icon : '🔔'}
               </div>
               <div className="np-content">
-                <span className="np-title">Alerte: {alertData.name || 'Nouvelle alerte'}</span>
+                <span className="np-title">Alert: {alertData.name || 'New alert'}</span>
                 <span className="np-context">
-                  {alertData.types.includes('accident') ? 'Accident détecté' :
-                   alertData.types.includes('traffic') ? 'Trafic dense signalé' :
-                   alertData.types.includes('roadworks') ? 'Travaux en cours' :
-                   alertData.types.includes('danger') ? 'Danger signalé' :
-                   alertData.types.includes('ai') ? 'Prédiction IA' : 'Incident détecté'} dans votre zone
+                  {alertData.types.includes('accident') ? 'Accident detected' :
+                   alertData.types.includes('traffic') ? 'Heavy traffic reported' :
+                   alertData.types.includes('roadworks') ? 'Roadworks in progress' :
+                   alertData.types.includes('danger') ? 'Danger reported' :
+                   alertData.types.includes('ai') ? 'AI Prediction' : 'Incident detected'} in your area
                 </span>
               </div>
-              <span className="np-time">À l'instant</span>
+              <span className="np-time">Just now</span>
             </div>
           </div>
 
           {/* Mini Map Preview */}
           <div className="preview-section">
-            <span className="preview-label">Zone surveillée</span>
+            <span className="preview-label">Monitored Area</span>
             <div className="map-preview">
               <div className="map-bg">🗺️</div>
               {alertData.zoneType === 'location' && (
@@ -959,22 +959,22 @@ export default function CreateAlertPage() {
 
           {/* Why Explanation */}
           <div className="preview-section why-section">
-            <span className="preview-label">Pourquoi vous serez notifié</span>
+            <span className="preview-label">Why you will be notified</span>
             <p className="why-text">
               {alertData.types.length > 0 && alertData.zoneType ? (
                 <>
-                  Vous recevrez une notification lorsqu'un incident de type{' '}
-                  <strong>{alertData.types.map(t => alertTypes.find(at => at.id === t)?.label.toLowerCase()).join(' ou ')}</strong>
-                  {' '}sera détecté{' '}
-                  {alertData.zoneType === 'location' && <><strong>dans un rayon de {alertData.zoneRadius} km</strong> autour de vous</>}
-                  {alertData.zoneType === 'wilaya' && alertData.zoneWilaya && <>à <strong>{alertData.zoneWilaya}</strong></>}
-                  {alertData.zoneType === 'road' && alertData.zoneRoad && <>sur la <strong>{alertData.zoneRoad}</strong></>}
-                  {alertData.zoneType === 'draw' && <>dans votre <strong>zone personnalisée</strong></>}
-                  {alertData.severities.length < 3 && <>, avec un niveau de gravité <strong>{alertData.severities.map(s => s === 'high' ? 'élevé' : s === 'medium' ? 'moyen' : 'faible').join(' ou ')}</strong></>}
+                  You will receive a notification when an incident of type{' '}
+                  <strong>{alertData.types.map(t => alertTypes.find(at => at.id === t)?.label.toLowerCase()).join(' or ')}</strong>
+                  {' '}is detected{' '}
+                  {alertData.zoneType === 'location' && <><strong>within a {alertData.zoneRadius} km radius</strong> around you</>}
+                  {alertData.zoneType === 'wilaya' && alertData.zoneWilaya && <>in <strong>{alertData.zoneWilaya}</strong></>}
+                  {alertData.zoneType === 'road' && alertData.zoneRoad && <>on the <strong>{alertData.zoneRoad}</strong></>}
+                  {alertData.zoneType === 'draw' && <>in your <strong>custom zone</strong></>}
+                  {alertData.severities.length < 3 && <>, with a severity level of <strong>{alertData.severities.map(s => s === 'high' ? 'high' : s === 'medium' ? 'medium' : 'low').join(' or ')}</strong></>}
                   .
                 </>
               ) : (
-                'Complétez les étapes pour voir une explication personnalisée.'
+                'Complete the steps to see a personalized explanation.'
               )}
             </p>
           </div>

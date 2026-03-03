@@ -63,7 +63,7 @@ export default function ReportIncidentPage() {
     locationType: '',          // 'gps' | 'search' | 'map'
     locationCoords: null,      // { lat, lng } or null
     locationAddress: '',       // Human-readable address string
-    locationAccuracy: null,    // Accuracy label (e.g. 'GPS haute précision')
+    locationAccuracy: null,    // Accuracy label (e.g. 'High-precision GPS')
     title: '',                 // Incident title (min 5 chars)
     description: '',           // Optional free-text description (max 500 chars)
     severity: 'medium',        // 'high' | 'medium' | 'low'
@@ -75,27 +75,27 @@ export default function ReportIncidentPage() {
 
   /* ═══ WIZARD STEP DEFINITIONS ═══ */
   const steps = [
-    { id: 1, label: "Type d'incident", icon: '🎯' },
-    { id: 2, label: 'Localisation', icon: '📍' },
-    { id: 3, label: 'Détails', icon: '📝' },
-    { id: 4, label: 'Médias', icon: '📷' },
-    { id: 5, label: 'Vérification', icon: '✅' }
+    { id: 1, label: 'Incident Type', icon: '🎯' },
+    { id: 2, label: 'Location', icon: '📍' },
+    { id: 3, label: 'Details', icon: '📝' },
+    { id: 4, label: 'Media', icon: '📷' },
+    { id: 5, label: 'Verification', icon: '✅' }
   ]
 
   /* ═══ STATIC DATA — incident types & severity levels ═══ */
   const incidentTypes = [
-    { id: 'accident', icon: '🚗', label: 'Accident', desc: 'Collision, accident de la route' },
-    { id: 'traffic', icon: '🚦', label: 'Trafic', desc: 'Embouteillage, ralentissement' },
-    { id: 'danger', icon: '🔥', label: 'Danger', desc: 'Obstacle, situation dangereuse' },
-    { id: 'weather', icon: '🌧️', label: 'Météo', desc: 'Conditions météo dangereuses' },
-    { id: 'roadworks', icon: '🚧', label: 'Travaux', desc: 'Chantier, fermeture de voie' },
-    { id: 'other', icon: '❓', label: 'Autre', desc: 'Autre type d\'incident' }
+    { id: 'accident', icon: '🚗', label: 'Accident', desc: 'Collision, road accident' },
+    { id: 'traffic', icon: '🚦', label: 'Traffic', desc: 'Traffic jam, slowdown' },
+    { id: 'danger', icon: '🔥', label: 'Danger', desc: 'Obstacle, dangerous situation' },
+    { id: 'weather', icon: '🌧️', label: 'Weather', desc: 'Dangerous weather conditions' },
+    { id: 'roadworks', icon: '🚧', label: 'Roadworks', desc: 'Construction, lane closure' },
+    { id: 'other', icon: '❓', label: 'Other', desc: 'Other type of incident' }
   ]
 
   const severityLevels = [
-    { id: 'high', label: 'Haute', color: '#DC2626', desc: 'Urgent, danger immédiat' },
-    { id: 'medium', label: 'Moyenne', color: '#F59E0B', desc: 'Important, attention requise' },
-    { id: 'low', label: 'Basse', color: '#10B981', desc: 'Mineur, information' }
+    { id: 'high', label: 'High', color: '#DC2626', desc: 'Urgent, immediate danger' },
+    { id: 'medium', label: 'Medium', color: '#F59E0B', desc: 'Important, attention required' },
+    { id: 'low', label: 'Low', color: '#10B981', desc: 'Minor, informational' }
   ]
 
   /* ═══ LOCATION HANDLERS ═══ */
@@ -106,7 +106,7 @@ export default function ReportIncidentPage() {
       locationType: 'gps',
       locationCoords: { lat: 36.7538, lng: 3.0588 },
       locationAddress: 'Rue Didouche Mourad, Alger Centre',
-      locationAccuracy: 'GPS haute précision'
+      locationAccuracy: 'High-precision GPS'
     }))
   }
 
@@ -118,7 +118,7 @@ export default function ReportIncidentPage() {
         locationType: 'search',
         locationCoords: { lat: 36.7538, lng: 3.0588 },
         locationAddress: query,
-        locationAccuracy: 'Recherche manuelle'
+        locationAccuracy: 'Manual search'
       }))
     }
   }
@@ -132,8 +132,8 @@ export default function ReportIncidentPage() {
       ...prev,
       locationType: 'map',
       locationCoords: { lat: latlng.lat, lng: latlng.lng },
-      locationAddress: 'Position sélectionnée sur la carte',
-      locationAccuracy: 'Sélection sur carte'
+      locationAddress: 'Position selected on map',
+      locationAccuracy: 'Map selection'
     }))
   }
 
@@ -208,7 +208,7 @@ export default function ReportIncidentPage() {
   const getPreviewTitle = () => {
     if (reportData.title) return reportData.title
     const typeInfo = getTypeInfo()
-    return typeInfo ? `${typeInfo.label} signalé` : 'Nouvel incident'
+    return typeInfo ? `${typeInfo.label} reported` : 'New incident'
   }
 
   /* ═══ SUCCESS SCREEN (shown after submission) ═══ */
@@ -231,7 +231,7 @@ export default function ReportIncidentPage() {
               </nav>
             </div>
             <div className="dash-header-center">
-              <input type="search" className="dash-search" placeholder="Rechercher..." aria-label="Search" />
+              <input type="search" className="dash-search" placeholder="Search..." aria-label="Search" />
             </div>
             <div className="dash-header-right">
               <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
@@ -248,40 +248,40 @@ export default function ReportIncidentPage() {
         <div className="success-container">
           <div className="success-card">
             <div className="success-icon">✅</div>
-            <h1>Signalement envoyé !</h1>
-            <p className="success-id">Référence: <strong>{submittedId}</strong></p>
+            <h1>Report submitted!</h1>
+            <p className="success-id">Reference: <strong>{submittedId}</strong></p>
             
             <div className="success-status">
               <div className="status-badge pending">
                 <span className="status-dot"></span>
-                En attente de vérification
+                Awaiting verification
               </div>
             </div>
 
             <div className="success-next">
-              <h3>Que se passe-t-il ensuite ?</h3>
+              <h3>What happens next?</h3>
               <div className="next-steps">
                 <div className="next-step">
                   <span className="step-num">1</span>
                   <div className="step-info">
-                    <span className="step-title">Revue automatique</span>
-                    <span className="step-desc">Notre IA analyse votre signalement</span>
+                    <span className="step-title">Automatic review</span>
+                    <span className="step-desc">Our AI analyzes your report</span>
                   </div>
                   <span className="step-icon">🤖</span>
                 </div>
                 <div className="next-step">
                   <span className="step-num">2</span>
                   <div className="step-info">
-                    <span className="step-title">Confirmation communautaire</span>
-                    <span className="step-desc">D'autres utilisateurs peuvent confirmer</span>
+                    <span className="step-title">Community confirmation</span>
+                    <span className="step-desc">Other users can confirm</span>
                   </div>
                   <span className="step-icon">👥</span>
                 </div>
                 <div className="next-step">
                   <span className="step-num">3</span>
                   <div className="step-info">
-                    <span className="step-title">Validation officielle</span>
-                    <span className="step-desc">Vérification par les autorités si nécessaire</span>
+                    <span className="step-title">Official validation</span>
+                    <span className="step-desc">Verification by authorities if needed</span>
                   </div>
                   <span className="step-icon">🏛️</span>
                 </div>
@@ -290,18 +290,18 @@ export default function ReportIncidentPage() {
 
             <div className="success-actions">
               <button className="action-btn primary" onClick={() => navigate(`/incident/${submittedId}`)}>
-                👁️ Voir mon signalement
+                👁️ View my report
               </button>
               <button className="action-btn secondary" onClick={() => navigate('/alerts/create', { state: { fromIncident: reportData } })}>
-                🔔 Créer une alerte pour cet incident
+                🔔 Create an alert for this incident
               </button>
               <button className="action-btn tertiary" onClick={() => navigate('/news')}>
-                ← Retour au feed
+                ← Back to feed
               </button>
             </div>
 
             <div className="success-trust">
-              <p>🔒 Vos données personnelles sont protégées. Les signalements sont modérés pour garantir la qualité.</p>
+              <p>🔒 Your personal data is protected. Reports are moderated to ensure quality.</p>
             </div>
           </div>
         </div>
@@ -328,7 +328,7 @@ export default function ReportIncidentPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Rechercher..." aria-label="Search" />
+            <input type="search" className="dash-search" placeholder="Search..." aria-label="Search" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
@@ -339,11 +339,11 @@ export default function ReportIncidentPage() {
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Déconnexion</button>
+                  <button className="dropdown-item logout">🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -357,7 +357,7 @@ export default function ReportIncidentPage() {
         <aside className="report-left">
           <div className="stepper-header">
             <span className="stepper-icon">📢</span>
-            <h2>Signaler un incident</h2>
+            <h2>Report an incident</h2>
           </div>
           <div className="stepper">
             {steps.map((step, index) => (
@@ -380,13 +380,13 @@ export default function ReportIncidentPage() {
           <div className="trust-notice">
             <span className="trust-icon">🛡️</span>
             <div className="trust-text">
-              <strong>Signalement sécurisé</strong>
-              <p>Vos données sont protégées. Les faux signalements peuvent être supprimés.</p>
+              <strong>Secure reporting</strong>
+              <p>Your data is protected. False reports may be removed.</p>
             </div>
           </div>
 
           <button className="cancel-btn" onClick={() => navigate(-1)}>
-            ✕ Annuler
+            ✕ Cancel
           </button>
         </aside>
 
@@ -396,8 +396,8 @@ export default function ReportIncidentPage() {
           {currentStep === 1 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Quel type d'incident souhaitez-vous signaler ?</h1>
-                <p>Sélectionnez la catégorie qui correspond le mieux.</p>
+                <h1>What type of incident do you want to report?</h1>
+                <p>Select the category that best matches.</p>
               </div>
               <div className="type-grid">
                 {incidentTypes.map(type => (
@@ -414,7 +414,7 @@ export default function ReportIncidentPage() {
                 ))}
               </div>
               {reportData.type === '' && (
-                <p className="step-hint">⚠️ Sélectionnez un type d'incident pour continuer.</p>
+                <p className="step-hint">⚠️ Select an incident type to continue.</p>
               )}
             </div>
           )}
@@ -423,8 +423,8 @@ export default function ReportIncidentPage() {
           {currentStep === 2 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Où se situe l'incident ?</h1>
-                <p>Indiquez la localisation exacte pour aider les autres usagers.</p>
+                <h1>Where is the incident located?</h1>
+                <p>Provide the exact location to help other users.</p>
               </div>
               <div className="location-options">
                 <button 
@@ -433,19 +433,19 @@ export default function ReportIncidentPage() {
                 >
                   <span className="loc-icon">📍</span>
                   <div className="loc-info">
-                    <span className="loc-label">Utiliser ma position actuelle</span>
-                    <span className="loc-desc">GPS haute précision</span>
+                    <span className="loc-label">Use my current location</span>
+                    <span className="loc-desc">High-precision GPS</span>
                   </div>
                   {reportData.locationType === 'gps' && <span className="loc-check">✓</span>}
                 </button>
 
                 <div className="location-search">
-                  <label>Ou rechercher une adresse</label>
+                  <label>Or search for an address</label>
                   <div className="search-input-wrap">
                     <span className="search-icon">🔍</span>
                     <input
                       type="text"
-                      placeholder="Ex: Rue Didouche Mourad, Alger..."
+                      placeholder="E.g.: Rue Didouche Mourad, Algiers..."
                       value={reportData.locationType === 'search' ? reportData.locationAddress : ''}
                       onChange={(e) => searchAddress(e.target.value)}
                     />
@@ -453,7 +453,7 @@ export default function ReportIncidentPage() {
                 </div>
 
                 <div className="map-section">
-                  <label>Ou sélectionner sur la carte</label>
+                  <label>Or select on the map</label>
                   <div className="map-interactive-leaflet">
                     <MapContainer
                       center={reportData.locationCoords
@@ -473,7 +473,7 @@ export default function ReportIncidentPage() {
                       )}
                     </MapContainer>
                     {!reportData.locationCoords && (
-                      <p className="map-hint">Cliquez pour placer le marqueur</p>
+                      <p className="map-hint">Click to place the marker</p>
                     )}
                   </div>
                 </div>
@@ -501,16 +501,16 @@ export default function ReportIncidentPage() {
           {currentStep === 3 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Décrivez l'incident</h1>
-                <p>Donnez des détails pour aider à comprendre la situation.</p>
+                <h1>Describe the incident</h1>
+                <p>Provide details to help understand the situation.</p>
               </div>
               <div className="details-form">
                 <div className="form-group">
-                  <label>Titre du signalement <span className="required">*</span></label>
+                  <label>Report title <span className="required">*</span></label>
                   <input
                     type="text"
                     className="title-input"
-                    placeholder="Ex: Accident entre deux véhicules"
+                    placeholder="E.g.: Accident between two vehicles"
                     value={reportData.title}
                     onChange={(e) => setReportData(prev => ({ ...prev, title: e.target.value.slice(0, 100) }))}
                     maxLength={100}
@@ -518,16 +518,16 @@ export default function ReportIncidentPage() {
                   <div className="input-meta">
                     <span className="char-count">{reportData.title.length}/100</span>
                     {reportData.title.length < 2 && reportData.title.length > 0 && (
-                      <span className="input-error">Minimum 2 caractères</span>
+                      <span className="input-error">Minimum 2 characters</span>
                     )}
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label>Description <span className="optional">(facultatif)</span></label>
+                  <label>Description <span className="optional">(optional)</span></label>
                   <textarea
                     className="desc-input"
-                    placeholder="Décrivez ce que vous avez observé. Restez factuel et objectif."
+                    placeholder="Describe what you observed. Stay factual and objective."
                     value={reportData.description}
                     onChange={(e) => setReportData(prev => ({ ...prev, description: e.target.value.slice(0, 500) }))}
                     maxLength={500}
@@ -537,17 +537,17 @@ export default function ReportIncidentPage() {
                     <span className="char-count">{reportData.description.length}/500</span>
                   </div>
                   <div className="writing-tips">
-                    <span className="tips-title">💡 Conseils</span>
+                    <span className="tips-title">💡 Tips</span>
                     <ul>
-                      <li>Décrivez les faits, pas vos émotions</li>
-                      <li>Mentionnez le nombre de véhicules/personnes si pertinent</li>
-                      <li>Indiquez si des secours sont présents</li>
+                      <li>Describe the facts, not your emotions</li>
+                      <li>Mention the number of vehicles/people if relevant</li>
+                      <li>Indicate if emergency services are present</li>
                     </ul>
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label>Niveau de gravité</label>
+                  <label>Severity level</label>
                   <div className="severity-selector">
                     {severityLevels.map(sev => (
                       <button
@@ -567,21 +567,21 @@ export default function ReportIncidentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label>Quand cela s'est-il produit ?</label>
+                  <label>When did this happen?</label>
                   <div className="time-selector">
                     <button
                       className={`time-btn ${reportData.timeOption === 'now' ? 'selected' : ''}`}
                       onClick={() => setReportData(prev => ({ ...prev, timeOption: 'now' }))}
                     >
                       <span className="time-icon">⏱️</span>
-                      <span>Maintenant</span>
+                      <span>Now</span>
                     </button>
                     <button
                       className={`time-btn ${reportData.timeOption === 'earlier' ? 'selected' : ''}`}
                       onClick={() => setReportData(prev => ({ ...prev, timeOption: 'earlier' }))}
                     >
                       <span className="time-icon">🕐</span>
-                      <span>Plus tôt</span>
+                      <span>Earlier</span>
                     </button>
                   </div>
                   {reportData.timeOption === 'earlier' && (
@@ -602,8 +602,8 @@ export default function ReportIncidentPage() {
           {currentStep === 4 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Ajouter des médias</h1>
-                <p>Photos ou vidéos pour illustrer l'incident (facultatif).</p>
+                <h1>Add media</h1>
+                <p>Photos or videos to illustrate the incident (optional).</p>
               </div>
               <div className="media-section">
                 <div className="media-upload">
@@ -617,9 +617,9 @@ export default function ReportIncidentPage() {
                   />
                   <label htmlFor="media-input" className="upload-zone">
                     <span className="upload-icon">📷</span>
-                    <span className="upload-title">Ajouter photos ou vidéos</span>
-                    <span className="upload-desc">Glissez-déposez ou cliquez pour sélectionner</span>
-                    <span className="upload-limit">Maximum 5 fichiers • 10 MB chacun</span>
+                    <span className="upload-title">Add photos or videos</span>
+                    <span className="upload-desc">Drag and drop or click to select</span>
+                    <span className="upload-limit">Maximum 5 files • 10 MB each</span>
                   </label>
                 </div>
 
@@ -644,14 +644,14 @@ export default function ReportIncidentPage() {
                 <div className="media-notice">
                   <span className="notice-icon">🔒</span>
                   <div className="notice-text">
-                    <strong>Confidentialité</strong>
-                    <p>Les médias sont modérés avant publication. Les données personnelles visibles (visages, plaques) peuvent être floutées.</p>
+                    <strong>Privacy</strong>
+                    <p>Media is moderated before publication. Visible personal data (faces, license plates) may be blurred.</p>
                   </div>
                 </div>
 
                 <div className="skip-media">
-                  <p>Pas de médias à ajouter ?</p>
-                  <button className="skip-btn" onClick={nextStep}>Passer cette étape →</button>
+                  <p>No media to add?</p>
+                  <button className="skip-btn" onClick={nextStep}>Skip this step →</button>
                 </div>
               </div>
             </div>
@@ -661,25 +661,25 @@ export default function ReportIncidentPage() {
           {currentStep === 5 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Vérifiez votre signalement</h1>
-                <p>Relisez les informations avant d'envoyer.</p>
+                <h1>Review your report</h1>
+                <p>Review the information before submitting.</p>
               </div>
               <div className="review-content">
                 <div className="review-section">
                   <div className="review-row">
-                    <span className="review-label">Type d'incident</span>
+                    <span className="review-label">Incident type</span>
                     <span className="review-value">
                       {getTypeInfo()?.icon} {getTypeInfo()?.label}
                     </span>
                     <button className="review-edit" onClick={() => setCurrentStep(1)}>✏️</button>
                   </div>
                   <div className="review-row">
-                    <span className="review-label">Localisation</span>
+                    <span className="review-label">Location</span>
                     <span className="review-value">📍 {reportData.locationAddress}</span>
                     <button className="review-edit" onClick={() => setCurrentStep(2)}>✏️</button>
                   </div>
                   <div className="review-row">
-                    <span className="review-label">Titre</span>
+                    <span className="review-label">Title</span>
                     <span className="review-value">{reportData.title}</span>
                     <button className="review-edit" onClick={() => setCurrentStep(3)}>✏️</button>
                   </div>
@@ -690,24 +690,24 @@ export default function ReportIncidentPage() {
                     </div>
                   )}
                   <div className="review-row">
-                    <span className="review-label">Gravité</span>
+                    <span className="review-label">Severity</span>
                     <span className="review-value">
                       <span className="sev-indicator" style={{ background: severityLevels.find(s => s.id === reportData.severity)?.color }}></span>
                       {severityLevels.find(s => s.id === reportData.severity)?.label}
                     </span>
                   </div>
                   <div className="review-row">
-                    <span className="review-label">Moment</span>
+                    <span className="review-label">Time</span>
                     <span className="review-value">
-                      {reportData.timeOption === 'now' ? '⏱️ Maintenant' : `🕐 ${reportData.customTime}`}
+                      {reportData.timeOption === 'now' ? '⏱️ Now' : `🕐 ${reportData.customTime}`}
                     </span>
                   </div>
                   <div className="review-row">
-                    <span className="review-label">Médias</span>
+                    <span className="review-label">Media</span>
                     <span className="review-value">
                       {reportData.media.length > 0 
-                        ? `📷 ${reportData.media.length} fichier(s)` 
-                        : 'Aucun média'}
+                        ? `📷 ${reportData.media.length} file(s)` 
+                        : 'No media'}
                     </span>
                     <button className="review-edit" onClick={() => setCurrentStep(4)}>✏️</button>
                   </div>
@@ -716,13 +716,13 @@ export default function ReportIncidentPage() {
                 <div className="review-agreement">
                   <label className="checkbox-label">
                     <input type="checkbox" defaultChecked />
-                    <span>Je confirme que ces informations sont exactes et véridiques.</span>
+                    <span>I confirm that this information is accurate and truthful.</span>
                   </label>
                 </div>
 
                 <div className="review-notice">
                   <span className="notice-icon">ℹ️</span>
-                  <p>Votre signalement sera vérifié par notre système automatique puis rendu visible aux autres usagers. Les faux signalements peuvent entraîner une suspension de compte.</p>
+                  <p>Your report will be verified by our automated system and then made visible to other users. False reports may result in account suspension.</p>
                 </div>
               </div>
             </div>
@@ -732,17 +732,17 @@ export default function ReportIncidentPage() {
           <div className="step-nav">
             {currentStep > 1 && (
               <button className="nav-btn secondary" onClick={prevStep}>
-                ← Retour
+                ← Back
               </button>
             )}
             <div className="nav-spacer"></div>
             {currentStep < 5 ? (
               <button className="nav-btn primary" onClick={nextStep} disabled={!canProceed()}>
-                Continuer →
+                Continue →
               </button>
             ) : (
               <button className="nav-btn submit" onClick={submitReport} disabled={isSubmitting}>
-                {isSubmitting ? '⏳ Envoi en cours...' : '📤 Envoyer le signalement'}
+                {isSubmitting ? '⏳ Submitting...' : '📤 Submit report'}
               </button>
             )}
           </div>
@@ -752,12 +752,12 @@ export default function ReportIncidentPage() {
         <aside className="report-right">
           <div className="preview-header">
             <span className="preview-icon">👁️</span>
-            <h3>Aperçu du signalement</h3>
+            <h3>Report preview</h3>
           </div>
 
           {/* Incident Card Preview */}
           <div className="preview-section">
-            <span className="preview-label">Comment il apparaîtra</span>
+            <span className="preview-label">How it will appear</span>
             <div className="incident-preview-card">
               <div className="ipc-header">
                 <span className="ipc-icon" style={{ background: `${severityLevels.find(s => s.id === reportData.severity)?.color}20` }}>
@@ -766,7 +766,7 @@ export default function ReportIncidentPage() {
                 <div className="ipc-info">
                   <span className="ipc-title">{getPreviewTitle()}</span>
                   <span className="ipc-meta">
-                    {reportData.locationAddress || 'Localisation...'}
+                    {reportData.locationAddress || 'Location...'}
                   </span>
                 </div>
               </div>
@@ -774,7 +774,7 @@ export default function ReportIncidentPage() {
                 {reportData.description ? (
                   <p className="ipc-desc">{reportData.description.slice(0, 100)}{reportData.description.length > 100 ? '...' : ''}</p>
                 ) : (
-                  <p className="ipc-desc placeholder">Description de l'incident...</p>
+                  <p className="ipc-desc placeholder">Incident description...</p>
                 )}
               </div>
               <div className="ipc-footer">
@@ -782,15 +782,15 @@ export default function ReportIncidentPage() {
                   <span className="sev-dot-sm" style={{ background: severityLevels.find(s => s.id === reportData.severity)?.color }}></span>
                   {severityLevels.find(s => s.id === reportData.severity)?.label}
                 </span>
-                <span className="ipc-time">À l'instant</span>
-                <span className="ipc-status">⏳ En attente</span>
+                <span className="ipc-time">Just now</span>
+                <span className="ipc-status">⏳ Pending</span>
               </div>
             </div>
           </div>
 
           {/* Mini Map */}
           <div className="preview-section">
-            <span className="preview-label">Localisation</span>
+            <span className="preview-label">Location</span>
             <div className="map-preview">
               <div className="map-bg-mini">🗺️</div>
               {reportData.locationCoords && (
@@ -801,34 +801,34 @@ export default function ReportIncidentPage() {
                 </div>
               )}
               {!reportData.locationCoords && (
-                <p className="map-placeholder-text">Sélectionnez une localisation</p>
+                <p className="map-placeholder-text">Select a location</p>
               )}
             </div>
           </div>
 
           {/* Verification Status */}
           <div className="preview-section">
-            <span className="preview-label">Statut de vérification</span>
+            <span className="preview-label">Verification status</span>
             <div className="verification-preview">
               <div className="verif-step">
                 <span className="verif-icon pending">⏳</span>
                 <div className="verif-info">
-                  <span className="verif-title">En attente</span>
-                  <span className="verif-desc">Sera vérifié après envoi</span>
+                  <span className="verif-title">Pending</span>
+                  <span className="verif-desc">Will be verified after submission</span>
                 </div>
               </div>
               <div className="verif-timeline">
                 <div className="timeline-step">
                   <span className="tl-dot"></span>
-                  <span className="tl-label">Revue IA</span>
+                  <span className="tl-label">AI Review</span>
                 </div>
                 <div className="timeline-step">
                   <span className="tl-dot"></span>
-                  <span className="tl-label">Communauté</span>
+                  <span className="tl-label">Community</span>
                 </div>
                 <div className="timeline-step">
                   <span className="tl-dot"></span>
-                  <span className="tl-label">Publication</span>
+                  <span className="tl-label">Published</span>
                 </div>
               </div>
             </div>
@@ -836,12 +836,12 @@ export default function ReportIncidentPage() {
 
           {/* Trust & Safety */}
           <div className="preview-section trust-preview">
-            <span className="preview-label">Confiance & Sécurité</span>
+            <span className="preview-label">Trust & Safety</span>
             <ul className="trust-list">
-              <li>✅ Signalements vérifiés</li>
-              <li>🛡️ Données protégées</li>
-              <li>👁️ Médias modérés</li>
-              <li>⚖️ Faux signalements supprimés</li>
+              <li>✅ Verified reports</li>
+              <li>🛡️ Protected data</li>
+              <li>👁️ Moderated media</li>
+              <li>⚖️ False reports removed</li>
             </ul>
           </div>
         </aside>

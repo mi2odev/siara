@@ -137,7 +137,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
             <input
               type="search"
               className="dash-search"
-              placeholder="Rechercher un incident, une route, une wilaya…"
+              placeholder="Search for an incident, a road, a province…"
               aria-label="Search"
             />
           </div>
@@ -150,11 +150,11 @@ Authorities advise all motorists to avoid this section of the highway until furt
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Déconnexion</button>
+                  <button className="dropdown-item logout">🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -172,7 +172,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
             <div className="user-mini-avatar">SA</div>
             <div className="user-mini-info">
               <span className="user-mini-name">Sofiane A.</span>
-              <span className="user-mini-role">Citoyen</span>
+              <span className="user-mini-role">Citizen</span>
             </div>
           </div>
 
@@ -182,7 +182,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
               </svg>
-              Retour
+              Back
             </button>
           </div>
 
@@ -195,21 +195,21 @@ Authorities advise all motorists to avoid this section of the highway until furt
             </button>
             <button className="nav-item" onClick={() => navigate('/map')}>
               <span className="nav-icon">🗺️</span>
-              <span className="nav-label">Carte</span>
+              <span className="nav-label">Map</span>
             </button>
             <button className="nav-item" onClick={() => navigate('/news')}>
               <span className="nav-icon">🚨</span>
-              <span className="nav-label">Alertes</span>
+              <span className="nav-label">Alerts</span>
             </button>
             <button className="nav-item" onClick={() => navigate('/profile')}>
               <span className="nav-icon">👤</span>
-              <span className="nav-label">Profil</span>
+              <span className="nav-label">Profile</span>
             </button>
           </nav>
 
           {/* Related Incidents */}
           <div className="related-incidents">
-            <div className="nav-section-label">INCIDENTS PROCHES</div>
+            <div className="nav-section-label">NEARBY INCIDENTS</div>
             {relatedIncidents.map(rel => (
               <button 
                 key={rel.id} 
@@ -241,9 +241,9 @@ Authorities advise all motorists to avoid this section of the highway until furt
               <span className="meta-location">📍 {incident.location.city}, {incident.location.road}</span>
               <span className="meta-separator">•</span>
               {incident.verified ? (
-                <span className="meta-verified verified">✓ Vérifié</span>
+                <span className="meta-verified verified">✓ Verified</span>
               ) : (
-                <span className="meta-verified pending">⏳ En attente</span>
+                <span className="meta-verified pending">⏳ Pending</span>
               )}
             </div>
           </div>
@@ -273,17 +273,17 @@ Authorities advise all motorists to avoid this section of the highway until furt
             <div className="trust-indicators">
               <div className="trust-item">
                 <span className="trust-icon">👥</span>
-                <span className="trust-text">Vérifié par {incident.verificationCount} utilisateurs</span>
+                <span className="trust-text">Verified by {incident.verificationCount} users</span>
               </div>
               {incident.authorityConfirmed && (
                 <div className="trust-item authority">
                   <span className="trust-icon">🏛️</span>
-                  <span className="trust-text">Confirmé par les autorités</span>
+                  <span className="trust-text">Confirmed by authorities</span>
                 </div>
               )}
               <div className="trust-item ai">
                 <span className="trust-icon">🤖</span>
-                <span className="trust-text">Confiance IA: {incident.aiConfidence}%</span>
+                <span className="trust-text">AI Confidence: {incident.aiConfidence}%</span>
               </div>
             </div>
           </div>
@@ -303,7 +303,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
                 className="show-more-btn"
                 onClick={() => setShowFullDescription(!showFullDescription)}
               >
-                {showFullDescription ? 'Voir moins' : 'Voir plus'}
+                {showFullDescription ? 'Show less' : 'Show more'}
               </button>
             )}
           </div>
@@ -312,7 +312,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
           {/* Conditionally rendered grid of photos/videos attached to the incident */}
           {incident.media && incident.media.length > 0 && (
             <div className="incident-media">
-              <h2 className="section-title">Photos & Médias</h2>
+              <h2 className="section-title">Photos & Media</h2>
               <div className="media-grid">
                 {incident.media.map((media, index) => (
                   <div key={index} className="media-item">
@@ -329,7 +329,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
           {/* ═══ TIMELINE / UPDATES ═══ */}
           {/* Chronological list of events: citizen reports, system verifications, authority dispatches */}
           <div className="incident-timeline">
-            <h2 className="section-title">Chronologie</h2>
+            <h2 className="section-title">Timeline</h2>
             <div className="timeline-list">
               {incident.timeline.map((event, index) => (
                 <div key={index} className="timeline-item">
@@ -341,8 +341,8 @@ Authorities advise all motorists to avoid this section of the highway until furt
                     <span className="timeline-time">{event.time}</span>
                     <span className="timeline-text">{event.text}</span>
                     <span className={`timeline-source ${event.source}`}>
-                      {event.source === 'user' ? 'Citoyen' : 
-                       event.source === 'authority' ? 'Autorité' : 'Système'}
+                      {event.source === 'user' ? 'Citizen' : 
+                       event.source === 'authority' ? 'Authority' : 'System'}
                     </span>
                   </div>
                 </div>
@@ -353,7 +353,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
           {/* ═══ COMMUNITY SIGNALS ═══ */}
           {/* Aggregated citizen confirmations, comment count, and a confirm action button */}
           <div className="community-signals">
-            <h2 className="section-title">Signaux communautaires</h2>
+            <h2 className="section-title">Community Signals</h2>
             <div className="signals-row">
               <div className="signal-item">
                 <span className="signal-count">{incident.confirmations}</span>
@@ -361,10 +361,10 @@ Authorities advise all motorists to avoid this section of the highway until furt
               </div>
               <div className="signal-item">
                 <span className="signal-count">{incident.comments}</span>
-                <span className="signal-label">Commentaires</span>
+                <span className="signal-label">Comments</span>
               </div>
               <button className="signal-action-btn">
-                ✋ Je confirme
+                ✋ I confirm
               </button>
             </div>
           </div>
@@ -375,7 +375,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
           {/* ═══ MINI MAP ═══ */}
           {/* Placeholder map with severity-coloured pin; links to the full map page */}
           <div className="context-card mini-map-card">
-            <h3 className="context-title">Localisation</h3>
+            <h3 className="context-title">Location</h3>
             <div className="mini-map-container">
               <div className="mini-map-placeholder">
                 <span className="map-icon">🗺️</span>
@@ -390,24 +390,24 @@ Authorities advise all motorists to avoid this section of the highway until furt
               <span className="location-road">{incident.location.road}</span>
             </div>
             <button className="open-map-btn" onClick={() => navigate('/map')}>
-              Ouvrir la carte complète
+              Open full map
             </button>
           </div>
 
           {/* ═══ SAFETY & RECOMMENDATIONS ═══ */}
           {/* Estimated delay, avoidance warning, and a list of alternative routes */}
           <div className="context-card safety-card">
-            <h3 className="context-title">Recommandations</h3>
+            <h3 className="context-title">Recommendations</h3>
             <div className="safety-alert">
               <span className="safety-icon">⚠️</span>
-              <span className="safety-text">Évitez cette zone</span>
+              <span className="safety-text">Avoid this area</span>
             </div>
             <div className="delay-estimate">
               <span className="delay-icon">⏱️</span>
-              <span className="delay-text">Retard estimé: <strong>{incident.estimatedDelay}</strong></span>
+              <span className="delay-text">Estimated delay: <strong>{incident.estimatedDelay}</strong></span>
             </div>
             <div className="alternative-routes">
-              <span className="alt-label">Routes alternatives:</span>
+              <span className="alt-label">Alternative routes:</span>
               <ul className="alt-list">
                 {incident.alternativeRoutes.map((route, index) => (
                   <li key={index} className="alt-item">
@@ -427,31 +427,31 @@ Authorities advise all motorists to avoid this section of the highway until furt
               className={`action-btn follow-btn ${isFollowing ? 'following' : ''}`}
               onClick={() => setIsFollowing(!isFollowing)}
             >
-              {isFollowing ? '✓ Suivi actif' : '🔔 Suivre cet incident'}
+              {isFollowing ? '✓ Following' : '🔔 Follow this incident'}
             </button>
             <button className="action-btn alert-btn">
-              📍 Créer une alerte zone
+              📍 Create zone alert
             </button>
             <button className="action-btn report-btn">
-              📝 Signaler une mise à jour
+              📝 Report an update
             </button>
           </div>
 
           {/* ═══ INCIDENT METADATA ═══ */}
           {/* Technical details: ID, source count, category tags, last update timestamp */}
           <div className="context-card metadata-card">
-            <h3 className="context-title">Métadonnées</h3>
+            <h3 className="context-title">Metadata</h3>
             <div className="metadata-list">
               <div className="metadata-item">
-                <span className="metadata-label">ID Incident</span>
+                <span className="metadata-label">Incident ID</span>
                 <span className="metadata-value">#{incident.id}</span>
               </div>
               <div className="metadata-item">
                 <span className="metadata-label">Sources</span>
-                <span className="metadata-value">{incident.sourceCount} rapports</span>
+                <span className="metadata-value">{incident.sourceCount} reports</span>
               </div>
               <div className="metadata-item">
-                <span className="metadata-label">Catégories</span>
+                <span className="metadata-label">Categories</span>
                 <div className="metadata-tags">
                   {incident.tags.map((tag, index) => (
                     <span key={index} className="metadata-tag">{tag}</span>
@@ -459,7 +459,7 @@ Authorities advise all motorists to avoid this section of the highway until furt
                 </div>
               </div>
               <div className="metadata-item">
-                <span className="metadata-label">Dernière MAJ</span>
+                <span className="metadata-label">Last Updated</span>
                 <span className="metadata-value">{incident.lastUpdated}</span>
               </div>
             </div>

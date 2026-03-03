@@ -89,7 +89,7 @@ export default function NewsPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Rechercher un incident, une route, une wilaya…" aria-label="Search feed" />
+            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a province…" aria-label="Search feed" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
@@ -98,11 +98,11 @@ export default function NewsPage() {
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Déconnexion</button>
+                  <button className="dropdown-item logout">🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -123,8 +123,8 @@ export default function NewsPage() {
             </div>
             <div className="profile-info">
               <p className="profile-name">Sofiane Ahmed</p>
-              <span className="role-badge role-citoyen">Citoyen</span>
-              <p className="profile-bio">Contributeur actif pour une route plus sûre en Algérie 🇩🇿</p>
+              <span className="role-badge role-citoyen">Citizen</span>
+              <p className="profile-bio">Active contributor for safer roads in Algeria 🇩🇿</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>
@@ -132,79 +132,79 @@ export default function NewsPage() {
           {/* Navigation — main pages, tools, and settings links */}
           <nav className="card nav-menu">
             <div className="nav-section-label">NAVIGATION</div>
-            <button className="nav-item" onClick={() => navigate('/home')}><span className="nav-accent"></span><span className="nav-icon">🏠</span><span className="nav-label">Accueil</span></button>
-            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">📰</span><span className="nav-label">Fil d'actualité</span></button>
-            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">📄</span><span className="nav-label">Mes signalements</span></button>
-            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-accent"></span><span className="nav-icon">🗺️</span><span className="nav-label">Carte des incidents</span></button>
+            <button className="nav-item" onClick={() => navigate('/home')}><span className="nav-accent"></span><span className="nav-icon">🏠</span><span className="nav-label">Home</span></button>
+            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">📰</span><span className="nav-label">News Feed</span></button>
+            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">📄</span><span className="nav-label">My Reports</span></button>
+            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-accent"></span><span className="nav-icon">🗺️</span><span className="nav-label">Incident Map</span></button>
             
-            <div className="nav-section-label">OUTILS</div>
-            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">🚗</span><span className="nav-label">Quiz Conducteur</span></button>
-            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">📊</span><span className="nav-label">Statistiques</span></button>
-            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alertes</span></button>
+            <div className="nav-section-label">TOOLS</div>
+            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">🚗</span><span className="nav-label">Driver Quiz</span></button>
+            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">📊</span><span className="nav-label">Statistics</span></button>
+            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alerts</span></button>
             
-            <div className="nav-section-label">PARAMÈTRES</div>
-            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Paramètres</span></button>
+            <div className="nav-section-label">SETTINGS</div>
+            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Settings</span></button>
           </nav>
 
           {/* Smart Filters — collapsible panel: date range, severity, type, wilaya */}
           <div className="card smart-filters">
-            <div className="card-header"><h3 className="card-title">Filtres intelligents</h3><button className="collapse-btn" onClick={() => setFiltersOpen(!filtersOpen)}>{filtersOpen ? '▾' : '▸'}</button></div>
+            <div className="card-header"><h3 className="card-title">Smart Filters</h3><button className="collapse-btn" onClick={() => setFiltersOpen(!filtersOpen)}>{filtersOpen ? '▾' : '▸'}</button></div>
             {filtersOpen && (
               <>
-                <div className="filter-section"><label className="filter-label">Date range</label><select className="filter-select"><option>Aujourd'hui</option><option>Cette semaine</option></select></div>
-                <div className="filter-section"><label className="filter-label">Gravité</label><div className="filter-pills"><button className="severity-pill severity-low">Low</button><button className="severity-pill severity-medium">Medium</button><button className="severity-pill severity-high">High</button></div></div>
-                <div className="filter-section"><label className="filter-label">Type</label><select className="filter-select"><option>Tout</option><option>Collision</option><option>Danger</option></select></div>
-                <div className="filter-section"><label className="filter-label">Wilaya</label><select className="filter-select"><option>Toutes</option><option>Alger</option><option>Oran</option></select></div>
+                <div className="filter-section"><label className="filter-label">Date range</label><select className="filter-select"><option>Today</option><option>This week</option></select></div>
+                <div className="filter-section"><label className="filter-label">Severity</label><div className="filter-pills"><button className="severity-pill severity-low">Low</button><button className="severity-pill severity-medium">Medium</button><button className="severity-pill severity-high">High</button></div></div>
+                <div className="filter-section"><label className="filter-label">Type</label><select className="filter-select"><option>All</option><option>Collision</option><option>Danger</option></select></div>
+                <div className="filter-section"><label className="filter-label">Province</label><select className="filter-select"><option>All</option><option>Algiers</option><option>Oran</option></select></div>
               </>
             )}
           </div>
 
           {/* Saved Filters — quick presets the user has bookmarked */}
           <div className="card saved-filters">
-            <h3 className="card-title">Filtres enregistrés</h3>
-            <div className="saved-filter-item">Heures de pointe Alger</div>
-            <div className="saved-filter-item">Zones scolaires</div>
-            <div className="saved-filter-item">Pluie + visibilité faible</div>
+            <h3 className="card-title">Saved Filters</h3>
+            <div className="saved-filter-item">Algiers Rush Hours</div>
+            <div className="saved-filter-item">School Zones</div>
+            <div className="saved-filter-item">Rain + Low Visibility</div>
           </div>
         </aside>
 
         {/* ═══ CENTER FEED ═══ */}
         <main className="feed-center">
           {/* Real-time Indicator — clickable banner showing new reports count */}
-          <button className="realtime-indicator">3 nouveaux signalements — Cliquez pour afficher</button>
+          <button className="realtime-indicator">3 new reports — Click to show</button>
 
           {/* Composer — quick-post widget with category presets, media tools, and auto-draft */}
           <div className="card composer">
             <div className="composer-categories">
               <button className="category-preset" onClick={() => navigate('/report')}>🚗 Accident</button>
               <button className="category-preset" onClick={() => navigate('/report')}>🔥 Danger</button>
-              <button className="category-preset" onClick={() => navigate('/report')}>🌧️ Pluie</button>
-              <button className="category-preset" onClick={() => navigate('/report')}>👮 Contrôle routier</button>
+              <button className="category-preset" onClick={() => navigate('/report')}>🌧️ Rain</button>
+              <button className="category-preset" onClick={() => navigate('/report')}>👮 Road Check</button>
             </div>
-            <div className="composer-top"><div className="composer-avatar">SA</div><button className="composer-input-fake" onClick={() => navigate('/report')}>Accident léger, ralentissement sur l'autoroute Est-Ouest...</button></div>
-            <textarea className="composer-textarea" placeholder="Décrivez l’incident en détail : lieu exact, conditions, niveau de gravité..."></textarea>
+            <div className="composer-top"><div className="composer-avatar">SA</div><button className="composer-input-fake" onClick={() => navigate('/report')}>Minor accident, slowdown on the East-West highway...</button></div>
+            <textarea className="composer-textarea" placeholder="Describe the incident in detail: exact location, conditions, severity level..."></textarea>
             <div className="composer-actions">
               <div className="composer-tools">
                 <button className="composer-tool">📸 Photo</button>
-                <button className="composer-tool">🎥 Vidéo</button>
-                <button className="composer-tool">📍 Localisation</button>
-                <button className="composer-tool">🛈 Gravité</button>
+                <button className="composer-tool">🎥 Video</button>
+                <button className="composer-tool">📍 Location</button>
+                <button className="composer-tool">🛈 Severity</button>
                 <button className="composer-tool"># Tags</button>
               </div>
-              <button className="btn-publier" onClick={() => navigate('/report')}>Publier</button>
+              <button className="btn-publier" onClick={() => navigate('/report')}>Publish</button>
             </div>
-            <div className="composer-draft-indicator">✔ Brouillon enregistré automatiquement</div>
+            <div className="composer-draft-indicator">✔ Draft saved automatically</div>
           </div>
 
           {/* Sticky Feed Tabs — filter feed view + sort selector */}
           <div className="feed-tabs-sticky">
             <div className="feed-tabs">
-              <button className="feed-tab feed-tab-active">Derniers</button>
-              <button className="feed-tab">À proximité</button>
-              <button className="feed-tab">Vérifiés</button>
-              <button className="feed-tab">Abonnements</button>
+              <button className="feed-tab feed-tab-active">Latest</button>
+              <button className="feed-tab">Nearby</button>
+              <button className="feed-tab">Verified</button>
+              <button className="feed-tab">Following</button>
             </div>
-            <div className="feed-sort"><label>Trier par:</label><select className="feed-sort-select"><option>Les + récents</option><option>Gravité</option></select></div>
+            <div className="feed-sort"><label>Sort by:</label><select className="feed-sort-select"><option>Most recent</option><option>Severity</option></select></div>
           </div>
 
           {/* ═══ POST CARDS ═══ */}
@@ -217,23 +217,23 @@ export default function NewsPage() {
                 <div>
                   <div className="post-author-row">
                     <span className="post-author hoverable-name">Amina Zerrouki</span>
-                    <span className="badge badge-verified">✔️ Vérifié</span>
+                    <span className="badge badge-verified">✔️ Verified</span>
                     <span className="badge badge-police">Police</span>
                   </div>
-                  <div className="post-meta-row"><span className="post-time">Il y a 10 min</span><span className="post-dot">•</span><span className="post-location">📍 Alger — Bab Ezzouar</span></div>
+                  <div className="post-meta-row"><span className="post-time">10 min ago</span><span className="post-dot">•</span><span className="post-location">📍 Algiers — Bab Ezzouar</span></div>
                 </div>
               </div>
               <div className="post-header-right">
-                <span className="severity-pill severity-high small">Gravité élevée</span>
+                <span className="severity-pill severity-high small">High Severity</span>
                 <button className="post-options-btn">•••</button>
               </div>
             </header>
             <div className="post-body">
-              <p className="post-text clamp-lines">Carambolage impliquant 3 véhicules sur l'autoroute est, juste avant la sortie vers Bab Ezzouar. Fort ralentissement dans les deux sens, visibilité réduite à cause de la pluie.</p>
-              <button className="post-see-more">Voir plus</button>
-              <div className="post-tags"><span className="post-tag">#collision</span><span className="post-tag">#pluie</span><span className="post-tag">#trafic</span></div>
+              <p className="post-text clamp-lines">3-vehicle pileup on the eastern highway, just before the Bab Ezzouar exit. Major slowdown in both directions, reduced visibility due to rain.</p>
+              <button className="post-see-more">See more</button>
+              <div className="post-tags"><span className="post-tag">#collision</span><span className="post-tag">#rain</span><span className="post-tag">#traffic</span></div>
               <div className="post-media-grid grid-3"><div className="media-item"></div><div className="media-item"></div><div className="media-item media-more">+3</div></div>
-              <button className="post-map-preview">🗺 Voir sur la carte</button>
+              <button className="post-map-preview">🗺 View on map</button>
             </div>
             <footer className="post-footer">
               <div className="post-reactions">
@@ -244,11 +244,11 @@ export default function NewsPage() {
               </div>
               <div className="post-stats">
                 <button className="post-stat-btn">💬 18</button>
-                <button className="post-stat-btn">↗️ Partager</button>
-                <button className="post-stat-btn">👁️ 2,3k vues</button>
+                <button className="post-stat-btn">↗️ Share</button>
+                <button className="post-stat-btn">👁️ 2.3k views</button>
               </div>
             </footer>
-            <div className="post-comments-preview"><div className="comment-box"><strong>R. B.</strong> Merci pour l'info, je prends un autre itinéraire.</div></div>
+            <div className="post-comments-preview"><div className="comment-box"><strong>R. B.</strong> Thanks for the info, taking another route.</div></div>
           </article>
 
           <article className="card post-card">
@@ -256,19 +256,19 @@ export default function NewsPage() {
               <div className="post-header-left">
                 <div className="post-avatar">HM</div>
                 <div>
-                  <div className="post-author-row"><span className="post-author hoverable-name">Hakim Meziane</span><span className="badge badge-citoyen">Citoyen</span></div>
-                  <div className="post-meta-row"><span className="post-time">Il y a 45 min</span><span className="post-dot">•</span><span className="post-location">📍 Oran — Es-Sénia</span></div>
+                  <div className="post-author-row"><span className="post-author hoverable-name">Hakim Meziane</span><span className="badge badge-citoyen">Citizen</span></div>
+                  <div className="post-meta-row"><span className="post-time">45 min ago</span><span className="post-dot">•</span><span className="post-location">📍 Oran — Es-Sénia</span></div>
                 </div>
               </div>
               <div className="post-header-right">
-                <span className="severity-pill severity-medium small">Gravité moyenne</span>
+                <span className="severity-pill severity-medium small">Medium Severity</span>
                 <button className="post-options-btn">•••</button>
               </div>
             </header>
             <div className="post-body">
-              <p className="post-text">Feu tricolore en panne au grand carrefour, circulation très désorganisée.</p>
-              <div className="post-tags"><span className="post-tag">#feu</span><span className="post-tag">#danger</span></div>
-              <button className="post-map-preview">🗺 Voir sur la carte</button>
+              <p className="post-text">Traffic light out of order at the main intersection, traffic very disorganized.</p>
+              <div className="post-tags"><span className="post-tag">#light</span><span className="post-tag">#danger</span></div>
+              <button className="post-map-preview">🗺 View on map</button>
             </div>
             <footer className="post-footer">
               <div className="post-reactions">
@@ -279,8 +279,8 @@ export default function NewsPage() {
               </div>
               <div className="post-stats">
                 <button className="post-stat-btn">💬 7</button>
-                <button className="post-stat-btn">↗️ Partager</button>
-                <button className="post-stat-btn">👁️ 780 vues</button>
+                <button className="post-stat-btn">↗️ Share</button>
+                <button className="post-stat-btn">👁️ 780 views</button>
               </div>
             </footer>
           </article>
@@ -291,7 +291,7 @@ export default function NewsPage() {
           {/* Mini Map Widget — Google Map with severity-coloured markers + legend */}
           <div className="card widget-map">
             <div className="map-widget-header">
-              <h3 className="widget-title">Incidents autour de vous</h3>
+              <h3 className="widget-title">Incidents Near You</h3>
               <div className="map-legends">
                 <span className="map-legend"><span className="legend-dot danger"></span>Danger</span>
                 <span className="map-legend"><span className="legend-dot accident"></span>Accident</span>
@@ -315,65 +315,65 @@ export default function NewsPage() {
                   ))}
                 </GoogleMap>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#f0f0f0' }}>Chargement de la carte…</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#f0f0f0' }}>Loading map…</div>
               )}
             </div>
-            <button className="btn-open-map" onClick={() => navigate('/map')}>Ouvrir la carte complète</button>
+            <button className="btn-open-map" onClick={() => navigate('/map')}>Open Full Map</button>
           </div>
 
           {/* Trending Incidents — top 3 most-discussed incidents with severity pills */}
           <div className="card widget-trending">
-            <h3 className="widget-title">Incidents en tendance</h3>
+            <h3 className="widget-title">Trending Incidents</h3>
             <div className="trending-item">
-              <span className="severity-pill severity-high small">Élevée</span>
+              <span className="severity-pill severity-high small">High</span>
               <div className="trending-info">
                 <div className="trending-header">
                   <p className="trending-location">Boulevard Zirout Youcef</p>
                   <span className="trending-icon">🚗</span>
                 </div>
                 <div className="trending-bar"></div>
-                <span className="trending-time">Il y a 15 min</span>
+                <span className="trending-time">15 min ago</span>
               </div>
             </div>
             <div className="trending-item">
-              <span className="severity-pill severity-medium small">Moyenne</span>
+              <span className="severity-pill severity-medium small">Medium</span>
               <div className="trending-info">
                 <div className="trending-header">
-                  <p className="trending-location">RN11 – Zone industrielle</p>
+                  <p className="trending-location">RN11 – Industrial Zone</p>
                   <span className="trending-icon">⚠️</span>
                 </div>
                 <div className="trending-bar"></div>
-                <span className="trending-time">Il y a 40 min</span>
+                <span className="trending-time">40 min ago</span>
               </div>
             </div>
             <div className="trending-item">
-              <span className="severity-pill severity-low small">Faible</span>
+              <span className="severity-pill severity-low small">Low</span>
               <div className="trending-info">
                 <div className="trending-header">
-                  <p className="trending-location">Quartier universitaire</p>
+                  <p className="trending-location">University District</p>
                   <span className="trending-icon">🚧</span>
                 </div>
                 <div className="trending-bar"></div>
-                <span className="trending-time">Il y a 1 h</span>
+                <span className="trending-time">1 hour ago</span>
               </div>
             </div>
-            <button className="widget-see-more">Voir plus</button>
+            <button className="widget-see-more">See more</button>
           </div>
 
           {/* Priority Alerts — weather and safety warnings */}
           <div className="card widget-alerts">
-            <h3 className="widget-title">Alertes prioritaires</h3>
-            <div className="alert-item">• Pluie forte attendue dans le centre</div>
-            <div className="alert-item">• Brouillard matinal Est-Ouest</div>
-            <div className="alert-item">• Travaux nocturnes Wilaya 16</div>
-            <button className="btn-activate-alerts">Activer les alertes</button>
+            <h3 className="widget-title">Priority Alerts</h3>
+            <div className="alert-item">• Heavy rain expected in the center</div>
+            <div className="alert-item">• Morning fog East-West</div>
+            <div className="alert-item">• Night roadworks Province 16</div>
+            <button className="btn-activate-alerts">Enable Alerts</button>
           </div>
 
           {/* Quick Actions — shortcut buttons for common tasks */}
           <div className="card widget-quick-actions">
-            <h3 className="widget-title">Actions rapides</h3>
-            <button className="quick-action-btn">➕ Ajouter un signalement</button>
-            <button className="quick-action-btn">📤 Exporter données</button>
+            <h3 className="widget-title">Quick Actions</h3>
+            <button className="quick-action-btn">➕ Add a Report</button>
+            <button className="quick-action-btn">📤 Export Data</button>
           </div>
         </aside>
       </div>

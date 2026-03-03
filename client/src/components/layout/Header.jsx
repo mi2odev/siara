@@ -18,26 +18,26 @@ export default function Header() {
     <header className="siara-header">
       <div className="siara-header-inner">
         <div className="brand-group">
-          <Link to="/home" className="logo-link" aria-label="Accueil SIARA">
+          <Link to="/home" className="logo-link" aria-label="Home SIARA">
             <img src={logo} alt="SIARA" className="logo-img" loading="lazy" />
             <span className="logo-text">SIARA</span>
           </Link>
         </div>
 
-        <nav className="main-nav" aria-label="Navigation principale">
+        <nav className="main-nav" aria-label="Main navigation">
           {isHome ? (
             <button onClick={()=>scrollTo('hero')} className="nav-link">Home</button>
           ) : (
             <Link to="/home" className="nav-link">Home</Link>
           )}
-          <Link to="/map" className="nav-link">Carte</Link>
-          <Link to="/predictions" className="nav-link">Prédictions</Link>
+          <Link to="/map" className="nav-link">Map</Link>
+          <Link to="/predictions" className="nav-link">Predictions</Link>
           <Link to={dashboardPath} className="nav-link">Dashboard</Link>
           <Link to="/contact" className="nav-link">Contact</Link>
         </nav>
 
         <div className="header-cta">
-          <Link to="/login" className="btn-cta" aria-label="Se connecter">Se connecter</Link>
+          <Link to="/login" className="btn-cta" aria-label="Log in">Log in</Link>
         </div>
       </div>
     </header>

@@ -1,18 +1,18 @@
 /**
  * @file LoginPage.jsx
- * @description Page de connexion de la plateforme SIARA.
+ * @description Login page for the SIARA platform.
  *
- * Disposition en deux colonnes :
- *   - Gauche : panneau héro avec logo, illustration orbitale et badges fonctionnalités.
- *   - Droite : formulaire de connexion (email/téléphone + mot de passe).
+ * Two-column layout:
+ *   - Left: hero panel with logo, orbital illustration, and feature badges.
+ *   - Right: login form (email/phone + password).
  *
- * Fonctionnalités :
- *   - Validation email / numéro de téléphone (min 8 chiffres).
- *   - Afficher / masquer le mot de passe.
- *   - Case « Se souvenir de moi ».
- *   - Boutons d'accès démo rapide (admin & utilisateur).
- *   - Redirection vers /admin/overview (admin) ou /news (utilisateur) après connexion.
- *   - Connexion via AuthContext.login().
+ * Features:
+ *   - Email / phone number validation (min 8 digits).
+ *   - Show / hide password.
+ *   - "Remember me" checkbox.
+ *   - Quick demo access buttons (admin & user).
+ *   - Redirect to /admin/overview (admin) or /news (user) after login.
+ *   - Login via AuthContext.login().
  */
 import React, { useState, useRef, useContext } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
@@ -21,50 +21,50 @@ import '../../styles/LoginPage.css'
 import logo from '../../assets/logos/siara-logo.png'
 
 export default function LoginPage() {
-  // --- Variables d'état du formulaire ---
-  const [identifier, setIdentifier] = useState('')      // Email ou numéro de téléphone saisi
-  const [password, setPassword] = useState('')           // Mot de passe saisi
-  const [remember, setRemember] = useState(false)        // Case « Se souvenir de moi »
-  const [showPassword, setShowPassword] = useState(false)// Bascule visibilité du mot de passe
-  const [loading, setLoading] = useState(false)          // Indicateur de chargement pendant la requête
-  const [error, setError] = useState('')                 // Message d'erreur global (connexion échouée)
-  const [fieldErrors, setFieldErrors] = useState({})     // Erreurs de validation par champ
-  const alertRef = useRef(null)                          // Réf. pour focus automatique sur l'alerte d'erreur
+  // --- Form state variables ---
+  const [identifier, setIdentifier] = useState('')      // Email or phone number entered
+  const [password, setPassword] = useState('')           // Password entered
+  const [remember, setRemember] = useState(false)        // "Remember me" checkbox
+  const [showPassword, setShowPassword] = useState(false)// Password visibility toggle
+  const [loading, setLoading] = useState(false)          // Loading indicator during request
+  const [error, setError] = useState('')                 // Global error message (login failed)
+  const [fieldErrors, setFieldErrors] = useState({})     // Validation errors by field
+  const alertRef = useRef(null)                          // Ref for auto-focus on error alert
 
   /**
-   * Valide les champs du formulaire avant soumission.
-   * - Identifiant : requis, format email OU numéro ≥ 8 chiffres.
-   * - Mot de passe : requis, longueur ≥ 8 caractères.
-   * @returns {Object} Objet d'erreurs par champ (vide si tout est valide).
+   * Validates form fields before submission.
+   * - Identifier: required, email format OR number ≥ 8 digits.
+   * - Password: required, length ≥ 8 characters.
+   * @returns {Object} Error object by field (empty if all valid).
    */
   function validate() {
     const errs = {}
-    if (!identifier) errs.identifier = 'Veuillez entrer un email ou un numéro valide.'
+    if (!identifier) errs.identifier = 'Please enter a valid email or number.'
     else {
-      // Détecte si l'identifiant est un email ou un numéro de téléphone
+      // Detects whether the identifier is an email or a phone number
       const isEmail = identifier.includes('@')
       if (isEmail) {
         const re = /\S+@\S+\.\S+/
-        if (!re.test(identifier)) errs.identifier = 'Veuillez entrer un email valide.'
+        if (!re.test(identifier)) errs.identifier = 'Please enter a valid email.'
       } else {
-        // Extraction des chiffres uniquement pour valider le numéro
+        // Extract digits only to validate the number
         const digits = identifier.replace(/\D/g, '')
-        if (digits.length < 8) errs.identifier = 'Veuillez entrer un numéro de téléphone valide (min 8 chiffres).'
+        if (digits.length < 8) errs.identifier = 'Please enter a valid phone number (min 8 digits).'
       }
     }
-    if (!password) errs.password = 'Le mot de passe est requis.'
-    else if (password.length < 8) errs.password = 'Le mot de passe doit contenir au moins 8 caractères.'
+    if (!password) errs.password = 'Password is required.'
+    else if (password.length < 8) errs.password = 'Password must contain at least 8 characters.'
     return errs
   }
 
   const navigate = useNavigate()
-  const { login } = useContext(AuthContext) // Fonction login fournie par AuthContext
+  const { login } = useContext(AuthContext) // Login function provided by AuthContext
 
   /**
-   * Gère la soumission du formulaire de connexion.
-   * 1. Valide les champs, affiche les erreurs si nécessaire.
-   * 2. Appelle login() via AuthContext.
-   * 3. Redirige selon le rôle : admin → /admin/overview, user → /news.
+   * Handles the login form submission.
+   * 1. Validates fields, displays errors if necessary.
+   * 2. Calls login() via AuthContext.
+   * 3. Redirects based on role: admin → /admin/overview, user → /news.
    */
   async function handleSubmit(e) {
     e.preventDefault()
@@ -72,7 +72,7 @@ export default function LoginPage() {
     const errs = validate()
     setFieldErrors(errs)
     if (Object.keys(errs).length) {
-      // Focus automatique sur le premier champ invalide pour l'accessibilité
+      // Auto-focus on first invalid field for accessibility
       setTimeout(() => {
         const el = document.querySelector('[aria-invalid="true"]')
         if (el) el.focus()
@@ -83,14 +83,14 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const res = await login(identifier, password, remember)
-      // Petit délai visuel avant la redirection selon le rôle
+      // Short visual delay before redirect based on role
       setTimeout(() => {
         if (res.role === 'admin') navigate('/admin/overview')
         else navigate('/news')
       }, 300)
     } catch (err) {
-      // Affiche l'erreur et focus sur l'alerte pour les lecteurs d'écran
-      setError(err.message || 'Erreur : Identifiants invalides')
+      // Display error and focus on alert for screen readers
+      setError(err.message || 'Error: Invalid credentials')
       setTimeout(() => {
         if (alertRef.current) alertRef.current.focus()
       }, 50)
@@ -100,16 +100,16 @@ export default function LoginPage() {
   }
 
   // =====================================================================
-  // RENDU JSX
+  // JSX RENDER
   // =====================================================================
   return (
     <div className="siara-login-root">
       <div className="siara-login-grid">
-        {/* ==================== PANNEAU HÉRO (gauche) ==================== */}
+        {/* ==================== HERO PANEL (left) ==================== */}
         <aside className="siara-hero">
           <img src={logo} alt="SIARA" className="logo" />
           <div className="siara-hero-main">
-            <div className="hero-kicker">Plateforme IA — SIARA</div>
+            <div className="hero-kicker">AI Platform — SIARA</div>
             <div className="siara-hero-illustration">
               <div className="hero-orbits">
                 <span />
@@ -118,43 +118,43 @@ export default function LoginPage() {
               </div>
             </div>
             <h2 className="title">SIARA — Road Accident Risk Visualizer</h2>
-            <p className="subtitle">Prototype frontend pour visualiser et anticiper les risques d'accidents routiers en Algérie grâce à l’IA et aux données.</p>
+            <p className="subtitle">Frontend prototype to visualize and anticipate road accident risks in Algeria using AI and data.</p>
             <div className="hero-badges">
-              <span className="hero-badge">Heatmaps interactives</span>
-              <span className="hero-badge">IA prédictive</span>
-              <span className="hero-badge">Sécurité routière</span>
+              <span className="hero-badge">Interactive Heatmaps</span>
+              <span className="hero-badge">Predictive AI</span>
+              <span className="hero-badge">Road Safety</span>
             </div>
           </div>
         </aside>
 
-        {/* ==================== COLONNE FORMULAIRE (droite) ==================== */}
+        {/* ==================== FORM COLUMN (right) ==================== */}
         <main className="siara-form-column">
           <div className="siara-form-wrap" role="region" aria-labelledby="loginTitle">
-            {/* --- En-tête de marque --- */}
+            {/* --- Brand header --- */}
             <div className="siara-brand">
               <img src={logo} alt="SIARA logo" />
               <div>
                 <div className="brand-name">SIARA</div>
-                <div className="tag">Prédiction des risques routiers — Prototype</div>
+                <div className="tag">Road Risk Prediction — Prototype</div>
               </div>
             </div>
 
-            {/* --- Titre et description du formulaire --- */}
-            <h2 id="loginTitle" className="siara-form-title">Se connecter</h2>
-            <div className="siara-form-sub">Connectez-vous pour accéder au tableau de bord et aux outils de visualisation de risques.</div>
-            <div className="siara-form-helper">Accès réservé aux utilisateurs SIARA.</div>
+            {/* --- Form title and description --- */}
+            <h2 id="loginTitle" className="siara-form-title">Log In</h2>
+            <div className="siara-form-sub">Log in to access the dashboard and risk visualization tools.</div>
+            <div className="siara-form-helper">Access restricted to SIARA users.</div>
 
-          {/* --- Alerte d'erreur globale (identifiants invalides, etc.) --- */}
+          {/* --- Global error alert (invalid credentials, etc.) --- */}
           {error && (
             <div ref={alertRef} role="alert" tabIndex={-1} className="error-box" style={{color:'var(--siara-error)',marginBottom:12}}>
               {error}
             </div>
           )}
 
-            {/* --- Formulaire de connexion --- */}
+            {/* --- Login form --- */}
             <form onSubmit={handleSubmit} aria-live="polite">
-              {/* Champ identifiant (email ou numéro de téléphone) */}
-              <label htmlFor="identifier" className="field-label">Email ou numéro</label>
+              {/* Identifier field (email or phone number) */}
+              <label htmlFor="identifier" className="field-label">Email or phone number</label>
               <div className="input-shell">
                 <span className="input-icon" aria-hidden="true">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -162,13 +162,13 @@ export default function LoginPage() {
                     <path d="M4 7L12 12L20 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </span>
-                <input id="identifier" className="siara-input" placeholder="email@exemple.com ou +213..." value={identifier} onChange={(e)=>setIdentifier(e.target.value)} aria-invalid={fieldErrors.identifier? 'true':'false'} />
+                <input id="identifier" className="siara-input" placeholder="email@example.com or +213..." value={identifier} onChange={(e)=>setIdentifier(e.target.value)} aria-invalid={fieldErrors.identifier? 'true':'false'} />
               </div>
 
               <div style={{height:8}} />
 
-              {/* Champ mot de passe avec bouton afficher/masquer */}
-              <label htmlFor="password" className="field-label">Mot de passe</label>
+              {/* Password field with show/hide button */}
+              <label htmlFor="password" className="field-label">Password</label>
               <div className="input-shell">
                 <span className="input-icon" aria-hidden="true">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -176,11 +176,11 @@ export default function LoginPage() {
                     <path d="M9 8V6.5C9 5.12 10.12 4 11.5 4H12.5C13.88 4 15 5.12 15 6.5V8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
                   </svg>
                 </span>
-                <input id="password" className="siara-input" placeholder="Mot de passe" type={showPassword? 'text':'password'} value={password} onChange={(e)=>setPassword(e.target.value)} aria-invalid={fieldErrors.password? 'true':'false'} />
+                <input id="password" className="siara-input" placeholder="Password" type={showPassword? 'text':'password'} value={password} onChange={(e)=>setPassword(e.target.value)} aria-invalid={fieldErrors.password? 'true':'false'} />
                 <button
                   type="button"
                   onClick={()=>setShowPassword(s=>!s)}
-                  aria-label={showPassword? 'Masquer le mot de passe':'Afficher le mot de passe'}
+                  aria-label={showPassword? 'Hide password':'Show password'}
                   className={`eye-toggle ${showPassword ? 'eye-open' : 'eye-closed'}`}
                 >
                   {showPassword ? (
@@ -199,20 +199,20 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              {/* --- Ligne « Se souvenir de moi » & lien mot de passe oublié --- */}
+              {/* --- "Remember me" row & forgot password link --- */}
               <div className="siara-row" style={{marginTop:12}}>
-                <label style={{display:'flex',alignItems:'center',gap:8}} className="siara-remember"><input type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} /> Se souvenir de moi</label>
+                <label style={{display:'flex',alignItems:'center',gap:8}} className="siara-remember"><input type="checkbox" checked={remember} onChange={(e)=>setRemember(e.target.checked)} /> Remember me</label>
                 <div style={{flex:1}} />
-                <Link to="/forgot" className="link-accent">Mot de passe oublié ?</Link>
+                <Link to="/forgot" className="link-accent">Forgot password?</Link>
               </div>
 
               <div style={{height:8}} />
 
-              {/* Bouton de soumission principal */}
-              <button type="submit" className="siara-cta" disabled={loading} aria-busy={loading}>{loading? 'Chargement...':'Se connecter'}</button>
+              {/* Main submit button */}
+              <button type="submit" className="siara-cta" disabled={loading} aria-busy={loading}>{loading? 'Loading...':'Log In'}</button>
             </form>
 
-            {/* --- Bouton connexion Google (placeholder) --- */}
+            {/* --- Google login button (placeholder) --- */}
             <button className="siara-alt" style={{marginTop:12}}>
               <span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
                 <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
@@ -223,13 +223,13 @@ export default function LoginPage() {
                   <path fill="none" d="M0 0h48v48H0z"/>
                 </svg>
               </span>
-              <span>Se connecter avec Google</span>
+              <span>Sign in with Google</span>
             </button>
 
-            {/* ==================== Accès démo rapide ==================== */}
-            {/* Boutons admin & utilisateur pour tester sans créer de compte */}
+            {/* ==================== Quick demo access ==================== */}
+            {/* Admin & user buttons for testing without creating an account */}
             <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(59,130,246,0.08)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.18)' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#3b82f6', marginBottom: 8 }}>Accès démo rapide</div>
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#3b82f6', marginBottom: 8 }}>Quick Demo Access</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   type="button"
@@ -266,10 +266,10 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* --- Liens de pied de page : à propos & inscription --- */}
+            {/* --- Footer links: about & registration --- */}
             <div className="siara-footer-links">
-              <Link to="/about">À propos de SIARA</Link>
-              <Link to="/register" className="link-accent">S'inscrire</Link>
+              <Link to="/about">About SIARA</Link>
+              <Link to="/register" className="link-accent">Sign Up</Link>
             </div>
           </div>
         </main>

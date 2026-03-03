@@ -40,11 +40,11 @@ export default function SettingsPage() {
   /** profileData holds the editable user fields displayed in Profile & Account sections */
   const [profileData, setProfileData] = useState({
     name: 'Sofiane Ahmed',
-    bio: 'Contributeur actif pour une route plus sûre en Algérie 🇩🇿',
-    location: 'Alger, Algérie',
+    bio: 'Active contributor for safer roads in Algeria 🇩🇿',
+    location: 'Algiers, Algeria',
     email: 'sofiane.ahmed@email.com',
     phone: '+213 555 123 456',
-    language: 'Français',
+    language: 'French',
   })
   const [editing, setEditing] = useState(null)  // field key currently being edited (or null)
   const [saved, setSaved] = useState(null)       // field key that just saved (shows "Saved ✓" badge briefly)
@@ -103,7 +103,7 @@ export default function SettingsPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Rechercher un incident, une route, une wilaya…" aria-label="Search" />
+            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya…" aria-label="Search" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
@@ -112,11 +112,11 @@ export default function SettingsPage() {
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
-                  <button className="dropdown-item active" onClick={() => setShowDropdown(false)}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item active" onClick={() => setShowDropdown(false)}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Déconnexion</button>
+                  <button className="dropdown-item logout">🚪 Log Out</button>
                 </div>
               )}
             </div>

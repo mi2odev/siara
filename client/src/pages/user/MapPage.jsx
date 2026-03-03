@@ -62,10 +62,10 @@ export default function MapPage() {
   // Incident categories shown as filter chips
   const incidentTypes = [
     { id: "accident", label: "Accident", icon: "🚗" },
-    { id: "traffic", label: "Trafic", icon: "🚦" },
+    { id: "traffic", label: "Traffic", icon: "🚦" },
     { id: "danger", label: "Danger", icon: "⚠️" },
-    { id: "weather", label: "Météo", icon: "🌧️" },
-    { id: "roadworks", label: "Travaux", icon: "🚧" },
+    { id: "weather", label: "Weather", icon: "🌧️" },
+    { id: "roadworks", label: "Roadworks", icon: "🚧" },
   ];
 
   // List of wilayas available in the zone dropdown
@@ -88,16 +88,16 @@ export default function MapPage() {
 
   // Live alerts shown in the right sidebar
   const activeAlerts = [
-    { id: 1, title: "Accident grave A1", type: "accident", time: "3 min" },
-    { id: 2, title: "Inondation route", type: "weather", time: "15 min" },
+    { id: 1, title: "Serious accident A1", type: "accident", time: "3 min" },
+    { id: 2, title: "Road flooding", type: "weather", time: "15 min" },
   ];
 
   // Placeholder map markers (replace with API data in production)
   const mockMarkers = [
-    { id: 1, lat: 36.7538, lng: 3.0588, type: "accident", severity: "high", title: "Collision multiple" },
-    { id: 2, lat: 36.7638, lng: 3.0788, type: "traffic", severity: "medium", title: "Embouteillage" },
-    { id: 3, lat: 36.7438, lng: 3.0388, type: "roadworks", severity: "low", title: "Travaux en cours" },
-    { id: 4, lat: 36.7338, lng: 3.0688, type: "danger", severity: "high", title: "Route barrée" },
+    { id: 1, lat: 36.7538, lng: 3.0588, type: "accident", severity: "high", title: "Multi-vehicle collision" },
+    { id: 2, lat: 36.7638, lng: 3.0788, type: "traffic", severity: "medium", title: "Traffic jam" },
+    { id: 3, lat: 36.7438, lng: 3.0388, type: "roadworks", severity: "low", title: "Ongoing roadworks" },
+    { id: 4, lat: 36.7338, lng: 3.0688, type: "danger", severity: "high", title: "Road blocked" },
   ];
 
   /* ──────────────────────── Event Handlers ──────────────────────── */
@@ -152,7 +152,7 @@ export default function MapPage() {
       },
       (err) => {
         console.error(err);
-        alert("Impossible d'obtenir votre position.");
+        alert("Unable to get your position.");
       },
     );
   };
@@ -196,7 +196,7 @@ export default function MapPage() {
             <input
               type="search"
               className="dash-search"
-              placeholder="Rechercher un incident, une route, une wilaya…"
+              placeholder="Search for an incident, a road, a province…"
               aria-label="Search map"
             />
           </div>
@@ -227,19 +227,19 @@ export default function MapPage() {
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => navigate("/profile")}>
-                    👤 Mon profil
+                    👤 My Profile
                   </button>
                   <button
                     className="dropdown-item"
                     onClick={() => { setShowDropdown(false); navigate("/settings"); }}
                   >
-                    ⚙️ Paramètres
+                    ⚙️ Settings
                   </button>
                   <button className="dropdown-item" onClick={() => navigate("/notifications")}>
                     🔔 Notifications
                   </button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Déconnexion</button>
+                  <button className="dropdown-item logout">🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -258,29 +258,29 @@ export default function MapPage() {
             <div className="user-avatar">SA</div>
             <div className="user-info">
               <span className="user-name">Sofiane A.</span>
-              <span className="user-role">Citoyen</span>
+              <span className="user-role">Citizen</span>
             </div>
           </div>
 
           {/* ── Filter panel ── */}
           <div className="filters-section">
             <div className="section-header">
-              <h3>Filtres</h3>
+              <h3>Filters</h3>
               {/* Show "clear" button only when at least one filter is active */}
               {hasActiveFilters && (
-                <button className="clear-btn" onClick={clearFilters}>Effacer</button>
+                <button className="clear-btn" onClick={clearFilters}>Clear</button>
               )}
             </div>
 
             {/* Time-range filter chips */}
             <div className="filter-group">
-              <label className="filter-label">Période</label>
+              <label className="filter-label">Period</label>
               <div className="filter-chips">
                 {[
                   { id: "24h", label: "24h" },
-                  { id: "7d", label: "7 jours" },
-                  { id: "30d", label: "30 jours" },
-                  { id: "custom", label: "Personnalisé" },
+                  { id: "7d", label: "7 days" },
+                  { id: "30d", label: "30 days" },
+                  { id: "custom", label: "Custom" },
                 ].map((t) => (
                   <button
                     key={t.id}
@@ -295,12 +295,12 @@ export default function MapPage() {
 
             {/* Severity filter chips — colour changes when active */}
             <div className="filter-group">
-              <label className="filter-label">Gravité</label>
+              <label className="filter-label">Severity</label>
               <div className="filter-chips">
                 {[
-                  { id: "high", label: "Élevée", color: "#EF4444" },
-                  { id: "medium", label: "Moyenne", color: "#F59E0B" },
-                  { id: "low", label: "Faible", color: "#10B981" },
+                  { id: "high", label: "High", color: "#EF4444" },
+                  { id: "medium", label: "Medium", color: "#F59E0B" },
+                  { id: "low", label: "Low", color: "#10B981" },
                 ].map((s) => (
                   <button
                     key={s.id}
@@ -320,7 +320,7 @@ export default function MapPage() {
 
             {/* Incident-type filter chips */}
             <div className="filter-group">
-              <label className="filter-label">Type d'incident</label>
+              <label className="filter-label">Incident Type</label>
               <div className="filter-chips">
                 {incidentTypes.map((t) => (
                   <button
@@ -342,7 +342,7 @@ export default function MapPage() {
                 value={selectedWilaya}
                 onChange={(e) => setSelectedWilaya(e.target.value)}
               >
-                <option value="all">Toutes les wilayas</option>
+                <option value="all">All provinces</option>
                 {wilayas.map((w) => (
                   <option key={w} value={w}>{w}</option>
                 ))}
@@ -353,7 +353,7 @@ export default function MapPage() {
           {/* Report-incident CTA pinned at sidebar bottom */}
           <div className="sidebar-action">
             <button className="btn-signal" onClick={() => navigate("/report")}>
-              <span>➕</span> Signaler un incident
+              <span>➕</span> Report an Incident
             </button>
           </div>
         </aside>
@@ -369,7 +369,7 @@ export default function MapPage() {
                   { id: "points", label: "Points" },
                   { id: "heatmap", label: "Heatmap" },
                   { id: "clusters", label: "Clusters" },
-                  { id: "ai", label: "IA Risques" },
+                  { id: "ai", label: "AI Risks" },
                   { id: "nearbyRoads", label: "Nearby Roads" },
                 ].map((l) => (
                   <button
@@ -387,17 +387,17 @@ export default function MapPage() {
             <div className="map-controls-right">
               {/* Toggle fullscreen on/off */}
               {isFullscreen ? (
-                <button className="map-ctrl-btn" title="Quitter le plein écran" onClick={() => setIsFullscreen(false)}>
+                <button className="map-ctrl-btn" title="Exit fullscreen" onClick={() => setIsFullscreen(false)}>
                   <FullscreenExitTwoToneIcon className="btn-icon" />
                 </button>
               ) : (
-                <button className="map-ctrl-btn" title="Plein écran" onClick={() => setIsFullscreen(true)}>
+                <button className="map-ctrl-btn" title="Fullscreen" onClick={() => setIsFullscreen(true)}>
                   <FullscreenTwoToneIcon className="btn-icon" />
                 </button>
               )}
 
               {/* Geolocate user and center the map on their position */}
-              <button className="map-ctrl-btn" title="Ma position" onClick={handleLocateUser}>
+              <button className="map-ctrl-btn" title="My location" onClick={handleLocateUser}>
                 <LocationOnTwoToneIcon className="btn-icon" />
               </button>
             </div>
@@ -415,7 +415,7 @@ export default function MapPage() {
             {/* ── Status bar at the bottom of the map ── */}
             <div className="map-status">
               <span className="status-dot"></span>
-              <span>Temps réel • {mockMarkers.length} incidents affichés</span>
+              <span>Real-time • {mockMarkers.length} incidents displayed</span>
             </div>
           </div>
         </main>
@@ -428,8 +428,8 @@ export default function MapPage() {
             <div className="weather-icon">⛅</div>
             <div className="weather-info">
               <span className="weather-temp">18°C</span>
-              <span className="weather-desc">Partiellement nuageux</span>
-              <span className="weather-detail">Visibilité: Bonne • Vent: 12 km/h</span>
+              <span className="weather-desc">Partly cloudy</span>
+              <span className="weather-detail">Visibility: Good • Wind: 12 km/h</span>
             </div>
           </div>
 
@@ -474,19 +474,19 @@ export default function MapPage() {
 
           {/* ── Map legend ── */}
           <div className="context-section">
-            <h4 className="section-title">Légende</h4>
+            <h4 className="section-title">Legend</h4>
             <div className="legend">
               <div className="legend-item">
                 <span className="legend-dot high"></span>
-                <span>Gravité élevée</span>
+                <span>High Severity</span>
               </div>
               <div className="legend-item">
                 <span className="legend-dot medium"></span>
-                <span>Gravité moyenne</span>
+                <span>Medium Severity</span>
               </div>
               <div className="legend-item">
                 <span className="legend-dot low"></span>
-                <span>Gravité faible</span>
+                <span>Low Severity</span>
               </div>
               {/* Extra legend row when the AI risk layer is active */}
               {mapLayer === "ai" && (
@@ -494,7 +494,7 @@ export default function MapPage() {
                   <hr />
                   <div className="legend-item">
                     <span className="legend-gradient"></span>
-                    <span>Risque IA (0-100%)</span>
+                    <span>AI Risk (0-100%)</span>
                   </div>
                 </>
               )}
@@ -503,7 +503,7 @@ export default function MapPage() {
 
           {/* ── Trending / hot-spot zones ── */}
           <div className="context-section">
-            <h4 className="section-title">Zones à surveiller</h4>
+            <h4 className="section-title">Areas to Watch</h4>
             <div className="trending-zones">
               {trendingZones.map((zone, i) => (
                 <div key={i} className="zone-item">
@@ -523,36 +523,36 @@ export default function MapPage() {
 
           {/* ── Active alerts list ── */}
           <div className="context-section">
-            <h4 className="section-title">Alertes actives</h4>
+            <h4 className="section-title">Active Alerts</h4>
             <div className="map-alerts-list">
               {activeAlerts.map((alert) => (
                 <div key={alert.id} className="map-alert-item">
                   <span className="map-alert-icon">🚨</span>
                   <div className="map-alert-info">
                     <span className="map-alert-title">{alert.title}</span>
-                    <span className="map-alert-time">Il y a {alert.time}</span>
+                    <span className="map-alert-time">{alert.time} ago</span>
                   </div>
                 </div>
               ))}
             </div>
-            <button className="btn-manage-alerts">Gérer mes alertes</button>
+            <button className="btn-manage-alerts">Manage My Alerts</button>
           </div>
 
           {/* ── Quick statistics summary ── */}
           <div className="context-section">
-            <h4 className="section-title">Statistiques</h4>
+            <h4 className="section-title">Statistics</h4>
             <div className="quick-stats">
               <div className="map-stat-item">
                 <span className="map-stat-value">156</span>
-                <span className="map-stat-label">Aujourd'hui</span>
+                <span className="map-stat-label">Today</span>
               </div>
               <div className="map-stat-item">
                 <span className="map-stat-value">6.2</span>
-                <span className="map-stat-label">Gravité moy.</span>
+                <span className="map-stat-label">Avg. Severity</span>
               </div>
               <div className="map-stat-item">
                 <span className="map-stat-value">94%</span>
-                <span className="map-stat-label">Précision IA</span>
+                <span className="map-stat-label">AI Accuracy</span>
               </div>
             </div>
           </div>

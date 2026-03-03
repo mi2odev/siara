@@ -35,19 +35,19 @@ const riskZones = [
 
 /* Mock real-time activity log entries */
 const activityFeed = [
-  { id: 1, icon: '🔴', text: 'Pic de risque détecté – RN5 Alger', time: 'Il y a 2 min', type: 'critical' },
-  { id: 2, icon: '🟡', text: 'Modèle recalibré – zone Bab Ezzouar', time: 'Il y a 15 min', type: 'warning' },
-  { id: 3, icon: '🟢', text: 'Risque réduit – Hydra après travaux', time: 'Il y a 32 min', type: 'success' },
-  { id: 4, icon: '🔵', text: 'Nouveau jeu de données météo intégré', time: 'Il y a 1h', type: 'info' },
-  { id: 5, icon: '🟡', text: 'Alerte scolaire – Bir Mourad Raïs 08h', time: 'Il y a 1h 20', type: 'warning' },
+  { id: 1, icon: '🔴', text: 'Risk peak detected – RN5 Algiers', time: '2 min ago', type: 'critical' },
+  { id: 2, icon: '🟡', text: 'Model recalibrated – Bab Ezzouar area', time: '15 min ago', type: 'warning' },
+  { id: 3, icon: '🟢', text: 'Risk reduced – Hydra after roadwork', time: '32 min ago', type: 'success' },
+  { id: 4, icon: '🔵', text: 'New weather dataset integrated', time: '1h ago', type: 'info' },
+  { id: 5, icon: '🟡', text: 'School alert – Bir Mourad Raïs 08h', time: '1h 20 min ago', type: 'warning' },
 ]
 
 /* Data sources feeding the ML model */
 const dataSources = [
-  { name: 'Signalements citoyens', count: '12 847', status: 'live', icon: '👥' },
-  { name: 'Capteurs météo (ONM)',  count: '48 stations', status: 'live', icon: '🌤️' },
-  { name: 'Flux trafic DGRSDT',    count: '340 capteurs', status: 'live', icon: '🚦' },
-  { name: 'Historique DGSN',       count: '5 ans', status: 'synced', icon: '📋' },
+  { name: 'Citizen reports', count: '12,847', status: 'live', icon: '👥' },
+  { name: 'Weather sensors (ONM)',  count: '48 stations', status: 'live', icon: '🌤️' },
+  { name: 'DGRSDT traffic flow',    count: '340 sensors', status: 'live', icon: '🚦' },
+  { name: 'DGSN historical data',   count: '5 years', status: 'synced', icon: '📋' },
 ]
 
 export default function PredictionsPage() {
@@ -72,7 +72,7 @@ export default function PredictionsPage() {
   }
 
   // Format Date as HH:MM (French-Algerian locale)
-  const fmtTime = (d) => d.toLocaleTimeString('fr-DZ', { hour: '2-digit', minute: '2-digit' })
+  const fmtTime = (d) => d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
   /* ═══ RENDER ═══ */
   return (
@@ -93,11 +93,11 @@ export default function PredictionsPage() {
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
-              <button className="dash-tab dash-tab-active">Prédictions</button>
+              <button className="dash-tab dash-tab-active">Predictions</button>
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Rechercher un incident, une route, une wilaya…" aria-label="Search" />
+            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a province…" aria-label="Search" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
@@ -106,11 +106,11 @@ export default function PredictionsPage() {
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Déconnexion</button>
+                  <button className="dropdown-item logout">🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -131,44 +131,44 @@ export default function PredictionsPage() {
             </div>
             <div className="profile-info">
               <p className="profile-name">Sofiane Ahmed</p>
-              <span className="role-badge role-citoyen">Citoyen</span>
-              <p className="profile-bio">Contributeur actif pour une route plus sûre en Algérie 🇩🇿</p>
-              <button className="profile-view-link" onClick={() => navigate('/profile')}>Voir le profil</button>
+              <span className="role-badge role-citoyen">Citizen</span>
+              <p className="profile-bio">Active contributor for safer roads in Algeria 🇩🇿</p>
+              <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>
 
           {/* Navigation */}
           <nav className="card nav-menu">
             <div className="nav-section-label">NAVIGATION</div>
-            <button className="nav-item" onClick={() => navigate('/home')}><span className="nav-accent"></span><span className="nav-icon">🏠</span><span className="nav-label">Accueil</span></button>
-            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-accent"></span><span className="nav-icon">📰</span><span className="nav-label">Fil d'actualité</span></button>
-            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-accent"></span><span className="nav-icon">🗺️</span><span className="nav-label">Carte des incidents</span></button>
-            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">🔮</span><span className="nav-label">Prédictions</span></button>
+            <button className="nav-item" onClick={() => navigate('/home')}><span className="nav-accent"></span><span className="nav-icon">🏠</span><span className="nav-label">Home</span></button>
+            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-accent"></span><span className="nav-icon">📰</span><span className="nav-label">News Feed</span></button>
+            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-accent"></span><span className="nav-icon">🗺️</span><span className="nav-label">Incident Map</span></button>
+            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">🔮</span><span className="nav-label">Predictions</span></button>
 
-            <div className="nav-section-label">OUTILS</div>
-            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">🚗</span><span className="nav-label">Quiz Conducteur</span></button>
-            <button className="nav-item" onClick={() => navigate('/dashboard')}><span className="nav-accent"></span><span className="nav-icon">📊</span><span className="nav-label">Statistiques</span></button>
-            <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alertes</span></button>
+            <div className="nav-section-label">TOOLS</div>
+            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">🚗</span><span className="nav-label">Driver Quiz</span></button>
+            <button className="nav-item" onClick={() => navigate('/dashboard')}><span className="nav-accent"></span><span className="nav-icon">📊</span><span className="nav-label">Statistics</span></button>
+            <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alerts</span></button>
 
-            <div className="nav-section-label">PARAMÈTRES</div>
-            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Paramètres</span></button>
+            <div className="nav-section-label">SETTINGS</div>
+            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Settings</span></button>
           </nav>
 
           {/* Model Summary Widget */}
           <div className="card pred-model-sidebar">
-            <h3 className="card-title">🧠 Modèle IA</h3>
+            <h3 className="card-title">🧠 AI Model</h3>
             <div className="pred-model-rows">
               <div className="pred-model-row"><span>Version</span><span className="pred-model-val">v1.2</span></div>
-              <div className="pred-model-row"><span>Algorithme</span><span className="pred-model-val">LightGBM + CatBoost</span></div>
-              <div className="pred-model-row"><span>Dernière MAJ</span><span className="pred-model-val">Aujourd'hui</span></div>
-              <div className="pred-model-row"><span>Statut</span><span className="pred-model-val green">● Actif</span></div>
-              <div className="pred-model-row"><span>Précision</span><span className="pred-model-val blue">89.2%</span></div>
+              <div className="pred-model-row"><span>Algorithm</span><span className="pred-model-val">LightGBM + CatBoost</span></div>
+              <div className="pred-model-row"><span>Last Update</span><span className="pred-model-val">Today</span></div>
+              <div className="pred-model-row"><span>Status</span><span className="pred-model-val green">● Active</span></div>
+              <div className="pred-model-row"><span>Accuracy</span><span className="pred-model-val blue">89.2%</span></div>
             </div>
           </div>
 
           {/* Data Sources */}
           <div className="card pred-sources-sidebar">
-            <h3 className="card-title">📡 Sources de données</h3>
+            <h3 className="card-title">📡 Data Sources</h3>
             <div className="pred-sources-list">
               {dataSources.map((s, i) => (
                 <div key={i} className="pred-source-item">
@@ -192,35 +192,35 @@ export default function PredictionsPage() {
             <div className="pred-hero-top">
               <div className="pred-hero-badge">
                 <span className="pulse-dot"></span>
-                Modèle IA Actif
+                AI Model Active
               </div>
               <span className="pred-hero-clock">🕐 {fmtTime(liveTime)}</span>
             </div>
-            <h1>Prédictions <span>Avancées</span></h1>
+            <h1>Advanced <span>Predictions</span></h1>
             <p className="pred-hero-subtitle">
-              Exploitez la puissance de notre moteur prédictif basé sur le machine learning pour anticiper les zones à risque,
-              analyser les tendances temporelles et prendre des décisions éclairées en temps réel.
+              Harness the power of our machine-learning-based predictive engine to anticipate risk zones,
+              analyze temporal trends, and make informed decisions in real time.
             </p>
             {/* Hero KPI Strip */}
             <div className="pred-hero-kpis">
               <div className="pred-hero-kpi">
                 <span className="pred-hero-kpi-value">12 847</span>
-                <span className="pred-hero-kpi-label">Données analysées</span>
+                <span className="pred-hero-kpi-label">Data Points Analyzed</span>
               </div>
               <div className="pred-hero-kpi-divider"></div>
               <div className="pred-hero-kpi">
                 <span className="pred-hero-kpi-value">48</span>
-                <span className="pred-hero-kpi-label">Wilayas couvertes</span>
+                <span className="pred-hero-kpi-label">Provinces Covered</span>
               </div>
               <div className="pred-hero-kpi-divider"></div>
               <div className="pred-hero-kpi">
                 <span className="pred-hero-kpi-value">89.2%</span>
-                <span className="pred-hero-kpi-label">Précision</span>
+                <span className="pred-hero-kpi-label">Accuracy</span>
               </div>
               <div className="pred-hero-kpi-divider"></div>
               <div className="pred-hero-kpi">
                 <span className="pred-hero-kpi-value">&lt; 2s</span>
-                <span className="pred-hero-kpi-label">Temps de réponse</span>
+                <span className="pred-hero-kpi-label">Response Time</span>
               </div>
             </div>
           </div>
@@ -230,25 +230,25 @@ export default function PredictionsPage() {
             <div className="pred-feature-card">
               <div className="pred-feature-top-row">
                 <div className="pred-feature-icon heatmap">🗺️</div>
-                <span className="pred-feature-status ready">● Prêt</span>
+                <span className="pred-feature-status ready">● Ready</span>
               </div>
-              <h3>Cartes thermiques</h3>
-              <p>Visualisation des zones de densité d'accidents avec superposition de couches de risque dynamique sur 48 wilayas.</p>
+              <h3>Heat Maps</h3>
+              <p>Visualization of accident density zones with dynamic risk layer overlay across 48 provinces.</p>
               <div className="pred-feature-meta">
-                <span>🔄 Mise à jour : 5 min</span>
-                <span>📍 48 wilayas</span>
+                <span>🔄 Update: 5 min</span>
+                <span>📍 48 provinces</span>
               </div>
             </div>
 
             <div className="pred-feature-card">
               <div className="pred-feature-top-row">
                 <div className="pred-feature-icon timeseries">📈</div>
-                <span className="pred-feature-status beta">◐ Bêta</span>
+                <span className="pred-feature-status beta">◐ Beta</span>
               </div>
-              <h3>Séries temporelles</h3>
-              <p>Analyse prédictive par créneau horaire et saisonnalité avec modèles LSTM et LightGBM entraînés sur 5 ans.</p>
+              <h3>Time Series</h3>
+              <p>Predictive analysis by time slot and seasonality with LSTM and LightGBM models trained on 5 years of data.</p>
               <div className="pred-feature-meta">
-                <span>⏱️ Horizon : 24h</span>
+                <span>⏱️ Horizon: 24h</span>
                 <span>📊 RMSE : 0.12</span>
               </div>
             </div>
@@ -256,13 +256,13 @@ export default function PredictionsPage() {
             <div className="pred-feature-card">
               <div className="pred-feature-top-row">
                 <div className="pred-feature-icon export">📤</div>
-                <span className="pred-feature-status coming">○ Bientôt</span>
+                <span className="pred-feature-status coming">○ Coming Soon</span>
               </div>
-              <h3>Export &amp; Rapports</h3>
-              <p>Génération automatique de rapports PDF et export CSV / GeoJSON pour les autorités et chercheurs.</p>
+              <h3>Export &amp; Reports</h3>
+              <p>Automatic generation of PDF reports and CSV/GeoJSON export for authorities and researchers.</p>
               <div className="pred-feature-meta">
                 <span>📄 PDF, CSV, GeoJSON</span>
-                <span>🔐 Certifié</span>
+                <span>🔐 Certified</span>
               </div>
             </div>
           </div>
@@ -270,7 +270,7 @@ export default function PredictionsPage() {
           {/* C. Mock Visualization — tabbed bar chart with lock overlay */}
           <div className="pred-viz-card">
             <div className="pred-viz-header">
-              <h3>📊 Aperçu prédictif — Distribution du risque par zone</h3>
+              <h3>📊 Predictive Overview — Risk Distribution by Zone</h3>
               <div className="pred-viz-tabs">
                 <button className={`pred-viz-tab ${vizTab === 'heatmap' ? 'active' : ''}`} onClick={() => setVizTab('heatmap')}>Heatmap</button>
                 <button className={`pred-viz-tab ${vizTab === 'timeline' ? 'active' : ''}`} onClick={() => setVizTab('timeline')}>Timeline</button>
@@ -284,14 +284,14 @@ export default function PredictionsPage() {
                 ))}
               </div>
               <div className="pred-viz-x-axis">
-                {['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'].map(m => (
+                {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map(m => (
                   <span key={m}>{m}</span>
                 ))}
               </div>
               <div className="pred-viz-overlay">
                 <span className="pred-viz-overlay-icon">🔒</span>
-                <span className="pred-viz-overlay-text">Visualisation complète bientôt disponible</span>
-                <span className="pred-viz-overlay-sub">Le modèle est en cours de calibration sur vos données régionales</span>
+                <span className="pred-viz-overlay-text">Full visualization coming soon</span>
+                <span className="pred-viz-overlay-sub">The model is being calibrated on your regional data</span>
               </div>
             </div>
           </div>
@@ -299,8 +299,8 @@ export default function PredictionsPage() {
           {/* D. Top Risk Zones Table — ranked by AI score */}
           <div className="pred-zones-card">
             <div className="pred-zones-header">
-              <h3>🏙️ Classement des zones à risque</h3>
-              <span className="pred-zones-updated">Mis à jour : {fmtTime(liveTime)}</span>
+              <h3>🏙️ Risk Zone Ranking</h3>
+              <span className="pred-zones-updated">Updated: {fmtTime(liveTime)}</span>
             </div>
             <table className="pred-zones-table">
               <thead>
@@ -309,8 +309,8 @@ export default function PredictionsPage() {
                   <th>Zone</th>
                   <th>Wilaya</th>
                   <th>Score</th>
-                  <th>Tendance</th>
-                  <th>Niveau</th>
+                  <th>Trend</th>
+                  <th>Level</th>
                 </tr>
               </thead>
               <tbody>
@@ -328,7 +328,7 @@ export default function PredictionsPage() {
                       </div>
                     </td>
                     <td className={`pred-zone-trend ${z.trend.startsWith('+') ? 'up' : 'down'}`}>{z.trend.startsWith('+') ? '↑' : '↓'} {z.trend}</td>
-                    <td><span className={`pred-severity-badge ${z.severity}`}>{z.severity === 'high' ? 'Élevé' : z.severity === 'medium' ? 'Modéré' : 'Faible'}</span></td>
+                    <td><span className={`pred-severity-badge ${z.severity}`}>{z.severity === 'high' ? 'High' : z.severity === 'medium' ? 'Moderate' : 'Low'}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -337,37 +337,37 @@ export default function PredictionsPage() {
 
           {/* E. How it Works — 4-step pipeline explainer */}
           <div className="pred-how-card">
-            <h3>💡 Comment ça fonctionne ?</h3>
+            <h3>💡 How Does It Work?</h3>
             <div className="pred-how-steps">
               <div className="pred-how-step">
                 <div className="pred-how-num">1</div>
                 <div className="pred-how-content">
-                  <h4>Collecte de données</h4>
-                  <p>Signalements citoyens, capteurs météo ONM, historique DGSN (5 ans) et flux de trafic DGRSDT en temps réel combinés dans un pipeline unifié.</p>
+                  <h4>Data Collection</h4>
+                  <p>Citizen reports, ONM weather sensors, DGSN historical data (5 years), and real-time DGRSDT traffic flow combined in a unified pipeline.</p>
                 </div>
               </div>
               <div className="pred-how-connector"></div>
               <div className="pred-how-step">
                 <div className="pred-how-num">2</div>
                 <div className="pred-how-content">
-                  <h4>Ingénierie des features</h4>
-                  <p>Extraction de 120+ variables : conditions météo, densité routière, heure/jour/saison, proximité écoles/hôpitaux, historique par zone.</p>
+                  <h4>Feature Engineering</h4>
+                  <p>Extraction of 120+ variables: weather conditions, road density, hour/day/season, proximity to schools/hospitals, history by zone.</p>
                 </div>
               </div>
               <div className="pred-how-connector"></div>
               <div className="pred-how-step">
                 <div className="pred-how-num">3</div>
                 <div className="pred-how-content">
-                  <h4>Modèle prédictif</h4>
-                  <p>Ensemble LightGBM + CatBoost avec validation croisée temporelle. Score de risque 0–100 généré par zone géographique et créneau horaire.</p>
+                  <h4>Predictive Model</h4>
+                  <p>LightGBM + CatBoost ensemble with temporal cross-validation. Risk score 0–100 generated by geographic zone and time slot.</p>
                 </div>
               </div>
               <div className="pred-how-connector"></div>
               <div className="pred-how-step">
                 <div className="pred-how-num">4</div>
                 <div className="pred-how-content">
-                  <h4>Alertes intelligentes</h4>
-                  <p>Notifications push proactives envoyées aux usagers avant d'entrer dans une zone à risque élevé, avec itinéraire alternatif suggéré.</p>
+                  <h4>Smart Alerts</h4>
+                  <p>Proactive push notifications sent to users before entering a high-risk zone, with suggested alternate route.</p>
                 </div>
               </div>
             </div>
@@ -375,7 +375,7 @@ export default function PredictionsPage() {
 
           {/* F. Tech Stack Banner — icons for Python, LightGBM, CatBoost, etc. */}
           <div className="pred-tech-card">
-            <h3>🛠️ Stack technologique</h3>
+            <h3>🛠️ Technology Stack</h3>
             <div className="pred-tech-grid">
               <div className="pred-tech-item"><span className="pred-tech-logo">🐍</span><span>Python</span></div>
               <div className="pred-tech-item"><span className="pred-tech-logo">⚡</span><span>LightGBM</span></div>
@@ -395,95 +395,95 @@ export default function PredictionsPage() {
 
           {/* A. Prediction Status — model version, algo, confidence + metric trio */}
           <div className="pred-status-card">
-            <h3>⚡ État du modèle</h3>
+            <h3>⚡ Model Status</h3>
             <div className="pred-status-row">
               <span className="pred-status-label">Version</span>
               <span className="pred-status-value">SIARA v1.2</span>
             </div>
             <div className="pred-status-row">
-              <span className="pred-status-label">Algorithme</span>
+              <span className="pred-status-label">Algorithm</span>
               <span className="pred-status-value">LightGBM</span>
             </div>
             <div className="pred-status-row">
-              <span className="pred-status-label">Dernière mise à jour</span>
-              <span className="pred-status-value blue">Aujourd'hui, 08:30</span>
+              <span className="pred-status-label">Last Update</span>
+              <span className="pred-status-value blue">Today, 08:30</span>
             </div>
             <div className="pred-status-row">
-              <span className="pred-status-label">Confiance globale</span>
+              <span className="pred-status-label">Overall Confidence</span>
               <span className="pred-status-value green">89%</span>
             </div>
             <div className="pred-confidence-bar">
               <div className="pred-confidence-fill" style={{ width: '89%' }}></div>
             </div>
             <div className="pred-status-metrics">
-              <div className="pred-metric"><span className="pred-metric-label">Précision</span><span className="pred-metric-val">89.2%</span></div>
-              <div className="pred-metric"><span className="pred-metric-label">Rappel</span><span className="pred-metric-val">85.7%</span></div>
+              <div className="pred-metric"><span className="pred-metric-label">Accuracy</span><span className="pred-metric-val">89.2%</span></div>
+              <div className="pred-metric"><span className="pred-metric-label">Recall</span><span className="pred-metric-val">85.7%</span></div>
               <div className="pred-metric"><span className="pred-metric-label">F1-Score</span><span className="pred-metric-val">87.4%</span></div>
             </div>
           </div>
 
           {/* B. Forecast Snapshot — risk level bars at 6h / 12h / 18h / 24h / 48h */}
           <div className="pred-forecast-card">
-            <h3>📅 Prévision du risque</h3>
+            <h3>📅 Risk Forecast</h3>
             <div className="pred-forecast-items">
               <div className="pred-forecast-row">
                 <span className="pred-forecast-time">6h</span>
                 <div className="pred-forecast-level"><div className="pred-forecast-fill low" style={{ width: '25%' }}></div></div>
-                <span className="pred-forecast-label low">Faible</span>
+                <span className="pred-forecast-label low">Low</span>
               </div>
               <div className="pred-forecast-row">
                 <span className="pred-forecast-time">12h</span>
                 <div className="pred-forecast-level"><div className="pred-forecast-fill medium" style={{ width: '60%' }}></div></div>
-                <span className="pred-forecast-label medium">Modéré</span>
+                <span className="pred-forecast-label medium">Moderate</span>
               </div>
               <div className="pred-forecast-row">
                 <span className="pred-forecast-time">18h</span>
                 <div className="pred-forecast-level"><div className="pred-forecast-fill high" style={{ width: '85%' }}></div></div>
-                <span className="pred-forecast-label high">Élevé</span>
+                <span className="pred-forecast-label high">High</span>
               </div>
               <div className="pred-forecast-row">
                 <span className="pred-forecast-time">24h</span>
                 <div className="pred-forecast-level"><div className="pred-forecast-fill medium" style={{ width: '50%' }}></div></div>
-                <span className="pred-forecast-label medium">Modéré</span>
+                <span className="pred-forecast-label medium">Moderate</span>
               </div>
               <div className="pred-forecast-row">
                 <span className="pred-forecast-time">48h</span>
                 <div className="pred-forecast-level"><div className="pred-forecast-fill low" style={{ width: '30%' }}></div></div>
-                <span className="pred-forecast-label low">Faible</span>
+                <span className="pred-forecast-label low">Low</span>
               </div>
             </div>
           </div>
 
           {/* C. Model Transparency — feature importance horizontal bars */}
           <div className="pred-transparency-card">
-            <h3>🔍 Importance des features</h3>
+            <h3>🔍 Feature Importance</h3>
             <div className="pred-factor">
-              <span className="pred-factor-name">Météo</span>
+              <span className="pred-factor-name">Weather</span>
               <div className="pred-factor-bar-bg"><div className="pred-factor-bar-fill" style={{ width: '78%' }}></div></div>
               <span className="pred-factor-pct">78%</span>
             </div>
             <div className="pred-factor">
-              <span className="pred-factor-name">Heure</span>
+              <span className="pred-factor-name">Hour</span>
               <div className="pred-factor-bar-bg"><div className="pred-factor-bar-fill" style={{ width: '65%' }}></div></div>
               <span className="pred-factor-pct">65%</span>
             </div>
             <div className="pred-factor">
-              <span className="pred-factor-name">Trafic</span>
+              <span className="pred-factor-name">Traffic</span>
               <div className="pred-factor-bar-bg"><div className="pred-factor-bar-fill" style={{ width: '52%' }}></div></div>
               <span className="pred-factor-pct">52%</span>
             </div>
             <div className="pred-factor">
-              <span className="pred-factor-name">Historique</span>
+              <span className="pred-factor-name">History</span>
               <div className="pred-factor-bar-bg"><div className="pred-factor-bar-fill" style={{ width: '44%' }}></div></div>
               <span className="pred-factor-pct">44%</span>
             </div>
             <div className="pred-factor">
-              <span className="pred-factor-name">Infra. routière</span>
+              <span className="pred-factor-name">Road Infra.</span>
               <div className="pred-factor-bar-bg"><div className="pred-factor-bar-fill" style={{ width: '38%' }}></div></div>
               <span className="pred-factor-pct">38%</span>
             </div>
             <div className="pred-factor">
-              <span className="pred-factor-name">Jour/Saison</span>
+              <span className="pred-factor-name">Day/Season</span>
               <div className="pred-factor-bar-bg"><div className="pred-factor-bar-fill" style={{ width: '31%' }}></div></div>
               <span className="pred-factor-pct">31%</span>
             </div>
@@ -491,7 +491,7 @@ export default function PredictionsPage() {
 
           {/* D. Live Activity Feed — real-time model events */}
           <div className="pred-activity-card">
-            <h3>📡 Activité en direct</h3>
+            <h3>📡 Live Activity</h3>
             <div className="pred-activity-list">
               {activityFeed.map((a) => (
                 <div key={a.id} className={`pred-activity-item ${a.type}`}>
@@ -507,19 +507,19 @@ export default function PredictionsPage() {
 
           {/* E. CTA — early access call-to-action */}
           <div className="pred-cta-card">
-            <h4>🚀 Accès anticipé</h4>
-            <p>Soyez parmi les premiers à tester les prédictions en temps réel sur votre itinéraire quotidien.</p>
-            <button className="pred-cta-btn" onClick={() => navigate('/map')}>Voir sur la carte</button>
+            <h4>🚀 Early Access</h4>
+            <p>Be among the first to test real-time predictions on your daily route.</p>
+            <button className="pred-cta-btn" onClick={() => navigate('/map')}>View on Map</button>
           </div>
 
           {/* F. Predictive Alerts — upcoming risk warnings */}
           <div className="card widget-alerts">
-            <h3 className="widget-title">Alertes prédictives</h3>
-            <div className="alert-item">• Pic de risque prévu à 17h – Alger Centre</div>
-            <div className="alert-item">• Pluie forte attendue demain matin</div>
-            <div className="alert-item">• Zone scolaire – risque accru 08h-09h</div>
-            <div className="alert-item">• Brouillard prévu A1 – visibilité réduite</div>
-            <button className="btn-activate-alerts" onClick={() => navigate('/alerts')}>Gérer les alertes</button>
+            <h3 className="widget-title">Predictive Alerts</h3>
+            <div className="alert-item">• Risk peak expected at 5 PM – Algiers Centre</div>
+            <div className="alert-item">• Heavy rain expected tomorrow morning</div>
+            <div className="alert-item">• School zone – increased risk 08h-09h</div>
+            <div className="alert-item">• Fog expected A1 – reduced visibility</div>
+            <button className="btn-activate-alerts" onClick={() => navigate('/alerts')}>Manage Alerts</button>
           </div>
 
         </aside>

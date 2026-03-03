@@ -142,13 +142,13 @@ export default function AlertsPage() {
   // Show a toast notification when arriving back from CreateAlertPage (create or edit)
   useEffect(() => {
     if (location.state?.newAlert) {
-      setToast(`✅ Alerte « ${location.state.newAlert} » créée avec succès`)
+      setToast(`✅ Alert "${location.state.newAlert}" created successfully`)
       window.history.replaceState({}, '')
       const timer = setTimeout(() => setToast(null), 4000)
       return () => clearTimeout(timer)
     }
     if (location.state?.editedAlert) {
-      setToast(`✅ Alerte « ${location.state.editedAlert} » modifiée avec succès`)
+      setToast(`✅ Alert "${location.state.editedAlert}" edited successfully`)
       window.history.replaceState({}, '')
       // Reload alerts from localStorage to reflect edits
       setAlerts(loadAlerts())
@@ -195,7 +195,7 @@ export default function AlertsPage() {
   /** Delete an alert after confirmation. Clears selectedAlert if it was the deleted one. */
   const deleteAlert = (e, id) => {
     e.stopPropagation()
-    if (confirm('Supprimer cette alerte ?')) {
+    if (confirm('Delete this alert?')) {
       setAlerts(prev => prev.filter(a => a.id !== id))
       if (selectedAlert?.id === id) setSelectedAlert(null)
     }
@@ -229,7 +229,7 @@ export default function AlertsPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Rechercher un incident, une route, une wilaya…" aria-label="Search alerts" />
+            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a province…" aria-label="Search alerts" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
@@ -238,11 +238,11 @@ export default function AlertsPage() {
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 Mon profil</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Paramètres</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Déconnexion</button>
+                  <button className="dropdown-item logout">🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -265,10 +265,10 @@ export default function AlertsPage() {
         <aside className="al-left">
           <nav className="al-nav">
             {[
-              { key: 'active', icon: '✅', label: 'Actives', count: alerts.filter(a => a.status === 'active').length },
-              { key: 'paused', icon: '⏸️', label: 'Pausées', count: alerts.filter(a => a.status === 'paused').length },
-              { key: 'expired', icon: '⏰', label: 'Expirées', count: alerts.filter(a => a.status === 'expired').length },
-              { key: 'history', icon: '📜', label: 'Historique', count: null }
+              { key: 'active', icon: '✅', label: 'Active', count: alerts.filter(a => a.status === 'active').length },
+              { key: 'paused', icon: '⏸️', label: 'Paused', count: alerts.filter(a => a.status === 'paused').length },
+              { key: 'expired', icon: '⏰', label: 'Expired', count: alerts.filter(a => a.status === 'expired').length },
+              { key: 'history', icon: '📜', label: 'History', count: null }
             ].map(n => (
               <button key={n.key} className={`al-nav-btn ${activeNav === n.key ? 'active' : ''}`} onClick={() => setActiveNav(n.key)}>
                 <span className="nav-icon">{n.icon}</span>
@@ -279,30 +279,30 @@ export default function AlertsPage() {
           </nav>
 
           <div className="al-stats">
-            <div className="stat"><span className="dot green"></span><span>Actives</span><span className="val">{stats.active}</span></div>
-            <div className="stat"><span className="dot orange"></span><span>Aujourd'hui</span><span className="val">{stats.today}</span></div>
-            <div className="stat"><span className="dot red"></span><span>Haute sév.</span><span className="val">{stats.high}</span></div>
+            <div className="stat"><span className="dot green"></span><span>Active</span><span className="val">{stats.active}</span></div>
+            <div className="stat"><span className="dot orange"></span><span>Today</span><span className="val">{stats.today}</span></div>
+            <div className="stat"><span className="dot red"></span><span>High Sev.</span><span className="val">{stats.high}</span></div>
           </div>
 
-          <button className="al-cta" onClick={() => navigate('/alerts/create')}>➕ Nouvelle alerte</button>
+          <button className="al-cta" onClick={() => navigate('/alerts/create')}>➕ New Alert</button>
         </aside>
 
         {/* ═══ CENTER: page heading, filters, alert card list ═══ */}
         <main className="al-center">
           <div className="al-page-head">
-            <h1>Mes Alertes</h1>
-            <p>Gérez vos règles d'alerte automatiques</p>
+            <h1>My Alerts</h1>
+            <p>Manage your automatic alert rules</p>
           </div>
 
           <div className="al-filters">
             <select value={severityFilter} onChange={e => setSeverityFilter(e.target.value)}>
-              <option value="all">Sévérité</option>
-              <option value="high">Haute</option>
-              <option value="medium">Moyenne</option>
-              <option value="low">Basse</option>
+              <option value="all">Severity</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
             </select>
             <select value={areaFilter} onChange={e => setAreaFilter(e.target.value)}>
-              <option value="all">Zone</option>
+              <option value="all">Area</option>
               {wilayas.map(w => <option key={w} value={w}>{w}</option>)}
             </select>
             {(severityFilter !== 'all' || areaFilter !== 'all') && (
@@ -316,19 +316,19 @@ export default function AlertsPage() {
               /* Empty state placeholder with CTA */
               <div className="al-empty">
                 <span className="empty-icon">🔔</span>
-                <h3>Aucune alerte</h3>
-                <p>Créez votre première alerte pour être notifié.</p>
-                <button className="empty-btn" onClick={() => navigate('/alerts/create')}>➕ Créer une alerte</button>
+                <h3>No Alerts</h3>
+                <p>Create your first alert to get notified.</p>
+                <button className="empty-btn" onClick={() => navigate('/alerts/create')}>➕ Create an Alert</button>
               </div>
             ) : (
               filteredAlerts.map(alert => (
                 <div key={alert.id} className={`al-card ${selectedAlert?.id === alert.id ? 'selected' : ''}`} onClick={() => setSelectedAlert(alert)}>
                   <div className="card-head">
                     <h3 className="card-name">{alert.name}</h3>
-                    <span className={`card-status ${alert.status}`}>{alert.status === 'active' ? 'Actif' : alert.status === 'paused' ? 'Pausé' : 'Expiré'}</span>
+                    <span className={`card-status ${alert.status}`}>{alert.status === 'active' ? 'Active' : alert.status === 'paused' ? 'Paused' : 'Expired'}</span>
                     <span className="card-sev" style={{ background: `${color(alert.severity)}18`, color: color(alert.severity) }}>
                       <span className="sev-dot" style={{ background: color(alert.severity) }}></span>
-                      {alert.severity === 'high' ? 'Haute' : alert.severity === 'medium' ? 'Moy.' : 'Basse'}
+                      {alert.severity === 'high' ? 'High' : alert.severity === 'medium' ? 'Med.' : 'Low'}
                     </span>
                   </div>
                   <div className="card-body">
@@ -338,34 +338,34 @@ export default function AlertsPage() {
                     </div>
                     <div className="body-line">
                       <span className="types">{alert.incidentTypes.map((t, i) => <span key={i} title={t}>{icon(t)}</span>)}</span>
-                      <span className="meta">Dernier: {alert.lastTriggered}</span>
+                      <span className="meta">Last: {alert.lastTriggered}</span>
                       <span className="meta">{alert.triggerCount} triggers</span>
                     </div>
                   </div>
                   <div className="card-foot">
-                    <button className={`act-btn act-toggle ${alert.status === 'active' ? 'on' : 'off'}`} onClick={e => toggleAlert(e, alert.id)} title={alert.status === 'active' ? 'Désactiver' : 'Activer'}>
+                    <button className={`act-btn act-toggle ${alert.status === 'active' ? 'on' : 'off'}`} onClick={e => toggleAlert(e, alert.id)} title={alert.status === 'active' ? 'Deactivate' : 'Activate'}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         {alert.status === 'active' ? <><circle cx="12" cy="12" r="10"/><path d="M10 15V9l5 3-5 3z"/></> : <><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></>}
                       </svg>
-                      <span>{alert.status === 'active' ? 'Actif' : 'Pausé'}</span>
+                      <span>{alert.status === 'active' ? 'Active' : 'Paused'}</span>
                     </button>
-                    <button className="act-btn act-edit" onClick={e => { e.stopPropagation(); navigate('/alerts/create', { state: { editAlert: alert } }) }} title="Modifier">
+                    <button className="act-btn act-edit" onClick={e => { e.stopPropagation(); navigate('/alerts/create', { state: { editAlert: alert } }) }} title="Edit">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
                       </svg>
-                      <span>Modifier</span>
+                      <span>Edit</span>
                     </button>
-                    <button className="act-btn act-pause" onClick={e => toggleAlert(e, alert.id)} title={alert.status === 'active' ? 'Mettre en pause' : 'Reprendre'}>
+                    <button className="act-btn act-pause" onClick={e => toggleAlert(e, alert.id)} title={alert.status === 'active' ? 'Pause' : 'Resume'}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         {alert.status === 'active' ? <><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></> : <polygon points="5 3 19 12 5 21 5 3"/>}
                       </svg>
-                      <span>{alert.status === 'active' ? 'Pause' : 'Reprendre'}</span>
+                      <span>{alert.status === 'active' ? 'Pause' : 'Resume'}</span>
                     </button>
-                    <button className="act-btn act-delete" onClick={e => deleteAlert(e, alert.id)} title="Supprimer">
+                    <button className="act-btn act-delete" onClick={e => deleteAlert(e, alert.id)} title="Delete">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                       </svg>
-                      <span>Supprimer</span>
+                      <span>Delete</span>
                     </button>
                   </div>
                 </div>
@@ -381,18 +381,18 @@ export default function AlertsPage() {
               <div className="al-panel summary">
                 <div className="panel-head">
                   <span className="panel-name">{selectedAlert.name}</span>
-                  <span className={`panel-status ${selectedAlert.status}`}>{selectedAlert.status === 'active' ? '● Actif' : selectedAlert.status === 'paused' ? '● Pausé' : '● Expiré'}</span>
+                  <span className={`panel-status ${selectedAlert.status}`}>{selectedAlert.status === 'active' ? '● Active' : selectedAlert.status === 'paused' ? '● Paused' : '● Expired'}</span>
                 </div>
                 <div className="summary-grid">
-                  <div className="sum-item"><span className="sum-l">Sévérité</span><span className="sum-v" style={{ color: color(selectedAlert.severity) }}>{selectedAlert.severity === 'high' ? 'Haute' : selectedAlert.severity === 'medium' ? 'Moyenne' : 'Basse'}</span></div>
-                  <div className="sum-item"><span className="sum-l">Zone</span><span className="sum-v">{selectedAlert.area.wilaya}</span></div>
-                  <div className="sum-item"><span className="sum-l">Horaires</span><span className="sum-v">{selectedAlert.timeWindow}</span></div>
+                  <div className="sum-item"><span className="sum-l">Severity</span><span className="sum-v" style={{ color: color(selectedAlert.severity) }}>{selectedAlert.severity === 'high' ? 'High' : selectedAlert.severity === 'medium' ? 'Medium' : 'Low'}</span></div>
+                  <div className="sum-item"><span className="sum-l">Area</span><span className="sum-v">{selectedAlert.area.wilaya}</span></div>
+                  <div className="sum-item"><span className="sum-l">Schedule</span><span className="sum-v">{selectedAlert.timeWindow}</span></div>
                   <div className="sum-item"><span className="sum-l">Triggers</span><span className="sum-v">{selectedAlert.triggerCount}</span></div>
                 </div>
               </div>
 
               <div className="al-panel map">
-                <span className="panel-label">Zone surveillée</span>
+                <span className="panel-label">Monitored Area</span>
                 <div className="mini-map-wrap">
                   {mapReady ? (
                     <GoogleMap
@@ -404,18 +404,18 @@ export default function AlertsPage() {
                       <Marker position={{ lat: selectedAlert.area.wilaya === 'Oran' ? 35.6969 : selectedAlert.area.wilaya === 'Constantine' ? 36.365 : 36.753, lng: selectedAlert.area.wilaya === 'Oran' ? -0.6331 : selectedAlert.area.wilaya === 'Constantine' ? 6.6147 : 3.0588 }} />
                     </GoogleMap>
                   ) : (
-                    <div className="mini-map-fallback">🗺️ Chargement...</div>
+                    <div className="mini-map-fallback">🗺️ Loading...</div>
                   )}
                 </div>
                 <span className="map-text">{selectedAlert.area.name}</span>
                 <button className="map-btn" onClick={() => navigate('/map')}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-                  Ouvrir la carte
+                  Open Map
                 </button>
               </div>
 
               <div className="al-panel triggers">
-                <span className="panel-label">Déclenchements récents</span>
+                <span className="panel-label">Recent Triggers</span>
                 {selectedAlert.recentTriggers.length > 0 ? (
                   <div className="trigger-list">
                     {selectedAlert.recentTriggers.slice(0, 4).map(t => (
@@ -428,7 +428,7 @@ export default function AlertsPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="no-triggers">Aucun récent</div>
+                  <div className="no-triggers">None recent</div>
                 )}
               </div>
 
@@ -452,7 +452,7 @@ export default function AlertsPage() {
           ) : (
             <div className="al-no-sel">
               <span className="no-sel-icon">👆</span>
-              <p>Sélectionnez une alerte</p>
+              <p>Select an alert</p>
             </div>
           )}
         </aside>
