@@ -18,8 +18,9 @@
  *   - Auto-scroll to focused tab button on keyboard navigation
  *   - All data is mock/static for prototype purposes
  */
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AuthContext } from '../../contexts/AuthContext'
 import '../../styles/ProfilePage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -28,6 +29,7 @@ import profileAvatar from '../../assets/logos/siara-logo1.png' // Using logo as 
 export default function ProfilePage(){
   /* ═══ STATE ═══ */
   const navigate = useNavigate()
+  const { user, logout } = useContext(AuthContext)
   const [activeTab, setActiveTab] = useState('posts')       // Currently selected activity tab
   const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
   const tabsRef = useRef(null)                              // Ref to the tab-list container for scroll/focus
@@ -88,6 +90,7 @@ export default function ProfilePage(){
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
             </nav>
           </div>
           <div className="dash-header-center">
@@ -97,14 +100,14 @@ export default function ProfilePage(){
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
             <button className="dash-icon-btn" aria-label="Messages">💬</button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar dash-avatar-active" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
+              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
                 </div>
               )}
             </div>

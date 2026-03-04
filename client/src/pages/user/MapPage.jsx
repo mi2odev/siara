@@ -8,8 +8,9 @@
  * Layout: Header  |  Left sidebar (filters)  |  Center map  |  Right sidebar (context)
  */
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from '../../contexts/AuthContext';
 
 /* ── Styles ── */
 import "../../styles/MapPage.css";
@@ -102,6 +103,7 @@ function weatherIconFromCondition(condition) {
 
 export default function MapPage() {
   const navigate = useNavigate();
+  const { user, logout } = useContext(AuthContext);
 
   /* ──────────────────────────── State ──────────────────────────── */
 
@@ -354,8 +356,8 @@ export default function MapPage() {
 
           {/* ── Left: Logo + Tab navigation ── */}
           <div className="dash-header-left">
-            <div className="dash-logo-block" onClick={() => navigate("/home")}>
-              <img src={siaraLogo} alt="SIARA" className="dash-logo" />
+            <div className="dash-logo-block" onClick={() => navigate("/home")} style={{ cursor: 'pointer' }}>
+              <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
 
             <nav className="dash-header-tabs">
@@ -364,6 +366,7 @@ export default function MapPage() {
               <button className="dash-tab" onClick={() => navigate("/alerts")}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate("/dashboard")}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
             </nav>
           </div>
 
@@ -372,8 +375,8 @@ export default function MapPage() {
             <input
               type="search"
               className="dash-search"
-              placeholder="Search for an incident, a road, a province…"
-              aria-label="Search map"
+              placeholder="Search for an incident, a road, a wilaya…"
+              aria-label="Search"
             />
           </div>
 
@@ -384,8 +387,7 @@ export default function MapPage() {
               aria-label="Notifications"
               onClick={() => navigate("/notifications")}
             >
-              <span className="notification-badge"></span>
-              🔔
+              🔔<span className="notification-badge"></span>
             </button>
 
             <button className="dash-icon-btn" aria-label="Messages">💬</button>
@@ -397,12 +399,12 @@ export default function MapPage() {
                 onClick={() => setShowDropdown(!showDropdown)}
                 aria-label="User profile"
               >
-                SA
+                {user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}
               </button>
 
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => navigate("/profile")}>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate("/profile"); }}>
                     👤 My Profile
                   </button>
                   <button
@@ -411,11 +413,11 @@ export default function MapPage() {
                   >
                     ⚙️ Settings
                   </button>
-                  <button className="dropdown-item" onClick={() => navigate("/notifications")}>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate("/notifications"); }}>
                     🔔 Notifications
                   </button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home'); }}>🚪 Log Out</button>
                 </div>
               )}
             </div>

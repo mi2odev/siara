@@ -15,8 +15,9 @@
  *
  * Dependencies: react-router-dom
  */
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AuthContext } from '../../contexts/AuthContext'
 import '../../styles/DashboardPage.css'
 import '../../styles/SettingsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -33,6 +34,7 @@ const sections = [
 
 export default function SettingsPage() {
   const navigate = useNavigate()
+  const { user, logout } = useContext(AuthContext)
   const [activeSection, setActiveSection] = useState('profile')   // currently visible settings section
   const [showDropdown, setShowDropdown] = useState(false)          // header user-menu dropdown
 
@@ -100,6 +102,7 @@ export default function SettingsPage() {
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
             </nav>
           </div>
           <div className="dash-header-center">
@@ -109,14 +112,14 @@ export default function SettingsPage() {
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
             <button className="dash-icon-btn" aria-label="Messages">💬</button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
+              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                  <button className="dropdown-item active" onClick={() => setShowDropdown(false)}>⚙️ Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
                 </div>
               )}
             </div>

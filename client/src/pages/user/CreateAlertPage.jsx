@@ -14,9 +14,10 @@
  *   - Step validation with shake animation on blocked navigation
  *   - Auto-generated alert name suggestion based on selected type + zone
  */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { GoogleMap, Marker, Circle, useLoadScript } from '@react-google-maps/api'
+import { AuthContext } from '../../contexts/AuthContext'
 import '../../styles/CreateAlertPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -28,6 +29,7 @@ export default function CreateAlertPage() {
   /* ═══ ROUTING & EDIT MODE ═══ */
   const navigate = useNavigate()
   const location = useLocation()
+  const { user, logout } = useContext(AuthContext)
   const editAlert = location.state?.editAlert || null   // Alert object passed when editing
   const isEditMode = !!editAlert                         // true → update flow; false → create flow
   const { isLoaded: mapReady } = useLoadScript({ googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '' })
@@ -318,7 +320,7 @@ export default function CreateAlertPage() {
         <div className="dash-header-inner">
           <div className="dash-header-left">
             <div className="dash-logo-block" onClick={() => navigate('/home')} style={{cursor: 'pointer'}}>
-              <img src={siaraLogo} alt="SIARA" className="dash-logo" />
+              <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">
               <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
@@ -326,10 +328,11 @@ export default function CreateAlertPage() {
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Search..." aria-label="Search" />
+            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya…" aria-label="Search" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
@@ -337,14 +340,14 @@ export default function CreateAlertPage() {
             </button>
             <button className="dash-icon-btn" aria-label="Messages">💬</button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
+              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
                 </div>
               )}
             </div>

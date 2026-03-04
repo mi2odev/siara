@@ -15,14 +15,16 @@
  *   • “Mark all read” and “Clear all” bulk actions
  *   • Detail panel renders contextual actions depending on notification type
  */
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AuthContext } from '../../contexts/AuthContext'
 import '../../styles/NotificationsPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
+  const { user, logout } = useContext(AuthContext)
 
   /* ═══ LOCAL UI STATE ═══ */
   const [showDropdown, setShowDropdown] = useState(false)          // header avatar menu
@@ -324,7 +326,7 @@ export default function NotificationsPage() {
         <div className="dash-header-inner">
           <div className="dash-header-left">
             <div className="dash-logo-block" onClick={() => navigate('/home')} style={{cursor: 'pointer'}}>
-              <img src={siaraLogo} alt="SIARA" className="dash-logo" />
+              <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">
               <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
@@ -332,26 +334,24 @@ export default function NotificationsPage() {
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Search..." aria-label="Search notifications" />
+            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya…" aria-label="Search" />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn dash-icon-active" aria-label="Notifications">
-              🔔
-              {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
-            </button>
+            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
             <button className="dash-icon-btn" aria-label="Messages">💬</button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">SA</button>
+              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
                 </div>
               )}
             </div>
