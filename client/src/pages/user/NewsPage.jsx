@@ -136,14 +136,14 @@ export default function NewsPage() {
           <nav className="card nav-menu">
             <div className="nav-section-label">NAVIGATION</div>
             <button className="nav-item" onClick={() => navigate('/home')}><span className="nav-accent"></span><span className="nav-icon">🏠</span><span className="nav-label">Home</span></button>
-            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">📰</span><span className="nav-label">News Feed</span></button>
-            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">📄</span><span className="nav-label">My Reports</span></button>
-            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-accent"></span><span className="nav-icon">🗺️</span><span className="nav-label">Incident Map</span></button>
+            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">�</span><span className="nav-label">News Feed</span></button>
+            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">�</span><span className="nav-label">My Reports</span></button>
+            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-accent"></span><span className="nav-icon">�️</span><span className="nav-label">Incident Map</span></button>
             
             <div className="nav-section-label">TOOLS</div>
-            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">🚗</span><span className="nav-label">Driver Quiz</span></button>
-            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">📊</span><span className="nav-label">Statistics</span></button>
-            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alerts</span></button>
+            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">�</span><span className="nav-label">Driver Quiz</span></button>
+            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">�</span><span className="nav-label">Statistics</span></button>
+            <button className="nav-item"><span className="nav-accent"></span><span className="nav-icon">�</span><span className="nav-label">Alerts</span></button>
             
             <div className="nav-section-label">SETTINGS</div>
             <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Settings</span></button>

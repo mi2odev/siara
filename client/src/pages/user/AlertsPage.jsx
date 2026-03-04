@@ -24,9 +24,12 @@ import React, { useState, useEffect, useContext } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api' // Google Maps components
 import { AuthContext } from '../../contexts/AuthContext'
+import '../../styles/NewsPage.css'
 import '../../styles/AlertsPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
+import profileAvatar from '../../assets/logos/siara-logo1.png'
+import DrivingQuiz from '../../components/ui/DrivingQuiz'
 
 /**
  * SEED_ALERTS — default alert data used to populate localStorage on the user's
@@ -129,6 +132,8 @@ export default function AlertsPage() {
   const [severityFilter, setSeverityFilter] = useState('all')  // severity dropdown: 'all' | 'high' | 'medium' | 'low'
   const [areaFilter, setAreaFilter] = useState('all')          // wilaya dropdown filter
   const [toast, setToast] = useState(null)                     // transient success message string
+  const [showQuiz, setShowQuiz] = useState(false)              // driving quiz overlay
+  const handleQuizComplete = (r) => { console.log('Quiz:', r); setShowQuiz(false) }
 
   // --- Core alerts data (initialised from localStorage via loadAlerts) ---
   const [alerts, setAlerts] = useState(() => loadAlerts())
@@ -215,6 +220,7 @@ export default function AlertsPage() {
 
   return (
     <div className="alerts-page">
+      <DrivingQuiz onComplete={handleQuizComplete} forceShow={showQuiz} />
       {/* ═══ HEADER (shared dashboard header) ═══ */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
@@ -264,27 +270,59 @@ export default function AlertsPage() {
       {/* ═══ MAIN 3-COLUMN GRID ═══ */}
       <div className="al-grid">
 
-        {/* ═══ LEFT SIDEBAR: nav tabs, quick stats, new-alert CTA ═══ */}
+        {/* ═══ LEFT SIDEBAR: profile, navigation, alert tabs, stats, CTA ═══ */}
         <aside className="al-left">
-          <nav className="al-nav">
-            {[
-              { key: 'active', icon: '✅', label: 'Active', count: alerts.filter(a => a.status === 'active').length },
-              { key: 'paused', icon: '⏸️', label: 'Paused', count: alerts.filter(a => a.status === 'paused').length },
-              { key: 'expired', icon: '⏰', label: 'Expired', count: alerts.filter(a => a.status === 'expired').length },
-              { key: 'history', icon: '📜', label: 'History', count: null }
-            ].map(n => (
-              <button key={n.key} className={`al-nav-btn ${activeNav === n.key ? 'active' : ''}`} onClick={() => setActiveNav(n.key)}>
-                <span className="nav-icon">{n.icon}</span>
-                <span className="nav-label">{n.label}</span>
-                {n.count !== null && <span className="nav-count">{n.count}</span>}
-              </button>
-            ))}
+
+          {/* ── Profile card ── */}
+          <div className="card profile-summary">
+            <div className="profile-avatar-container">
+              <img src={profileAvatar} alt="Profile" className="profile-avatar-large" />
+              <span className="verified-badge">✓</span>
+            </div>
+            <div className="profile-info">
+              <p className="profile-name">{user?.name || 'User'}</p>
+              <span className="role-badge role-citoyen">Citizen</span>
+              <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
+            </div>
+          </div>
+
+          {/* ── Navigation menu ── */}
+          <nav className="card nav-menu">
+            <div className="nav-section-label">NAVIGATION</div>
+            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-accent"></span><span className="nav-icon">📰</span><span className="nav-label">Feed</span></button>
+            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-accent"></span><span className="nav-icon">🗺️</span><span className="nav-label">Map</span></button>
+            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alerts</span></button>
+            <button className="nav-item" onClick={() => navigate('/dashboard')}><span className="nav-accent"></span><span className="nav-icon">📊</span><span className="nav-label">Dashboard</span></button>
+            <button className="nav-item" onClick={() => navigate('/predictions')}><span className="nav-accent"></span><span className="nav-icon">🔮</span><span className="nav-label">Predictions</span></button>
+            <div className="nav-section-label">TOOLS</div>
+            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">🚗</span><span className="nav-label">Driver Quiz</span></button>
+            <button className="nav-item" onClick={() => navigate('/report')}><span className="nav-accent"></span><span className="nav-icon">📝</span><span className="nav-label">Report</span></button>
+            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Settings</span></button>
           </nav>
 
-          <div className="al-stats">
-            <div className="stat"><span className="dot green"></span><span>Active</span><span className="val">{stats.active}</span></div>
-            <div className="stat"><span className="dot orange"></span><span>Today</span><span className="val">{stats.today}</span></div>
-            <div className="stat"><span className="dot red"></span><span>High Sev.</span><span className="val">{stats.high}</span></div>
+          {/* ── Alert filter tabs ── */}
+          <div className="card al-filter-section">
+            <div className="nav-section-label">ALERT STATUS</div>
+            <nav className="al-nav">
+              {[
+                { key: 'active', icon: '✅', label: 'Active', count: alerts.filter(a => a.status === 'active').length },
+                { key: 'paused', icon: '⏸️', label: 'Paused', count: alerts.filter(a => a.status === 'paused').length },
+                { key: 'expired', icon: '⏰', label: 'Expired', count: alerts.filter(a => a.status === 'expired').length },
+                { key: 'history', icon: '📜', label: 'History', count: null }
+              ].map(n => (
+                <button key={n.key} className={`al-nav-btn ${activeNav === n.key ? 'active' : ''}`} onClick={() => setActiveNav(n.key)}>
+                  <span className="nav-icon">{n.icon}</span>
+                  <span className="nav-label">{n.label}</span>
+                  {n.count !== null && <span className="nav-count">{n.count}</span>}
+                </button>
+              ))}
+            </nav>
+
+            <div className="al-stats">
+              <div className="stat"><span className="dot green"></span><span>Active</span><span className="val">{stats.active}</span></div>
+              <div className="stat"><span className="dot orange"></span><span>Today</span><span className="val">{stats.today}</span></div>
+              <div className="stat"><span className="dot red"></span><span>High Sev.</span><span className="val">{stats.high}</span></div>
+            </div>
           </div>
 
           <button className="al-cta" onClick={() => navigate('/alerts/create')}>➕ New Alert</button>

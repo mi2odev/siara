@@ -361,10 +361,11 @@
   height: 100%;
   scrollbar-width: thin;
   scrollbar-color: #CBD5E1 transparent;
-  padding: 24px 0 24px 24px;
+  padding: 24px 12px;
   width: 260px;
   flex-shrink: 0;
   align-self: flex-start;
+  border-right: 1px solid #e5e7eb;
 }
 
 /* A. Profile Summary */
@@ -884,8 +885,6 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 720px;
-  margin: 0 auto;
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
@@ -893,7 +892,7 @@
   scrollbar-width: thin;
   scrollbar-color: #CBD5E1 transparent;
   flex: 1;
-  padding-top: 24px;
+  padding: 24px 24px 24px 24px;
   align-self: flex-start;
 }
 
@@ -1555,10 +1554,11 @@
   height: 100%;
   scrollbar-width: thin;
   scrollbar-color: #CBD5E1 transparent;
-  padding: 24px 24px 24px 0;
+  padding: 24px 12px;
   width: 330px;
   flex-shrink: 0;
   align-self: flex-start;
+  border-left: 1px solid #e5e7eb;
 }
 
 .widget-title {

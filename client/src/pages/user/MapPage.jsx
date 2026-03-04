@@ -13,14 +13,17 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from '../../contexts/AuthContext';
 
 /* ── Styles ── */
+import "../../styles/NewsPage.css";
 import "../../styles/MapPage.css";
 
 /* ── Assets ── */
 import siaraLogo from "../../assets/logos/siara-logo.png";
+import profileAvatar from "../../assets/logos/siara-logo1.png";
 
 /* ── Components ── */
 import DangerForecastChart from "../../components/map/DangerForecastChart";
 import SiaraMap from "../../components/map/SiaraMap";
+import DrivingQuiz from "../../components/ui/DrivingQuiz";
 
 /* ── MUI Icons ── */
 import LocationOnTwoToneIcon from "@mui/icons-material/LocationOnTwoTone";
@@ -109,6 +112,10 @@ export default function MapPage() {
 
   // Controls the visibility of the user-profile dropdown in the header
   const [showDropdown, setShowDropdown] = useState(false);
+
+  // Driving quiz overlay
+  const [showQuiz, setShowQuiz] = useState(false);
+  const handleQuizComplete = (r) => { console.log('Quiz:', r); setShowQuiz(false); };
 
   // Active time-range filter (24h, 7d, 30d, custom)
   const [timeFilter, setTimeFilter] = useState("7d");
@@ -349,6 +356,7 @@ export default function MapPage() {
 
   return (
     <div className="map-page">
+      <DrivingQuiz onComplete={handleQuizComplete} forceShow={showQuiz} />
 
       {/* ═══════════════ TOP NAVIGATION BAR ═══════════════ */}
       <header className="siara-dashboard-header">
@@ -428,23 +436,40 @@ export default function MapPage() {
       {/* ═══════════════ MAIN THREE-COLUMN LAYOUT ═══════════════ */}
       <div className="map-content">
 
-        {/* ═══════════ LEFT SIDEBAR — Filters & Actions ═══════════ */}
+        {/* ═══════════ LEFT SIDEBAR — Profile, Nav, Filters & Actions ═══════════ */}
         <aside className="map-sidebar-left">
 
-          {/* Current user card */}
-          <div className="sidebar-user">
-            <div className="user-avatar">SA</div>
-            <div className="user-info">
-              <span className="user-name">Sofiane A.</span>
-              <span className="user-role">Citizen</span>
+          {/* ── Profile card ── */}
+          <div className="card profile-summary">
+            <div className="profile-avatar-container">
+              <img src={profileAvatar} alt="Profile" className="profile-avatar-large" />
+              <span className="verified-badge">✓</span>
+            </div>
+            <div className="profile-info">
+              <p className="profile-name">{user?.name || 'User'}</p>
+              <span className="role-badge role-citoyen">Citizen</span>
+              <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>
 
+          {/* ── Navigation menu ── */}
+          <nav className="card nav-menu">
+            <div className="nav-section-label">NAVIGATION</div>
+            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-accent"></span><span className="nav-icon">📰</span><span className="nav-label">Feed</span></button>
+            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">🗺️</span><span className="nav-label">Map</span></button>
+            <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alerts</span></button>
+            <button className="nav-item" onClick={() => navigate('/dashboard')}><span className="nav-accent"></span><span className="nav-icon">📊</span><span className="nav-label">Dashboard</span></button>
+            <button className="nav-item" onClick={() => navigate('/predictions')}><span className="nav-accent"></span><span className="nav-icon">🔮</span><span className="nav-label">Predictions</span></button>
+            <div className="nav-section-label">TOOLS</div>
+            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">🚗</span><span className="nav-label">Driver Quiz</span></button>
+            <button className="nav-item" onClick={() => navigate('/report')}><span className="nav-accent"></span><span className="nav-icon">📝</span><span className="nav-label">Report</span></button>
+            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Settings</span></button>
+          </nav>
+
           {/* ── Filter panel ── */}
-          <div className="filters-section">
+          <div className="card filters-section">
             <div className="section-header">
               <h3>Filters</h3>
-              {/* Show "clear" button only when at least one filter is active */}
               {hasActiveFilters && (
                 <button className="clear-btn" onClick={clearFilters}>Clear</button>
               )}
@@ -471,7 +496,7 @@ export default function MapPage() {
               </div>
             </div>
 
-            {/* Severity filter chips — colour changes when active */}
+            {/* Severity filter chips */}
             <div className="filter-group">
               <label className="filter-label">Severity</label>
               <div className="filter-chips">
