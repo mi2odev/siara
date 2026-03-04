@@ -132,7 +132,7 @@ export default function PredictionsPage() {
               <span className="verified-badge">✓</span>
             </div>
             <div className="profile-info">
-              <p className="profile-name">Sofiane Ahmed</p>
+              <p className="profile-name">Zitouni Mohamed</p>
               <span className="role-badge role-citoyen">Citizen</span>
               <p className="profile-bio">Active contributor for safer roads in Algeria 🇩🇿</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>

@@ -446,7 +446,7 @@ export default function MapPage() {
               <span className="verified-badge">✓</span>
             </div>
             <div className="profile-info">
-              <p className="profile-name">{user?.name || 'User'}</p>
+              <p className="profile-name">Zitouni Mohamed</p>
               <span className="role-badge role-citoyen">Citizen</span>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>

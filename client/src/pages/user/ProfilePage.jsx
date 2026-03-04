@@ -124,7 +124,7 @@ export default function ProfilePage(){
               <img src={profileAvatar} alt="Profile" />
               <span className="verified-badge">✓</span>
             </div>
-            <h2 className="user-card-name">Sofiane Ahmed</h2>
+            <h2 className="user-card-name">Zitouni Mohamed</h2>
             <span className="user-role-badge citoyen">Citizen</span>
             <p className="user-bio">Active contributor for safer roads in Algeria 🇩🇿</p>
             <button className="btn-edit-profile">✏️ Edit Profile</button>
@@ -198,7 +198,7 @@ export default function ProfilePage(){
                 <span className="verified-badge-large">✓</span>
               </div>
               <div className="profile-info">
-                <h1 className="profile-name">Sofiane Ahmed</h1>
+                <h1 className="profile-name">Zitouni Mohamed</h1>
                 <div className="profile-meta">
                   <span className="meta-item">📍 Algiers, Algeria</span>
                   <span className="meta-item">📅 Member since March 2024</span>

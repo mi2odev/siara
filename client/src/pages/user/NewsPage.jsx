@@ -125,7 +125,7 @@ export default function NewsPage() {
               <span className="verified-badge">✓</span>
             </div>
             <div className="profile-info">
-              <p className="profile-name">Sofiane Ahmed</p>
+              <p className="profile-name">Zitouni Mohamed</p>
               <span className="role-badge role-citoyen">Citizen</span>
               <p className="profile-bio">Active contributor for safer roads in Algeria 🇩🇿</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
@@ -184,7 +184,7 @@ export default function NewsPage() {
               <button className="category-preset" onClick={() => navigate('/report')}>🌧️ Rain</button>
               <button className="category-preset" onClick={() => navigate('/report')}>👮 Road Check</button>
             </div>
-            <div className="composer-top"><div className="composer-avatar">SA</div><button className="composer-input-fake" onClick={() => navigate('/report')}>Minor accident, slowdown on the East-West highway...</button></div>
+            <div className="composer-top"><div className="composer-avatar">ZM</div><button className="composer-input-fake" onClick={() => navigate('/report')}>Minor accident, slowdown on the East-West highway...</button></div>
             <textarea className="composer-textarea" placeholder="Describe the incident in detail: exact location, conditions, severity level..."></textarea>
             <div className="composer-actions">
               <div className="composer-tools">

@@ -167,9 +167,9 @@ Authorities advise all motorists to avoid this section of the highway until furt
         <aside className="incident-sidebar-left">
           {/* User Mini Card */}
           <div className="user-mini-card">
-            <div className="user-mini-avatar">SA</div>
+            <div className="user-mini-avatar">ZM</div>
             <div className="user-mini-info">
-              <span className="user-mini-name">Sofiane A.</span>
+              <span className="user-mini-name">Zitouni M.</span>
               <span className="user-mini-role">Citizen</span>
             </div>
           </div>

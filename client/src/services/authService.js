@@ -7,7 +7,7 @@ export async function login(email, password) {
   // simple role assignment for demo
   const role = String(email).toLowerCase().includes('admin') ? 'admin' : 'user'
   // return a mock user and token
-  return { user: { id: 1, name: role === 'admin' ? 'Admin Demo' : 'Utilisateur Démo', email, role }, token: 'mock-token' }
+  return { user: { id: 1, name: role === 'admin' ? 'Admin Demo' : 'Zitouni Mohamed', email, role }, token: 'mock-token' }
 }
 
 export function logout() {

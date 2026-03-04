@@ -41,10 +41,10 @@ export default function SettingsPage() {
   /* ---- Inline edit state ---- */
   /** profileData holds the editable user fields displayed in Profile & Account sections */
   const [profileData, setProfileData] = useState({
-    name: 'Sofiane Ahmed',
+    name: 'Zitouni Mohamed',
     bio: 'Active contributor for safer roads in Algeria 🇩🇿',
     location: 'Algiers, Algeria',
-    email: 'sofiane.ahmed@email.com',
+    email: 'zitouni.mohamed@email.com',
     phone: '+213 555 123 456',
     language: 'French',
   })
