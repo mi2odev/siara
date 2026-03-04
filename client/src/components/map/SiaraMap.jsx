@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -21,6 +21,7 @@ const USER_ZOOM = 15;
 const NEARBY_RADIUS_KM = 25;
 const NEARBY_MAX_DESTINATIONS = 4;
 const ROUTE_SAMPLE_COUNT = 12;
+const NOW_PRESET_REFRESH_MS = 5 * 60 * 1000;
 const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const TIME_PRESET_OPTIONS = [
@@ -274,6 +275,10 @@ export default function SiaraMap({
   mapLayer,
   setSelectedIncident,
   userPosition,
+  locationStatus = "unknown",
+  locationError = "",
+  requestLocation,
+  onSelectedTimestampChange,
 }) {
   const [currentRisk, setCurrentRisk] = useState(null);
   const [currentRiskState, setCurrentRiskState] = useState("idle");
@@ -300,32 +305,52 @@ export default function SiaraMap({
   const [selectedRouteExplanation, setSelectedRouteExplanation] = useState(null);
   const [timePresetMs, setTimePresetMs] = useState("0");
   const [customTimestampLocal, setCustomTimestampLocal] = useState("");
+  const [nowPresetTick, setNowPresetTick] = useState(0);
   const nearbyRequestKeyRef = useRef("");
 
   const selectedTimeKey = `${timePresetMs}|${customTimestampLocal}`;
-
-  const resolveSelectedTimestampIso = useCallback(() => {
+  const timestampAnchorMs = useMemo(() => Date.now(), [selectedTimeKey, nowPresetTick]);
+  const selectedTimestampIso = useMemo(() => {
     if (timePresetMs === "custom") {
       const customDate = new Date(customTimestampLocal);
       if (!Number.isNaN(customDate.getTime())) {
         return customDate.toISOString();
       }
-      return new Date().toISOString();
+      return new Date(timestampAnchorMs).toISOString();
     }
 
     const offsetMs = Number(timePresetMs);
     const safeOffsetMs = Number.isFinite(offsetMs) ? offsetMs : 0;
-    return new Date(Date.now() + safeOffsetMs).toISOString();
-  }, [timePresetMs, customTimestampLocal]);
+    return new Date(timestampAnchorMs + safeOffsetMs).toISOString();
+  }, [timePresetMs, customTimestampLocal, timestampAnchorMs]);
 
   const selectedTimestampPreview = useMemo(() => {
-    const timestampIso = resolveSelectedTimestampIso();
-    const dt = new Date(timestampIso);
+    const dt = new Date(selectedTimestampIso);
     if (Number.isNaN(dt.getTime())) {
       return "Invalid time";
     }
     return dt.toLocaleString();
-  }, [resolveSelectedTimestampIso]);
+  }, [selectedTimestampIso]);
+
+  useEffect(() => {
+    if (typeof onSelectedTimestampChange === "function") {
+      onSelectedTimestampChange(selectedTimestampIso);
+    }
+  }, [onSelectedTimestampChange, selectedTimestampIso]);
+
+  useEffect(() => {
+    if (timePresetMs !== "0") {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setNowPresetTick((value) => value + 1);
+    }, NOW_PRESET_REFRESH_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [timePresetMs]);
 
   useEffect(() => {
     console.log("[SiaraMap] selectedRouteExplanation updated:", selectedRouteExplanation);
@@ -378,12 +403,17 @@ export default function SiaraMap({
 }
 
   useEffect(() => {
-    if (!userPosition) return;
+    if (!userPosition) {
+      setCurrentRisk(null);
+      setCurrentRiskState("idle");
+      setCurrentRiskError("");
+      return;
+    }
 
     const body = {
       lat: userPosition.lat,
       lng: userPosition.lng,
-      timestamp: resolveSelectedTimestampIso(),
+      timestamp: selectedTimestampIso,
     };
     console.log("[React -> Node] /api/risk/current body:", body);
 
@@ -408,7 +438,7 @@ export default function SiaraMap({
     return () => {
       cancelled = true;
     };
-  }, [userPosition, selectedTimeKey, resolveSelectedTimestampIso]);
+  }, [userPosition, selectedTimestampIso]);
 
   useEffect(() => {
     if (!currentRisk) return;
@@ -416,10 +446,15 @@ export default function SiaraMap({
   }, [currentRisk]);
 
   useEffect(() => {
-    if (!mockMarkers?.length || mapLayer !== "ai") return;
+    if (!userPosition || !mockMarkers?.length || mapLayer !== "ai") {
+      setOverlayBySegment({});
+      setOverlayState("idle");
+      setOverlayError("");
+      return;
+    }
 
     const body = {
-      timestamp: resolveSelectedTimestampIso(),
+      timestamp: selectedTimestampIso,
       rows: mockMarkers.map((marker) => ({
         segment_id: String(marker.id),
         lat: marker.lat,
@@ -454,7 +489,7 @@ export default function SiaraMap({
     return () => {
       cancelled = true;
     };
-  }, [mapLayer, mockMarkers, selectedTimeKey, resolveSelectedTimestampIso]);
+  }, [mapLayer, mockMarkers, selectedTimestampIso, userPosition]);
 
   useEffect(() => {
     if (mapLayer !== "nearbyRoads") {
@@ -471,7 +506,7 @@ export default function SiaraMap({
       return;
     }
 
-    const requestKey = `${toNearbyRequestKey(userPosition)}:${selectedTimeKey}`;
+    const requestKey = `${toNearbyRequestKey(userPosition)}:${selectedTimestampIso}`;
     if (!requestKey || requestKey === nearbyRequestKeyRef.current) {
       return;
     }
@@ -481,7 +516,7 @@ export default function SiaraMap({
       lng: userPosition.lng,
       radius_km: NEARBY_RADIUS_KM,
       max_destinations: NEARBY_MAX_DESTINATIONS,
-      timestamp: resolveSelectedTimestampIso(),
+      timestamp: selectedTimestampIso,
     };
     console.log("[React -> Node] /api/risk/nearby-zones body:", body);
 
@@ -509,7 +544,7 @@ console.log("[Node -> React] nearby-zones response:", data);
     return () => {
       cancelled = true;
     };
-  }, [mapLayer, userPosition, selectedTimeKey, resolveSelectedTimestampIso]);
+  }, [mapLayer, selectedTimestampIso, userPosition]);
 
   useEffect(() => {
     if (mapLayer !== "nearbyRoads" || nearbyRoutes.length === 0) return;
@@ -532,12 +567,16 @@ console.log("[Node -> React] nearby-zones response:", data);
       setSelectedIncident(marker);
       return;
     }
+    if (!userPosition) {
+      setSelectedIncident(marker);
+      return;
+    }
 
     const body = {
       segment_id: String(marker.id),
       lat: marker.lat,
       lng: marker.lng,
-      timestamp: resolveSelectedTimestampIso(),
+      timestamp: selectedTimestampIso,
     };
     console.log("[React -> Node] /api/risk/explain body:", body);
 
@@ -649,7 +688,7 @@ console.log("[Node -> React] nearby-zones response:", data);
         lat: selectedDestination.lat,
         lng: selectedDestination.lng,
       },
-      timestamp: resolveSelectedTimestampIso(),
+      timestamp: selectedTimestampIso,
       sample_count: ROUTE_SAMPLE_COUNT,
     };
 
@@ -686,6 +725,11 @@ console.log("[Node -> React] nearby-zones response:", data);
     if (!segment?.segment_id) {
       return;
     }
+    if (!userPosition) {
+      setRouteExplainState("error");
+      setRouteExplainError("Location is required before requesting explanations.");
+      return;
+    }
 
     setRouteExplainState("loading");
     setRouteExplainError("");
@@ -693,6 +737,7 @@ console.log("[Node -> React] nearby-zones response:", data);
     try {
       const response = await postJson("/api/risk/explain", {
         segment_id: String(segment.segment_id),
+        timestamp: selectedTimestampIso,
         top_k: 8,
       });
       const explanation = {
@@ -1104,10 +1149,32 @@ console.log("[Node -> React] nearby-zones response:", data);
               </IconButton>
             </MuiTooltip>
           </div>
-          {currentRiskState === "idle" && <p>Waiting for location...</p>}
-          {currentRiskState === "loading" && <p>Loading current risk...</p>}
-          {currentRiskState === "error" && <p className="risk-debug-error">{currentRiskError}</p>}
-          {currentRiskState === "success" && currentRisk && (
+          {!userLatLng && (
+            <>
+              <p>Location is required for SIARA risk prediction.</p>
+              {(locationStatus === "prompt" || locationStatus === "unknown") &&
+                typeof requestLocation === "function" && (
+                  <button
+                    type="button"
+                    className="siara-guide-btn siara-guide-btn-primary"
+                    onClick={requestLocation}
+                  >
+                    Enable location
+                  </button>
+                )}
+              {locationStatus === "denied" && (
+                <p>
+                  Location access is blocked. Enable location permissions in your browser settings,
+                  then refresh this page.
+                </p>
+              )}
+              {locationError && <p className="risk-debug-error">{locationError}</p>}
+            </>
+          )}
+          {userLatLng && currentRiskState === "idle" && <p>Loading current risk...</p>}
+          {userLatLng && currentRiskState === "loading" && <p>Loading current risk...</p>}
+          {userLatLng && currentRiskState === "error" && <p className="risk-debug-error">{currentRiskError}</p>}
+          {userLatLng && currentRiskState === "success" && currentRisk && (
             <>
               <p>
                 <strong className="risk-debug-percent" style={{ color: getDangerColor(currentRisk.danger_level) }}>

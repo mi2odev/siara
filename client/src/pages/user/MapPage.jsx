@@ -8,7 +8,7 @@
  * Layout: Header  |  Left sidebar (filters)  |  Center map  |  Right sidebar (context)
  */
 
-import React, { useEffect, useMemo, useState, useContext } from "react";
+import React, { useEffect, useMemo, useState, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from '../../contexts/AuthContext';
 
@@ -137,6 +137,9 @@ export default function MapPage() {
 
   // User's GPS coordinates (set via the geolocation button)
   const [userPosition, setUserPosition] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("unknown");
+  const [locationError, setLocationError] = useState("");
+  const [selectedTimestampIso, setSelectedTimestampIso] = useState(() => new Date().toISOString());
 
   // Whether the map is displayed in fullscreen mode
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -153,8 +156,104 @@ export default function MapPage() {
   );
   const contextPointKey = useMemo(() => toPointKey(contextPoint), [contextPoint]);
 
+  const requestLocation = useCallback(() => {
+    if (!navigator?.geolocation) {
+      setUserPosition(null);
+      setLocationStatus("error");
+      setLocationError("Geolocation is not supported by this browser.");
+      return;
+    }
+
+    setLocationError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserPosition({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        setLocationStatus("granted");
+      },
+      (err) => {
+        console.error(err);
+        if (err?.code === err?.PERMISSION_DENIED) {
+          setUserPosition(null);
+          setLocationStatus("denied");
+          setLocationError("Location permission denied.");
+          return;
+        }
+        setUserPosition(null);
+        setLocationStatus("error");
+        setLocationError(err?.message || "Unable to get your position.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      },
+    );
+  }, []);
+
   useEffect(() => {
-    if (!contextPoint) {
+    if (!navigator?.geolocation) {
+      setUserPosition(null);
+      setLocationStatus("error");
+      setLocationError("Geolocation is not supported by this browser.");
+      return undefined;
+    }
+
+    if (!navigator?.permissions?.query) {
+      setLocationStatus("unknown");
+      requestLocation();
+      return undefined;
+    }
+
+    let cancelled = false;
+    let permissionStatus = null;
+    const applyPermissionState = (state) => {
+      if (cancelled) return;
+      if (state === "granted") {
+        setLocationStatus("granted");
+        setLocationError("");
+        requestLocation();
+        return;
+      }
+      if (state === "prompt") {
+        setLocationStatus("prompt");
+        setLocationError("");
+        return;
+      }
+      if (state === "denied") {
+        setUserPosition(null);
+        setLocationStatus("denied");
+        setLocationError("Location permission is blocked. Enable it in browser settings.");
+        return;
+      }
+      setLocationStatus("unknown");
+    };
+
+    navigator.permissions
+      .query({ name: "geolocation" })
+      .then((status) => {
+        permissionStatus = status;
+        applyPermissionState(status.state);
+        status.onchange = () => applyPermissionState(status.state);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLocationStatus("unknown");
+        requestLocation();
+      });
+
+    return () => {
+      cancelled = true;
+      if (permissionStatus) {
+        permissionStatus.onchange = null;
+      }
+    };
+  }, [requestLocation]);
+
+  useEffect(() => {
+    if (!userPosition || !contextPoint) {
       setWeatherLoading(false);
       setWeatherError("");
       setWeatherData(null);
@@ -172,9 +271,10 @@ export default function MapPage() {
       setForecastError("");
 
       const query = `lat=${encodeURIComponent(contextPoint.lat)}&lng=${encodeURIComponent(contextPoint.lng)}`;
+      const forecastQuery = `${query}&timestamp=${encodeURIComponent(selectedTimestampIso)}`;
       const [weatherResult, forecastResult] = await Promise.allSettled([
         getJson(`/api/weather/current?${query}`, controller.signal),
-        getJson(`/api/risk/forecast24h?${query}`, controller.signal),
+        getJson(`/api/risk/forecast24h?${forecastQuery}`, controller.signal),
       ]);
 
       if (controller.signal.aborted) {
@@ -188,6 +288,7 @@ export default function MapPage() {
         setWeatherData(null);
         setWeatherError(weatherResult.reason?.message || "Meteo indisponible.");
       }
+      
 
       if (forecastResult.status === "fulfilled") {
         const payload = forecastResult.value || {};
@@ -213,8 +314,8 @@ export default function MapPage() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [contextPointKey, contextPoint]);
-
+  }, [contextPointKey, contextPoint, selectedTimestampIso, userPosition]);
+console.log(weatherData)
   const weatherIcon = weatherIconFromCondition(weatherData?.condition);
   const weatherTempText = weatherData?.temperature_c == null
     ? "--°C"
@@ -325,21 +426,10 @@ export default function MapPage() {
 
   /**
    * Request the browser's geolocation API and store the user's position.
-   * Shows an alert if permission is denied or unavailable.
+   * Triggers location flow based on permission state.
    */
   const handleLocateUser = () => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserPosition({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        });
-      },
-      (err) => {
-        console.error(err);
-        alert("Unable to get your position.");
-      },
-    );
+    requestLocation();
   };
 
   /* ────────── Fullscreen inline styles (applied when toggled) ────────── */
@@ -612,6 +702,10 @@ export default function MapPage() {
                 mapLayer={mapLayer}
                 setSelectedIncident={setSelectedIncident}
                 userPosition={userPosition}
+                locationStatus={locationStatus}
+                locationError={locationError}
+                requestLocation={requestLocation}
+                onSelectedTimestampChange={setSelectedTimestampIso}
               />
             </div>
 

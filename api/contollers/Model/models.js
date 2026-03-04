@@ -573,15 +573,22 @@ function normalizeSnapshotForModelUnits(snapshot, units, sourceLabel = "unknown"
   if (DEBUG_WEATHER_UNITS) {
     const windAfter = safeNumber(normalized.wind_speed_10m);
     const precipAfter = safeNumber(normalized.precipitation);
-    console.log(
-      `[Node][weather-unit-guard] source=${sourceLabel} wind_unit=${selectedWindUnit || "n/a"} wind_before=${
-        windBefore == null ? "n/a" : roundNumber(windBefore, 4)
-      } wind_after=${windAfter == null ? "n/a" : roundNumber(windAfter, 4)} precip_unit=${
-        selectedPrecipUnit || "n/a"
-      } precip_before=${precipBefore == null ? "n/a" : roundNumber(precipBefore, 4)} precip_after=${
-        precipAfter == null ? "n/a" : roundNumber(precipAfter, 4)
-      }`,
-    );
+    console.log("[Node][weather-unit-guard]", {
+      source: sourceLabel,
+      units: {
+        wind_speed_10m: selectedWindUnit || "n/a",
+        precipitation: selectedPrecipUnit || "n/a",
+        temperature_2m: selectedTempUnit || "n/a",
+      },
+      wind: {
+        before: windBefore == null ? null : roundNumber(windBefore, 4),
+        after_mph: windAfter == null ? null : roundNumber(windAfter, 4),
+      },
+      precipitation: {
+        before: precipBefore == null ? null : roundNumber(precipBefore, 4),
+        after_in: precipAfter == null ? null : roundNumber(precipAfter, 4),
+      },
+    });
   }
 
   return normalized;
@@ -755,9 +762,11 @@ function getBaseWeatherFieldList() {
 
 function buildModelWeatherRowFromSnapshot(snapshot) {
   const windSpeedMph = safeNumber(snapshot?.wind_speed_10m);
+  const windSpeedKmh = windSpeedMph == null ? null : mphToKmh(windSpeedMph);
+  const windDirectionDeg = safeNumber(snapshot?.wind_direction_10m);
   const weatherCode = safeNumber(snapshot?.weather_code);
   const mappedWeatherCondition = mapWeatherCondition(weatherCode);
-  const mappedWindDirection = mapWindDirection(snapshot?.wind_direction_10m, windSpeedMph);
+  const mappedWindDirection = mapWindDirection(windDirectionDeg, windSpeedMph);
   const weatherCondition = clampCategoricalValue(
     mappedWeatherCondition,
     weatherConditionAllowedSet,
@@ -779,6 +788,9 @@ function buildModelWeatherRowFromSnapshot(snapshot) {
     "Visibility(mi)":
       safeNumber(snapshot?.visibility) == null ? null : metersToMiles(safeNumber(snapshot.visibility)),
     "Wind_Speed(mph)": windSpeedMph,
+    windspeed_10m: windSpeedKmh,
+    windspeed_10m_kmh: windSpeedKmh,
+    winddirection_10m: windDirectionDeg,
     "Precipitation(in)": safeNumber(snapshot?.precipitation),
     Wind_Direction: windDirection,
     Weather_Condition: weatherCondition,
@@ -836,7 +848,7 @@ async function getCurrentWeatherUi(lat, lng) {
   const hourlyFallback = extractForecastSnapshot(payload?.hourly, nowSeconds);
   const snapshot = currentSnapshot || hourlyFallback || {};
   const windSpeedKmh = safeNumber(snapshot.wind_speed_10m);
-  const windSpeedMph = windSpeedKmh == null ? null : windSpeedKmh * 0.621371;
+  const windSpeedMph = windSpeedKmh == null ? null : kmhToMph(windSpeedKmh);
 
   const weather = {
     temperature_c: roundNumber(snapshot.temperature_2m, 1),
@@ -926,9 +938,11 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
 
   if (DEBUG_WEATHER_UNITS && !weatherUnitsLogged) {
     weatherUnitsLogged = true;
-    console.log("[Node][weather-units] current_units:", data?.current_units);
-    console.log("[Node][weather-units] hourly_units:", data?.hourly_units);
-    console.log("[Node][weather-units] minutely_15_units:", data?.minutely_15_units);
+    console.log("[Node][weather-units]", {
+      current_units: data?.current_units,
+      hourly_units: data?.hourly_units,
+      minutely_15_units: data?.minutely_15_units,
+    });
   }
 
   const nowSeconds = Math.floor(Date.now() / 1000);
@@ -947,6 +961,7 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
     selectedUnits,
     weatherSource,
   );
+
   if (DEBUG_WEATHER_UNITS) {
     const selectedIso =
       normalizedSnapshot.selected_time_unix == null
@@ -957,6 +972,17 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
         targetSeconds * 1000,
       ).toISOString()} selected=${selectedIso}`,
     );
+    console.log("[Node][weather-wind]", {
+      source: weatherSource,
+      selected_units: selectedUnits,
+      raw_wind_speed: safeNumber(snapshot?.wind_speed_10m),
+      normalized_wind_mph: safeNumber(normalizedSnapshot?.wind_speed_10m),
+      normalized_wind_kmh: (() => {
+        const mph = safeNumber(normalizedSnapshot?.wind_speed_10m);
+        return mph == null ? null : roundNumber(mphToKmh(mph), 4);
+      })(),
+      wind_direction_deg: safeNumber(normalizedSnapshot?.wind_direction_10m),
+    });
   }
 
   const row = buildModelWeatherRowFromSnapshot(normalizedSnapshot);
@@ -1353,6 +1379,9 @@ async function buildDangerRow({ lat, lng, timestamp, roadFlags }) {
     "Pressure(in)": safeRowNumber(weather?.["Pressure(in)"], 0),
     "Visibility(mi)": safeRowNumber(weather?.["Visibility(mi)"], 0),
     "Wind_Speed(mph)": safeRowNumber(weather?.["Wind_Speed(mph)"], 0),
+    windspeed_10m: safeRowNumber(weather?.windspeed_10m, null),
+    windspeed_10m_kmh: safeRowNumber(weather?.windspeed_10m_kmh, null),
+    winddirection_10m: safeRowNumber(weather?.winddirection_10m, null),
     "Precipitation(in)": safeRowNumber(weather?.["Precipitation(in)"], 0),
     Wind_Direction: safeRowCategory(weather?.Wind_Direction, "Unknown"),
     Weather_Condition: safeRowCategory(weather?.Weather_Condition, "Unknown"),
@@ -1362,6 +1391,18 @@ async function buildDangerRow({ lat, lng, timestamp, roadFlags }) {
     Astronomical_Twilight: safeRowCategory(twilight?.Astronomical_Twilight, "Night"),
     ...resolvedRoadFlags,
   };
+
+  if (DEBUG_WEATHER_UNITS) {
+    const windMph = safeNumber(finalRow["Wind_Speed(mph)"]);
+    console.log("[Node][danger-row-wind]", {
+      timestamp_iso: timestampIso,
+      wind_mph: windMph == null ? null : roundNumber(windMph, 4),
+      wind_kmh_from_mph: windMph == null ? null : roundNumber(mphToKmh(windMph), 4),
+      windspeed_10m_kmh: finalRow.windspeed_10m_kmh,
+      wind_direction_cardinal: finalRow.Wind_Direction,
+      wind_direction_deg: finalRow.winddirection_10m,
+    });
+  }
 
   console.log("\n[DANGER ROW][FINAL INPUT TO FLASK]:", finalRow);
   return finalRow;
@@ -2166,6 +2207,9 @@ exports.getRiskForecast24h = async (req, res) => {
           "Pressure(in)": safeRowNumber(weatherRow?.["Pressure(in)"], 0),
           "Visibility(mi)": safeRowNumber(weatherRow?.["Visibility(mi)"], 0),
           "Wind_Speed(mph)": safeRowNumber(weatherRow?.["Wind_Speed(mph)"], 0),
+          windspeed_10m: safeRowNumber(weatherRow?.windspeed_10m, null),
+          windspeed_10m_kmh: safeRowNumber(weatherRow?.windspeed_10m_kmh, null),
+          winddirection_10m: safeRowNumber(weatherRow?.winddirection_10m, null),
           "Precipitation(in)": safeRowNumber(weatherRow?.["Precipitation(in)"], 0),
           Wind_Direction: safeRowCategory(weatherRow?.Wind_Direction, "Unknown"),
           Weather_Condition: safeRowCategory(weatherRow?.Weather_Condition, "Unknown"),
