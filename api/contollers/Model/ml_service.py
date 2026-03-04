@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import shap
 import os
+from bisect import bisect_right
 
 app = Flask(__name__)
 
@@ -20,6 +21,9 @@ META_PATH = os.path.join(BASE_DIR, "driver-quiz-model", "metadata.json")
 CAL_MODEL_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "siara_severe_model.joblib")
 BASE_MODEL_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "base_lightgbm.joblib")
 DANGER_META_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "siara_severe_metadata.json")
+SENTINEL_PATH = os.path.join(
+    BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "SiaraSentinelDZ_v2.joblib"
+)
 
 # ---- Load driver-quiz artifacts
 model = joblib.load(MODEL_PATH)
@@ -53,6 +57,39 @@ DANGER_THRESHOLDS = DANGER_META.get("thresholds", {})
 DANGER_BASELINE_BY_HD = DANGER_META.get("baseline_dynamic_by_hour_dow", {})
 
 DANGER_SHAP_EXPLAINER = shap.TreeExplainer(BASE_MODEL)
+
+# ---- Load sentinel artifact (graceful fallback if unavailable)
+SENTINEL_ENABLED = False
+SENTINEL_LOAD_ERROR = None
+SENTINEL_PIPELINE = None
+SENTINEL_THRESHOLD_NORM = None
+SENTINEL_FEATURE_COLUMNS = []
+SENTINEL_NORM_SORTED = np.asarray([], dtype=float)
+SENTINEL_WEATHER_COLS = [
+    "temperature_2m",
+    "relative_humidity_2m",
+    "precipitation",
+    "pressure_msl",
+    "windspeed_10m",
+    "winddirection_10m",
+    "cloudcover",
+]
+try:
+    sentinel_blob = joblib.load(SENTINEL_PATH)
+    if not isinstance(sentinel_blob, dict):
+        raise TypeError("Sentinel artifact must be a dict")
+
+    SENTINEL_PIPELINE = sentinel_blob["pipeline"]
+    SENTINEL_THRESHOLD_NORM = float(sentinel_blob["threshold_norm"])
+    SENTINEL_FEATURE_COLUMNS = list(sentinel_blob["feature_columns"])
+    SENTINEL_NORM_SORTED = np.asarray(sentinel_blob["norm_sorted"], dtype=float).reshape(-1)
+    if SENTINEL_NORM_SORTED.size == 0:
+        raise ValueError("norm_sorted is empty")
+    SENTINEL_WEATHER_COLS = list(sentinel_blob.get("weather_cols", SENTINEL_WEATHER_COLS))
+    SENTINEL_ENABLED = True
+except Exception as exc:
+    SENTINEL_LOAD_ERROR = str(exc)
+    SENTINEL_ENABLED = False
 
 TRUE_STRINGS = {"1", "true", "t", "yes", "y", "on"}
 FALSE_STRINGS = {"0", "false", "f", "no", "n", "off"}
@@ -551,6 +588,291 @@ def _score_danger_row(raw_row, include_quality_details=True):
 
 
 # -----------------------------
+# Sentinel helpers
+# -----------------------------
+_WIND_CARDINAL_TO_DEG = {
+    "N": 0.0,
+    "NNE": 22.5,
+    "NE": 45.0,
+    "ENE": 67.5,
+    "E": 90.0,
+    "ESE": 112.5,
+    "SE": 135.0,
+    "SSE": 157.5,
+    "S": 180.0,
+    "SSW": 202.5,
+    "SW": 225.0,
+    "WSW": 247.5,
+    "W": 270.0,
+    "WNW": 292.5,
+    "NW": 315.0,
+    "NNW": 337.5,
+}
+
+_SENTINEL_WEATHER_RANGES = {
+    "temperature_2m": (-10.0, 55.0),
+    "relative_humidity_2m": (0.0, 100.0),
+    "precipitation": (0.0, 200.0),
+    "pressure_msl": (850.0, 1085.0),
+    "windspeed_10m": (0.0, 150.0),
+    "winddirection_10m": (0.0, 360.0),
+    "cloudcover": (0.0, 100.0),
+}
+
+
+def _pick_value(row, *keys):
+    for key in keys:
+        if key in row:
+            value = row.get(key)
+            if value is None:
+                continue
+            if isinstance(value, str) and not value.strip():
+                continue
+            return value
+    return None
+
+
+def _parse_wind_direction_degrees(raw_value):
+    deg = _safe_float(raw_value)
+    if not np.isnan(deg):
+        return float(deg)
+
+    if raw_value is None:
+        return np.nan
+    text = str(raw_value).strip().upper()
+    if not text:
+        return np.nan
+    return float(_WIND_CARDINAL_TO_DEG[text]) if text in _WIND_CARDINAL_TO_DEG else np.nan
+
+
+def _extract_time_features_for_sentinel(row):
+    parsed_ts = pd.to_datetime(row.get("Start_Time"), errors="coerce")
+    if not pd.isna(parsed_ts):
+        hour = int(parsed_ts.hour)
+        dow = int(parsed_ts.dayofweek)
+        month = int(parsed_ts.month)
+    else:
+        hour = 12
+        dow = 2
+        month = 6
+    return hour, dow, month, int(dow >= 5)
+
+
+def _sentinel_row_from_payload(raw_row):
+    row = dict(raw_row or {})
+
+    lat = _safe_float(_pick_value(row, "lat", "Start_Lat"))
+    lng = _safe_float(_pick_value(row, "lng", "Start_Lng"))
+
+    highway_raw = _pick_value(row, "highway")
+    highway = "Unknown" if highway_raw is None or not str(highway_raw).strip() else str(highway_raw).strip()
+
+    length_m = _safe_float(_pick_value(row, "length_m"))
+    if np.isnan(length_m):
+        distance_mi = _safe_float(_pick_value(row, "Distance(mi)"))
+        if not np.isnan(distance_mi):
+            length_m = distance_mi * 1609.34
+    if np.isnan(length_m):
+        length_m = 0.0
+
+    hour, dayofweek, month, is_weekend = _extract_time_features_for_sentinel(row)
+
+    temperature_2m = _safe_float(_pick_value(row, "temperature_2m"))
+    if np.isnan(temperature_2m):
+        f_val = _safe_float(_pick_value(row, "Temperature(F)"))
+        if not np.isnan(f_val):
+            temperature_2m = (f_val - 32.0) * (5.0 / 9.0)
+
+    relative_humidity_2m = _safe_float(_pick_value(row, "relative_humidity_2m", "Humidity(%)"))
+
+    precipitation = _safe_float(_pick_value(row, "precipitation"))
+    if np.isnan(precipitation):
+        precip_in = _safe_float(_pick_value(row, "Precipitation(in)"))
+        if not np.isnan(precip_in):
+            precipitation = precip_in * 25.4
+
+    pressure_msl = _safe_float(_pick_value(row, "pressure_msl"))
+    if np.isnan(pressure_msl):
+        pressure_in = _safe_float(_pick_value(row, "Pressure(in)"))
+        if not np.isnan(pressure_in):
+            pressure_msl = pressure_in * 33.8639
+
+    windspeed_10m = _safe_float(_pick_value(row, "windspeed_10m"))
+    if np.isnan(windspeed_10m):
+        wind_mph = _safe_float(_pick_value(row, "Wind_Speed(mph)"))
+        if not np.isnan(wind_mph):
+            windspeed_10m = wind_mph * 1.60934
+
+    winddirection_10m = _safe_float(_pick_value(row, "winddirection_10m"))
+    if np.isnan(winddirection_10m):
+        winddirection_10m = _parse_wind_direction_degrees(_pick_value(row, "Wind_Direction"))
+
+    cloudcover = _safe_float(_pick_value(row, "cloudcover"))
+
+    weather_values = {
+        "temperature_2m": temperature_2m,
+        "relative_humidity_2m": relative_humidity_2m,
+        "precipitation": precipitation,
+        "pressure_msl": pressure_msl,
+        "windspeed_10m": windspeed_10m,
+        "winddirection_10m": winddirection_10m,
+        "cloudcover": cloudcover,
+    }
+
+    missing_flags = {}
+    for feat in SENTINEL_WEATHER_COLS:
+        value = weather_values.get(feat, np.nan)
+        missing_flags[f"miss_{feat}"] = int(np.isnan(_safe_float(value)))
+    miss_weather_any = int(any(v == 1 for v in missing_flags.values()))
+
+    if np.isnan(winddirection_10m):
+        wind_dir_sin = 0.0
+        wind_dir_cos = 0.0
+    else:
+        radians = np.deg2rad(winddirection_10m)
+        wind_dir_sin = float(np.sin(radians))
+        wind_dir_cos = float(np.cos(radians))
+
+    sentinel_row = {
+        "lat": float(lat) if not np.isnan(lat) else np.nan,
+        "lng": float(lng) if not np.isnan(lng) else np.nan,
+        "highway": highway,
+        "log_length_m": float(np.log1p(max(float(length_m), 0.0))),
+        "hour": int(hour),
+        "dayofweek": int(dayofweek),
+        "month": int(month),
+        "is_weekend": int(is_weekend),
+        "temperature_2m": float(temperature_2m) if not np.isnan(temperature_2m) else np.nan,
+        "relative_humidity_2m": float(relative_humidity_2m)
+        if not np.isnan(relative_humidity_2m)
+        else np.nan,
+        "precipitation": float(precipitation) if not np.isnan(precipitation) else np.nan,
+        "pressure_msl": float(pressure_msl) if not np.isnan(pressure_msl) else np.nan,
+        "windspeed_10m": float(windspeed_10m) if not np.isnan(windspeed_10m) else np.nan,
+        "winddirection_10m": float(winddirection_10m) if not np.isnan(winddirection_10m) else np.nan,
+        "cloudcover": float(cloudcover) if not np.isnan(cloudcover) else np.nan,
+        "wind_dir_sin": wind_dir_sin,
+        "wind_dir_cos": wind_dir_cos,
+        "miss_weather_any": miss_weather_any,
+    }
+    sentinel_row.update(missing_flags)
+
+    return sentinel_row
+
+
+def _sentinel_hard_reasons(sentinel_row):
+    reasons = []
+    lat = _safe_float(sentinel_row.get("lat"))
+    lng = _safe_float(sentinel_row.get("lng"))
+
+    outside_dz = (
+        np.isnan(lat)
+        or np.isnan(lng)
+        or not (18.5 <= float(lat) <= 37.5 and -9.5 <= float(lng) <= 12.5)
+    )
+    if outside_dz:
+        reasons.append("outside_dz")
+
+    missing_weather = any(np.isnan(_safe_float(sentinel_row.get(col))) for col in SENTINEL_WEATHER_COLS)
+    if missing_weather:
+        reasons.append("missing_weather")
+
+    for field, (low, high) in _SENTINEL_WEATHER_RANGES.items():
+        value = _safe_float(sentinel_row.get(field))
+        if not np.isnan(value) and (value < low or value > high):
+            reasons.append(f"bad_{field}")
+
+    return reasons
+
+
+def _sentinel_ood_percent(norm):
+    sorted_vals = SENTINEL_NORM_SORTED
+    rank = bisect_right(sorted_vals.tolist(), float(norm))
+    cdf = rank / float(sorted_vals.size)
+    return float(np.clip(100.0 * (1.0 - cdf), 0.0, 100.0))
+
+
+def _sentinel_banner_from_reasons(reasons):
+    if "outside_dz" in reasons:
+        return {
+            "title": "Low confidence",
+            "detail": "Location appears outside Algeria (or GPS is inaccurate).",
+        }
+    if "missing_weather" in reasons:
+        return {
+            "title": "Low confidence",
+            "detail": "Weather data is unavailable right now, so risk estimates may be unreliable.",
+        }
+
+    bad_reasons = [r for r in reasons if r.startswith("bad_")]
+    if bad_reasons:
+        bad_field = bad_reasons[0].replace("bad_", "")
+        return {
+            "title": "Low confidence",
+            "detail": f"Weather data looks corrupted ({bad_field} out of expected range).",
+        }
+    if "model_ood_high" in reasons:
+        return {
+            "title": "Unusual conditions",
+            "detail": "Conditions are rare compared to typical Algeria patterns. Treat the estimate with caution.",
+        }
+    if "model_ood_medium" in reasons:
+        return {
+            "title": "Somewhat unusual conditions",
+            "detail": "Conditions are less common than usual. The estimate may be less reliable.",
+        }
+    return None
+
+
+def _score_sentinel(raw_row):
+    if not SENTINEL_ENABLED:
+        raise RuntimeError(SENTINEL_LOAD_ERROR or "Sentinel is not available")
+
+    sentinel_row = _sentinel_row_from_payload(raw_row)
+    hard_reasons = _sentinel_hard_reasons(sentinel_row)
+
+    model_row = {}
+    for col in SENTINEL_FEATURE_COLUMNS:
+        model_row[col] = sentinel_row.get(col, np.nan)
+    model_frame = pd.DataFrame([model_row], columns=SENTINEL_FEATURE_COLUMNS)
+
+    norm = float(np.asarray(SENTINEL_PIPELINE.decision_function(model_frame)).reshape(-1)[0])
+    ood_percent = _sentinel_ood_percent(norm)
+
+    reasons = list(hard_reasons)
+    if ood_percent >= 99.0:
+        reasons.append("model_ood_high")
+    elif ood_percent >= 95.0:
+        reasons.append("model_ood_medium")
+    elif norm <= SENTINEL_THRESHOLD_NORM:
+        reasons.append("model_ood_low")
+
+    is_ood = bool((norm <= SENTINEL_THRESHOLD_NORM) or len(hard_reasons) > 0)
+    has_bad = any(r.startswith("bad_") for r in reasons)
+
+    if (
+        "outside_dz" in reasons
+        or "missing_weather" in reasons
+        or has_bad
+        or "model_ood_high" in reasons
+    ):
+        confidence = "low"
+    elif "model_ood_medium" in reasons:
+        confidence = "medium"
+    else:
+        confidence = "high"
+
+    banner = _sentinel_banner_from_reasons(reasons) if is_ood else None
+    return {
+        "ood_percent": round(float(ood_percent), 2),
+        "is_ood": is_ood,
+        "confidence": confidence,
+        "reasons": reasons,
+        "banner": banner,
+    }
+
+
+# -----------------------------
 # Routes
 # -----------------------------
 @app.route("/predict", methods=["POST"])
@@ -626,6 +948,11 @@ def risk_current():
 
     try:
         result, _ = _score_danger_row(row, include_quality_details=True)
+        if SENTINEL_ENABLED:
+            try:
+                result["sentinel"] = _score_sentinel(row)
+            except Exception:
+                pass
         return jsonify(result)
     except Exception as exc:
         return jsonify({"error": "Risk scoring failed", "details": str(exc)}), 500
@@ -678,9 +1005,47 @@ def risk_explain():
     try:
         result, scored_frame = _score_danger_row(row, include_quality_details=True)
         result["xai"] = _danger_top_reasons(scored_frame, top_k=top_k)
+        if SENTINEL_ENABLED:
+            try:
+                result["sentinel"] = _score_sentinel(row)
+            except Exception:
+                pass
         return jsonify(result)
     except Exception as exc:
         return jsonify({"error": "Risk explain failed", "details": str(exc)}), 500
+
+
+@app.route("/risk/confidence", methods=["POST"])
+def risk_confidence():
+    payload = request.get_json(silent=True) or {}
+    _log_incoming("/risk/confidence", payload)
+    row = _extract_row_payload(payload)
+    if row is None:
+        return jsonify({"error": "Request body must be a JSON object (or {\"row\": {...}})."}), 400
+
+    if not SENTINEL_ENABLED:
+        return (
+            jsonify(
+                {
+                    "enabled": False,
+                    "error": "Sentinel confidence gating is disabled",
+                    "details": SENTINEL_LOAD_ERROR or f"Artifact unavailable at {SENTINEL_PATH}",
+                }
+            ),
+            503,
+        )
+
+    try:
+        sentinel_payload = _score_sentinel(row)
+        return jsonify({"enabled": True, "sentinel": sentinel_payload})
+    except Exception as exc:
+        return jsonify({"enabled": True, "error": "Sentinel scoring failed", "details": str(exc)}), 500
+
+
+# Quick test snippet:
+# curl -X POST http://localhost:8000/risk/confidence \
+#   -H "Content-Type: application/json" \
+#   -d "{\"row\":{\"Start_Lat\":36.75,\"Start_Lng\":3.06,\"Start_Time\":\"2026-03-04T10:15:00\",\"Distance(mi)\":0.5,\"Temperature(F)\":77,\"Humidity(%)\":45,\"Pressure(in)\":30.0,\"Wind_Speed(mph)\":8,\"Wind_Direction\":\"NW\",\"Precipitation(in)\":0.0}}"
 
 
 if __name__ == "__main__":
