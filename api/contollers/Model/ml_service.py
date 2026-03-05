@@ -22,7 +22,7 @@ CAL_MODEL_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts
 BASE_MODEL_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "base_lightgbm.joblib")
 DANGER_META_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "siara_severe_metadata.json")
 SENTINEL_PATH = os.path.join(
-    BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "SiaraSentinelDZ_v2.joblib"
+    BASE_DIR, "anomaly-detection", "SiaraSentinelDZ_v2.joblib"
 )
 
 # ---- Load driver-quiz artifacts
@@ -90,6 +90,8 @@ try:
 except Exception as exc:
     SENTINEL_LOAD_ERROR = str(exc)
     SENTINEL_ENABLED = False
+
+SENTINEL_WEATHER_REQUIRED_COLS = [c for c in SENTINEL_WEATHER_COLS if c != "cloudcover"]
 
 TRUE_STRINGS = {"1", "true", "t", "yes", "y", "on"}
 FALSE_STRINGS = {"0", "false", "f", "no", "n", "off"}
@@ -773,7 +775,10 @@ def _sentinel_hard_reasons(sentinel_row):
     if outside_dz:
         reasons.append("outside_dz")
 
-    missing_weather = any(np.isnan(_safe_float(sentinel_row.get(col))) for col in SENTINEL_WEATHER_COLS)
+    missing_weather = any(
+        np.isnan(_safe_float(sentinel_row.get(col)))
+        for col in SENTINEL_WEATHER_REQUIRED_COLS
+    )
     if missing_weather:
         reasons.append("missing_weather")
 
@@ -951,8 +956,18 @@ def risk_current():
         if SENTINEL_ENABLED:
             try:
                 result["sentinel"] = _score_sentinel(row)
-            except Exception:
-                pass
+            except Exception as exc:
+                result["sentinel"] = {
+                    "enabled": True,
+                    "error": "Sentinel scoring failed",
+                    "details": str(exc),
+                }
+        else:
+            result["sentinel"] = {
+                "enabled": False,
+                "error": "Sentinel disabled",
+                "details": SENTINEL_LOAD_ERROR,
+            }
         return jsonify(result)
     except Exception as exc:
         return jsonify({"error": "Risk scoring failed", "details": str(exc)}), 500
@@ -1008,8 +1023,18 @@ def risk_explain():
         if SENTINEL_ENABLED:
             try:
                 result["sentinel"] = _score_sentinel(row)
-            except Exception:
-                pass
+            except Exception as exc:
+                result["sentinel"] = {
+                    "enabled": True,
+                    "error": "Sentinel scoring failed",
+                    "details": str(exc),
+                }
+        else:
+            result["sentinel"] = {
+                "enabled": False,
+                "error": "Sentinel disabled",
+                "details": SENTINEL_LOAD_ERROR,
+            }
         return jsonify(result)
     except Exception as exc:
         return jsonify({"error": "Risk explain failed", "details": str(exc)}), 500

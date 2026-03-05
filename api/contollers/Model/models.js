@@ -1,4 +1,4 @@
-const axios = require("axios");
+﻿const axios = require("axios");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -80,6 +80,12 @@ const MAX_SEGMENT_CACHE = 2000;
 const MAX_CURRENT_WEATHER_CACHE = Number(process.env.MAX_CURRENT_WEATHER_CACHE || 1000);
 const MAX_FORECAST_WEATHER_CACHE = Number(process.env.MAX_FORECAST_WEATHER_CACHE || 1000);
 const MAX_RISK_FORECAST_CACHE = Number(process.env.MAX_RISK_FORECAST_CACHE || 1000);
+const MAX_WEATHER_FEATURE_CACHE = Number(process.env.MAX_WEATHER_FEATURE_CACHE || 2000);
+const CURRENT_WEATHER_CACHE_TTL_MS = Number(process.env.CURRENT_WEATHER_CACHE_TTL_MS || 2 * 60 * 1000);
+const FORECAST_WEATHER_CACHE_TTL_MS = Number(process.env.FORECAST_WEATHER_CACHE_TTL_MS || 10 * 60 * 1000);
+const WEATHER_FEATURE_CACHE_TTL_MS = Number(process.env.WEATHER_FEATURE_CACHE_TTL_MS || 10 * 60 * 1000);
+const RISK_FORECAST_BUCKET_MS = Number(process.env.RISK_FORECAST_BUCKET_MS || 5 * 60 * 1000);
+const RISK_FORECAST_CACHE_TTL_MS = Number(process.env.RISK_FORECAST_CACHE_TTL_MS || 5 * 60 * 1000);
 const EARTH_RADIUS_KM = 6371;
 let roadCacheHits = 0;
 let roadCacheMisses = 0;
@@ -336,6 +342,11 @@ function floorToHourMs(ms) {
   return Math.floor(ms / (60 * 60 * 1000)) * (60 * 60 * 1000);
 }
 
+function floorToBucketMs(ms, bucketMsRaw) {
+  const bucketMs = Math.max(60 * 1000, Math.round(safeNumber(bucketMsRaw) || 60 * 1000));
+  return Math.floor(ms / bucketMs) * bucketMs;
+}
+
 function roundToHourMs(ms) {
   return Math.round(ms / (60 * 60 * 1000)) * (60 * 60 * 1000);
 }
@@ -371,12 +382,15 @@ function formatHourLabel(timeIso) {
 function currentWeatherCacheKey(lat, lng, referenceIso = null) {
   const parsedMs = Date.parse(referenceIso || "");
   const sourceMs = Number.isNaN(parsedMs) ? Date.now() : parsedMs;
-  const hourBucket = new Date(floorToHourMs(sourceMs)).toISOString();
-  return `${roundCoord(lat)}:${roundCoord(lng)}:${hourBucket}`;
+  const bucketIso = new Date(floorToBucketMs(sourceMs, 5 * 60 * 1000)).toISOString();
+  return `${roundCoord(lat)}:${roundCoord(lng)}:${bucketIso}`;
 }
 
 function forecastWeatherCacheKey(lat, lng, startIso) {
-  return `${roundCoord(lat)}:${roundCoord(lng)}:${startIso}`;
+  const parsedMs = Date.parse(startIso || "");
+  const sourceMs = Number.isNaN(parsedMs) ? Date.now() : parsedMs;
+  const hourBucket = new Date(floorToHourMs(sourceMs)).toISOString();
+  return `${roundCoord(lat)}:${roundCoord(lng)}:${hourBucket}`;
 }
 
 function riskForecastCacheKey(lat, lng, startIso) {
@@ -406,6 +420,46 @@ function setCacheEntry(cacheMap, key, value, maxSizeRaw) {
   }
   cacheMap.set(key, value);
   pruneCacheMapIfNeeded(cacheMap, maxSizeRaw);
+}
+
+function getCacheEntry(cacheMap, key) {
+  if (!cacheMap.has(key)) {
+    return null;
+  }
+
+  const rawValue = cacheMap.get(key);
+  if (
+    rawValue &&
+    typeof rawValue === "object" &&
+    Object.prototype.hasOwnProperty.call(rawValue, "__cacheValue")
+  ) {
+    const expiresAt = safeNumber(rawValue.__cacheExpiresAt);
+    if (expiresAt != null && Date.now() > expiresAt) {
+      cacheMap.delete(key);
+      return null;
+    }
+    return rawValue.__cacheValue;
+  }
+
+  return rawValue;
+}
+
+function setCacheEntryWithTtl(cacheMap, key, value, maxSizeRaw, ttlMsRaw) {
+  const ttlMs = safeNumber(ttlMsRaw);
+  if (ttlMs == null || ttlMs <= 0) {
+    setCacheEntry(cacheMap, key, value, maxSizeRaw);
+    return;
+  }
+
+  setCacheEntry(
+    cacheMap,
+    key,
+    {
+      __cacheValue: value,
+      __cacheExpiresAt: Date.now() + ttlMs,
+    },
+    maxSizeRaw,
+  );
 }
 
 function weatherCacheKey(lat, lng, iso) {
@@ -704,7 +758,14 @@ function extractForecastSnapshot(series, targetSeconds) {
   };
 }
 
-function buildWeatherSourceOrder(absDiffSeconds) {
+function buildWeatherSourceOrder(absDiffSeconds, deltaSeconds = 0) {
+  if (deltaSeconds > 0) {
+    if (absDiffSeconds <= 3 * 60 * 60) {
+      return ["minutely_15", "hourly", "current"];
+    }
+    return ["hourly", "minutely_15", "current"];
+  }
+
   if (absDiffSeconds <= 15 * 60) {
     return ["current", "minutely_15", "hourly"];
   }
@@ -714,8 +775,8 @@ function buildWeatherSourceOrder(absDiffSeconds) {
   return ["hourly", "current", "minutely_15"];
 }
 
-function pickWeatherSnapshot(data, targetSeconds, absDiffSeconds) {
-  const orderedSources = buildWeatherSourceOrder(absDiffSeconds);
+function pickWeatherSnapshot(data, targetSeconds, absDiffSeconds, deltaSeconds = 0) {
+  const orderedSources = buildWeatherSourceOrder(absDiffSeconds, deltaSeconds);
   for (const source of orderedSources) {
     if (source === "current") {
       const snapshot = extractCurrentSnapshot(data?.current);
@@ -836,17 +897,25 @@ async function fetchCurrentWeatherPayload(lat, lng) {
   }
 }
 
-async function getCurrentWeatherUi(lat, lng) {
-  const cacheKey = currentWeatherCacheKey(lat, lng);
-  if (currentWeatherCache.has(cacheKey)) {
-    return currentWeatherCache.get(cacheKey);
+async function getCurrentWeatherUi(lat, lng, timestampIso = null) {
+  const cacheKey = currentWeatherCacheKey(lat, lng, timestampIso);
+  const cached = getCacheEntry(currentWeatherCache, cacheKey);
+  if (cached) {
+    return cached;
   }
 
   const payload = await fetchCurrentWeatherPayload(lat, lng);
   const nowSeconds = Math.floor(Date.now() / 1000);
-  const currentSnapshot = extractCurrentSnapshot(payload?.current);
-  const hourlyFallback = extractForecastSnapshot(payload?.hourly, nowSeconds);
-  const snapshot = currentSnapshot || hourlyFallback || {};
+  const targetSecondsRaw = Math.floor(Date.parse(timestampIso || "") / 1000);
+  const targetSeconds = Number.isFinite(targetSecondsRaw) ? targetSecondsRaw : nowSeconds;
+  const deltaSeconds = targetSeconds - nowSeconds;
+  const absDiffSeconds = Math.abs(deltaSeconds);
+  const { source: weatherSource, snapshot } = pickWeatherSnapshot(
+    payload,
+    targetSeconds,
+    absDiffSeconds,
+    deltaSeconds,
+  );
   const windSpeedKmh = safeNumber(snapshot.wind_speed_10m);
   const windSpeedMph = windSpeedKmh == null ? null : kmhToMph(windSpeedKmh);
 
@@ -860,17 +929,30 @@ async function getCurrentWeatherUi(lat, lng) {
     humidity_pct: roundNumber(snapshot.relative_humidity_2m, 0),
     pressure_hpa: roundNumber(snapshot.pressure_msl, 1),
     precipitation_mm: roundNumber(snapshot.precipitation, 2),
+    timestamp_iso: new Date(targetSeconds * 1000).toISOString(),
+    snapshot_time_iso:
+      snapshot?.selected_time_unix == null
+        ? null
+        : new Date(snapshot.selected_time_unix * 1000).toISOString(),
+    snapshot_source: weatherSource,
     fetched_at_iso: new Date().toISOString(),
   };
 
-  setCacheEntry(currentWeatherCache, cacheKey, weather, MAX_CURRENT_WEATHER_CACHE);
+  setCacheEntryWithTtl(
+    currentWeatherCache,
+    cacheKey,
+    weather,
+    MAX_CURRENT_WEATHER_CACHE,
+    CURRENT_WEATHER_CACHE_TTL_MS,
+  );
   return weather;
 }
 
 async function getForecastWeatherSeries(lat, lng, startIso) {
   const cacheKey = forecastWeatherCacheKey(lat, lng, startIso);
-  if (forecastWeatherCache.has(cacheKey)) {
-    return forecastWeatherCache.get(cacheKey);
+  const cached = getCacheEntry(forecastWeatherCache, cacheKey);
+  if (cached) {
+    return cached;
   }
 
   const seriesFields = getBaseWeatherFieldList().join(",");
@@ -890,14 +972,21 @@ async function getForecastWeatherSeries(lat, lng, startIso) {
   });
 
   const payload = response.data;
-  setCacheEntry(forecastWeatherCache, cacheKey, payload, MAX_FORECAST_WEATHER_CACHE);
+  setCacheEntryWithTtl(
+    forecastWeatherCache,
+    cacheKey,
+    payload,
+    MAX_FORECAST_WEATHER_CACHE,
+    FORECAST_WEATHER_CACHE_TTL_MS,
+  );
   return payload;
 }
 
 async function getWeatherFeatures(lat, lng, timestampIso) {
   const key = weatherCacheKey(lat, lng, timestampIso);
-  if (weatherCache.has(key)) {
-    return weatherCache.get(key);
+  const cached = getCacheEntry(weatherCache, key);
+  if (cached) {
+    return cached;
   }
 
   const seriesFields = getBaseWeatherFieldList().join(",");
@@ -948,12 +1037,14 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
   const nowSeconds = Math.floor(Date.now() / 1000);
   const targetSecondsRaw = Math.floor(Date.parse(timestampIso) / 1000);
   const targetSeconds = Number.isFinite(targetSecondsRaw) ? targetSecondsRaw : nowSeconds;
+  const deltaSeconds = targetSeconds - nowSeconds;
   const absDiffSeconds = Math.abs(targetSeconds - nowSeconds);
 
   const { source: weatherSource, snapshot } = pickWeatherSnapshot(
     data,
     targetSeconds,
     absDiffSeconds,
+    deltaSeconds,
   );
   const selectedUnits = getUnitsForWeatherSource(data, weatherSource);
   const normalizedSnapshot = normalizeSnapshotForModelUnits(
@@ -987,7 +1078,13 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
 
   const row = buildModelWeatherRowFromSnapshot(normalizedSnapshot);
 
-  weatherCache.set(key, row);
+  setCacheEntryWithTtl(
+    weatherCache,
+    key,
+    row,
+    MAX_WEATHER_FEATURE_CACHE,
+    WEATHER_FEATURE_CACHE_TTL_MS,
+  );
   return row;
 }
 
@@ -1366,6 +1463,8 @@ function safeRowCategory(value, fallback = "Unknown") {
 
 async function buildDangerRow({ lat, lng, timestamp, roadFlags }) {
   const timestampIso = toIsoTimestamp(timestamp);
+  const rowLat = safeNumber(lat);
+  const rowLng = safeNumber(lng);
   const [weather, twilight, resolvedRoadFlags] = await Promise.all([
     getWeatherFeatures(lat, lng, timestampIso),
     getTwilightFields(lat, lng, timestampIso),
@@ -1373,6 +1472,10 @@ async function buildDangerRow({ lat, lng, timestamp, roadFlags }) {
   ]);
 
   const finalRow = {
+    Start_Lat: rowLat,
+    Start_Lng: rowLng,
+    lat: rowLat,
+    lng: rowLng,
     Start_Time: timestampIso,
     "Temperature(F)": safeRowNumber(weather?.["Temperature(F)"], 0),
     "Humidity(%)": safeRowNumber(weather?.["Humidity(%)"], 0),
@@ -2140,7 +2243,8 @@ exports.getCurrentWeather = async (req, res) => {
   }
 
   try {
-    const weather = await getCurrentWeatherUi(point.lat, point.lng);
+    const timestampIso = req.query?.timestamp ? toIsoTimestamp(req.query.timestamp) : null;
+    const weather = await getCurrentWeatherUi(point.lat, point.lng, timestampIso);
     return res.json(weather);
   } catch (err) {
     const status = err.response?.status || 500;
@@ -2159,8 +2263,13 @@ exports.getRiskForecast24h = async (req, res) => {
   const timestampIso = toIsoTimestamp(req.query?.timestamp);
   const parsedTimestampMs = Date.parse(timestampIso);
   const safeTimestampMs = Number.isNaN(parsedTimestampMs) ? Date.now() : parsedTimestampMs;
-  const hour0Iso = new Date(floorToHourMs(safeTimestampMs)).toISOString();
-  const cacheKey = riskForecastCacheKey(point.lat, point.lng, hour0Iso);
+  const deltaFromNowMs = Math.abs(safeTimestampMs - Date.now());
+  const useMovingNowBucket = deltaFromNowMs <= 10 * 60 * 1000;
+  const forecastAnchorMs = useMovingNowBucket
+    ? floorToBucketMs(safeTimestampMs, RISK_FORECAST_BUCKET_MS)
+    : safeTimestampMs;
+  const forecastAnchorIso = new Date(forecastAnchorMs).toISOString();
+  const cacheKey = riskForecastCacheKey(point.lat, point.lng, forecastAnchorIso);
 
   try {
     const nowRoadFlags = await getRoadFlagsAsync(point.lat, point.lng, null);
@@ -2171,12 +2280,12 @@ exports.getRiskForecast24h = async (req, res) => {
       roadFlags: nowRoadFlags,
     });
 
-    let cachedHourly = riskForecastCache.get(cacheKey) || null;
+    let cachedHourly = getCacheEntry(riskForecastCache, cacheKey) || null;
     let nowPredictionRaw = null;
 
     if (!cachedHourly) {
-      const weatherSeries = await getForecastWeatherSeries(point.lat, point.lng, hour0Iso);
-      const hourlyIsoPoints = buildHourlyIsoPoints(hour0Iso, 24);
+      const weatherSeries = await getForecastWeatherSeries(point.lat, point.lng, forecastAnchorIso);
+      const hourlyIsoPoints = buildHourlyIsoPoints(forecastAnchorIso, 24);
       const forecastRoadFlags = ENABLE_OSM_FLAGS_FOR_ROUTES
         ? nowRoadFlags
         : toRoadFlags(ROAD_FLAG_ZEROES);
@@ -2233,6 +2342,8 @@ exports.getRiskForecast24h = async (req, res) => {
               temperature_f: row["Temperature(F)"],
               humidity_pct: row["Humidity(%)"],
               weather_condition: row.Weather_Condition,
+              wind_mph: row["Wind_Speed(mph)"],
+              wind_kmh: row.windspeed_10m_kmh,
             },
           });
         }
@@ -2263,15 +2374,21 @@ exports.getRiskForecast24h = async (req, res) => {
       });
 
       cachedHourly = {
-        start_time_iso: hour0Iso,
+        start_time_iso: forecastAnchorIso,
         horizon_hours: 24,
         points,
       };
-      setCacheEntry(riskForecastCache, cacheKey, cachedHourly, MAX_RISK_FORECAST_CACHE);
+      setCacheEntryWithTtl(
+        riskForecastCache,
+        cacheKey,
+        cachedHourly,
+        MAX_RISK_FORECAST_CACHE,
+        RISK_FORECAST_CACHE_TTL_MS,
+      );
 
       if (DEBUG_FORECAST) {
         console.log(
-          `[Node][forecast24] timestampIso=${timestampIso} hour0=${hour0Iso} lat=${point.lat} lng=${point.lng}`,
+          `[Node][forecast24] timestampIso=${timestampIso} anchor=${forecastAnchorIso} bucket_mode=${useMovingNowBucket ? "moving_now" : "exact"} lat=${point.lat} lng=${point.lng}`,
         );
         console.log("[Node][forecast24] hourly_units:", weatherSeries?.hourly_units);
         console.log("[Node][forecast24] row_preview:", rowPreview);
@@ -2302,7 +2419,7 @@ exports.getRiskForecast24h = async (req, res) => {
       lat: point.lat,
       lng: point.lng,
       now_point: nowPoint,
-      start_time_iso: cachedHourly?.start_time_iso || hour0Iso,
+      start_time_iso: cachedHourly?.start_time_iso || forecastAnchorIso,
       horizon_hours: 24,
       points: Array.isArray(cachedHourly?.points) ? cachedHourly.points : [],
     });

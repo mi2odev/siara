@@ -145,6 +145,77 @@ function formatFeatureValue(feature, value) {
   return isWindSpeed ? `${formatted} mph` : formatted;
 }
 
+function toPercentOrNull(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+function prettySentinelField(fieldRaw) {
+  const field = String(fieldRaw || "").trim().toLowerCase();
+  if (!field) return "value";
+  const map = {
+    pressure_msl: "pressure",
+    relative_humidity_2m: "humidity",
+    windspeed_10m: "wind speed",
+    winddirection_10m: "wind direction",
+    temperature_2m: "temperature",
+    cloudcover: "cloud cover",
+  };
+  if (map[field]) return map[field];
+  return field.replace(/_/g, " ");
+}
+
+function mapSentinelReason(reasonRaw) {
+  const code = String(reasonRaw || "").trim().toLowerCase();
+  if (!code) return null;
+
+  if (code === "outside_dz") return "GPS location looks outside Algeria (or invalid).";
+  if (code === "missing_weather") return "Weather data is unavailable right now.";
+  if (code === "model_ood_high") return "Conditions are extremely rare compared to training data.";
+  if (code === "model_ood_medium") return "Conditions are uncommon compared to training data.";
+  if (code === "model_ood_low") return "Conditions are slightly atypical compared to training data.";
+
+  if (code.startsWith("bad_")) {
+    const field = prettySentinelField(code.slice(4));
+    return `Weather data looks corrupted: ${field} is out of expected range.`;
+  }
+
+  return code.replace(/_/g, " ");
+}
+
+function mapSentinelReasons(reasons) {
+  if (!Array.isArray(reasons)) return [];
+  const seen = new Set();
+  const mapped = [];
+  for (const reason of reasons) {
+    const text = mapSentinelReason(reason);
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    mapped.push(text);
+  }
+  return mapped;
+}
+
+function prettyQualityFeature(featureRaw) {
+  const text = String(featureRaw || "").trim();
+  if (!text) return "value";
+  return prettySentinelField(text.replace(/[()]/g, "").replace(/\//g, "_").replace(/\s+/g, "_"));
+}
+
+function mapQualityOodFeature(item) {
+  if (!item || typeof item !== "object") return null;
+  const feature = prettyQualityFeature(item.feature);
+  const reason = String(item.reason || "").trim().toLowerCase();
+
+  if (reason === "clipped_to_training_range") return `Value was clipped to training range: ${feature}`;
+  if (reason === "unknown_category") return `Unknown category mapped to default: ${feature}`;
+  if (reason === "mapped_to_other") return `Category mapped to Other: ${feature}`;
+  if (reason === "out_of_range") return `Value out of valid range: ${feature}`;
+  if (!reason) return `Input quality issue detected: ${feature}`;
+  return `${reason.replace(/_/g, " ")}: ${feature}`;
+}
+
 function normalizeNominatimResult(item, fallbackName) {
   if (!item || typeof item !== "object") return null;
 
@@ -299,7 +370,6 @@ export default function SiaraMap({
   const [guidedRouteState, setGuidedRouteState] = useState("idle");
   const [guidedRouteError, setGuidedRouteError] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
-  const [helpHover, setHelpHover] = useState(false);
   const [routeExplainState, setRouteExplainState] = useState("idle");
   const [routeExplainError, setRouteExplainError] = useState("");
   const [selectedRouteExplanation, setSelectedRouteExplanation] = useState(null);
@@ -307,6 +377,10 @@ export default function SiaraMap({
   const [customTimestampLocal, setCustomTimestampLocal] = useState("");
   const [nowPresetTick, setNowPresetTick] = useState(0);
   const nearbyRequestKeyRef = useRef("");
+  const hasGrantedLocation = useMemo(
+    () => locationStatus === "granted" && normalizePosition(userPosition) != null,
+    [locationStatus, userPosition],
+  );
 
   const selectedTimeKey = `${timePresetMs}|${customTimestampLocal}`;
   const timestampAnchorMs = useMemo(() => Date.now(), [selectedTimeKey, nowPresetTick]);
@@ -403,7 +477,7 @@ export default function SiaraMap({
 }
 
   useEffect(() => {
-    if (!userPosition) {
+    if (!hasGrantedLocation || !userPosition) {
       setCurrentRisk(null);
       setCurrentRiskState("idle");
       setCurrentRiskError("");
@@ -438,7 +512,7 @@ export default function SiaraMap({
     return () => {
       cancelled = true;
     };
-  }, [userPosition, selectedTimestampIso]);
+  }, [hasGrantedLocation, userPosition, selectedTimestampIso]);
 
   useEffect(() => {
     if (!currentRisk) return;
@@ -446,7 +520,7 @@ export default function SiaraMap({
   }, [currentRisk]);
 
   useEffect(() => {
-    if (!userPosition || !mockMarkers?.length || mapLayer !== "ai") {
+    if (!hasGrantedLocation || !userPosition || !mockMarkers?.length || mapLayer !== "ai") {
       setOverlayBySegment({});
       setOverlayState("idle");
       setOverlayError("");
@@ -489,7 +563,7 @@ export default function SiaraMap({
     return () => {
       cancelled = true;
     };
-  }, [mapLayer, mockMarkers, selectedTimestampIso, userPosition]);
+  }, [hasGrantedLocation, mapLayer, mockMarkers, selectedTimestampIso, userPosition]);
 
   useEffect(() => {
     if (mapLayer !== "nearbyRoads") {
@@ -499,7 +573,7 @@ export default function SiaraMap({
       return;
     }
 
-    if (!userPosition) {
+    if (!hasGrantedLocation || !userPosition) {
       setNearbyRoutes([]);
       setNearbyRoutesState("idle");
       setNearbyRoutesError("");
@@ -544,7 +618,7 @@ console.log("[Node -> React] nearby-zones response:", data);
     return () => {
       cancelled = true;
     };
-  }, [mapLayer, selectedTimestampIso, userPosition]);
+  }, [hasGrantedLocation, mapLayer, selectedTimestampIso, userPosition]);
 
   useEffect(() => {
     if (mapLayer !== "nearbyRoads" || nearbyRoutes.length === 0) return;
@@ -567,7 +641,7 @@ console.log("[Node -> React] nearby-zones response:", data);
       setSelectedIncident(marker);
       return;
     }
-    if (!userPosition) {
+    if (!hasGrantedLocation || !userPosition) {
       setSelectedIncident(marker);
       return;
     }
@@ -662,6 +736,12 @@ console.log("[Node -> React] nearby-zones response:", data);
   };
 
   const startGuidance = async () => {
+    if (!hasGrantedLocation) {
+      setGuidedRouteState("error");
+      setGuidedRouteError("Location is required. Use the locate button first.");
+      return;
+    }
+
     const origin = normalizePosition(userPosition);
     if (!origin) {
       setGuidedRouteState("error");
@@ -725,7 +805,7 @@ console.log("[Node -> React] nearby-zones response:", data);
     if (!segment?.segment_id) {
       return;
     }
-    if (!userPosition) {
+    if (!hasGrantedLocation || !userPosition) {
       setRouteExplainState("error");
       setRouteExplainError("Location is required before requesting explanations.");
       return;
@@ -762,6 +842,71 @@ console.log("[Node -> React] nearby-zones response:", data);
   };
 
   const userLatLng = normalizePosition(userPosition);
+  const sentinel = currentRisk?.sentinel ?? null;
+  const sentinelHasError = Boolean(sentinel?.error);
+  const sentinelValid = Boolean(
+    sentinel && !sentinelHasError && Number.isFinite(Number(sentinel?.ood_percent)),
+  );
+  const sentinelOodPct = sentinelValid ? toPercentOrNull(Number(sentinel?.ood_percent)) : null;
+  const sentinelConfidenceLabel = sentinelValid
+    ? String(sentinel?.confidence || "").trim().toLowerCase() || null
+    : null;
+  const sentinelIsOod = sentinelValid ? Boolean(sentinel?.is_ood) : null;
+  const legacyConfidencePct = toPercentOrNull(currentRisk?.confidence);
+  const qualityLabel = String(currentRisk?.quality || "").trim().toLowerCase() || null;
+  const sentinelReasons = mapSentinelReasons(sentinel?.reasons);
+  const sentinelBannerTitle = String(sentinel?.banner?.title || "").trim();
+  const sentinelBannerDetail = String(sentinel?.banner?.detail || "").trim();
+  const sentinelErrorText = String(sentinel?.error || "").trim();
+  const sentinelErrorDetails = String(sentinel?.details || "").trim();
+  const qualitySignals = currentRisk?.quality_signals && typeof currentRisk.quality_signals === "object"
+    ? currentRisk.quality_signals
+    : null;
+  const legacyMissingCount = Number.isFinite(Number(currentRisk?.quality_signals?.missing_count))
+    ? Number(currentRisk.quality_signals.missing_count)
+    : null;
+  const legacyOodCount = Number.isFinite(Number(currentRisk?.quality_signals?.ood_count))
+    ? Number(currentRisk.quality_signals.ood_count)
+    : null;
+  const fallbackQualityDetails = useMemo(() => {
+    if (!qualitySignals) return [];
+    const lines = [];
+
+    const missingFeatures = Array.isArray(qualitySignals.missing_features)
+      ? qualitySignals.missing_features
+      : [];
+    for (const feature of missingFeatures) {
+      lines.push(`Missing input defaulted: ${prettyQualityFeature(feature)}`);
+    }
+
+    const clippedFeatures = Array.isArray(qualitySignals.clipped_features)
+      ? qualitySignals.clipped_features
+      : [];
+    for (const feature of clippedFeatures) {
+      lines.push(`Value clipped to expected range: ${prettyQualityFeature(feature)}`);
+    }
+
+    const oodFeatures = Array.isArray(qualitySignals.ood_features)
+      ? qualitySignals.ood_features
+      : [];
+    for (const item of oodFeatures) {
+      const mapped = mapQualityOodFeature(item);
+      if (mapped) lines.push(mapped);
+    }
+
+    if (qualitySignals.invalid_start_time) {
+      lines.push("Provided timestamp is invalid; model used fallback time features.");
+    }
+
+    const deduped = [];
+    const seen = new Set();
+    for (const line of lines) {
+      if (!line || seen.has(line)) continue;
+      seen.add(line);
+      deduped.push(line);
+    }
+    return deduped;
+  }, [qualitySignals]);
   const routeSummaryPercent = Number(guidedRoute?.summary?.danger_percent);
   const routeSummaryLevel = normalizeDangerLevel(
     guidedRoute?.summary?.danger_level,
@@ -1124,30 +1269,6 @@ console.log("[Node -> React] nearby-zones response:", data);
         <div className="siara-risk-debug">
           <div className="siara-map-help-wrap">
             <h4>Current Risk</h4>
-            <MuiTooltip title="Explain danger colors">
-              <IconButton
-                type="button"
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: '50%',
-                  border: 'none',
-                  background: 'rgba(124, 58, 237, 0.10)',
-                  color: '#7A3DF0',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.15s',
-                }}
-                onClick={() => setHelpOpen((prev) => !prev)}
-                onMouseEnter={() => setHelpHover(true)}
-                onMouseLeave={() => setHelpHover(false)}
-                aria-label="Explain danger colors"
-              >
-                <QuestionMarkIcon style={{ fontSize: 14 }} />
-              </IconButton>
-            </MuiTooltip>
           </div>
           {!userLatLng && (
             <>
@@ -1181,8 +1302,38 @@ console.log("[Node -> React] nearby-zones response:", data);
                   {currentRisk.danger_percent}%
                 </strong>
               </p>
-              <p>confidence: {currentRisk.confidence}%</p>
-              <p>quality: {currentRisk.quality}</p>
+              <p style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>
+                  {sentinelValid
+                    ? `confidence: ${sentinelConfidenceLabel || "n/a"}${sentinelOodPct == null ? "" : ` (OOD ${sentinelOodPct}%)`}`
+                    : `confidence: ${legacyConfidencePct == null ? "n/a" : `${legacyConfidencePct}%`}`}
+                </span>
+                <MuiTooltip title="Confidence details">
+                  <IconButton
+                    type="button"
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: "50%",
+                      border: "none",
+                      background: "rgba(124, 58, 237, 0.10)",
+                      color: "#7A3DF0",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "background 0.15s",
+                      padding: 0,
+                      flexShrink: 0,
+                    }}
+                    onClick={() => setHelpOpen((prev) => !prev)}
+                    aria-label="Show confidence details"
+                  >
+                    <QuestionMarkIcon style={{ fontSize: 13 }} />
+                  </IconButton>
+                </MuiTooltip>
+              </p>
+              <p>quality: {qualityLabel || "n/a"}</p>
             </>
           )}
           {guidedRoute && (
@@ -1207,31 +1358,112 @@ console.log("[Node -> React] nearby-zones response:", data);
         {helpOpen && (
         <div className="siara-help-panel">
           <div className="siara-help-panel__header">
-            <h4>Route Danger Guide</h4>
+            <h4>Confidence details</h4>
             <button
               type="button"
               className="siara-help-panel__close"
               onClick={() => setHelpOpen(false)}
-              aria-label="Close guide help"
+              aria-label="Close confidence details"
             >
               x
             </button>
           </div>
           <div className="siara-help-panel__content">
-            <p>Danger% = 100 * P(severe).</p>
-            <p>Colors are model-estimated risk levels from weather, time, and road signals.</p>
-            <p>This estimate is not a guarantee of safety.</p>
-            <div className="siara-help-legend">
-              {["low", "moderate", "high", "extreme"].map((level) => (
-                <div key={level} className="siara-help-legend__row">
-                  <span
-                    className="siara-help-legend__swatch"
-                    style={{ background: getDangerColor(level) }}
-                    />
-                  <span className="siara-help-legend__label">{level}</span>
-                </div>
-              ))}
-            </div>
+            {sentinelValid ? (
+              <>
+                {(sentinelBannerTitle || sentinelBannerDetail) && (
+                  <div
+                    style={{
+                      marginBottom: 8,
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      background: "rgba(124, 58, 237, 0.06)",
+                      border: "1px solid rgba(124, 58, 237, 0.14)",
+                    }}
+                  >
+                    {sentinelBannerTitle && (
+                      <p style={{ marginBottom: sentinelBannerDetail ? 4 : 0 }}>
+                        <strong>{sentinelBannerTitle}</strong>
+                      </p>
+                    )}
+                    {sentinelBannerDetail && <p style={{ marginBottom: 0 }}>{sentinelBannerDetail}</p>}
+                  </div>
+                )}
+                {sentinelReasons.length > 0 ? (
+                  <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
+                    {sentinelReasons.map((reason, idx) => (
+                      <li key={`${reason}-${idx}`} style={{ marginBottom: 6, fontSize: 12, color: "#6B7280" }}>
+                        {reason}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>
+                    {sentinelIsOod === false
+                      ? `No anomaly rules triggered. Sentinel confidence: ${(sentinelConfidenceLabel || "n/a").toUpperCase()}. OOD percentile: ${sentinelOodPct == null ? "n/a" : `${sentinelOodPct}%`} (somewhat unusual but acceptable).`
+                      : "Unusual conditions detected but no specific reason was returned."}
+                  </p>
+                )}
+              </>
+            ) : sentinelHasError ? (
+              <>
+                <p>Sentinel unavailable: {sentinelErrorText || "unknown error"}</p>
+                {sentinelErrorDetails && (
+                  <p style={{ fontSize: 11, color: "#94A3B8" }}>{sentinelErrorDetails}</p>
+                )}
+                <p>Showing fallback input-quality checks.</p>
+                {(legacyMissingCount != null || legacyOodCount != null) && (
+                  <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
+                    {legacyMissingCount != null && (
+                      <li style={{ marginBottom: 6, fontSize: 12, color: "#6B7280" }}>
+                        missing inputs: {legacyMissingCount}
+                      </li>
+                    )}
+                    {legacyOodCount != null && (
+                      <li style={{ marginBottom: 6, fontSize: 12, color: "#6B7280" }}>
+                        out-of-distribution checks: {legacyOodCount}
+                      </li>
+                    )}
+                  </ul>
+                )}
+                {fallbackQualityDetails.length > 0 && (
+                  <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
+                    {fallbackQualityDetails.map((line, idx) => (
+                      <li key={`${line}-${idx}`} style={{ marginBottom: 6, fontSize: 12, color: "#6B7280" }}>
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            ) : (
+              <>
+                <p>Sentinel confidence is unavailable. Showing basic input-quality checks.</p>
+                {(legacyMissingCount != null || legacyOodCount != null) && (
+                  <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
+                    {legacyMissingCount != null && (
+                      <li style={{ marginBottom: 6, fontSize: 12, color: "#6B7280" }}>
+                        missing inputs: {legacyMissingCount}
+                      </li>
+                    )}
+                    {legacyOodCount != null && (
+                      <li style={{ marginBottom: 6, fontSize: 12, color: "#6B7280" }}>
+                        out-of-distribution checks: {legacyOodCount}
+                      </li>
+                    )}
+                  </ul>
+                )}
+                {fallbackQualityDetails.length > 0 && (
+                  <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
+                    {fallbackQualityDetails.map((line, idx) => (
+                      <li key={`${line}-${idx}`} style={{ marginBottom: 6, fontSize: 12, color: "#6B7280" }}>
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}

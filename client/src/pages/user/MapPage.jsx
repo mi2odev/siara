@@ -155,6 +155,10 @@ export default function MapPage() {
     [selectedIncident, userPosition],
   );
   const contextPointKey = useMemo(() => toPointKey(contextPoint), [contextPoint]);
+  const hasGrantedLocation = useMemo(
+    () => locationStatus === "granted" && normalizePoint(userPosition) != null,
+    [locationStatus, userPosition],
+  );
 
   const requestLocation = useCallback(() => {
     if (!navigator?.geolocation) {
@@ -203,7 +207,7 @@ export default function MapPage() {
 
     if (!navigator?.permissions?.query) {
       setLocationStatus("unknown");
-      requestLocation();
+      setLocationError("Enable location to load SIARA predictions.");
       return undefined;
     }
 
@@ -219,7 +223,7 @@ export default function MapPage() {
       }
       if (state === "prompt") {
         setLocationStatus("prompt");
-        setLocationError("");
+        setLocationError("Enable location to load SIARA predictions.");
         return;
       }
       if (state === "denied") {
@@ -241,7 +245,7 @@ export default function MapPage() {
       .catch(() => {
         if (cancelled) return;
         setLocationStatus("unknown");
-        requestLocation();
+        setLocationError("Enable location to load SIARA predictions.");
       });
 
     return () => {
@@ -253,7 +257,7 @@ export default function MapPage() {
   }, [requestLocation]);
 
   useEffect(() => {
-    if (!userPosition || !contextPoint) {
+    if (!hasGrantedLocation || !userPosition || !contextPoint) {
       setWeatherLoading(false);
       setWeatherError("");
       setWeatherData(null);
@@ -270,11 +274,10 @@ export default function MapPage() {
       setForecastLoading(true);
       setForecastError("");
 
-      const query = `lat=${encodeURIComponent(contextPoint.lat)}&lng=${encodeURIComponent(contextPoint.lng)}`;
-      const forecastQuery = `${query}&timestamp=${encodeURIComponent(selectedTimestampIso)}`;
+      const query = `lat=${encodeURIComponent(contextPoint.lat)}&lng=${encodeURIComponent(contextPoint.lng)}&timestamp=${encodeURIComponent(selectedTimestampIso)}`;
       const [weatherResult, forecastResult] = await Promise.allSettled([
         getJson(`/api/weather/current?${query}`, controller.signal),
-        getJson(`/api/risk/forecast24h?${forecastQuery}`, controller.signal),
+        getJson(`/api/risk/forecast24h?${query}`, controller.signal),
       ]);
 
       if (controller.signal.aborted) {
@@ -314,13 +317,15 @@ export default function MapPage() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [contextPointKey, contextPoint, selectedTimestampIso, userPosition]);
-console.log(weatherData)
+  }, [contextPointKey, contextPoint, hasGrantedLocation, selectedTimestampIso, userPosition]);
+
   const weatherIcon = weatherIconFromCondition(weatherData?.condition);
   const weatherTempText = weatherData?.temperature_c == null
     ? "--°C"
     : `${Math.round(Number(weatherData.temperature_c))}°C`;
-  const weatherDescText = weatherLoading && !weatherData
+  const weatherDescText = !hasGrantedLocation
+    ? "Position requise"
+    : weatherLoading && !weatherData
     ? "Chargement meteo..."
     : weatherError
       ? "Meteo indisponible"
@@ -728,7 +733,7 @@ console.log(weatherData)
               <span className="weather-temp">{weatherTempText}</span>
               <span className="weather-desc">{weatherDescText}</span>
               <span className="weather-detail">
-                {contextPoint
+                {hasGrantedLocation && contextPoint
                   ? `Visibilite: ${visibilityText} • Vent: ${windText}${windDirectionText}`
                   : "Activez votre position pour charger la meteo"}
               </span>
