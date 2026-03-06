@@ -55,7 +55,43 @@
 .service-text h3{margin:0 0 14px;font-size:26px;color:var(--siara-primary);}
 .service-text p{margin:0 0 18px;font-size:16px;line-height:1.5;color:var(--siara-text);max-width:540px;}
 .service-art{display:flex;justify-content:center;}
-.mock{width:100%;max-width:420px;height:220px;border-radius:24px;background:linear-gradient(135deg,var(--siara-gradient-start),var(--siara-gradient-end));position:relative;box-shadow:0 14px 36px -12px rgba(32,41,60,0.3);}
+.mock{width:100%;max-width:420px;height:220px;border-radius:24px;background:linear-gradient(135deg,var(--siara-gradient-start),var(--siara-gradient-end));position:relative;box-shadow:0 14px 36px -12px rgba(32,41,60,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;overflow:hidden;}
+.mock-icon{font-size:56px;z-index:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.2));}
+.mock-label{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:1px;text-transform:uppercase;z-index:1;}
+
+/* ── Mini Dashboard UI ── */
+.mock-dash-ui{width:88%;height:85%;background:rgba(255,255,255,0.12);border-radius:14px;display:flex;flex-direction:column;z-index:1;overflow:hidden;backdrop-filter:blur(4px);}
+.mock-dash-header{display:flex;align-items:center;gap:5px;padding:8px 12px;background:rgba(0,0,0,0.2);}
+.mock-dot{width:8px;height:8px;border-radius:50%;}
+.mock-dot.red{background:#ef4444;}
+.mock-dot.yellow{background:#f59e0b;}
+.mock-dot.green{background:#10b981;}
+.mock-title-bar{margin-left:8px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:.5px;}
+.mock-dash-body{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:10px;}
+.mock-stat-row{display:flex;gap:8px;}
+.mock-stat{flex:1;background:rgba(255,255,255,0.15);border-radius:8px;padding:6px 8px;text-align:center;}
+.mock-stat-val{display:block;font-size:14px;font-weight:800;color:#fff;}
+.mock-stat-lbl{display:block;font-size:8px;color:rgba(255,255,255,0.7);margin-top:2px;}
+.mock-chart{flex:1;display:flex;align-items:flex-end;gap:6px;padding:4px 0;}
+.mock-bar{flex:1;background:rgba(255,255,255,0.35);border-radius:4px 4px 0 0;transition:height .3s;}
+
+/* ── Mini Map UI ── */
+.mock-map-ui{width:88%;height:85%;border-radius:14px;z-index:1;overflow:hidden;position:relative;}
+.mock-map-canvas{width:100%;height:100%;background:rgba(255,255,255,0.1);position:relative;backdrop-filter:blur(4px);}
+.mock-map-road{position:absolute;background:rgba(255,255,255,0.18);border-radius:2px;}
+.mock-map-road.road-h{top:45%;left:5%;width:90%;height:3px;}
+.mock-map-road.road-v{top:10%;left:50%;width:3px;height:80%;}
+.mock-map-road.road-d{top:20%;left:15%;width:60%;height:3px;transform:rotate(25deg);transform-origin:left center;}
+.mock-pin{position:absolute;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);animation:pin-pulse 2s infinite;}
+.mock-pin.high{background:#ef4444;}
+.mock-pin.med{background:#f59e0b;}
+.mock-pin.low{background:#10b981;}
+@keyframes pin-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
+.mock-map-legend{position:absolute;bottom:8px;right:8px;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.4);padding:4px 10px;border-radius:8px;font-size:9px;font-weight:600;color:rgba(255,255,255,0.9);}
+.legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.legend-dot.high{background:#ef4444;}
+.legend-dot.med{background:#f59e0b;}
+.legend-dot.low{background:#10b981;}
 .mock.dash{background:linear-gradient(135deg,#1D4ED8,#7A3DF0);}
 .mock.map{background:linear-gradient(135deg,#7A3DF0,#1D4ED8);}
 .mock.mobile{background:linear-gradient(135deg,#1D4ED8,#0FA958);}

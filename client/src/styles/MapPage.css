@@ -365,17 +365,7 @@
   flex-shrink: 0;
 }
 
-/* Profile & nav compact overrides inside map sidebar */
-.map-sidebar-left .profile-summary { padding: 14px 12px 12px; }
-.map-sidebar-left .profile-avatar-container { width: 80px; height: 80px; }
-.map-sidebar-left .profile-avatar-large { width: 80px; height: 80px; }
-.map-sidebar-left .verified-badge { width: 22px; height: 22px; font-size: 11px; bottom: 2px; right: 2px; }
-.map-sidebar-left .profile-name { font-size: 15px; }
-.map-sidebar-left .nav-menu { padding: 6px; }
-.map-sidebar-left .nav-item { padding: 6px 10px; }
-.map-sidebar-left .nav-section-label { padding: 8px 8px 2px; font-size: 10px; }
-.map-sidebar-left .nav-label { font-size: 13px; }
-.map-sidebar-left .nav-icon { font-size: 15px; }
+/* Profile & nav use shared NewsPage.css styles (same as Feed) */
 
 .filters-section {
   padding: 12px;

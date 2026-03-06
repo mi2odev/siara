@@ -96,10 +96,51 @@ export default function HomePage(){
             <p>Aggregated visualizations, time trends and dynamic filters to understand risk evolution.</p>
             <a href="/map" className="btn small">Learn more</a>
           </div>
-          <div className="service-art" aria-hidden="true"><div className="mock dash" /></div>
+          <div className="service-art" aria-hidden="true">
+            <div className="mock dash">
+              <div className="mock-dash-ui">
+                <div className="mock-dash-header"><span className="mock-dot red"></span><span className="mock-dot yellow"></span><span className="mock-dot green"></span><span className="mock-title-bar">SIARA Analytics</span></div>
+                <div className="mock-dash-body">
+                  <div className="mock-stat-row">
+                    <div className="mock-stat"><span className="mock-stat-val">1,247</span><span className="mock-stat-lbl">Incidents</span></div>
+                    <div className="mock-stat"><span className="mock-stat-val">-12%</span><span className="mock-stat-lbl">vs last month</span></div>
+                    <div className="mock-stat"><span className="mock-stat-val">87%</span><span className="mock-stat-lbl">AI accuracy</span></div>
+                  </div>
+                  <div className="mock-chart">
+                    <div className="mock-bar" style={{height:'60%'}}></div>
+                    <div className="mock-bar" style={{height:'80%'}}></div>
+                    <div className="mock-bar" style={{height:'45%'}}></div>
+                    <div className="mock-bar" style={{height:'90%'}}></div>
+                    <div className="mock-bar" style={{height:'70%'}}></div>
+                    <div className="mock-bar" style={{height:'55%'}}></div>
+                    <div className="mock-bar" style={{height:'75%'}}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div className="service-block">
-          <div className="service-art" aria-hidden="true"><div className="mock map" /></div>
+          <div className="service-art" aria-hidden="true">
+            <div className="mock map">
+              <div className="mock-map-ui">
+                <div className="mock-map-canvas">
+                  <div className="mock-map-road road-h"></div>
+                  <div className="mock-map-road road-v"></div>
+                  <div className="mock-map-road road-d"></div>
+                  <div className="mock-pin high" style={{top:'25%',left:'35%'}}><span>!</span></div>
+                  <div className="mock-pin med" style={{top:'50%',left:'60%'}}><span>⚠</span></div>
+                  <div className="mock-pin low" style={{top:'65%',left:'25%'}}><span>✓</span></div>
+                  <div className="mock-pin high" style={{top:'35%',left:'70%'}}><span>!</span></div>
+                  <div className="mock-map-legend">
+                    <span className="legend-dot high"></span>High
+                    <span className="legend-dot med"></span>Med
+                    <span className="legend-dot low"></span>Low
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="service-text">
             <h3>Prediction Map</h3>
             <p>Interactive map highlighting risk areas at the local level.</p>
@@ -112,14 +153,14 @@ export default function HomePage(){
             <p>On-board alerts, risk notifications and preventive guidance at your fingertips.</p>
             <a href="/map" className="btn small">Learn more</a>
           </div>
-          <div className="service-art" aria-hidden="true"><div className="mock mobile" /></div>
+          <div className="service-art" aria-hidden="true"><div className="mock mobile"><span className="mock-icon">📱</span><span className="mock-label">Mobile App</span></div></div>
         </div>
       </section>
 
       {/* ═══════════════════ MAP PREVIEW ═══════════════════ */}
       {/* Embedded interactive map prototype via <MapPreview /> component */}
       <section className="map-preview-section" aria-labelledby="map-preview-heading">
-        <h2 id="map-preview-heading" className="section-title">Map Preview (prototype)</h2>
+        <h2 id="map-preview-heading" className="section-title">Map Preview</h2>
         <div className="map-frame">
           <MapPreview />
         </div>
