@@ -360,6 +360,11 @@
   scrollbar-color: #CBD5E1 transparent;
 }
 
+/* Prevent flex children from collapsing — let the sidebar scroll */
+.map-sidebar-left > * {
+  flex-shrink: 0;
+}
+
 /* Profile & nav compact overrides inside map sidebar */
 .map-sidebar-left .profile-summary { padding: 14px 12px 12px; }
 .map-sidebar-left .profile-avatar-container { width: 80px; height: 80px; }
@@ -373,8 +378,8 @@
 .map-sidebar-left .nav-icon { font-size: 15px; }
 
 .filters-section {
-  overflow-y: auto;
   padding: 12px;
+  flex-shrink: 0;
 }
 
 .filters-section::-webkit-scrollbar {
