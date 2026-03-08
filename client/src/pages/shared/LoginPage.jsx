@@ -20,7 +20,7 @@ import { AuthContext } from '../../contexts/AuthContext'
 import '../../styles/LoginPage.css'
 import logo from '../../assets/logos/siara-logo.png'
 
-export default function LoginPage() {
+export default LoginPage = () => {
   // --- Form state variables ---
   const [identifier, setIdentifier] = useState('')      // Email or phone number entered
   const [password, setPassword] = useState('')           // Password entered
@@ -37,7 +37,7 @@ export default function LoginPage() {
    * - Password: required, length ≥ 8 characters.
    * @returns {Object} Error object by field (empty if all valid).
    */
-  function validate() {
+  const validate = () => {
     const errs = {}
     if (!identifier) errs.identifier = 'Please enter a valid email or number.'
     else {
@@ -66,7 +66,7 @@ export default function LoginPage() {
    * 2. Calls login() via AuthContext.
    * 3. Redirects based on role: admin → /admin/overview, user → /news.
    */
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     const errs = validate()

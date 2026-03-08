@@ -50,7 +50,7 @@ const postJson = async (url, body) => {
   return data;
 }
 
-function normalizePosition(pos) {
+const normalizePosition = (pos) => {
   if (!pos) return null;
   const lat = Number(pos.lat);
   const lng = Number(pos.lng);
@@ -58,36 +58,36 @@ function normalizePosition(pos) {
   return [lat, lng];
 }
 
-function toNearbyRequestKey(pos) {
+const toNearbyRequestKey = (pos) => {
   const normalized = normalizePosition(pos);
   if (!normalized) return "";
   return `${normalized[0].toFixed(3)}:${normalized[1].toFixed(3)}`;
 }
 
-function getWeight(sev) {
+const getWeight = (sev) => {
   if (sev === "high") return 1;
   if (sev === "medium") return 0.7;
   return 0.4;
 }
 
-function getIncidentColor(sev) {
+const getIncidentColor = (sev) => {
   if (sev === "high") return "#ef4444";
   if (sev === "medium") return "#f59e0b";
   return "#22c55e";
 }
 
-function getDangerColor(level) {
+const getDangerColor = (level) => {
   if (level === "extreme") return "#b91c1c";
   if (level === "high") return "#ef4444";
   if (level === "moderate") return "#f59e0b";
   return "#22c55e";
 }
 
-function getContrastTextColor(bgColor) {
+const getContrastTextColor = (bgColor) => {
   return bgColor === getDangerColor("low") ? "#111827" : "#ffffff";
 }
 
-function normalizeDangerLevel(level, dangerPercent = null) {
+const normalizeDangerLevel = (level, dangerPercent = null) => {
   const text = String(level || "").trim().toLowerCase();
   if (text === "extreme" || text === "high" || text === "moderate" || text === "low") {
     return text;
@@ -101,7 +101,7 @@ function normalizeDangerLevel(level, dangerPercent = null) {
   return "extreme";
 }
 
-function getSegmentPath(marker) {
+const getSegmentPath = (marker) => {
   const path = marker?.path || marker?.segment || marker?.coords;
   if (!Array.isArray(path)) return null;
 
@@ -124,13 +124,13 @@ function getSegmentPath(marker) {
   return normalized.length >= 2 ? normalized : null;
 }
 
-function formatPercent(value) {
+const formatPercent = (value) => {
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
   return Math.round(n);
 }
 
-function formatFeatureValue(feature, value) {
+const formatFeatureValue = (feature, value) => {
   if (value == null) return "n/a";
 
   const featureName = String(feature || "").trim().toLowerCase();
@@ -145,13 +145,13 @@ function formatFeatureValue(feature, value) {
   return isWindSpeed ? `${formatted} mph` : formatted;
 }
 
-function toPercentOrNull(value) {
+const toPercentOrNull = (value) => {
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
-function prettySentinelField(fieldRaw) {
+const prettySentinelField = (fieldRaw) => {
   const field = String(fieldRaw || "").trim().toLowerCase();
   if (!field) return "value";
   const map = {
@@ -166,7 +166,7 @@ function prettySentinelField(fieldRaw) {
   return field.replace(/_/g, " ");
 }
 
-function mapSentinelReason(reasonRaw) {
+const mapSentinelReason = (reasonRaw) => {
   const code = String(reasonRaw || "").trim().toLowerCase();
   if (!code) return null;
 
@@ -184,7 +184,7 @@ function mapSentinelReason(reasonRaw) {
   return code.replace(/_/g, " ");
 }
 
-function mapSentinelReasons(reasons) {
+const mapSentinelReasons = (reasons) => {
   if (!Array.isArray(reasons)) return [];
   const seen = new Set();
   const mapped = [];
@@ -197,13 +197,13 @@ function mapSentinelReasons(reasons) {
   return mapped;
 }
 
-function prettyQualityFeature(featureRaw) {
+const prettyQualityFeature = (featureRaw) => {
   const text = String(featureRaw || "").trim();
   if (!text) return "value";
   return prettySentinelField(text.replace(/[()]/g, "").replace(/\//g, "_").replace(/\s+/g, "_"));
 }
 
-function mapQualityOodFeature(item) {
+const mapQualityOodFeature = (item) => {
   if (!item || typeof item !== "object") return null;
   const feature = prettyQualityFeature(item.feature);
   const reason = String(item.reason || "").trim().toLowerCase();
@@ -216,7 +216,7 @@ function mapQualityOodFeature(item) {
   return `${reason.replace(/_/g, " ")}: ${feature}`;
 }
 
-function normalizeNominatimResult(item, fallbackName) {
+const normalizeNominatimResult = (item, fallbackName) => {
   if (!item || typeof item !== "object") return null;
 
   const lat = Number(item.lat);
@@ -242,7 +242,7 @@ function normalizeNominatimResult(item, fallbackName) {
   };
 }
 
-function toDateTimeLocalValue(dateInput) {
+const toDateTimeLocalValue = (dateInput) => {
   const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
   if (Number.isNaN(date.getTime())) {
     return "";
@@ -321,7 +321,7 @@ const FitGuidedRoute = ({ route }) => {
   return null;
 }
 
-function HeatLayer({ points }) {
+const HeatLayer = ({ points }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -341,7 +341,7 @@ function HeatLayer({ points }) {
   return null;
 }
 
-export default function SiaraMap({
+export default SiaraMap = ({
   mockMarkers,
   mapLayer,
   setSelectedIncident,
@@ -350,7 +350,7 @@ export default function SiaraMap({
   locationError = "",
   requestLocation,
   onSelectedTimestampChange,
-}) {
+}) => {
   const [currentRisk, setCurrentRisk] = useState(null);
   const [currentRiskState, setCurrentRiskState] = useState("idle");
   const [currentRiskError, setCurrentRiskError] = useState("");

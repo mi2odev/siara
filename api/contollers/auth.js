@@ -11,13 +11,13 @@ const TOKEN_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
 const SALT_ROUNDS = 12;
 const IS_DEVELOPMENT = process.env.NODE_ENV !== "production";
 
-function logRegister(message, details = {}) {
+const logRegister = (message, details = {}) => {
   if (IS_DEVELOPMENT) {
     console.info("[auth/register]", message, details);
   }
 }
 
-function normalizeOptionalString(value) {
+const normalizeOptionalString = (value) => {
   if (typeof value !== "string") {
     return null;
   }
@@ -26,7 +26,7 @@ function normalizeOptionalString(value) {
   return normalized.length > 0 ? normalized : null;
 }
 
-function getCookieOptions() {
+const getCookieOptions = () => {
   const isProduction = process.env.NODE_ENV === "production";
 
   return {
@@ -37,7 +37,7 @@ function getCookieOptions() {
   };
 }
 
-function mapUser(row) {
+const mapUser = (row) => {
   return {
     id: row.id,
     first_name: row.first_name,

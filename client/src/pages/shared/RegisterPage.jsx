@@ -10,7 +10,10 @@ const PHONE_REGEX = /^\+?[0-9\s().-]{8,20}$/
 const REGISTER_ENDPOINT = '/auth/register'
 const IS_DEVELOPMENT = import.meta.env.DEV
 
-function parseFullName(fullName) {
+
+
+// FULL NAME SPLIT (first , last)
+const parseFullName = (fullName) => {
   const parts = fullName.trim().split(/\s+/).filter(Boolean)
 
   if (parts.length === 0) {
@@ -27,7 +30,7 @@ function parseFullName(fullName) {
   }
 }
 
-function getIdentifierType(identifier) {
+const getIdentifierType = (identifier) => {
   if (EMAIL_REGEX.test(identifier)) {
     return 'email'
   }
@@ -39,7 +42,7 @@ function getIdentifierType(identifier) {
   return null
 }
 
-export default function RegisterPage() {
+export default RegisterPage = () => {
   const [name, setName] = useState('')
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -53,7 +56,7 @@ export default function RegisterPage() {
 
   const navigate = useNavigate()
 
-  function validate() {
+  const validate = () => {
     const nextErrors = {}
     const trimmedName = name.trim()
     const trimmedIdentifier = identifier.trim()
@@ -88,7 +91,9 @@ export default function RegisterPage() {
     return nextErrors
   }
 
-  async function handleSubmit(event) {
+
+  // SUB<IT FUNCTION
+  const handleSubmit = async (event) => {
     event.preventDefault()
     setErrors({})
 
