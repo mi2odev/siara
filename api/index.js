@@ -1,8 +1,13 @@
 const express = require("express");
+const path = require("path");
 const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+dotenv.config({
+  path: path.join(__dirname, ".env"),
+  override: process.env.NODE_ENV !== "production",
+});
 const pool = require("./db");
 const authRoutes = require("./contollers/auth");
 const {
@@ -18,7 +23,6 @@ const {
 
 const app = express();
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
-dotenv.config();
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(express.json());
@@ -44,17 +48,53 @@ app.post("/api/model/risk/nearby-zones", predictNearbyZones);
 app.post("/api/model/risk/route", predictRouteGuide);
 
 
-async function testConnection() {
+async function runStartupChecks() {
   try {
-    const result = await pool.query("SELECT NOW() AS now, PostGIS_Version() AS postgis_version");
-    console.log("Connected successfully");
-    console.log(result.rows[0]);
+    const result = await pool.query(`
+      SELECT
+        NOW() AS now,
+        current_database() AS current_database,
+        current_user AS current_user,
+        PostGIS_Version() AS postgis_version,
+        (
+          SELECT id
+          FROM ml.model_versions
+          WHERE is_active = true
+            AND lower(coalesce(status, '')) IN ('deployed', 'active')
+          ORDER BY created_at DESC
+          LIMIT 1
+        ) AS active_model_version_id,
+        (
+          SELECT count(*)::bigint
+          FROM gis.road_segments
+        ) AS road_segment_count
+    `);
+    const row = result.rows[0] || {};
+    console.info("[startup] database_ready", row);
+
+    if (!row.active_model_version_id) {
+      console.warn("[startup] missing_active_model_version", {
+        schema: "ml.model_versions",
+      });
+    }
+
+    if (Number(row.road_segment_count || 0) <= 0) {
+      console.warn("[startup] empty_road_segments", {
+        schema: "gis.road_segments",
+      });
+    }
   } catch (error) {
-    console.error("Database connection failed:", error);
+    console.error("[startup] database_check_failed", {
+      message: error.message,
+      code: error.code || null,
+      detail: error.detail || null,
+      table: error.table || null,
+      schema: error.schema || null,
+    });
   }
 }
 
-testConnection();
+runStartupChecks();
 
 app.use((err, req, res, next) => {
   console.error(err);

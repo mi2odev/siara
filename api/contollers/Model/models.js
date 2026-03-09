@@ -2,6 +2,12 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const {
+  parseNumericRoadSegmentId,
+  persistPrediction,
+  persistPredictionWithExplanation,
+  persistPredictions,
+} = require("../../services/riskPersistence");
 
 const LEGACY_ML_SERVICE_URL = process.env.ML_SERVICE_URL;
 const ML_SERVICE_BASE_URL =
@@ -2432,8 +2438,6 @@ exports.getRiskForecast24h = async (req, res) => {
 };
 
 exports.predictCurrentRisk = async (req, res) => {
-  console.log("[React -> Node] /api/risk/current body:", req.body);
-
   const point = validateLatLng(req.body);
   if (!point) {
     return res.status(400).json({ error: "lat and lng are required" });
@@ -2447,9 +2451,28 @@ exports.predictCurrentRisk = async (req, res) => {
       roadFlags: req.body?.roadFlags,
     });
 
-    console.log("[Node -> Flask] /risk/current row:", row);
     const response = await postToFlask("/risk/current", row);
-    return res.json(response.data);
+    const responseData =
+      response?.data && typeof response.data === "object" ? { ...response.data } : {};
+
+    try {
+      const persistence = await persistPrediction({
+        prediction: responseData,
+        timestamp: row?.Start_Time || req.body?.timestamp,
+        lat: point.lat,
+        lng: point.lng,
+        allowNearestSegmentLookup: true,
+        context: "current",
+      });
+
+      if (persistence?.roadSegmentId) {
+        responseData.road_segment_id = persistence.roadSegmentId;
+      }
+    } catch (persistError) {
+      console.error("[Node] /api/risk/current persistence error:", persistError.message);
+    }
+
+    return res.json(responseData);
   } catch (err) {
     const status = err.response?.status || 500;
     const payload = err.response?.data || { error: "Risk current model service error" };
@@ -2459,8 +2482,6 @@ exports.predictCurrentRisk = async (req, res) => {
 };
 
 exports.predictRiskOverlay = async (req, res) => {
-  console.log("[React -> Node] /api/risk/overlay body rows:", req.body?.rows?.length || 0);
-
   const rows = req.body?.rows;
   if (!Array.isArray(rows) || rows.length === 0) {
     return res.status(400).json({ error: "rows array is required" });
@@ -2495,12 +2516,28 @@ exports.predictRiskOverlay = async (req, res) => {
       }),
     );
 
-    if (modelRows.length > 0) {
-      console.log("[Node -> Flask] /risk/overlay first row:", modelRows[0]);
+    const response = await postToFlask("/risk/overlay", { rows: modelRows });
+    const responseData = response?.data || { count: 0, results: [] };
+
+    try {
+      const items = (Array.isArray(responseData?.results) ? responseData.results : [])
+        .map((item, index) => ({
+          prediction: item,
+          timestamp: modelRows[index]?.Start_Time || req.body?.timestamp,
+          roadSegmentId:
+            item?.segment_id ?? modelRows[index]?.segment_id ?? rows[index]?.segment_id,
+          lat: rows[index]?.lat ?? modelRows[index]?.lat,
+          lng: rows[index]?.lng ?? modelRows[index]?.lng,
+          allowNearestSegmentLookup: false,
+          context: "overlay",
+        }))
+        .filter((item) => parseNumericRoadSegmentId(item.roadSegmentId));
+      await persistPredictions(items);
+    } catch (persistError) {
+      console.error("[Node] /api/risk/overlay persistence error:", persistError.message);
     }
 
-    const response = await postToFlask("/risk/overlay", { rows: modelRows });
-    return res.json(response.data);
+    return res.json(responseData);
   } catch (err) {
     const status = err.response?.status || 500;
     const payload = err.response?.data || { error: "Risk overlay model service error" };
@@ -2510,8 +2547,6 @@ exports.predictRiskOverlay = async (req, res) => {
 };
 
 exports.predictRouteGuide = async (req, res) => {
-  console.log("[React -> Node] /api/risk/route body:", req.body);
-
   const origin = validateLatLngStrict(req.body?.origin);
   const destinationPoint = validateLatLngStrict(req.body?.destination);
   if (!origin || !destinationPoint) {
@@ -2582,7 +2617,7 @@ exports.predictRouteGuide = async (req, res) => {
       useStraightSegments: routed.routing_source === "straight_line",
     });
 
-    return res.json({
+    const responsePayload = {
       origin,
       destination: {
         name: req.body?.destination?.name || "Destination",
@@ -2599,7 +2634,35 @@ exports.predictRouteGuide = async (req, res) => {
       eta_min: routed.duration_min,
       duration_min: routed.duration_min,
       route_warning: routeWarning,
-    });
+    };
+
+    try {
+      const persistItems = (Array.isArray(responsePayload.segments) ? responsePayload.segments : [])
+        .filter((segment) => parseNumericRoadSegmentId(segment?.segment_id))
+        .map((segment) => {
+          const segmentPath = Array.isArray(segment?.path) ? segment.path : [];
+          const lastPoint = Array.isArray(segmentPath[segmentPath.length - 1])
+            ? segmentPath[segmentPath.length - 1]
+            : null;
+          return {
+            prediction: segment,
+            timestamp: timestampIso,
+            roadSegmentId: segment.segment_id,
+            lat: lastPoint?.[0],
+            lng: lastPoint?.[1],
+            allowNearestSegmentLookup: false,
+            context: "route",
+          };
+        });
+
+      if (persistItems.length > 0) {
+        await persistPredictions(persistItems);
+      }
+    } catch (persistError) {
+      console.error("[Node] /api/risk/route persistence error:", persistError.message);
+    }
+
+    return res.json(responsePayload);
   } catch (err) {
     console.error("[Node] /api/risk/route scoring error:", err.message);
     return res.status(500).json({ error: "Route danger scoring failed" });
@@ -2607,8 +2670,6 @@ exports.predictRouteGuide = async (req, res) => {
 };
 
 exports.predictNearbyZones = async (req, res) => {
-  console.log("[React -> Node] /api/risk/nearby-zones body:", req.body);
-
   const origin = validateLatLngStrict(req.body);
   if (!origin) {
     return res.status(400).json({ error: "Valid lat and lng are required" });
@@ -2786,10 +2847,40 @@ exports.predictNearbyZones = async (req, res) => {
       };
     });
 
-    return res.json({
+    const responsePayload = {
       origin,
       routes,
-    });
+    };
+
+    try {
+      const persistItems = routes.flatMap((route) =>
+        (Array.isArray(route?.segments) ? route.segments : [])
+          .filter((segment) => parseNumericRoadSegmentId(segment?.segment_id))
+          .map((segment) => {
+            const segmentPath = Array.isArray(segment?.path) ? segment.path : [];
+            const lastPoint = Array.isArray(segmentPath[segmentPath.length - 1])
+              ? segmentPath[segmentPath.length - 1]
+              : null;
+            return {
+              prediction: segment,
+              timestamp: timestampIso,
+              roadSegmentId: segment.segment_id,
+              lat: lastPoint?.[0],
+              lng: lastPoint?.[1],
+              allowNearestSegmentLookup: false,
+              context: "nearby_zones",
+            };
+          }),
+      );
+
+      if (persistItems.length > 0) {
+        await persistPredictions(persistItems);
+      }
+    } catch (persistError) {
+      console.error("[Node] /api/risk/nearby-zones persistence error:", persistError.message);
+    }
+
+    return res.json(responsePayload);
   } catch (err) {
     console.error("[Node] /api/risk/nearby-zones error:", err.message);
     return res.status(500).json({ error: "Failed to compute nearby danger routes" });
@@ -2797,8 +2888,6 @@ exports.predictNearbyZones = async (req, res) => {
 };
 
 exports.predictRiskExplain = async (req, res) => {
-  console.log("[React -> Node] /api/risk/explain body:", req.body);
-
   const segmentId = req.body?.segment_id ?? req.body?.segmentId;
   let row = null;
 
@@ -2829,12 +2918,34 @@ exports.predictRiskExplain = async (req, res) => {
   }
 
   try {
-    console.log("[Node -> Flask] /risk/explain row:", row);
     const response = await postToFlask("/risk/explain", {
       row,
       top_k: req.body?.top_k,
     });
-    return res.json(response.data);
+    const responseData =
+      response?.data && typeof response.data === "object" ? { ...response.data } : {};
+
+    try {
+      const persistence = await persistPredictionWithExplanation({
+        prediction: responseData,
+        explanation: responseData,
+        timestamp: row?.Start_Time || req.body?.timestamp,
+        roadSegmentId: segmentId,
+        lat: row?.Start_Lat ?? row?.lat ?? req.body?.lat,
+        lng: row?.Start_Lng ?? row?.lng ?? req.body?.lng,
+        allowNearestSegmentLookup: true,
+        limit: req.body?.top_k,
+        context: "explain",
+      });
+
+      if (persistence?.roadSegmentId) {
+        responseData.road_segment_id = persistence.roadSegmentId;
+      }
+    } catch (persistError) {
+      console.error("[Node] /api/risk/explain persistence error:", persistError.message);
+    }
+
+    return res.json(responseData);
   } catch (err) {
     const status = err.response?.status || 500;
     const payload = err.response?.data || { error: "Risk explain model service error" };

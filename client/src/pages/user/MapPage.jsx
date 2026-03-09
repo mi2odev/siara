@@ -8,7 +8,7 @@
  * Layout: Header  |  Left sidebar (filters)  |  Center map  |  Right sidebar (context)
  */
 
-import React, { useEffect, useMemo, useState, useContext, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useContext, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from '../../contexts/AuthContext';
 
@@ -32,6 +32,17 @@ import FullscreenExitTwoToneIcon from "@mui/icons-material/FullscreenExitTwoTone
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const WEATHER_DEBOUNCE_MS = 700;
+const WEATHER_REFRESH_MS = 5 * 60 * 1000;
+const LOCATION_REQUEST_TIMEOUT_MS = 12000;
+const LOCATION_WATCH_WINDOW_MS = 10000;
+const LOCATION_FAST_ACCEPT_MS = 2500;
+const LOCATION_GOOD_ACCURACY_M = 50;
+const LOCATION_POOR_ACCURACY_M = 250;
+const LOCATION_IMPROVEMENT_DELTA_M = 25;
+const LOCATION_STALE_READING_MS = 30000;
+const GEOLOCATION_PERMISSION_DENIED = 1;
+const GEOLOCATION_POSITION_UNAVAILABLE = 2;
+const GEOLOCATION_TIMEOUT = 3;
 
 async function getJson(path, signal) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -64,6 +75,97 @@ function normalizePoint(point) {
   }
 
   return { lat, lng };
+}
+
+function normalizeLocationReading(position) {
+  if (!position?.coords) {
+    return null;
+  }
+
+  const lat = toFiniteNumber(position.coords.latitude);
+  const lng = toFiniteNumber(position.coords.longitude);
+  if (lat == null || lng == null) {
+    return null;
+  }
+
+  return {
+    lat,
+    lng,
+    accuracy: toFiniteNumber(position.coords.accuracy),
+    altitude: toFiniteNumber(position.coords.altitude),
+    altitudeAccuracy: toFiniteNumber(position.coords.altitudeAccuracy),
+    heading: toFiniteNumber(position.coords.heading),
+    speed: toFiniteNumber(position.coords.speed),
+    timestamp: Number.isFinite(position.timestamp) ? position.timestamp : Date.now(),
+  };
+}
+
+function formatAccuracyLabel(accuracy) {
+  const value = toFiniteNumber(accuracy);
+  if (value == null) {
+    return "n/a";
+  }
+  return `${Math.round(value)} m`;
+}
+
+function logLocation(event, details = {}) {
+  console.info("[location]", event, details);
+}
+
+function isBetterLocation(candidate, currentBest) {
+  if (!candidate) {
+    return false;
+  }
+  if (!currentBest) {
+    return true;
+  }
+
+  const candidateAccuracy = toFiniteNumber(candidate.accuracy);
+  const currentAccuracy = toFiniteNumber(currentBest.accuracy);
+
+  if (candidateAccuracy == null && currentAccuracy == null) {
+    return candidate.timestamp > currentBest.timestamp;
+  }
+  if (candidateAccuracy != null && currentAccuracy == null) {
+    return true;
+  }
+  if (candidateAccuracy == null) {
+    return false;
+  }
+  if (candidateAccuracy + LOCATION_IMPROVEMENT_DELTA_M < currentAccuracy) {
+    return true;
+  }
+  if (Math.abs(candidateAccuracy - currentAccuracy) <= 5) {
+    return candidate.timestamp > currentBest.timestamp;
+  }
+  return false;
+}
+
+function buildLocationWarning(reading) {
+  const accuracy = toFiniteNumber(reading?.accuracy);
+  if (accuracy == null) {
+    return "Location accuracy is unavailable.";
+  }
+  if (accuracy > LOCATION_POOR_ACCURACY_M) {
+    return `Approximate location only (accuracy ${formatAccuracyLabel(accuracy)}).`;
+  }
+  return "";
+}
+
+function mapGeolocationError(err) {
+  if (!err) {
+    return "Unable to get your position.";
+  }
+  if (err.code === GEOLOCATION_PERMISSION_DENIED) {
+    return "Location permission denied.";
+  }
+  if (err.code === GEOLOCATION_TIMEOUT) {
+    return "Location request timed out before a precise reading arrived.";
+  }
+  if (err.code === GEOLOCATION_POSITION_UNAVAILABLE) {
+    return "Location is unavailable on this device/browser right now.";
+  }
+  return err.message || "Unable to get your position.";
 }
 
 function resolveContextPoint(selectedIncident, userPosition) {
@@ -115,7 +217,9 @@ export default function MapPage() {
 
   // Driving quiz overlay
   const [showQuiz, setShowQuiz] = useState(false);
-  const handleQuizComplete = (r) => { console.log('Quiz:', r); setShowQuiz(false); };
+  const handleQuizComplete = () => {
+    setShowQuiz(false);
+  };
 
   // Active time-range filter (24h, 7d, 30d, custom)
   const [timeFilter, setTimeFilter] = useState("7d");
@@ -139,16 +243,21 @@ export default function MapPage() {
   const [userPosition, setUserPosition] = useState(null);
   const [locationStatus, setLocationStatus] = useState("unknown");
   const [locationError, setLocationError] = useState("");
+  const [locationWarning, setLocationWarning] = useState("");
+  const [locationRequestVersion, setLocationRequestVersion] = useState(0);
   const [selectedTimestampIso, setSelectedTimestampIso] = useState(() => new Date().toISOString());
 
   // Whether the map is displayed in fullscreen mode
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherRefreshing, setWeatherRefreshing] = useState(false);
   const [weatherError, setWeatherError] = useState("");
   const [weatherData, setWeatherData] = useState(null);
   const [forecastLoading, setForecastLoading] = useState(false);
+  const [forecastRefreshing, setForecastRefreshing] = useState(false);
   const [forecastError, setForecastError] = useState("");
   const [forecastPoints, setForecastPoints] = useState([]);
+  const [weatherRefreshTick, setWeatherRefreshTick] = useState(0);
 
   const contextPoint = useMemo(
     () => resolveContextPoint(selectedIncident, userPosition),
@@ -160,48 +269,270 @@ export default function MapPage() {
     [locationStatus, userPosition],
   );
 
+  const userPositionRef = useRef(userPosition);
+  const watchIdRef = useRef(null);
+  const watchWindowTimerRef = useRef(null);
+  const fastAcceptTimerRef = useRef(null);
+  const bestReadingRef = useRef(null);
+  const acceptedReadingRef = useRef(null);
+  const requestSequenceRef = useRef(0);
+  const lastErrorRef = useRef(null);
+  const autoLocateAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    userPositionRef.current = userPosition;
+  }, [userPosition]);
+
+  const clearLocationAttempt = useCallback(() => {
+    if (watchIdRef.current != null && navigator?.geolocation?.clearWatch) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (watchWindowTimerRef.current != null) {
+      window.clearTimeout(watchWindowTimerRef.current);
+      watchWindowTimerRef.current = null;
+    }
+    if (fastAcceptTimerRef.current != null) {
+      window.clearTimeout(fastAcceptTimerRef.current);
+      fastAcceptTimerRef.current = null;
+    }
+  }, []);
+
   const requestLocation = useCallback(() => {
     if (!navigator?.geolocation) {
       setUserPosition(null);
       setLocationStatus("error");
       setLocationError("Geolocation is not supported by this browser.");
+      setLocationWarning("");
       return;
     }
 
+    if (!window.isSecureContext && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+      setUserPosition(null);
+      setLocationStatus("error");
+      setLocationError("Location requires a secure context (HTTPS).");
+      setLocationWarning("");
+      logLocation("unsupported_context", {
+        isSecureContext: window.isSecureContext,
+        hostname: window.location.hostname,
+      });
+      return;
+    }
+
+    clearLocationAttempt();
+
+    const requestId = requestSequenceRef.current + 1;
+    requestSequenceRef.current = requestId;
+    autoLocateAttemptedRef.current = true;
+    bestReadingRef.current = null;
+    acceptedReadingRef.current = null;
+    lastErrorRef.current = null;
+
+    setLocationRequestVersion((value) => value + 1);
     setLocationError("");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserPosition({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        });
+    setLocationWarning("");
+    setLocationStatus(normalizePoint(userPositionRef.current) ? "granted" : "locating");
+
+    logLocation("request_started", {
+      requestId,
+      strategy: "getCurrentPosition+watchPosition",
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: LOCATION_REQUEST_TIMEOUT_MS,
+    });
+
+    const finalizeRequest = (reason) => {
+      if (requestSequenceRef.current !== requestId) {
+        return;
+      }
+
+      clearLocationAttempt();
+
+      const bestReading = bestReadingRef.current;
+      const acceptedReading = acceptedReadingRef.current;
+      const chosenReading = acceptedReading || bestReading;
+
+      if (chosenReading) {
+        setUserPosition(chosenReading);
         setLocationStatus("granted");
-      },
-      (err) => {
-        console.error(err);
-        if (err?.code === err?.PERMISSION_DENIED) {
-          setUserPosition(null);
-          setLocationStatus("denied");
-          setLocationError("Location permission denied.");
-          return;
+        setLocationError("");
+        setLocationWarning(buildLocationWarning(chosenReading));
+        acceptedReadingRef.current = chosenReading;
+        logLocation("request_finalized", {
+          requestId,
+          reason,
+          lat: chosenReading.lat,
+          lng: chosenReading.lng,
+          accuracy: chosenReading.accuracy,
+          timestamp: chosenReading.timestamp,
+          accepted: true,
+        });
+        return;
+      }
+
+      const mappedError = mapGeolocationError(lastErrorRef.current);
+      setUserPosition(null);
+      setLocationStatus(lastErrorRef.current?.code === GEOLOCATION_PERMISSION_DENIED ? "denied" : "error");
+      setLocationError(mappedError);
+      setLocationWarning("");
+      logLocation("request_failed", {
+        requestId,
+        reason,
+        error: mappedError,
+        code: lastErrorRef.current?.code || null,
+      });
+    };
+
+    const maybeAcceptReading = (reading, source) => {
+      const ageMs = Math.max(0, Date.now() - reading.timestamp);
+      const isStale = ageMs > LOCATION_STALE_READING_MS;
+
+      if (isStale) {
+        logLocation("reading_rejected", {
+          requestId,
+          source,
+          reason: "stale",
+          lat: reading.lat,
+          lng: reading.lng,
+          accuracy: reading.accuracy,
+          timestamp: reading.timestamp,
+          ageMs,
+        });
+        if (!bestReadingRef.current) {
+          bestReadingRef.current = reading;
         }
-        setUserPosition(null);
-        setLocationStatus("error");
-        setLocationError(err?.message || "Unable to get your position.");
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      },
+        return;
+      }
+
+      if (isBetterLocation(reading, bestReadingRef.current)) {
+        bestReadingRef.current = reading;
+      }
+
+      const currentAccepted = acceptedReadingRef.current;
+      const shouldAccept =
+        !currentAccepted ||
+        (toFiniteNumber(reading.accuracy) != null &&
+          toFiniteNumber(reading.accuracy) <= LOCATION_GOOD_ACCURACY_M) ||
+        isBetterLocation(reading, currentAccepted);
+
+      logLocation(shouldAccept ? "reading_accepted" : "reading_buffered", {
+        requestId,
+        source,
+        lat: reading.lat,
+        lng: reading.lng,
+        accuracy: reading.accuracy,
+        timestamp: reading.timestamp,
+        ageMs,
+      });
+
+      if (!shouldAccept) {
+        return;
+      }
+
+      acceptedReadingRef.current = reading;
+      setUserPosition((prev) => {
+        if (
+          prev &&
+          Math.abs(prev.lat - reading.lat) < 0.00001 &&
+          Math.abs(prev.lng - reading.lng) < 0.00001 &&
+          Math.abs((prev.accuracy ?? Infinity) - (reading.accuracy ?? Infinity)) < 5
+        ) {
+          return prev;
+        }
+        return reading;
+      });
+      setLocationStatus("granted");
+      setLocationError("");
+      setLocationWarning(buildLocationWarning(reading));
+
+      if (toFiniteNumber(reading.accuracy) != null && reading.accuracy <= LOCATION_GOOD_ACCURACY_M) {
+        finalizeRequest("good_accuracy_fix");
+      }
+    };
+
+    const handleSuccess = (position, source) => {
+      if (requestSequenceRef.current !== requestId) {
+        return;
+      }
+
+      const reading = normalizeLocationReading(position);
+      if (!reading) {
+        logLocation("reading_rejected", {
+          requestId,
+          source,
+          reason: "invalid_payload",
+        });
+        return;
+      }
+
+      maybeAcceptReading(reading, source);
+    };
+
+    const handleError = (err, source) => {
+      if (requestSequenceRef.current !== requestId) {
+        return;
+      }
+
+      lastErrorRef.current = err;
+      logLocation("error", {
+        requestId,
+        source,
+        code: err?.code || null,
+        message: err?.message || "unknown_error",
+      });
+
+      if (err?.code === GEOLOCATION_PERMISSION_DENIED) {
+        finalizeRequest("permission_denied");
+      }
+    };
+
+    fastAcceptTimerRef.current = window.setTimeout(() => {
+      if (requestSequenceRef.current !== requestId || acceptedReadingRef.current || !bestReadingRef.current) {
+        return;
+      }
+      acceptedReadingRef.current = bestReadingRef.current;
+      setUserPosition(bestReadingRef.current);
+      setLocationStatus("granted");
+      setLocationError("");
+      setLocationWarning(buildLocationWarning(bestReadingRef.current));
+      logLocation("fast_accept_best", {
+        requestId,
+        lat: bestReadingRef.current.lat,
+        lng: bestReadingRef.current.lng,
+        accuracy: bestReadingRef.current.accuracy,
+        timestamp: bestReadingRef.current.timestamp,
+      });
+    }, LOCATION_FAST_ACCEPT_MS);
+
+    watchWindowTimerRef.current = window.setTimeout(() => {
+      finalizeRequest("watch_window_complete");
+    }, LOCATION_WATCH_WINDOW_MS);
+
+    const options = {
+      enableHighAccuracy: true,
+      timeout: LOCATION_REQUEST_TIMEOUT_MS,
+      maximumAge: 0,
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => handleSuccess(position, "getCurrentPosition"),
+      (err) => handleError(err, "getCurrentPosition"),
+      options,
     );
-  }, []);
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => handleSuccess(position, "watchPosition"),
+      (err) => handleError(err, "watchPosition"),
+      options,
+    );
+  }, [clearLocationAttempt]);
 
   useEffect(() => {
     if (!navigator?.geolocation) {
       setUserPosition(null);
       setLocationStatus("error");
       setLocationError("Geolocation is not supported by this browser.");
+      setLocationWarning("");
       return undefined;
     }
 
@@ -215,21 +546,31 @@ export default function MapPage() {
     let permissionStatus = null;
     const applyPermissionState = (state) => {
       if (cancelled) return;
+      logLocation("permission_state", { state });
       if (state === "granted") {
-        setLocationStatus("granted");
-        setLocationError("");
-        requestLocation();
+        if (normalizePoint(userPositionRef.current)) {
+          setLocationStatus("granted");
+          setLocationError("");
+          return;
+        }
+        if (!autoLocateAttemptedRef.current) {
+          requestLocation();
+        }
         return;
       }
       if (state === "prompt") {
+        autoLocateAttemptedRef.current = false;
         setLocationStatus("prompt");
         setLocationError("Enable location to load SIARA predictions.");
+        setLocationWarning("");
         return;
       }
       if (state === "denied") {
+        autoLocateAttemptedRef.current = false;
         setUserPosition(null);
         setLocationStatus("denied");
         setLocationError("Location permission is blocked. Enable it in browser settings.");
+        setLocationWarning("");
         return;
       }
       setLocationStatus("unknown");
@@ -246,22 +587,54 @@ export default function MapPage() {
         if (cancelled) return;
         setLocationStatus("unknown");
         setLocationError("Enable location to load SIARA predictions.");
+        setLocationWarning("");
       });
 
     return () => {
       cancelled = true;
+      clearLocationAttempt();
       if (permissionStatus) {
         permissionStatus.onchange = null;
       }
     };
-  }, [requestLocation]);
+  }, [clearLocationAttempt, requestLocation]);
+
+  useEffect(() => {
+    const forceWeatherRefresh = () => {
+      if (document.visibilityState && document.visibilityState !== "visible") {
+        return;
+      }
+      setWeatherRefreshTick((value) => value + 1);
+    };
+
+    const intervalId = window.setInterval(() => {
+      forceWeatherRefresh();
+    }, WEATHER_REFRESH_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        forceWeatherRefresh();
+      }
+    };
+
+    window.addEventListener("focus", forceWeatherRefresh);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", forceWeatherRefresh);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (!hasGrantedLocation || !userPosition || !contextPoint) {
       setWeatherLoading(false);
+      setWeatherRefreshing(false);
       setWeatherError("");
       setWeatherData(null);
       setForecastLoading(false);
+      setForecastRefreshing(false);
       setForecastError("");
       setForecastPoints([]);
       return undefined;
@@ -269,9 +642,14 @@ export default function MapPage() {
 
     const controller = new AbortController();
     const timer = setTimeout(async () => {
-      setWeatherLoading(true);
+      const hasWeatherData = Boolean(weatherData);
+      const hasForecastData = forecastPoints.length > 0;
+
+      setWeatherLoading(!hasWeatherData);
+      setWeatherRefreshing(hasWeatherData);
       setWeatherError("");
-      setForecastLoading(true);
+      setForecastLoading(!hasForecastData);
+      setForecastRefreshing(hasForecastData);
       setForecastError("");
 
       const query = `lat=${encodeURIComponent(contextPoint.lat)}&lng=${encodeURIComponent(contextPoint.lng)}&timestamp=${encodeURIComponent(selectedTimestampIso)}`;
@@ -288,7 +666,6 @@ export default function MapPage() {
         setWeatherData(weatherResult.value || null);
         setWeatherError("");
       } else if (weatherResult.reason?.name !== "AbortError") {
-        setWeatherData(null);
         setWeatherError(weatherResult.reason?.message || "Meteo indisponible.");
       }
       
@@ -305,21 +682,29 @@ export default function MapPage() {
         setForecastPoints(points);
         setForecastError("");
       } else if (forecastResult.reason?.name !== "AbortError") {
-        setForecastPoints([]);
         setForecastError(forecastResult.reason?.message || "Forecast indisponible.");
       }
 
       setWeatherLoading(false);
+      setWeatherRefreshing(false);
       setForecastLoading(false);
+      setForecastRefreshing(false);
     }, WEATHER_DEBOUNCE_MS);
 
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [contextPointKey, contextPoint, hasGrantedLocation, selectedTimestampIso, userPosition]);
+  }, [
+    contextPoint,
+    contextPointKey,
+    hasGrantedLocation,
+    selectedTimestampIso,
+    weatherRefreshTick,
+  ]);
 
   const weatherIcon = weatherIconFromCondition(weatherData?.condition);
+  const weatherUpdating = weatherRefreshing || forecastRefreshing;
   const weatherTempText = weatherData?.temperature_c == null
     ? "--°C"
     : `${Math.round(Number(weatherData.temperature_c))}°C`;
@@ -710,6 +1095,8 @@ export default function MapPage() {
                 userPosition={userPosition}
                 locationStatus={locationStatus}
                 locationError={locationError}
+                locationWarning={locationWarning}
+                locationRequestVersion={locationRequestVersion}
                 requestLocation={requestLocation}
                 onSelectedTimestampChange={setSelectedTimestampIso}
               />
@@ -733,6 +1120,9 @@ export default function MapPage() {
 
               <span className="weather-temp">{weatherTempText}</span>
               <span className="weather-desc">{weatherDescText}</span>
+              {weatherUpdating && (
+                <span className="weather-detail weather-detail-muted">Updating weather...</span>
+              )}
               <span className="weather-detail">
                 {hasGrantedLocation && contextPoint
                   ? `Visibilite: ${visibilityText} • Vent: ${windText}${windDirectionText}`
@@ -747,7 +1137,13 @@ export default function MapPage() {
 
           <div className="context-section danger-forecast-section">
             <h4 className="section-title">Danger - next 24h</h4>
-            <DangerForecastChart points={forecastPoints} loading={forecastLoading} />
+            <DangerForecastChart
+              points={forecastPoints}
+              loading={forecastLoading && forecastPoints.length === 0}
+            />
+            {forecastRefreshing && forecastPoints.length > 0 && (
+              <p className="chart-note">Updating forecast...</p>
+            )}
             {forecastError && (
               <p className="chart-note chart-note-error">{forecastError}</p>
             )}

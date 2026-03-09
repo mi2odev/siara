@@ -15,13 +15,14 @@ import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import IconButton from "@mui/material/IconButton";
 import MuiTooltip from "@mui/material/Tooltip";
 
-const DEFAULT_CENTER = [28.0339, 1.6596];
-const DEFAULT_ZOOM = 5;
 const USER_ZOOM = 15;
 const NEARBY_RADIUS_KM = 25;
 const NEARBY_MAX_DESTINATIONS = 4;
 const ROUTE_SAMPLE_COUNT = 12;
-const NOW_PRESET_REFRESH_MS = 5 * 60 * 1000;
+const UI_CLOCK_REFRESH_MS = 1000;
+const PREDICTION_REFRESH_MS = 30 * 1000;
+const NEARBY_REFRESH_MS = 60 * 1000;
+const GUIDANCE_REFRESH_MS = 30 * 1000;
 const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const TIME_PRESET_OPTIONS = [
@@ -128,6 +129,12 @@ const formatPercent = (value) => {
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
   return Math.round(n);
+}
+
+const formatAccuracyMeters = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return `${Math.round(n)} m`;
 }
 
 const formatFeatureValue = (feature, value) => {
@@ -251,25 +258,42 @@ const toDateTimeLocalValue = (dateInput) => {
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
-const FlyToUser = ({ userPosition, mapLayer }) => {
+const FlyToUser = ({ userPosition, mapLayer, locationRequestVersion = 0 }) => {
   const map = useMap();
+  const hasCenteredRef = useRef(false);
+  const lastRequestVersionRef = useRef(locationRequestVersion);
+
   useEffect(() => {
     const target = normalizePosition(userPosition);
     if (!target) return;
+
+    const shouldRecenter =
+      !hasCenteredRef.current || locationRequestVersion !== lastRequestVersionRef.current;
+    lastRequestVersionRef.current = locationRequestVersion;
+    if (!shouldRecenter) {
+      return;
+    }
+
+    hasCenteredRef.current = true;
     if (mapLayer === "nearbyRoads") {
       map.panTo(target, { animate: true });
       return;
     }
     map.flyTo(target, USER_ZOOM, { animate: true, duration: 0.8 });
-  }, [map, userPosition, mapLayer]);
+  }, [locationRequestVersion, map, mapLayer, userPosition]);
   return null;
 }
 
-const FitNearbyRoutes = ({ mapLayer, nearbyRoutes }) => {
+const FitNearbyRoutesOnDemand = ({ mapLayer, nearbyRoutes, fitVersion }) => {
   const map = useMap();
 
   useEffect(() => {
-    if (mapLayer !== "nearbyRoads" || !Array.isArray(nearbyRoutes) || nearbyRoutes.length === 0) {
+    if (
+      mapLayer !== "nearbyRoads" ||
+      !fitVersion ||
+      !Array.isArray(nearbyRoutes) ||
+      nearbyRoutes.length === 0
+    ) {
       return;
     }
 
@@ -296,15 +320,19 @@ const FitNearbyRoutes = ({ mapLayer, nearbyRoutes }) => {
     const bounds = L.latLngBounds(allPoints.map(([lat, lng]) => L.latLng(lat, lng)));
     if (!bounds.isValid()) return;
     map.fitBounds(bounds, { padding: [30, 30] });
-  }, [map, mapLayer, nearbyRoutes]);
+  }, [fitVersion, map, mapLayer, nearbyRoutes]);
 
   return null;
 }
 
-const FitGuidedRoute = ({ route }) => {
+const FitGuidedRoute = ({ route, fitVersion }) => {
   const map = useMap();
 
   useEffect(() => {
+    if (!fitVersion) {
+      return;
+    }
+
     const routePath = getSegmentPath({ path: route?.path });
     if (!routePath || routePath.length < 2) {
       return;
@@ -316,7 +344,48 @@ const FitGuidedRoute = ({ route }) => {
     }
 
     map.fitBounds(bounds, { padding: [40, 40] });
-  }, [map, route]);
+  }, [fitVersion, map, route]);
+
+  return null;
+}
+
+const MapResizeFix = ({ deps = [] }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      map.invalidateSize({ pan: false, animate: false });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [map]);
+
+  useEffect(() => {
+    const container = map.getContainer();
+    if (!container) return;
+
+    const ro = new ResizeObserver(() => {
+      requestAnimationFrame(() => {
+        map.invalidateSize({ pan: false, animate: false });
+      });
+    });
+
+    ro.observe(container);
+
+    const onResize = () => map.invalidateSize({ pan: false, animate: false });
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onResize);
+    };
+  }, [map]);
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      map.invalidateSize({ pan: false, animate: false });
+    }, 50);
+    return () => clearTimeout(id);
+  }, [map, ...deps]);
 
   return null;
 }
@@ -348,6 +417,8 @@ const SiaraMap = ({
   userPosition,
   locationStatus = "unknown",
   locationError = "",
+  locationWarning = "",
+  locationRequestVersion = 0,
   requestLocation,
   onSelectedTimestampChange,
 }) => {
@@ -369,115 +440,177 @@ const SiaraMap = ({
   const [guidedRoute, setGuidedRoute] = useState(null);
   const [guidedRouteState, setGuidedRouteState] = useState("idle");
   const [guidedRouteError, setGuidedRouteError] = useState("");
+  const [guidanceActive, setGuidanceActive] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [routeExplainState, setRouteExplainState] = useState("idle");
   const [routeExplainError, setRouteExplainError] = useState("");
   const [selectedRouteExplanation, setSelectedRouteExplanation] = useState(null);
   const [timePresetMs, setTimePresetMs] = useState("0");
   const [customTimestampLocal, setCustomTimestampLocal] = useState("");
-  const [nowPresetTick, setNowPresetTick] = useState(0);
+  const [uiClockTick, setUiClockTick] = useState(0);
+  const [predictionRefreshTick, setPredictionRefreshTick] = useState(0);
+  const [nearbyRefreshTick, setNearbyRefreshTick] = useState(0);
+  const [guidanceRefreshTick, setGuidanceRefreshTick] = useState(0);
+  const [nearbyFitVersion, setNearbyFitVersion] = useState(0);
+  const [guidedRouteFitVersion, setGuidedRouteFitVersion] = useState(0);
   const nearbyRequestKeyRef = useRef("");
+  const guidanceRequestKeyRef = useRef("");
+  const pendingNearbyFitRef = useRef(false);
+  const selectedRouteExplanationRef = useRef(null);
+  const locationRenderStateRef = useRef("");
+  const userLatLng = useMemo(() => normalizePosition(userPosition), [userPosition]);
   const hasGrantedLocation = useMemo(
     () => locationStatus === "granted" && normalizePosition(userPosition) != null,
     [locationStatus, userPosition],
   );
-
-  const selectedTimeKey = `${timePresetMs}|${customTimestampLocal}`;
-  const timestampAnchorMs = useMemo(() => Date.now(), [selectedTimeKey, nowPresetTick]);
+  const hasValidUserLocation = useMemo(
+    () => hasGrantedLocation && normalizePosition(userPosition) != null,
+    [hasGrantedLocation, userPosition],
+  );
+  const userLocationKey = useMemo(() => {
+    if (!userLatLng) {
+      return "";
+    }
+    return `${userLatLng[0].toFixed(6)}:${userLatLng[1].toFixed(6)}`;
+  }, [userLatLng]);
+  const liveTimeEnabled = timePresetMs !== "custom";
+  const predictionAnchorMs = useMemo(
+    () => Date.now(),
+    [timePresetMs, customTimestampLocal, predictionRefreshTick],
+  );
+  const previewAnchorMs = useMemo(
+    () => Date.now(),
+    [timePresetMs, customTimestampLocal, uiClockTick, predictionRefreshTick],
+  );
   const selectedTimestampIso = useMemo(() => {
     if (timePresetMs === "custom") {
       const customDate = new Date(customTimestampLocal);
       if (!Number.isNaN(customDate.getTime())) {
         return customDate.toISOString();
       }
-      return new Date(timestampAnchorMs).toISOString();
+      return new Date(predictionAnchorMs).toISOString();
     }
 
     const offsetMs = Number(timePresetMs);
     const safeOffsetMs = Number.isFinite(offsetMs) ? offsetMs : 0;
-    return new Date(timestampAnchorMs + safeOffsetMs).toISOString();
-  }, [timePresetMs, customTimestampLocal, timestampAnchorMs]);
+    return new Date(predictionAnchorMs + safeOffsetMs).toISOString();
+  }, [timePresetMs, customTimestampLocal, predictionAnchorMs]);
 
   const selectedTimestampPreview = useMemo(() => {
-    const dt = new Date(selectedTimestampIso);
+    let dt = null;
+    if (timePresetMs === "custom") {
+      dt = new Date(customTimestampLocal);
+    } else {
+      const offsetMs = Number(timePresetMs);
+      const safeOffsetMs = Number.isFinite(offsetMs) ? offsetMs : 0;
+      dt = new Date(previewAnchorMs + safeOffsetMs);
+    }
     if (Number.isNaN(dt.getTime())) {
       return "Invalid time";
     }
     return dt.toLocaleString();
-  }, [selectedTimestampIso]);
+  }, [customTimestampLocal, previewAnchorMs, timePresetMs]);
 
   useEffect(() => {
     if (typeof onSelectedTimestampChange === "function") {
-      onSelectedTimestampChange(selectedTimestampIso);
+      if (timePresetMs === "custom") {
+        onSelectedTimestampChange(selectedTimestampIso);
+        return;
+      }
+      const offsetMs = Number(timePresetMs);
+      const safeOffsetMs = Number.isFinite(offsetMs) ? offsetMs : 0;
+      onSelectedTimestampChange(new Date(Date.now() + safeOffsetMs).toISOString());
     }
-  }, [onSelectedTimestampChange, selectedTimestampIso]);
+  }, [customTimestampLocal, onSelectedTimestampChange, timePresetMs]);
 
   useEffect(() => {
-    if (timePresetMs !== "0") {
-      return undefined;
-    }
-
     const intervalId = window.setInterval(() => {
-      setNowPresetTick((value) => value + 1);
-    }, NOW_PRESET_REFRESH_MS);
+      setUiClockTick((value) => value + 1);
+    }, UI_CLOCK_REFRESH_MS);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [timePresetMs]);
+  }, []);
 
   useEffect(() => {
-    console.log("[SiaraMap] selectedRouteExplanation updated:", selectedRouteExplanation);
-  }, [selectedRouteExplanation]);
+    if (!liveTimeEnabled) {
+      return undefined;
+    }
 
-
-  const MapResizeFix = ({ deps = [] }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    // Run once after mount/render
-    const id = requestAnimationFrame(() => {
-      map.invalidateSize({ pan: false, animate: false });
-    });
-    return () => cancelAnimationFrame(id);
-  }, [map]);
-
-  useEffect(() => {
-    const container = map.getContainer();
-    if (!container) return;
-
-    const ro = new ResizeObserver(() => {
-      // wait one frame so layout finishes first
-      requestAnimationFrame(() => {
-        map.invalidateSize({ pan: false, animate: false });
-      });
-    });
-
-    ro.observe(container);
-
-    // also handle window resize
-    const onResize = () => map.invalidateSize({ pan: false, animate: false });
-    window.addEventListener("resize", onResize);
+    const intervalId = window.setInterval(() => {
+      setPredictionRefreshTick((value) => value + 1);
+    }, PREDICTION_REFRESH_MS);
 
     return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", onResize);
+      window.clearInterval(intervalId);
     };
-  }, [map]);
+  }, [liveTimeEnabled]);
 
   useEffect(() => {
-    // If your UI changes on layer switch / data load, force refresh too
-    const id = setTimeout(() => {
-      map.invalidateSize({ pan: false, animate: false });
-    }, 50);
-    return () => clearTimeout(id);
-  }, [map, ...deps]);
+    if (!liveTimeEnabled) {
+      return undefined;
+    }
 
-  return null;
-}
+    const intervalId = window.setInterval(() => {
+      setNearbyRefreshTick((value) => value + 1);
+    }, NEARBY_REFRESH_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [liveTimeEnabled]);
 
   useEffect(() => {
-    if (!hasGrantedLocation || !userPosition) {
+    if (!liveTimeEnabled) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setGuidanceRefreshTick((value) => value + 1);
+    }, GUIDANCE_REFRESH_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [liveTimeEnabled]);
+
+  useEffect(() => {
+    if (!liveTimeEnabled) {
+      return undefined;
+    }
+
+    const forceRefresh = () => {
+      if (document.visibilityState && document.visibilityState !== "visible") {
+        return;
+      }
+      setUiClockTick((value) => value + 1);
+      setPredictionRefreshTick((value) => value + 1);
+      setNearbyRefreshTick((value) => value + 1);
+      setGuidanceRefreshTick((value) => value + 1);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        forceRefresh();
+      }
+    };
+
+    window.addEventListener("focus", forceRefresh);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", forceRefresh);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [liveTimeEnabled]);
+
+  useEffect(() => {
+    selectedRouteExplanationRef.current = selectedRouteExplanation;
+  }, [selectedRouteExplanation]);
+
+  useEffect(() => {
+    if (!hasValidUserLocation || !userPosition) {
       setCurrentRisk(null);
       setCurrentRiskState("idle");
       setCurrentRiskError("");
@@ -489,11 +622,9 @@ const SiaraMap = ({
       lng: userPosition.lng,
       timestamp: selectedTimestampIso,
     };
-    console.log("[React -> Node] /api/risk/current body:", body);
-
     let cancelled = false;
     const fetchCurrentRisk = async () => {
-      setCurrentRiskState("loading");
+      setCurrentRiskState(currentRisk ? "refreshing" : "loading");
       setCurrentRiskError("");
       try {
         const data = await postJson("/api/risk/current", body);
@@ -503,8 +634,8 @@ const SiaraMap = ({
       } catch (error) {
         if (cancelled) return;
         console.error("Current risk error:", error);
-        setCurrentRiskState("error");
-        setCurrentRiskError(error.message || "Failed to load current risk");
+        setCurrentRiskState(currentRisk ? "success" : "error");
+        setCurrentRiskError(error.message || "Failed to refresh current risk");
       }
     };
 
@@ -512,16 +643,17 @@ const SiaraMap = ({
     return () => {
       cancelled = true;
     };
-  }, [hasGrantedLocation, userPosition, selectedTimestampIso]);
+  }, [hasValidUserLocation, selectedTimestampIso, userLocationKey]);
 
   useEffect(() => {
-    if (!currentRisk) return;
-    console.log("[React] currentRisk updated:", currentRisk);
-  }, [currentRisk]);
-
-  useEffect(() => {
-    if (!hasGrantedLocation || !userPosition || !mockMarkers?.length || mapLayer !== "ai") {
+    if (!hasValidUserLocation || !userPosition || !mockMarkers?.length) {
       setOverlayBySegment({});
+      setOverlayState("idle");
+      setOverlayError("");
+      return;
+    }
+
+    if (mapLayer !== "ai") {
       setOverlayState("idle");
       setOverlayError("");
       return;
@@ -535,11 +667,9 @@ const SiaraMap = ({
         lng: marker.lng,
       })),
     };
-    console.log("[React -> Node] /api/risk/overlay body:", body);
-
     let cancelled = false;
     const fetchOverlay = async () => {
-      setOverlayState("loading");
+      setOverlayState(Object.keys(overlayBySegment).length > 0 ? "refreshing" : "loading");
       setOverlayError("");
       try {
         const data = await postJson("/api/risk/overlay", body);
@@ -554,8 +684,8 @@ const SiaraMap = ({
       } catch (error) {
         if (cancelled) return;
         console.error("Overlay risk error:", error);
-        setOverlayState("error");
-        setOverlayError(error.message || "Failed to load overlay risk");
+        setOverlayState(Object.keys(overlayBySegment).length > 0 ? "success" : "error");
+        setOverlayError(error.message || "Failed to refresh overlay risk");
       }
     };
 
@@ -563,24 +693,25 @@ const SiaraMap = ({
     return () => {
       cancelled = true;
     };
-  }, [hasGrantedLocation, mapLayer, mockMarkers, selectedTimestampIso, userPosition]);
+  }, [hasValidUserLocation, mapLayer, mockMarkers, selectedTimestampIso, userLocationKey]);
 
   useEffect(() => {
     if (mapLayer !== "nearbyRoads") {
       nearbyRequestKeyRef.current = "";
+      pendingNearbyFitRef.current = false;
       setNearbyRoutesState("idle");
       setNearbyRoutesError("");
       return;
     }
 
-    if (!hasGrantedLocation || !userPosition) {
+    if (!hasValidUserLocation || !userPosition) {
       setNearbyRoutes([]);
       setNearbyRoutesState("idle");
       setNearbyRoutesError("");
       return;
     }
 
-    const requestKey = `${toNearbyRequestKey(userPosition)}:${selectedTimestampIso}`;
+    const requestKey = `${toNearbyRequestKey(userPosition)}:${selectedTimestampIso}:${nearbyRefreshTick}`;
     if (!requestKey || requestKey === nearbyRequestKeyRef.current) {
       return;
     }
@@ -592,11 +723,9 @@ const SiaraMap = ({
       max_destinations: NEARBY_MAX_DESTINATIONS,
       timestamp: selectedTimestampIso,
     };
-    console.log("[React -> Node] /api/risk/nearby-zones body:", body);
-
     let cancelled = false;
     const fetchNearbyRoutes = async () => {
-      setNearbyRoutesState("loading");
+      setNearbyRoutesState(nearbyRoutes.length > 0 ? "refreshing" : "loading");
       setNearbyRoutesError("");
       try {
         const data = await postJson("/api/risk/nearby-zones", body);
@@ -604,13 +733,11 @@ const SiaraMap = ({
         setNearbyRoutes(Array.isArray(data?.routes) ? data.routes : []);
         setNearbyRoutesState("success");
         nearbyRequestKeyRef.current = requestKey;
-      
-console.log("[Node -> React] nearby-zones response:", data);
       } catch (error) {
         if (cancelled) return;
         console.error("Nearby routes error:", error);
-        setNearbyRoutesState("error");
-        setNearbyRoutesError(error.message || "Failed to load nearby routes");
+        setNearbyRoutesState(nearbyRoutes.length > 0 ? "success" : "error");
+        setNearbyRoutesError(error.message || "Failed to refresh nearby routes");
       }
     };
 
@@ -618,12 +745,27 @@ console.log("[Node -> React] nearby-zones response:", data);
     return () => {
       cancelled = true;
     };
-  }, [hasGrantedLocation, mapLayer, selectedTimestampIso, userPosition]);
+  }, [hasValidUserLocation, mapLayer, nearbyRefreshTick, selectedTimestampIso, userLocationKey]);
 
   useEffect(() => {
-    if (mapLayer !== "nearbyRoads" || nearbyRoutes.length === 0) return;
-    console.log("[nearbyRoads] first path point:", nearbyRoutes?.[0]?.path?.[0]);
-  }, [mapLayer, nearbyRoutes]);
+    if (mapLayer === "nearbyRoads" && !guidedRoute) {
+      pendingNearbyFitRef.current = true;
+    }
+  }, [guidedRoute, mapLayer]);
+
+  useEffect(() => {
+    if (
+      mapLayer !== "nearbyRoads" ||
+      guidedRoute ||
+      !pendingNearbyFitRef.current ||
+      nearbyRoutes.length === 0
+    ) {
+      return;
+    }
+
+    pendingNearbyFitRef.current = false;
+    setNearbyFitVersion((value) => value + 1);
+  }, [guidedRoute, mapLayer, nearbyRoutes.length]);
 
   const heatPoints = useMemo(
     () =>
@@ -641,7 +783,7 @@ console.log("[Node -> React] nearby-zones response:", data);
       setSelectedIncident(marker);
       return;
     }
-    if (!hasGrantedLocation || !userPosition) {
+    if (!hasValidUserLocation || !userPosition) {
       setSelectedIncident(marker);
       return;
     }
@@ -652,8 +794,6 @@ console.log("[Node -> React] nearby-zones response:", data);
       lng: marker.lng,
       timestamp: selectedTimestampIso,
     };
-    console.log("[React -> Node] /api/risk/explain body:", body);
-
     try {
       const explanation = await postJson("/api/risk/explain", body);
       setSelectedIncident({
@@ -718,6 +858,8 @@ console.log("[Node -> React] nearby-zones response:", data);
   };
 
   const clearGuidance = () => {
+    guidanceRequestKeyRef.current = "";
+    setGuidanceActive(false);
     setGuidedRoute(null);
     setGuidedRouteState("idle");
     setGuidedRouteError("");
@@ -735,8 +877,114 @@ console.log("[Node -> React] nearby-zones response:", data);
     }
   };
 
+  const fetchGuidedRoute = async ({
+    origin = normalizePosition(userPosition),
+    destination = selectedDestination,
+    timestampIso = selectedTimestampIso,
+    preserveSelection = false,
+  } = {}) => {
+    if (!origin) {
+      throw new Error("Location is required. Use the locate button first.");
+    }
+    if (!destination) {
+      throw new Error("Select a destination before starting guidance.");
+    }
+
+    const requestKey = [
+      origin[0].toFixed(6),
+      origin[1].toFixed(6),
+      Number(destination.lat).toFixed(6),
+      Number(destination.lng).toFixed(6),
+      timestampIso,
+    ].join("|");
+    if (requestKey === guidanceRequestKeyRef.current) {
+      return guidedRoute;
+    }
+
+    setGuidedRouteState(guidedRoute ? "refreshing" : "loading");
+    setGuidedRouteError("");
+    if (!preserveSelection) {
+      setSelectedRouteExplanation(null);
+      setRouteExplainState("idle");
+      setRouteExplainError("");
+      setSelectedIncident(null);
+    }
+
+    const body = {
+      origin: { lat: origin[0], lng: origin[1] },
+      destination: {
+        name: destination.name,
+        lat: destination.lat,
+        lng: destination.lng,
+      },
+      timestamp: timestampIso,
+      sample_count: ROUTE_SAMPLE_COUNT,
+    };
+
+    const data = await postJson("/api/risk/route", body);
+    const path = getSegmentPath({ path: data?.path }) || [];
+    const segments = (Array.isArray(data?.segments) ? data.segments : [])
+      .map((segment, idx) => {
+        const segmentPath = getSegmentPath({ path: segment?.path });
+        if (!segmentPath) return null;
+        const dangerPercent = Number(segment?.danger_percent);
+        return {
+          segment_id: String(segment?.segment_id || `segment_${idx}`),
+          path: segmentPath,
+          danger_percent: Number.isFinite(dangerPercent) ? dangerPercent : null,
+          danger_level: normalizeDangerLevel(segment?.danger_level, dangerPercent),
+          sample_from: Number.isFinite(Number(segment?.sample_from))
+            ? Number(segment.sample_from)
+            : idx,
+          sample_to: Number.isFinite(Number(segment?.sample_to))
+            ? Number(segment.sample_to)
+            : idx + 1,
+        };
+      })
+      .filter(Boolean);
+
+    const nextRoute = {
+      ...data,
+      path,
+      segments,
+    };
+    const previousSelection = selectedRouteExplanationRef.current;
+    if (preserveSelection && previousSelection) {
+      const matchedSegment = segments.find(
+        (segment) =>
+          segment.sample_from === previousSelection?.segment?.sample_from &&
+          segment.sample_to === previousSelection?.segment?.sample_to,
+      );
+
+      if (matchedSegment) {
+        setSelectedRouteExplanation({
+          ...previousSelection,
+          segment: {
+            ...previousSelection.segment,
+            ...matchedSegment,
+          },
+          explanation: {
+            ...previousSelection.explanation,
+            danger_percent:
+              matchedSegment.danger_percent ?? previousSelection?.explanation?.danger_percent,
+            danger_level:
+              matchedSegment.danger_level || previousSelection?.explanation?.danger_level,
+          },
+        });
+      } else {
+        setSelectedRouteExplanation(null);
+        setRouteExplainState("idle");
+        setRouteExplainError("");
+      }
+    }
+    guidanceRequestKeyRef.current = requestKey;
+    setGuidedRoute(nextRoute);
+    setGuidedRouteState("success");
+    return nextRoute;
+  };
+
   const startGuidance = async () => {
-    if (!hasGrantedLocation) {
+    if (!hasValidUserLocation) {
       setGuidedRouteState("error");
       setGuidedRouteError("Location is required. Use the locate button first.");
       return;
@@ -755,57 +1003,48 @@ console.log("[Node -> React] nearby-zones response:", data);
       return;
     }
 
-    setGuidedRouteState("loading");
-    setGuidedRouteError("");
-    setSelectedRouteExplanation(null);
-    setRouteExplainState("idle");
-    setRouteExplainError("");
-
-    const body = {
-      origin: { lat: origin[0], lng: origin[1] },
-      destination: {
-        name: selectedDestination.name,
-        lat: selectedDestination.lat,
-        lng: selectedDestination.lng,
-      },
-      timestamp: selectedTimestampIso,
-      sample_count: ROUTE_SAMPLE_COUNT,
-    };
-
     try {
-      const data = await postJson("/api/risk/route", body);
-      const path = getSegmentPath({ path: data?.path }) || [];
-      const segments = (Array.isArray(data?.segments) ? data.segments : [])
-        .map((segment, idx) => {
-          const segmentPath = getSegmentPath({ path: segment?.path });
-          if (!segmentPath) return null;
-          const dangerPercent = Number(segment?.danger_percent);
-          return {
-            segment_id: String(segment?.segment_id || `segment_${idx}`),
-            path: segmentPath,
-            danger_percent: Number.isFinite(dangerPercent) ? dangerPercent : null,
-            danger_level: normalizeDangerLevel(segment?.danger_level, dangerPercent),
-          };
-        })
-        .filter(Boolean);
-
-      setGuidedRoute({
-        ...data,
-        path,
-        segments,
+      await fetchGuidedRoute({
+        origin,
+        destination: selectedDestination,
+        timestampIso: selectedTimestampIso,
+        preserveSelection: false,
       });
-      setGuidedRouteState("success");
+      setGuidedRouteFitVersion((value) => value + 1);
+      setGuidanceActive(true);
     } catch (error) {
+      setGuidanceActive(false);
       setGuidedRouteState("error");
       setGuidedRouteError(error.message || "Failed to compute guidance route");
     }
   };
 
+  useEffect(() => {
+    if (!guidanceActive) {
+      return;
+    }
+
+    const origin = normalizePosition(userPosition);
+    if (!origin || !selectedDestination) {
+      return;
+    }
+
+    void fetchGuidedRoute({
+      origin,
+      destination: selectedDestination,
+      timestampIso: selectedTimestampIso,
+      preserveSelection: true,
+    }).catch((error) => {
+      setGuidedRouteState(guidedRoute ? "success" : "error");
+      setGuidedRouteError(error.message || "Failed to refresh guidance route");
+    });
+  }, [guidanceActive, guidanceRefreshTick, selectedDestination, selectedTimestampIso, userLocationKey]);
+
   const handleGuidedSegmentClick = async (segment) => {
     if (!segment?.segment_id) {
       return;
     }
-    if (!hasGrantedLocation || !userPosition) {
+    if (!hasValidUserLocation || !userPosition) {
       setRouteExplainState("error");
       setRouteExplainError("Location is required before requesting explanations.");
       return;
@@ -841,7 +1080,7 @@ console.log("[Node -> React] nearby-zones response:", data);
     }
   };
 
-  const userLatLng = normalizePosition(userPosition);
+  const locationAccuracyText = formatAccuracyMeters(userPosition?.accuracy);
   const sentinel = currentRisk?.sentinel ?? null;
   const sentinelHasError = Boolean(sentinel?.error);
   const sentinelValid = Boolean(
@@ -929,7 +1168,25 @@ console.log("[Node -> React] nearby-zones response:", data);
       })
       .slice(0, 4);
   }, [mapLayer, guidedRoute, nearbyRoutes]);
-  const showGuideControls = Boolean(userLatLng) || mapLayer === "nearbyRoads" || Boolean(guidedRoute);
+  const showGuideControls = hasValidUserLocation || Boolean(guidedRoute);
+
+  useEffect(() => {
+    const nextRenderState = hasValidUserLocation
+      ? "render_ready"
+      : locationStatus === "locating"
+        ? "render_blocked_locating"
+        : "render_blocked_missing_location";
+    if (locationRenderStateRef.current === nextRenderState) {
+      return;
+    }
+    locationRenderStateRef.current = nextRenderState;
+    console.info("[map/location]", nextRenderState, {
+      location_status: locationStatus,
+      has_valid_user_location: hasValidUserLocation,
+      user_position: userLatLng,
+      default_center_used: false,
+    });
+  }, [hasValidUserLocation, locationStatus, userLatLng]);
 
 
   
@@ -941,17 +1198,17 @@ console.log("[Node -> React] nearby-zones response:", data);
             Tile layer error: {tileError}
           </div>
         )}
-        {overlayState === "error" && (
+        {overlayError && (
           <div className="siara-map-error">
             Overlay error: {overlayError}
           </div>
         )}
-        {nearbyRoutesState === "error" && (
+        {nearbyRoutesError && (
           <div className="siara-map-error">
             Nearby routes error: {nearbyRoutesError}
           </div>
         )}
-        {guidedRouteState === "error" && (
+        {guidedRouteError && (
           <div className="siara-map-error">
             Guidance error: {guidedRouteError}
           </div>
@@ -973,306 +1230,342 @@ console.log("[Node -> React] nearby-zones response:", data);
 
       
 
-      <MapContainer
-        center={userLatLng || DEFAULT_CENTER}
-        zoom={userLatLng ? USER_ZOOM : DEFAULT_ZOOM}
-        className="siara-leaflet-map"
-        zoomControl={true}
-      >
-          <MapResizeFix
-            deps={[
-              mapLayer,
-              !!userLatLng,
-              mockMarkers?.length,
-              nearbyRoutes.length,
-              guidedRoute?.path?.length || 0,
-              helpOpen,
-            ]}
+      {hasValidUserLocation ? (
+        <MapContainer
+          center={userLatLng}
+          zoom={USER_ZOOM}
+          className="siara-leaflet-map"
+          zoomControl={true}
+        >
+            <MapResizeFix
+              deps={[
+                mapLayer,
+                hasValidUserLocation,
+                mockMarkers?.length,
+                nearbyRoutes.length,
+                guidedRoute?.path?.length || 0,
+                helpOpen,
+              ]}
+            />
+
+    <TileLayer
+      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      eventHandlers={{
+        tileerror: () => setTileError("Unable to fetch OpenStreetMap tiles."),
+        load: () => setTileError(""),
+      }}
+    />
+
+          <FlyToUser
+            userPosition={userPosition}
+            mapLayer={mapLayer}
+            locationRequestVersion={locationRequestVersion}
           />
-
-  <TileLayer
-    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    eventHandlers={{
-      tileerror: () => setTileError("Unable to fetch OpenStreetMap tiles."),
-      load: () => setTileError(""),
-    }}
-  />
-
-        <FlyToUser userPosition={userPosition} mapLayer={mapLayer} />
-        {mapLayer === "nearbyRoads" && !guidedRoute && nearbyRoutes.length > 0 && (
-          <FitNearbyRoutes mapLayer={mapLayer} nearbyRoutes={nearbyRoutes} />
-        )}
-        {guidedRoute && <FitGuidedRoute route={guidedRoute} />}
-
-        {mapLayer === "heatmap" && heatPoints.length > 0 && <HeatLayer points={heatPoints} />}
-
-        <Pane name="risk-layer" style={{ zIndex: 9999 }}>
-          {guidedRoute?.path?.length > 1 && (
-            <Polyline
-              positions={guidedRoute.path}
-              pathOptions={{
-                color: "#334155",
-                weight: 4,
-                opacity: 0.35,
-              }}
-              interactive={false}
+          {mapLayer === "nearbyRoads" && !guidedRoute && nearbyRoutes.length > 0 && (
+            <FitNearbyRoutesOnDemand
+              mapLayer={mapLayer}
+              nearbyRoutes={nearbyRoutes}
+              fitVersion={nearbyFitVersion}
             />
           )}
-          
+          {guidedRoute && <FitGuidedRoute route={guidedRoute} fitVersion={guidedRouteFitVersion} />}
 
-          {guidedRoute?.segments?.map((segment) => {
-            const segmentPath = getSegmentPath({ path: segment?.path });
-            if (!segmentPath) return null;
+          {mapLayer === "heatmap" && heatPoints.length > 0 && <HeatLayer points={heatPoints} />}
 
-            const segmentPercent = formatPercent(segment?.danger_percent);
-            const segmentLevel = normalizeDangerLevel(segment?.danger_level, segment?.danger_percent);
-            const segmentColor = getDangerColor(segmentLevel);
-            const segmentTooltipStyle = {
-              "--risk-color": segmentColor,
-              "--risk-text-color": getContrastTextColor(segmentColor),
-            };
-
-            return (
+          <Pane name="risk-layer" style={{ zIndex: 9999 }}>
+            {guidedRoute?.path?.length > 1 && (
               <Polyline
-                key={segment.segment_id}
-                positions={segmentPath}
-                pathOptions={{ color: segmentColor, weight: 6, opacity: 0.9 }}
-                eventHandlers={{
-                  click: () => handleGuidedSegmentClick(segment),
+                positions={guidedRoute.path}
+                pathOptions={{
+                  color: "#334155",
+                  weight: 4,
+                  opacity: 0.35,
                 }}
-              >
-                {segmentPercent != null && (
-                  <Tooltip sticky direction="top" className="siara-risk-tooltip">
-                    <span className="siara-risk-tooltip__pill" style={segmentTooltipStyle}>
-                      {segmentPercent}% ({segmentLevel})
-                    </span>
-                  </Tooltip>
-                )}
-              </Polyline>
-            );
-          })}
+                interactive={false}
+              />
+            )}
 
-          {guidedRoute && (
-            <>
-              {userLatLng && (
-                <CircleMarker
-                  center={userLatLng}
-                  radius={7}
-                  pathOptions={{
-                    color: "#ffffff",
-                    weight: 2,
-                    fillColor: "#2563eb",
-                    fillOpacity: 0.95,
-                  }}
-                >
-                  <Tooltip direction="top">Start</Tooltip>
-                </CircleMarker>
-              )}
-              {normalizePosition(guidedRoute?.destination) && (
-                <CircleMarker
-                  center={normalizePosition(guidedRoute.destination)}
-                  radius={7}
-                  pathOptions={{
-                    color: "#ffffff",
-                    weight: 2,
-                    fillColor: "#111827",
-                    fillOpacity: 0.95,
-                  }}
-                >
-                  <Tooltip direction="top">
-                    {guidedRoute?.destination?.name || "Destination"}
-                  </Tooltip>
-                </CircleMarker>
-              )}
-            </>
-          )}
+            {guidedRoute?.segments?.map((segment) => {
+              const segmentPath = getSegmentPath({ path: segment?.path });
+              if (!segmentPath) return null;
 
-          {mapLayer === "nearbyRoads" && !guidedRoute &&
-            nearbyRoutes.flatMap((route) => {
-              const destinationPos = normalizePosition(route?.destination);
-              const destinationName =
-                route?.destination?.name || route?.destination?.id || "Nearby route";
-              const isFallbackRoute =
-                route?.routing_source === "straight_line" || route?.route_warning === "osrm_failed";
-              const routePercent = Number(route?.summary?.danger_percent);
-              const routeLevel = normalizeDangerLevel(route?.summary?.danger_level, routePercent);
-              const routeColor = isFallbackRoute ? "#64748b" : getDangerColor(routeLevel);
-              const routeTooltipStyle = {
-                "--risk-color": routeColor,
-                "--risk-text-color": getContrastTextColor(routeColor),
+              const segmentPercent = formatPercent(segment?.danger_percent);
+              const segmentLevel = normalizeDangerLevel(segment?.danger_level, segment?.danger_percent);
+              const segmentColor = getDangerColor(segmentLevel);
+              const segmentTooltipStyle = {
+                "--risk-color": segmentColor,
+                "--risk-text-color": getContrastTextColor(segmentColor),
               };
 
-              const candidateSegments =
-                Array.isArray(route?.segments) && route.segments.length > 0
-                  ? route.segments
-                  : [
-                      {
-                        path: route?.path,
-                        danger_percent: route?.summary?.danger_percent,
-                        danger_level: route?.summary?.danger_level,
-                      },
-                    ];
+              return (
+                <Polyline
+                  key={segment.segment_id}
+                  positions={segmentPath}
+                  pathOptions={{ color: segmentColor, weight: 6, opacity: 0.9 }}
+                  eventHandlers={{
+                    click: () => handleGuidedSegmentClick(segment),
+                  }}
+                >
+                  {segmentPercent != null && (
+                    <Tooltip sticky direction="top" className="siara-risk-tooltip">
+                      <span className="siara-risk-tooltip__pill" style={segmentTooltipStyle}>
+                        {segmentPercent}% ({segmentLevel})
+                      </span>
+                    </Tooltip>
+                  )}
+                </Polyline>
+              );
+            })}
 
-              const rendered = [];
-
-              candidateSegments.forEach((segment, index) => {
-                const segmentPath = getSegmentPath({ path: segment?.path });
-                if (!segmentPath) return;
-
-                const segmentPercent = Number(segment?.danger_percent);
-                const segmentLevel = normalizeDangerLevel(segment?.danger_level, segmentPercent);
-                const segmentColor = isFallbackRoute ? "#64748b" : getDangerColor(segmentLevel);
-                const segmentTooltipStyle = {
-                  "--risk-color": segmentColor,
-                  "--risk-text-color": getContrastTextColor(segmentColor),
-                };
-
-                rendered.push(
-                  <Polyline
-                    key={`${route.route_id || destinationName}-seg-${index}`}
-                    positions={segmentPath}
-                    pathOptions={{
-                      color: segmentColor,
-                      weight: isFallbackRoute ? 4 : 5,
-                      opacity: 0.9,
-                      dashArray: isFallbackRoute ? "8 8" : undefined,
-                    }}
-                  >
-                    {Number.isFinite(segmentPercent) && (
-                      <Tooltip sticky direction="top" className="siara-risk-tooltip">
-                        <span className="siara-risk-tooltip__pill" style={segmentTooltipStyle}>
-                          {destinationName} - {Math.round(segmentPercent)}% ({segmentLevel})
-                        </span>
-                      </Tooltip>
-                    )}
-                  </Polyline>,
-                );
-              });
-
-              if (destinationPos) {
-                rendered.push(
+            {guidedRoute && (
+              <>
+                {userLatLng && (
                   <CircleMarker
-                    key={`${route.route_id || destinationName}-dest`}
-                    center={destinationPos}
-                    radius={6}
+                    center={userLatLng}
+                    radius={7}
                     pathOptions={{
                       color: "#ffffff",
                       weight: 2,
-                      fillColor: routeColor,
+                      fillColor: "#2563eb",
                       fillOpacity: 0.95,
                     }}
                   >
-                    {Number.isFinite(routePercent) && (
-                      <Tooltip direction="top" className="siara-risk-tooltip">
-                        <span className="siara-risk-tooltip__pill" style={routeTooltipStyle}>
-                          {destinationName} - {Math.round(routePercent)}% ({routeLevel})
-                        </span>
-                      </Tooltip>
-                    )}
-                  </CircleMarker>,
-                );
-              }
+                    <Tooltip direction="top">Start</Tooltip>
+                  </CircleMarker>
+                )}
+                {normalizePosition(guidedRoute?.destination) && (
+                  <CircleMarker
+                    center={normalizePosition(guidedRoute.destination)}
+                    radius={7}
+                    pathOptions={{
+                      color: "#ffffff",
+                      weight: 2,
+                      fillColor: "#111827",
+                      fillOpacity: 0.95,
+                    }}
+                  >
+                    <Tooltip direction="top">
+                      {guidedRoute?.destination?.name || "Destination"}
+                    </Tooltip>
+                  </CircleMarker>
+                )}
+              </>
+            )}
 
-              return rendered;
-            })}
+            {mapLayer === "nearbyRoads" && !guidedRoute &&
+              nearbyRoutes.flatMap((route) => {
+                const destinationPos = normalizePosition(route?.destination);
+                const destinationName =
+                  route?.destination?.name || route?.destination?.id || "Nearby route";
+                const isFallbackRoute =
+                  route?.routing_source === "straight_line" || route?.route_warning === "osrm_failed";
+                const routePercent = Number(route?.summary?.danger_percent);
+                const routeLevel = normalizeDangerLevel(route?.summary?.danger_level, routePercent);
+                const routeColor = isFallbackRoute ? "#64748b" : getDangerColor(routeLevel);
+                const routeTooltipStyle = {
+                  "--risk-color": routeColor,
+                  "--risk-text-color": getContrastTextColor(routeColor),
+                };
 
-          {(mapLayer === "points" || mapLayer === "ai") &&
-            (mockMarkers || []).map((marker) => {
-              const position = normalizePosition(marker);
-              if (!position) return null;
+                const candidateSegments =
+                  Array.isArray(route?.segments) && route.segments.length > 0
+                    ? route.segments
+                    : [
+                        {
+                          path: route?.path,
+                          danger_percent: route?.summary?.danger_percent,
+                          danger_level: route?.summary?.danger_level,
+                        },
+                      ];
 
-              const overlay = overlayBySegment[String(marker.id)];
-              const segmentPath = getSegmentPath(marker);
-              const isAi = mapLayer === "ai";
-              const color = isAi
-                ? getDangerColor(overlay?.danger_level)
-                : getIncidentColor(marker.severity);
-              const percent = overlay?.danger_percent;
-              const aiTooltipStyle = isAi
-                ? {
-                    "--risk-color": color,
-                    "--risk-text-color": getContrastTextColor(color),
-                  }
-                : undefined;
+                const rendered = [];
 
-              if (isAi && segmentPath) {
+                candidateSegments.forEach((segment, index) => {
+                  const segmentPath = getSegmentPath({ path: segment?.path });
+                  if (!segmentPath) return;
+
+                  const segmentPercent = Number(segment?.danger_percent);
+                  const segmentLevel = normalizeDangerLevel(segment?.danger_level, segmentPercent);
+                  const segmentColor = isFallbackRoute ? "#64748b" : getDangerColor(segmentLevel);
+                  const segmentTooltipStyle = {
+                    "--risk-color": segmentColor,
+                    "--risk-text-color": getContrastTextColor(segmentColor),
+                  };
+
+                  rendered.push(
+                    <Polyline
+                      key={`${route.route_id || destinationName}-seg-${index}`}
+                      positions={segmentPath}
+                      pathOptions={{
+                        color: segmentColor,
+                        weight: isFallbackRoute ? 4 : 5,
+                        opacity: 0.9,
+                        dashArray: isFallbackRoute ? "8 8" : undefined,
+                      }}
+                    >
+                      {Number.isFinite(segmentPercent) && (
+                        <Tooltip sticky direction="top" className="siara-risk-tooltip">
+                          <span className="siara-risk-tooltip__pill" style={segmentTooltipStyle}>
+                            {destinationName} - {Math.round(segmentPercent)}% ({segmentLevel})
+                          </span>
+                        </Tooltip>
+                      )}
+                    </Polyline>,
+                  );
+                });
+
+                if (destinationPos) {
+                  rendered.push(
+                    <CircleMarker
+                      key={`${route.route_id || destinationName}-dest`}
+                      center={destinationPos}
+                      radius={6}
+                      pathOptions={{
+                        color: "#ffffff",
+                        weight: 2,
+                        fillColor: routeColor,
+                        fillOpacity: 0.95,
+                      }}
+                    >
+                      {Number.isFinite(routePercent) && (
+                        <Tooltip direction="top" className="siara-risk-tooltip">
+                          <span className="siara-risk-tooltip__pill" style={routeTooltipStyle}>
+                            {destinationName} - {Math.round(routePercent)}% ({routeLevel})
+                          </span>
+                        </Tooltip>
+                      )}
+                    </CircleMarker>,
+                  );
+                }
+
+                return rendered;
+              })}
+
+            {(mapLayer === "points" || mapLayer === "ai") &&
+              (mockMarkers || []).map((marker) => {
+                const position = normalizePosition(marker);
+                if (!position) return null;
+
+                const overlay = overlayBySegment[String(marker.id)];
+                const segmentPath = getSegmentPath(marker);
+                const isAi = mapLayer === "ai";
+                const color = isAi
+                  ? getDangerColor(overlay?.danger_level)
+                  : getIncidentColor(marker.severity);
+                const percent = overlay?.danger_percent;
+                const aiTooltipStyle = isAi
+                  ? {
+                      "--risk-color": color,
+                      "--risk-text-color": getContrastTextColor(color),
+                    }
+                  : undefined;
+
+                if (isAi && segmentPath) {
+                  return (
+                    <Polyline
+                      key={`segment-${marker.id}`}
+                      positions={segmentPath}
+                      pathOptions={{ color, weight: 6, opacity: 0.85 }}
+                      eventHandlers={{
+                        click: () => handleFeatureClick(marker),
+                      }}
+                    >
+                      {Number.isFinite(percent) && (
+                        <Tooltip sticky direction="top" className="siara-risk-tooltip">
+                          <span className="siara-risk-tooltip__pill" style={aiTooltipStyle}>
+                            {Math.round(percent)}% - {overlay?.danger_level || "unknown"}
+                          </span>
+                        </Tooltip>
+                      )}
+                    </Polyline>
+                  );
+                }
+
                 return (
-                  <Polyline
-                    key={`segment-${marker.id}`}
-                    positions={segmentPath}
-                    pathOptions={{ color, weight: 6, opacity: 0.85 }}
+                  <CircleMarker
+                    key={`point-${marker.id}`}
+                    center={position}
+                    radius={isAi ? 9 : 7}
+                    pathOptions={{
+                      color: "#ffffff",
+                      weight: 2,
+                      fillColor: color,
+                      fillOpacity: 0.95,
+                    }}
                     eventHandlers={{
                       click: () => handleFeatureClick(marker),
                     }}
                   >
-                    {Number.isFinite(percent) && (
-                      <Tooltip sticky direction="top" className="siara-risk-tooltip">
+                    {isAi && Number.isFinite(percent) && (
+                      <Tooltip
+                        permanent
+                        direction="top"
+                        offset={[0, -8]}
+                        className="siara-risk-tooltip"
+                      >
                         <span className="siara-risk-tooltip__pill" style={aiTooltipStyle}>
-                          {Math.round(percent)}% - {overlay?.danger_level || "unknown"}
+                          {Math.round(percent)}%
                         </span>
                       </Tooltip>
                     )}
-                  </Polyline>
+                  </CircleMarker>
                 );
-              }
+              })}
+          </Pane>
 
-              return (
-                <CircleMarker
-                  key={`point-${marker.id}`}
-                  center={position}
-                  radius={isAi ? 9 : 7}
-                  pathOptions={{
-                    color: "#ffffff",
-                    weight: 2,
-                    fillColor: color,
-                    fillOpacity: 0.95,
-                  }}
-                  eventHandlers={{
-                    click: () => handleFeatureClick(marker),
-                  }}
-                >
-                  {isAi && Number.isFinite(percent) && (
-                    <Tooltip
-                      permanent
-                      direction="top"
-                      offset={[0, -8]}
-                      className="siara-risk-tooltip"
-                    >
-                      <span className="siara-risk-tooltip__pill" style={aiTooltipStyle}>
-                        {Math.round(percent)}%
-                      </span>
-                    </Tooltip>
-                  )}
-                </CircleMarker>
-              );
-            })}
-        </Pane>
-
-        {userLatLng && !guidedRoute && (
-          <CircleMarker
-            center={userLatLng}
-            radius={8}
-            pathOptions={{
-              color: "#ffffff",
-              weight: 2,
-              fillColor: "#7c3aed",
-              fillOpacity: 1,
-            }}
-          >
-            <Tooltip direction="top">You are here</Tooltip>
-          </CircleMarker>
-        )}
-      </MapContainer>
+          {userLatLng && !guidedRoute && (
+            <CircleMarker
+              center={userLatLng}
+              radius={8}
+              pathOptions={{
+                color: "#ffffff",
+                weight: 2,
+                fillColor: "#7c3aed",
+                fillOpacity: 1,
+              }}
+            >
+              <Tooltip direction="top">You are here</Tooltip>
+            </CircleMarker>
+          )}
+        </MapContainer>
+      ) : (
+        <div className="siara-leaflet-map">
+          <div className="siara-map-error-stack">
+            <div className="siara-map-error">
+              {locationStatus === "locating"
+                ? "Locating your device..."
+                : "A valid real-time location is required before the map can load."}
+            </div>
+            {locationWarning && (
+              <div className="siara-map-warning">{locationWarning}</div>
+            )}
+            {locationError && (
+              <div className="siara-map-error">{locationError}</div>
+            )}
+            {typeof requestLocation === "function" && (
+              <button
+                type="button"
+                className="siara-guide-btn siara-guide-btn-primary"
+                onClick={requestLocation}
+                disabled={locationStatus === "locating"}
+              >
+                {locationStatus === "locating" ? "Locating..." : "Retry location"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <aside className="siara-map-aside">
         <div className="siara-risk-debug">
           <div className="siara-map-help-wrap">
             <h4>Current Risk</h4>
           </div>
-          {!userLatLng && (
+          {!hasValidUserLocation && (
             <>
               <p>Location is required for SIARA risk prediction.</p>
+              {locationStatus === "locating" && <p>Locating your device...</p>}
               {(locationStatus === "prompt" || locationStatus === "unknown") &&
                 typeof requestLocation === "function" && (
                   <button
@@ -1292,16 +1585,24 @@ console.log("[Node -> React] nearby-zones response:", data);
               {locationError && <p className="risk-debug-error">{locationError}</p>}
             </>
           )}
-          {userLatLng && currentRiskState === "idle" && <p>Loading current risk...</p>}
-          {userLatLng && currentRiskState === "loading" && <p>Loading current risk...</p>}
-          {userLatLng && currentRiskState === "error" && <p className="risk-debug-error">{currentRiskError}</p>}
-          {userLatLng && currentRiskState === "success" && currentRisk && (
+          {hasValidUserLocation && locationAccuracyText && <p>accuracy: {locationAccuracyText}</p>}
+          {hasValidUserLocation && locationWarning && <p className="risk-debug-error">{locationWarning}</p>}
+          {hasValidUserLocation && currentRiskState === "idle" && <p>Loading current risk...</p>}
+          {hasValidUserLocation && currentRiskState === "loading" && <p>Loading current risk...</p>}
+          {hasValidUserLocation && !currentRisk && currentRiskState === "error" && <p className="risk-debug-error">{currentRiskError}</p>}
+          {hasValidUserLocation &&
+            (currentRiskState === "success" || currentRiskState === "refreshing") &&
+            currentRisk && (
             <>
               <p>
                 <strong className="risk-debug-percent" style={{ color: getDangerColor(currentRisk.danger_level) }}>
                   {currentRisk.danger_percent}%
                 </strong>
               </p>
+              {currentRiskError && (
+                <p className="risk-debug-error">{currentRiskError}</p>
+              )}
+              {currentRiskState === "refreshing" && <p>Refreshing current risk...</p>}
               <p style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>
                   {sentinelValid
@@ -1613,7 +1914,7 @@ console.log("[Node -> React] nearby-zones response:", data);
               type="button"
               className="siara-guide-btn siara-guide-btn-primary"
               onClick={startGuidance}
-              disabled={guidedRouteState === "loading" || !selectedDestination || !userLatLng}
+              disabled={guidedRouteState === "loading" || !selectedDestination || !hasValidUserLocation}
             >
               {guidedRouteState === "loading" ? "Computing route..." : "Start guidance"}
             </button>
