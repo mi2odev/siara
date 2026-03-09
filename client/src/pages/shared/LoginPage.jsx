@@ -20,7 +20,7 @@ import { AuthContext } from '../../contexts/AuthContext'
 import '../../styles/LoginPage.css'
 import logo from '../../assets/logos/siara-logo.png'
 
-export default LoginPage = () => {
+ const LoginPage = () => {
   // --- Form state variables ---
   const [identifier, setIdentifier] = useState('')      // Email or phone number entered
   const [password, setPassword] = useState('')           // Password entered
@@ -277,3 +277,5 @@ export default LoginPage = () => {
     </div>
   )
 }
+
+export default LoginPage

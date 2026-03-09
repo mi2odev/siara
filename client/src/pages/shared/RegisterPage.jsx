@@ -42,7 +42,7 @@ const getIdentifierType = (identifier) => {
   return null
 }
 
-export default RegisterPage = () => {
+const RegisterPage = () => {
   const [name, setName] = useState('')
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -363,3 +363,6 @@ export default RegisterPage = () => {
     </div>
   )
 }
+
+
+export default RegisterPage

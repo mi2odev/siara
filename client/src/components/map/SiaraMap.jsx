@@ -341,7 +341,7 @@ const HeatLayer = ({ points }) => {
   return null;
 }
 
-export default SiaraMap = ({
+const SiaraMap = ({
   mockMarkers,
   mapLayer,
   setSelectedIncident,
@@ -1628,3 +1628,6 @@ console.log("[Node -> React] nearby-zones response:", data);
     </div>
   );
 }
+
+
+export default SiaraMap;
