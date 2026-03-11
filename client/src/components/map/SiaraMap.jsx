@@ -34,6 +34,27 @@ const TIME_PRESET_OPTIONS = [
   { value: String(6 * 60 * 60 * 1000), label: "+6h" },
   { value: "custom", label: "Custom" },
 ];
+const GUIDED_ROUTE_ORDER = ["fastest", "safest", "balanced"];
+const GUIDED_ROUTE_META = {
+  fastest: {
+    label: "Fastest",
+    color: "#2563eb",
+    inactiveDashArray: "18 10",
+  },
+  safest: {
+    label: "Safest",
+    color: "#16a34a",
+    inactiveDashArray: "8 10",
+  },
+  balanced: {
+    label: "Balanced",
+    color: "#f97316",
+    inactiveDashArray: "3 10",
+  },
+};
+const INACTIVE_GUIDED_ROUTE_COLOR = "#9ca3af";
+const BALANCED_DURATION_WEIGHT = 0.55;
+const BALANCED_DANGER_WEIGHT = 0.45;
 
 const postJson = async (url, body) => {
   const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
@@ -124,6 +145,519 @@ const getSegmentPath = (marker) => {
 
   return normalized.length >= 2 ? normalized : null;
 }
+
+const haversineDistanceKm = (start, end) => {
+  const from = Array.isArray(start) ? start : null;
+  const to = Array.isArray(end) ? end : null;
+  if (!from || !to || from.length < 2 || to.length < 2) {
+    return 0;
+  }
+
+  const toRadians = (degrees) => (degrees * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(Number(to[0]) - Number(from[0]));
+  const dLng = toRadians(Number(to[1]) - Number(from[1]));
+  const lat1 = toRadians(Number(from[0]));
+  const lat2 = toRadians(Number(to[0]));
+  const sinLat = Math.sin(dLat / 2);
+  const sinLng = Math.sin(dLng / 2);
+  const h =
+    sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLng * sinLng;
+
+  return 2 * earthRadiusKm * Math.asin(Math.min(1, Math.sqrt(h)));
+};
+
+const calculatePathDistanceKm = (path) => {
+  const normalizedPath = getSegmentPath({ path });
+  if (!normalizedPath || normalizedPath.length < 2) {
+    return 0;
+  }
+
+  let totalDistanceKm = 0;
+  for (let index = 1; index < normalizedPath.length; index += 1) {
+    totalDistanceKm += haversineDistanceKm(normalizedPath[index - 1], normalizedPath[index]);
+  }
+  return totalDistanceKm;
+};
+
+const calculateWeightedDangerScore = (route) => {
+  const segments = Array.isArray(route?.segments) ? route.segments : [];
+  let weightedDangerSum = 0;
+  let totalLengthKm = 0;
+
+  for (const segment of segments) {
+    const segmentPath = getSegmentPath({ path: segment?.path });
+    const segmentLengthKm = calculatePathDistanceKm(segmentPath);
+    const segmentDanger = Number(segment?.danger_percent);
+    if (!segmentPath || segmentLengthKm <= 0 || !Number.isFinite(segmentDanger)) {
+      continue;
+    }
+
+    weightedDangerSum += segmentDanger * segmentLengthKm;
+    totalLengthKm += segmentLengthKm;
+  }
+
+  if (totalLengthKm > 0) {
+    return weightedDangerSum / totalLengthKm;
+  }
+
+  const summaryDanger = Number(route?.summary?.danger_percent);
+  if (Number.isFinite(summaryDanger)) {
+    return summaryDanger;
+  }
+
+  return 0;
+};
+
+const normalizeMetric = (value, minValue, maxValue, fallbackValue = 1) => {
+  if (!Number.isFinite(value)) {
+    return fallbackValue;
+  }
+  if (!Number.isFinite(minValue) || !Number.isFinite(maxValue) || minValue === maxValue) {
+    return 0;
+  }
+  return (value - minValue) / (maxValue - minValue);
+};
+
+const buildRoutePathSignature = (path) => {
+  const normalizedPath = getSegmentPath({ path });
+  if (!normalizedPath) {
+    return "";
+  }
+
+  return normalizedPath
+    .map((point) => `${point[0].toFixed(5)}:${point[1].toFixed(5)}`)
+    .join("|");
+};
+
+const normalizeGuidanceRoute = (route, fallbackDestination, index) => {
+  const path = getSegmentPath({ path: route?.path }) || [];
+  if (path.length < 2) {
+    return null;
+  }
+
+  const segments = (Array.isArray(route?.segments) ? route.segments : [])
+    .map((segment, segmentIndex) => {
+      const segmentPath = getSegmentPath({ path: segment?.path });
+      if (!segmentPath) return null;
+      const dangerPercent = Number(segment?.danger_percent);
+      return {
+        segment_id: String(segment?.segment_id || `${route?.route_id || `route_${index + 1}`}:segment_${segmentIndex}`),
+        path: segmentPath,
+        danger_percent: Number.isFinite(dangerPercent) ? dangerPercent : null,
+        danger_level: normalizeDangerLevel(segment?.danger_level, dangerPercent),
+        sample_from: Number.isFinite(Number(segment?.sample_from))
+          ? Number(segment.sample_from)
+          : segmentIndex,
+        sample_to: Number.isFinite(Number(segment?.sample_to))
+          ? Number(segment.sample_to)
+          : segmentIndex + 1,
+      };
+    })
+    .filter(Boolean);
+
+  const summaryDangerPercent = Number(route?.summary?.danger_percent);
+  const summary = {
+    ...(route?.summary && typeof route.summary === "object" ? route.summary : {}),
+    danger_percent: Number.isFinite(summaryDangerPercent) ? summaryDangerPercent : 0,
+    danger_level: normalizeDangerLevel(route?.summary?.danger_level, summaryDangerPercent),
+  };
+  const distanceKm = Number(route?.distance_km);
+  const durationMin = Number(route?.duration_min ?? route?.eta_min);
+
+  return {
+    ...route,
+    route_id: String(route?.route_id || `route_${index + 1}`),
+    destination: route?.destination || fallbackDestination,
+    path,
+    segments,
+    summary,
+    distance_km: Number.isFinite(distanceKm) ? distanceKm : calculatePathDistanceKm(path),
+    duration_min: Number.isFinite(durationMin) ? durationMin : null,
+    eta_min: Number.isFinite(durationMin) ? durationMin : null,
+    route_identity: [
+      buildRoutePathSignature(path),
+      Number.isFinite(distanceKm) ? distanceKm.toFixed(3) : "na",
+      Number.isFinite(durationMin) ? durationMin.toFixed(3) : "na",
+    ].join("|"),
+  };
+};
+
+const pickBestUnusedRoute = (routes, valueSelector, usedRouteIds) => {
+  return routes
+    .filter((route) => !usedRouteIds.has(route.route_id))
+    .sort((left, right) => {
+      const leftValue = valueSelector(left);
+      const rightValue = valueSelector(right);
+      if (leftValue === rightValue) {
+        return left.route_id.localeCompare(right.route_id);
+      }
+      return leftValue - rightValue;
+    })[0] || null;
+};
+
+const classifyRouteAlternatives = (routes) => {
+  if (!Array.isArray(routes) || routes.length === 0) {
+    return [];
+  }
+
+  const durationValues = routes
+    .map((route) => Number(route?.duration_min))
+    .filter((value) => Number.isFinite(value));
+  const dangerValues = routes
+    .map((route) => calculateWeightedDangerScore(route))
+    .filter((value) => Number.isFinite(value));
+  const minDuration = durationValues.length ? Math.min(...durationValues) : 0;
+  const maxDuration = durationValues.length ? Math.max(...durationValues) : 0;
+  const minDanger = dangerValues.length ? Math.min(...dangerValues) : 0;
+  const maxDanger = dangerValues.length ? Math.max(...dangerValues) : 0;
+
+  const scoredRoutes = routes.map((route) => {
+    const durationMin = Number(route?.duration_min);
+    const weightedDangerPercent = calculateWeightedDangerScore(route);
+    const normalizedDuration = normalizeMetric(durationMin, minDuration, maxDuration, 1);
+    const normalizedDanger = normalizeMetric(weightedDangerPercent, minDanger, maxDanger, 1);
+
+    return {
+      ...route,
+      metrics: {
+        duration_min: Number.isFinite(durationMin) ? durationMin : Number.POSITIVE_INFINITY,
+        weighted_danger_percent: weightedDangerPercent,
+        normalized_duration: normalizedDuration,
+        normalized_danger: normalizedDanger,
+        balanced_score:
+          BALANCED_DURATION_WEIGHT * normalizedDuration +
+          BALANCED_DANGER_WEIGHT * normalizedDanger,
+      },
+    };
+  });
+
+  const usedRouteIds = new Set();
+  const classifiedRoutes = [];
+  const routeSelectors = {
+    fastest: (route) => route.metrics.duration_min,
+    safest: (route) => route.metrics.weighted_danger_percent,
+    balanced: (route) => route.metrics.balanced_score,
+  };
+
+  for (const routeType of GUIDED_ROUTE_ORDER) {
+    const selectedRoute = pickBestUnusedRoute(
+      scoredRoutes,
+      routeSelectors[routeType],
+      usedRouteIds,
+    );
+    if (!selectedRoute) {
+      continue;
+    }
+    usedRouteIds.add(selectedRoute.route_id);
+    classifiedRoutes.push({
+      ...selectedRoute,
+      route_type: routeType,
+      route_label: GUIDED_ROUTE_META[routeType].label,
+      route_color: GUIDED_ROUTE_META[routeType].color,
+      inactive_dash_array: GUIDED_ROUTE_META[routeType].inactiveDashArray,
+    });
+  }
+
+  const recommendedRouteType = classifiedRoutes.some((route) => route.route_type === "balanced")
+    ? "balanced"
+    : [...classifiedRoutes].sort(
+        (left, right) => left.metrics.balanced_score - right.metrics.balanced_score,
+      )[0]?.route_type;
+
+  return classifiedRoutes.map((route) => ({
+    ...route,
+    is_recommended: route.route_type === recommendedRouteType,
+  }));
+};
+
+const normalizeGuidedRoutePayload = (data) => {
+  const fallbackDestination =
+    data?.destination && typeof data.destination === "object" ? data.destination : null;
+  const rawRoutes =
+    Array.isArray(data?.routes) && data.routes.length > 0 ? data.routes : [data];
+  const seenRoutes = new Set();
+  const normalizedRoutes = rawRoutes
+    .map((route, index) => normalizeGuidanceRoute(route, fallbackDestination, index))
+    .filter((route) => {
+      if (!route || !route.route_identity || seenRoutes.has(route.route_identity)) {
+        return false;
+      }
+      seenRoutes.add(route.route_identity);
+      return true;
+    });
+
+  return classifyRouteAlternatives(normalizedRoutes);
+};
+
+const formatRelativeUpdateAge = (updatedAt) => {
+  const timestamp = Number(updatedAt);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) {
+    return "not updated yet";
+  }
+
+  const ageSeconds = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
+  if (ageSeconds < 5) return "just now";
+  if (ageSeconds < 60) return `${ageSeconds}s ago`;
+
+  const ageMinutes = Math.round(ageSeconds / 60);
+  if (ageMinutes < 60) return `${ageMinutes}m ago`;
+
+  const ageHours = Math.round(ageMinutes / 60);
+  return `${ageHours}h ago`;
+};
+
+const getRecommendedRouteReason = (routeType) => {
+  if (routeType === "safest") return "Lowest predicted risk";
+  if (routeType === "fastest") return "Fastest arrival";
+  return "Best tradeoff between speed and safety";
+};
+
+const formatSignedMinutesDelta = (value) => {
+  const minutes = Number(value);
+  if (!Number.isFinite(minutes) || Math.abs(minutes) < 0.1) {
+    return "same ETA";
+  }
+  const rounded = Math.round(minutes);
+  if (rounded === 0) {
+    return "same ETA";
+  }
+  return `${rounded > 0 ? "+" : ""}${rounded} min`;
+};
+
+const formatSignedRiskDelta = (value) => {
+  const riskDelta = Number(value);
+  if (!Number.isFinite(riskDelta) || Math.abs(riskDelta) < 0.5) {
+    return "same risk";
+  }
+  const rounded = Math.round(riskDelta);
+  return `${rounded > 0 ? "+" : ""}${rounded} risk`;
+};
+
+const toFriendlyConfidenceLabel = ({ sentinelValid, sentinelConfidenceLabel, legacyConfidencePct }) => {
+  if (sentinelValid) {
+    if (sentinelConfidenceLabel === "high") return "High";
+    if (sentinelConfidenceLabel === "medium") return "Medium";
+    if (sentinelConfidenceLabel === "low") return "Low";
+  }
+
+  const pct = Number(legacyConfidencePct);
+  if (!Number.isFinite(pct)) {
+    return "Limited";
+  }
+  if (pct >= 75) return "High";
+  if (pct >= 50) return "Medium";
+  return "Low";
+};
+
+const toFriendlyQualityLabel = ({
+  qualityLabel,
+  sentinelHasError,
+  fallbackQualityDetails,
+  locationWarning,
+}) => {
+  const normalizedQuality = String(qualityLabel || "").trim().toLowerCase();
+  if (sentinelHasError || fallbackQualityDetails.length >= 3) {
+    return "Weak";
+  }
+  if (
+    normalizedQuality === "poor" ||
+    normalizedQuality === "weak" ||
+    normalizedQuality === "limited" ||
+    locationWarning
+  ) {
+    return "Limited";
+  }
+  return "Good";
+};
+
+const buildQualitySummaryNotes = ({
+  locationWarning,
+  sentinelHasError,
+  sentinelReasons,
+  fallbackQualityDetails,
+}) => {
+  const notes = [];
+  if (locationWarning) {
+    notes.push("GPS weak");
+  }
+  if (sentinelHasError) {
+    notes.push("weather missing");
+  }
+
+  for (const reason of sentinelReasons) {
+    const normalized = String(reason || "").toLowerCase();
+    if (normalized.includes("rare") || normalized.includes("uncommon") || normalized.includes("atypical")) {
+      notes.push("unusual conditions");
+    }
+    if (normalized.includes("weather")) {
+      notes.push("weather missing");
+    }
+  }
+
+  for (const line of fallbackQualityDetails) {
+    const normalized = String(line || "").toLowerCase();
+    if (normalized.includes("missing")) {
+      notes.push("fallback inputs used");
+    }
+    if (normalized.includes("out of") || normalized.includes("clipped")) {
+      notes.push("unusual conditions");
+    }
+  }
+
+  return [...new Set(notes)].slice(0, 4);
+};
+
+const buildRouteComparisonRows = (routes) => {
+  if (!Array.isArray(routes) || routes.length === 0) {
+    return [];
+  }
+
+  const fastestRoute = routes.find((route) => route.route_type === "fastest") || routes[0];
+  const fastestDuration = Number(fastestRoute?.duration_min);
+  const fastestRisk = Number(fastestRoute?.summary?.danger_percent);
+
+  return routes.map((route) => {
+    const duration = Number(route?.duration_min);
+    const danger = Number(route?.summary?.danger_percent);
+    const durationDelta =
+      Number.isFinite(duration) && Number.isFinite(fastestDuration) ? duration - fastestDuration : 0;
+    const riskDelta =
+      Number.isFinite(danger) && Number.isFinite(fastestRisk) ? danger - fastestRisk : 0;
+
+    return {
+      ...route,
+      durationDelta,
+      riskDelta,
+      comparisonText:
+        route.route_type === "fastest"
+          ? "Baseline fastest route"
+          : `${formatSignedRiskDelta(riskDelta)}, ${formatSignedMinutesDelta(durationDelta)}`,
+      recommendedReason: route.is_recommended ? getRecommendedRouteReason(route.route_type) : null,
+    };
+  });
+};
+
+const buildRouteRiskProfile = (route) => {
+  const segments = Array.isArray(route?.segments) ? route.segments : [];
+  if (segments.length === 0) {
+    return [];
+  }
+
+  const measuredSegments = segments.map((segment) => {
+    const distanceKm = calculatePathDistanceKm(segment?.path);
+    const safeDistanceKm = distanceKm > 0 ? distanceKm : 0;
+    return {
+      ...segment,
+      distance_km: safeDistanceKm,
+      color: getDangerColor(normalizeDangerLevel(segment?.danger_level, segment?.danger_percent)),
+    };
+  });
+
+  const totalDistanceKm = measuredSegments.reduce((sum, segment) => sum + segment.distance_km, 0);
+  const fallbackWidth = measuredSegments.length > 0 ? 100 / measuredSegments.length : 0;
+
+  return measuredSegments.map((segment) => ({
+    ...segment,
+    width_percent:
+      totalDistanceKm > 0 ? Math.max(4, (segment.distance_km / totalDistanceKm) * 100) : fallbackWidth,
+  }));
+};
+
+const buildAheadRouteHazards = (route, timestampIso) => {
+  const profile = buildRouteRiskProfile(route);
+  if (profile.length < 2) {
+    return [];
+  }
+
+  const notes = [];
+  let distanceBeforeCurrentKm = 0;
+  let firstHighRiskDistanceKm = null;
+
+  for (const segment of profile) {
+    const level = normalizeDangerLevel(segment?.danger_level, segment?.danger_percent);
+    if ((level === "high" || level === "extreme") && firstHighRiskDistanceKm == null) {
+      firstHighRiskDistanceKm = distanceBeforeCurrentKm;
+      break;
+    }
+    distanceBeforeCurrentKm += segment.distance_km;
+  }
+
+  if (firstHighRiskDistanceKm != null) {
+    notes.push(
+      firstHighRiskDistanceKm < 0.25
+        ? "High-risk segment starts almost immediately"
+        : `High-risk segment ahead in ${firstHighRiskDistanceKm.toFixed(1)} km`,
+    );
+  }
+
+  const totalDistanceKm = profile.reduce((sum, segment) => sum + segment.distance_km, 0);
+  const thirds = [
+    { key: "beginning", start: 0, end: totalDistanceKm / 3, weightedRisk: 0, lengthKm: 0 },
+    { key: "middle", start: totalDistanceKm / 3, end: (2 * totalDistanceKm) / 3, weightedRisk: 0, lengthKm: 0 },
+    { key: "end", start: (2 * totalDistanceKm) / 3, end: totalDistanceKm, weightedRisk: 0, lengthKm: 0 },
+  ];
+
+  let traversedDistanceKm = 0;
+  for (const segment of profile) {
+    const segmentLengthKm = segment.distance_km > 0 ? segment.distance_km : totalDistanceKm / profile.length;
+    const midpointKm = traversedDistanceKm + segmentLengthKm / 2;
+    const bucket =
+      thirds.find((item) => midpointKm >= item.start && midpointKm <= item.end) || thirds[2];
+    bucket.weightedRisk += Number(segment?.danger_percent || 0) * segmentLengthKm;
+    bucket.lengthKm += segmentLengthKm;
+    traversedDistanceKm += segmentLengthKm;
+  }
+
+  const scoredThirds = thirds.map((item) => ({
+    ...item,
+    avgRisk: item.lengthKm > 0 ? item.weightedRisk / item.lengthKm : 0,
+  }));
+  const strongestThird = [...scoredThirds].sort((left, right) => right.avgRisk - left.avgRisk)[0];
+  if (strongestThird && strongestThird.avgRisk >= 25) {
+    notes.push(`Risk is concentrated in the ${strongestThird.key} of the route`);
+  }
+
+  const earlyRisk = scoredThirds[0]?.avgRisk ?? 0;
+  const lateRisk = scoredThirds[2]?.avgRisk ?? 0;
+  if (lateRisk - earlyRisk >= 8) {
+    notes.push("Risk increases near destination");
+  }
+
+  const dangerWithinFiveKm = profile.filter((segment) => {
+    const segmentStartKm = profile
+      .slice(0, profile.indexOf(segment))
+      .reduce((sum, item) => sum + item.distance_km, 0);
+    return segmentStartKm <= 5 && Number(segment?.danger_percent) >= 40;
+  });
+  if (dangerWithinFiveKm.length >= 2) {
+    notes.push("Moderate-risk cluster in the next 5 km");
+  }
+
+  const hour = Number.isFinite(new Date(timestampIso).getTime()) ? new Date(timestampIso).getHours() : null;
+  if (hour != null && (hour >= 18 || hour <= 5) && lateRisk >= 30) {
+    notes.push("Danger rises after sunset");
+  }
+
+  return [...new Set(notes)].slice(0, 3);
+};
+
+const buildTimeImpactPreview = ({ baselinePercent, selectedPercent, selectedTimestampLabel }) => {
+  const baseline = Number(baselinePercent);
+  const selected = Number(selectedPercent);
+  if (!Number.isFinite(baseline) || !Number.isFinite(selected)) {
+    return null;
+  }
+
+  const diff = Math.round(selected - baseline);
+  if (Math.abs(diff) < 1) {
+    return `Risk stays close to now at ${selectedTimestampLabel}`;
+  }
+  if (diff > 0) {
+    return `Risk rises from ${Math.round(baseline)}% now to ${Math.round(selected)}% at ${selectedTimestampLabel}`;
+  }
+  return `Risk drops by ${Math.abs(diff)}% at ${selectedTimestampLabel}`;
+};
 
 const formatPercent = (value) => {
   const n = Number(value);
@@ -325,7 +859,7 @@ const FitNearbyRoutesOnDemand = ({ mapLayer, nearbyRoutes, fitVersion }) => {
   return null;
 }
 
-const FitGuidedRoute = ({ route, fitVersion }) => {
+const FitGuidedRoute = ({ routes, fitVersion }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -333,18 +867,25 @@ const FitGuidedRoute = ({ route, fitVersion }) => {
       return;
     }
 
-    const routePath = getSegmentPath({ path: route?.path });
-    if (!routePath || routePath.length < 2) {
+    const allPoints = [];
+    for (const route of Array.isArray(routes) ? routes : []) {
+      const routePath = getSegmentPath({ path: route?.path });
+      if (routePath) {
+        allPoints.push(...routePath);
+      }
+    }
+
+    if (allPoints.length < 2) {
       return;
     }
 
-    const bounds = L.latLngBounds(routePath.map(([lat, lng]) => L.latLng(lat, lng)));
+    const bounds = L.latLngBounds(allPoints.map(([lat, lng]) => L.latLng(lat, lng)));
     if (!bounds.isValid()) {
       return;
     }
 
     map.fitBounds(bounds, { padding: [40, 40] });
-  }, [fitVersion, map, route]);
+  }, [fitVersion, map, routes]);
 
   return null;
 }
@@ -426,10 +967,10 @@ const SiaraMap = ({
   const [currentRiskState, setCurrentRiskState] = useState("idle");
   const [currentRiskError, setCurrentRiskError] = useState("");
   const [overlayBySegment, setOverlayBySegment] = useState({});
-  const [overlayState, setOverlayState] = useState("idle");
+  const [, setOverlayState] = useState("idle");
   const [overlayError, setOverlayError] = useState("");
   const [nearbyRoutes, setNearbyRoutes] = useState([]);
-  const [nearbyRoutesState, setNearbyRoutesState] = useState("idle");
+  const [, setNearbyRoutesState] = useState("idle");
   const [nearbyRoutesError, setNearbyRoutesError] = useState("");
   const [tileError, setTileError] = useState("");
   const [destinationQuery, setDestinationQuery] = useState("");
@@ -437,14 +978,22 @@ const SiaraMap = ({
   const [destinationSearchState, setDestinationSearchState] = useState("idle");
   const [destinationSearchError, setDestinationSearchError] = useState("");
   const [selectedDestination, setSelectedDestination] = useState(null);
-  const [guidedRoute, setGuidedRoute] = useState(null);
+  const [guidedRoutes, setGuidedRoutes] = useState([]);
+  const [selectedGuidedRouteType, setSelectedGuidedRouteType] = useState(null);
   const [guidedRouteState, setGuidedRouteState] = useState("idle");
   const [guidedRouteError, setGuidedRouteError] = useState("");
   const [guidanceActive, setGuidanceActive] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
+  const [qualitySummaryOpen, setQualitySummaryOpen] = useState(false);
   const [routeExplainState, setRouteExplainState] = useState("idle");
   const [routeExplainError, setRouteExplainError] = useState("");
   const [selectedRouteExplanation, setSelectedRouteExplanation] = useState(null);
+  const [currentRiskNowBaseline, setCurrentRiskNowBaseline] = useState(null);
+  const [currentRiskUpdatedAt, setCurrentRiskUpdatedAt] = useState(0);
+  const [nearbyUpdatedAt, setNearbyUpdatedAt] = useState(0);
+  const [routesUpdatedAt, setRoutesUpdatedAt] = useState(0);
+  const [locationUpdatedAt, setLocationUpdatedAt] = useState(0);
   const [timePresetMs, setTimePresetMs] = useState("0");
   const [customTimestampLocal, setCustomTimestampLocal] = useState("");
   const [uiClockTick, setUiClockTick] = useState(0);
@@ -458,6 +1007,9 @@ const SiaraMap = ({
   const pendingNearbyFitRef = useRef(false);
   const selectedRouteExplanationRef = useRef(null);
   const locationRenderStateRef = useRef("");
+  const currentRiskRef = useRef(null);
+  const overlayBySegmentRef = useRef({});
+  const nearbyRoutesRef = useRef([]);
   const userLatLng = useMemo(() => normalizePosition(userPosition), [userPosition]);
   const hasGrantedLocation = useMemo(
     () => locationStatus === "granted" && normalizePosition(userPosition) != null,
@@ -510,6 +1062,17 @@ const SiaraMap = ({
     }
     return dt.toLocaleString();
   }, [customTimestampLocal, previewAnchorMs, timePresetMs]);
+  const guidedRoute = useMemo(() => {
+    if (!Array.isArray(guidedRoutes) || guidedRoutes.length === 0) {
+      return null;
+    }
+
+    return (
+      guidedRoutes.find((route) => route.route_type === selectedGuidedRouteType) ||
+      guidedRoutes[0] ||
+      null
+    );
+  }, [guidedRoutes, selectedGuidedRouteType]);
 
   useEffect(() => {
     if (typeof onSelectedTimestampChange === "function") {
@@ -610,6 +1173,86 @@ const SiaraMap = ({
   }, [selectedRouteExplanation]);
 
   useEffect(() => {
+    currentRiskRef.current = currentRisk;
+  }, [currentRisk]);
+
+  useEffect(() => {
+    overlayBySegmentRef.current = overlayBySegment;
+  }, [overlayBySegment]);
+
+  useEffect(() => {
+    nearbyRoutesRef.current = nearbyRoutes;
+  }, [nearbyRoutes]);
+
+  useEffect(() => {
+    if (userLocationKey) {
+      setLocationUpdatedAt(Date.now());
+    }
+  }, [userLocationKey]);
+
+  const clearRouteExplanationSelection = () => {
+    setSelectedRouteExplanation(null);
+    setRouteExplainState("idle");
+    setRouteExplainError("");
+    setSelectedIncident(null);
+  };
+
+  const syncRouteExplanationSelection = ({
+    nextSelectedRoute,
+    nextSelectedRouteType,
+    preserveSelection = false,
+  }) => {
+    const previousSelection = selectedRouteExplanationRef.current;
+    if (!previousSelection) {
+      return;
+    }
+
+    if (!preserveSelection || previousSelection.route_type !== nextSelectedRouteType) {
+      clearRouteExplanationSelection();
+      return;
+    }
+
+    const matchedSegment = (Array.isArray(nextSelectedRoute?.segments) ? nextSelectedRoute.segments : [])
+      .find(
+        (segment) =>
+          segment.sample_from === previousSelection?.segment?.sample_from &&
+          segment.sample_to === previousSelection?.segment?.sample_to,
+      );
+
+    if (!matchedSegment) {
+      clearRouteExplanationSelection();
+      return;
+    }
+
+    setSelectedRouteExplanation({
+      ...previousSelection,
+      route_type: nextSelectedRouteType,
+      segment: {
+        ...previousSelection.segment,
+        ...matchedSegment,
+      },
+      explanation: {
+        ...previousSelection.explanation,
+        danger_percent:
+          matchedSegment.danger_percent ?? previousSelection?.explanation?.danger_percent,
+        danger_level:
+          matchedSegment.danger_level || previousSelection?.explanation?.danger_level,
+      },
+    });
+  };
+
+  const handleGuidedRouteSelection = (routeType) => {
+    if (!routeType || routeType === selectedGuidedRouteType) {
+      return;
+    }
+
+    setSelectedGuidedRouteType(routeType);
+    if (selectedRouteExplanationRef.current?.route_type !== routeType) {
+      clearRouteExplanationSelection();
+    }
+  };
+
+  useEffect(() => {
     if (!hasValidUserLocation || !userPosition) {
       setCurrentRisk(null);
       setCurrentRiskState("idle");
@@ -624,22 +1267,59 @@ const SiaraMap = ({
     };
     let cancelled = false;
     const fetchCurrentRisk = async () => {
-      setCurrentRiskState(currentRisk ? "refreshing" : "loading");
+      setCurrentRiskState(currentRiskRef.current ? "refreshing" : "loading");
       setCurrentRiskError("");
       try {
         const data = await postJson("/api/risk/current", body);
         if (cancelled) return;
         setCurrentRisk(data);
         setCurrentRiskState("success");
+        setCurrentRiskUpdatedAt(Date.now());
       } catch (error) {
         if (cancelled) return;
         console.error("Current risk error:", error);
-        setCurrentRiskState(currentRisk ? "success" : "error");
+        setCurrentRiskState(currentRiskRef.current ? "success" : "error");
         setCurrentRiskError(error.message || "Failed to refresh current risk");
       }
     };
 
     fetchCurrentRisk();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasValidUserLocation, selectedTimestampIso, userLocationKey]);
+
+  useEffect(() => {
+    if (!hasValidUserLocation || !userPosition) {
+      setCurrentRiskNowBaseline(null);
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    const selectedTimeMs = new Date(selectedTimestampIso).getTime();
+    const nowMs = new Date(nowIso).getTime();
+    if (Number.isFinite(selectedTimeMs) && Math.abs(selectedTimeMs - nowMs) < 60 * 1000) {
+      setCurrentRiskNowBaseline(currentRiskRef.current);
+      return;
+    }
+
+    let cancelled = false;
+    const fetchCurrentRiskBaseline = async () => {
+      try {
+        const data = await postJson("/api/risk/current", {
+          lat: userPosition.lat,
+          lng: userPosition.lng,
+          timestamp: nowIso,
+        });
+        if (cancelled) return;
+        setCurrentRiskNowBaseline(data);
+      } catch {
+        if (cancelled) return;
+        setCurrentRiskNowBaseline(null);
+      }
+    };
+
+    void fetchCurrentRiskBaseline();
     return () => {
       cancelled = true;
     };
@@ -669,7 +1349,7 @@ const SiaraMap = ({
     };
     let cancelled = false;
     const fetchOverlay = async () => {
-      setOverlayState(Object.keys(overlayBySegment).length > 0 ? "refreshing" : "loading");
+      setOverlayState(Object.keys(overlayBySegmentRef.current).length > 0 ? "refreshing" : "loading");
       setOverlayError("");
       try {
         const data = await postJson("/api/risk/overlay", body);
@@ -684,7 +1364,7 @@ const SiaraMap = ({
       } catch (error) {
         if (cancelled) return;
         console.error("Overlay risk error:", error);
-        setOverlayState(Object.keys(overlayBySegment).length > 0 ? "success" : "error");
+        setOverlayState(Object.keys(overlayBySegmentRef.current).length > 0 ? "success" : "error");
         setOverlayError(error.message || "Failed to refresh overlay risk");
       }
     };
@@ -725,18 +1405,19 @@ const SiaraMap = ({
     };
     let cancelled = false;
     const fetchNearbyRoutes = async () => {
-      setNearbyRoutesState(nearbyRoutes.length > 0 ? "refreshing" : "loading");
+      setNearbyRoutesState(nearbyRoutesRef.current.length > 0 ? "refreshing" : "loading");
       setNearbyRoutesError("");
       try {
         const data = await postJson("/api/risk/nearby-zones", body);
         if (cancelled) return;
         setNearbyRoutes(Array.isArray(data?.routes) ? data.routes : []);
         setNearbyRoutesState("success");
+        setNearbyUpdatedAt(Date.now());
         nearbyRequestKeyRef.current = requestKey;
       } catch (error) {
         if (cancelled) return;
         console.error("Nearby routes error:", error);
-        setNearbyRoutesState(nearbyRoutes.length > 0 ? "success" : "error");
+        setNearbyRoutesState(nearbyRoutesRef.current.length > 0 ? "success" : "error");
         setNearbyRoutesError(error.message || "Failed to refresh nearby routes");
       }
     };
@@ -860,13 +1541,11 @@ const SiaraMap = ({
   const clearGuidance = () => {
     guidanceRequestKeyRef.current = "";
     setGuidanceActive(false);
-    setGuidedRoute(null);
+    setGuidedRoutes([]);
+    setSelectedGuidedRouteType(null);
     setGuidedRouteState("idle");
     setGuidedRouteError("");
-    setSelectedRouteExplanation(null);
-    setRouteExplainState("idle");
-    setRouteExplainError("");
-    setSelectedIncident(null);
+    clearRouteExplanationSelection();
   };
 
   const handleTimePresetChange = (event) => {
@@ -882,6 +1561,7 @@ const SiaraMap = ({
     destination = selectedDestination,
     timestampIso = selectedTimestampIso,
     preserveSelection = false,
+    forceRefresh = false,
   } = {}) => {
     if (!origin) {
       throw new Error("Location is required. Use the locate button first.");
@@ -897,17 +1577,14 @@ const SiaraMap = ({
       Number(destination.lng).toFixed(6),
       timestampIso,
     ].join("|");
-    if (requestKey === guidanceRequestKeyRef.current) {
+    if (!forceRefresh && requestKey === guidanceRequestKeyRef.current) {
       return guidedRoute;
     }
 
     setGuidedRouteState(guidedRoute ? "refreshing" : "loading");
     setGuidedRouteError("");
     if (!preserveSelection) {
-      setSelectedRouteExplanation(null);
-      setRouteExplainState("idle");
-      setRouteExplainError("");
-      setSelectedIncident(null);
+      clearRouteExplanationSelection();
     }
 
     const body = {
@@ -919,68 +1596,38 @@ const SiaraMap = ({
       },
       timestamp: timestampIso,
       sample_count: ROUTE_SAMPLE_COUNT,
+      max_alternatives: 3,
     };
 
     const data = await postJson("/api/risk/route", body);
-    const path = getSegmentPath({ path: data?.path }) || [];
-    const segments = (Array.isArray(data?.segments) ? data.segments : [])
-      .map((segment, idx) => {
-        const segmentPath = getSegmentPath({ path: segment?.path });
-        if (!segmentPath) return null;
-        const dangerPercent = Number(segment?.danger_percent);
-        return {
-          segment_id: String(segment?.segment_id || `segment_${idx}`),
-          path: segmentPath,
-          danger_percent: Number.isFinite(dangerPercent) ? dangerPercent : null,
-          danger_level: normalizeDangerLevel(segment?.danger_level, dangerPercent),
-          sample_from: Number.isFinite(Number(segment?.sample_from))
-            ? Number(segment.sample_from)
-            : idx,
-          sample_to: Number.isFinite(Number(segment?.sample_to))
-            ? Number(segment.sample_to)
-            : idx + 1,
-        };
-      })
-      .filter(Boolean);
-
-    const nextRoute = {
-      ...data,
-      path,
-      segments,
-    };
-    const previousSelection = selectedRouteExplanationRef.current;
-    if (preserveSelection && previousSelection) {
-      const matchedSegment = segments.find(
-        (segment) =>
-          segment.sample_from === previousSelection?.segment?.sample_from &&
-          segment.sample_to === previousSelection?.segment?.sample_to,
-      );
-
-      if (matchedSegment) {
-        setSelectedRouteExplanation({
-          ...previousSelection,
-          segment: {
-            ...previousSelection.segment,
-            ...matchedSegment,
-          },
-          explanation: {
-            ...previousSelection.explanation,
-            danger_percent:
-              matchedSegment.danger_percent ?? previousSelection?.explanation?.danger_percent,
-            danger_level:
-              matchedSegment.danger_level || previousSelection?.explanation?.danger_level,
-          },
-        });
-      } else {
-        setSelectedRouteExplanation(null);
-        setRouteExplainState("idle");
-        setRouteExplainError("");
-      }
+    const nextRoutes = normalizeGuidedRoutePayload(data);
+    if (nextRoutes.length === 0) {
+      throw new Error("No valid route alternatives were returned");
     }
+
+    const nextSelectedRouteType =
+      (preserveSelection &&
+        nextRoutes.some((route) => route.route_type === selectedGuidedRouteType) &&
+        selectedGuidedRouteType) ||
+      nextRoutes.find((route) => route.is_recommended)?.route_type ||
+      nextRoutes[0]?.route_type ||
+      null;
+    const nextSelectedRoute =
+      nextRoutes.find((route) => route.route_type === nextSelectedRouteType) ||
+      nextRoutes[0] ||
+      null;
+
     guidanceRequestKeyRef.current = requestKey;
-    setGuidedRoute(nextRoute);
+    setGuidedRoutes(nextRoutes);
+    setSelectedGuidedRouteType(nextSelectedRouteType);
+    syncRouteExplanationSelection({
+      nextSelectedRoute,
+      nextSelectedRouteType,
+      preserveSelection,
+    });
     setGuidedRouteState("success");
-    return nextRoute;
+    setRoutesUpdatedAt(Date.now());
+    return nextSelectedRoute;
   };
 
   const startGuidance = async () => {
@@ -1034,6 +1681,7 @@ const SiaraMap = ({
       destination: selectedDestination,
       timestampIso: selectedTimestampIso,
       preserveSelection: true,
+      forceRefresh: true,
     }).catch((error) => {
       setGuidedRouteState(guidedRoute ? "success" : "error");
       setGuidedRouteError(error.message || "Failed to refresh guidance route");
@@ -1067,7 +1715,11 @@ const SiaraMap = ({
         danger_level: response?.danger_level || segment.danger_level,
       };
 
-      setSelectedRouteExplanation({ segment, explanation });
+      setSelectedRouteExplanation({
+        route_type: selectedGuidedRouteType,
+        segment,
+        explanation,
+      });
       setRouteExplainState("success");
       setSelectedIncident({
         id: segment.segment_id,
@@ -1146,11 +1798,78 @@ const SiaraMap = ({
     }
     return deduped;
   }, [qualitySignals]);
+  const compactConfidenceLabel = useMemo(
+    () =>
+      toFriendlyConfidenceLabel({
+        sentinelValid,
+        sentinelConfidenceLabel,
+        legacyConfidencePct,
+      }),
+    [legacyConfidencePct, sentinelConfidenceLabel, sentinelValid],
+  );
+  const compactQualityLabel = useMemo(
+    () =>
+      toFriendlyQualityLabel({
+        qualityLabel,
+        sentinelHasError,
+        fallbackQualityDetails,
+        locationWarning,
+      }),
+    [fallbackQualityDetails, locationWarning, qualityLabel, sentinelHasError],
+  );
+  const qualitySummaryNotes = useMemo(
+    () =>
+      buildQualitySummaryNotes({
+        locationWarning,
+        sentinelHasError,
+        sentinelReasons,
+        fallbackQualityDetails,
+      }),
+    [fallbackQualityDetails, locationWarning, sentinelHasError, sentinelReasons],
+  );
   const routeSummaryPercent = Number(guidedRoute?.summary?.danger_percent);
   const routeSummaryLevel = normalizeDangerLevel(
     guidedRoute?.summary?.danger_level,
     routeSummaryPercent,
   );
+  const routeComparisonRows = useMemo(() => buildRouteComparisonRows(guidedRoutes), [guidedRoutes]);
+  const selectedRouteHazards = useMemo(
+    () => buildAheadRouteHazards(guidedRoute, selectedTimestampIso),
+    [guidedRoute, selectedTimestampIso],
+  );
+  const selectedRouteRiskProfile = useMemo(() => buildRouteRiskProfile(guidedRoute), [guidedRoute]);
+  const currentRiskTimePreview = useMemo(
+    () =>
+      buildTimeImpactPreview({
+        baselinePercent: currentRiskNowBaseline?.danger_percent,
+        selectedPercent: currentRisk?.danger_percent,
+        selectedTimestampLabel: selectedTimestampPreview,
+      }),
+    [currentRisk?.danger_percent, currentRiskNowBaseline?.danger_percent, selectedTimestampPreview],
+  );
+  const locationStatusText = hasValidUserLocation
+    ? `Location live${locationUpdatedAt ? ` • ${formatRelativeUpdateAge(locationUpdatedAt)}` : ""}`
+    : "Location unavailable";
+  const riskUpdatedText = currentRiskUpdatedAt
+    ? `Risk updated ${formatRelativeUpdateAge(currentRiskUpdatedAt)}`
+    : "Risk not updated yet";
+  const routesUpdatedText = routesUpdatedAt
+    ? `Routes updated ${formatRelativeUpdateAge(routesUpdatedAt)}`
+    : "Routes not updated yet";
+  const nearbyUpdatedText = nearbyUpdatedAt
+    ? `Nearby updated ${formatRelativeUpdateAge(nearbyUpdatedAt)}`
+    : "Nearby not updated yet";
+  const navigationUpdatedText = guidedRoute
+    ? routesUpdatedText
+    : mapLayer === "nearbyRoads"
+      ? nearbyUpdatedText
+      : "Navigation ready";
+  const riskSourceFilters = [
+    { key: "weather", label: "Weather-related risk", available: false },
+    { key: "darkness", label: "Darkness / time-of-day", available: false },
+    { key: "historical", label: "Historical concentration", available: false },
+    { key: "road", label: "Road-context risk", available: false },
+  ];
   const nearbyRouteWarnings = useMemo(() => {
     if (mapLayer !== "nearbyRoads" || guidedRoute || !Array.isArray(nearbyRoutes)) {
       return [];
@@ -1243,7 +1962,7 @@ const SiaraMap = ({
                 hasValidUserLocation,
                 mockMarkers?.length,
                 nearbyRoutes.length,
-                guidedRoute?.path?.length || 0,
+                guidedRoutes.length,
                 helpOpen,
               ]}
             />
@@ -1269,22 +1988,62 @@ const SiaraMap = ({
               fitVersion={nearbyFitVersion}
             />
           )}
-          {guidedRoute && <FitGuidedRoute route={guidedRoute} fitVersion={guidedRouteFitVersion} />}
+          {guidedRoute && <FitGuidedRoute routes={guidedRoutes} fitVersion={guidedRouteFitVersion} />}
 
           {mapLayer === "heatmap" && heatPoints.length > 0 && <HeatLayer points={heatPoints} />}
 
           <Pane name="risk-layer" style={{ zIndex: 9999 }}>
-            {guidedRoute?.path?.length > 1 && (
-              <Polyline
-                positions={guidedRoute.path}
-                pathOptions={{
-                  color: "#334155",
-                  weight: 4,
-                  opacity: 0.35,
-                }}
-                interactive={false}
-              />
-            )}
+            {guidedRoutes
+              .slice()
+              .sort((left, right) => {
+                const leftSelected = left.route_type === guidedRoute?.route_type ? 1 : 0;
+                const rightSelected = right.route_type === guidedRoute?.route_type ? 1 : 0;
+                return leftSelected - rightSelected;
+              })
+              .map((route) => {
+                const routePath = getSegmentPath({ path: route?.path });
+                if (!routePath) {
+                  return null;
+                }
+
+                const isSelected = route.route_type === guidedRoute?.route_type;
+                const routePercent = formatPercent(route?.summary?.danger_percent);
+                const routeLevel = normalizeDangerLevel(
+                  route?.summary?.danger_level,
+                  route?.summary?.danger_percent,
+                );
+                const tooltipColor = isSelected ? route.route_color : INACTIVE_GUIDED_ROUTE_COLOR;
+                const routeTooltipStyle = {
+                  "--risk-color": tooltipColor,
+                  "--risk-text-color": getContrastTextColor(tooltipColor),
+                };
+
+                return (
+                  <Polyline
+                    key={`guided-route-${route.route_type}`}
+                    positions={routePath}
+                    pathOptions={{
+                      color: isSelected ? route.route_color : INACTIVE_GUIDED_ROUTE_COLOR,
+                      weight: isSelected ? 8 : 5,
+                      opacity: isSelected ? 0.88 : 0.82,
+                      dashArray: isSelected ? undefined : route.inactive_dash_array,
+                    }}
+                    eventHandlers={{
+                      click: () => handleGuidedRouteSelection(route.route_type),
+                    }}
+                  >
+                    <Tooltip sticky direction="top" className="siara-risk-tooltip">
+                      <span className="siara-risk-tooltip__pill" style={routeTooltipStyle}>
+                        {route.route_label}
+                        {routePercent != null ? ` - ${routePercent}% (${routeLevel})` : ""}
+                        {Number.isFinite(Number(route?.duration_min))
+                          ? ` - ${Number(route.duration_min).toFixed(1)} min`
+                          : ""}
+                      </span>
+                    </Tooltip>
+                  </Polyline>
+                );
+              })}
 
             {guidedRoute?.segments?.map((segment) => {
               const segmentPath = getSegmentPath({ path: segment?.path });
@@ -1302,7 +2061,7 @@ const SiaraMap = ({
                 <Polyline
                   key={segment.segment_id}
                   positions={segmentPath}
-                  pathOptions={{ color: segmentColor, weight: 6, opacity: 0.9 }}
+                  pathOptions={{ color: segmentColor, weight: 6, opacity: 0.95 }}
                   eventHandlers={{
                     click: () => handleGuidedSegmentClick(segment),
                   }}
@@ -1327,7 +2086,7 @@ const SiaraMap = ({
                     pathOptions={{
                       color: "#ffffff",
                       weight: 2,
-                      fillColor: "#2563eb",
+                      fillColor: "#7c3aed",
                       fillOpacity: 0.95,
                     }}
                   >
@@ -1341,7 +2100,7 @@ const SiaraMap = ({
                     pathOptions={{
                       color: "#ffffff",
                       weight: 2,
-                      fillColor: "#111827",
+                      fillColor: guidedRoute.route_color || "#111827",
                       fillOpacity: 0.95,
                     }}
                   >
@@ -1561,6 +2320,11 @@ const SiaraMap = ({
         <div className="siara-risk-debug">
           <div className="siara-map-help-wrap">
             <h4>Current Risk</h4>
+            <div className="siara-status-pills">
+              <span className="siara-status-pill">{locationStatusText}</span>
+              <span className="siara-status-pill">{riskUpdatedText}</span>
+              <span className="siara-status-pill">{navigationUpdatedText}</span>
+            </div>
           </div>
           {!hasValidUserLocation && (
             <>
@@ -1602,13 +2366,17 @@ const SiaraMap = ({
               {currentRiskError && (
                 <p className="risk-debug-error">{currentRiskError}</p>
               )}
-              {currentRiskState === "refreshing" && <p>Refreshing current risk...</p>}
-              <p style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>
-                  {sentinelValid
-                    ? `confidence: ${sentinelConfidenceLabel || "n/a"}${sentinelOodPct == null ? "" : ` (OOD ${sentinelOodPct}%)`}`
-                    : `confidence: ${legacyConfidencePct == null ? "n/a" : `${legacyConfidencePct}%`}`}
-                </span>
+              {currentRiskState === "refreshing" && <p>Refreshing quietly in background...</p>}
+              <div className="siara-badge-row">
+                <span className="siara-compact-badge">Confidence: {compactConfidenceLabel}</span>
+                <span className="siara-compact-badge">Data quality: {compactQualityLabel}</span>
+                <button
+                  type="button"
+                  className="siara-inline-link"
+                  onClick={() => setQualitySummaryOpen((value) => !value)}
+                >
+                  {qualitySummaryOpen ? "Hide notes" : "Why?"}
+                </button>
                 <MuiTooltip title="Confidence details">
                   <IconButton
                     type="button"
@@ -1633,16 +2401,22 @@ const SiaraMap = ({
                     <QuestionMarkIcon style={{ fontSize: 13 }} />
                   </IconButton>
                 </MuiTooltip>
-              </p>
-              <p>quality: {qualityLabel || "n/a"}</p>
+              </div>
+              {qualitySummaryOpen && qualitySummaryNotes.length > 0 && (
+                <div className="siara-note-list">
+                  {qualitySummaryNotes.map((note) => (
+                    <span key={note} className="siara-note-pill">{note}</span>
+                  ))}
+                </div>
+              )}
             </>
           )}
           {guidedRoute && (
             <>
               <hr />
               <p>
-                Route risk:{" "}
-                <strong style={{ color: getDangerColor(routeSummaryLevel) }}>
+                {guidedRoute.route_label} risk:{" "}
+                <strong style={{ color: guidedRoute.route_color || getDangerColor(routeSummaryLevel) }}>
                   {formatPercent(routeSummaryPercent) ?? 0}% ({routeSummaryLevel})
                 </strong>
               </p>
@@ -1652,6 +2426,121 @@ const SiaraMap = ({
               {Number.isFinite(Number(guidedRoute?.duration_min)) && (
                 <p>eta: {Number(guidedRoute.duration_min).toFixed(1)} min</p>
               )}
+              {timePresetMs !== "0" && (
+                <p>Route forecast time: {selectedTimestampPreview}</p>
+              )}
+              <div className="siara-route-card-grid">
+                {routeComparisonRows.map((route) => {
+                  const isSelected = route.route_type === guidedRoute?.route_type;
+                  const dangerPercent = formatPercent(route?.summary?.danger_percent) ?? 0;
+                  return (
+                    <button
+                      key={`route-card-${route.route_type}`}
+                      type="button"
+                      className={`siara-route-card ${isSelected ? "is-selected" : ""}`}
+                      style={{ "--route-accent": route.route_color }}
+                      onClick={() => handleGuidedRouteSelection(route.route_type)}
+                    >
+                      <span className="siara-route-card__header">
+                        <span>{route.route_label}</span>
+                        <span className="siara-route-card__badges">
+                          {route.is_recommended && (
+                            <span className="siara-route-card__badge">Recommended</span>
+                          )}
+                          {isSelected && (
+                            <span className="siara-route-card__badge is-selected">Selected</span>
+                          )}
+                        </span>
+                      </span>
+                      <span className="siara-route-card__meta">
+                        risk {dangerPercent}% • eta{" "}
+                        {Number.isFinite(Number(route?.duration_min))
+                          ? `${Number(route.duration_min).toFixed(1)} min`
+                          : "n/a"}
+                      </span>
+                      <span className="siara-route-card__meta siara-route-card__meta--summary">
+                        ETA{" "}
+                        {Number.isFinite(Number(route?.duration_min))
+                          ? `${Number(route.duration_min).toFixed(1)} min`
+                          : "n/a"}{" "}
+                        • distance{" "}
+                        {Number.isFinite(Number(route?.distance_km))
+                          ? `${Number(route.distance_km).toFixed(1)} km`
+                          : "n/a"}{" "}
+                        • danger {dangerPercent}%
+                      </span>
+                      <span className="siara-route-card__meta">
+                        {route.comparisonText}
+                      </span>
+                      {route.recommendedReason && (
+                        <span className="siara-route-card__reason">{route.recommendedReason}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="siara-route-panel">
+                <div className="siara-route-panel__head">
+                  <h5>Risk along route</h5>
+                  <span>Selected route profile</span>
+                </div>
+                {selectedRouteRiskProfile.length > 0 ? (
+                  <>
+                    <div className="siara-route-profile">
+                      {selectedRouteRiskProfile.map((segment) => (
+                        <span
+                          key={`profile-${segment.segment_id}`}
+                          className="siara-route-profile__segment"
+                          style={{
+                            width: `${segment.width_percent}%`,
+                            background: segment.color,
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div className="siara-route-profile__labels">
+                      <span>Start</span>
+                      <span>End</span>
+                    </div>
+                  </>
+                ) : (
+                  <p>No route profile available yet.</p>
+                )}
+              </div>
+              <div className="siara-route-panel">
+                <div className="siara-route-panel__head">
+                  <h5>Ahead on your route</h5>
+                  <span>Selected route only</span>
+                </div>
+                {selectedRouteHazards.length > 0 ? (
+                  <ul className="siara-route-panel__list">
+                    {selectedRouteHazards.map((hazard) => (
+                      <li key={hazard}>{hazard}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No strong hazard concentration detected on the selected route.</p>
+                )}
+              </div>
+              <div className="siara-route-panel">
+                <div className="siara-route-panel__head">
+                  <h5>Risk source layers</h5>
+                  <span>Future-ready</span>
+                </div>
+                <div className="siara-filter-pills">
+                  {riskSourceFilters.map((filter) => (
+                    <button
+                      key={filter.key}
+                      type="button"
+                      className="siara-filter-pill"
+                      disabled={!filter.available}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+                <p>Per-source route attribution will appear here when backend source scoring is available.</p>
+              </div>
             </>
           )}
         </div>
@@ -1770,6 +2659,44 @@ const SiaraMap = ({
       )}
       </aside>
 
+      <div className={`siara-map-legend ${legendOpen ? "is-open" : "is-collapsed"}`}>
+        <button
+          type="button"
+          className="siara-map-legend__toggle"
+          onClick={() => setLegendOpen((value) => !value)}
+        >
+          {legendOpen ? "Hide legend" : "Legend"}
+        </button>
+        {legendOpen && (
+          <div className="siara-map-legend__content">
+            <div className="siara-map-legend__row">
+              <span className="siara-map-legend__swatch" style={{ background: "#2563eb" }} />
+              <span>Blue = Fastest</span>
+            </div>
+            <div className="siara-map-legend__row">
+              <span className="siara-map-legend__swatch" style={{ background: "#16a34a" }} />
+              <span>Green = Safest</span>
+            </div>
+            <div className="siara-map-legend__row">
+              <span className="siara-map-legend__swatch" style={{ background: "#f97316" }} />
+              <span>Orange = Balanced</span>
+            </div>
+            <div className="siara-map-legend__row">
+              <span className="siara-map-legend__swatch" style={{ background: "#9ca3af" }} />
+              <span>Gray = Alternative not selected</span>
+            </div>
+            <div className="siara-map-legend__row">
+              <span className="siara-map-legend__swatch siara-map-legend__swatch--gradient" />
+              <span>Green / Orange / Red = segment danger</span>
+            </div>
+            <div className="siara-map-legend__row">
+              <span className="siara-map-legend__swatch" style={{ background: "#7c3aed" }} />
+              <span>Purple marker = current location</span>
+            </div>
+          </div>
+        )}
+      </div>
+
       
 
       {selectedRouteExplanation && (
@@ -1779,7 +2706,7 @@ const SiaraMap = ({
             <button
               type="button"
               className="siara-segment-panel__close"
-              onClick={() => setSelectedRouteExplanation(null)}
+              onClick={clearRouteExplanationSelection}
               aria-label="Close segment explanation"
             >
               x
@@ -1829,6 +2756,10 @@ const SiaraMap = ({
       )}
       {showGuideControls && (
         <div className="siara-guide-controls">
+          <div className="siara-guide-status-row">
+            <span className="siara-status-pill">{locationStatusText}</span>
+            <span className="siara-status-pill">{navigationUpdatedText}</span>
+          </div>
           <div className="siara-time-row">
             <label className="siara-time-label" htmlFor="siara-time-preset">
               Prediction time
@@ -1854,6 +2785,12 @@ const SiaraMap = ({
               />
             )}
             <div className="siara-time-hint">Using: {selectedTimestampPreview}</div>
+            {timePresetMs !== "0" && currentRiskTimePreview && (
+              <div className="siara-time-preview">
+                <strong>Time impact</strong>
+                <p>{currentRiskTimePreview}</p>
+              </div>
+            )}
           </div>
 
           <div className="siara-guide-row">

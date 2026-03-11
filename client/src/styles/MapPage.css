@@ -682,6 +682,66 @@
   line-height: 1.5;
 }
 
+.siara-status-pills,
+.siara-guide-status-row,
+.siara-badge-row,
+.siara-filter-pills,
+.siara-note-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.siara-status-pills {
+  justify-content: flex-end;
+}
+
+.siara-status-pill,
+.siara-compact-badge,
+.siara-note-pill,
+.siara-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.siara-status-pill {
+  background: rgba(15, 23, 42, 0.06);
+  color: #475569;
+}
+
+.siara-compact-badge {
+  background: rgba(124, 58, 237, 0.08);
+  color: #5b21b6;
+}
+
+.siara-note-list {
+  margin-top: 8px;
+}
+
+.siara-note-pill {
+  background: rgba(59, 130, 246, 0.08);
+  color: #1d4ed8;
+}
+
+.siara-inline-link {
+  border: 0;
+  background: transparent;
+  color: #5b21b6;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.siara-inline-link:hover {
+  text-decoration: underline;
+}
+
 .siara-risk-debug .risk-debug-percent {
   font-weight: 800;
   font-size: 28px;
@@ -756,6 +816,10 @@
   margin-bottom: 10px;
 }
 
+.siara-guide-status-row {
+  margin-bottom: 10px;
+}
+
 .siara-time-label {
   font-size: 11px;
   font-weight: 700;
@@ -786,6 +850,29 @@
 .siara-time-hint {
   font-size: 11px;
   color: #64748b;
+}
+
+.siara-time-preview {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+}
+
+.siara-time-preview strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: #1d4ed8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.siara-time-preview p {
+  margin: 0;
+  font-size: 12px;
+  color: #475569;
 }
 
 .siara-guide-row {
@@ -908,9 +995,166 @@
  
 }
 
+.siara-route-card-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.siara-route-card {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-left: 4px solid var(--route-accent, #2563eb);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.siara-route-card > .siara-route-card__meta:first-of-type {
+  display: none;
+}
+
+.siara-route-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(99, 102, 241, 0.28);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.siara-route-card.is-selected {
+  border-color: rgba(37, 99, 235, 0.34);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
+}
+
+.siara-route-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.siara-route-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.siara-route-card__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.siara-route-card__badge.is-selected {
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+.siara-route-card__meta {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.siara-route-card__reason {
+  font-size: 11px;
+  font-weight: 600;
+  color: #0f766e;
+}
+
+.siara-route-panel {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.siara-route-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.siara-route-panel__head h5 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.siara-route-panel__head span {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.siara-route-profile {
+  display: flex;
+  width: 100%;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.siara-route-profile__segment {
+  min-width: 4px;
+  height: 100%;
+}
+
+.siara-route-profile__labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.siara-route-panel__list {
+  margin: 0 0 0 16px;
+  padding: 0;
+}
+
+.siara-route-panel__list li {
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.siara-filter-pill {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.8);
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.siara-filter-pill:disabled {
+  opacity: 0.8;
+}
+
 .siara-map-help-wrap {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   width: 100%;
   gap: 8px;
   justify-content: space-between;
@@ -926,6 +1170,57 @@
   color: var(--siara-heading, #232323);
   letter-spacing: 0.02em;
   text-transform: uppercase;
+}
+
+.siara-map-legend {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 840;
+  width: min(260px, calc(100% - 32px));
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(124, 58, 237, 0.1);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.siara-map-legend__toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+}
+
+.siara-map-legend__content {
+  display: grid;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+
+.siara-map-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #475569;
+}
+
+.siara-map-legend__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.siara-map-legend__swatch--gradient {
+  background: linear-gradient(90deg, #22c55e 0%, #f59e0b 50%, #ef4444 100%);
 }
 
 .siara-help-panel {

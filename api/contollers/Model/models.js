@@ -36,6 +36,8 @@ const DEFAULT_ROUTE_SAMPLES = Number(process.env.NEARBY_ROUTE_SAMPLES || 5);
 const MAX_ROUTE_SAMPLES = Number(process.env.NEARBY_ROUTE_SAMPLES_CAP || 12);
 const DEFAULT_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT || 12);
 const MAX_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT_CAP || 40);
+const DEFAULT_GUIDE_ALTERNATIVE_ROUTES = Number(process.env.ROUTE_GUIDE_ALTERNATIVES || 3);
+const MAX_GUIDE_ALTERNATIVE_ROUTES = Number(process.env.ROUTE_GUIDE_ALTERNATIVES_CAP || 5);
 const DEBUG_WEATHER_UNITS = String(process.env.DEBUG_WEATHER_UNITS || "0") === "1";
 const DEBUG_OSM_FLAGS = String(process.env.DEBUG_OSM_FLAGS || "0") === "1";
 const DEBUG_FORECAST = String(process.env.DEBUG_FORECAST || "0") === "1";
@@ -1762,7 +1764,7 @@ function roundCoordForOsrm(value) {
   return n.toFixed(5);
 }
 
-function osrmRouteCacheKey(origin, destination) {
+function osrmRouteCacheKey(origin, destination, alternatives = false) {
   return [
     OSRM_ROUTE_URL,
     roundCoordForOsrm(origin?.lat),
@@ -1771,6 +1773,7 @@ function osrmRouteCacheKey(origin, destination) {
     roundCoordForOsrm(destination?.lng),
     "overview=full",
     "geometries=geojson",
+    `alternatives=${alternatives ? "true" : "false"}`,
   ].join("|");
 }
 
@@ -1796,6 +1799,14 @@ function cloneOsrmRoute(route) {
   };
 }
 
+function cloneOsrmRoutes(routes) {
+  if (!Array.isArray(routes)) {
+    return [];
+  }
+
+  return routes.map((route) => cloneOsrmRoute(route)).filter(Boolean);
+}
+
 function pruneOsrmRouteCacheIfNeeded() {
   const maxSize = Math.max(1, Math.round(safeNumber(OSRM_ROUTE_CACHE_MAX) || 1));
   if (osrmRouteCache.size <= maxSize) {
@@ -1813,11 +1824,11 @@ function pruneOsrmRouteCacheIfNeeded() {
   }
 }
 
-function setCachedOsrmRoute(key, route) {
+function setCachedOsrmRoutes(key, routes) {
   if (!key) {
     return;
   }
-  osrmRouteCache.set(key, cloneOsrmRoute(route));
+  osrmRouteCache.set(key, cloneOsrmRoutes(routes));
   pruneOsrmRouteCacheIfNeeded();
 }
 
@@ -1839,13 +1850,64 @@ async function runWithOsrmLimiter(task) {
   }
 }
 
-async function fetchOsrmRoute(origin, destination) {
-  const cacheKey = osrmRouteCacheKey(origin, destination);
+function buildOsrmPathSignature(path) {
+  const normalizedPath = dedupePathPoints(path);
+  if (!normalizedPath.length) {
+    return "";
+  }
+
+  return normalizedPath
+    .map((point) => `${point[0].toFixed(5)},${point[1].toFixed(5)}`)
+    .join("|");
+}
+
+function normalizeOsrmRoutes(routes) {
+  if (!Array.isArray(routes)) {
+    return [];
+  }
+
+  const normalizedRoutes = [];
+  const seen = new Set();
+
+  for (const route of routes) {
+    const path = decodeOsrmPathCoordinates(route?.geometry?.coordinates);
+    if (!path) {
+      continue;
+    }
+
+    const distanceMeters = safeNumber(route?.distance);
+    const durationSeconds = safeNumber(route?.duration);
+    const signature = [
+      buildOsrmPathSignature(path),
+      distanceMeters == null ? "na" : roundNumber(distanceMeters, 0),
+      durationSeconds == null ? "na" : roundNumber(durationSeconds, 0),
+    ].join("|");
+
+    if (!signature || seen.has(signature)) {
+      continue;
+    }
+
+    seen.add(signature);
+    normalizedRoutes.push({
+      route_id: `osrm_${normalizedRoutes.length + 1}`,
+      path,
+      routing_source: "osrm",
+      route_warning: null,
+      distance_km: distanceMeters == null ? null : roundNumber(distanceMeters / 1000, 2),
+      duration_min: durationSeconds == null ? null : roundNumber(durationSeconds / 60, 2),
+    });
+  }
+
+  return normalizedRoutes;
+}
+
+async function fetchOsrmRoutes(origin, destination) {
+  const cacheKey = osrmRouteCacheKey(origin, destination, true);
   if (osrmRouteCache.has(cacheKey)) {
     if (DEBUG_OSRM) {
       console.log(`[Node][osrm] source=cache key=${cacheKey}`);
     }
-    return cloneOsrmRoute(osrmRouteCache.get(cacheKey));
+    return cloneOsrmRoutes(osrmRouteCache.get(cacheKey));
   }
 
   const url = `${OSRM_ROUTE_URL}/${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
@@ -1859,6 +1921,7 @@ async function fetchOsrmRoute(origin, destination) {
             overview: "full",
             geometries: "geojson",
             steps: false,
+            alternatives: true,
           },
           timeout: OSRM_TIMEOUT_MS + (attempt - 1) * 2000,
         }),
@@ -1868,27 +1931,16 @@ async function fetchOsrmRoute(origin, destination) {
         throw new Error(`OSRM returned code=${data.code}`);
       }
 
-      const route = data?.routes?.[0];
-      const path = decodeOsrmPathCoordinates(route?.geometry?.coordinates);
-      if (!path) {
+      const normalizedRoutes = normalizeOsrmRoutes(data?.routes);
+      if (!normalizedRoutes.length) {
         throw new Error("OSRM route geometry unavailable");
       }
 
-      const distanceMeters = safeNumber(route?.distance);
-      const durationSeconds = safeNumber(route?.duration);
-      const normalizedRoute = {
-        path,
-        routing_source: "osrm",
-        route_warning: null,
-        distance_km: distanceMeters == null ? null : roundNumber(distanceMeters / 1000, 2),
-        duration_min: durationSeconds == null ? null : roundNumber(durationSeconds / 60, 2),
-      };
-
-      setCachedOsrmRoute(cacheKey, normalizedRoute);
+      setCachedOsrmRoutes(cacheKey, normalizedRoutes);
       if (DEBUG_OSRM) {
         console.log(`[Node][osrm] source=remote key=${cacheKey} attempt=${attempt}`);
       }
-      return cloneOsrmRoute(normalizedRoute);
+      return cloneOsrmRoutes(normalizedRoutes);
     } catch (error) {
       lastError = error;
       if (DEBUG_OSRM) {
@@ -1905,6 +1957,36 @@ async function fetchOsrmRoute(origin, destination) {
   const wrapped = new Error(`OSRM route lookup failed: ${lastError?.message || "unknown_error"}`);
   wrapped.isOsrmError = true;
   throw wrapped;
+}
+
+async function fetchOsrmRoute(origin, destination) {
+  const routes = await fetchOsrmRoutes(origin, destination);
+  const primaryRoute = routes[0] || null;
+  if (!primaryRoute) {
+    const wrapped = new Error("OSRM route lookup failed: route not found");
+    wrapped.isOsrmError = true;
+    throw wrapped;
+  }
+  return cloneOsrmRoute(primaryRoute);
+}
+
+async function getOsrmRouteAlternatives(origin, destination, maxRoutes = DEFAULT_GUIDE_ALTERNATIVE_ROUTES) {
+  try {
+    const routes = await fetchOsrmRoutes(origin, destination);
+    const limitedCount = parseBoundedNumber(maxRoutes, DEFAULT_GUIDE_ALTERNATIVE_ROUTES, {
+      min: 1,
+      max: MAX_GUIDE_ALTERNATIVE_ROUTES,
+      integer: true,
+    });
+    return routes.slice(0, limitedCount).map((route, index) => ({
+      ...route,
+      route_id: route?.route_id || `osrm_${index + 1}`,
+    }));
+  } catch (error) {
+    const wrapped = new Error(`OSRM route lookup failed: ${error.message}`);
+    wrapped.isOsrmError = true;
+    throw wrapped;
+  }
 }
 
 async function getOsrmRoutePath(origin, destination) {
@@ -2565,14 +2647,22 @@ exports.predictRouteGuide = async (req, res) => {
       integer: true,
     },
   );
+  const maxAlternatives = parseBoundedNumber(
+    req.body?.max_alternatives,
+    DEFAULT_GUIDE_ALTERNATIVE_ROUTES,
+    {
+      min: 1,
+      max: MAX_GUIDE_ALTERNATIVE_ROUTES,
+      integer: true,
+    },
+  );
   const routeHash = buildRouteGuideHash(origin, destinationPoint, timestampIso);
 
   try {
-    let routed = null;
-    let routeWarning = null;
+    let routedRoutes = [];
 
     try {
-      routed = await getOsrmRoutePath(origin, destinationPoint);
+      routedRoutes = await getOsrmRouteAlternatives(origin, destinationPoint, maxAlternatives);
     } catch (osrmError) {
       const straightDistanceKm = haversineDistanceKm(
         origin.lat,
@@ -2584,38 +2674,173 @@ exports.predictRouteGuide = async (req, res) => {
         console.warn("[Node][osrm] /api/risk/route fallback:", osrmError.message);
       }
 
-      routed = {
-        path: buildStraightLinePath(origin, destinationPoint),
-        routing_source: "straight_line",
-        distance_km: roundNumber(straightDistanceKm, 2),
-        duration_min: null,
-      };
-      routeWarning = "osrm_failed";
+      routedRoutes = [
+        {
+          route_id: "fallback_1",
+          path: buildStraightLinePath(origin, destinationPoint),
+          routing_source: "straight_line",
+          distance_km: roundNumber(straightDistanceKm, 2),
+          duration_min: null,
+          route_warning: "osrm_failed",
+        },
+      ];
     }
 
-    const fullPath = dedupePathPoints(routed.path);
-    const sampleIndices = sampleRouteIndices(fullPath.length, sampleCount);
-    const sampledPoints = buildSamplePointsFromIndices(fullPath, sampleIndices);
+    const sampleJobs = [];
+    const routeSamplesByRouteId = new Map();
+    const routeSampleMetaByRouteId = new Map();
 
-    if (sampledPoints.length < 2) {
+    for (const route of routedRoutes) {
+      const fullPath = dedupePathPoints(route?.path);
+      const sampleIndices = sampleRouteIndices(fullPath.length, sampleCount);
+      const sampledPoints = buildSamplePointsFromIndices(fullPath, sampleIndices);
+
+      if (sampledPoints.length < 2) {
+        routeSamplesByRouteId.set(route.route_id, []);
+        routeSampleMetaByRouteId.set(route.route_id, {
+          fullPath,
+          sampleIndices,
+        });
+        continue;
+      }
+
+      const routeSamples = sampledPoints.map(([lat, lng], sampleIndex) => {
+        const sampleId = `route_${routeHash}_${route.route_id}_s${sampleIndex}`;
+        sampleJobs.push({
+          sample_id: sampleId,
+          route_id: route.route_id,
+          sample_index: sampleIndex,
+          lat,
+          lng,
+        });
+        return {
+          sample_id: sampleId,
+          lat,
+          lng,
+        };
+      });
+
+      routeSamplesByRouteId.set(route.route_id, routeSamples);
+      routeSampleMetaByRouteId.set(route.route_id, {
+        fullPath,
+        sampleIndices,
+      });
+    }
+
+    if (sampleJobs.length === 0) {
       return res.status(500).json({ error: "Failed to sample enough route points" });
     }
 
-    const { samples, sampleRowById } = await scoreRouteSamplesWithOverlay({
-      sampledPoints,
-      routeHash,
-      timestampIso,
+    const scoredRows = await Promise.all(
+      sampleJobs.map(async (job) => {
+        const row = await buildDangerRow({
+          lat: job.lat,
+          lng: job.lng,
+          timestamp: timestampIso,
+          roadFlags: ENABLE_OSM_FLAGS_FOR_ROUTES ? null : ROAD_FLAG_ZEROES,
+        });
+
+        setCachedSegmentRow(job.sample_id, row);
+
+        return {
+          ...job,
+          row,
+          model_row: {
+            segment_id: job.sample_id,
+            ...row,
+          },
+        };
+      }),
+    );
+
+    const overlayResponse = await postToFlask("/risk/overlay", {
+      rows: scoredRows.map((item) => item.model_row),
     });
-    const summary = aggregateRouteSummary(samples);
-    const segments = buildRouteGuideSegments({
-      fullPath,
-      sampleIndices,
-      samples,
-      fallbackSummary: summary,
-      routeHash,
-      sampleRowById,
-      useStraightSegments: routed.routing_source === "straight_line",
-    });
+    const overlayResults = Array.isArray(overlayResponse?.data?.results)
+      ? overlayResponse.data.results
+      : [];
+    const predictionBySampleId = new Map();
+
+    for (let i = 0; i < overlayResults.length; i += 1) {
+      const item = overlayResults[i];
+      const sampleId = String(item?.segment_id ?? scoredRows[i]?.sample_id ?? "");
+      if (!sampleId) {
+        continue;
+      }
+      predictionBySampleId.set(sampleId, normalizeOverlaySamplePrediction(item));
+    }
+
+    const sampleRowById = new Map();
+    for (const item of scoredRows) {
+      sampleRowById.set(item.sample_id, item.row);
+    }
+
+    const routes = routedRoutes
+      .map((route, routeIndex) => {
+        const routeMeta = routeSampleMetaByRouteId.get(route.route_id) || {
+          fullPath: dedupePathPoints(route?.path),
+          sampleIndices: [],
+        };
+        const sampled = routeSamplesByRouteId.get(route.route_id) || [];
+        const samples = sampled.map((sample) => {
+          const prediction =
+            predictionBySampleId.get(sample.sample_id) || {
+              danger_percent: 0,
+              danger_level: "low",
+              confidence: null,
+              quality: null,
+            };
+
+          return {
+            segment_id: sample.sample_id,
+            sample_id: sample.sample_id,
+            lat: sample.lat,
+            lng: sample.lng,
+            danger_percent: prediction.danger_percent,
+            danger_level: prediction.danger_level,
+            confidence: prediction.confidence,
+            quality: prediction.quality,
+          };
+        });
+
+        const summary = aggregateRouteSummary(samples);
+        const routeGuideHash = `${routeHash}_${route.route_id || routeIndex + 1}`;
+        const segments = buildRouteGuideSegments({
+          fullPath: routeMeta.fullPath,
+          sampleIndices: routeMeta.sampleIndices,
+          samples,
+          fallbackSummary: summary,
+          routeHash: routeGuideHash,
+          sampleRowById,
+          useStraightSegments: route.routing_source === "straight_line",
+        });
+
+        return {
+          route_id: route.route_id || `route_${routeIndex + 1}`,
+          destination: {
+            name: req.body?.destination?.name || "Destination",
+            lat: destinationPoint.lat,
+            lng: destinationPoint.lng,
+          },
+          routing_source: route.routing_source,
+          route_warning: route.route_warning || null,
+          path: routeMeta.fullPath,
+          sample_indices: routeMeta.sampleIndices,
+          samples,
+          segments,
+          summary,
+          distance_km: route.distance_km,
+          eta_min: route.duration_min,
+          duration_min: route.duration_min,
+        };
+      })
+      .filter((route) => Array.isArray(route.path) && route.path.length >= 2);
+
+    if (!routes.length) {
+      return res.status(500).json({ error: "Failed to build route alternatives" });
+    }
+
+    const primaryRoute = routes[0];
 
     const responsePayload = {
       origin,
@@ -2624,36 +2849,39 @@ exports.predictRouteGuide = async (req, res) => {
         lat: destinationPoint.lat,
         lng: destinationPoint.lng,
       },
-      routing_source: routed.routing_source,
-      path: fullPath,
-      sample_indices: sampleIndices,
-      samples,
-      segments,
-      summary,
-      distance_km: routed.distance_km,
-      eta_min: routed.duration_min,
-      duration_min: routed.duration_min,
-      route_warning: routeWarning,
+      routing_source: primaryRoute.routing_source,
+      path: primaryRoute.path,
+      sample_indices: primaryRoute.sample_indices,
+      samples: primaryRoute.samples,
+      segments: primaryRoute.segments,
+      summary: primaryRoute.summary,
+      distance_km: primaryRoute.distance_km,
+      eta_min: primaryRoute.duration_min,
+      duration_min: primaryRoute.duration_min,
+      route_warning: primaryRoute.route_warning || null,
+      routes,
     };
 
     try {
-      const persistItems = (Array.isArray(responsePayload.segments) ? responsePayload.segments : [])
-        .filter((segment) => parseNumericRoadSegmentId(segment?.segment_id))
-        .map((segment) => {
-          const segmentPath = Array.isArray(segment?.path) ? segment.path : [];
-          const lastPoint = Array.isArray(segmentPath[segmentPath.length - 1])
-            ? segmentPath[segmentPath.length - 1]
-            : null;
-          return {
-            prediction: segment,
-            timestamp: timestampIso,
-            roadSegmentId: segment.segment_id,
-            lat: lastPoint?.[0],
-            lng: lastPoint?.[1],
-            allowNearestSegmentLookup: false,
-            context: "route",
-          };
-        });
+      const persistItems = routes.flatMap((route) =>
+        (Array.isArray(route?.segments) ? route.segments : [])
+          .filter((segment) => parseNumericRoadSegmentId(segment?.segment_id))
+          .map((segment) => {
+            const segmentPath = Array.isArray(segment?.path) ? segment.path : [];
+            const lastPoint = Array.isArray(segmentPath[segmentPath.length - 1])
+              ? segmentPath[segmentPath.length - 1]
+              : null;
+            return {
+              prediction: segment,
+              timestamp: timestampIso,
+              roadSegmentId: segment.segment_id,
+              lat: lastPoint?.[0],
+              lng: lastPoint?.[1],
+              allowNearestSegmentLookup: false,
+              context: "route",
+            };
+          }),
+      );
 
       if (persistItems.length > 0) {
         await persistPredictions(persistItems);
