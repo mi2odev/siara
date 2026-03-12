@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const createError = require("http-errors");
 
 const pool = require("../db");
+const { verifyToken } = require("./verifytoken");
 
 const JWT_COOKIE_NAME = "accessToken";
 const TOKEN_TTL = "3d";
@@ -278,6 +279,46 @@ router.post("/logout", async (req, res, next) => {
   try {
     res.clearCookie(JWT_COOKIE_NAME, getCookieOptions());
     return res.status(200).json({ message: "User has been logged out" });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get("/me", verifyToken, async (req, res, next) => {
+  try {
+    const userResult = await pool.query(
+      `
+        SELECT
+          u.id,
+          u.first_name,
+          u.last_name,
+          u.email,
+          u.phone,
+          u.avatar_url,
+          u.is_active,
+          u.created_at,
+          u.updated_at,
+          COALESCE(
+            array_agg(r.name) FILTER (WHERE r.name IS NOT NULL),
+            '{}'::varchar[]
+          ) AS roles
+        FROM auth.users u
+        LEFT JOIN auth.user_roles ur ON ur.user_id = u.id
+        LEFT JOIN auth.roles r ON r.id = ur.role_id
+        WHERE u.id = $1
+        GROUP BY u.id
+        LIMIT 1
+      `,
+      [req.user.userId],
+    );
+
+    if (userResult.rows.length === 0) {
+      throw createError(404, "User not found");
+    }
+
+    return res.status(200).json({
+      user: mapUser(userResult.rows[0]),
+    });
   } catch (err) {
     return next(err);
   }

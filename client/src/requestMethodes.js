@@ -1,28 +1,7 @@
 import axios from "axios";
+import { getStoredAccessToken } from "./stores/authStorage";
 
 const BASE_URL = "http://localhost:5000/api/";
-
-function getStoredAccessToken() {
-  const directToken = localStorage.getItem("accessToken");
-
-  if (directToken) {
-    return directToken;
-  }
-
-  try {
-    const storedUser =
-      localStorage.getItem("siara_user") || sessionStorage.getItem("siara_user");
-
-    if (!storedUser) {
-      return null;
-    }
-
-    const parsedUser = JSON.parse(storedUser);
-    return parsedUser?.token || null;
-  } catch {
-    return null;
-  }
-}
 
 export const publicRequest = axios.create({
   baseURL: BASE_URL,

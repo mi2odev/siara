@@ -16,15 +16,17 @@
  *   - Simulated API submit with random tracking ID
  *   - Success screen with next-steps explainer and quick-action buttons
  */
-import React, { useState, useEffect, useContext } from 'react'
+import React, { useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { createReport } from '../../services/reportsService'
 import '../../styles/ReportIncidentPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
+import { useAuthStore } from '../../stores/authStore'
 
 /* Fix default Leaflet marker icon paths (broken by bundlers) */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -57,7 +59,11 @@ export default function ReportIncidentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)   // Loading spinner during submit
   const [isSubmitted, setIsSubmitted] = useState(false)     // Switches to success screen
   const [submittedId, setSubmittedId] = useState(null)      // Generated tracking reference
+  const [submitError, setSubmitError] = useState('')        // Submission error banner
 
+
+  const state = useAuthStore.getState();
+console.log("Auth store after login:", state);
   /* ═══ FORM STATE ═══ */
   // All report fields consolidated in a single state object
   const [reportData, setReportData] = useState({
@@ -191,15 +197,38 @@ export default function ReportIncidentPage() {
   }
 
   /* ═══ SUBMIT HANDLER ═══ */
-  // Simulates an API call with a 2 s delay, then switches to the success screen
-  const submitReport = () => {
+  const buildCreatePayload = () => ({
+    incidentType: reportData.type,
+    title: reportData.title.trim(),
+    description: reportData.description.trim(),
+    severity: reportData.severity,
+    occurredAt: reportData.timeOption === 'earlier' && reportData.customTime
+      ? new Date(reportData.customTime).toISOString()
+      : new Date().toISOString(),
+    location: {
+      lat: reportData.locationCoords?.lat,
+      lng: reportData.locationCoords?.lng,
+      label: reportData.locationAddress.trim(),
+    },
+  })
+
+  const submitReport = async () => {
+    if (isSubmitting) {
+      return
+    }
+
+    setSubmitError('')
     setIsSubmitting(true)
-    // Simulate API call
-    setTimeout(() => {
+
+    try {
+      const createdReport = await createReport(buildCreatePayload())
       setIsSubmitting(false)
       setIsSubmitted(true)
-      setSubmittedId('INC-' + Math.random().toString(36).substr(2, 9).toUpperCase())
-    }, 2000)
+      setSubmittedId(createdReport?.id || null)
+    } catch (error) {
+      setIsSubmitting(false)
+      setSubmitError(error.message || 'Failed to submit report.')
+    }
   }
 
   /* ═══ DERIVED HELPERS ═══ */
@@ -737,11 +766,24 @@ export default function ReportIncidentPage() {
                   <span className="notice-icon">ℹ️</span>
                   <p>Your report will be verified by our automated system and then made visible to other users. False reports may result in account suspension.</p>
                 </div>
+
+                {!user && (
+                  <div className="review-notice">
+                    <span className="notice-icon">🔐</span>
+                    <p>You need to be logged in to submit this report.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {/* ═══ BOTTOM NAVIGATION (Back / Continue / Submit) ═══ */}
+          {submitError && (
+            <div className="review-notice">
+              <span className="notice-icon">⚠️</span>
+              <p>{submitError}</p>
+            </div>
+          )}
           <div className="step-nav">
             {currentStep > 1 && (
               <button className="nav-btn secondary" onClick={prevStep}>
@@ -754,7 +796,7 @@ export default function ReportIncidentPage() {
                 Continue →
               </button>
             ) : (
-              <button className="nav-btn submit" onClick={submitReport} disabled={isSubmitting}>
+              <button className="nav-btn submit" onClick={submitReport} disabled={isSubmitting || !user}>
                 {isSubmitting ? '⏳ Submitting...' : '📤 Submit report'}
               </button>
             )}

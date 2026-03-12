@@ -1,50 +1,51 @@
-import React, { createContext, useState, useEffect } from 'react'
-import { login as mockLogin } from '../services/authService'
+import React, { createContext, useEffect, useMemo, useRef } from 'react'
+import { useAuthStore } from '../stores/authStore'
 
 export const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      const raw = localStorage.getItem('siara_user') || sessionStorage.getItem('siara_user')
-      return raw ? JSON.parse(raw) : null
-    } catch {
-      return null
-    }
-  })
+  const restoreSession = useAuthStore((state) => state.restoreSession)
+  const login = useAuthStore((state) => state.login)
+  const logout = useAuthStore((state) => state.logout)
+  const user = useAuthStore((state) => state.user)
+  const token = useAuthStore((state) => state.token)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const isAuthLoading = useAuthStore((state) => state.isAuthLoading)
+  const isAdmin = useAuthStore((state) => state.isAdmin)
+  const hasRestoredRef = useRef(false)
 
   useEffect(() => {
-    // keep storage in sync when user changes
-    if (user && user._persist === 'local') {
-      localStorage.setItem('siara_user', JSON.stringify(user))
-      sessionStorage.removeItem('siara_user')
-    } else if (user && user._persist === 'session') {
-      sessionStorage.setItem('siara_user', JSON.stringify(user))
-      localStorage.removeItem('siara_user')
-    } else {
-      localStorage.removeItem('siara_user')
-      sessionStorage.removeItem('siara_user')
+    if (hasRestoredRef.current) {
+      return
     }
-  }, [user])
 
-  async function login(identifier, password, remember) {
-    const res = await mockLogin(identifier, password)
-    if (res && res.user) {
-      const storedUser = { ...res.user, token: res.token, _persist: remember ? 'local' : 'session' }
-      setUser(storedUser)
-      return storedUser
-    }
-    throw new Error('Authentication failed')
-  }
+    hasRestoredRef.current = true
+    restoreSession()
+  }, [restoreSession])
 
-  function logout() {
-    setUser(null)
-    localStorage.removeItem('siara_user')
-    sessionStorage.removeItem('siara_user')
-  }
+  const value = useMemo(() => ({
+    user,
+    token,
+    isAuthenticated,
+    isAuthLoading,
+    isAdmin,
+    login,
+    logout,
+    restoreSession,
+    setUser: () => {},
+  }), [
+    isAdmin,
+    isAuthenticated,
+    isAuthLoading,
+    login,
+    logout,
+    restoreSession,
+    token,
+    user,
+  ])
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

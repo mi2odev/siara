@@ -1,15 +1,34 @@
-// Minimal mock auth service
+import { publicRequest } from '../requestMethodes'
 
-export async function login(email, password) {
-  if (!email || !password) throw new Error('Missing credentials')
-  // simulate network latency
-  await new Promise((r) => setTimeout(r, 700))
-  // simple role assignment for demo
-  const role = String(email).toLowerCase().includes('admin') ? 'admin' : 'user'
-  // return a mock user and token
-  return { user: { id: 1, name: role === 'admin' ? 'Admin Demo' : 'Zitouni Mohamed', email, role }, token: 'mock-token' }
+const LOGIN_ENDPOINT = '/auth/login'
+const LOGOUT_ENDPOINT = '/auth/logout'
+const ME_ENDPOINT = '/auth/me'
+
+export async function login(identifier, password) {
+  if (!identifier || !password) {
+    throw new Error('Missing credentials')
+  }
+
+  const response = await publicRequest.post(LOGIN_ENDPOINT, {
+    emailOrPhone: identifier,
+    password,
+  })
+
+  return {
+    user: response.data?.user || null,
+    token: response.data?.accessToken || null,
+  }
 }
 
-export function logout() {
-  // placeholder for any cleanup
+export async function logout() {
+  try {
+    await publicRequest.post(LOGOUT_ENDPOINT)
+  } catch (_error) {
+    // Clearing local auth state is still sufficient for the client.
+  }
+}
+
+export async function getCurrentUser() {
+  const response = await publicRequest.get(ME_ENDPOINT)
+  return response.data?.user || null
 }

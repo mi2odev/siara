@@ -1030,6 +1030,80 @@
   background: #D1FAE5;
 }
 
+.delete-report-btn {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+.delete-report-btn:hover {
+  background: #FECACA;
+}
+
+.owner-tools {
+  margin-top: 8px;
+}
+
+.manage-form {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--incident-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.manage-form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--incident-text-medium);
+}
+
+.manage-form-input {
+  width: 100%;
+  border: 1px solid var(--incident-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  color: var(--incident-text-dark);
+  font-size: 13px;
+}
+
+.manage-form-textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.manage-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.manage-form-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--incident-text-light);
+}
+
+.manage-form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #FEF2F2;
+  color: #B91C1C;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.manage-form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* Metadata Card */
 .metadata-list {
   display: flex;

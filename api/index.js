@@ -10,6 +10,7 @@ dotenv.config({
 });
 const pool = require("./db");
 const authRoutes = require("./contollers/auth");
+const reportRoutes = require("./contollers/reports");
 const {
   predictDriverRisk,
   predictCurrentRisk,
@@ -28,6 +29,7 @@ app.use(bodyParser.json({ limit: "50mb" }));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/reports", reportRoutes);
 
 app.post("/api/model/predict", predictDriverRisk);
 app.get("/api/weather/current", getCurrentWeather);
