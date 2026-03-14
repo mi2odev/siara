@@ -1,0 +1,186 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' ==========================
+' USER MANAGEMENT
+' ==========================
+
+class User {
+  +id: UUID
+  +name: String
+  +email: String
+  +passwordHash: String
+  +roleId: UUID
+  +status: String
+  +createdAt: DateTime
+  +updateProfile()
+  +changePassword()
+}
+
+class Role {
+  +id: UUID
+  +name: String
+  +description: String
+}
+
+class Notification {
+  +id: UUID
+  +userId: UUID
+  +title: String
+  +message: String
+  +isRead: Boolean
+  +createdAt: DateTime
+  +markAsRead()
+}
+
+class AlertSubscription {
+  +id: UUID
+  +userId: UUID
+  +zoneId: UUID
+  +severityThreshold: Integer
+  +createSubscription()
+  +cancelSubscription()
+}
+
+' ==========================
+' INCIDENT MANAGEMENT
+' ==========================
+
+class Incident {
+  +id: UUID
+  +location: Geometry
+  +severity: Integer
+  +status: String
+  +description: String
+  +createdAt: DateTime
+  +verifyIncident()
+  +closeIncident()
+}
+
+class IncidentReport {
+  +id: UUID
+  +incidentId: UUID
+  +userId: UUID
+  +description: String
+  +createdAt: DateTime
+  +submitReport()
+}
+
+class IncidentMedia {
+  +id: UUID
+  +incidentId: UUID
+  +fileUrl: String
+  +mediaType: String
+  +uploadedAt: DateTime
+}
+
+class IncidentAction {
+  +id: UUID
+  +incidentId: UUID
+  +officerId: UUID
+  +actionType: String
+  +notes: String
+  +timestamp: DateTime
+}
+
+' ==========================
+' LOCATION & ROAD NETWORK
+' ==========================
+
+class RoadSegment {
+  +id: UUID
+  +name: String
+  +roadType: String
+  +geometry: Geometry
+  +speedLimit: Integer
+}
+
+class Zone {
+  +id: UUID
+  +name: String
+  +geometry: Geometry
+}
+
+' ==========================
+' ALERT SYSTEM
+' ==========================
+
+class Alert {
+  +id: UUID
+  +zoneId: UUID
+  +title: String
+  +description: String
+  +severity: Integer
+  +createdAt: DateTime
+  +activateAlert()
+  +deactivateAlert()
+}
+
+class AlertEvent {
+  +id: UUID
+  +alertId: UUID
+  +triggeredAt: DateTime
+  +status: String
+}
+
+' ==========================
+' AI & ANALYTICS
+' ==========================
+
+class RiskPrediction {
+  +id: UUID
+  +roadSegmentId: UUID
+  +riskScore: Float
+  +confidence: Float
+  +predictedAt: DateTime
+}
+
+class AIModel {
+  +id: UUID
+  +modelName: String
+  +version: String
+  +accuracy: Float
+  +lastTrained: DateTime
+  +generatePrediction()
+}
+
+' ==========================
+' SYSTEM MONITORING
+' ==========================
+
+class AuditLog {
+  +id: UUID
+  +userId: UUID
+  +action: String
+  +entityType: String
+  +entityId: UUID
+  +timestamp: DateTime
+}
+
+' ==========================
+' RELATIONSHIPS
+' ==========================
+
+User "1" -- "1" Role
+User "1" -- "*" Notification
+User "1" -- "*" IncidentReport
+User "1" -- "*" AlertSubscription
+
+Incident "1" -- "*" IncidentReport
+Incident "1" -- "*" IncidentMedia
+Incident "1" -- "*" IncidentAction
+
+Incident "*" -- "1" RoadSegment
+
+Zone "1" -- "*" Alert
+Zone "1" -- "*" AlertSubscription
+
+Alert "1" -- "*" AlertEvent
+
+RoadSegment "1" -- "*" RiskPrediction
+
+AIModel "1" -- "*" RiskPrediction
+
+User "1" -- "*" AuditLog
+
+@enduml

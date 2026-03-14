@@ -1,0 +1,61 @@
+@startuml
+actor "Citizen User" as User
+
+participant "Web Frontend" as Frontend
+participant "Incident API" as Backend
+database "Database" as DB
+participant "AI Prediction Engine" as AI
+participant "Alert Service" as Alert
+participant "Notification Service" as Notify
+participant "Map Service" as MapAPI
+
+User -> Frontend : Open "Report Incident" form
+Frontend -> User : Display reporting interface
+
+User -> Frontend : Submit incident data\n(location, description, media)
+
+Frontend -> Backend : POST /incidents
+
+activate Backend
+
+Backend -> DB : Create IncidentReport
+DB --> Backend : Report stored
+
+Backend -> AI : Analyze incident context\n(weather, road, traffic)
+activate AI
+
+AI -> DB : Retrieve road & environmental data
+DB --> AI : Road segment + conditions
+
+AI -> AI : Compute risk score
+AI --> Backend : RiskPrediction
+
+deactivate AI
+
+Backend -> DB : Create Incident record\n(status = "reported")
+
+Backend -> Alert : Evaluate alert conditions
+activate Alert
+
+Alert -> DB : Check alert subscriptions
+DB --> Alert : Matching users/zones
+
+Alert -> Notify : Send alert notifications
+activate Notify
+
+Notify -> DB : Store notifications
+Notify --> User : Push notification
+
+deactivate Notify
+deactivate Alert
+
+Backend -> MapAPI : Update map markers
+MapAPI --> Backend : Map updated
+
+Backend --> Frontend : Incident created successfully
+
+deactivate Backend
+
+Frontend -> User : Display confirmation\nand incident on map
+
+@enduml

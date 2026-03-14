@@ -1,0 +1,91 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Citizen User" as Citizen
+actor "Police Officer" as Police
+actor "Administrator" as Admin
+actor "Emergency Services" as Emergency
+actor "AI Prediction Engine" as AI
+actor "Map Service" as MapAPI
+
+rectangle "SIARA Smart Mobility Platform" {
+
+  (Register Account) as UC1
+  (Login) as UC2
+  (Manage Profile) as UC3
+  (Report Incident) as UC4
+  (View Incident Feed) as UC5
+  (View Map) as UC6
+  (View Incident Details) as UC7
+  (Create Alert Subscription) as UC8
+  (Receive Notifications) as UC9
+  (View Dashboard) as UC10
+  (View Risk Insights) as UC11
+  (View Predictions) as UC12
+  (Manage Settings) as UC13
+
+  (Monitor Active Incidents) as UC14
+  (Verify Incident Reports) as UC15
+  (Update Incident Status) as UC16
+  (Issue Emergency Alert) as UC17
+  (Monitor Patrol Zones) as UC18
+
+  (Respond to Incident) as UC19
+  (View Critical Incidents) as UC20
+
+  (Manage Users) as UC21
+  (Moderate Incident Reports) as UC22
+  (Manage Alerts) as UC23
+  (Monitor System Analytics) as UC24
+  (Configure AI Models) as UC25
+
+  (Analyze Incident Data) as UC26
+  (Generate Risk Predictions) as UC27
+  (Produce Risk Insights) as UC28
+}
+
+Citizen -- UC1
+Citizen -- UC2
+Citizen -- UC3
+Citizen -- UC4
+Citizen -- UC5
+Citizen -- UC6
+Citizen -- UC7
+Citizen -- UC8
+Citizen -- UC9
+Citizen -- UC10
+Citizen -- UC11
+Citizen -- UC12
+Citizen -- UC13
+
+Police -- UC14
+Police -- UC15
+Police -- UC16
+Police -- UC17
+Police -- UC18
+
+Emergency -- UC19
+Emergency -- UC20
+
+Admin -- UC21
+Admin -- UC22
+Admin -- UC23
+Admin -- UC24
+Admin -- UC25
+
+AI -- UC26
+AI -- UC27
+AI -- UC28
+
+MapAPI -- UC6
+
+UC4 --> UC26 : <<include>>
+UC26 --> UC27 : <<include>>
+UC27 --> UC28 : <<extend>>
+
+UC14 --> UC7 : <<include>>
+UC15 --> UC16 : <<include>>
+UC20 --> UC19 : <<include>>
+
+@enduml
