@@ -196,7 +196,14 @@ function buildDisplayIncident(report, id) {
     updatedAt: report.updatedAt,
     status: report.status || 'pending',
     reporterName: report.reportedBy?.name || 'Citizen',
-    media: [],
+    media: Array.isArray(report.media)
+      ? report.media.map((media) => ({
+          id: media.id,
+          url: media.url,
+          caption: media.mediaType === 'image' ? 'Report image' : media.mediaType || 'Report media',
+          uploadedAt: media.uploadedAt,
+        }))
+      : [],
     timeline: buildTimelineFromReport(report),
     confirmations: 0,
     comments: 0,
@@ -531,16 +538,23 @@ export default function IncidentDetailPage() {
                 )}
               </div>
 
-              {!isRealReport && incident.media.length > 0 && (
+              {incident.media.length > 0 && (
                 <div className="incident-media">
-                  <h2 className="section-title">Photos & Media</h2>
+                  <h2 className="section-title">Photos</h2>
                   <div className="media-grid">
                     {incident.media.map((media, index) => (
-                      <div key={index} className="media-item">
-                        <div className="media-placeholder">
-                          <span>IMG</span>
-                          <span className="media-caption">{media.caption}</span>
-                        </div>
+                      <div key={media.id || index} className="media-item">
+                        {media.url ? (
+                          <>
+                            <img className="media-image" src={media.url} alt={media.caption} loading="lazy" />
+                            <span className="media-caption-badge">{media.caption}</span>
+                          </>
+                        ) : (
+                          <div className="media-placeholder">
+                            <span>IMG</span>
+                            <span className="media-caption">{media.caption}</span>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -716,7 +730,7 @@ export default function IncidentDetailPage() {
                   <textarea className="manage-form-input manage-form-textarea" value={editForm.description} onChange={(event) => handleEditField('description', event.target.value)} />
                 </label>
 
-                <p className="manage-form-note">Media uploads remain view-only here; no media persistence was added.</p>
+                <p className="manage-form-note">Media is preserved with the report, but media editing from this page is not available yet.</p>
 
                 {saveError && <p className="manage-form-error">{saveError}</p>}
 

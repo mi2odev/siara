@@ -11,7 +11,7 @@
  *
  * Features:
  *   - 3 location input methods: GPS auto-detect, address search, map click
- *   - Media upload with image/video preview (max 5 files, 10 MB each)
+ *   - Media upload with image preview (max 5 files, 5 MB each)
  *   - Severity level selector (high / medium / low)
  *   - Simulated API submit with random tracking ID
  *   - Success screen with next-steps explainer and quick-action buttons
@@ -22,11 +22,14 @@ import { AuthContext } from '../../contexts/AuthContext'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { createReport } from '../../services/reportsService'
+import { createReport, uploadReportMedia } from '../../services/reportsService'
 import '../../styles/ReportIncidentPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
-import { useAuthStore } from '../../stores/authStore'
+
+const MAX_REPORT_MEDIA_FILES = 5
+const MAX_REPORT_MEDIA_FILE_SIZE_BYTES = 5 * 1024 * 1024
+const ALLOWED_REPORT_MEDIA_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 /* Fix default Leaflet marker icon paths (broken by bundlers) */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -60,10 +63,9 @@ export default function ReportIncidentPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)     // Switches to success screen
   const [submittedId, setSubmittedId] = useState(null)      // Generated tracking reference
   const [submitError, setSubmitError] = useState('')        // Submission error banner
+  const [submitWarning, setSubmitWarning] = useState('')    // Non-blocking warning after report creation
+  const [mediaError, setMediaError] = useState('')          // Media validation banner
 
-
-  const state = useAuthStore.getState();
-console.log("Auth store after login:", state);
   /* ═══ FORM STATE ═══ */
   // All report fields consolidated in a single state object
   const [reportData, setReportData] = useState({
@@ -78,7 +80,6 @@ console.log("Auth store after login:", state);
     timeOption: 'now',         // 'now' | 'earlier'
     customTime: '',            // ISO datetime string when timeOption === 'earlier'
     media: [],                 // Array of { file, name, type, preview } objects
-    mediaPreview: []           // Array of object-URL strings for thumbnails
   })
 
   /* ═══ WIZARD STEP DEFINITIONS ═══ */
@@ -105,6 +106,14 @@ console.log("Auth store after login:", state);
     { id: 'medium', label: 'Medium', color: '#F59E0B', desc: 'Important, attention required' },
     { id: 'low', label: 'Low', color: '#10B981', desc: 'Minor, informational' }
   ]
+
+  const releaseMediaPreviews = (mediaItems) => {
+    mediaItems.forEach((mediaItem) => {
+      if (mediaItem?.preview) {
+        URL.revokeObjectURL(mediaItem.preview)
+      }
+    })
+  }
 
   /* ═══ LOCATION HANDLERS ═══ */
   // Simulate getting current GPS location (hardcoded Algiers coordinates)
@@ -146,29 +155,82 @@ console.log("Auth store after login:", state);
   }
 
   /* ═══ MEDIA HANDLERS ═══ */
-  // Process file input: create object-URLs for previews, cap at 5 files
+  // Process file input: validate images and create object-URLs for previews
   const handleMediaUpload = (e) => {
-    const files = Array.from(e.target.files)
-    const newMedia = files.map(file => ({
-      file,
-      name: file.name,
-      type: file.type.startsWith('image') ? 'image' : 'video',
-      preview: URL.createObjectURL(file)
-    }))
+    const files = Array.from(e.target.files || [])
+    const remainingSlots = Math.max(0, MAX_REPORT_MEDIA_FILES - reportData.media.length)
+
+    setMediaError('')
+
+    if (!files.length) {
+      return
+    }
+
+    if (remainingSlots === 0) {
+      setMediaError('You can upload up to 5 images per report.')
+      e.target.value = ''
+      return
+    }
+
+    const acceptedMedia = []
+    let nextError = ''
+
+    for (const file of files) {
+      if (!ALLOWED_REPORT_MEDIA_MIME_TYPES.has(file.type)) {
+        nextError = 'Only JPEG, PNG, and WebP images are allowed.'
+        continue
+      }
+
+      if (file.size > MAX_REPORT_MEDIA_FILE_SIZE_BYTES) {
+        nextError = 'Each image must be 5 MB or smaller.'
+        continue
+      }
+
+      if (acceptedMedia.length >= remainingSlots) {
+        nextError = 'You can upload up to 5 images per report.'
+        continue
+      }
+
+      acceptedMedia.push({
+        file,
+        name: file.name,
+        type: 'image',
+        preview: URL.createObjectURL(file)
+      })
+    }
+
+    if (!acceptedMedia.length) {
+      setMediaError(nextError || 'No valid images were selected.')
+      e.target.value = ''
+      return
+    }
+
     setReportData(prev => ({
       ...prev,
-      media: [...prev.media, ...newMedia].slice(0, 5),
-      mediaPreview: [...prev.mediaPreview, ...newMedia.map(m => m.preview)].slice(0, 5)
+      media: [...prev.media, ...acceptedMedia]
     }))
+
+    if (nextError) {
+      setMediaError(nextError)
+    }
+
+    e.target.value = ''
   }
 
   // Remove a media item by index
   const removeMedia = (index) => {
-    setReportData(prev => ({
-      ...prev,
-      media: prev.media.filter((_, i) => i !== index),
-      mediaPreview: prev.mediaPreview.filter((_, i) => i !== index)
-    }))
+    setReportData((prev) => {
+      const mediaToRemove = prev.media[index]
+      if (mediaToRemove?.preview) {
+        URL.revokeObjectURL(mediaToRemove.preview)
+      }
+
+      return {
+        ...prev,
+        media: prev.media.filter((_, i) => i !== index),
+      }
+    })
+    setMediaError('')
   }
 
   /* ═══ STEP VALIDATION & NAVIGATION ═══ */
@@ -218,10 +280,21 @@ console.log("Auth store after login:", state);
     }
 
     setSubmitError('')
+    setSubmitWarning('')
     setIsSubmitting(true)
 
     try {
       const createdReport = await createReport(buildCreatePayload())
+
+      if (createdReport?.id && reportData.media.length > 0) {
+        try {
+          await uploadReportMedia(createdReport.id, reportData.media.map((mediaItem) => mediaItem.file))
+        } catch (error) {
+          setSubmitWarning(error.message || 'Your report was created, but the images could not be uploaded.')
+        }
+      }
+
+      releaseMediaPreviews(reportData.media)
       setIsSubmitting(false)
       setIsSubmitted(true)
       setSubmittedId(createdReport?.id || null)
@@ -298,6 +371,10 @@ console.log("Auth store after login:", state);
                 Awaiting verification
               </div>
             </div>
+
+            {submitWarning && (
+              <p className="step-hint">{submitWarning}</p>
+            )}
 
             <div className="success-next">
               <h3>What happens next?</h3>
@@ -640,54 +717,51 @@ console.log("Auth store after login:", state);
             </div>
           )}
 
-          {/* STEP 4 — Media Upload (photos / videos, optional) */}
+          {/* STEP 4 — Media Upload (photos, optional) */}
           {currentStep === 4 && (
             <div className="step-panel">
               <div className="step-header">
                 <h1>Add media</h1>
-                <p>Photos or videos to illustrate the incident (optional).</p>
+                <p>Add up to 5 photos to document the incident (optional).</p>
               </div>
               <div className="media-section">
                 <div className="media-upload">
                   <input
                     type="file"
                     id="media-input"
-                    accept="image/*,video/*"
+                    accept="image/jpeg,image/png,image/webp"
                     multiple
                     onChange={handleMediaUpload}
                     style={{ display: 'none' }}
                   />
                   <label htmlFor="media-input" className="upload-zone">
                     <span className="upload-icon">📷</span>
-                    <span className="upload-title">Add photos or videos</span>
-                    <span className="upload-desc">Drag and drop or click to select</span>
-                    <span className="upload-limit">Maximum 5 files • 10 MB each</span>
+                    <span className="upload-title">Add photos</span>
+                    <span className="upload-desc">Click to select JPEG, PNG, or WebP images</span>
+                    <span className="upload-limit">Maximum 5 files • 5 MB each</span>
                   </label>
                 </div>
+
+                {mediaError && (
+                  <p className="input-error">{mediaError}</p>
+                )}
 
                 {reportData.media.length > 0 && (
                   <div className="media-preview-grid">
                     {reportData.media.map((media, index) => (
                       <div key={index} className="media-preview-item">
-                        {media.type === 'image' ? (
-                          <img src={media.preview} alt={`Preview ${index + 1}`} />
-                        ) : (
-                          <div className="video-preview">
-                            <span className="video-icon">🎬</span>
-                            <span>{media.name}</span>
-                          </div>
-                        )}
+                        <img src={media.preview} alt={`Preview ${index + 1}`} />
                         <button className="remove-media" onClick={() => removeMedia(index)}>✕</button>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <div className="media-notice">
-                  <span className="notice-icon">🔒</span>
-                  <div className="notice-text">
-                    <strong>Privacy</strong>
-                    <p>Media is moderated before publication. Visible personal data (faces, license plates) may be blurred.</p>
+                  <div className="media-notice">
+                    <span className="notice-icon">🔒</span>
+                    <div className="notice-text">
+                      <strong>Privacy</strong>
+                      <p>Media is moderated before publication. Visible personal data (faces, license plates) may be blurred.</p>
                   </div>
                 </div>
 
@@ -748,7 +822,7 @@ console.log("Auth store after login:", state);
                     <span className="review-label">Media</span>
                     <span className="review-value">
                       {reportData.media.length > 0 
-                        ? `📷 ${reportData.media.length} file(s)` 
+                        ? `📷 ${reportData.media.length} image(s)` 
                         : 'No media'}
                     </span>
                     <button className="review-edit" onClick={() => setCurrentStep(4)}>✏️</button>

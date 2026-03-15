@@ -14,6 +14,7 @@ import "leaflet.heat";
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import IconButton from "@mui/material/IconButton";
 import MuiTooltip from "@mui/material/Tooltip";
+import ReportMapMarker from "./ReportMapMarker";
 
 const USER_ZOOM = 15;
 const NEARBY_RADIUS_KM = 25;
@@ -952,6 +953,7 @@ const HeatLayer = ({ points }) => {
 }
 
 const SiaraMap = ({
+  reportMarkers,
   mockMarkers,
   mapLayer,
   setSelectedIncident,
@@ -963,6 +965,16 @@ const SiaraMap = ({
   requestLocation,
   onSelectedTimestampChange,
 }) => {
+  const markers = useMemo(() => {
+    if (Array.isArray(reportMarkers)) {
+      return reportMarkers;
+    }
+    if (Array.isArray(mockMarkers)) {
+      return mockMarkers;
+    }
+    return [];
+  }, [mockMarkers, reportMarkers]);
+
   const [currentRisk, setCurrentRisk] = useState(null);
   const [currentRiskState, setCurrentRiskState] = useState("idle");
   const [currentRiskError, setCurrentRiskError] = useState("");
@@ -1326,7 +1338,7 @@ const SiaraMap = ({
   }, [hasValidUserLocation, selectedTimestampIso, userLocationKey]);
 
   useEffect(() => {
-    if (!hasValidUserLocation || !userPosition || !mockMarkers?.length) {
+    if (!hasValidUserLocation || !userPosition || !markers.length) {
       setOverlayBySegment({});
       setOverlayState("idle");
       setOverlayError("");
@@ -1341,7 +1353,7 @@ const SiaraMap = ({
 
     const body = {
       timestamp: selectedTimestampIso,
-      rows: mockMarkers.map((marker) => ({
+      rows: markers.map((marker) => ({
         segment_id: String(marker.id),
         lat: marker.lat,
         lng: marker.lng,
@@ -1373,7 +1385,7 @@ const SiaraMap = ({
     return () => {
       cancelled = true;
     };
-  }, [hasValidUserLocation, mapLayer, mockMarkers, selectedTimestampIso, userLocationKey]);
+  }, [hasValidUserLocation, mapLayer, markers, selectedTimestampIso, userLocationKey]);
 
   useEffect(() => {
     if (mapLayer !== "nearbyRoads") {
@@ -1450,13 +1462,13 @@ const SiaraMap = ({
 
   const heatPoints = useMemo(
     () =>
-      (mockMarkers || [])
+      markers
         .map((m) => {
           const pos = normalizePosition(m);
           return pos ? [pos[0], pos[1], getWeight(m.severity)] : null;
         })
         .filter(Boolean),
-    [mockMarkers],
+    [markers],
   );
 
   const handleFeatureClick = async (marker) => {
@@ -1960,7 +1972,7 @@ const SiaraMap = ({
               deps={[
                 mapLayer,
                 hasValidUserLocation,
-                mockMarkers?.length,
+                markers.length,
                 nearbyRoutes.length,
                 guidedRoutes.length,
                 helpOpen,
@@ -2202,7 +2214,7 @@ const SiaraMap = ({
               })}
 
             {(mapLayer === "points" || mapLayer === "ai") &&
-              (mockMarkers || []).map((marker) => {
+              markers.map((marker) => {
                 const position = normalizePosition(marker);
                 if (!position) return null;
 
@@ -2241,11 +2253,21 @@ const SiaraMap = ({
                   );
                 }
 
+                if (!isAi) {
+                  return (
+                    <ReportMapMarker
+                      key={`report-${marker.id}`}
+                      report={marker}
+                      onClick={() => handleFeatureClick(marker)}
+                    />
+                  );
+                }
+
                 return (
                   <CircleMarker
                     key={`point-${marker.id}`}
                     center={position}
-                    radius={isAi ? 9 : 7}
+                    radius={9}
                     pathOptions={{
                       color: "#ffffff",
                       weight: 2,
@@ -2256,7 +2278,7 @@ const SiaraMap = ({
                       click: () => handleFeatureClick(marker),
                     }}
                   >
-                    {isAi && Number.isFinite(percent) && (
+                    {Number.isFinite(percent) && (
                       <Tooltip
                         permanent
                         direction="top"

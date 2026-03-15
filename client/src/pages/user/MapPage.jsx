@@ -24,6 +24,7 @@ import profileAvatar from "../../assets/logos/siara-logo1.png";
 import DangerForecastChart from "../../components/map/DangerForecastChart";
 import SiaraMap from "../../components/map/SiaraMap";
 import DrivingQuiz from "../../components/ui/DrivingQuiz";
+import useReportMapReports from "../../hooks/useReportMapReports";
 
 /* ── MUI Icons ── */
 import LocationOnTwoToneIcon from "@mui/icons-material/LocationOnTwoTone";
@@ -43,6 +44,11 @@ const LOCATION_STALE_READING_MS = 30000;
 const GEOLOCATION_PERMISSION_DENIED = 1;
 const GEOLOCATION_POSITION_UNAVAILABLE = 2;
 const GEOLOCATION_TIMEOUT = 3;
+const SEVERITY_SCORES = {
+  low: 1,
+  medium: 2,
+  high: 3,
+};
 
 async function getJson(path, signal) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -206,6 +212,60 @@ function weatherIconFromCondition(condition) {
   return "☀️";
 }
 
+function normalizeSeverityLevel(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "high" || normalized === "medium" || normalized === "low") {
+    return normalized;
+  }
+  return "low";
+}
+
+function getReportTimestamp(report) {
+  const candidate = report?.occurredAt || report?.createdAt || report?.updatedAt;
+  const timestamp = new Date(candidate || "");
+  return Number.isNaN(timestamp.getTime()) ? null : timestamp;
+}
+
+function matchesTimeFilter(report, timeFilter) {
+  if (timeFilter === "custom") {
+    return true;
+  }
+
+  const reportTimestamp = getReportTimestamp(report);
+  if (!reportTimestamp) {
+    return false;
+  }
+
+  const thresholds = {
+    "24h": 24 * 60 * 60 * 1000,
+    "7d": 7 * 24 * 60 * 60 * 1000,
+    "30d": 30 * 24 * 60 * 60 * 1000,
+  };
+  const maxAgeMs = thresholds[timeFilter];
+  if (!maxAgeMs) {
+    return true;
+  }
+
+  return Date.now() - reportTimestamp.getTime() <= maxAgeMs;
+}
+
+function formatRelativeReportAge(value) {
+  const timestamp = new Date(value || "");
+  if (Number.isNaN(timestamp.getTime())) {
+    return "Unknown";
+  }
+
+  const diffMinutes = Math.max(0, Math.round((Date.now() - timestamp.getTime()) / 60000));
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes} min`;
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} h`;
+
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays} d`;
+}
+
 export default function MapPage() {
   const navigate = useNavigate();
   const { user, logout } = useContext(AuthContext);
@@ -268,6 +328,16 @@ export default function MapPage() {
     () => locationStatus === "granted" && normalizePoint(userPosition) != null,
     [locationStatus, userPosition],
   );
+  const {
+    reports,
+    mapReadyReports,
+    isLoading: reportsLoading,
+    error: reportsError,
+  } = useReportMapReports({
+    limit: 100,
+    feed: "latest",
+    sort: "recent",
+  });
 
   const userPositionRef = useRef(userPosition);
   const watchIdRef = useRef(null);
@@ -733,7 +803,7 @@ export default function MapPage() {
     ? "n/a"
     : `${Number(weatherData.pressure_hpa).toFixed(0)} hPa`;
 
-  /* ──────────────────────── Static / Mock Data ──────────────────────── */
+  /* ──────────────────────── Report Data & Derived UI Data ──────────────────────── */
 
   // Incident categories shown as filter chips
   const incidentTypes = [
@@ -754,27 +824,152 @@ export default function MapPage() {
     "Boumerdès",
   ];
 
-  // Hot-spots displayed in the right sidebar
-  const trendingZones = [
-    { name: "Alger Centre", incidents: 12, severity: "high", updated: "2 min" },
-    { name: "Bab Ezzouar", incidents: 8, severity: "medium", updated: "5 min" },
-    { name: "El Harrach", incidents: 5, severity: "medium", updated: "12 min" },
-    { name: "Hydra", incidents: 2, severity: "low", updated: "20 min" },
-  ];
+  const filteredReports = useMemo(
+    () =>
+      reports.filter((report) => {
+        const severity = normalizeSeverityLevel(report?.severity);
+        const reportType = String(report?.incidentType || report?.type || "").trim().toLowerCase();
+        const locationLabel = String(report?.locationLabel || "").trim().toLowerCase();
 
-  // Live alerts shown in the right sidebar
-  const activeAlerts = [
-    { id: 1, title: "Serious accident A1", type: "accident", time: "3 min" },
-    { id: 2, title: "Road flooding", type: "weather", time: "15 min" },
-  ];
+        if (severityFilter.length > 0 && !severityFilter.includes(severity)) {
+          return false;
+        }
 
-  // Placeholder map markers (replace with API data in production)
-  const mockMarkers = [
-    { id: 1, lat: 36.7538, lng: 3.0588, type: "accident", severity: "high", title: "Multi-vehicle collision" },
-    { id: 2, lat: 36.7638, lng: 3.0788, type: "traffic", severity: "medium", title: "Traffic jam" },
-    { id: 3, lat: 36.7438, lng: 3.0388, type: "roadworks", severity: "low", title: "Ongoing roadworks" },
-    { id: 4, lat: 36.7338, lng: 3.0688, type: "danger", severity: "high", title: "Road blocked" },
-  ];
+        if (typeFilter.length > 0 && !typeFilter.includes(reportType)) {
+          return false;
+        }
+
+        if (selectedWilaya !== "all" && !locationLabel.includes(String(selectedWilaya).trim().toLowerCase())) {
+          return false;
+        }
+
+        return matchesTimeFilter(report, timeFilter);
+      }),
+    [reports, selectedWilaya, severityFilter, timeFilter, typeFilter],
+  );
+
+  const visibleReportMarkers = useMemo(
+    () => filteredReports.filter((report) => mapReadyReports.some((marker) => marker.id === report.id)),
+    [filteredReports, mapReadyReports],
+  );
+
+  const trendingZones = useMemo(() => {
+    const zoneMap = new Map();
+
+    for (const report of filteredReports) {
+      const zoneName = String(report?.locationLabel || "Reported area").trim() || "Reported area";
+      const severity = normalizeSeverityLevel(report?.severity);
+      const severityScore = SEVERITY_SCORES[severity] || 0;
+      const updatedAt =
+        getReportTimestamp(report)?.toISOString() || report?.createdAt || report?.updatedAt || null;
+      const existing = zoneMap.get(zoneName);
+
+      if (!existing) {
+        zoneMap.set(zoneName, {
+          name: zoneName,
+          incidents: 1,
+          severity,
+          severityScore,
+          updatedAt,
+        });
+        continue;
+      }
+
+      zoneMap.set(zoneName, {
+        ...existing,
+        incidents: existing.incidents + 1,
+        severity: severityScore > existing.severityScore ? severity : existing.severity,
+        severityScore: Math.max(existing.severityScore, severityScore),
+        updatedAt:
+          !existing.updatedAt || (updatedAt && new Date(updatedAt) > new Date(existing.updatedAt))
+            ? updatedAt
+            : existing.updatedAt,
+      });
+    }
+
+    return Array.from(zoneMap.values())
+      .sort((left, right) => {
+        if (right.incidents !== left.incidents) {
+          return right.incidents - left.incidents;
+        }
+        return right.severityScore - left.severityScore;
+      })
+      .slice(0, 4)
+      .map((zone) => ({
+        ...zone,
+        updated: formatRelativeReportAge(zone.updatedAt),
+      }));
+  }, [filteredReports]);
+
+  const activeAlerts = useMemo(
+    () =>
+      [...filteredReports]
+        .filter((report) => report.status !== "resolved")
+        .sort((left, right) => {
+          const severityDelta =
+            (SEVERITY_SCORES[normalizeSeverityLevel(right?.severity)] || 0) -
+            (SEVERITY_SCORES[normalizeSeverityLevel(left?.severity)] || 0);
+          if (severityDelta !== 0) {
+            return severityDelta;
+          }
+
+          const rightTime = getReportTimestamp(right)?.getTime() || 0;
+          const leftTime = getReportTimestamp(left)?.getTime() || 0;
+          return rightTime - leftTime;
+        })
+        .slice(0, 4)
+        .map((report) => ({
+          id: report.id,
+          title: report.title || report.locationLabel || "Road alert",
+          type: report.incidentType || "other",
+          time: formatRelativeReportAge(report.occurredAt || report.createdAt || report.updatedAt),
+        })),
+    [filteredReports],
+  );
+
+  const statsTodayCount = useMemo(() => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    return filteredReports.filter((report) => {
+      const reportTimestamp = getReportTimestamp(report);
+      return reportTimestamp && reportTimestamp >= startOfDay;
+    }).length;
+  }, [filteredReports]);
+
+  const averageSeverityLabel = useMemo(() => {
+    if (filteredReports.length === 0) {
+      return "n/a";
+    }
+
+    const total = filteredReports.reduce(
+      (sum, report) => sum + (SEVERITY_SCORES[normalizeSeverityLevel(report?.severity)] || 0),
+      0,
+    );
+
+    return (total / filteredReports.length).toFixed(1);
+  }, [filteredReports]);
+
+  const verifiedRateLabel = useMemo(() => {
+    if (filteredReports.length === 0) {
+      return "0%";
+    }
+
+    const verifiedCount = filteredReports.filter((report) => report.status === "verified").length;
+    return `${Math.round((verifiedCount / filteredReports.length) * 100)}%`;
+  }, [filteredReports]);
+
+  const reportStatusLabel = useMemo(() => {
+    if (reportsLoading) {
+      return "Loading real-time reports...";
+    }
+
+    if (reportsError) {
+      return "Real-time reports unavailable";
+    }
+
+    return `Real-time • ${visibleReportMarkers.length} incidents displayed`;
+  }, [reportsError, reportsLoading, visibleReportMarkers.length]);
 
   /* ──────────────────────── Event Handlers ──────────────────────── */
 
@@ -1092,7 +1287,7 @@ export default function MapPage() {
             {/* ── Map canvas — renders the SiaraMap component ── */}
             <div className="map-canvas">
               <SiaraMap
-                mockMarkers={mockMarkers}
+                reportMarkers={visibleReportMarkers}
                 mapLayer={mapLayer}
                 setSelectedIncident={setSelectedIncident}
                 userPosition={userPosition}
@@ -1108,7 +1303,7 @@ export default function MapPage() {
             {/* ── Status bar at the bottom of the map ── */}
             <div className="map-status">
               <span className="status-dot"></span>
-              <span>Real-time • {mockMarkers.length} incidents displayed</span>
+              <span>{reportStatusLabel}</span>
             </div>
           </div>
         </main>
@@ -1152,6 +1347,19 @@ export default function MapPage() {
             )}
             {!forecastLoading && !forecastError && forecastPoints.length === 0 && (
               <p className="chart-note">Aucune prevision disponible.</p>
+            )}
+          </div>
+
+          <div className="context-section">
+            <h4 className="section-title">Reports Feed</h4>
+            {reportsLoading ? (
+              <p className="chart-note">Loading reports from the database...</p>
+            ) : reportsError ? (
+              <p className="chart-note chart-note-error">{reportsError}</p>
+            ) : (
+              <p className="chart-note">
+                {visibleReportMarkers.length} mapped reports match the current filters.
+              </p>
             )}
           </div>
 
@@ -1227,8 +1435,11 @@ export default function MapPage() {
           <div className="context-section">
             <h4 className="section-title">Areas to Watch</h4>
             <div className="trending-zones">
-              {trendingZones.map((zone, i) => (
-                <div key={i} className="zone-item">
+              {trendingZones.length === 0 && (
+                <p className="chart-note">No report clusters match the current filters.</p>
+              )}
+              {trendingZones.map((zone) => (
+                <div key={zone.name} className="zone-item">
                   <div className="zone-info">
                     <span className="zone-name">{zone.name}</span>
                     <span className="zone-meta">
@@ -1247,12 +1458,15 @@ export default function MapPage() {
           <div className="context-section">
             <h4 className="section-title">Active Alerts</h4>
             <div className="map-alerts-list">
+              {activeAlerts.length === 0 && (
+                <p className="chart-note">No active report alerts right now.</p>
+              )}
               {activeAlerts.map((alert) => (
                 <div key={alert.id} className="map-alert-item">
                   <span className="map-alert-icon">🚨</span>
                   <div className="map-alert-info">
                     <span className="map-alert-title">{alert.title}</span>
-                    <span className="map-alert-time">{alert.time} ago</span>
+                    <span className="map-alert-time">{alert.time}</span>
                   </div>
                 </div>
               ))}
@@ -1265,16 +1479,16 @@ export default function MapPage() {
             <h4 className="section-title">Statistics</h4>
             <div className="quick-stats">
               <div className="map-stat-item">
-                <span className="map-stat-value">156</span>
+                <span className="map-stat-value">{statsTodayCount}</span>
                 <span className="map-stat-label">Today</span>
               </div>
               <div className="map-stat-item">
-                <span className="map-stat-value">6.2</span>
+                <span className="map-stat-value">{averageSeverityLabel}</span>
                 <span className="map-stat-label">Avg. Severity</span>
               </div>
               <div className="map-stat-item">
-                <span className="map-stat-value">94%</span>
-                <span className="map-stat-label">AI Accuracy</span>
+                <span className="map-stat-value">{verifiedRateLabel}</span>
+                <span className="map-stat-label">Verified</span>
               </div>
             </div>
           </div>

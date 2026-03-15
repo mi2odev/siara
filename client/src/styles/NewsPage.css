@@ -1374,6 +1374,13 @@
   margin: 0 0 8px 0;
 }
 
+.post-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 8px 0;
+}
+
 .clamp-lines {
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -1427,9 +1434,18 @@
 }
 
 .media-item {
+  position: relative;
   aspect-ratio: 1;
   background: linear-gradient(135deg, #E2E8F0, #CBD5E1);
   border-radius: 8px;
+  overflow: hidden;
+}
+
+.media-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .media-more {
@@ -1441,6 +1457,22 @@
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, #64748B, #475569);
+}
+
+.media-more::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.media-more-count {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .post-map-preview {
@@ -1540,6 +1572,50 @@
 .comment-box strong {
   font-weight: 600;
   color: #1E293B;
+}
+
+.feed-state-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feed-state-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.feed-state-error {
+  border: 1px solid #FECACA;
+  background: #FEF2F2;
+}
+
+.feed-pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 24px;
+}
+
+.show-more-btn {
+  min-width: 180px;
+}
+
+.feed-load-more-error {
+  margin: 0;
+  color: #B91C1C;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.feed-pagination-end {
+  margin: 0;
+  color: #64748B;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* ================================================
@@ -1700,6 +1776,24 @@
   border-color: var(--siara-btn-accent);
 }
 
+.map-widget-loading {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F1F5F9;
+  color: #64748B;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.map-widget-status {
+  margin: 12px 0;
+  color: #64748B;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 /* B. Trending Incidents */
 .widget-trending {
   padding: 16px;
@@ -1753,6 +1847,13 @@
 
 .widget-see-more:hover {
   color: var(--siara-btn-primary);
+}
+
+.widget-empty-copy {
+  margin: 0 0 12px 0;
+  color: #64748B;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .trending-bar {

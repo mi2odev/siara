@@ -60,3 +60,47 @@ export async function deleteReport(reportId) {
     throw normalizeApiError(error, 'Failed to delete report')
   }
 }
+
+export async function uploadReportMedia(reportId, files) {
+  try {
+    const formData = new FormData()
+
+    files.forEach((file) => {
+      formData.append('images', file)
+    })
+
+    const response = await userRequest.post(`/reports/${reportId}/media`, formData)
+    return response.data?.report
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to upload report images')
+  }
+}
+
+export async function listReports(params = {}) {
+  try {
+    const response = await publicRequest.get('/reports', {
+      params: {
+        limit: params.limit,
+        offset: params.offset,
+        feed: params.feed,
+        sort: params.sort,
+        lat: params.lat,
+        lng: params.lng,
+        radiusKm: params.radiusKm,
+      },
+    })
+
+    return {
+      reports: response.data?.reports || [],
+      pagination: response.data?.pagination || {
+        limit: params.limit || 10,
+        offset: params.offset || 0,
+        hasMore: false,
+        returned: 0,
+      },
+      meta: response.data?.meta || null,
+    }
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to load reports feed')
+  }
+}
