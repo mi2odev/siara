@@ -1073,16 +1073,19 @@ export default function MapPage() {
               {isFullscreen ? (
                 <button className="map-ctrl-btn" title="Exit fullscreen" onClick={() => setIsFullscreen(false)}>
                   <FullscreenExitTwoToneIcon className="btn-icon" />
+                  <span className="map-ctrl-label">Exit Full Map</span>
                 </button>
               ) : (
                 <button className="map-ctrl-btn" title="Fullscreen" onClick={() => setIsFullscreen(true)}>
                   <FullscreenTwoToneIcon className="btn-icon" />
+                  <span className="map-ctrl-label">Full Map</span>
                 </button>
               )}
 
               {/* Geolocate user and center the map on their position */}
               <button className="map-ctrl-btn" title="My location" onClick={handleLocateUser}>
                 <LocationOnTwoToneIcon className="btn-icon" />
+                <span className="map-ctrl-label">My Location</span>
               </button>
             </div>
 
