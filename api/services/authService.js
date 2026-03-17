@@ -37,10 +37,12 @@ const USER_SELECT_SQL = `
     u.phone,
     u.password_hash,
     u.avatar_url,
+    u.auth_provider,
+    u.google_sub,
     u.is_active,
     u.created_at,
     u.updated_at,
-    uss.email_verified_at,
+    coalesce(uss.email_verified_at, u.email_verified_at) as email_verified_at,
     uss.last_login_at,
     uss.last_password_reset_at,
     coalesce(uss.session_version, 0) as session_version,
@@ -166,6 +168,7 @@ function mapUser(row) {
     email: row.email,
     phone: row.phone,
     avatar_url: row.avatar_url,
+    auth_provider: row.auth_provider || "email",
     is_active: row.is_active,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -268,6 +271,10 @@ async function fetchUserById(userId, db = pool) {
 
 async function fetchUserByEmail(email, db = pool) {
   return fetchUserByCondition("lower(u.email) = lower($1)", [email], db);
+}
+
+async function fetchUserByGoogleSub(googleSub, db = pool) {
+  return fetchUserByCondition("u.google_sub = $1", [googleSub], db);
 }
 
 async function fetchUserByIdentifier(identifier, db = pool) {
@@ -813,12 +820,14 @@ async function resetPassword({ email, resetToken, newPassword, res }) {
 
 function getGoogleClient() {
   const clientId = String(
-    process.env.GOOGLE_AUTH_CLIENT_ID
+    process.env.GOOGLE_CLIENT_ID
+    || process.env.GOOGLE_AUTH_CLIENT_ID
+    || process.env.VITE_GOOGLE_CLIENT_ID
     || process.env.VITE_GOOGLE_AUTH_CLIENT_ID
     || "",
   ).trim();
   if (!clientId) {
-    throw createError(500, "GOOGLE_AUTH_CLIENT_ID is not configured");
+    throw createError(500, "GOOGLE_CLIENT_ID is not configured");
   }
 
   if (!googleClient) {
@@ -834,17 +843,23 @@ function getGoogleClient() {
 async function verifyGoogleCredential(credential) {
   const normalizedCredential = normalizeOptionalString(credential);
   if (!normalizedCredential) {
-    throw createError(400, "Google credential is required");
+    throw createError(400, "Google ID token is required");
   }
 
   const { client, clientId } = getGoogleClient();
-  const ticket = await client.verifyIdToken({
-    idToken: normalizedCredential,
-    audience: clientId,
-  });
+  let ticket = null;
+
+  try {
+    ticket = await client.verifyIdToken({
+      idToken: normalizedCredential,
+      audience: clientId,
+    });
+  } catch (_error) {
+    throw createError(401, "Google token is invalid or has the wrong audience");
+  }
 
   const payload = ticket.getPayload();
-  if (!payload?.sub || !payload?.email || payload.email_verified !== true) {
+  if (!payload?.sub || !payload?.email) {
     throw createError(401, "Google account could not be verified");
   }
 
@@ -872,12 +887,24 @@ async function createUserFromGoogleIdentity(client, payload) {
         email,
         phone,
         password_hash,
-        avatar_url
+        avatar_url,
+        auth_provider,
+        google_sub,
+        email_verified_at
       )
-      values ($1, $2, $3, null, $4, $5)
+      values ($1, $2, $3, null, $4, $5, $6, $7, $8)
       returning id
     `,
-    [firstName, lastName, payload.email.toLowerCase(), randomPasswordHash, payload.picture || null],
+    [
+      firstName,
+      lastName,
+      payload.email.toLowerCase(),
+      randomPasswordHash,
+      payload.picture || null,
+      GOOGLE_PROVIDER,
+      payload.sub,
+      payload.email_verified === true ? new Date().toISOString() : null,
+    ],
   );
 
   const userId = insertedUser.rows[0]?.id;
@@ -892,8 +919,76 @@ async function createUserFromGoogleIdentity(client, payload) {
   return userId;
 }
 
-async function loginWithGoogle({ credential, rememberMe, res }) {
-  const payload = await verifyGoogleCredential(credential);
+async function upsertGoogleIdentityLink(client, userId, payload) {
+  const existingProviderLink = await client.query(
+    `
+      select provider_subject
+      from app.user_oauth_identities
+      where user_id = $1
+        and provider = $2
+      limit 1
+    `,
+    [userId, GOOGLE_PROVIDER],
+  );
+
+  if (
+    existingProviderLink.rows[0]?.provider_subject
+    && existingProviderLink.rows[0].provider_subject !== payload.sub
+  ) {
+    throw createError(409, "This SIARA account is already linked to a different Google account");
+  }
+
+  await client.query(
+    `
+      insert into app.user_oauth_identities (
+        user_id,
+        provider,
+        provider_subject,
+        email,
+        created_at,
+        updated_at
+      )
+      values ($1, $2, $3, $4, now(), now())
+      on conflict (provider, provider_subject) do update
+      set
+        user_id = excluded.user_id,
+        email = excluded.email,
+        updated_at = now()
+    `,
+    [userId, GOOGLE_PROVIDER, payload.sub, payload.email.toLowerCase()],
+  );
+}
+
+async function syncGoogleUserRecord(client, userId, payload) {
+  await client.query(
+    `
+      update auth.users
+      set
+        avatar_url = coalesce($2, avatar_url),
+        auth_provider = case
+          when auth_provider is null or auth_provider = '' then $3
+          else auth_provider
+        end,
+        google_sub = coalesce(google_sub, $4),
+        email_verified_at = case
+          when $5::boolean = true then coalesce(email_verified_at, now())
+          else email_verified_at
+        end,
+        updated_at = now()
+      where id = $1
+    `,
+    [
+      userId,
+      payload.picture || null,
+      GOOGLE_PROVIDER,
+      payload.sub,
+      payload.email_verified === true,
+    ],
+  );
+}
+
+async function loginWithGoogle({ idToken, credential, rememberMe, res }) {
+  const payload = await verifyGoogleCredential(idToken || credential);
   const client = await pool.connect();
   let transactionStarted = false;
 
@@ -901,7 +996,7 @@ async function loginWithGoogle({ credential, rememberMe, res }) {
     await client.query("begin");
     transactionStarted = true;
 
-    const existingIdentity = await client.query(
+    const existingIdentityBySubject = await client.query(
       `
         select user_id
         from app.user_oauth_identities
@@ -912,50 +1007,51 @@ async function loginWithGoogle({ credential, rememberMe, res }) {
       [GOOGLE_PROVIDER, payload.sub],
     );
 
-    let userId = existingIdentity.rows[0]?.user_id || null;
+    let userId = existingIdentityBySubject.rows[0]?.user_id || null;
+
+    if (!userId) {
+      const existingGoogleUser = await fetchUserByGoogleSub(payload.sub, client);
+      userId = existingGoogleUser?.id || null;
+    }
+
+    if (!userId && payload.email_verified !== true) {
+      throw createError(403, "Google account email must be verified before it can be linked to SIARA");
+    }
+
     if (!userId) {
       const existingUser = await fetchUserByEmail(payload.email, client);
       if (existingUser) {
+        if (
+          existingUser.google_sub
+          && existingUser.google_sub !== payload.sub
+        ) {
+          throw createError(409, "This email is already linked to a different Google account");
+        }
         userId = existingUser.id;
       } else {
         userId = await createUserFromGoogleIdentity(client, payload);
       }
-
-      await client.query(
-        `
-          insert into app.user_oauth_identities (
-            user_id,
-            provider,
-            provider_subject,
-            email,
-            created_at,
-            updated_at
-          )
-          values ($1, $2, $3, $4, now(), now())
-          on conflict (provider, provider_subject) do update
-          set
-            user_id = excluded.user_id,
-            email = excluded.email,
-            updated_at = now()
-        `,
-        [userId, GOOGLE_PROVIDER, payload.sub, payload.email.toLowerCase()],
-      );
     }
 
+    await upsertGoogleIdentityLink(client, userId, payload);
+    await syncGoogleUserRecord(client, userId, payload);
     await ensureSupportRows(client, userId, {
-      emailVerifiedAt: new Date().toISOString(),
+      emailVerifiedAt: payload.email_verified === true ? new Date().toISOString() : null,
     });
 
     await client.query(
       `
         update app.user_security_state
         set
-          email_verified_at = coalesce(email_verified_at, now()),
+          email_verified_at = case
+            when $2::boolean = true then coalesce(email_verified_at, now())
+            else email_verified_at
+          end,
           last_login_at = now(),
           updated_at = now()
         where user_id = $1
       `,
-      [userId],
+      [userId, payload.email_verified === true],
     );
 
     await client.query("commit");
@@ -966,6 +1062,7 @@ async function loginWithGoogle({ credential, rememberMe, res }) {
 
     return {
       ok: true,
+      success: true,
       user: mapUser(user),
       accessToken: session.accessToken,
       requiresEmailVerification: false,

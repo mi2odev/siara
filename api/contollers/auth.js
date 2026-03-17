@@ -148,7 +148,7 @@ router.post("/password/reset", async (req, res, next) => {
 router.post("/google", async (req, res, next) => {
   try {
     const result = await loginWithGoogle({
-      credential: req.body.credential,
+      idToken: req.body.idToken || req.body.credential,
       rememberMe: req.body.rememberMe,
       res,
     });
