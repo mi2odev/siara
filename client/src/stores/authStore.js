@@ -95,11 +95,11 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  async loginWithGoogle(credential, rememberMe = false) {
+  async loginWithGoogle(idToken, rememberMe = false) {
     set({ isAuthLoading: true })
 
     try {
-      const response = await loginWithGoogleRequest({ credential, rememberMe })
+      const response = await loginWithGoogleRequest({ idToken, rememberMe })
       setAuthenticatedState(set, response)
       return normalizeAuthUser(response.user)
     } catch (error) {

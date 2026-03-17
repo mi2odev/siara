@@ -111,8 +111,63 @@
 
 /* Google button */
 .siara-alt{width:100%;padding:11px 12px;border-radius:14px;border:1px solid #E5E7EB;background:#fff;color:var(--siara-text-dark);margin-top:10px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 14px -8px rgba(15,23,42,0.18);}
-.siara-google-auth{display:flex;justify-content:center;margin-top:4px;}
-.siara-google-auth > div{width:100%;display:flex;justify-content:center;}
+.siara-google-auth{display:flex;flex-direction:column;justify-content:center;gap:8px;margin-top:4px;width:100%;}
+.siara-google-auth-shell{width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;}
+.siara-google-auth-official{width:100%;display:none;justify-content:center;}
+.siara-google-auth-official.is-visible{display:flex;}
+.siara-google-auth-official > div,
+.siara-google-auth-official iframe{max-width:100%;}
+.siara-google-fallback{
+  width:100%;
+  min-height:46px;
+  padding:12px 14px;
+  border-radius:16px;
+  border:1px solid rgba(15,23,42,0.14);
+  background:#fff;
+  color:var(--siara-text-dark);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  box-shadow:0 10px 24px -18px rgba(15,23,42,0.42);
+  transition:transform var(--siara-transition-fast),box-shadow var(--siara-transition-fast),border-color var(--siara-transition-fast);
+}
+.siara-google-fallback:hover{
+  transform:translateY(-1px);
+  box-shadow:0 16px 28px -18px rgba(15,23,42,0.35);
+  border-color:rgba(124,58,237,0.24);
+}
+.siara-google-fallback.is-disabled,
+.siara-google-fallback:disabled{
+  cursor:not-allowed;
+  opacity:0.7;
+  transform:none;
+  box-shadow:none;
+}
+.siara-google-fallback__icon{
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  font-size:13px;
+  color:#fff;
+  background:conic-gradient(from 220deg,#4285F4 0 26%,#34A853 26% 52%,#FBBC05 52% 76%,#EA4335 76% 100%);
+}
+.siara-google-auth-note{
+  font-size:12px;
+  line-height:1.5;
+  color:#7C3AED;
+  background:rgba(124,58,237,0.06);
+  border:1px solid rgba(124,58,237,0.12);
+  border-radius:12px;
+  padding:10px 12px;
+}
 
 .siara-auth-divider{
   position:relative;

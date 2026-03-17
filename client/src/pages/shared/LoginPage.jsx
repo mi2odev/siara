@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton'
 import { AuthContext } from '../../contexts/AuthContext'
-import { isGoogleLoginAvailable } from '../../services/googleAuthService'
 import logo from '../../assets/logos/siara-logo.png'
 import '../../styles/LoginPage.css'
 
@@ -21,7 +20,6 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { login, loginWithGoogle } = useContext(AuthContext)
-  const showGoogleLogin = isGoogleLoginAvailable()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -76,14 +74,16 @@ export default function LoginPage() {
     }
   }
 
-  async function handleGoogleLogin(credential) {
+  async function handleGoogleLogin(idToken) {
     setGoogleError('')
     setLoading(true)
 
     try {
-      const user = await loginWithGoogle(credential, rememberMe)
+      const user = await loginWithGoogle(idToken, rememberMe)
+      console.info('[google-auth] Backend Google login succeeded on /login')
       navigate(getRedirectPath(user), { replace: true })
     } catch (authError) {
+      console.error('[google-auth] Backend Google login failed on /login', authError)
       setGoogleError(getErrorMessage(authError))
     } finally {
       setLoading(false)
@@ -199,20 +199,19 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {showGoogleLogin ? (
-              <>
-                <div className="siara-auth-divider">
-                  <span>or continue with</span>
-                </div>
+            <div className="siara-auth-divider">
+              <span>or continue with</span>
+            </div>
 
-                {googleError ? <div className="error-box" role="alert">{googleError}</div> : null}
-                <GoogleAuthButton
-                  disabled={loading}
-                  onCredential={handleGoogleLogin}
-                  onError={(googleAuthError) => setGoogleError(googleAuthError.message)}
-                />
-              </>
-            ) : null}
+            {googleError ? <div className="error-box" role="alert">{googleError}</div> : null}
+            <GoogleAuthButton
+              disabled={loading}
+              onCredential={handleGoogleLogin}
+              onError={(googleAuthError) => {
+                console.error('[google-auth] Login page Google button error', googleAuthError)
+                setGoogleError(googleAuthError.message)
+              }}
+            />
 
             <div className="siara-footer-links">
               <Link to="/about">About SIARA</Link>

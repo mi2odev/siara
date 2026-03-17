@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton'
 import { AuthContext } from '../../contexts/AuthContext'
-import { isGoogleLoginAvailable } from '../../services/googleAuthService'
 import logo from '../../assets/logos/siara-logo.png'
 import '../../styles/LoginPage.css'
 import '../../styles/RegisterPage.css'
@@ -21,7 +20,6 @@ function getRedirectPath(user) {
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { register, loginWithGoogle } = useContext(AuthContext)
-  const showGoogleLogin = isGoogleLoginAvailable()
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -89,14 +87,16 @@ export default function RegisterPage() {
     }
   }
 
-  async function handleGoogleSignup(credential) {
+  async function handleGoogleSignup(idToken) {
     setGoogleError('')
     setLoading(true)
 
     try {
-      const user = await loginWithGoogle(credential, rememberMe)
+      const user = await loginWithGoogle(idToken, rememberMe)
+      console.info('[google-auth] Backend Google login succeeded on /register')
       navigate(getRedirectPath(user), { replace: true })
     } catch (authError) {
+      console.error('[google-auth] Backend Google login failed on /register', authError)
       setGoogleError(getErrorMessage(authError))
     } finally {
       setLoading(false)
@@ -252,20 +252,19 @@ export default function RegisterPage() {
               </button>
             </form>
 
-            {showGoogleLogin ? (
-              <>
-                <div className="siara-auth-divider">
-                  <span>or continue with</span>
-                </div>
+            <div className="siara-auth-divider">
+              <span>or continue with</span>
+            </div>
 
-                {googleError ? <div className="error-box" role="alert">{googleError}</div> : null}
-                <GoogleAuthButton
-                  disabled={loading}
-                  onCredential={handleGoogleSignup}
-                  onError={(googleAuthError) => setGoogleError(googleAuthError.message)}
-                />
-              </>
-            ) : null}
+            {googleError ? <div className="error-box" role="alert">{googleError}</div> : null}
+            <GoogleAuthButton
+              disabled={loading}
+              onCredential={handleGoogleSignup}
+              onError={(googleAuthError) => {
+                console.error('[google-auth] Register page Google button error', googleAuthError)
+                setGoogleError(googleAuthError.message)
+              }}
+            />
 
             <div className="register-footer">
               Already registered? <Link to="/login" className="link-accent">Log in</Link>

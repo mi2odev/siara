@@ -34,7 +34,10 @@ export async function login(payload) {
 }
 
 export async function loginWithGoogle(payload) {
-  const response = await publicRequest.post('/auth/google', payload)
+  const response = await publicRequest.post('/auth/google', {
+    idToken: payload.idToken || payload.credential,
+    rememberMe: payload.rememberMe === true,
+  })
   return mapAuthResponse(response.data)
 }
 
