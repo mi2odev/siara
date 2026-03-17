@@ -1,0 +1,63 @@
+.siara-auth-flow-shell {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.siara-auth-flow-card {
+  width: min(440px, 100%);
+  background: #fff;
+  border-radius: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 26px 70px -30px rgba(15, 23, 42, 0.35);
+  padding: 32px 30px 28px;
+}
+
+.siara-auth-flow-form {
+  display: grid;
+  gap: 10px;
+}
+
+.siara-auth-inline-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.siara-text-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--siara-accent-violet);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.siara-text-button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.siara-code-input {
+  text-align: center;
+  letter-spacing: 0.4em;
+  font-size: 18px;
+  font-weight: 700;
+  padding-left: 18px;
+}
+
+@media (max-width: 640px) {
+  .siara-auth-flow-card {
+    padding: 24px 18px 20px;
+    border-radius: 22px;
+  }
+
+  .siara-auth-inline-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

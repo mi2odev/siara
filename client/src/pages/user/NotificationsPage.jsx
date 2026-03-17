@@ -1,446 +1,365 @@
-/**
- * @file NotificationsPage.jsx
- * @description Notification center with 3-column layout: filter sidebar, inbox list, detail panel.
- *
- * Layout:
- *   Left   : filter buttons — category (alerts/incidents/AI/system), read/unread status,
- *            severity level, and time period
- *   Center : grouped notification list (Today / Yesterday / Older) with unread badges
- *   Right  : detail panel showing explanation, context, mini-map, and action buttons
- *
- * Features:
- *   • 8 mock notifications spanning multiple types and severities
- *   • groupByDate function buckets notifications into today / yesterday / older
- *   • Keyboard navigation (ArrowUp / ArrowDown to browse, Enter to mark read)
- *   • “Mark all read” and “Clear all” bulk actions
- *   • Detail panel renders contextual actions depending on notification type
- */
-import React, { useState, useEffect, useCallback, useContext } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+
 import { AuthContext } from '../../contexts/AuthContext'
-import '../../styles/NotificationsPage.css'
+import { useNotifications } from '../../contexts/NotificationContext'
+import { useNotificationStore } from '../../stores/notificationStore'
 import '../../styles/DashboardPage.css'
+import '../../styles/NotificationsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
+
+function formatRelativeTime(value) {
+  if (!value) {
+    return 'Just now'
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Just now'
+  }
+
+  const diffMs = Date.now() - date.getTime()
+  const minuteMs = 60 * 1000
+  const hourMs = 60 * minuteMs
+  const dayMs = 24 * hourMs
+  const weekMs = 7 * dayMs
+
+  if (diffMs < hourMs) {
+    return `${Math.max(1, Math.floor(diffMs / minuteMs))} min ago`
+  }
+  if (diffMs < dayMs) {
+    return `${Math.max(1, Math.floor(diffMs / hourMs))} h ago`
+  }
+  if (diffMs < weekMs) {
+    return `${Math.max(1, Math.floor(diffMs / dayMs))} d ago`
+  }
+
+  return date.toLocaleDateString()
+}
+
+function formatDateTime(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown time'
+  }
+
+  return date.toLocaleString()
+}
+
+function getPriorityLabel(priority) {
+  if (priority <= 1) {
+    return 'High'
+  }
+  if (priority === 2) {
+    return 'Medium'
+  }
+  return 'Normal'
+}
+
+function getPriorityColor(priority) {
+  if (priority <= 1) {
+    return '#dc2626'
+  }
+  if (priority === 2) {
+    return '#f59e0b'
+  }
+  return '#2563eb'
+}
+
+function groupNotificationsByDate(notifications) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  return notifications.reduce((groups, notification) => {
+    const createdAt = new Date(notification.createdAt || 0)
+
+    if (createdAt >= today) {
+      groups.today.push(notification)
+    } else if (createdAt >= yesterday) {
+      groups.yesterday.push(notification)
+    } else {
+      groups.older.push(notification)
+    }
+
+    return groups
+  }, { today: [], yesterday: [], older: [] })
+}
+
+function getNotificationTarget(notification) {
+  return notification.data?.reportUrl || notification.data?.mapUrl || '/notifications'
+}
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
-  const { user, logout } = useContext(AuthContext)
+  const { isAuthenticated, logout, user } = useContext(AuthContext)
+  const { loadNotifications, markAllNotificationsRead, markNotificationRead } = useNotifications()
 
-  /* ═══ LOCAL UI STATE ═══ */
-  const [showDropdown, setShowDropdown] = useState(false)          // header avatar menu
-  const [selectedNotification, setSelectedNotification] = useState(null) // detail-panel target
-  const [selectedIndex, setSelectedIndex] = useState(-1)           // keyboard-nav index
-  
-  /* ═══ FILTER STATE ═══ */
-  // Each filter defaults to 'all'; changing triggers a re-filter of the notification list
-  const [categoryFilter, setCategoryFilter] = useState('all')  // alerts | incidents | ai | system
-  const [statusFilter, setStatusFilter] = useState('all')      // unread | read
-  const [severityFilter, setSeverityFilter] = useState('all')  // high | medium | low
-  const [timeFilter, setTimeFilter] = useState('all')          // today | week
+  const error = useNotificationStore((state) => state.error)
+  const hasLoaded = useNotificationStore((state) => state.hasLoaded)
+  const isLoading = useNotificationStore((state) => state.isLoading)
+  const notifications = useNotificationStore((state) => state.items)
+  const unreadCount = useNotificationStore((state) => state.unreadCount)
 
-  /* ═══ MOCK NOTIFICATIONS DATA ═══ */
-  // Each notification carries: type, category, severity, timestamp, read flag,
-  // an explanation string (shown in detail panel), and optional coordinates.
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'alert',
-      category: 'alerts',
-      title: 'Alert triggered: Accidents A1 Highway',
-      context: 'Multi-car collision detected in your monitored zone',
-      location: 'A1 Highway, KM 23',
-      alertName: 'Accidents A1 Highway',
-      severity: 'high',
-      time: '5 min ago',
-      timestamp: new Date(Date.now() - 5 * 60000),
-      read: false,
-      incidentId: 101,
-      explanation: 'You received this notification because you subscribed to "Accidents A1 Highway" alert which monitors high-severity incidents on the A1 corridor.',
-      coordinates: { lat: 36.7538, lng: 3.0588 }
-    },
-    {
-      id: 2,
-      type: 'incident',
-      category: 'incidents',
-      title: 'New incident near your location',
-      context: 'Traffic jam reported 2km from your saved route',
-      location: 'Bab Ezzouar, Route N5',
-      severity: 'medium',
-      time: '23 min ago',
-      timestamp: new Date(Date.now() - 23 * 60000),
-      read: false,
-      incidentId: 102,
-      explanation: 'This incident was detected near your daily commute route "Home → Work". You have location-based notifications enabled.',
-      coordinates: { lat: 36.7238, lng: 3.1088 }
-    },
-    {
-      id: 3,
-      type: 'ai',
-      category: 'ai',
-      title: 'AI Insight: Pattern detected',
-      context: 'Recurring congestion predicted for tomorrow 8AM',
-      location: 'Alger Centre',
-      severity: 'low',
-      time: '1 hour ago',
-      timestamp: new Date(Date.now() - 60 * 60000),
-      read: true,
-      explanation: 'Our AI model detected a recurring traffic pattern based on 30 days of historical data. Confidence: 87%.',
-      aiConfidence: 87,
-      coordinates: { lat: 36.7738, lng: 3.0588 }
-    },
-    {
-      id: 4,
-      type: 'system',
-      category: 'system',
-      title: 'Weekly safety report available',
-      context: 'Your region had 23% fewer incidents this week',
-      severity: 'low',
-      time: '3 hours ago',
-      timestamp: new Date(Date.now() - 3 * 60 * 60000),
-      read: true,
-      explanation: 'You receive weekly reports because you enabled "Safety Digest" in your notification preferences.'
-    },
-    {
-      id: 5,
-      type: 'alert',
-      category: 'alerts',
-      title: 'Alert triggered: Zone Bab Ezzouar',
-      context: 'Road works started in monitored area',
-      location: 'Bab Ezzouar District',
-      alertName: 'Zone Bab Ezzouar',
-      severity: 'low',
-      time: '5 hours ago',
-      timestamp: new Date(Date.now() - 5 * 60 * 60000),
-      read: true,
-      incidentId: 103,
-      explanation: 'You received this because your "Zone Bab Ezzouar" alert includes roadworks notifications.',
-      coordinates: { lat: 36.7138, lng: 3.1788 }
-    },
-    {
-      id: 6,
-      type: 'incident',
-      category: 'incidents',
-      title: 'Incident resolved',
-      context: 'The accident on A1 Highway has been cleared',
-      location: 'A1 Highway, KM 20',
-      severity: 'low',
-      time: 'Yesterday',
-      timestamp: new Date(Date.now() - 24 * 60 * 60000),
-      read: true,
-      incidentId: 100,
-      explanation: 'You followed this incident and requested updates on its resolution.',
-      coordinates: { lat: 36.7538, lng: 3.0388 }
-    },
-    {
-      id: 7,
-      type: 'alert',
-      category: 'alerts',
-      title: 'Alert triggered: Night Watch Oran',
-      context: 'Dangerous driving conditions detected',
-      location: 'Oran Centre',
-      alertName: 'Night Watch Oran',
-      severity: 'high',
-      time: 'Yesterday',
-      timestamp: new Date(Date.now() - 26 * 60 * 60000),
-      read: true,
-      incidentId: 104,
-      explanation: 'Your "Night Watch Oran" alert monitors nighttime incidents in Oran.',
-      coordinates: { lat: 35.6969, lng: -0.6331 }
-    },
-    {
-      id: 8,
-      type: 'system',
-      category: 'system',
-      title: 'Profile verification complete',
-      context: 'Your citizen badge has been activated',
-      severity: 'low',
-      time: '3 days ago',
-      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60000),
-      read: true,
-      explanation: 'Your profile verification was completed. You now have full access to all SIARA features.'
+  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [selectedNotificationId, setSelectedNotificationId] = useState(null)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [timeFilter, setTimeFilter] = useState('all')
+
+  useEffect(() => {
+    if (!isAuthenticated || hasLoaded) {
+      return
     }
-  ])
 
-  /* ═══ FILTER PIPELINE ═══ */
-  // Chain of predicates applied to the master notifications array.
-  const filteredNotifications = notifications.filter(n => {
-    if (categoryFilter !== 'all' && n.category !== categoryFilter) return false
-    if (statusFilter === 'unread' && n.read) return false
-    if (statusFilter === 'read' && !n.read) return false
-    if (severityFilter !== 'all' && n.severity !== severityFilter) return false
+    loadNotifications({ limit: 50, offset: 0 }).catch(() => {})
+  }, [hasLoaded, isAuthenticated, loadNotifications])
+
+  const filteredNotifications = useMemo(() => notifications.filter((notification) => {
+    if (statusFilter === 'unread' && notification.readAt) {
+      return false
+    }
+    if (statusFilter === 'read' && !notification.readAt) {
+      return false
+    }
+
+    if (priorityFilter === 'high' && notification.priority > 1) {
+      return false
+    }
+    if (priorityFilter === 'medium' && notification.priority !== 2) {
+      return false
+    }
+    if (priorityFilter === 'normal' && notification.priority < 3) {
+      return false
+    }
+
     if (timeFilter === 'today') {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      if (n.timestamp < today) return false
+      if (new Date(notification.createdAt || 0) < today) {
+        return false
+      }
     }
+
     if (timeFilter === 'week') {
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60000)
-      if (n.timestamp < weekAgo) return false
+      const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
+      if (new Date(notification.createdAt || 0).getTime() < weekAgo) {
+        return false
+      }
     }
+
     return true
-  })
+  }), [notifications, priorityFilter, statusFilter, timeFilter])
 
-  /* ═══ GROUP BY DATE ═══ */
-  // Buckets filtered notifications into { today, yesterday, older } for the inbox list.
-  const groupNotifications = (notifs) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-
-    const groups = { today: [], yesterday: [], older: [] }
-    
-    notifs.forEach(n => {
-      if (n.timestamp >= today) groups.today.push(n)
-      else if (n.timestamp >= yesterday) groups.yesterday.push(n)
-      else groups.older.push(n)
-    })
-
-    return groups
-  }
-
-  const groupedNotifications = groupNotifications(filteredNotifications)
-
-  /* ═══ ICON / COLOUR HELPERS ═══ */
-
-  /** Map notification type → emoji icon for the list item */
-  const getIcon = (type) => {
-    switch (type) {
-      case 'alert': return '🔔'
-      case 'incident': return '🚗'
-      case 'ai': return '🤖'
-      case 'system': return '⚙️'
-      default: return '📌'
-    }
-  }
-
-  /** Map severity level → hex colour used for badges and backgrounds */
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'high': return '#DC2626'
-      case 'medium': return '#F59E0B'
-      case 'low': return '#10B981'
-      default: return '#64748B'
-    }
-  }
-
-  /* ═══ NOTIFICATION HANDLERS ═══ */
-
-  /** Select a notification → opens detail panel on the right */
-  const selectNotification = (notif, index) => {
-    setSelectedNotification(notif)
-    setSelectedIndex(index)
-  }
-
-  /** Mark a single notification as read by its ID */
-  const markAsRead = (id) => {
-    setNotifications(prev => prev.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ))
-  }
-
-  /** Bulk action — marks every notification as read */
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-  }
-
-  /** Dispatch contextual actions (view incident, open map, etc.) */
-  const handleAction = (action, notif) => {
-    switch (action) {
-      case 'view-incident':
-        navigate(`/incident/${notif.incidentId}`)
-        break
-      case 'view-alert':
-        navigate('/alerts')
-        break
-      case 'open-map':
-        navigate('/map')
-        break
-      case 'mark-read':
-        markAsRead(notif.id)
-        break
-      case 'mute':
-        // Would mute similar notifications
-        break
-    }
-  }
-
-  /* ═══ KEYBOARD NAVIGATION ═══ */
-  // ArrowDown/ArrowUp cycle through the flat list; Enter marks the selected item as read.
-  const handleKeyDown = useCallback((e) => {
-    const allNotifs = [...groupedNotifications.today, ...groupedNotifications.yesterday, ...groupedNotifications.older]
-    
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      const newIndex = Math.min(selectedIndex + 1, allNotifs.length - 1)
-      setSelectedIndex(newIndex)
-      setSelectedNotification(allNotifs[newIndex])
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      const newIndex = Math.max(selectedIndex - 1, 0)
-      setSelectedIndex(newIndex)
-      setSelectedNotification(allNotifs[newIndex])
-    } else if (e.key === 'Enter' && selectedNotification) {
-      if (!selectedNotification.read) markAsRead(selectedNotification.id)
-    }
-  }, [selectedIndex, groupedNotifications, selectedNotification])
-
-  // Attach / detach global keydown listener for keyboard navigation
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
-
-  /* ═══ DERIVED VALUES ═══ */
-  const unreadCount = notifications.filter(n => !n.read).length    // badge counter
-  const totalCount = filteredNotifications.length                   // shown after filtering
-
-  /* ═══ NOTIFICATION LIST ITEM RENDERER ═══ */
-  // Renders a single row in the inbox; highlights unread & selected items.
-  const renderNotificationItem = (notif, globalIndex) => (
-    <div
-      key={notif.id}
-      className={`notif-item ${!notif.read ? 'unread' : ''} ${selectedNotification?.id === notif.id ? 'selected' : ''}`}
-      onClick={() => selectNotification(notif, globalIndex)}
-      tabIndex={0}
-    >
-      <div className="notif-icon" style={{ background: `${getSeverityColor(notif.severity)}15`, color: getSeverityColor(notif.severity) }}>
-        {getIcon(notif.type)}
-      </div>
-      <div className="notif-content">
-        <span className="notif-title">{notif.title}</span>
-        <span className="notif-context">{notif.context}</span>
-        {notif.location && <span className="notif-location">📍 {notif.location}</span>}
-      </div>
-      <div className="notif-meta">
-        <span className="notif-time">{notif.time}</span>
-        {!notif.read && <span className="notif-dot"></span>}
-      </div>
-    </div>
+  const groupedNotifications = useMemo(
+    () => groupNotificationsByDate(filteredNotifications),
+    [filteredNotifications],
   )
+
+  const selectedNotification = useMemo(
+    () => filteredNotifications.find((notification) => notification.id === selectedNotificationId) || null,
+    [filteredNotifications, selectedNotificationId],
+  )
+
+  useEffect(() => {
+    if (filteredNotifications.length === 0) {
+      setSelectedNotificationId(null)
+      return
+    }
+
+    if (selectedNotificationId && filteredNotifications.some((notification) => notification.id === selectedNotificationId)) {
+      return
+    }
+
+    setSelectedNotificationId(filteredNotifications[0].id)
+  }, [filteredNotifications, selectedNotificationId])
+
+  async function handleSelectNotification(notification) {
+    setSelectedNotificationId(notification.id)
+
+    if (!notification.readAt) {
+      try {
+        await markNotificationRead(notification.id)
+      } catch (_error) {
+      }
+    }
+  }
+
+  async function handleMarkAllRead() {
+    try {
+      await markAllNotificationsRead()
+    } catch (_error) {
+    }
+  }
+
+  async function handleMarkSingleRead(notificationId) {
+    try {
+      await markNotificationRead(notificationId)
+    } catch (_error) {
+    }
+  }
+
+  function renderNotificationItem(notification) {
+    const priorityColor = getPriorityColor(notification.priority)
+
+    return (
+      <div
+        key={notification.id}
+        className={[
+          'notif-item',
+          !notification.readAt ? 'unread' : '',
+          selectedNotification?.id === notification.id ? 'selected' : '',
+          notification.priority <= 1 ? 'priority-high' : notification.priority === 2 ? 'priority-medium' : 'priority-neutral',
+        ].filter(Boolean).join(' ')}
+        onClick={() => { void handleSelectNotification(notification) }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            void handleSelectNotification(notification)
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="notif-icon" style={{ background: `${priorityColor}12`, color: priorityColor }}>
+          {notification.priority <= 1 ? 'H' : notification.priority === 2 ? 'M' : 'N'}
+        </div>
+        <div className="notif-content">
+          <span className="notif-title">{notification.title}</span>
+          <span className="notif-context">{notification.body}</span>
+          <span className="notif-location">{notification.data?.zoneName || notification.data?.locationLabel || 'Monitored area'}</span>
+        </div>
+        <div className="notif-meta">
+          <span className="notif-time">{formatRelativeTime(notification.createdAt)}</span>
+          {!notification.readAt ? <span className="notif-dot"></span> : null}
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="notifications-page notifications-page-empty">
+        <div className="notif-empty">
+          <h3>Sign in to view your notifications</h3>
+          <p>Live incident alerts appear here after you log in and create alert rules.</p>
+          <button className="empty-btn primary" onClick={() => navigate('/login')}>
+            Go to login
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="notifications-page">
-      {/* ═══ HEADER ═══ */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
-            <div className="dash-logo-block" onClick={() => navigate('/home')} style={{cursor: 'pointer'}}>
+            <div className="dash-logo-block" onClick={() => navigate('/home')} style={{ cursor: 'pointer' }}>
               <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">
               <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
-              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
-              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <button className="dash-tab dash-tab-active">Notifications</button>
             </nav>
           </div>
-          <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya…" aria-label="Search" />
-          </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
-            <button className="dash-icon-btn" aria-label="Messages">💬</button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
-              {showDropdown && (
+              <button className="dash-avatar" onClick={() => setShowDropdown((current) => !current)}>
+                {user?.name ? user.name.slice(0, 1).toUpperCase() : 'U'}
+              </button>
+              {showDropdown ? (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/alerts') }}>Alerts</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
       </header>
 
-      {/* ═══ MAIN GRID ═══ */}
       <div className="notif-grid">
-
-        {/* ═══ LEFT SIDEBAR — FILTERS ═══ */}
-        {/* Category, status, severity, and time-period filter button groups */}
         <aside className="notif-left">
-          <div className="filter-section">
-            <span className="filter-label">Categories</span>
-            {[
-              { key: 'all', label: 'All', icon: '📥' },
-              { key: 'alerts', label: 'Alerts', icon: '🔔' },
-              { key: 'incidents', label: 'Incidents', icon: '🚗' },
-              { key: 'system', label: 'System', icon: '⚙️' },
-              { key: 'ai', label: 'AI Insights', icon: '🤖' }
-            ].map(cat => (
-              <button
-                key={cat.key}
-                className={`filter-btn ${categoryFilter === cat.key ? 'active' : ''}`}
-                onClick={() => setCategoryFilter(cat.key)}
-              >
-                <span className="filter-icon">{cat.icon}</span>
-                <span>{cat.label}</span>
-              </button>
-            ))}
-          </div>
-
           <div className="filter-section">
             <span className="filter-label">Status</span>
             {[
               { key: 'all', label: 'All' },
               { key: 'unread', label: 'Unread' },
-              { key: 'read', label: 'Read' }
-            ].map(s => (
+              { key: 'read', label: 'Read' },
+            ].map((item) => (
               <button
-                key={s.key}
-                className={`filter-btn ${statusFilter === s.key ? 'active' : ''}`}
-                onClick={() => setStatusFilter(s.key)}
+                key={item.key}
+                type="button"
+                className={`filter-btn ${statusFilter === item.key ? 'active' : ''}`}
+                onClick={() => setStatusFilter(item.key)}
               >
-                <span>{s.label}</span>
+                <span>{item.label}</span>
               </button>
             ))}
           </div>
 
           <div className="filter-section">
-            <span className="filter-label">Severity</span>
+            <span className="filter-label">Priority</span>
             {[
-              { key: 'all', label: 'All' },
-              { key: 'high', label: 'High', color: '#DC2626' },
-              { key: 'medium', label: 'Medium', color: '#F59E0B' },
-              { key: 'low', label: 'Low', color: '#10B981' }
-            ].map(s => (
+              { key: 'all', label: 'All priorities' },
+              { key: 'high', label: 'High' },
+              { key: 'medium', label: 'Medium' },
+              { key: 'normal', label: 'Normal' },
+            ].map((item) => (
               <button
-                key={s.key}
-                className={`filter-btn ${severityFilter === s.key ? 'active' : ''}`}
-                onClick={() => setSeverityFilter(s.key)}
+                key={item.key}
+                type="button"
+                className={`filter-btn ${priorityFilter === item.key ? 'active' : ''}`}
+                onClick={() => setPriorityFilter(item.key)}
               >
-                {s.color && <span className="sev-dot" style={{ background: s.color }}></span>}
-                <span>{s.label}</span>
+                <span>{item.label}</span>
               </button>
             ))}
           </div>
 
           <div className="filter-section">
-            <span className="filter-label">Period</span>
+            <span className="filter-label">Time</span>
             {[
-              { key: 'all', label: 'All' },
+              { key: 'all', label: 'All time' },
               { key: 'today', label: 'Today' },
-              { key: 'week', label: 'Last 7 days' }
-            ].map(t => (
+              { key: 'week', label: 'Last 7 days' },
+            ].map((item) => (
               <button
-                key={t.key}
-                className={`filter-btn ${timeFilter === t.key ? 'active' : ''}`}
-                onClick={() => setTimeFilter(t.key)}
+                key={item.key}
+                type="button"
+                className={`filter-btn ${timeFilter === item.key ? 'active' : ''}`}
+                onClick={() => setTimeFilter(item.key)}
               >
-                <span>{t.label}</span>
+                <span>{item.label}</span>
               </button>
             ))}
+          </div>
+
+          <div className="detail-section">
+            <span className="section-label">Summary</span>
+            <p className="notif-summary-copy">Unread alerts stay highlighted until you open them or mark them as read.</p>
+            <div className="context-card">
+              <div className="context-row">
+                <span className="context-label">Unread</span>
+                <span className="context-value">{unreadCount}</span>
+              </div>
+              <div className="context-row">
+                <span className="context-label">Visible</span>
+                <span className="context-value">{filteredNotifications.length}</span>
+              </div>
+            </div>
           </div>
         </aside>
 
-        {/* ═══ CENTER — INBOX LIST ═══ */}
-        {/* Grouped notification items (Today / Yesterday / Older) with empty-state fallback */}
         <main className="notif-center">
           <div className="notif-header">
             <div className="notif-header-left">
@@ -448,22 +367,26 @@ export default function NotificationsPage() {
               <span className="notif-count">{unreadCount} unread</span>
             </div>
             <div className="notif-header-right">
-              {unreadCount > 0 && (
-                <button className="mark-all-btn" onClick={markAllAsRead}>
-                  ✓ Mark all as read
-                </button>
-              )}
+              <button className="mark-all-btn" onClick={() => { void handleMarkAllRead() }} disabled={unreadCount === 0}>
+                Mark all as read
+              </button>
             </div>
           </div>
 
+          {error ? <div className="notif-banner-error">{error}</div> : null}
+
           <div className="notif-list">
-            {totalCount === 0 ? (
+            {isLoading ? (
               <div className="notif-empty">
-                <div className="empty-icon">✨</div>
-                <h3>You're all caught up</h3>
-                <p>No notifications at the moment.</p>
+                <h3>Loading notifications...</h3>
+                <p>Your latest in-app alerts are on the way.</p>
+              </div>
+            ) : filteredNotifications.length === 0 ? (
+              <div className="notif-empty">
+                <h3>No notifications yet</h3>
+                <p>Create an alert to start receiving live incident updates.</p>
                 <div className="empty-actions">
-                  <button className="empty-btn primary" onClick={() => navigate('/alerts')}>
+                  <button className="empty-btn primary" onClick={() => navigate('/alerts/create')}>
                     Create an alert
                   </button>
                   <button className="empty-btn secondary" onClick={() => navigate('/map')}>
@@ -473,136 +396,128 @@ export default function NotificationsPage() {
               </div>
             ) : (
               <>
-                {groupedNotifications.today.length > 0 && (
+                {groupedNotifications.today.length > 0 ? (
                   <div className="notif-group">
                     <div className="group-header">Today</div>
-                    {groupedNotifications.today.map((n, i) => renderNotificationItem(n, i))}
+                    {groupedNotifications.today.map(renderNotificationItem)}
                   </div>
-                )}
-                {groupedNotifications.yesterday.length > 0 && (
+                ) : null}
+                {groupedNotifications.yesterday.length > 0 ? (
                   <div className="notif-group">
                     <div className="group-header">Yesterday</div>
-                    {groupedNotifications.yesterday.map((n, i) => 
-                      renderNotificationItem(n, groupedNotifications.today.length + i)
-                    )}
+                    {groupedNotifications.yesterday.map(renderNotificationItem)}
                   </div>
-                )}
-                {groupedNotifications.older.length > 0 && (
+                ) : null}
+                {groupedNotifications.older.length > 0 ? (
                   <div className="notif-group">
                     <div className="group-header">Older</div>
-                    {groupedNotifications.older.map((n, i) => 
-                      renderNotificationItem(n, groupedNotifications.today.length + groupedNotifications.yesterday.length + i)
-                    )}
+                    {groupedNotifications.older.map(renderNotificationItem)}
                   </div>
-                )}
+                ) : null}
               </>
             )}
           </div>
         </main>
 
-        {/* ═══ RIGHT — DETAIL PANEL ═══ */}
-        {/* Shows full context, explanation, mini-map, and contextual actions for the selected notification */}
         <aside className="notif-right">
           {selectedNotification ? (
             <>
-              {/* Header */}
               <div className="detail-header">
-                <div className="detail-icon" style={{ background: `${getSeverityColor(selectedNotification.severity)}15`, color: getSeverityColor(selectedNotification.severity) }}>
-                  {getIcon(selectedNotification.type)}
+                <div
+                  className="detail-icon"
+                  style={{
+                    background: `${getPriorityColor(selectedNotification.priority)}14`,
+                    color: getPriorityColor(selectedNotification.priority),
+                  }}
+                >
+                  {selectedNotification.priority <= 1 ? 'H' : selectedNotification.priority === 2 ? 'M' : 'N'}
                 </div>
                 <div className="detail-title-block">
                   <h2 className="detail-title">{selectedNotification.title}</h2>
                   <div className="detail-meta">
-                    <span className="detail-badge" style={{ background: `${getSeverityColor(selectedNotification.severity)}15`, color: getSeverityColor(selectedNotification.severity) }}>
-                      {selectedNotification.severity === 'high' ? 'High' : selectedNotification.severity === 'medium' ? 'Medium' : 'Low'}
+                    <span
+                      className="detail-badge"
+                      style={{
+                        background: `${getPriorityColor(selectedNotification.priority)}14`,
+                        color: getPriorityColor(selectedNotification.priority),
+                      }}
+                    >
+                      {getPriorityLabel(selectedNotification.priority)}
                     </span>
-                    <span className="detail-time">{selectedNotification.time}</span>
+                    <span className="detail-time">{formatDateTime(selectedNotification.createdAt)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Explanation */}
-              <div className="detail-section explanation">
-                <span className="section-label">Why this notification?</span>
-                <p className="explanation-text">{selectedNotification.explanation}</p>
+              <div className="detail-section">
+                <span className="section-label">Message</span>
+                <p className="explanation-text">{selectedNotification.body}</p>
               </div>
 
-              {/* Context */}
-              <div className="detail-section context">
+              <div className="detail-section">
                 <span className="section-label">Context</span>
                 <div className="context-card">
                   <div className="context-row">
-                    <span className="context-label">Type</span>
-                    <span className="context-value">{selectedNotification.type === 'alert' ? 'Alert' : selectedNotification.type === 'incident' ? 'Incident' : selectedNotification.type === 'ai' ? 'AI Insight' : 'System'}</span>
+                    <span className="context-label">Event</span>
+                    <span className="context-value">{selectedNotification.eventType}</span>
                   </div>
-                  {selectedNotification.location && (
-                    <div className="context-row">
-                      <span className="context-label">Location</span>
-                      <span className="context-value">{selectedNotification.location}</span>
-                    </div>
-                  )}
-                  {selectedNotification.alertName && (
-                    <div className="context-row">
-                      <span className="context-label">Alert</span>
-                      <span className="context-value">{selectedNotification.alertName}</span>
-                    </div>
-                  )}
-                  {selectedNotification.aiConfidence && (
-                    <div className="context-row">
-                      <span className="context-label">AI Confidence</span>
-                      <span className="context-value">{selectedNotification.aiConfidence}%</span>
-                    </div>
-                  )}
+                  <div className="context-row">
+                    <span className="context-label">Zone</span>
+                    <span className="context-value">{selectedNotification.data?.zoneName || 'Monitored area'}</span>
+                  </div>
+                  <div className="context-row">
+                    <span className="context-label">Incident type</span>
+                    <span className="context-value">{selectedNotification.data?.incidentType || 'Incident'}</span>
+                  </div>
+                  <div className="context-row">
+                    <span className="context-label">Severity</span>
+                    <span className="context-value">{selectedNotification.data?.severity || getPriorityLabel(selectedNotification.priority)}</span>
+                  </div>
+                  <div className="context-row">
+                    <span className="context-label">Danger score</span>
+                    <span className="context-value">{selectedNotification.data?.dangerScore ?? '--'}%</span>
+                  </div>
+                  <div className="context-row">
+                    <span className="context-label">Location</span>
+                    <span className="context-value">{selectedNotification.data?.locationLabel || 'Not provided'}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Mini Map */}
-              {selectedNotification.coordinates && (
-                <div className="detail-section map-section">
-                  <span className="section-label">Location</span>
-                  <div className="mini-map">
-                    <div className="map-placeholder">
-                      <span className="map-icon">🗺️</span>
-                      <div className="map-pin" style={{ borderColor: getSeverityColor(selectedNotification.severity) }}>📍</div>
-                    </div>
-                    <span className="map-location">{selectedNotification.location}</span>
-                    <button className="map-btn" onClick={() => handleAction('open-map', selectedNotification)}>
-                      Open map
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Actions */}
               <div className="detail-section actions">
                 <span className="section-label">Actions</span>
                 <div className="action-buttons">
-                  {selectedNotification.incidentId && (
-                    <button className="action-btn primary" onClick={() => handleAction('view-incident', selectedNotification)}>
-                      👁️ View incident
+                  <button
+                    type="button"
+                    className="action-btn primary"
+                    onClick={() => navigate(getNotificationTarget(selectedNotification))}
+                  >
+                    Open related page
+                  </button>
+                  {!selectedNotification.readAt ? (
+                    <button
+                      type="button"
+                      className="action-btn"
+                      onClick={() => { void handleMarkSingleRead(selectedNotification.id) }}
+                    >
+                      Mark as read
                     </button>
-                  )}
-                  {selectedNotification.type === 'alert' && (
-                    <button className="action-btn" onClick={() => handleAction('view-alert', selectedNotification)}>
-                      🔔 Manage alert
-                    </button>
-                  )}
-                  {!selectedNotification.read && (
-                    <button className="action-btn" onClick={() => handleAction('mark-read', selectedNotification)}>
-                      ✓ Mark as read
-                    </button>
-                  )}
-                  <button className="action-btn mute" onClick={() => handleAction('mute', selectedNotification)}>
-                    🔇 Mute similar
+                  ) : null}
+                  <button
+                    type="button"
+                    className="action-btn"
+                    onClick={() => navigate('/map')}
+                  >
+                    Open map
                   </button>
                 </div>
               </div>
             </>
           ) : (
             <div className="detail-empty">
-              <div className="empty-illustration">📬</div>
-              <p>Select a notification to view details</p>
-              <span className="empty-hint">Use ↑ ↓ to navigate</span>
+              <div className="empty-illustration">N</div>
+              <p>Select a notification to see the full detail.</p>
+              <span className="empty-hint">Unread items are highlighted on the left.</span>
             </div>
           )}
         </aside>

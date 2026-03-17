@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Circle,
   CircleMarker,
+  GeoJSON,
   MapContainer,
   Pane,
+  Popup,
   Polyline,
   TileLayer,
   Tooltip,
@@ -98,6 +101,36 @@ const getIncidentColor = (sev) => {
   if (sev === "medium") return "#f59e0b";
   return "#22c55e";
 }
+
+const getAlertZoneColor = (severity) => {
+  if (severity === "high") return "#dc2626";
+  if (severity === "medium") return "#f59e0b";
+  return "#7c3aed";
+};
+
+const getAlertZonePathOptions = (severity, isSelected) => {
+  const color = getAlertZoneColor(severity);
+  return {
+    color,
+    weight: isSelected ? 4 : 2.5,
+    opacity: isSelected ? 0.95 : 0.78,
+    fillColor: color,
+    fillOpacity: isSelected ? 0.16 : 0.09,
+  };
+};
+
+const normalizeAlertZoneGeometry = (alertZone) => {
+  if (!alertZone?.zone?.geometry || typeof alertZone.zone.geometry !== "object") {
+    return null;
+  }
+
+  return alertZone.zone.geometry;
+};
+
+const normalizeAlertZoneCenter = (alertZone) => {
+  const source = alertZone?.zone?.center || alertZone?.area?.center || null;
+  return normalizePosition(source);
+};
 
 const getDangerColor = (level) => {
   if (level === "extreme") return "#b91c1c";
@@ -891,6 +924,56 @@ const FitGuidedRoute = ({ routes, fitVersion }) => {
   return null;
 }
 
+const FocusAlertZone = ({ mapLayer, selectedAlertZone }) => {
+  const map = useMap();
+  const lastZoneIdRef = useRef(null);
+
+  useEffect(() => {
+    if (mapLayer !== "zones") {
+      lastZoneIdRef.current = null;
+      return;
+    }
+
+    if (!selectedAlertZone?.id || lastZoneIdRef.current === selectedAlertZone.id) {
+      return;
+    }
+
+    lastZoneIdRef.current = selectedAlertZone.id;
+
+    const zoneGeometry = normalizeAlertZoneGeometry(selectedAlertZone);
+    if (zoneGeometry) {
+      const bounds = L.geoJSON(zoneGeometry).getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds.pad(0.18), {
+          padding: [24, 24],
+          maxZoom: 11,
+        });
+        return;
+      }
+    }
+
+    const radius = Number(selectedAlertZone?.zone?.radiusM);
+    const zoneCenter = normalizeAlertZoneCenter(selectedAlertZone);
+    if (zoneCenter && Number.isFinite(radius) && radius > 0) {
+      const bounds = L.circle(zoneCenter, { radius }).getBounds();
+      map.fitBounds(bounds.pad(0.22), {
+        padding: [24, 24],
+        maxZoom: 12,
+      });
+      return;
+    }
+
+    if (zoneCenter) {
+      map.flyTo(zoneCenter, 11, {
+        animate: true,
+        duration: 0.8,
+      });
+    }
+  }, [map, mapLayer, selectedAlertZone]);
+
+  return null;
+};
+
 const MapResizeFix = ({ deps = [] }) => {
   const map = useMap();
 
@@ -953,9 +1036,12 @@ const HeatLayer = ({ points }) => {
 }
 
 const SiaraMap = ({
+  alertZones = [],
   reportMarkers,
   mockMarkers,
   mapLayer,
+  onAlertZoneSelect,
+  selectedAlertZoneId = null,
   setSelectedIncident,
   userPosition,
   locationStatus = "unknown",
@@ -974,6 +1060,16 @@ const SiaraMap = ({
     }
     return [];
   }, [mockMarkers, reportMarkers]);
+  const selectedAlertZone = useMemo(
+    () => alertZones.find((alertZone) => alertZone.id === selectedAlertZoneId) || null,
+    [alertZones, selectedAlertZoneId],
+  );
+
+  useEffect(() => {
+    if (mapLayer === "zones") {
+      setSelectedIncident(null);
+    }
+  }, [mapLayer, setSelectedIncident]);
 
   const [currentRisk, setCurrentRisk] = useState(null);
   const [currentRiskState, setCurrentRiskState] = useState("idle");
@@ -1993,6 +2089,12 @@ const SiaraMap = ({
             mapLayer={mapLayer}
             locationRequestVersion={locationRequestVersion}
           />
+          {mapLayer === "zones" && selectedAlertZone ? (
+            <FocusAlertZone
+              mapLayer={mapLayer}
+              selectedAlertZone={selectedAlertZone}
+            />
+          ) : null}
           {mapLayer === "nearbyRoads" && !guidedRoute && nearbyRoutes.length > 0 && (
             <FitNearbyRoutesOnDemand
               mapLayer={mapLayer}
@@ -2003,6 +2105,100 @@ const SiaraMap = ({
           {guidedRoute && <FitGuidedRoute routes={guidedRoutes} fitVersion={guidedRouteFitVersion} />}
 
           {mapLayer === "heatmap" && heatPoints.length > 0 && <HeatLayer points={heatPoints} />}
+
+          {mapLayer === "zones" && alertZones.length > 0 && (
+            <Pane name="alert-zone-layer" style={{ zIndex: 650 }}>
+              {alertZones.map((alertZone) => {
+                const isSelected = alertZone.id === selectedAlertZoneId;
+                const zoneGeometry = normalizeAlertZoneGeometry(alertZone);
+                const zoneCenter = normalizeAlertZoneCenter(alertZone);
+                const zonePathOptions = getAlertZonePathOptions(alertZone.severity, isSelected);
+
+                const handleZoneSelect = () => {
+                  if (typeof onAlertZoneSelect === "function") {
+                    onAlertZoneSelect(alertZone.id);
+                  }
+                };
+
+                if (alertZone.zone?.zoneType === "radius" && zoneCenter && Number.isFinite(Number(alertZone.zone.radiusM))) {
+                  return (
+                    <Circle
+                      key={`alert-zone-radius-${alertZone.id}`}
+                      center={zoneCenter}
+                      radius={Number(alertZone.zone.radiusM)}
+                      pathOptions={zonePathOptions}
+                      eventHandlers={{
+                        click: handleZoneSelect,
+                      }}
+                    >
+                      <Tooltip direction="top" className="siara-risk-tooltip">
+                        <span
+                          className="siara-risk-tooltip__pill"
+                          style={{
+                            "--risk-color": getAlertZoneColor(alertZone.severity),
+                            "--risk-text-color": "#ffffff",
+                          }}
+                        >
+                          {alertZone.zone?.displayName || alertZone.area?.name || alertZone.name}
+                        </span>
+                      </Tooltip>
+                      <Popup>
+                        <div className="siara-zone-popup">
+                          <strong className="siara-zone-popup-title">{alertZone.name}</strong>
+                          <span className="siara-zone-popup-subtitle">
+                            {alertZone.zone?.displayName || alertZone.area?.name || "Alert zone"}
+                          </span>
+                          <div className="siara-zone-popup-row"><span>Severity</span><strong>{alertZone.severity}</strong></div>
+                          <div className="siara-zone-popup-row"><span>Schedule</span><strong>{alertZone.timeWindow}</strong></div>
+                          <div className="siara-zone-popup-row"><span>Triggers</span><strong>{alertZone.triggerCount}</strong></div>
+                          <div className="siara-zone-popup-row"><span>Last trigger</span><strong>{alertZone.lastTriggered || "Never"}</strong></div>
+                        </div>
+                      </Popup>
+                    </Circle>
+                  );
+                }
+
+                if (!zoneGeometry) {
+                  return null;
+                }
+
+                return (
+                  <GeoJSON
+                    key={`alert-zone-geom-${alertZone.id}`}
+                    data={zoneGeometry}
+                    style={zonePathOptions}
+                    eventHandlers={{
+                      click: handleZoneSelect,
+                    }}
+                  >
+                    <Tooltip direction="top" className="siara-risk-tooltip">
+                      <span
+                        className="siara-risk-tooltip__pill"
+                        style={{
+                          "--risk-color": getAlertZoneColor(alertZone.severity),
+                          "--risk-text-color": "#ffffff",
+                        }}
+                      >
+                        {alertZone.zone?.displayName || alertZone.area?.name || alertZone.name}
+                      </span>
+                    </Tooltip>
+                    <Popup>
+                      <div className="siara-zone-popup">
+                        <strong className="siara-zone-popup-title">{alertZone.name}</strong>
+                        <span className="siara-zone-popup-subtitle">
+                          {alertZone.zone?.displayName || alertZone.area?.name || "Alert zone"}
+                        </span>
+                        <div className="siara-zone-popup-row"><span>Severity</span><strong>{alertZone.severity}</strong></div>
+                        <div className="siara-zone-popup-row"><span>Schedule</span><strong>{alertZone.timeWindow}</strong></div>
+                        <div className="siara-zone-popup-row"><span>Triggers</span><strong>{alertZone.triggerCount}</strong></div>
+                        <div className="siara-zone-popup-row"><span>Last trigger</span><strong>{alertZone.lastTriggered || "Never"}</strong></div>
+                      </div>
+                    </Popup>
+                  </GeoJSON>
+                );
+              })}
+            </Pane>
+          )}
 
           <Pane name="risk-layer" style={{ zIndex: 9999 }}>
             {guidedRoutes

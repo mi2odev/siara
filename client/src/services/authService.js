@@ -1,34 +1,84 @@
-import { publicRequest } from '../requestMethodes'
+import { publicRequest, userRequest } from '../requestMethodes'
 
-const LOGIN_ENDPOINT = '/auth/login'
-const LOGOUT_ENDPOINT = '/auth/logout'
-const ME_ENDPOINT = '/auth/me'
-
-export async function login(identifier, password) {
-  if (!identifier || !password) {
-    throw new Error('Missing credentials')
-  }
-
-  const response = await publicRequest.post(LOGIN_ENDPOINT, {
-    emailOrPhone: identifier,
-    password,
-  })
-
+function mapAuthResponse(data = {}) {
   return {
-    user: response.data?.user || null,
-    token: response.data?.accessToken || null,
+    ok: Boolean(data.ok ?? true),
+    authenticated: Boolean(data.authenticated ?? data.user),
+    requiresEmailVerification: Boolean(data.requiresEmailVerification),
+    user: data.user || null,
+    token: data.accessToken || null,
+    email: data.email || data.user?.email || null,
+    resendAvailableAt: data.resendAvailableAt || null,
+    message: data.message || '',
   }
 }
 
-export async function logout() {
-  try {
-    await publicRequest.post(LOGOUT_ENDPOINT)
-  } catch (_error) {
-    // Clearing local auth state is still sufficient for the client.
+export async function registerAccount(payload) {
+  const response = await publicRequest.post('/auth/register', payload)
+  return mapAuthResponse(response.data)
+}
+
+export async function sendVerificationCode(email) {
+  const response = await publicRequest.post('/auth/verify-email/send', { email })
+  return mapAuthResponse(response.data)
+}
+
+export async function confirmVerificationCode(payload) {
+  const response = await publicRequest.post('/auth/verify-email/confirm', payload)
+  return mapAuthResponse(response.data)
+}
+
+export async function login(payload) {
+  const response = await publicRequest.post('/auth/login', payload)
+  return mapAuthResponse(response.data)
+}
+
+export async function loginWithGoogle(payload) {
+  const response = await publicRequest.post('/auth/google', payload)
+  return mapAuthResponse(response.data)
+}
+
+export async function requestPasswordReset(email) {
+  const response = await publicRequest.post('/auth/password/forgot', { email })
+  return mapAuthResponse(response.data)
+}
+
+export async function verifyPasswordResetCode(payload) {
+  const response = await publicRequest.post('/auth/password/verify-code', payload)
+  return {
+    ok: Boolean(response.data?.ok),
+    resetToken: response.data?.resetToken || null,
+    expiresAt: response.data?.expiresAt || null,
   }
+}
+
+export async function resetPassword(payload) {
+  const response = await publicRequest.post('/auth/password/reset', payload)
+  return {
+    ok: Boolean(response.data?.ok),
+  }
+}
+
+export async function getSession() {
+  const response = await publicRequest.get('/auth/session')
+  return mapAuthResponse(response.data)
 }
 
 export async function getCurrentUser() {
-  const response = await publicRequest.get(ME_ENDPOINT)
+  const response = await userRequest.get('/auth/me')
   return response.data?.user || null
+}
+
+export async function logout() {
+  await publicRequest.post('/auth/logout')
+}
+
+export async function fetchEmailPreferences() {
+  const response = await userRequest.get('/auth/email-preferences')
+  return response.data?.preferences || null
+}
+
+export async function updateEmailPreferences(payload) {
+  const response = await userRequest.patch('/auth/email-preferences', payload)
+  return response.data?.preferences || null
 }

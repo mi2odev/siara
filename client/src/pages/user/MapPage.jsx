@@ -9,7 +9,7 @@
  */
 
 import React, { useEffect, useMemo, useState, useContext, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from '../../contexts/AuthContext';
 
 /* ── Styles ── */
@@ -25,6 +25,7 @@ import DangerForecastChart from "../../components/map/DangerForecastChart";
 import SiaraMap from "../../components/map/SiaraMap";
 import DrivingQuiz from "../../components/ui/DrivingQuiz";
 import useReportMapReports from "../../hooks/useReportMapReports";
+import { fetchAlerts } from "../../services/alertService";
 
 /* ── MUI Icons ── */
 import LocationOnTwoToneIcon from "@mui/icons-material/LocationOnTwoTone";
@@ -266,8 +267,18 @@ function formatRelativeReportAge(value) {
   return `${diffDays} d`;
 }
 
+function formatZoneLastTriggered(value) {
+  if (!value) {
+    return "Never triggered";
+  }
+
+  const relativeAge = formatRelativeReportAge(value);
+  return relativeAge === "Unknown" ? relativeAge : `${relativeAge} ago`;
+}
+
 export default function MapPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useContext(AuthContext);
 
   /* ──────────────────────────── State ──────────────────────────── */
@@ -293,8 +304,14 @@ export default function MapPage() {
   // Selected wilaya (province) — "all" means no geographic filter
   const [selectedWilaya, setSelectedWilaya] = useState("all");
 
-  // Current map visualisation layer (points, heatmap, clusters, ai, nearbyRoads)
-  const [mapLayer, setMapLayer] = useState("points");
+  // Current map visualisation layer (points, heatmap, zones, ai, nearbyRoads)
+  const [mapLayer, setMapLayer] = useState(() =>
+    location.state?.mapLayer === "zones" ? "zones" : "points"
+  );
+  const [alertZones, setAlertZones] = useState([]);
+  const [zonesLoading, setZonesLoading] = useState(false);
+  const [zonesError, setZonesError] = useState("");
+  const [selectedZoneId, setSelectedZoneId] = useState(() => location.state?.focusAlertId || null);
 
   // Currently selected incident/segment for the right-sidebar detail panel
   const [selectedIncident, setSelectedIncident] = useState(null);
@@ -352,6 +369,16 @@ export default function MapPage() {
   useEffect(() => {
     userPositionRef.current = userPosition;
   }, [userPosition]);
+
+  useEffect(() => {
+    if (location.state?.mapLayer === "zones") {
+      setMapLayer("zones");
+    }
+
+    if (location.state?.focusAlertId) {
+      setSelectedZoneId(location.state.focusAlertId);
+    }
+  }, [location.state]);
 
   const clearLocationAttempt = useCallback(() => {
     if (watchIdRef.current != null && navigator?.geolocation?.clearWatch) {
@@ -853,6 +880,90 @@ export default function MapPage() {
     [filteredReports, mapReadyReports],
   );
 
+  useEffect(() => {
+    if (mapLayer !== "zones" && !location.state?.focusAlertId) {
+      return undefined;
+    }
+
+    if (!user) {
+      setAlertZones([]);
+      setZonesLoading(false);
+      setZonesError("Sign in to load your alert zones.");
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    setZonesLoading(true);
+    setZonesError("");
+
+    fetchAlerts({ includeGeometry: true })
+      .then((items) => {
+        if (cancelled) {
+          return;
+        }
+
+        setAlertZones(Array.isArray(items) ? items : []);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        setZonesError(error.response?.data?.message || "Unable to load alert zones.");
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setZonesLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.state?.focusAlertId, mapLayer, user]);
+
+  const activeAlertZones = useMemo(
+    () =>
+      alertZones.filter((alert) => {
+        if (alert.status !== "active" || !alert.zone) {
+          return false;
+        }
+
+        if (alert.zone.zoneType === "radius") {
+          return Boolean(alert.zone.center && alert.zone.radiusM);
+        }
+
+        return Boolean(alert.zone.geometry || alert.zone.center || alert.area?.center);
+      }),
+    [alertZones],
+  );
+
+  const selectedAlertZone = useMemo(
+    () => activeAlertZones.find((alert) => alert.id === selectedZoneId) || null,
+    [activeAlertZones, selectedZoneId],
+  );
+
+  useEffect(() => {
+    if (activeAlertZones.length === 0) {
+      setSelectedZoneId(null);
+      return;
+    }
+
+    if (location.state?.focusAlertId && activeAlertZones.some((alert) => alert.id === location.state.focusAlertId)) {
+      setSelectedZoneId(location.state.focusAlertId);
+      return;
+    }
+
+    if (selectedZoneId && activeAlertZones.some((alert) => alert.id === selectedZoneId)) {
+      return;
+    }
+
+    if (mapLayer === "zones") {
+      setSelectedZoneId(activeAlertZones[0].id);
+    }
+  }, [activeAlertZones, location.state?.focusAlertId, mapLayer, selectedZoneId]);
+
   const trendingZones = useMemo(() => {
     const zoneMap = new Map();
 
@@ -960,6 +1071,18 @@ export default function MapPage() {
   }, [filteredReports]);
 
   const reportStatusLabel = useMemo(() => {
+    if (mapLayer === "zones") {
+      if (zonesLoading) {
+        return "Loading alert zones...";
+      }
+
+      if (zonesError) {
+        return "Alert zones unavailable";
+      }
+
+      return `Alert zones • ${activeAlertZones.length} zones loaded`;
+    }
+
     if (reportsLoading) {
       return "Loading real-time reports...";
     }
@@ -969,7 +1092,7 @@ export default function MapPage() {
     }
 
     return `Real-time • ${visibleReportMarkers.length} incidents displayed`;
-  }, [reportsError, reportsLoading, visibleReportMarkers.length]);
+  }, [activeAlertZones.length, mapLayer, reportsError, reportsLoading, visibleReportMarkers.length, zonesError, zonesLoading]);
 
   /* ──────────────────────── Event Handlers ──────────────────────── */
 
@@ -1247,7 +1370,7 @@ export default function MapPage() {
                 {[
                   { id: "points", label: "Points" },
                   { id: "heatmap", label: "Heatmap" },
-                  { id: "clusters", label: "Clusters" },
+                  { id: "zones", label: "Zones" },
                   { id: "ai", label: "AI Risks" },
                   { id: "nearbyRoads", label: "Nearby Roads" },
                 ].map((l) => (
@@ -1288,7 +1411,10 @@ export default function MapPage() {
             <div className="map-canvas">
               <SiaraMap
                 reportMarkers={visibleReportMarkers}
+                alertZones={activeAlertZones}
                 mapLayer={mapLayer}
+                onAlertZoneSelect={setSelectedZoneId}
+                selectedAlertZoneId={selectedZoneId}
                 setSelectedIncident={setSelectedIncident}
                 userPosition={userPosition}
                 locationStatus={locationStatus}
@@ -1351,8 +1477,18 @@ export default function MapPage() {
           </div>
 
           <div className="context-section">
-            <h4 className="section-title">Reports Feed</h4>
-            {reportsLoading ? (
+            <h4 className="section-title">{mapLayer === "zones" ? "Alert Zones" : "Reports Feed"}</h4>
+            {mapLayer === "zones" ? (
+              zonesLoading ? (
+                <p className="chart-note">Loading your alert zones from the database...</p>
+              ) : zonesError ? (
+                <p className="chart-note chart-note-error">{zonesError}</p>
+              ) : (
+                <p className="chart-note">
+                  {activeAlertZones.length} active alert zones are ready to render on the map.
+                </p>
+              )
+            ) : reportsLoading ? (
               <p className="chart-note">Loading reports from the database...</p>
             ) : reportsError ? (
               <p className="chart-note chart-note-error">{reportsError}</p>
@@ -1362,6 +1498,39 @@ export default function MapPage() {
               </p>
             )}
           </div>
+
+          {mapLayer === "zones" && (
+            <div className="context-section zone-focus-section">
+              <div className="zones-section-head">
+                <h4 className="section-title">Selected Zone</h4>
+                <button
+                  type="button"
+                  className="zone-link-btn"
+                  onClick={() => navigate('/alerts')}
+                >
+                  Manage alerts
+                </button>
+              </div>
+              {selectedAlertZone ? (
+                <div className={`zone-focus-card severity-${selectedAlertZone.severity}`}>
+                  <span className="zone-focus-name">{selectedAlertZone.name}</span>
+                  <span className="zone-focus-area">
+                    {selectedAlertZone.zone?.displayName || selectedAlertZone.area?.name || 'Zone'}
+                  </span>
+                  <div className="zone-focus-meta">
+                    <span>{selectedAlertZone.severity} severity</span>
+                    <span>{selectedAlertZone.timeWindow}</span>
+                  </div>
+                  <div className="zone-focus-meta">
+                    <span>{selectedAlertZone.triggerCount} triggers</span>
+                    <span>{formatZoneLastTriggered(selectedAlertZone.lastTriggeredAt)}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="chart-note">Select a zone on the map to inspect its alert rule.</p>
+              )}
+            </div>
+          )}
 
           {/* ── AI Segment Insight (visible only when an AI segment is selected) ── */}
           {selectedIncident?.explanation && (
@@ -1415,9 +1584,12 @@ export default function MapPage() {
                 <span>Medium Severity</span>
               </div>
               <div className="legend-item">
-                <span className="legend-dot low"></span>
+                <span className={`legend-dot ${mapLayer === "zones" ? "zone-low" : "low"}`}></span>
                 <span>Low Severity</span>
               </div>
+              {mapLayer === "zones" && (
+                <p className="chart-note">Zones reflect your alert rule severity and schedule.</p>
+              )}
               {/* Extra legend row when the AI risk layer is active */}
               {mapLayer === "ai" && (
                 <>
@@ -1433,12 +1605,65 @@ export default function MapPage() {
 
           {/* ── Trending / hot-spot zones ── */}
           <div className="context-section">
-            <h4 className="section-title">Areas to Watch</h4>
+            <div className="zones-section-head">
+              <h4 className="section-title">{mapLayer === "zones" ? "Zone Rules" : "Areas to Watch"}</h4>
+              {mapLayer === "zones" ? (
+                <button
+                  type="button"
+                  className="zone-link-btn"
+                  onClick={() => navigate('/alerts')}
+                >
+                  Open alerts
+                </button>
+              ) : null}
+            </div>
             <div className="trending-zones">
-              {trendingZones.length === 0 && (
+              {mapLayer === "zones" ? (
+                zonesLoading ? (
+                  <p className="chart-note">Loading active alert zones...</p>
+                ) : zonesError ? (
+                  <p className="chart-note chart-note-error">{zonesError}</p>
+                ) : activeAlertZones.length === 0 ? (
+                  <p className="chart-note">No active alert zones yet.</p>
+                ) : (
+                  activeAlertZones.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className={`zone-item ${selectedZoneId === alert.id ? 'selected' : ''}`}
+                      onClick={() => {
+                        setMapLayer("zones");
+                        setSelectedZoneId(alert.id);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setMapLayer("zones");
+                          setSelectedZoneId(alert.id);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <div className="zone-info">
+                        <span className="zone-name">{alert.zone?.displayName || alert.area?.name || alert.name}</span>
+                        <span className="zone-meta">
+                          {alert.timeWindow} • {alert.triggerCount} triggers
+                        </span>
+                        <span className="zone-meta zone-meta-secondary">
+                          {formatZoneLastTriggered(alert.lastTriggeredAt)}
+                        </span>
+                      </div>
+                      <span className={`zone-badge severity-${alert.severity}`}>
+                        {alert.severity === "high" ? "H" : alert.severity === "medium" ? "M" : "L"}
+                      </span>
+                    </div>
+                  ))
+                )
+              ) : null}
+              {mapLayer !== "zones" && trendingZones.length === 0 && (
                 <p className="chart-note">No report clusters match the current filters.</p>
               )}
-              {trendingZones.map((zone) => (
+              {mapLayer !== "zones" && trendingZones.map((zone) => (
                 <div key={zone.name} className="zone-item">
                   <div className="zone-info">
                     <span className="zone-name">{zone.name}</span>
@@ -1471,7 +1696,7 @@ export default function MapPage() {
                 </div>
               ))}
             </div>
-            <button className="btn-manage-alerts">Manage My Alerts</button>
+            <button className="btn-manage-alerts" onClick={() => navigate('/alerts')}>Manage My Alerts</button>
           </div>
 
           {/* ── Quick statistics summary ── */}

@@ -1,0 +1,308 @@
+.siara-notification-header-enabled .dash-header-right > .dash-icon-btn[aria-label="Notifications"] {
+  display: none !important;
+}
+
+.siara-notification-header-enabled .dash-header-right > .dash-icon-btn[aria-label="Messages"] {
+  order: 1;
+}
+
+.siara-notification-header-enabled .dash-header-right > .notif-header-shell {
+  order: 2;
+}
+
+.siara-notification-header-enabled .dash-header-right > .dash-avatar-wrapper {
+  order: 3;
+}
+
+.notif-header-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.notif-header-button {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(245, 243, 255, 0.98), rgba(255, 255, 255, 0.98));
+  color: #6d28d9;
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.10);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.notif-header-button:hover,
+.notif-header-button.open {
+  transform: translateY(-1px);
+  border-color: rgba(124, 58, 237, 0.22);
+  box-shadow: 0 12px 28px rgba(124, 58, 237, 0.16);
+}
+
+.notif-header-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.notif-header-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+}
+
+.notif-header-panel {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  width: clamp(360px, 34vw, 408px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+  z-index: 1200;
+  backdrop-filter: blur(14px);
+}
+
+.notif-header-panel-head,
+.notif-header-panel-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 18px 14px;
+}
+
+.notif-header-kicker {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7c3aed;
+}
+
+.notif-header-panel-head h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #1e293b;
+}
+
+.notif-header-link,
+.notif-header-view-all,
+.notif-toast-link,
+.notif-header-mark {
+  border: 0;
+  background: transparent;
+  color: #6d28d9;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notif-header-link:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.notif-header-list {
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 0 10px 10px;
+}
+
+.notif-header-empty {
+  padding: 34px 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.notif-header-item {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 14px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 18px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.notif-header-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(124, 58, 237, 0.18);
+  box-shadow: 0 10px 22px rgba(124, 58, 237, 0.08);
+}
+
+.notif-header-item.unread {
+  background: linear-gradient(180deg, rgba(245, 243, 255, 0.82), rgba(255, 255, 255, 0.98));
+}
+
+.notif-header-item.tone-high {
+  box-shadow: inset 4px 0 0 #dc2626;
+}
+
+.notif-header-item.tone-medium {
+  box-shadow: inset 4px 0 0 #f59e0b;
+}
+
+.notif-header-item.tone-neutral {
+  box-shadow: inset 4px 0 0 #7c3aed;
+}
+
+.notif-header-item-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.notif-header-item-topline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notif-header-item-title,
+.notif-toast-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.notif-header-item-body,
+.notif-toast-body {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #475569;
+}
+
+.notif-header-item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.notif-header-unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #7c3aed;
+  flex-shrink: 0;
+}
+
+.notif-header-mark {
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.notif-toast-stack {
+  position: fixed;
+  top: 92px;
+  right: 24px;
+  z-index: 1250;
+  width: min(360px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notif-toast-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+}
+
+.notif-toast-card.priority-high {
+  box-shadow: inset 4px 0 0 #dc2626, 0 18px 40px rgba(15, 23, 42, 0.12);
+}
+
+.notif-toast-card.priority-medium {
+  box-shadow: inset 4px 0 0 #f59e0b, 0 18px 40px rgba(15, 23, 42, 0.12);
+}
+
+.notif-toast-card.priority-neutral {
+  box-shadow: inset 4px 0 0 #7c3aed, 0 18px 40px rgba(15, 23, 42, 0.12);
+}
+
+.notif-toast-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notif-toast-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7c3aed;
+}
+
+.notif-toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notif-toast-link {
+  color: #6d28d9;
+}
+
+.notif-toast-close {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+  color: #475569;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .notif-header-panel {
+    position: fixed;
+    top: 84px;
+    right: 16px;
+    width: min(400px, calc(100vw - 32px));
+  }
+
+  .notif-toast-stack {
+    top: auto;
+    right: 16px;
+    bottom: 16px;
+  }
+}

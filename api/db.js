@@ -3,7 +3,7 @@ require("dotenv").config({
   path: path.join(__dirname, ".env"),
   override: process.env.NODE_ENV !== "production",
 });
-const { Pool } = require("pg");
+const { Client, Pool } = require("pg");
 
 function buildSslConfig() {
   const sslMode = String(process.env.PGSSLMODE || "").trim().toLowerCase();
@@ -59,3 +59,5 @@ pool.on("error", (err) => {
 });
 
 module.exports = pool;
+module.exports.connectionConfig = connectionConfig;
+module.exports.createDedicatedClient = () => new Client(connectionConfig);

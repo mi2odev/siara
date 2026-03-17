@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-labelledby="title desc">
+  <title id="title">SIARA Push Icon</title>
+  <desc id="desc">Purple SIARA notification icon for browser push notifications.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.98" />
+      <stop offset="100%" stop-color="#ede9fe" stop-opacity="0.96" />
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="44" fill="url(#bg)" />
+  <circle cx="96" cy="96" r="58" fill="url(#accent)" opacity="0.98" />
+  <path
+    fill="#6d28d9"
+    d="M99.4 52c16.5 0 29.9 13.4 29.9 29.9v8.2c0 9 3.4 17.6 9.5 24.3l4.3 4.7v8.4H49v-8.4l4.3-4.7c6.1-6.7 9.5-15.3 9.5-24.3v-8.2C62.8 65.4 76.2 52 92.7 52h6.7Zm-3.4 94.4c7.7 0 14.4-5 16.8-12.1H79.2c2.4 7.1 9.1 12.1 16.8 12.1Z"
+  />
+  <circle cx="138" cy="54" r="14" fill="#ef4444" />
+</svg>

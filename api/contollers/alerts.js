@@ -71,6 +71,24 @@ function parsePositiveInteger(value) {
   return null;
 }
 
+function parseBooleanQuery(value, fallback = false) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1" || normalized === "yes") {
+      return true;
+    }
+    if (normalized === "false" || normalized === "0" || normalized === "no") {
+      return false;
+    }
+  }
+
+  return fallback;
+}
+
 function parseLatitude(value) {
   const parsed = typeof value === "number" ? value : Number.parseFloat(value);
   if (!Number.isFinite(parsed) || parsed < -90 || parsed > 90) {
@@ -198,7 +216,27 @@ function normalizeRecentTriggers(value) {
   }));
 }
 
-function formatAlertRow(row) {
+function normalizeGeoJson(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  if (typeof value === "object") {
+    return value;
+  }
+
+  return null;
+}
+
+function formatAlertRow(row, { includeGeometry = false } = {}) {
   const severityLevels = Array.isArray(row.severity_levels) ? row.severity_levels : [];
   const incidentTypes = Array.isArray(row.incident_types) ? row.incident_types : [];
   const zoneRecordType = row.zone_record_type || null;
@@ -239,6 +277,9 @@ function formatAlertRow(row) {
       radiusM: null,
       radiusKm: null,
       center: adminAreaCenter,
+      geometry: includeGeometry
+        ? normalizeGeoJson(row.admin_area_geojson) || normalizeGeoJson(row.zone_geojson)
+        : null,
     };
 
     area = {
@@ -260,6 +301,7 @@ function formatAlertRow(row) {
       radiusM: row.radius_m !== null ? Number(row.radius_m) : null,
       radiusKm: row.radius_m !== null ? Number((Number(row.radius_m) / 1000).toFixed(1)) : null,
       center,
+      geometry: includeGeometry ? normalizeGeoJson(row.zone_geojson) : null,
     };
 
     area = {
@@ -327,8 +369,10 @@ const ALERT_SELECT_SQL = `
     az.zone_type AS zone_record_type,
     az.admin_area_id,
     az.radius_m,
+    ST_AsGeoJSON(az.geom)::jsonb AS zone_geojson,
     ST_Y(az.center::geometry) AS center_lat,
     ST_X(az.center::geometry) AS center_lng,
+    ST_AsGeoJSON(aa.geom)::jsonb AS admin_area_geojson,
     ST_Y(COALESCE(aa.centroid::geometry, ST_Centroid(aa.geom))) AS admin_center_lat,
     ST_X(COALESCE(aa.centroid::geometry, ST_Centroid(aa.geom))) AS admin_center_lng,
     aa.level AS admin_area_level,
@@ -393,7 +437,11 @@ const ALERT_SELECT_SQL = `
   WHERE ar.user_id = $1
 `;
 
-async function fetchAlertsForUser(userId, alertId = null, client = pool) {
+async function fetchAlertsForUser(
+  userId,
+  { alertId = null, includeGeometry = false } = {},
+  client = pool,
+) {
   const params = [userId];
   let sql = ALERT_SELECT_SQL;
 
@@ -405,11 +453,11 @@ async function fetchAlertsForUser(userId, alertId = null, client = pool) {
   sql += " ORDER BY ar.created_at DESC";
 
   const result = await client.query(sql, params);
-  return result.rows.map(formatAlertRow);
+  return result.rows.map((row) => formatAlertRow(row, { includeGeometry }));
 }
 
-async function getAlertForUserOrThrow(userId, alertId, client = pool) {
-  const alerts = await fetchAlertsForUser(userId, alertId, client);
+async function getAlertForUserOrThrow(userId, alertId, client = pool, options = {}) {
+  const alerts = await fetchAlertsForUser(userId, { alertId, ...options }, client);
   if (alerts.length === 0) {
     throw createError(404, "Alert not found");
   }
@@ -589,7 +637,8 @@ async function saveZone(client, alertId, zone) {
 
 router.get("/", verifyToken, async (req, res, next) => {
   try {
-    const items = await fetchAlertsForUser(req.user.userId);
+    const includeGeometry = parseBooleanQuery(req.query?.includeGeometry, false);
+    const items = await fetchAlertsForUser(req.user.userId, { includeGeometry });
     return res.status(200).json({ items });
   } catch (error) {
     return next(error);
@@ -598,7 +647,8 @@ router.get("/", verifyToken, async (req, res, next) => {
 
 router.get("/:id", verifyToken, async (req, res, next) => {
   try {
-    const item = await getAlertForUserOrThrow(req.user.userId, req.params.id);
+    const includeGeometry = parseBooleanQuery(req.query?.includeGeometry, false);
+    const item = await getAlertForUserOrThrow(req.user.userId, req.params.id, pool, { includeGeometry });
     return res.status(200).json({ item });
   } catch (error) {
     return next(error);

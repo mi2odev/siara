@@ -3,13 +3,21 @@ import { publicRequest, userRequest } from '../requestMethodes'
 const ALERTS_ENDPOINT = '/alerts'
 const ADMIN_AREAS_ENDPOINT = '/admin-areas'
 
-export async function fetchAlerts() {
-  const response = await userRequest.get(ALERTS_ENDPOINT)
+export async function fetchAlerts(options = {}) {
+  const response = await userRequest.get(ALERTS_ENDPOINT, {
+    params: {
+      includeGeometry: options.includeGeometry ? 'true' : undefined,
+    },
+  })
   return response.data?.items || []
 }
 
-export async function fetchAlert(id) {
-  const response = await userRequest.get(`${ALERTS_ENDPOINT}/${id}`)
+export async function fetchAlert(id, options = {}) {
+  const response = await userRequest.get(`${ALERTS_ENDPOINT}/${id}`, {
+    params: {
+      includeGeometry: options.includeGeometry ? 'true' : undefined,
+    },
+  })
   return response.data?.item || null
 }
 

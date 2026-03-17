@@ -1,4 +1,5 @@
 const express = require("express");
+const http = require("http");
 const path = require("path");
 const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
@@ -12,7 +13,13 @@ const pool = require("./db");
 const authRoutes = require("./contollers/auth");
 const adminAreaRoutes = require("./contollers/adminAreas");
 const alertRoutes = require("./contollers/alerts");
+const emailRoutes = require("./contollers/emails");
+const notificationRoutes = require("./contollers/notifications");
+const pushRoutes = require("./contollers/push");
 const reportRoutes = require("./contollers/reports");
+const { startNotificationListener } = require("./services/notificationListener");
+const { initializeNotificationSocketServer } = require("./services/notificationSocket");
+const { startWeeklySummaryScheduler } = require("./services/weeklySummaryScheduler");
 const {
   predictDriverRisk,
   predictCurrentRisk,
@@ -25,7 +32,10 @@ const {
 } = require("./contollers/Model/models");
 
 const app = express();
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+const httpServer = http.createServer(app);
+const allowedOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+
+app.use(cors({ origin: allowedOrigin, credentials: true }));
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(express.json());
@@ -33,6 +43,9 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/admin-areas", adminAreaRoutes);
 app.use("/api/alerts", alertRoutes);
+app.use("/api/emails", emailRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/push", pushRoutes);
 app.use("/api/reports", reportRoutes);
 
 app.post("/api/model/predict", predictDriverRisk);
@@ -101,6 +114,14 @@ async function runStartupChecks() {
 }
 
 runStartupChecks();
+initializeNotificationSocketServer(httpServer, {
+  cors: {
+    origin: allowedOrigin,
+    credentials: true,
+  },
+});
+startNotificationListener();
+startWeeklySummaryScheduler();
 
 app.use((err, req, res, next) => {
   console.error(err);
@@ -111,7 +132,7 @@ app.use((err, req, res, next) => {
 });
 
 
-app.listen(process.env.PORT_NUM || 5000, () => {
+httpServer.listen(process.env.PORT_NUM || 5000, () => {
   console.log("Backend server is running !!");
 });
 

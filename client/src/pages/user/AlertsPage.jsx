@@ -5,6 +5,17 @@ import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
 import { AuthContext } from '../../contexts/AuthContext'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import { deleteAlert, fetchAlerts, updateAlertStatus } from '../../services/alertService'
+import { fetchEmailPreferences, updateEmailPreferences } from '../../services/authService'
+import {
+  fetchPushPreferences,
+  getExistingPushSubscription,
+  getPushPermissionState,
+  isPushSupported,
+  sendPushTest,
+  subscribeCurrentBrowserToPush,
+  unsubscribeCurrentBrowserFromPush,
+  updatePushPreferences,
+} from '../../services/pushService'
 import '../../styles/NewsPage.css'
 import '../../styles/AlertsPage.css'
 import '../../styles/DashboardPage.css'
@@ -27,6 +38,43 @@ function color(severity) {
   return { high: '#DC2626', medium: '#F59E0B', low: '#10B981' }[severity] || '#64748B'
 }
 
+function formatPushPermission(permission) {
+  if (permission === 'granted') {
+    return 'Allowed'
+  }
+  if (permission === 'denied') {
+    return 'Blocked'
+  }
+  if (permission === 'default') {
+    return 'Ask first'
+  }
+  return 'Unavailable'
+}
+
+function describePushMode(preferences) {
+  if (!preferences?.pushEnabled || preferences?.pushMode === 'off') {
+    return 'System alerts are currently off for this browser.'
+  }
+
+  if (preferences.pushMode === 'all') {
+    return 'Medium and high-risk watched-zone alerts will appear as browser notifications.'
+  }
+
+  return 'Only high-risk watched-zone alerts will appear as browser notifications.'
+}
+
+function describeEmailPreferences(preferences) {
+  if (!preferences) {
+    return 'Choose which SIARA emails should reach your inbox.'
+  }
+
+  if (!preferences.weekly_summary_enabled && !preferences.product_updates_enabled && !preferences.marketing_enabled) {
+    return 'Email updates are currently turned off except for required transactional messages.'
+  }
+
+  return 'Weekly summaries, product updates, and optional marketing emails are controlled here.'
+}
+
 export default function AlertsPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -43,6 +91,19 @@ export default function AlertsPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [alerts, setAlerts] = useState([])
   const [showQuiz, setShowQuiz] = useState(false)
+  const [pushBusyAction, setPushBusyAction] = useState('')
+  const [pushError, setPushError] = useState('')
+  const [pushNotice, setPushNotice] = useState('')
+  const [pushPermission, setPushPermission] = useState(getPushPermissionState())
+  const [pushPreferences, setPushPreferences] = useState(null)
+  const [pushSettingsLoading, setPushSettingsLoading] = useState(true)
+  const [pushSupported, setPushSupported] = useState(isPushSupported())
+  const [hasBrowserSubscription, setHasBrowserSubscription] = useState(false)
+  const [emailPreferences, setEmailPreferences] = useState(null)
+  const [emailPreferencesLoading, setEmailPreferencesLoading] = useState(true)
+  const [emailPreferencesBusyKey, setEmailPreferencesBusyKey] = useState('')
+  const [emailPreferencesError, setEmailPreferencesError] = useState('')
+  const [emailPreferencesNotice, setEmailPreferencesNotice] = useState('')
 
   useEffect(() => {
     let ignore = false
@@ -56,6 +117,61 @@ export default function AlertsPage() {
         if (!ignore) setLoading(false)
       }
     })()
+    return () => { ignore = true }
+  }, [])
+
+  useEffect(() => {
+    let ignore = false
+
+    ;(async () => {
+      try {
+        const [preferences, subscription] = await Promise.all([
+          fetchPushPreferences(),
+          getExistingPushSubscription().catch(() => null),
+        ])
+
+        if (ignore) {
+          return
+        }
+
+        setPushPreferences(preferences)
+        setHasBrowserSubscription(Boolean(subscription))
+        setPushSupported(isPushSupported())
+        setPushPermission(getPushPermissionState())
+      } catch (error) {
+        if (!ignore) {
+          setPushError(error.response?.data?.message || 'Unable to load system alert settings.')
+        }
+      } finally {
+        if (!ignore) {
+          setPushSettingsLoading(false)
+        }
+      }
+    })()
+
+    return () => { ignore = true }
+  }, [])
+
+  useEffect(() => {
+    let ignore = false
+
+    ;(async () => {
+      try {
+        const preferences = await fetchEmailPreferences()
+        if (!ignore) {
+          setEmailPreferences(preferences)
+        }
+      } catch (error) {
+        if (!ignore) {
+          setEmailPreferencesError(error.response?.data?.message || 'Unable to load email preferences.')
+        }
+      } finally {
+        if (!ignore) {
+          setEmailPreferencesLoading(false)
+        }
+      }
+    })()
+
     return () => { ignore = true }
   }, [])
 
@@ -74,6 +190,24 @@ export default function AlertsPage() {
     const timer = setTimeout(() => setToast(''), 4000)
     return () => clearTimeout(timer)
   }, [toast])
+
+  useEffect(() => {
+    if (!pushNotice) {
+      return undefined
+    }
+
+    const timer = setTimeout(() => setPushNotice(''), 5000)
+    return () => clearTimeout(timer)
+  }, [pushNotice])
+
+  useEffect(() => {
+    if (!emailPreferencesNotice) {
+      return undefined
+    }
+
+    const timer = setTimeout(() => setEmailPreferencesNotice(''), 5000)
+    return () => clearTimeout(timer)
+  }, [emailPreferencesNotice])
 
   const wilayas = useMemo(
     () => [...new Set(alerts.map((alert) => alert.area?.wilaya).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
@@ -131,6 +265,110 @@ export default function AlertsPage() {
   }
 
   const mapCenter = selectedAlert?.area?.center || DEFAULT_CENTER
+  const pushEnabled = Boolean(pushPreferences?.pushEnabled && pushPreferences?.pushMode !== 'off')
+
+  async function refreshBrowserPushState() {
+    const subscription = await getExistingPushSubscription().catch(() => null)
+    setHasBrowserSubscription(Boolean(subscription))
+    setPushPermission(getPushPermissionState())
+    setPushSupported(isPushSupported())
+    return subscription
+  }
+
+  async function handlePushModeChange(nextMode) {
+    if (!pushSupported) {
+      setPushError('System notifications are not supported in this browser.')
+      return
+    }
+
+    setPushBusyAction(nextMode)
+    setPushError('')
+    setPushNotice('')
+
+    try {
+      await subscribeCurrentBrowserToPush()
+      const preferences = await updatePushPreferences({
+        pushEnabled: true,
+        pushMode: nextMode,
+      })
+      setPushPreferences(preferences)
+      setHasBrowserSubscription(true)
+      setPushPermission(getPushPermissionState())
+      setPushNotice(nextMode === 'all'
+        ? 'System alerts now include medium and high-risk watched-zone incidents.'
+        : 'System alerts now focus on high-risk watched-zone incidents.')
+    } catch (error) {
+      await refreshBrowserPushState()
+      setPushError(error.response?.data?.message || error.message || 'Unable to enable system alerts.')
+    } finally {
+      setPushBusyAction('')
+    }
+  }
+
+  async function handleDisableSystemAlerts() {
+    setPushBusyAction('off')
+    setPushError('')
+    setPushNotice('')
+
+    try {
+      const preferences = await updatePushPreferences({
+        pushEnabled: false,
+        pushMode: 'off',
+      })
+
+      setPushPreferences(preferences)
+      await unsubscribeCurrentBrowserFromPush().catch(() => null)
+      await refreshBrowserPushState()
+      setPushNotice('System alerts turned off for this browser.')
+    } catch (error) {
+      setPushError(error.response?.data?.message || error.message || 'Unable to turn off system alerts.')
+    } finally {
+      setPushBusyAction('')
+    }
+  }
+
+  async function handleSendPushTest() {
+    setPushBusyAction('test')
+    setPushError('')
+    setPushNotice('')
+
+    try {
+      const result = await sendPushTest()
+      if (!result.ok || result.sentCount === 0) {
+        setPushError(result.reason === 'no_active_subscriptions'
+          ? 'No active browser subscription was found for your account on this browser.'
+          : 'Unable to send a test system alert right now.')
+        return
+      }
+
+      setPushNotice('Test alert sent. Check your browser notifications.')
+    } catch (error) {
+      setPushError(error.response?.data?.message || error.message || 'Unable to send a test system alert.')
+    } finally {
+      setPushBusyAction('')
+    }
+  }
+
+  async function handleEmailPreferenceToggle(key, value) {
+    setEmailPreferencesBusyKey(key)
+    setEmailPreferencesError('')
+    setEmailPreferencesNotice('')
+
+    try {
+      const preferences = await updateEmailPreferences({
+        weeklySummaryEnabled: key === 'weekly_summary_enabled' ? value : undefined,
+        productUpdatesEnabled: key === 'product_updates_enabled' ? value : undefined,
+        marketingEnabled: key === 'marketing_enabled' ? value : undefined,
+      })
+
+      setEmailPreferences(preferences)
+      setEmailPreferencesNotice('Email preferences updated.')
+    } catch (error) {
+      setEmailPreferencesError(error.response?.data?.message || 'Unable to update email preferences.')
+    } finally {
+      setEmailPreferencesBusyKey('')
+    }
+  }
 
   return (
     <div className="alerts-page">
@@ -273,6 +511,150 @@ export default function AlertsPage() {
         </main>
 
         <aside className="al-right">
+          <div className="al-panel al-push-panel">
+            <div className="panel-head al-push-head">
+              <div>
+                <span className="panel-label" style={{ marginBottom: 6 }}>System Alerts</span>
+                <span className={`al-push-chip ${pushEnabled ? 'enabled' : 'disabled'}`}>
+                  {pushEnabled ? 'On' : 'Off'}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="al-push-primary"
+                onClick={() => { void handlePushModeChange('important_only') }}
+                disabled={!pushSupported || pushBusyAction !== '' || pushSettingsLoading}
+              >
+                Enable system alerts
+              </button>
+            </div>
+
+            <p className="al-push-copy">{describePushMode(pushPreferences)}</p>
+
+            <div className="al-push-status-grid">
+              <div className="al-push-status-item">
+                <span className="al-push-status-label">Browser</span>
+                <strong>{pushSupported ? 'Supported' : 'Unavailable'}</strong>
+              </div>
+              <div className="al-push-status-item">
+                <span className="al-push-status-label">Permission</span>
+                <strong>{formatPushPermission(pushPermission)}</strong>
+              </div>
+              <div className="al-push-status-item">
+                <span className="al-push-status-label">Subscription</span>
+                <strong>{hasBrowserSubscription ? 'Active' : 'Inactive'}</strong>
+              </div>
+            </div>
+
+            {pushSettingsLoading ? (
+              <div className="al-push-feedback subtle">Loading system alert settings...</div>
+            ) : null}
+            {pushError ? (
+              <div className="al-push-feedback error">{pushError}</div>
+            ) : null}
+            {pushNotice ? (
+              <div className="al-push-feedback success">{pushNotice}</div>
+            ) : null}
+
+            <div className="al-push-options">
+              <button
+                type="button"
+                className={`al-push-option ${pushPreferences?.pushMode === 'important_only' && pushEnabled ? 'active' : ''}`}
+                onClick={() => { void handlePushModeChange('important_only') }}
+                disabled={!pushSupported || pushBusyAction !== '' || pushSettingsLoading}
+              >
+                <span className="al-push-option-title">High-risk alerts only</span>
+                <span className="al-push-option-copy">Recommended for critical watched-zone incidents.</span>
+              </button>
+
+              <button
+                type="button"
+                className={`al-push-option ${pushPreferences?.pushMode === 'all' && pushEnabled ? 'active' : ''}`}
+                onClick={() => { void handlePushModeChange('all') }}
+                disabled={!pushSupported || pushBusyAction !== '' || pushSettingsLoading}
+              >
+                <span className="al-push-option-title">All watched-zone alerts</span>
+                <span className="al-push-option-copy">Includes medium and high-risk watched-zone incidents.</span>
+              </button>
+
+              <button
+                type="button"
+                className={`al-push-option danger ${!pushEnabled ? 'active' : ''}`}
+                onClick={() => { void handleDisableSystemAlerts() }}
+                disabled={pushBusyAction !== '' || pushSettingsLoading}
+              >
+                <span className="al-push-option-title">Turn off system alerts</span>
+                <span className="al-push-option-copy">Keep in-app notifications only.</span>
+              </button>
+            </div>
+
+            <div className="al-push-actions">
+              <button
+                type="button"
+                className="al-push-secondary"
+                onClick={() => { void handleSendPushTest() }}
+                disabled={!pushEnabled || !hasBrowserSubscription || pushBusyAction !== ''}
+              >
+                Send test alert
+              </button>
+            </div>
+          </div>
+
+          <div className="al-panel al-email-panel">
+            <div className="panel-head al-push-head">
+              <div>
+                <span className="panel-label" style={{ marginBottom: 6 }}>Email Preferences</span>
+                <span className={`al-push-chip ${(emailPreferences?.weekly_summary_enabled || emailPreferences?.product_updates_enabled || emailPreferences?.marketing_enabled) ? 'enabled' : 'disabled'}`}>
+                  {(emailPreferences?.weekly_summary_enabled || emailPreferences?.product_updates_enabled || emailPreferences?.marketing_enabled) ? 'On' : 'Off'}
+                </span>
+              </div>
+            </div>
+
+            <p className="al-push-copy">{describeEmailPreferences(emailPreferences)}</p>
+
+            {emailPreferencesLoading ? (
+              <div className="al-push-feedback subtle">Loading email settings...</div>
+            ) : null}
+            {emailPreferencesError ? (
+              <div className="al-push-feedback error">{emailPreferencesError}</div>
+            ) : null}
+            {emailPreferencesNotice ? (
+              <div className="al-push-feedback success">{emailPreferencesNotice}</div>
+            ) : null}
+
+            <div className="al-push-options">
+              <button
+                type="button"
+                className={`al-push-option ${emailPreferences?.weekly_summary_enabled ? 'active' : ''}`}
+                onClick={() => { void handleEmailPreferenceToggle('weekly_summary_enabled', !emailPreferences?.weekly_summary_enabled) }}
+                disabled={emailPreferencesLoading || emailPreferencesBusyKey !== ''}
+              >
+                <span className="al-push-option-title">Weekly summary email</span>
+                <span className="al-push-option-copy">Sunday evening recap of incidents and trigger activity in your watched zones.</span>
+              </button>
+
+              <button
+                type="button"
+                className={`al-push-option ${emailPreferences?.product_updates_enabled ? 'active' : ''}`}
+                onClick={() => { void handleEmailPreferenceToggle('product_updates_enabled', !emailPreferences?.product_updates_enabled) }}
+                disabled={emailPreferencesLoading || emailPreferencesBusyKey !== ''}
+              >
+                <span className="al-push-option-title">Product updates</span>
+                <span className="al-push-option-copy">Occasional SIARA improvements, release notes, and feature updates.</span>
+              </button>
+
+              <button
+                type="button"
+                className={`al-push-option ${emailPreferences?.marketing_enabled ? 'active' : ''}`}
+                onClick={() => { void handleEmailPreferenceToggle('marketing_enabled', !emailPreferences?.marketing_enabled) }}
+                disabled={emailPreferencesLoading || emailPreferencesBusyKey !== ''}
+              >
+                <span className="al-push-option-title">Marketing updates</span>
+                <span className="al-push-option-copy">Optional announcements about SIARA campaigns and outreach.</span>
+              </button>
+            </div>
+          </div>
+
           {selectedAlert ? (
             <>
               <div className="al-panel summary">
@@ -305,6 +687,13 @@ export default function AlertsPage() {
                   )}
                 </div>
                 <span className="map-text">{selectedAlert.zone?.displayName || selectedAlert.area?.name}</span>
+                <button
+                  type="button"
+                  className="al-map-link"
+                  onClick={() => navigate('/map', { state: { mapLayer: 'zones', focusAlertId: selectedAlert.id } })}
+                >
+                  Open zone on map
+                </button>
               </div>
 
               <div className="al-panel triggers">

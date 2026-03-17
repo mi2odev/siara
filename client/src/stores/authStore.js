@@ -1,11 +1,37 @@
 import { create } from 'zustand'
-import { getCurrentUser, login as loginRequest, logout as logoutRequest } from '../services/authService'
 import {
-  clearPersistedSession,
-  normalizeAuthUser,
-  persistSession,
-  readPersistedSession,
-} from './authStorage'
+  confirmVerificationCode,
+  getSession,
+  login as loginRequest,
+  loginWithGoogle as loginWithGoogleRequest,
+  logout as logoutRequest,
+  registerAccount,
+} from '../services/authService'
+
+function normalizeAuthUser(rawUser) {
+  if (!rawUser || typeof rawUser !== 'object') {
+    return null
+  }
+
+  const roles = Array.isArray(rawUser.roles)
+    ? rawUser.roles
+    : rawUser.role
+      ? [rawUser.role]
+      : []
+  const role = roles.includes('admin') ? 'admin' : roles[0] || rawUser.role || 'citizen'
+  const name = rawUser.name
+    || [rawUser.first_name, rawUser.last_name].filter(Boolean).join(' ')
+    || rawUser.email
+    || rawUser.phone
+    || 'User'
+
+  return {
+    ...rawUser,
+    roles,
+    role,
+    name,
+  }
+}
 
 function buildLoggedOutState() {
   return {
@@ -14,18 +40,23 @@ function buildLoggedOutState() {
     isAuthenticated: false,
     isAuthLoading: false,
     isAdmin: false,
+    isEmailVerified: false,
+    hasCheckedSession: true,
   }
 }
 
-function setAuthenticatedState(set, { user, token, persistMode }) {
-  const normalizedUser = persistSession({ user, token, persistMode })
+function setAuthenticatedState(set, response) {
+  const normalizedUser = normalizeAuthUser(response?.user)
+  const token = response?.token || null
 
   set({
     user: normalizedUser,
     token,
-    isAuthenticated: Boolean(normalizedUser && token),
+    isAuthenticated: Boolean(normalizedUser),
     isAuthLoading: false,
     isAdmin: normalizedUser?.role === 'admin',
+    isEmailVerified: Boolean(normalizedUser?.email_verified ?? true),
+    hasCheckedSession: true,
   })
 
   return normalizedUser
@@ -33,25 +64,62 @@ function setAuthenticatedState(set, { user, token, persistMode }) {
 
 export const useAuthStore = create((set, get) => ({
   ...buildLoggedOutState(),
+  hasCheckedSession: false,
 
-  async login(identifier, password, remember = false) {
+  async register(payload) {
     set({ isAuthLoading: true })
 
     try {
-      const response = await loginRequest(identifier, password)
-
-      if (!response?.user || !response?.token) {
-        throw new Error('Authentication failed')
-      }
-
-      return setAuthenticatedState(set, {
-        user: normalizeAuthUser(response.user, remember ? 'local' : 'session'),
-        token: response.token,
-        persistMode: remember ? 'local' : 'session',
-      })
+      const response = await registerAccount(payload)
+      set({ isAuthLoading: false, hasCheckedSession: true })
+      return response
     } catch (error) {
-      clearPersistedSession()
-      set(buildLoggedOutState())
+      set({ isAuthLoading: false, hasCheckedSession: true })
+      throw error
+    }
+  },
+
+  async login(email, password, rememberMe = false) {
+    set({ isAuthLoading: true })
+
+    try {
+      const response = await loginRequest({ email, password, rememberMe })
+      setAuthenticatedState(set, response)
+      return normalizeAuthUser(response.user)
+    } catch (error) {
+      set({
+        ...buildLoggedOutState(),
+        hasCheckedSession: true,
+      })
+      throw error
+    }
+  },
+
+  async loginWithGoogle(credential, rememberMe = false) {
+    set({ isAuthLoading: true })
+
+    try {
+      const response = await loginWithGoogleRequest({ credential, rememberMe })
+      setAuthenticatedState(set, response)
+      return normalizeAuthUser(response.user)
+    } catch (error) {
+      set({
+        ...buildLoggedOutState(),
+        hasCheckedSession: true,
+      })
+      throw error
+    }
+  },
+
+  async completeEmailVerification({ email, code, rememberMe = false }) {
+    set({ isAuthLoading: true })
+
+    try {
+      const response = await confirmVerificationCode({ email, code, rememberMe })
+      setAuthenticatedState(set, response)
+      return normalizeAuthUser(response.user)
+    } catch (error) {
+      set({ isAuthLoading: false, hasCheckedSession: true })
       throw error
     }
   },
@@ -62,7 +130,6 @@ export const useAuthStore = create((set, get) => ({
     try {
       await logoutRequest()
     } finally {
-      clearPersistedSession()
       set(buildLoggedOutState())
     }
   },
@@ -72,30 +139,25 @@ export const useAuthStore = create((set, get) => ({
       return get().user
     }
 
-    const persistedSession = readPersistedSession()
-    if (!persistedSession?.token) {
-      clearPersistedSession()
-      set(buildLoggedOutState())
-      return null
-    }
-
     set({ isAuthLoading: true })
 
     try {
-      const currentUser = await getCurrentUser()
+      const session = await getSession()
 
-      if (!currentUser) {
-        throw new Error('Session could not be restored')
+      if (!session?.authenticated || !session?.user) {
+        set({
+          ...buildLoggedOutState(),
+          hasCheckedSession: true,
+        })
+        return null
       }
 
-      return setAuthenticatedState(set, {
-        user: currentUser,
-        token: persistedSession.token,
-        persistMode: persistedSession.persistMode,
-      })
+      return setAuthenticatedState(set, session)
     } catch (_error) {
-      clearPersistedSession()
-      set(buildLoggedOutState())
+      set({
+        ...buildLoggedOutState(),
+        hasCheckedSession: true,
+      })
       return null
     }
   },

@@ -37,6 +37,41 @@ const HINT_TO_SEVERITY = Object.freeze({
   3: "high",
   4: "critical",
 });
+const NOTIFICATION_DEBUG_ENABLED =
+  process.env.NODE_ENV !== "production" || process.env.NOTIFICATION_DEBUG === "true";
+
+async function fetchReportNotificationDiagnostics(reportId, db = pool) {
+  const result = await db.query(
+    `
+      select
+        (
+          select count(*)::int
+          from app.alert_trigger_log atl
+          where atl.report_id = $1
+        ) as matched_rule_count,
+        (
+          select count(*)::int
+          from app.notifications n
+          where n.report_id = $1
+        ) as notification_count,
+        coalesce(
+          (
+            select json_agg(distinct atl.alert_id)
+            from app.alert_trigger_log atl
+            where atl.report_id = $1
+          ),
+          '[]'::json
+        ) as matched_alert_ids
+    `,
+    [reportId],
+  );
+
+  return result.rows[0] || {
+    matched_rule_count: 0,
+    notification_count: 0,
+    matched_alert_ids: [],
+  };
+}
 
 const REPORT_SELECT_SQL = `
   select
@@ -775,7 +810,23 @@ router.post("/", verifyToken, async (req, res, next) => {
       ],
     );
 
-    const createdRow = await requireExistingReport(insertResult.rows[0].id);
+    const reportId = insertResult.rows[0]?.id;
+    if (NOTIFICATION_DEBUG_ENABLED) {
+      const notificationDiagnostics = await fetchReportNotificationDiagnostics(reportId);
+
+      console.info("[reports] created", {
+        reportId,
+        reportedBy: req.user.userId,
+        incidentType: payload.incidentType,
+        severityHint: payload.severityHint,
+        locationLabel: payload.locationLabel,
+        matchedRuleCount: Number(notificationDiagnostics.matched_rule_count || 0),
+        notificationCount: Number(notificationDiagnostics.notification_count || 0),
+        matchedAlertIds: notificationDiagnostics.matched_alert_ids || [],
+      });
+    }
+
+    const createdRow = await requireExistingReport(reportId);
     return res.status(201).json({ report: await buildReportResponse(createdRow) });
   } catch (error) {
     return next(error);
