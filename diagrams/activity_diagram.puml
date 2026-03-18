@@ -1,0 +1,59 @@
+@startuml
+start
+
+:User opens application;
+:User submits incident report;
+
+:Send report to Backend;
+
+:Store Incident Report in Database;
+
+fork
+  :Fetch contextual data\n(weather, traffic, road);
+fork again
+  :Retrieve road segment info;
+end fork
+
+:Send data to AI Engine;
+
+:Preprocess data;
+:Generate risk prediction;
+
+:Store risk prediction in Database;
+
+if (Risk level high?) then (Yes)
+  :Trigger Alert Service;
+  :Identify affected users;
+  :Send notifications;
+else (No)
+  :No alert needed;
+endif
+
+:Display incident on map;
+
+:Police reviews incident;
+
+if (Incident valid?) then (Yes)
+  :Mark as Verified;
+  :Update incident status;
+else (No)
+  :Mark as False Report;
+endif
+
+fork
+  :Update map visualization;
+fork again
+  :Update dashboard & analytics;
+end fork
+
+:Incident monitoring continues;
+
+if (Incident resolved?) then (Yes)
+  :Mark as Resolved;
+  :Close incident;
+else (No)
+  :Keep monitoring;
+endif
+
+stop
+@enduml

@@ -188,14 +188,53 @@
   border: none;
   cursor: pointer;
   font-size: 18px;
+  color: #64748B;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
 }
 
+.dash-icon-glyph {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.dash-icon-btn-notification::before,
+.dash-icon-btn-messages::before {
+  font-size: 16px;
+  line-height: 1;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.dash-icon-btn-notification::before {
+  content: "\1F514";
+}
+
+.dash-icon-btn-messages::before {
+  content: "\1F4AC";
+}
+
+.dash-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: #64748B;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
 .dash-icon-btn:hover {
   background: #E2E8F0;
+}
+
+.dash-icon-btn:hover .dash-icon-glyph {
+  filter: brightness(0.9);
+}
+
+.dash-icon-btn:hover svg {
+  stroke: #334155;
 }
 
 .notification-badge {

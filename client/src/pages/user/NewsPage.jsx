@@ -112,6 +112,28 @@ function buildReportTags(report) {
   return tags
 }
 
+function getReportAuthorProfile(report) {
+  const author = report?.reportedBy || report?.reported_by || {}
+
+  return {
+    id: author?.id
+      ?? report?.reportedById
+      ?? report?.reported_by_id
+      ?? report?.userId
+      ?? report?.user_id
+      ?? report?.createdBy
+      ?? report?.created_by
+      ?? null,
+    name: author?.name || report?.authorName || 'Citizen',
+    email: author?.email || report?.createdByEmail || report?.created_by_email || '',
+    role: author?.role || report?.authorRole || 'citizen',
+    city: author?.city || author?.location || '',
+    createdAt: author?.createdAt || author?.created_at || null,
+    reportCount: author?.reportCount ?? author?.reports_count,
+    verificationRate: author?.verificationRate ?? author?.verification_rate,
+  }
+}
+
 function mergeReports(previousReports, nextReports) {
   const reportMap = new Map()
 
@@ -126,8 +148,9 @@ function mergeReports(previousReports, nextReports) {
   return Array.from(reportMap.values())
 }
 
-function ReportCard({ report, navigate }) {
-  const authorName = report?.reportedBy?.name || 'Citizen'
+function ReportCard({ report, navigate, onOpenAuthorProfile }) {
+  const authorProfile = getReportAuthorProfile(report)
+  const authorName = authorProfile.name
   const severityClass = getSeverityClass(report?.severity)
   const severityLabel = getSeverityLabel(report?.severity)
   const media = Array.isArray(report?.media) ? report.media : []
@@ -139,15 +162,22 @@ function ReportCard({ report, navigate }) {
   const isVerified = report?.status === 'verified'
   const statusLabel = report?.status ? report.status.charAt(0).toUpperCase() + report.status.slice(1) : 'Pending'
   const occurredAt = report?.occurredAt || report?.createdAt
+  const handleOpenProfile = () => {
+    onOpenAuthorProfile(authorProfile)
+  }
 
   return (
     <article className={`card post-card ${report?.severity === 'high' ? 'severity-high-indicator' : ''}`}>
       <header className="post-header">
         <div className="post-header-left">
-          <div className="post-avatar">{getAuthorInitials(authorName)}</div>
+          <button className="post-avatar post-avatar-btn" onClick={handleOpenProfile} aria-label={`Open ${authorName} profile`}>
+            {getAuthorInitials(authorName)}
+          </button>
           <div className="post-meta-block">
             <div className="post-author-row">
-              <span className="post-author hoverable-name">{authorName}</span>
+              <button className="post-author post-author-btn hoverable-name" onClick={handleOpenProfile}>
+                {authorName}
+              </button>
               {isVerified && <span className="badge badge-verified">Verified</span>}
               <span className="badge badge-citoyen">Citizen</span>
             </div>
@@ -270,12 +300,15 @@ export default function NewsPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [feedError, setFeedError] = useState('')
   const [loadMoreError, setLoadMoreError] = useState('')
+  const [userSearchQuery, setUserSearchQuery] = useState('')
+  const [isUserSearchOpen, setIsUserSearchOpen] = useState(false)
   const [geoState, setGeoState] = useState({
     status: 'idle',
     coords: null,
   })
 
   const requestIdRef = useRef(0)
+  const closeSearchTimeoutRef = useRef(null)
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY,
@@ -464,6 +497,43 @@ export default function NewsPage() {
     [reports],
   )
 
+  const searchableUsers = useMemo(() => {
+    const uniqueUsers = new Map()
+
+    reports.forEach((report) => {
+      const profile = getReportAuthorProfile(report)
+      if (!profile?.name) {
+        return
+      }
+
+      const identityKey = profile.id != null
+        ? `id:${String(profile.id)}`
+        : `name:${String(profile.name).trim().toLowerCase()}`
+
+      if (!uniqueUsers.has(identityKey)) {
+        uniqueUsers.set(identityKey, profile)
+      }
+    })
+
+    return Array.from(uniqueUsers.values()).sort((left, right) => left.name.localeCompare(right.name))
+  }, [reports])
+
+  const filteredUsers = useMemo(() => {
+    const query = userSearchQuery.trim().toLowerCase()
+
+    if (!query) {
+      return searchableUsers.slice(0, 8)
+    }
+
+    return searchableUsers
+      .filter((profile) => {
+        const nameMatch = String(profile.name || '').toLowerCase().includes(query)
+        const emailMatch = String(profile.email || '').toLowerCase().includes(query)
+        return nameMatch || emailMatch
+      })
+      .slice(0, 8)
+  }, [searchableUsers, userSearchQuery])
+
   const mapCenter = useMemo(() => {
     if (activeFeed === 'nearby' && geoState.status === 'ready' && geoState.coords) {
       return geoState.coords
@@ -522,6 +592,60 @@ export default function NewsPage() {
 
   const followingUnsupported = activeFeed === 'following' && feedMeta?.followingSupported === false
 
+  const handleOpenAuthorProfile = (profile) => {
+    if (!profile || !profile.name) {
+      return
+    }
+
+    const currentUserId = user?.id ?? user?.userId ?? user?.user_id
+    const targetUserId = profile?.id ?? profile?.userId ?? profile?.user_id
+    const currentUserEmail = String(user?.email || '').trim().toLowerCase()
+    const targetUserEmail = String(profile?.email || '').trim().toLowerCase()
+    const currentUserName = String(user?.name || '').trim().toLowerCase()
+    const targetUserName = String(profile?.name || '').trim().toLowerCase()
+
+    const sameById = currentUserId != null && targetUserId != null && String(currentUserId) === String(targetUserId)
+    const sameByEmail = Boolean(currentUserEmail && targetUserEmail && currentUserEmail === targetUserEmail)
+    const sameByName = Boolean(currentUserName && targetUserName && currentUserName === targetUserName)
+
+    if (sameById || sameByEmail || sameByName) {
+      navigate('/profile')
+      setIsUserSearchOpen(false)
+      return
+    }
+
+    navigate('/profile', {
+      state: {
+        profileUser: profile,
+        source: 'feed',
+      },
+    })
+
+    setIsUserSearchOpen(false)
+  }
+
+  const handleSearchFocus = () => {
+    if (closeSearchTimeoutRef.current) {
+      window.clearTimeout(closeSearchTimeoutRef.current)
+      closeSearchTimeoutRef.current = null
+    }
+    setIsUserSearchOpen(true)
+  }
+
+  const handleSearchBlur = () => {
+    closeSearchTimeoutRef.current = window.setTimeout(() => {
+      setIsUserSearchOpen(false)
+    }, 120)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (closeSearchTimeoutRef.current) {
+        window.clearTimeout(closeSearchTimeoutRef.current)
+      }
+    }
+  }, [])
+
   return (
     <div className="siara-news-root">
       <DrivingQuiz onComplete={handleQuizComplete} forceShow={showQuiz} />
@@ -542,14 +666,53 @@ export default function NewsPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input className="dash-search" type="search" placeholder="Search for an incident, a road, a wilaya..." aria-label="Search" />
+            <div className="news-user-search">
+              <input
+                className="dash-search"
+                type="search"
+                placeholder="Search users from the feed..."
+                aria-label="Search users"
+                value={userSearchQuery}
+                onChange={(event) => setUserSearchQuery(event.target.value)}
+                onFocus={handleSearchFocus}
+                onBlur={handleSearchBlur}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && filteredUsers.length > 0) {
+                    event.preventDefault()
+                    handleOpenAuthorProfile(filteredUsers[0])
+                  }
+                }}
+              />
+
+              {isUserSearchOpen && (
+                <div className="news-user-search-menu" role="listbox" aria-label="Feed users">
+                  {filteredUsers.length > 0 ? (
+                    filteredUsers.map((profile) => (
+                      <button
+                        key={profile.id != null ? `search-user-${profile.id}` : `search-user-${profile.name}`}
+                        className="news-user-search-item"
+                        onMouseDown={() => handleOpenAuthorProfile(profile)}
+                      >
+                        <span className="news-user-search-avatar">{getAuthorInitials(profile.name)}</span>
+                        <span className="news-user-search-labels">
+                          <span className="news-user-search-name">{profile.name}</span>
+                          <span className="news-user-search-meta">{profile.email || 'Feed contributor'}</span>
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="news-user-search-empty">No matching user found in current feed.</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              N
+              🔔
               <span className="notification-badge"></span>
             </button>
-            <button className="dash-icon-btn" aria-label="Messages">M</button>
+            <button className="dash-icon-btn" aria-label="Messages">💬</button>
             <div className="dash-avatar-wrapper">
               <button className="dash-avatar" onClick={() => setShowDropdown((previous) => !previous)} aria-label="User profile">
                 {getAuthorInitials(profileName)}
@@ -587,46 +750,46 @@ export default function NewsPage() {
             <div className="nav-section-label">NAVIGATION</div>
             <button className="nav-item" onClick={() => navigate('/home')}>
               <span className="nav-accent"></span>
-              <span className="nav-icon">H</span>
+              <span className="nav-icon">🏠</span>
               <span className="nav-label">Home</span>
             </button>
             <button className="nav-item nav-item-active">
               <span className="nav-accent"></span>
-              <span className="nav-icon">F</span>
+              <span className="nav-icon">📰</span>
               <span className="nav-label">News Feed</span>
             </button>
             <button className="nav-item" onClick={() => navigate('/report')}>
               <span className="nav-accent"></span>
-              <span className="nav-icon">R</span>
+              <span className="nav-icon">📝</span>
               <span className="nav-label">My Reports</span>
             </button>
             <button className="nav-item" onClick={() => navigate('/map')}>
               <span className="nav-accent"></span>
-              <span className="nav-icon">M</span>
+              <span className="nav-icon">🗺️</span>
               <span className="nav-label">Incident Map</span>
             </button>
 
             <div className="nav-section-label">TOOLS</div>
             <button className="nav-item" onClick={() => setShowQuiz(true)}>
               <span className="nav-accent"></span>
-              <span className="nav-icon">Q</span>
+              <span className="nav-icon">🚗</span>
               <span className="nav-label">Driver Quiz</span>
             </button>
             <button className="nav-item" onClick={() => navigate('/predictions')}>
               <span className="nav-accent"></span>
-              <span className="nav-icon">S</span>
+              <span className="nav-icon">📊</span>
               <span className="nav-label">Statistics</span>
             </button>
             <button className="nav-item" onClick={() => navigate('/alerts')}>
               <span className="nav-accent"></span>
-              <span className="nav-icon">A</span>
+              <span className="nav-icon">🚨</span>
               <span className="nav-label">Alerts</span>
             </button>
 
             <div className="nav-section-label">SETTINGS</div>
             <button className="nav-item" onClick={() => navigate('/settings')}>
               <span className="nav-accent"></span>
-              <span className="nav-icon">C</span>
+              <span className="nav-icon">⚙️</span>
               <span className="nav-label">Settings</span>
             </button>
           </nav>
@@ -681,33 +844,11 @@ export default function NewsPage() {
             {feedHeadline}
           </button>
 
-          <div className="card composer">
-            <div className="composer-categories">
-              <button className="category-preset" onClick={() => navigate('/report')}>Accident</button>
-              <button className="category-preset" onClick={() => navigate('/report')}>Danger</button>
-              <button className="category-preset" onClick={() => navigate('/report')}>Weather</button>
-              <button className="category-preset" onClick={() => navigate('/report')}>Roadworks</button>
-            </div>
-            <div className="composer-top">
-              <div className="composer-avatar">{getAuthorInitials(profileName)}</div>
-              <button className="composer-input-fake" onClick={() => navigate('/report')}>
-                Share a new incident report...
-              </button>
-            </div>
-            <textarea
-              className="composer-textarea"
-              placeholder="Use the report flow to publish an incident with location and photos."
-              readOnly
-            ></textarea>
-            <div className="composer-actions">
-              <div className="composer-tools">
-                <button className="composer-tool" onClick={() => navigate('/report')}>Photo</button>
-                <button className="composer-tool" onClick={() => navigate('/report')}>Location</button>
-                <button className="composer-tool" onClick={() => navigate('/report')}>Severity</button>
-              </div>
-              <button className="btn-publier" onClick={() => navigate('/report')}>Publish</button>
-            </div>
-            <div className="composer-draft-indicator">Use the report wizard for validated publishing.</div>
+          <div className="card report-cta-card">
+            <p className="report-cta-copy">Want to report a new incident?</p>
+            <button className="btn-publier report-cta-btn" onClick={() => navigate('/report')}>
+              Go to Report Page
+            </button>
           </div>
 
           <div className="feed-tabs-sticky">
@@ -765,7 +906,7 @@ export default function NewsPage() {
           )}
 
           {!feedError && !isLoading && reports.map((report) => (
-            <ReportCard key={report.id} report={report} navigate={navigate} />
+            <ReportCard key={report.id} report={report} navigate={navigate} onOpenAuthorProfile={handleOpenAuthorProfile} />
           ))}
 
           {!feedError && reports.length > 0 && (

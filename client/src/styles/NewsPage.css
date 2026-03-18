@@ -211,6 +211,83 @@
   border-color: var(--siara-btn-accent);
 }
 
+.news-user-search {
+  position: relative;
+}
+
+.news-user-search-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  padding: 8px;
+  z-index: 120;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.news-user-search-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s ease;
+}
+
+.news-user-search-item:hover {
+  background: #F8FAFC;
+}
+
+.news-user-search-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7C3AED, #A855F7);
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.news-user-search-labels {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.news-user-search-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.news-user-search-meta {
+  font-size: 12px;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.news-user-search-empty {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #64748B;
+}
+
 /* Header RIGHT: Icons + Avatar */
 .header-right {
   display: flex;
@@ -916,6 +993,35 @@
   transform: scale(1.01);
 }
 
+.report-cta-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.report-cta-copy {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.report-cta-btn {
+  min-width: 180px;
+}
+
+@media (max-width: 680px) {
+  .report-cta-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .report-cta-btn {
+    width: 100%;
+  }
+}
+
 /* A. Composer */
 .composer {
   border-radius: 16px;
@@ -1257,6 +1363,17 @@
   font-weight: 600;
 }
 
+.post-avatar-btn {
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.post-avatar-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.18);
+}
+
 .post-meta-block {
   display: flex;
   flex-direction: column;
@@ -1274,6 +1391,12 @@
   font-size: 15px;
   font-weight: 600;
   color: #1E293B;
+}
+
+.post-author-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 .hoverable-name {

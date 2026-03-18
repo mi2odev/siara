@@ -48,6 +48,17 @@
   height: 20px;
 }
 
+.notif-header-button::before {
+  content: "\1F514";
+  font-size: 18px;
+  line-height: 1;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.notif-header-button svg {
+  display: none;
+}
+
 .notif-header-badge {
   position: absolute;
   top: -7px;

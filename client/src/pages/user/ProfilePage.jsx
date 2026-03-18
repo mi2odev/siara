@@ -18,24 +18,293 @@
  *   - Auto-scroll to focused tab button on keyboard navigation
  *   - All data is mock/static for prototype purposes
  */
-import React, { useState, useRef, useContext } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useEffect, useRef, useState, useContext } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
+import { getCurrentUser } from '../../services/authService'
+import { listReports } from '../../services/reportsService'
+import { fetchAlerts } from '../../services/alertService'
 import '../../styles/ProfilePage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png' // Using logo as placeholder avatar
 
+function toTitleCase(value) {
+  const normalized = String(value || '').trim()
+  if (!normalized) return 'User'
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1)
+}
+
+function formatJoinDate(value) {
+  if (!value) return 'Recently'
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Recently'
+
+  return date.toLocaleDateString([], { month: 'short', year: 'numeric' })
+}
+
+function getUserInitials(name) {
+  const normalized = String(name || 'User').trim()
+  if (!normalized) return 'U'
+
+  return normalized
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('')
+}
+
+function formatReportTime(value) {
+  if (!value) return 'Unknown time'
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Unknown time'
+
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function isOwnedByUser(report, userIdentity) {
+  if (!report || !userIdentity) {
+    return false
+  }
+
+  const reportOwnerIds = [
+    report?.reportedBy?.id,
+    report?.reported_by?.id,
+    report?.userId,
+    report?.user_id,
+    report?.createdBy,
+    report?.created_by,
+    report?.authorId,
+  ].filter(Boolean)
+
+  const reportOwnerEmails = [
+    report?.reportedBy?.email,
+    report?.reported_by?.email,
+    report?.email,
+    report?.createdByEmail,
+    report?.created_by_email,
+  ].filter(Boolean)
+
+  if (userIdentity.id && reportOwnerIds.some((id) => String(id) === String(userIdentity.id))) {
+    return true
+  }
+
+  if (userIdentity.email) {
+    const emailNeedle = String(userIdentity.email).toLowerCase()
+    if (reportOwnerEmails.some((email) => String(email).toLowerCase() === emailNeedle)) {
+      return true
+    }
+  }
+
+  if (userIdentity.name) {
+    const ownerName = report?.reportedBy?.name || report?.reported_by?.name || report?.authorName
+    if (ownerName && String(ownerName).trim().toLowerCase() === String(userIdentity.name).trim().toLowerCase()) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function formatAlertTime(value) {
+  if (!value) return 'Never triggered'
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function isSameUser(leftUser, rightUser) {
+  if (!leftUser || !rightUser) {
+    return false
+  }
+
+  const leftId = leftUser.id ?? leftUser.userId ?? leftUser.user_id
+  const rightId = rightUser.id ?? rightUser.userId ?? rightUser.user_id
+
+  if (leftId != null && rightId != null && String(leftId) === String(rightId)) {
+    return true
+  }
+
+  const leftEmail = String(leftUser.email || '').trim().toLowerCase()
+  const rightEmail = String(rightUser.email || '').trim().toLowerCase()
+  if (leftEmail && rightEmail && leftEmail === rightEmail) {
+    return true
+  }
+
+  const leftName = String(leftUser.name || '').trim().toLowerCase()
+  const rightName = String(rightUser.name || '').trim().toLowerCase()
+  if (leftName && rightName && leftName === rightName) {
+    return true
+  }
+
+  return false
+}
+
 export default function ProfilePage(){
   /* ═══ STATE ═══ */
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout } = useContext(AuthContext)
-  const [activeTab, setActiveTab] = useState('posts')       // Currently selected activity tab
+  const [profileUser, setProfileUser] = useState(location.state?.profileUser || null)
+  const [myReports, setMyReports] = useState([])
+  const [myAlerts, setMyAlerts] = useState([])
+  const [reportsLoading, setReportsLoading] = useState(false)
+  const [reportsError, setReportsError] = useState('')
+  const [alertsLoading, setAlertsLoading] = useState(false)
+  const [alertsError, setAlertsError] = useState('')
+  const [activeTab, setActiveTab] = useState('alerts')       // Currently selected activity tab
   const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
   const tabsRef = useRef(null)                              // Ref to the tab-list container for scroll/focus
+  const viewedUserFromFeed = location.state?.profileUser || null
+  const authUser = user || null
+  const isViewingOwnProfile = viewedUserFromFeed ? isSameUser(viewedUserFromFeed, authUser) : true
+
+  useEffect(() => {
+    setProfileUser(viewedUserFromFeed || null)
+    if (viewedUserFromFeed) {
+      setActiveTab('reports')
+    }
+  }, [viewedUserFromFeed])
+
+  const isExternalProfileView = Boolean(viewedUserFromFeed) && !isViewingOwnProfile
+
+  useEffect(() => {
+    if (isExternalProfileView) {
+      return
+    }
+
+    let ignore = false
+
+    ;(async () => {
+      try {
+        const freshUser = await getCurrentUser()
+        if (!ignore && freshUser) {
+          setProfileUser(freshUser)
+        }
+      } catch {
+        // Keep auth-context data if live profile fetch fails.
+      }
+    })()
+
+    return () => {
+      ignore = true
+    }
+  }, [isExternalProfileView])
+
+  const currentUser = profileUser || user || {}
+  const displayName = currentUser.name
+    || [currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ')
+    || currentUser.email
+    || currentUser.phone
+    || 'SIARA User'
+  const initials = getUserInitials(displayName)
+  const roleLabel = toTitleCase(currentUser.role || (Array.isArray(currentUser.roles) ? currentUser.roles[0] : '') || 'citizen')
+  const bio = currentUser.bio || 'Active contributor helping make roads safer.'
+  const locationLabel = currentUser.city
+    || currentUser.location
+    || currentUser.address
+    || 'Location not set'
+  const joinLabel = formatJoinDate(currentUser.createdAt || currentUser.created_at)
+  const contactLabel = currentUser.email || currentUser.phone || 'No contact info'
+  const reportsCount = currentUser.reportCount ?? currentUser.reports_count
+  const alertsCount = currentUser.alertsCount ?? currentUser.alerts_count
+  const verificationRate = currentUser.verificationRate ?? currentUser.verification_rate ?? 92
+  const badgesCount = currentUser.badgesCount ?? currentUser.badges_count ?? 18
+  const effectiveReportsCount = Number.isFinite(Number(reportsCount)) ? Number(reportsCount) : myReports.length
+  const effectiveAlertsCount = Number.isFinite(Number(alertsCount)) ? Number(alertsCount) : myAlerts.length
+
+  useEffect(() => {
+    const userIdentity = {
+      id: currentUser?.id,
+      email: currentUser?.email,
+      name: displayName,
+    }
+
+    if (!userIdentity.id && !userIdentity.email && !userIdentity.name) {
+      return
+    }
+
+    let ignore = false
+
+    ;(async () => {
+      setReportsLoading(true)
+      setReportsError('')
+
+      try {
+        const response = await listReports({ limit: 100, offset: 0, sort: 'recent' })
+        if (ignore) return
+
+        const ownedReports = (response?.reports || []).filter((report) => isOwnedByUser(report, userIdentity))
+        setMyReports(ownedReports)
+      } catch {
+        if (!ignore) {
+          setReportsError('Unable to load your reports right now.')
+          setMyReports([])
+        }
+      } finally {
+        if (!ignore) {
+          setReportsLoading(false)
+        }
+      }
+    })()
+
+    return () => {
+      ignore = true
+    }
+  }, [currentUser?.email, currentUser?.id, displayName])
+
+  useEffect(() => {
+    if (isExternalProfileView) {
+      setMyAlerts([])
+      setAlertsLoading(false)
+      setAlertsError('')
+      return
+    }
+
+    let ignore = false
+
+    ;(async () => {
+      setAlertsLoading(true)
+      setAlertsError('')
+
+      try {
+        const items = await fetchAlerts()
+        if (!ignore) {
+          setMyAlerts(Array.isArray(items) ? items : [])
+        }
+      } catch {
+        if (!ignore) {
+          setAlertsError('Unable to load your alerts right now.')
+          setMyAlerts([])
+        }
+      } finally {
+        if (!ignore) {
+          setAlertsLoading(false)
+        }
+      }
+    })()
+
+    return () => {
+      ignore = true
+    }
+  }, [isExternalProfileView])
 
   // Ordered list of tab identifiers (matches button order)
-  const tabs = ['posts', 'reports', 'badges', 'history', 'timeline']
+  const tabs = ['alerts', 'reports', 'badges', 'history', 'timeline']
 
   /* ═══ KEYBOARD NAVIGATION FOR TABS ═══ */
   // Implements WAI-ARIA roving tabIndex pattern:
@@ -100,7 +369,7 @@ export default function ProfilePage(){
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
             <button className="dash-icon-btn" aria-label="Messages">💬</button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
+              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{initials}</button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
@@ -121,12 +390,12 @@ export default function ProfilePage(){
         <aside className="profile-sidebar-left">
           <div className="user-card">
             <div className="user-card-avatar">
-              <img src={profileAvatar} alt="Profile" />
+              <img src={profileAvatar} alt={displayName} />
               <span className="verified-badge">✓</span>
             </div>
-            <h2 className="user-card-name">Zitouni Mohamed</h2>
-            <span className="user-role-badge citoyen">Citizen</span>
-            <p className="user-bio">Active contributor for safer roads in Algeria 🇩🇿</p>
+            <h2 className="user-card-name">{displayName}</h2>
+            <span className="user-role-badge citoyen">{roleLabel}</span>
+            <p className="user-bio">{bio}</p>
             <button className="btn-edit-profile">✏️ Edit Profile</button>
           </div>
 
@@ -194,34 +463,35 @@ export default function ProfilePage(){
             <div className="profile-cover"></div>
             <div className="profile-header-content">
               <div className="profile-avatar-large">
-                <img src={profileAvatar} alt="Profile" />
+                <img src={profileAvatar} alt={displayName} />
                 <span className="verified-badge-large">✓</span>
               </div>
               <div className="profile-info">
-                <h1 className="profile-name">Zitouni Mohamed</h1>
+                <h1 className="profile-name">{displayName}</h1>
                 <div className="profile-meta">
-                  <span className="meta-item">📍 Algiers, Algeria</span>
-                  <span className="meta-item">📅 Member since March 2024</span>
-                  <span className="verified-text">✓ Verified Account</span>
+                  <span className="meta-item"><span className="meta-key">Location</span><span className="meta-value">{locationLabel}</span></span>
+                  <span className="meta-item"><span className="meta-key">Member</span><span className="meta-value">{joinLabel}</span></span>
+                  <span className="meta-item"><span className="meta-key">Contact</span><span className="meta-value">{contactLabel}</span></span>
+                  <span className="verified-text">Verified Account</span>
                 </div>
               </div>
             </div>
             
             <div className="profile-stats">
               <div className="stat-item">
-                <span className="stat-value">124</span>
+                <span className="stat-value">{effectiveAlertsCount}</span>
+                <span className="stat-label">Alerts</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">{effectiveReportsCount}</span>
                 <span className="stat-label">Reports</span>
               </div>
               <div className="stat-item">
-                <span className="stat-value">92%</span>
+                <span className="stat-value">{verificationRate}%</span>
                 <span className="stat-label">Verification Rate</span>
               </div>
               <div className="stat-item">
-                <span className="stat-value">3.4K</span>
-                <span className="stat-label">Impact Score</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-value">18</span>
+                <span className="stat-value">{badgesCount}</span>
                 <span className="stat-label">Badges</span>
               </div>
             </div>
@@ -231,14 +501,14 @@ export default function ProfilePage(){
           <section className="profile-activities">
             <div className="activity-tabs" role="tablist" ref={tabsRef}>
               <button 
-                className={`activity-tab ${activeTab === 'posts' ? 'active' : ''}`}
-                onClick={() => setActiveTab('posts')}
+                className={`activity-tab ${activeTab === 'alerts' ? 'active' : ''}`}
+                onClick={() => setActiveTab('alerts')}
                 onKeyDown={(e) => handleKeyDown(e, 0)}
                 role="tab"
-                aria-selected={activeTab === 'posts'}
-                tabIndex={activeTab === 'posts' ? 0 : -1}
+                aria-selected={activeTab === 'alerts'}
+                tabIndex={activeTab === 'alerts' ? 0 : -1}
               >
-                📝 Posts
+                🔔 Alerts
               </button>
               <button 
                 className={`activity-tab ${activeTab === 'reports' ? 'active' : ''}`}
@@ -284,22 +554,84 @@ export default function ProfilePage(){
 
             {/* ═══ TAB CONTENT PANELS ═══ */}
             <div className="activity-content">
-              {/* Posts tab — mock incident cards */}
-              {activeTab === 'posts' && (
+              {/* Alerts tab — user saved alerts */}
+              {activeTab === 'alerts' && (
                 <div className="activity-grid">
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="activity-card">
-                      <div className="activity-header">
-                        <span className="activity-type">🚗 Accident</span>
-                        <span className="severity-badge high">High</span>
-                      </div>
-                      <h3 className="activity-title">Multi-vehicle collision on East-West Highway</h3>
-                      <p className="activity-location">📍 Bab Ezzouar, Algiers</p>
-                      <p className="activity-time">2 hours ago</p>
-                      <div className="activity-map-thumb"></div>
-                      <div className="activity-status verified">✓ Verified by AI</div>
+                  {isExternalProfileView ? (
+                    <div className="activity-card">
+                      <h3 className="activity-title">Alerts are private</h3>
+                      <p className="activity-time">Only the account owner can view saved alerts.</p>
                     </div>
-                  ))}
+                  ) : alertsLoading ? (
+                    <div className="activity-card">
+                      <h3 className="activity-title">Loading your alerts...</h3>
+                    </div>
+                  ) : alertsError ? (
+                    <div className="activity-card">
+                      <h3 className="activity-title">{alertsError}</h3>
+                    </div>
+                  ) : myAlerts.length === 0 ? (
+                    <div className="activity-card">
+                      <h3 className="activity-title">No saved alerts yet</h3>
+                      <p className="activity-time">Create a new alert to monitor your important zones.</p>
+                      <button className="btn-edit-profile" onClick={() => navigate('/alerts/create')}>🔔 Create Alert</button>
+                    </div>
+                  ) : (
+                    myAlerts.map((alert) => (
+                      <div key={alert.id} className="activity-card" onClick={() => navigate('/alerts')}>
+                        <div className="activity-header">
+                          <span className="activity-type">🔔 {alert.name || 'Saved alert'}</span>
+                          <span className={`severity-badge ${String(alert.severity || 'low').toLowerCase()}`}>
+                            {toTitleCase(alert.severity || 'low')}
+                          </span>
+                        </div>
+                        <h3 className="activity-title">{alert.area?.name || alert.zone?.displayName || 'Monitored area'}</h3>
+                        <p className="activity-location">📍 {alert.area?.wilaya || 'Unknown wilaya'}</p>
+                        <p className="activity-time">Last trigger: {formatAlertTime(alert.lastTriggered || alert.last_triggered)}</p>
+                        <div className={`activity-status ${(alert.status || 'paused').toLowerCase() === 'active' ? 'verified' : 'pending'}`}>
+                          {(alert.status || 'Paused')}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Badges tab — unlocked/locked badge grid */}
+              {activeTab === 'reports' && (
+                <div className="activity-grid">
+                  {reportsLoading ? (
+                    <div className="activity-card">
+                      <h3 className="activity-title">Loading your reports...</h3>
+                    </div>
+                  ) : reportsError ? (
+                    <div className="activity-card">
+                      <h3 className="activity-title">{reportsError}</h3>
+                    </div>
+                  ) : myReports.length === 0 ? (
+                    <div className="activity-card">
+                      <h3 className="activity-title">No reports found yet</h3>
+                      <p className="activity-time">Create your first incident report to see it here.</p>
+                      <button className="btn-edit-profile" onClick={() => navigate('/report')}>📝 Create Report</button>
+                    </div>
+                  ) : (
+                    myReports.map((report) => (
+                      <div key={report.id} className="activity-card" onClick={() => navigate(`/incident/${report.id}`)}>
+                        <div className="activity-header">
+                          <span className="activity-type">🚨 {toTitleCase(report.incidentType || report.incident_type || 'incident')}</span>
+                          <span className={`severity-badge ${String(report.severity || 'low').toLowerCase()}`}>
+                            {toTitleCase(report.severity || 'low')}
+                          </span>
+                        </div>
+                        <h3 className="activity-title">{report.title || 'Untitled report'}</h3>
+                        <p className="activity-location">📍 {report.locationLabel || report.location?.label || 'Location not set'}</p>
+                        <p className="activity-time">{formatReportTime(report.createdAt || report.created_at || report.occurredAt || report.occurred_at)}</p>
+                        <div className={`activity-status ${(report.status || 'pending').toLowerCase() === 'verified' ? 'verified' : 'pending'}`}>
+                          {(report.status || 'Pending')}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 

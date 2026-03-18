@@ -441,7 +441,7 @@ export default function ReportIncidentPage() {
               <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
+              <button className="dash-tab dash-tab-active">Report</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
             </nav>
@@ -450,10 +450,10 @@ export default function ReportIncidentPage() {
             <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya…" aria-label="Search" />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              🔔<span className="notification-badge"></span>
+            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
+              <span className="notification-badge"></span>
             </button>
-            <button className="dash-icon-btn" aria-label="Messages">💬</button>
+            <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
               {showDropdown && (

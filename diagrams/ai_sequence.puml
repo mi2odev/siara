@@ -1,0 +1,62 @@
+@startuml
+actor "System Scheduler" as Scheduler
+
+participant "Backend API" as Backend
+participant "AI Prediction Engine" as AI
+database "Database" as DB
+participant "Road Segment Service" as RoadService
+participant "Alert Service" as Alert
+participant "Map Service" as MapAPI
+
+Scheduler -> Backend : Trigger prediction job (cron / manual)
+
+activate Backend
+
+Backend -> DB : Fetch road segments
+DB --> Backend : List of road segments
+
+Backend -> RoadService : Enrich segments with metadata
+
+activate RoadService
+
+RoadService -> DB : Get traffic, weather, history
+DB --> RoadService : Contextual data
+
+RoadService --> Backend : Enriched road data
+
+deactivate RoadService
+
+Backend -> AI : Send dataset for prediction
+
+activate AI
+
+AI -> AI : Preprocess data\n(clean, normalize)
+
+AI -> AI : Run ML model\n(XGBoost / RandomForest)
+
+AI --> Backend : Risk predictions\n(score + confidence)
+
+deactivate AI
+
+Backend -> DB : Store risk predictions
+
+Backend -> Alert : Evaluate high-risk zones
+
+activate Alert
+
+Alert -> DB : Find users subscribed to zones
+DB --> Alert : Matching users
+
+Alert --> Backend : Alert decisions
+
+deactivate Alert
+
+Backend -> MapAPI : Update risk heatmap
+
+MapAPI --> Backend : Map updated
+
+Backend --> Scheduler : Job completed
+
+deactivate Backend
+
+@enduml

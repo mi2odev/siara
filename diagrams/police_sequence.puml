@@ -1,0 +1,67 @@
+@startuml
+actor "Police Officer" as Police
+
+participant "Web Frontend" as Frontend
+participant "Incident API" as Backend
+database "Database" as DB
+participant "Alert Service" as Alert
+participant "Notification Service" as Notify
+participant "Map Service" as MapAPI
+
+Police -> Frontend : Open incident management panel
+Frontend -> Backend : GET /incidents?status=reported
+
+activate Backend
+
+Backend -> DB : Fetch reported incidents
+DB --> Backend : Incident list
+
+Backend --> Frontend : Return incidents
+
+deactivate Backend
+
+Police -> Frontend : Select incident to review
+
+Frontend -> Backend : GET /incidents/{id}
+
+activate Backend
+
+Backend -> DB : Retrieve incident details
+DB --> Backend : Incident data
+
+Backend --> Frontend : Incident details
+
+deactivate Backend
+
+Police -> Frontend : Verify incident\n(set status = verified)
+
+Frontend -> Backend : PATCH /incidents/{id}
+
+activate Backend
+
+Backend -> DB : Update incident status
+DB --> Backend : Update successful
+
+Backend -> Alert : Evaluate alert conditions
+
+activate Alert
+
+Alert -> Notify : Send alerts to affected users
+activate Notify
+
+Notify -> DB : Store notifications
+Notify --> Frontend : Push alert update
+
+deactivate Notify
+deactivate Alert
+
+Backend -> MapAPI : Update incident marker status
+MapAPI --> Backend : Map updated
+
+Backend --> Frontend : Verification confirmed
+
+deactivate Backend
+
+Frontend -> Police : Display updated incident status
+
+@enduml

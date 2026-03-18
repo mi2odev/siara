@@ -75,6 +75,74 @@ function describeEmailPreferences(preferences) {
   return 'Weekly summaries, product updates, and optional marketing emails are controlled here.'
 }
 
+function toTitleCase(value) {
+  const normalized = String(value || '').trim()
+  if (!normalized) return 'Unknown'
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1)
+}
+
+function getUserInitials(name) {
+  const normalized = String(name || 'User').trim()
+  if (!normalized) return 'U'
+
+  return normalized
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('')
+}
+
+function normalizeTrigger(trigger, index) {
+  return {
+    id: trigger?.id || `trigger-${index}`,
+    type: trigger?.type || trigger?.incident_type || 'ai_prediction',
+    title: trigger?.title || trigger?.incident_title || 'Alert trigger',
+    time: trigger?.time || trigger?.triggered_at || 'Unknown time',
+    severity: trigger?.severity || trigger?.max_severity || 'medium',
+  }
+}
+
+function normalizeAlert(alert) {
+  const normalizedStatus = alert?.status === 'expired' ? 'archived' : (alert?.status || 'active')
+  const incidentTypes = Array.isArray(alert?.incidentTypes)
+    ? alert.incidentTypes
+    : Array.isArray(alert?.incident_types)
+      ? alert.incident_types
+      : []
+
+  const areaName = alert?.area?.name || alert?.area_name || alert?.zone?.displayName || alert?.zone?.display_name || 'Unknown area'
+  const zoneType = alert?.zone?.zoneType || alert?.zone?.zone_type || null
+  const zoneDisplayName = alert?.zone?.displayName || alert?.zone?.display_name || areaName
+  const triggerCount = Number(alert?.triggerCount ?? alert?.trigger_count ?? 0)
+
+  return {
+    ...alert,
+    name: alert?.name || alert?.title || 'Untitled alert',
+    status: normalizedStatus,
+    severity: alert?.severity || alert?.minSeverity || alert?.min_severity || 'medium',
+    timeWindow: alert?.timeWindow || alert?.time_window || 'Any time',
+    triggerCount,
+    lastTriggered: alert?.lastTriggered || alert?.last_triggered || 'Never',
+    incidentTypes,
+    area: {
+      ...alert?.area,
+      name: areaName,
+      wilaya: alert?.area?.wilaya || alert?.area_wilaya || 'N/A',
+      center: alert?.area?.center || DEFAULT_CENTER,
+    },
+    zone: {
+      ...alert?.zone,
+      zoneType,
+      displayName: zoneDisplayName,
+    },
+    recentTriggers: Array.isArray(alert?.recentTriggers)
+      ? alert.recentTriggers.map(normalizeTrigger)
+      : Array.isArray(alert?.recent_triggers)
+        ? alert.recent_triggers.map(normalizeTrigger)
+        : [],
+  }
+}
+
 export default function AlertsPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -110,7 +178,7 @@ export default function AlertsPage() {
     ;(async () => {
       try {
         const items = await fetchAlerts()
-        if (!ignore) setAlerts(items)
+        if (!ignore) setAlerts(items.map(normalizeAlert))
       } catch (error) {
         if (!ignore) setErrorMessage(error.response?.data?.message || 'Unable to load alerts.')
       } finally {
@@ -245,7 +313,7 @@ export default function AlertsPage() {
     event.stopPropagation()
     try {
       const nextStatus = alert.status === 'active' ? 'paused' : 'active'
-      const updated = await updateAlertStatus(alert.id, nextStatus)
+      const updated = normalizeAlert(await updateAlertStatus(alert.id, nextStatus))
       setAlerts((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
     } catch (error) {
       setErrorMessage(error.response?.data?.message || 'Unable to update alert status.')
@@ -384,17 +452,35 @@ export default function AlertsPage() {
               <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab dash-tab-active">Alerts</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
             </nav>
           </div>
+          <div className="dash-header-center">
+            <input
+              type="search"
+              className="dash-search"
+              placeholder="Search for an incident, a road, a wilaya..."
+              aria-label="Search"
+            />
+          </div>
           <div className="dash-header-right">
+            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
+              <span className="notification-badge"></span>
+            </button>
+            <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)}>{user?.name ? user.name.slice(0, 1).toUpperCase() : 'U'}</button>
+              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {getUserInitials(user?.name)}
+              </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -432,9 +518,9 @@ export default function AlertsPage() {
 
           <div className="card nav-menu">
             <div className="nav-section-label">TOOLS</div>
-            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-label">Driver Quiz</span></button>
-            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-label">Open Map</span></button>
-            <button className="nav-item" onClick={() => navigate('/report')}><span className="nav-label">Report Incident</span></button>
+            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-icon">🚗</span><span className="nav-label">Driver Quiz</span></button>
+            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-icon">🗺️</span><span className="nav-label">Open Map</span></button>
+            <button className="nav-item" onClick={() => navigate('/report')}><span className="nav-icon">📝</span><span className="nav-label">Report Incident</span></button>
           </div>
 
           <button className="al-cta" onClick={() => navigate('/alerts/create')}>+ New Alert</button>
@@ -476,10 +562,10 @@ export default function AlertsPage() {
                 <div key={alert.id} className={`al-card ${selectedAlertId === alert.id ? 'selected' : ''}`} onClick={() => setSelectedAlertId(alert.id)}>
                   <div className="card-head">
                     <h3 className="card-name">{alert.name}</h3>
-                    <span className={`card-status ${alert.status}`}>{alert.status}</span>
+                    <span className={`card-status ${alert.status}`}>{toTitleCase(alert.status)}</span>
                     <span className="card-sev" style={{ background: `${color(alert.severity)}18`, color: color(alert.severity) }}>
                       <span className="sev-dot" style={{ background: color(alert.severity) }}></span>
-                      {alert.severity}
+                      {toTitleCase(alert.severity)}
                     </span>
                   </div>
                   <div className="card-body">
@@ -488,9 +574,13 @@ export default function AlertsPage() {
                       <span className="info">🕐 {alert.timeWindow}</span>
                     </div>
                     <div className="body-line">
-                      <span className="types">{alert.incidentTypes.map((type) => <span key={type}>{icon(type)}</span>)}</span>
+                      <span className="types">
+                        {alert.incidentTypes.length > 0
+                          ? alert.incidentTypes.map((type) => <span key={type}>{icon(type)}</span>)
+                          : <span>—</span>}
+                      </span>
                       <span className="meta">Last: {alert.lastTriggered}</span>
-                      <span className="meta">{alert.triggerCount} triggers</span>
+                      <span className="meta">{alert.triggerCount} trigger{alert.triggerCount === 1 ? '' : 's'}</span>
                     </div>
                   </div>
                   <div className="card-foot">
@@ -523,9 +613,9 @@ export default function AlertsPage() {
                 type="button"
                 className="al-push-primary"
                 onClick={() => { void handlePushModeChange('important_only') }}
-                disabled={!pushSupported || pushBusyAction !== '' || pushSettingsLoading}
+                disabled={!pushSupported || pushBusyAction !== '' || pushSettingsLoading || pushEnabled}
               >
-                Enable system alerts
+                {pushEnabled ? 'System alerts enabled' : 'Enable system alerts'}
               </button>
             </div>
 
@@ -660,7 +750,7 @@ export default function AlertsPage() {
               <div className="al-panel summary">
                 <div className="panel-head">
                   <span className="panel-name">{selectedAlert.name}</span>
-                  <span className={`panel-status ${selectedAlert.status}`}>{selectedAlert.status}</span>
+                  <span className={`panel-status ${selectedAlert.status}`}>{toTitleCase(selectedAlert.status)}</span>
                 </div>
                 <div className="summary-grid">
                   <div className="sum-item"><span className="sum-l">Area</span><span className="sum-v">{selectedAlert.area?.name || selectedAlert.zone?.displayName}</span></div>
@@ -715,7 +805,14 @@ export default function AlertsPage() {
               </div>
             </>
           ) : (
-            <div className="al-no-sel"><p>Select an alert</p></div>
+            <div className="al-panel al-no-sel">
+              <span className="no-sel-icon">🧭</span>
+              <h4>No Alert Selected</h4>
+              <p>Select an alert from the list to view live zone details and recent trigger activity.</p>
+              <button type="button" className="al-map-link" onClick={() => navigate('/alerts/create')}>
+                Create a New Alert
+              </button>
+            </div>
           )}
         </aside>
       </div>
