@@ -7,6 +7,7 @@ import { useNotificationStore } from '../../stores/notificationStore'
 import '../../styles/DashboardPage.css'
 import '../../styles/NotificationsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
+import profileAvatar from '../../assets/logos/siara-logo1.png'
 
 function formatRelativeTime(value) {
   if (!value) {
@@ -92,6 +93,12 @@ function getNotificationTarget(notification) {
   return notification.data?.reportUrl || notification.data?.mapUrl || '/notifications'
 }
 
+function getUserInitial(name) {
+  const normalized = String(name || '').trim()
+  if (!normalized) return 'U'
+  return normalized.charAt(0).toUpperCase()
+}
+
 export default function NotificationsPage() {
   const navigate = useNavigate()
   const { isAuthenticated, logout, user } = useContext(AuthContext)
@@ -108,6 +115,8 @@ export default function NotificationsPage() {
   const [showDropdown, setShowDropdown] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
   const [timeFilter, setTimeFilter] = useState('all')
+  const displayName = user?.name || user?.email || 'SIARA User'
+  const roleLabel = Array.isArray(user?.roles) && user.roles.includes('admin') ? 'Admin' : 'Citizen'
 
   useEffect(() => {
     if (!isAuthenticated || hasLoaded) {
@@ -265,13 +274,24 @@ export default function NotificationsPage() {
               <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-              <button className="dash-tab dash-tab-active">Notifications</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
             </nav>
           </div>
+          <div className="dash-header-center">
+            <input
+              type="search"
+              className="dash-search"
+              placeholder="Search notifications, incidents, zones..."
+              aria-label="Search"
+            />
+          </div>
           <div className="dash-header-right">
+            <button className="dash-icon-btn" aria-label="Messages">💬</button>
             <div className="dash-avatar-wrapper">
               <button className="dash-avatar" onClick={() => setShowDropdown((current) => !current)}>
-                {user?.name ? user.name.slice(0, 1).toUpperCase() : 'U'}
+                {getUserInitial(user?.name || user?.email)}
               </button>
               {showDropdown ? (
                 <div className="user-dropdown">
@@ -289,6 +309,17 @@ export default function NotificationsPage() {
 
       <div className="notif-grid">
         <aside className="notif-left">
+          <div className="notif-profile-card">
+            <div className="notif-profile-avatar-wrap">
+              <img src={profileAvatar} alt={displayName} className="notif-profile-avatar" />
+              <span className="notif-profile-badge">✓</span>
+            </div>
+            <h3 className="notif-profile-name">{displayName}</h3>
+            <span className="notif-profile-role">{roleLabel}</span>
+            <p className="notif-profile-copy">Track incident updates and manage your notification workflow.</p>
+            <button className="notif-profile-btn" onClick={() => navigate('/profile')}>View Profile</button>
+          </div>
+
           <div className="filter-section">
             <span className="filter-label">Status</span>
             {[

@@ -43,7 +43,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #1a1a2e;
+  background: #EEF2FF;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   overflow: hidden;
   margin: 0;
@@ -102,7 +102,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 2200;
   display: flex;
   justify-content: center;
   padding: 8px 16px;
@@ -124,6 +124,8 @@
   background: #FFFFFF;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  position: relative;
+  z-index: 2201;
 }
 
 /* Header LEFT: Logo + Tabs */
@@ -288,8 +290,18 @@
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   padding: 8px;
-  z-index: 1000;
+  z-index: 2600;
   animation: dropdownFadeIn 0.2s ease;
+}
+
+.map-page .notif-header-shell {
+  position: relative;
+  z-index: 2600;
+}
+
+.map-page .notif-header-panel,
+.map-page .notif-toast-stack {
+  z-index: 2601;
 }
 
 @keyframes dropdownFadeIn {
@@ -338,18 +350,22 @@
 .map-content {
   flex: 1;
   display: grid;
-  grid-template-columns: 300px 1fr 340px;
+  grid-template-columns: 292px 1fr 336px;
   grid-template-rows: 1fr;
-  margin-top: 80px;
+  margin-top: 78px;
+  padding: 10px 12px 12px;
+  gap: 12px;
+  background: #EEF2FF;
   overflow: hidden;
   min-height: 0;
-  /* No gaps, no margins - columns touch each other */
 }
 
 /* ==================== LEFT SIDEBAR — CONTROLS ==================== */
 .map-sidebar-left {
   background: #ffffff;
-  border-right: 1px solid #e5e7eb;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -509,22 +525,26 @@
 /* ==================== CENTER — MAP ==================== */
 .map-main {
   position: relative;
-  background: #1a1a2e;
+  background: #FFFFFF;
   overflow: hidden;
-  
+  border-radius: 18px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.12);
 }
 
 .map-container {
   width: 100%;
   height: 100%;
   --map-aside-width: min(320px, calc(100% - 24px));
+  border-radius: inherit;
+  overflow: hidden;
 }
 
 .map-controls-top {
   position: absolute;
-  top: 16px;
-  left: 64px;
-  z-index: 500;
+  top: 14px;
+  left: 72px;
+  z-index: 860;
 }
 
 .layer-switcher {
@@ -561,7 +581,7 @@
   position: absolute;
   top: 14px;
   right: 16px;
-  z-index: 1300;
+  z-index: 860;
   display: flex;
   flex-direction: row;
   gap: 10px;
@@ -627,7 +647,27 @@
   height: 100%;
   background: #0f172a;
   display: flex;
- 
+  border-radius: inherit;
+}
+
+.siara-leaflet-map .leaflet-pane {
+  z-index: 400;
+}
+
+.siara-leaflet-map .leaflet-top,
+.siara-leaflet-map .leaflet-bottom,
+.siara-leaflet-map .leaflet-control-container {
+  z-index: 600;
+}
+
+.siara-leaflet-map .leaflet-top.leaflet-left {
+  margin-top: 8px;
+  margin-left: 8px;
+}
+
+/* Keep zoom controls visible by placing them below the layer switcher in fullscreen. */
+.map-main[style*="position: fixed"] .siara-leaflet-map .leaflet-top.leaflet-left {
+  margin-top: 62px;
 }
 
 .siara-map-error-stack {
@@ -965,7 +1005,7 @@
  bottom: auto;
  right: 12px;
  left: auto;
- z-index: 800;
+ z-index: 840;
  width: var(--map-aside-width, min(320px, calc(100% - 24px)));
  max-width: calc(100% - 24px);
  height: fit-content;
@@ -1658,7 +1698,9 @@
 /* ==================== RIGHT SIDEBAR — CONTEXT ==================== */
 .map-sidebar-right {
   background: #ffffff;
-  border-left: 1px solid #e5e7eb;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
