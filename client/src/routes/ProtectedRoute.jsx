@@ -7,7 +7,6 @@ import { buildVerifyEmailRedirect, getAuthenticatedRedirect } from './routeAcces
 export default function ProtectedRoute({ children, roles, allowUnverified = false }) {
   const {
     user,
-    isAuthLoading,
     isAuthenticated,
     isEmailVerified,
     hasCheckedSession,
@@ -18,7 +17,7 @@ export default function ProtectedRoute({ children, roles, allowUnverified = fals
       ? [user.role]
       : []
 
-  if (isAuthLoading || !hasCheckedSession) {
+  if (!hasCheckedSession) {
     return null
   }
 

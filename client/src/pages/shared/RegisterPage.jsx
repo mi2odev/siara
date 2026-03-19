@@ -182,7 +182,7 @@ export default function RegisterPage() {
                 </span>
                 <input
                   id="register-password"
-                  className="siara-input"
+                  className="siara-input has-eye-toggle"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   placeholder="At least 8 characters"
@@ -193,8 +193,26 @@ export default function RegisterPage() {
                   type="button"
                   className={`eye-toggle ${showPassword ? 'eye-open' : 'eye-closed'}`}
                   onClick={() => setShowPassword((current) => !current)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? 'Hide' : 'Show'}
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      className="eye-outline"
+                      d="M2.4 12C4.3 8.6 7.8 6.5 12 6.5C16.2 6.5 19.7 8.6 21.6 12C19.7 15.4 16.2 17.5 12 17.5C7.8 17.5 4.3 15.4 2.4 12Z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <circle className="eye-pupil" cx="12" cy="12" r="2.25" fill="currentColor" />
+                    <path
+                      className="eye-slash"
+                      d="M4.2 4.2L19.8 19.8"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </button>
               </div>
 
@@ -208,7 +226,7 @@ export default function RegisterPage() {
                 </span>
                 <input
                   id="register-confirm"
-                  className="siara-input"
+                  className="siara-input has-eye-toggle"
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   placeholder="Confirm password"
@@ -219,8 +237,26 @@ export default function RegisterPage() {
                   type="button"
                   className={`eye-toggle ${showConfirmPassword ? 'eye-open' : 'eye-closed'}`}
                   onClick={() => setShowConfirmPassword((current) => !current)}
+                  aria-label={showConfirmPassword ? 'Hide password confirmation' : 'Show password confirmation'}
                 >
-                  {showConfirmPassword ? 'Hide' : 'Show'}
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      className="eye-outline"
+                      d="M2.4 12C4.3 8.6 7.8 6.5 12 6.5C16.2 6.5 19.7 8.6 21.6 12C19.7 15.4 16.2 17.5 12 17.5C7.8 17.5 4.3 15.4 2.4 12Z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <circle className="eye-pupil" cx="12" cy="12" r="2.25" fill="currentColor" />
+                    <path
+                      className="eye-slash"
+                      d="M4.2 4.2L19.8 19.8"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </button>
               </div>
 

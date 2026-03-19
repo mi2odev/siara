@@ -11,13 +11,57 @@ import siaraLogo from '../../assets/logos/siara-logo.png'
 const ALGIERS = { lat: 36.753, lng: 3.0588 }
 const STEPS = ['Alert Type', 'Zone', 'Conditions', 'Frequency', 'Confirmation']
 const ALERT_TYPES = [
-  { id: 'accident', icon: '🚗', label: 'Accident' },
-  { id: 'roadworks', icon: '🚧', label: 'Roadworks' },
-  { id: 'traffic', icon: '🚦', label: 'Heavy Traffic' },
-  { id: 'danger', icon: '⚠️', label: 'Danger' },
-  { id: 'ai_prediction', icon: '🤖', label: 'AI Prediction' },
+  { id: 'accident', icon: '🚗', label: 'Accident', desc: 'Collision, road accident' },
+  { id: 'traffic', icon: '🚦', label: 'Traffic', desc: 'Traffic jam, slowdown' },
+  { id: 'danger', icon: '🔥', label: 'Danger', desc: 'Obstacle, dangerous situation' },
+  { id: 'weather', icon: '🌧️', label: 'Weather', desc: 'Dangerous weather conditions' },
+  { id: 'roadworks', icon: '🚧', label: 'Roadworks', desc: 'Construction, lane closure' },
+  { id: 'other', icon: '❓', label: 'Other', desc: 'Other type of incident' },
 ]
 const SEVERITIES = ['high', 'medium', 'low']
+const FREQUENCY_OPTIONS = [
+  {
+    id: 'immediate',
+    icon: '⚡',
+    label: 'Immediate',
+    desc: 'Receive a notification as soon as a matching incident is detected.',
+  },
+  {
+    id: 'digest',
+    icon: '🗓️',
+    label: 'Digest',
+    desc: 'Bundle incidents in a summary so you receive fewer notifications.',
+  },
+  {
+    id: 'first',
+    icon: '🔕',
+    label: 'First only',
+    desc: 'Notify on the first matching incident, then silence repeated updates.',
+  },
+]
+const DIGEST_INTERVALS = ['hourly', 'daily', 'weekly']
+
+function renderHeaderIcon(type) {
+  if (type === 'notification') {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M18 16V11C18 7.7 15.8 5 12.7 4.2V3.5C12.7 3 12.3 2.7 11.8 2.7C11.3 2.7 10.9 3 10.9 3.5V4.2C7.8 5 5.6 7.7 5.6 11V16L4.2 17.4C3.8 17.8 4.1 18.6 4.7 18.6H19C19.6 18.6 19.9 17.8 19.5 17.4L18 16Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        <path d="M9.6 19.4C10 20.4 10.8 21 11.8 21C12.8 21 13.6 20.4 14 19.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 17.2L3.8 20.2C3.4 20.8 3.8 21.6 4.5 21.6H16.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 15.8C5.8 15.8 4 14 4 11.8V8.8C4 6.6 5.8 4.8 8 4.8H16C18.2 4.8 20 6.6 20 8.8V11.8C20 14 18.2 15.8 16 15.8H8Z" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  )
+}
+
+function renderTypeIcon(type) {
+  return ALERT_TYPES.find((item) => item.id === type)?.icon || '❓'
+}
 
 function getInitialState(editAlert) {
   const zoneType = editAlert?.zone?.zoneType || ''
@@ -201,17 +245,30 @@ export default function CreateAlertPage() {
               <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
             </nav>
           </div>
+          <div className="dash-header-center">
+            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya..." aria-label="Search" />
+          </div>
           <div className="dash-header-right">
+            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
+              {renderHeaderIcon('notification')}<span className="notification-badge"></span>
+            </button>
+            <button className="dash-icon-btn" aria-label="Messages">{renderHeaderIcon('message')}</button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)}>{user?.name ? user.name.slice(0, 1).toUpperCase() : 'U'}</button>
+              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {user?.name ? user.name.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+              </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
                 </div>
               )}
             </div>
@@ -221,7 +278,10 @@ export default function CreateAlertPage() {
 
       <div className="create-grid">
         <aside className="create-left">
-          <div className="stepper-header"><h2>{isEditMode ? 'Edit Alert' : 'New Alert'}</h2></div>
+          <div className="stepper-header">
+            <span className="stepper-icon">🔔</span>
+            <h2>{isEditMode ? 'Edit alert' : 'New alert'}</h2>
+          </div>
           <div className="stepper">
             {STEPS.map((label, index) => (
               <div key={label} className={`step ${currentStep === index + 1 ? 'active' : ''} ${currentStep > index + 1 ? 'completed' : ''}`} onClick={() => goToStep(index + 1)} style={{ cursor: 'pointer' }}>
@@ -231,7 +291,14 @@ export default function CreateAlertPage() {
               </div>
             ))}
           </div>
-          <button className="cancel-btn" onClick={() => navigate('/alerts')}>Cancel</button>
+          <div className="trust-notice">
+            <span className="trust-icon">🛡️</span>
+            <div className="trust-text">
+              <strong>Secure alerts</strong>
+              <p>Only incidents matching your selected filters and area trigger notifications.</p>
+            </div>
+          </div>
+          <button className="cancel-btn" onClick={() => navigate('/alerts')}>✕ Cancel</button>
         </aside>
 
         <main className="create-center">
@@ -244,8 +311,9 @@ export default function CreateAlertPage() {
                 {ALERT_TYPES.map((type) => (
                   <div key={type.id} className={`type-card ${alertData.types.includes(type.id) ? 'selected' : ''}`} onClick={() => toggleInList('types', type.id)}>
                     <div className="type-check">{alertData.types.includes(type.id) ? '✓' : ''}</div>
-                    <span className="type-icon">{type.icon}</span>
+                    <span className="type-icon">{renderTypeIcon(type.id)}</span>
                     <span className="type-label">{type.label}</span>
+                    <span className="type-desc">{type.desc}</span>
                   </div>
                 ))}
               </div>
@@ -337,26 +405,68 @@ export default function CreateAlertPage() {
           {currentStep === 4 && (
             <div className="step-panel">
               <div className="step-header"><h1>Frequency</h1><p>Set how and where alerts arrive.</p></div>
-              <div className="digest-options">
-                {['immediate', 'digest', 'first'].map((value) => <button key={value} className={`digest-btn ${alertData.frequency === value ? 'selected' : ''}`} onClick={() => setAlertData((prev) => ({ ...prev, frequency: value }))}>{value}</button>)}
+              <div className="frequency-card-grid">
+                {FREQUENCY_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`frequency-card ${alertData.frequency === option.id ? 'selected' : ''}`}
+                    onClick={() => setAlertData((prev) => ({ ...prev, frequency: option.id }))}
+                  >
+                    <span className="frequency-card-icon">{option.icon}</span>
+                    <span className="frequency-card-content">
+                      <span className="frequency-card-title">{option.label}</span>
+                      <span className="frequency-card-desc">{option.desc}</span>
+                    </span>
+                    <span className="frequency-card-check">{alertData.frequency === option.id ? '✓' : ''}</span>
+                  </button>
+                ))}
               </div>
+              {alertData.frequency === 'immediate' && (
+                <div className="frequency-note">
+                  <strong>High volume mode:</strong> Immediate alerts can be frequent during peak incidents.
+                </div>
+              )}
               {alertData.frequency === 'digest' && (
                 <div className="digest-config">
                   <label>Digest interval</label>
-                  <div className="digest-options">
-                    {['hourly', 'daily', 'weekly'].map((value) => <button key={value} className={`digest-btn ${alertData.digestInterval === value ? 'selected' : ''}`} onClick={() => setAlertData((prev) => ({ ...prev, digestInterval: value }))}>{value}</button>)}
+                  <div className="digest-options digest-options-tight">
+                    {DIGEST_INTERVALS.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`digest-btn ${alertData.digestInterval === value ? 'selected' : ''}`}
+                        onClick={() => setAlertData((prev) => ({ ...prev, digestInterval: value }))}
+                      >
+                        {value}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
+              <label className="mute-duplicates-row">
+                <input
+                  type="checkbox"
+                  checked={alertData.muteDuplicates}
+                  onChange={(event) => setAlertData((prev) => ({ ...prev, muteDuplicates: event.target.checked }))}
+                />
+                <span>Mute duplicate incidents in the same area</span>
+              </label>
+              <h3 className="delivery-title">Delivery channels</h3>
               <div className="delivery-options">
                 {[
-                  ['deliveryApp', 'Application'],
-                  ['deliveryEmail', 'Email'],
-                  ['deliverySms', 'SMS'],
-                ].map(([key, label]) => (
+                  ['deliveryApp', '📱', 'Application', 'Recommended for instant alerts'],
+                  ['deliveryEmail', '✉️', 'Email', 'Useful for digest summaries'],
+                  ['deliverySms', '💬', 'SMS', 'Good when internet is limited'],
+                ].map(([key, icon, label, desc]) => (
                   <label key={key} className={`delivery-card ${alertData[key] ? 'selected' : ''}`}>
                     <input type="checkbox" checked={alertData[key]} onChange={(event) => setAlertData((prev) => ({ ...prev, [key]: event.target.checked }))} />
-                    <div className="delivery-info"><span className="delivery-label">{label}</span></div>
+                    <span className="delivery-icon">{icon}</span>
+                    <div className="delivery-info">
+                      <span className="delivery-label">{label}</span>
+                      <span className="delivery-desc">{desc}</span>
+                    </div>
+                    <span className="delivery-check">{alertData[key] ? '✓' : ''}</span>
                   </label>
                 ))}
               </div>
@@ -377,10 +487,10 @@ export default function CreateAlertPage() {
           )}
 
           <div className="step-nav">
-            {currentStep > 1 && <button className="nav-btn secondary" onClick={() => setCurrentStep((prev) => prev - 1)}>Back</button>}
+            {currentStep > 1 && <button className="nav-btn back" onClick={() => setCurrentStep((prev) => prev - 1)}>← Back</button>}
             <div className="nav-spacer"></div>
             {currentStep < 5 ? (
-              <button className={`nav-btn secondary ${shakeNav ? 'shake' : ''}`} onClick={() => (isStepValid(currentStep) ? setCurrentStep((prev) => prev + 1) : bounce())}>Continue</button>
+              <button className={`nav-btn next ${shakeNav ? 'shake' : ''}`} onClick={() => (isStepValid(currentStep) ? setCurrentStep((prev) => prev + 1) : bounce())}>Continue →</button>
             ) : (
               <button className={`nav-btn create ${shakeNav ? 'shake' : ''}`} onClick={saveAlert} disabled={isSaving}>{isSaving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Alert'}</button>
             )}
@@ -392,7 +502,14 @@ export default function CreateAlertPage() {
           <div className="preview-section">
             <span className="preview-label">Alert</span>
             <div className="alert-preview-card">
-              <div className="apc-header"><span className="apc-icons">{alertData.types.map((type) => ALERT_TYPES.find((item) => item.id === type)?.icon).join(' ') || '🔔'}</span><span className="apc-name">{alertData.name || 'New alert'}</span></div>
+              <div className="apc-header">
+                <span className="apc-icons">
+                  {alertData.types.length > 0 ? alertData.types.slice(0, 2).map((type) => (
+                    <span key={type} className="apc-icon-chip">{renderTypeIcon(type)}</span>
+                  )) : <span className="apc-icon-chip">{renderHeaderIcon('notification')}</span>}
+                </span>
+                <span className="apc-name">{alertData.name || 'New alert'}</span>
+              </div>
               <div className="apc-body">
                 <div className="apc-row"><span className="apc-label">Zone</span><span className="apc-value">{zoneLabel}</span></div>
                 <div className="apc-row"><span className="apc-label">Estimated volume</span><span className="apc-value">{alertData.types.length + alertData.severities.length} signals/week</span></div>

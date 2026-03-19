@@ -153,12 +153,26 @@ export const useAuthStore = create((set, get) => ({
       }
 
       return setAuthenticatedState(set, session)
-    } catch (_error) {
+    } catch {
       set({
         ...buildLoggedOutState(),
         hasCheckedSession: true,
       })
       return null
     }
+  },
+
+  setUser(nextUser) {
+    const normalizedUser = normalizeAuthUser(nextUser)
+
+    set((state) => ({
+      ...state,
+      user: normalizedUser,
+      isAuthenticated: Boolean(normalizedUser),
+      isAdmin: normalizedUser?.role === 'admin',
+      isEmailVerified: Boolean(normalizedUser?.email_verified ?? true),
+    }))
+
+    return normalizedUser
   },
 }))

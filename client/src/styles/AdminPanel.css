@@ -194,6 +194,24 @@
   background: var(--admin-primary-subtle); color: var(--admin-primary);
 }
 
+.admin-header-logout {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(239,68,68,0.25);
+  background: rgba(239,68,68,0.08);
+  color: #DC2626;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--admin-transition);
+}
+
+.admin-header-logout:hover {
+  background: rgba(239,68,68,0.14);
+  border-color: rgba(239,68,68,0.38);
+}
+
 /* ================================================ WORKSPACE */
 .admin-workspace {
   margin-left: var(--admin-sidebar-w);

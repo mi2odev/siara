@@ -8,12 +8,11 @@ export default function PublicOnlyRoute({ children }) {
   const {
     user,
     isAuthenticated,
-    isAuthLoading,
     isEmailVerified,
     hasCheckedSession,
   } = useContext(AuthContext)
 
-  if (isAuthLoading || !hasCheckedSession) {
+  if (!hasCheckedSession) {
     return null
   }
 

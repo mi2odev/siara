@@ -1,5 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { CircleMarker, MapContainer, TileLayer } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import { AuthContext } from '../../contexts/AuthContext'
 import { deleteReport, getReport, updateReport } from '../../services/reportsService'
 import '../../styles/IncidentDetailPage.css'
@@ -88,11 +90,85 @@ function getSeverityLabel(severity) {
 
 function getSourceIcon(source) {
   switch (source) {
-    case 'user': return 'User'
-    case 'authority': return 'Authority'
-    case 'system': return 'System'
-    default: return 'Location'
+    case 'user':
+      return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M4 20C4.8 16.8 7.9 14.5 12 14.5C16.1 14.5 19.2 16.8 20 20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      )
+    case 'authority':
+      return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3L20 7V11C20 16 16.8 20.4 12 22C7.2 20.4 4 16 4 11V7L12 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'system':
+      return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M8 12H16M12 8V16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      )
+    default:
+      return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 21C16 16.2 18 13.2 18 10.5C18 6.9 15.3 4 12 4C8.7 4 6 6.9 6 10.5C6 13.2 8 16.2 12 21Z" stroke="currentColor" strokeWidth="1.8" />
+          <circle cx="12" cy="10" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+      )
   }
+}
+
+function renderHeaderIcon(type) {
+  if (type === 'notification') {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M18 16V11C18 7.7 15.8 5 12.7 4.2V3.5C12.7 3 12.3 2.7 11.8 2.7C11.3 2.7 10.9 3 10.9 3.5V4.2C7.8 5 5.6 7.7 5.6 11V16L4.2 17.4C3.8 17.8 4.1 18.6 4.7 18.6H19C19.6 18.6 19.9 17.8 19.5 17.4L18 16Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        <path d="M9.6 19.4C10 20.4 10.8 21 11.8 21C12.8 21 13.6 20.4 14 19.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 17.2L3.8 20.2C3.4 20.8 3.8 21.6 4.5 21.6H16.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 15.8C5.8 15.8 4 14 4 11.8V8.8C4 6.6 5.8 4.8 8 4.8H16C18.2 4.8 20 6.6 20 8.8V11.8C20 14 18.2 15.8 16 15.8H8Z" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  )
+}
+
+function renderNavIcon(type) {
+  if (type === 'feed') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="4" y="5" width="16" height="14" rx="3" stroke="currentColor" strokeWidth="1.7" />
+        <path d="M8 10H16M8 14H13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  if (type === 'map') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 4.5L15 7.5L21 4.5V19.5L15 22.5L9 19.5L3 22.5V7.5L9 4.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (type === 'alerts') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 3L21 19H3L12 3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        <path d="M12 9V13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        <circle cx="12" cy="16.5" r="1" fill="currentColor" />
+      </svg>
+    )
+  }
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.8" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M4.5 20C5.4 16.8 8.2 14.8 12 14.8C15.8 14.8 18.6 16.8 19.5 20" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  )
 }
 
 function getIncidentTypeMeta(type) {
@@ -280,6 +356,10 @@ export default function IncidentDetailPage() {
   const incident = buildDisplayIncident(report, id)
   const typeMeta = getIncidentTypeMeta(incident.type)
   const statusMeta = STATUS_META[incident.status] || STATUS_META.pending
+  const hasMapLocation = Number.isFinite(Number(incident.location?.lat)) && Number.isFinite(Number(incident.location?.lng))
+  const mapCenter = hasMapLocation
+    ? [Number(incident.location.lat), Number(incident.location.lng)]
+    : [28.5, 2.5]
 
   const handleEditField = (field, value) => {
     setEditForm((prev) => ({ ...prev, [field]: value }))
@@ -391,9 +471,9 @@ export default function IncidentDetailPage() {
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              N<span className="notification-badge"></span>
+              {renderHeaderIcon('notification')}<span className="notification-badge"></span>
             </button>
-            <button className="dash-icon-btn" aria-label="Messages">M</button>
+            <button className="dash-icon-btn" aria-label="Messages">{renderHeaderIcon('message')}</button>
             <div className="dash-avatar-wrapper">
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {user?.name ? user.name.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2) : 'U'}
@@ -436,19 +516,19 @@ export default function IncidentDetailPage() {
           <nav className="sidebar-nav">
             <div className="nav-section-label">NAVIGATION</div>
             <button className="nav-item" onClick={() => navigate('/news')}>
-              <span className="nav-icon">Feed</span>
+              <span className="nav-icon">{renderNavIcon('feed')}</span>
               <span className="nav-label">Feed</span>
             </button>
             <button className="nav-item" onClick={() => navigate('/map')}>
-              <span className="nav-icon">Map</span>
+              <span className="nav-icon">{renderNavIcon('map')}</span>
               <span className="nav-label">Map</span>
             </button>
             <button className="nav-item" onClick={() => navigate('/alerts')}>
-              <span className="nav-icon">Alerts</span>
+              <span className="nav-icon">{renderNavIcon('alerts')}</span>
               <span className="nav-label">Alerts</span>
             </button>
             <button className="nav-item" onClick={() => navigate('/profile')}>
-              <span className="nav-icon">Profile</span>
+              <span className="nav-icon">{renderNavIcon('profile')}</span>
               <span className="nav-label">Profile</span>
             </button>
           </nav>
@@ -606,10 +686,29 @@ export default function IncidentDetailPage() {
           <div className="context-card mini-map-card">
             <h3 className="context-title">Location</h3>
             <div className="mini-map-container">
-              <div className="mini-map-placeholder">
-                <span className="map-icon">Map</span>
-                <span className="map-marker" style={{ background: getSeverityColor(incident.severity) }}>Pin</span>
-              </div>
+              {hasMapLocation ? (
+                <MapContainer center={mapCenter} zoom={14} style={{ width: '100%', height: '100%' }} scrollWheelZoom={false} dragging={true} zoomControl={false}>
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <CircleMarker
+                    center={mapCenter}
+                    radius={8}
+                    pathOptions={{
+                      color: '#ffffff',
+                      weight: 2,
+                      fillColor: getSeverityColor(incident.severity),
+                      fillOpacity: 1,
+                    }}
+                  />
+                </MapContainer>
+              ) : (
+                <div className="mini-map-empty">
+                  <span className="map-empty-icon" aria-hidden="true">{renderNavIcon('map')}</span>
+                  <span>No location coordinates available</span>
+                </div>
+              )}
             </div>
             <div className="map-location-text">
               <span className="location-city">{incident.locationLabel}</span>

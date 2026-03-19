@@ -245,6 +245,7 @@
 .siara-input,
 .siara-cta,
 .siara-alt{transition:all var(--siara-transition-fast) ease}
+.siara-input.has-eye-toggle{padding-right:50px;}
 
 .eye-toggle{
   position:absolute;
@@ -253,37 +254,69 @@
   transform:translateY(-50%);
   background:transparent;
   border:none;
-  color:#111827; /* black-ish */
+  color:rgba(55,65,81,0.95);
   display:flex;
   align-items:center;
   justify-content:center;
+  width:28px;
+  height:28px;
+  border-radius:999px;
   padding:0;
   cursor:pointer;
-  /* smooth open/close transition */
-  transition:transform 0.22s ease, opacity 0.22s ease;
+  transition:transform 0.22s ease, opacity 0.22s ease, background-color 0.22s ease, color 0.22s ease;
 }
 .eye-toggle svg{
   transition:transform 0.22s ease, opacity 0.22s ease;
   transform-origin:center;
 }
 
+.eye-toggle .eye-pupil,
+.eye-toggle .eye-outline,
+.eye-toggle .eye-slash{
+  transition:opacity 0.2s ease, transform 0.2s ease;
+  transform-origin:center;
+}
+
 /* subtle hover lift */
 .eye-toggle:hover{
-  transform:translateY(-50%) scale(1.02);
+  transform:translateY(-50%) scale(1.04);
+  background:rgba(124,58,237,0.08);
+  color:#4c1d95;
 }
 
 /* when password is visible add a class in JSX: eye-toggle eye-open */
 .eye-toggle.eye-open svg{
-  transform:scale(1) rotate(0deg);
+  transform:scale(1.02) rotate(0deg);
   opacity:1;
+}
+.eye-toggle.eye-open .eye-pupil{
+  animation:eyeLookAround 1.8s ease-in-out infinite;
+}
+.eye-toggle.eye-open .eye-slash{
+  opacity:0;
+  transform:scale(0.6);
 }
 
 /* when password is hidden add a class in JSX: eye-toggle eye-closed */
 .eye-toggle.eye-closed svg{
-  transform:scale(0.8) rotate(-20deg);
-  opacity:0.2;
+  transform:scale(0.94);
+  opacity:0.88;
+}
+.eye-toggle.eye-closed .eye-pupil{
+  opacity:0;
+  transform:scale(0.6);
+}
+.eye-toggle.eye-closed .eye-slash{
+  opacity:1;
+  transform:scale(1);
 }
 
 .eye-toggle:active{
   transform:translateY(-50%) scale(0.9);
+}
+
+@keyframes eyeLookAround{
+  0%,100%{transform:translate(0,0)}
+  30%{transform:translate(-0.7px,0.5px)}
+  55%{transform:translate(0.8px,-0.6px)}
 }

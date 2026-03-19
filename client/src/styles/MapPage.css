@@ -241,6 +241,11 @@
   transition: background 0.2s;
 }
 
+.map-page .dash-icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 .map-page .dash-icon-btn:hover {
   background: #E2E8F0;
 }
@@ -340,6 +345,26 @@
   color: #EF4444;
 }
 
+.map-page .nav-icon {
+  width: 18px;
+  height: 18px;
+  color: #64748B;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.map-page .nav-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.map-page .nav-item:hover .nav-icon,
+.map-page .nav-item-active .nav-icon {
+  color: #1E293B;
+}
+
 .map-page .dropdown-divider {
   height: 1px;
   background: #E2E8F0;
@@ -350,10 +375,10 @@
 .map-content {
   flex: 1;
   display: grid;
-  grid-template-columns: 292px 1fr 336px;
+  grid-template-columns: 260px 1fr 336px;
   grid-template-rows: 1fr;
   margin-top: 78px;
-  padding: 10px 12px 12px;
+  padding: 0 12px 12px;
   gap: 12px;
   background: #EEF2FF;
   overflow: hidden;

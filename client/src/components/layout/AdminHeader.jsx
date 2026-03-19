@@ -1,5 +1,7 @@
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useContext } from 'react'
+import { AuthContext } from '../../contexts/AuthContext'
 
 const routeNames = {
   '/admin/overview': 'System Overview',
@@ -15,6 +17,7 @@ const routeNames = {
 export default function AdminHeader({ onToggleSidebar }) {
   const navigate = useNavigate()
   const location = useLocation()
+  const { logout } = useContext(AuthContext)
 
   const basePath = '/' + location.pathname.split('/').slice(1, 3).join('/')
   const pageName = routeNames[basePath] || 'Admin'
@@ -48,6 +51,15 @@ export default function AdminHeader({ onToggleSidebar }) {
         </button>
         <button className="admin-header-btn" title="Settings" onClick={() => navigate('/admin/system')}>
           ⚙
+        </button>
+        <button
+          className="admin-header-logout"
+          title="Log out"
+          onClick={() => {
+            Promise.resolve(logout()).finally(() => navigate('/login'))
+          }}
+        >
+          Deconnexion
         </button>
         <div className="admin-avatar" title="Admin User">SA</div>
       </div>

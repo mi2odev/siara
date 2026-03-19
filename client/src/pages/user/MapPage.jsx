@@ -213,6 +213,88 @@ function weatherIconFromCondition(condition) {
   return "☀️";
 }
 
+function renderHeaderIcon(type) {
+  if (type === "notification") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M18 16V11C18 7.7 15.8 5 12.7 4.2V3.5C12.7 3 12.3 2.7 11.8 2.7C11.3 2.7 10.9 3 10.9 3.5V4.2C7.8 5 5.6 7.7 5.6 11V16L4.2 17.4C3.8 17.8 4.1 18.6 4.7 18.6H19C19.6 18.6 19.9 17.8 19.5 17.4L18 16Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        <path d="M9.6 19.4C10 20.4 10.8 21 11.8 21C12.8 21 13.6 20.4 14 19.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 17.2L3.8 20.2C3.4 20.8 3.8 21.6 4.5 21.6H16.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 15.8C5.8 15.8 4 14 4 11.8V8.8C4 6.6 5.8 4.8 8 4.8H16C18.2 4.8 20 6.6 20 8.8V11.8C20 14 18.2 15.8 16 15.8H8Z" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+function renderNavIcon(type) {
+  if (type === "home") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 11L12 4L20 11V20H14V14H10V20H4V11Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (type === "feed") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="4" y="5" width="16" height="14" rx="3" stroke="currentColor" strokeWidth="1.7" />
+        <path d="M8 10H16M8 14H13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (type === "report") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M8 4H14L18 8V20H8V4Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        <path d="M14 4V8H18" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (type === "map") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 4.5L15 7.5L21 4.5V19.5L15 22.5L9 19.5L3 22.5V7.5L9 4.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (type === "quiz") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.7" />
+        <path d="M12 8V12L15 14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (type === "stats") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 19V12M12 19V8M19 19V5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (type === "alerts") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 3L21 19H3L12 3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        <path d="M12 9V13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        <circle cx="12" cy="16.5" r="1" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 10V4H18V10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
 function normalizeSeverityLevel(value) {
   const normalized = String(value || "").trim().toLowerCase();
   if (normalized === "high" || normalized === "medium" || normalized === "low") {
@@ -881,10 +963,6 @@ export default function MapPage() {
   );
 
   useEffect(() => {
-    if (mapLayer !== "zones" && !location.state?.focusAlertId) {
-      return undefined;
-    }
-
     if (!user) {
       setAlertZones([]);
       setZonesLoading(false);
@@ -921,7 +999,7 @@ export default function MapPage() {
     return () => {
       cancelled = true;
     };
-  }, [location.state?.focusAlertId, mapLayer, user]);
+  }, [location.state?.focusAlertId, mapLayer, user, weatherRefreshTick]);
 
   const activeAlertZones = useMemo(
     () =>
@@ -1014,8 +1092,7 @@ export default function MapPage() {
 
   const activeAlerts = useMemo(
     () =>
-      [...filteredReports]
-        .filter((report) => report.status !== "resolved")
+      [...activeAlertZones]
         .sort((left, right) => {
           const severityDelta =
             (SEVERITY_SCORES[normalizeSeverityLevel(right?.severity)] || 0) -
@@ -1024,18 +1101,17 @@ export default function MapPage() {
             return severityDelta;
           }
 
-          const rightTime = getReportTimestamp(right)?.getTime() || 0;
-          const leftTime = getReportTimestamp(left)?.getTime() || 0;
+          const rightTime = new Date(right?.lastTriggeredAt || right?.updatedAt || right?.createdAt || 0).getTime();
+          const leftTime = new Date(left?.lastTriggeredAt || left?.updatedAt || left?.createdAt || 0).getTime();
           return rightTime - leftTime;
         })
         .slice(0, 4)
-        .map((report) => ({
-          id: report.id,
-          title: report.title || report.locationLabel || "Road alert",
-          type: report.incidentType || "other",
-          time: formatRelativeReportAge(report.occurredAt || report.createdAt || report.updatedAt),
+        .map((alert) => ({
+          id: alert.id,
+          title: alert.name || alert.zone?.displayName || alert.area?.name || "Alert",
+          time: formatZoneLastTriggered(alert.lastTriggeredAt),
         })),
-    [filteredReports],
+    [activeAlertZones],
   );
 
   const statsTodayCount = useMemo(() => {
@@ -1150,6 +1226,27 @@ export default function MapPage() {
     ? { height: "100vh", width: "100vw", top: 0, left: 0, position: "absolute", zIndex: 9999 }
     : { position: "relative" };
 
+  const profileName = String(
+    user?.name
+      || user?.fullName
+      || user?.full_name
+      || [user?.first_name, user?.last_name].filter(Boolean).join(" ")
+      || user?.email
+      || "SIARA User",
+  ).trim();
+  const roleLabel = Array.isArray(user?.roles) && user.roles.includes("admin")
+    ? "Admin"
+    : "Citizen";
+  const roleClass = roleLabel === "Admin" ? "role-admin" : "role-citoyen";
+  const profileInitials = profileName
+    ? profileName
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
+    : "U";
+
   /* ══════════════════════════ RENDER ══════════════════════════ */
 
   return (
@@ -1193,10 +1290,10 @@ export default function MapPage() {
               aria-label="Notifications"
               onClick={() => navigate("/notifications")}
             >
-              🔔<span className="notification-badge"></span>
+              {renderHeaderIcon("notification")}<span className="notification-badge"></span>
             </button>
 
-            <button className="dash-icon-btn" aria-label="Messages">💬</button>
+            <button className="dash-icon-btn" aria-label="Messages">{renderHeaderIcon("message")}</button>
 
             {/* Avatar with dropdown menu */}
             <div className="dash-avatar-wrapper">
@@ -1205,7 +1302,7 @@ export default function MapPage() {
                 onClick={() => setShowDropdown(!showDropdown)}
                 aria-label="User profile"
               >
-                {user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+                {profileInitials}
               </button>
 
               {showDropdown && (
@@ -1235,18 +1332,18 @@ export default function MapPage() {
       <div className="map-content">
 
         {/* ═══════════ LEFT SIDEBAR — Profile, Nav, Filters & Actions ═══════════ */}
-        <aside className="map-sidebar-left">
+        <aside className="sidebar-left">
 
           {/* ── Profile card ── */}
           <div className="card profile-summary">
             <div className="profile-avatar-container">
               <img src={profileAvatar} alt="Profile" className="profile-avatar-large" />
-              <span className="verified-badge">✓</span>
+              <span className="verified-badge">V</span>
             </div>
             <div className="profile-info">
-              <p className="profile-name">Zitouni Mohamed</p>
-              <span className="role-badge role-citoyen">Citizen</span>
-              <p className="profile-bio">Active contributor for safer roads in Algeria 🇩🇿</p>
+              <p className="profile-name">{profileName}</p>
+              <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
+              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>
@@ -1254,15 +1351,16 @@ export default function MapPage() {
           {/* ── Navigation menu ── */}
           <nav className="card nav-menu">
             <div className="nav-section-label">NAVIGATION</div>
-            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-accent"></span><span className="nav-icon">📰</span><span className="nav-label">Feed</span></button>
-            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">🗺️</span><span className="nav-label">Map</span></button>
-            <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alerts</span></button>
-            <button className="nav-item" onClick={() => navigate('/dashboard')}><span className="nav-accent"></span><span className="nav-icon">📊</span><span className="nav-label">Dashboard</span></button>
-            <button className="nav-item" onClick={() => navigate('/predictions')}><span className="nav-accent"></span><span className="nav-icon">🔮</span><span className="nav-label">Predictions</span></button>
+            <button className="nav-item" onClick={() => navigate('/home')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('home')}</span><span className="nav-label">Home</span></button>
+            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('feed')}</span><span className="nav-label">News Feed</span></button>
+            <button className="nav-item" onClick={() => navigate('/report')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('report')}</span><span className="nav-label">My Reports</span></button>
+            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('map')}</span><span className="nav-label">Incident Map</span></button>
             <div className="nav-section-label">TOOLS</div>
-            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">🚗</span><span className="nav-label">Driver Quiz</span></button>
-            <button className="nav-item" onClick={() => navigate('/report')}><span className="nav-accent"></span><span className="nav-icon">📝</span><span className="nav-label">Report</span></button>
-            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Settings</span></button>
+            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('quiz')}</span><span className="nav-label">Driver Quiz</span></button>
+            <button className="nav-item" onClick={() => navigate('/predictions')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('stats')}</span><span className="nav-label">Statistics</span></button>
+            <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('alerts')}</span><span className="nav-label">Alerts</span></button>
+            <div className="nav-section-label">SETTINGS</div>
+            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('settings')}</span><span className="nav-label">Settings</span></button>
           </nav>
 
           {/* ── Filter panel ── */}
@@ -1684,7 +1782,7 @@ export default function MapPage() {
             <h4 className="section-title">Active Alerts</h4>
             <div className="map-alerts-list">
               {activeAlerts.length === 0 && (
-                <p className="chart-note">No active report alerts right now.</p>
+                <p className="chart-note">No active alerts right now.</p>
               )}
               {activeAlerts.map((alert) => (
                 <div key={alert.id} className="map-alert-item">

@@ -227,6 +227,53 @@
   color: #64748B;
 }
 
+/* ── PASSWORD FORM ── */
+.settings-root .settings-password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 16px;
+  padding: 14px;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  background: #F8FAFC;
+}
+
+.settings-root .settings-password-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.settings-root .settings-password-input {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #0F172A;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  background: #FFFFFF;
+  font-family: inherit;
+  outline: none;
+}
+
+.settings-root .settings-password-input:focus {
+  border-color: #7C3AED;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.settings-root .settings-password-feedback {
+  font-size: 13px;
+  margin: 2px 0;
+}
+
+.settings-root .settings-password-feedback-error {
+  color: #DC2626;
+}
+
+.settings-root .settings-password-feedback-success {
+  color: #059669;
+}
+
 /* ── GROUP (notifications / privacy) ── */
 .settings-root .settings-group {
   padding: 16px 0;

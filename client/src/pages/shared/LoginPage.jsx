@@ -8,6 +8,16 @@ import logo from '../../assets/logos/siara-logo.png'
 import '../../styles/LoginPage.css'
 
 function getErrorMessage(error) {
+  const apiMessage = String(error?.response?.data?.message || '').toLowerCase()
+
+  if (
+    error?.response?.status === 401
+    || apiMessage.includes('invalid email or password')
+    || apiMessage.includes('invalid credentials')
+  ) {
+    return 'Wrong password.'
+  }
+
   return error.response?.data?.message || error.message || 'Unable to sign in right now.'
 }
 
@@ -158,7 +168,7 @@ export default function LoginPage() {
                 </span>
                 <input
                   id="login-password"
-                  className="siara-input"
+                  className="siara-input has-eye-toggle"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   placeholder="Password"
@@ -171,7 +181,24 @@ export default function LoginPage() {
                   onClick={() => setShowPassword((current) => !current)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? 'Hide' : 'Show'}
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      className="eye-outline"
+                      d="M2.4 12C4.3 8.6 7.8 6.5 12 6.5C16.2 6.5 19.7 8.6 21.6 12C19.7 15.4 16.2 17.5 12 17.5C7.8 17.5 4.3 15.4 2.4 12Z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <circle className="eye-pupil" cx="12" cy="12" r="2.25" fill="currentColor" />
+                    <path
+                      className="eye-slash"
+                      d="M4.2 4.2L19.8 19.8"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </button>
               </div>
 

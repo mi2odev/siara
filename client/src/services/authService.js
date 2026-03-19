@@ -72,6 +72,34 @@ export async function getCurrentUser() {
   return response.data?.user || null
 }
 
+export async function getUserSettings() {
+  const response = await userRequest.get('/auth/settings')
+  return {
+    profile: response.data?.profile || null,
+    security: response.data?.security || null,
+    notifications: response.data?.notifications || null,
+    privacy: response.data?.privacy || null,
+  }
+}
+
+export async function updateUserSettings(payload) {
+  const response = await userRequest.patch('/auth/settings', payload)
+  return {
+    profile: response.data?.profile || null,
+    security: response.data?.security || null,
+    notifications: response.data?.notifications || null,
+    privacy: response.data?.privacy || null,
+  }
+}
+
+export async function changePassword(payload) {
+  const response = await userRequest.post('/auth/change-password', payload)
+  return {
+    ok: Boolean(response.data?.ok),
+    message: response.data?.message || 'Password changed successfully.',
+  }
+}
+
 export async function logout() {
   await publicRequest.post('/auth/logout')
 }

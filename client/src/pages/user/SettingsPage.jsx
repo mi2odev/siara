@@ -1,28 +1,12 @@
-/**
- * @file SettingsPage.jsx
- * @description Multi-section user settings page with a 2-column layout:
- *   Left  — Vertical navigation list (Profile, Account, Security, Notifications, Privacy, Data)
- *   Right — Content panel that renders one section at a time via conditional rendering.
- *
- * Features:
- *   - Inline editing with save feedback animation ("Saved ✓" badge)
- *   - Toggle switches for notification preferences
- *   - Radio-button groups for privacy controls
- *   - 2FA enable/disable toggle
- *   - Expandable "Delete Account" confirmation with typed-input safeguard
- *
- * All state is local (no backend calls); this serves as a UI prototype.
- *
- * Dependencies: react-router-dom
- */
-import React, { useState, useContext } from 'react'
+﻿import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+
 import { AuthContext } from '../../contexts/AuthContext'
+import { changePassword, getUserSettings, updateUserSettings } from '../../services/authService'
 import '../../styles/DashboardPage.css'
 import '../../styles/SettingsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
-/** Sidebar navigation items — each key maps to a conditionally rendered <section> below */
 const sections = [
   { key: 'profile', label: 'Profile' },
   { key: 'account', label: 'Account' },
@@ -32,64 +16,302 @@ const sections = [
   { key: 'data', label: 'Data' },
 ]
 
+const DEFAULT_PROFILE = {
+  name: '',
+  bio: '',
+  location: '',
+  email: '',
+  phone: '',
+  language: 'French',
+  memberSince: null,
+}
+
+const DEFAULT_NOTIFS = {
+  emailNearby: false,
+  emailSevere: false,
+  emailDigest: false,
+  pushRealtime: false,
+  pushPredictions: false,
+}
+
+const DEFAULT_PRIVACY = {
+  visibility: 'public',
+  identity: 'show',
+  location: 'reporting',
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate()
-  const { user, logout } = useContext(AuthContext)
-  const [activeSection, setActiveSection] = useState('profile')   // currently visible settings section
-  const [showDropdown, setShowDropdown] = useState(false)          // header user-menu dropdown
+  const { user, logout, setUser } = useContext(AuthContext)
+  const userId = user?.id || null
 
-  /* ---- Inline edit state ---- */
-  /** profileData holds the editable user fields displayed in Profile & Account sections */
+  const [activeSection, setActiveSection] = useState('profile')
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [saved, setSaved] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [settingsError, setSettingsError] = useState('')
+
   const [profileData, setProfileData] = useState({
-    name: 'Zitouni Mohamed',
-    bio: 'Active contributor for safer roads in Algeria 🇩🇿',
-    location: 'Algiers, Algeria',
-    email: 'zitouni.mohamed@email.com',
-    phone: '+213 555 123 456',
-    language: 'French',
+    ...DEFAULT_PROFILE,
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
   })
-  const [editing, setEditing] = useState(null)  // field key currently being edited (or null)
-  const [saved, setSaved] = useState(null)       // field key that just saved (shows "Saved ✓" badge briefly)
+  const [notifs, setNotifs] = useState(DEFAULT_NOTIFS)
+  const [privacy, setPrivacy] = useState(DEFAULT_PRIVACY)
+  const [twoFA, setTwoFA] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
 
-  /** Enter inline-edit mode for a given profile field */
-  const handleEdit = (field) => setEditing(field)
-  /** Commit an inline edit, persist to state, and trigger the "Saved" animation */
-  const handleSave = (field, value) => {
-    setProfileData(prev => ({ ...prev, [field]: value }))
-    setEditing(null)
+  const memberSinceLabel = useMemo(() => {
+    if (!profileData.memberSince) {
+      return 'Unknown'
+    }
+
+    const date = new Date(profileData.memberSince)
+    if (Number.isNaN(date.getTime())) {
+      return 'Unknown'
+    }
+
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  }, [profileData.memberSince])
+
+  useEffect(() => {
+    let ignore = false
+
+    if (!userId) {
+      setIsLoadingSettings(false)
+      return () => {
+        ignore = true
+      }
+    }
+
+    ;(async () => {
+      setIsLoadingSettings(true)
+      setSettingsError('')
+
+      try {
+        const settings = await getUserSettings()
+        if (ignore) {
+          return
+        }
+
+        if (settings?.profile) {
+          setProfileData({
+            name: settings.profile.name || '',
+            bio: settings.profile.bio || '',
+            location: settings.profile.location || '',
+            email: settings.profile.email || '',
+            phone: settings.profile.phone || '',
+            language: settings.profile.language || 'French',
+            memberSince: settings.profile.memberSince || settings.profile.createdAt || null,
+          })
+        }
+
+        if (settings?.notifications) {
+          setNotifs((prev) => ({
+            ...prev,
+            ...settings.notifications,
+          }))
+        }
+
+        if (settings?.privacy) {
+          setPrivacy({
+            visibility: settings.privacy.visibility || 'public',
+            identity: settings.privacy.identity || 'show',
+            location: settings.privacy.location || 'reporting',
+          })
+        }
+
+        if (settings?.security) {
+          setTwoFA(Boolean(settings.security.twoFactorEnabled))
+        }
+      } catch (error) {
+        if (!ignore) {
+          setSettingsError(error?.response?.data?.message || error?.message || 'Unable to load settings from server.')
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoadingSettings(false)
+        }
+      }
+    })()
+
+    return () => {
+      ignore = true
+    }
+  }, [userId])
+
+  const setSavedField = (field) => {
     setSaved(field)
     setTimeout(() => setSaved(null), 1800)
   }
 
-  /* ---- Notification toggle state ---- */
-  /** Boolean map of notification preference toggles */
-  const [notifs, setNotifs] = useState({
-    emailNearby: true,       // incidents near the user
-    emailSevere: false,      // high-severity only emails
-    emailDigest: true,       // weekly summary email
-    pushRealtime: true,      // real-time push alerts
-    pushPredictions: false,  // AI prediction push alerts
-  })
-  /** Flip one notification toggle by key */
-  const toggleNotif = (key) => setNotifs(prev => ({ ...prev, [key]: !prev[key] }))
+  const saveSettings = async (payload) => {
+    setIsSaving(true)
+    setSettingsError('')
 
-  /* ---- Privacy radio-button state ---- */
-  /** Controls for three independent privacy dimensions */
-  const [privacy, setPrivacy] = useState({
-    visibility: 'public',    // profile visibility: 'public' | 'private'
-    identity: 'show',        // report identity: 'show' | 'anonymous'
-    location: 'reporting',   // location sharing: 'always' | 'reporting' | 'never'
-  })
+    try {
+      const updated = await updateUserSettings(payload)
 
-  /* ---- Security state ---- */
-  const [twoFA, setTwoFA] = useState(true)  // whether 2FA is currently enabled
+      if (updated?.profile) {
+        setProfileData((prev) => ({
+          ...prev,
+          name: updated.profile.name || prev.name,
+          bio: updated.profile.bio || '',
+          location: updated.profile.location || '',
+          email: updated.profile.email || '',
+          phone: updated.profile.phone || '',
+          language: updated.profile.language || prev.language,
+          memberSince: updated.profile.memberSince || prev.memberSince,
+        }))
 
-  /* ---- Delete-account confirmation ---- */
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)  // expandable danger zone
+        setUser({
+          ...user,
+          name: updated.profile.name || user?.name,
+          email: updated.profile.email || user?.email,
+          phone: updated.profile.phone || user?.phone,
+          bio: updated.profile.bio || '',
+          location: updated.profile.location || '',
+        })
+      }
+
+      if (updated?.notifications) {
+        setNotifs((prev) => ({ ...prev, ...updated.notifications }))
+      }
+
+      if (updated?.privacy) {
+        setPrivacy({
+          visibility: updated.privacy.visibility || 'public',
+          identity: updated.privacy.identity || 'show',
+          location: updated.privacy.location || 'reporting',
+        })
+      }
+
+      if (updated?.security) {
+        setTwoFA(Boolean(updated.security.twoFactorEnabled))
+      }
+
+      return true
+    } catch (error) {
+      setSettingsError(error?.response?.data?.message || error?.message || 'Unable to save settings.')
+      return false
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleEdit = (field) => setEditing(field)
+
+  const handleSave = async (field, value) => {
+    const nextValue = String(value || '').trim()
+    setEditing(null)
+    setProfileData((prev) => ({ ...prev, [field]: nextValue }))
+    const ok = await saveSettings({ profile: { [field]: nextValue } })
+    if (ok) {
+      setSavedField(field)
+    }
+  }
+
+  const toggleNotif = async (key) => {
+    const nextNotifs = {
+      ...notifs,
+      [key]: !notifs[key],
+    }
+    setNotifs(nextNotifs)
+    const ok = await saveSettings({ notifications: nextNotifs })
+    if (ok) {
+      setSavedField(key)
+    }
+  }
+
+  const handlePrivacyChange = async (field, value) => {
+    const nextPrivacy = {
+      ...privacy,
+      [field]: value,
+    }
+    setPrivacy(nextPrivacy)
+    await saveSettings({ privacy: nextPrivacy })
+  }
+
+  const toggleTwoFactor = async () => {
+    const nextValue = !twoFA
+    setTwoFA(nextValue)
+    await saveSettings({ security: { twoFactorEnabled: nextValue } })
+  }
+
+  const onPasswordFieldChange = (field, value) => {
+    setPasswordForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+    setPasswordError('')
+    setPasswordSuccess('')
+  }
+
+  const submitPasswordChange = async (event) => {
+    event.preventDefault()
+
+    const currentPassword = String(passwordForm.currentPassword || '')
+    const newPassword = String(passwordForm.newPassword || '')
+    const confirmPassword = String(passwordForm.confirmPassword || '')
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('Please fill all password fields.')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters.')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New password and confirmation do not match.')
+      return
+    }
+
+    if (currentPassword === newPassword) {
+      setPasswordError('New password must be different from current password.')
+      return
+    }
+
+    setIsChangingPassword(true)
+    setPasswordError('')
+    setPasswordSuccess('')
+
+    try {
+      const result = await changePassword({ currentPassword, newPassword })
+
+      if (result?.ok) {
+        setPasswordSuccess(result.message || 'Password changed successfully.')
+        setPasswordForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        })
+      } else {
+        setPasswordError('Unable to change password right now.')
+      }
+    } catch (error) {
+      setPasswordError(error?.response?.data?.message || error?.message || 'Unable to change password right now.')
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
 
   return (
     <div className="settings-root">
-      {/* ═══ HEADER — shared dashboard header (same as other pages) ═══ */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
@@ -106,13 +328,15 @@ export default function SettingsPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya…" aria-label="Search" />
+            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya..." aria-label="Search" />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
             <button className="dash-icon-btn" aria-label="Messages">💬</button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
+              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {profileData.name ? profileData.name.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+              </button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
@@ -127,42 +351,39 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      {/* ═══ SETTINGS LAYOUT — 2-column (sidebar nav + content panel) ═══ */}
       <div className="settings-layout">
-
-        {/* ═══ LEFT NAV — vertical section list ═══ */}
         <nav className="settings-nav">
           <h2 className="settings-nav-title">Settings</h2>
-          {sections.map(s => (
+          {sections.map((section) => (
             <button
-              key={s.key}
-              className={`settings-nav-item${activeSection === s.key ? ' active' : ''}`}
-              onClick={() => setActiveSection(s.key)}
+              key={section.key}
+              className={`settings-nav-item${activeSection === section.key ? ' active' : ''}`}
+              onClick={() => setActiveSection(section.key)}
             >
-              {s.label}
+              {section.label}
             </button>
           ))}
         </nav>
 
-        {/* ═══ RIGHT CONTENT PANEL — conditionally renders one section at a time ═══ */}
         <main className="settings-panel">
+          {isLoadingSettings ? <p className="settings-muted">Loading settings...</p> : null}
+          {isSaving ? <p className="settings-muted">Saving changes...</p> : null}
+          {settingsError ? <p className="settings-muted" style={{ color: '#b91c1c' }}>{settingsError}</p> : null}
 
-          {/* ═══════ PROFILE SECTION ═══════ */}
-          {/* Editable rows for name, bio, location + profile photo placeholder */}
           {activeSection === 'profile' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Profile</h3>
 
-              {/* Photo row */}
               <div className="settings-row">
                 <span className="settings-label">Profile Photo</span>
                 <span className="settings-value">
-                  <span className="settings-avatar">SA</span>
+                  <span className="settings-avatar">
+                    {profileData.name ? profileData.name.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+                  </span>
                 </span>
                 <button className="settings-action">Change</button>
               </div>
 
-              {/* Editable rows */}
               {[
                 { key: 'name', label: 'Name' },
                 { key: 'bio', label: 'Bio' },
@@ -175,8 +396,8 @@ export default function SettingsPage() {
                       className="settings-inline-input"
                       autoFocus
                       defaultValue={profileData[key]}
-                      onBlur={(e) => handleSave(key, e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSave(key, e.target.value)}
+                      onBlur={(event) => handleSave(key, event.target.value)}
+                      onKeyDown={(event) => event.key === 'Enter' && handleSave(key, event.target.value)}
                     />
                   ) : (
                     <span className="settings-value">{profileData[key]}</span>
@@ -191,8 +412,6 @@ export default function SettingsPage() {
             </section>
           )}
 
-          {/* ═══════ ACCOUNT SECTION ═══════ */}
-          {/* Editable rows for email, phone, language + read-only member-since */}
           {activeSection === 'account' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Account</h3>
@@ -209,8 +428,8 @@ export default function SettingsPage() {
                       className="settings-inline-input"
                       autoFocus
                       defaultValue={profileData[key]}
-                      onBlur={(e) => handleSave(key, e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSave(key, e.target.value)}
+                      onBlur={(event) => handleSave(key, event.target.value)}
+                      onKeyDown={(event) => event.key === 'Enter' && handleSave(key, event.target.value)}
                     />
                   ) : (
                     <span className="settings-value">{profileData[key]}</span>
@@ -225,41 +444,69 @@ export default function SettingsPage() {
 
               <div className="settings-row">
                 <span className="settings-label">Member since</span>
-                <span className="settings-value settings-muted">January 2025</span>
+                <span className="settings-value settings-muted">{memberSinceLabel}</span>
               </div>
             </section>
           )}
 
-          {/* ═══════ SECURITY SECTION ═══════ */}
-          {/* Password change, 2FA toggle, active sessions */}
           {activeSection === 'security' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Security</h3>
 
               <div className="settings-row">
                 <span className="settings-label">Password</span>
-                <span className="settings-value settings-muted">Last changed 2 months ago</span>
-                <button className="settings-action">Change</button>
+                <span className="settings-value settings-muted">Update your password securely</span>
               </div>
+
+              <form className="settings-password-form" onSubmit={submitPasswordChange}>
+                <label className="settings-password-label" htmlFor="currentPassword">Current password</label>
+                <input
+                  id="currentPassword"
+                  type="password"
+                  className="settings-password-input"
+                  value={passwordForm.currentPassword}
+                  onChange={(event) => onPasswordFieldChange('currentPassword', event.target.value)}
+                  autoComplete="current-password"
+                />
+
+                <label className="settings-password-label" htmlFor="newPassword">New password</label>
+                <input
+                  id="newPassword"
+                  type="password"
+                  className="settings-password-input"
+                  value={passwordForm.newPassword}
+                  onChange={(event) => onPasswordFieldChange('newPassword', event.target.value)}
+                  autoComplete="new-password"
+                />
+
+                <label className="settings-password-label" htmlFor="confirmPassword">Confirm new password</label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  className="settings-password-input"
+                  value={passwordForm.confirmPassword}
+                  onChange={(event) => onPasswordFieldChange('confirmPassword', event.target.value)}
+                  autoComplete="new-password"
+                />
+
+                {passwordError ? <p className="settings-password-feedback settings-password-feedback-error">{passwordError}</p> : null}
+                {passwordSuccess ? <p className="settings-password-feedback settings-password-feedback-success">{passwordSuccess}</p> : null}
+
+                <button className="settings-action" type="submit" disabled={isChangingPassword}>
+                  {isChangingPassword ? 'Changing...' : 'Change Password'}
+                </button>
+              </form>
 
               <div className="settings-row">
                 <span className="settings-label">Two-Factor Authentication</span>
                 <span className="settings-value">
                   <span className={`settings-status ${twoFA ? 'on' : 'off'}`}>{twoFA ? 'Enabled' : 'Disabled'}</span>
                 </span>
-                <button className="settings-action" onClick={() => setTwoFA(!twoFA)}>{twoFA ? 'Disable' : 'Enable'}</button>
-              </div>
-
-              <div className="settings-row">
-                <span className="settings-label">Active Sessions</span>
-                <span className="settings-value settings-muted">3 devices</span>
-                <button className="settings-action">View</button>
+                <button className="settings-action" onClick={toggleTwoFactor}>{twoFA ? 'Disable' : 'Enable'}</button>
               </div>
             </section>
           )}
 
-          {/* ═══════ NOTIFICATIONS SECTION ═══════ */}
-          {/* Toggle switches grouped by channel: email & push notifications */}
           {activeSection === 'notifications' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Notifications</h3>
@@ -307,24 +554,22 @@ export default function SettingsPage() {
             </section>
           )}
 
-          {/* ═══════ PRIVACY SECTION ═══════ */}
-          {/* Radio-button groups for profile visibility, report identity, location sharing */}
           {activeSection === 'privacy' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Privacy</h3>
 
               <div className="settings-group">
                 <h4 className="settings-group-label">Profile Visibility</h4>
-                {['public', 'private'].map(v => (
-                  <label className="settings-radio-row" key={v}>
+                {['public', 'private'].map((value) => (
+                  <label className="settings-radio-row" key={value}>
                     <input
                       type="radio"
                       name="visibility"
-                      checked={privacy.visibility === v}
-                      onChange={() => setPrivacy(p => ({ ...p, visibility: v }))}
+                      checked={privacy.visibility === value}
+                      onChange={() => handlePrivacyChange('visibility', value)}
                       className="settings-radio"
                     />
-                    <span className="settings-radio-label">{v === 'public' ? 'Public' : 'Private'}</span>
+                    <span className="settings-radio-label">{value === 'public' ? 'Public' : 'Private'}</span>
                   </label>
                 ))}
               </div>
@@ -340,7 +585,7 @@ export default function SettingsPage() {
                       type="radio"
                       name="identity"
                       checked={privacy.identity === value}
-                      onChange={() => setPrivacy(p => ({ ...p, identity: value }))}
+                      onChange={() => handlePrivacyChange('identity', value)}
                       className="settings-radio"
                     />
                     <span className="settings-radio-label">{label}</span>
@@ -361,7 +606,7 @@ export default function SettingsPage() {
                       type="radio"
                       name="location"
                       checked={privacy.location === value}
-                      onChange={() => setPrivacy(p => ({ ...p, location: value }))}
+                      onChange={() => handlePrivacyChange('location', value)}
                       className="settings-radio"
                     />
                     <span className="settings-radio-label">{label}</span>
@@ -371,8 +616,6 @@ export default function SettingsPage() {
             </section>
           )}
 
-          {/* ═══════ DATA MANAGEMENT SECTION ═══════ */}
-          {/* Export data, clear history, and expandable delete-account danger zone */}
           {activeSection === 'data' && (
             <section className="settings-section">
               <h3 className="settings-section-title">Data</h3>
@@ -389,10 +632,9 @@ export default function SettingsPage() {
                 <button className="settings-action settings-action-warn">Clear</button>
               </div>
 
-              {/* DELETE ACCOUNT — expandable danger zone with typed confirmation */}
               <div className="settings-danger-zone">
                 <h4 className="settings-danger-title">Delete Account</h4>
-                <p className="settings-danger-text">This action is permanent. All your data, reports, and contributions will be removed and cannot be recovered.</p>
+                <p className="settings-danger-text">This action is permanent and cannot be recovered.</p>
                 {!showDeleteConfirm ? (
                   <button className="settings-btn-danger" onClick={() => setShowDeleteConfirm(true)}>Delete Account</button>
                 ) : (
@@ -408,7 +650,6 @@ export default function SettingsPage() {
               </div>
             </section>
           )}
-
         </main>
       </div>
     </div>

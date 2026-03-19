@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle)
   const completeEmailVerification = useAuthStore((state) => state.completeEmailVerification)
   const logout = useAuthStore((state) => state.logout)
+  const setUser = useAuthStore((state) => state.setUser)
   const user = useAuthStore((state) => state.user)
   const token = useAuthStore((state) => state.token)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -42,7 +43,7 @@ export function AuthProvider({ children }) {
     completeEmailVerification,
     logout,
     restoreSession,
-    setUser: () => {},
+    setUser,
   }), [
     completeEmailVerification,
     hasCheckedSession,
@@ -55,6 +56,7 @@ export function AuthProvider({ children }) {
     logout,
     register,
     restoreSession,
+    setUser,
     token,
     user,
   ])

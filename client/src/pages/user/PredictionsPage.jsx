@@ -76,6 +76,27 @@ export default function PredictionsPage() {
   // Format Date as HH:MM (French-Algerian locale)
   const fmtTime = (d) => d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
+  const profileName = String(
+    user?.name
+      || user?.fullName
+      || user?.full_name
+      || [user?.first_name, user?.last_name].filter(Boolean).join(' ')
+      || user?.email
+      || 'SIARA User',
+  ).trim()
+  const roleLabel = Array.isArray(user?.roles) && user.roles.includes('admin')
+    ? 'Admin'
+    : 'Citizen'
+  const roleClass = roleLabel === 'Admin' ? 'role-admin' : 'role-citoyen'
+  const profileInitials = profileName
+    ? profileName
+      .split(' ')
+      .map((word) => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+    : 'U'
+
   /* ═══ RENDER ═══ */
   return (
     <div className="siara-news-root">
@@ -105,7 +126,7 @@ export default function PredictionsPage() {
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
             <button className="dash-icon-btn" aria-label="Messages">💬</button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
+              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{profileInitials}</button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
@@ -129,12 +150,12 @@ export default function PredictionsPage() {
           <div className="card profile-summary">
             <div className="profile-avatar-container">
               <img src={profileAvatar} alt="Profile" className="profile-avatar-large" />
-              <span className="verified-badge">✓</span>
+              <span className="verified-badge">V</span>
             </div>
             <div className="profile-info">
-              <p className="profile-name">Zitouni Mohamed</p>
-              <span className="role-badge role-citoyen">Citizen</span>
-              <p className="profile-bio">Active contributor for safer roads in Algeria 🇩🇿</p>
+              <p className="profile-name">{profileName}</p>
+              <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
+              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>
