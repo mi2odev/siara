@@ -2,9 +2,9 @@ import React, { useContext } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 
 import { AuthContext } from '../contexts/AuthContext'
-import { getAuthenticatedRedirect } from './routeAccess'
+import { getAuthenticatedRedirect, isAdminUser } from './routeAccess'
 
-export default function PublicOnlyRoute({ children }) {
+export default function NonAdminOnlyRoute({ children }) {
   const {
     user,
     isAuthenticated,
@@ -17,7 +17,7 @@ export default function PublicOnlyRoute({ children }) {
     return null
   }
 
-  if (isAuthenticated && user) {
+  if (isAuthenticated && user && isAdminUser(user)) {
     return <Navigate to={getAuthenticatedRedirect(user, isEmailVerified)} replace />
   }
 

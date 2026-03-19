@@ -2,16 +2,11 @@ import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
+import { getAuthenticatedRedirect } from '../../routes/routeAccess'
 import { sendVerificationCode } from '../../services/authService'
 import logo from '../../assets/logos/siara-logo.png'
 import '../../styles/LoginPage.css'
 import '../../styles/AuthFlowPage.css'
-
-function getRedirectPath(user) {
-  return Array.isArray(user?.roles) && user.roles.includes('admin')
-    ? '/admin/overview'
-    : '/dashboard'
-}
 
 function getErrorMessage(error) {
   return error.response?.data?.message || error.message || 'Unable to verify your email right now.'
@@ -40,7 +35,7 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     if (isAuthenticated && isEmailVerified) {
-      navigate(getRedirectPath(user), { replace: true })
+      navigate(getAuthenticatedRedirect(user, isEmailVerified), { replace: true })
     }
   }, [isAuthenticated, isEmailVerified, navigate, user])
 
@@ -81,7 +76,7 @@ export default function VerifyEmailPage() {
         rememberMe,
       })
 
-      navigate(getRedirectPath(verifiedUser), { replace: true })
+      navigate(getAuthenticatedRedirect(verifiedUser, true), { replace: true })
     } catch (verificationError) {
       setError(getErrorMessage(verificationError))
     } finally {

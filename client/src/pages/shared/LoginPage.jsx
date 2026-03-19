@@ -3,17 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton'
 import { AuthContext } from '../../contexts/AuthContext'
+import { getAuthenticatedRedirect } from '../../routes/routeAccess'
 import logo from '../../assets/logos/siara-logo.png'
 import '../../styles/LoginPage.css'
 
 function getErrorMessage(error) {
   return error.response?.data?.message || error.message || 'Unable to sign in right now.'
-}
-
-function getRedirectPath(user) {
-  return Array.isArray(user?.roles) && user.roles.includes('admin')
-    ? '/admin/overview'
-    : '/dashboard'
 }
 
 export default function LoginPage() {
@@ -50,7 +45,7 @@ export default function LoginPage() {
 
     try {
       const user = await login(email.trim(), password, rememberMe)
-      navigate(getRedirectPath(user), { replace: true })
+      navigate(getAuthenticatedRedirect(user, Boolean(user?.email_verified ?? true)), { replace: true })
     } catch (authError) {
       const requiresEmailVerification = authError.response?.data?.requiresEmailVerification
       if (requiresEmailVerification) {
@@ -81,7 +76,7 @@ export default function LoginPage() {
     try {
       const user = await loginWithGoogle(idToken, rememberMe)
       console.info('[google-auth] Backend Google login succeeded on /login')
-      navigate(getRedirectPath(user), { replace: true })
+      navigate(getAuthenticatedRedirect(user, Boolean(user?.email_verified ?? true)), { replace: true })
     } catch (authError) {
       console.error('[google-auth] Backend Google login failed on /login', authError)
       setGoogleError(getErrorMessage(authError))

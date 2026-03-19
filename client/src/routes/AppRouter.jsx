@@ -33,155 +33,64 @@ import ForgotPasswordPage from "../pages/shared/ForgotPasswordPage";
 import LoginPage from "../pages/shared/LoginPage";
 import RegisterPage from "../pages/shared/RegisterPage";
 import VerifyEmailPage from "../pages/shared/VerifyEmailPage";
+import DefaultRouteRedirect from "./DefaultRouteRedirect";
+import NonAdminOnlyRoute from "./NonAdminOnlyRoute";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicOnlyRoute from "./PublicOnlyRoute";
 
 export default function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/home" replace />} />
-      <Route path="/home" element={<HomePage />} />
-      <Route
-        path="/login"
-        element={(
-          <PublicOnlyRoute>
-            <LoginPage />
-          </PublicOnlyRoute>
-        )}
-      />
-      <Route
-        path="/register"
-        element={(
-          <PublicOnlyRoute>
-            <RegisterPage />
-          </PublicOnlyRoute>
-        )}
-      />
-      <Route
-        path="/forgot-password"
-        element={(
-          <PublicOnlyRoute>
-            <ForgotPasswordPage />
-          </PublicOnlyRoute>
-        )}
-      />
-      <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/about" element={<AboutPage />} />
-      <Route
-        path="/map"
-        element={(
-          <ProtectedRoute>
-            <MapPage />
-          </ProtectedRoute>
-        )}
-      />
-      <Route path="/description" element={<DescriptionPage />} />
-      <Route path="/news" element={<NewsPage />} />
-      <Route path="/services" element={<ServicesPage />} />
-      <Route
-        path="/alerts"
-        element={(
-          <ProtectedRoute>
-            <AlertsPage />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/alerts/create"
-        element={(
-          <ProtectedRoute>
-            <CreateAlertPage />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/notifications"
-        element={(
-          <ProtectedRoute>
-            <NotificationsPage />
-          </ProtectedRoute>
-        )}
-      />
-      <Route path="/incident/:id" element={<IncidentDetailPage />} />
-      <Route
-        path="/report"
-        element={(
-          <ProtectedRoute>
-            <ReportIncidentPage />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/predictions"
-        element={(
-          <ProtectedRoute>
-            <PredictionsPage />
-          </ProtectedRoute>
-        )}
-      />
-      <Route path="/contact" element={<ContactPage />} />
-      <Route
-        path="/profile"
-        element={(
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/settings"
-        element={(
-          <ProtectedRoute>
-            <SettingsPage />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/dashboard"
-        element={(
-          <ProtectedRoute>
-            <UserDashboardPage />
-          </ProtectedRoute>
-        )}
-      />
+      <Route path="/" element={<DefaultRouteRedirect defaultPath="/home" />} />
 
-      <Route
-        path="/admin/dashboard"
-        element={(
-          <ProtectedRoute roles={["admin"]}>
-            <DashboardPage />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/admin/services"
-        element={(
-          <ProtectedRoute roles={["admin"]}>
-            <ServiceControlPage />
-          </ProtectedRoute>
-        )}
-      />
-      <Route
-        path="/admin"
-        element={(
-          <ProtectedRoute roles={["admin"]}>
-            <AdminLayout />
-          </ProtectedRoute>
-        )}
-      >
-        <Route index element={<Navigate to="/admin/overview" replace />} />
-        <Route path="overview" element={<AdminOverviewPage />} />
-        <Route path="incidents" element={<AdminIncidentsPage />} />
-        <Route path="incidents/:id" element={<AdminIncidentReviewPage />} />
-        <Route path="alerts" element={<AdminAlertsPage />} />
-        <Route path="ai" element={<AdminAIMonitoringPage />} />
-        <Route path="users" element={<AdminUsersPage />} />
-        <Route path="zones" element={<AdminZonesPage />} />
-        <Route path="system" element={<AdminSystemSettingsPage />} />
-        <Route path="analytics" element={<AdminAnalyticsPage />} />
+      <Route element={<PublicOnlyRoute />}>
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/home" replace />} />
+      <Route path="verify-email" element={<VerifyEmailPage />} />
+
+      <Route element={<NonAdminOnlyRoute />}>
+        <Route path="home" element={<HomePage />} />
+        <Route path="about" element={<AboutPage />} />
+        <Route path="description" element={<DescriptionPage />} />
+        <Route path="news" element={<NewsPage />} />
+        <Route path="services" element={<ServicesPage />} />
+        <Route path="contact" element={<ContactPage />} />
+        <Route path="incident/:id" element={<IncidentDetailPage />} />
+
+        <Route element={<ProtectedRoute />}>
+          <Route path="map" element={<MapPage />} />
+          <Route path="alerts" element={<AlertsPage />} />
+          <Route path="alerts/create" element={<CreateAlertPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="report" element={<ReportIncidentPage />} />
+          <Route path="predictions" element={<PredictionsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="dashboard" element={<UserDashboardPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute roles={["admin"]} />}>
+        <Route path="admin/dashboard" element={<DashboardPage />} />
+        <Route path="admin/services" element={<ServiceControlPage />} />
+        <Route path="admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/overview" replace />} />
+          <Route path="overview" element={<AdminOverviewPage />} />
+          <Route path="incidents" element={<AdminIncidentsPage />} />
+          <Route path="incidents/:id" element={<AdminIncidentReviewPage />} />
+          <Route path="alerts" element={<AdminAlertsPage />} />
+          <Route path="ai" element={<AdminAIMonitoringPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="zones" element={<AdminZonesPage />} />
+          <Route path="system" element={<AdminSystemSettingsPage />} />
+          <Route path="analytics" element={<AdminAnalyticsPage />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<DefaultRouteRedirect defaultPath="/home" />} />
     </Routes>
   );
 }

@@ -1,77 +1,132 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import siaraLogo from '../../assets/logos/siara-logo.png'
 
-const sections = [
-  {
-    label: 'Overview',
-    links: [
-      { to: '/admin/overview', icon: '◉', text: 'System Overview', badge: null },
-    ],
-  },
-  {
-    label: 'Incident Management',
-    links: [
-      { to: '/admin/incidents', icon: '⚡', text: 'Pending Review', badge: '8', badgeType: '' },
-      { to: '/admin/incidents?filter=ai-flagged', icon: '◎', text: 'AI-Flagged High Risk', badge: '3', badgeType: 'warning' },
-      { to: '/admin/incidents?filter=community', icon: '⚑', text: 'Community Flagged', badge: '2', badgeType: 'warning' },
-      { to: '/admin/incidents?filter=merged', icon: '⊕', text: 'Merged Incidents' },
-      { to: '/admin/incidents?filter=archived', icon: '▪', text: 'Archived' },
-    ],
-  },
-  {
-    label: 'Alert Operations',
-    links: [
-      { to: '/admin/alerts', icon: '▲', text: 'Active Alerts', badge: '4', badgeType: '' },
-      { to: '/admin/alerts?tab=scheduled', icon: '◷', text: 'Scheduled Alerts' },
-      { to: '/admin/alerts?tab=expired', icon: '◔', text: 'Expiring / Expired' },
-      { to: '/admin/alerts?tab=emergency', icon: '◆', text: 'Emergency Broadcast' },
-      { to: '/admin/alerts?tab=templates', icon: '▧', text: 'Alert Templates' },
-    ],
-  },
-  {
-    label: 'Risk & Zones',
-    links: [
-      { to: '/admin/zones', icon: '◈', text: 'Risk Heatmap' },
-      { to: '/admin/zones?tab=thresholds', icon: '▬', text: 'Zone Thresholds' },
-      { to: '/admin/zones?tab=table', icon: '✎', text: 'Zone Management' },
-      { to: '/admin/zones?tab=ranking', icon: '▽', text: 'Wilaya Risk Ranking' },
-    ],
-  },
-  {
-    label: 'AI & Model Supervision',
-    links: [
-      { to: '/admin/ai', icon: '◇', text: 'Accuracy Trends' },
-      { to: '/admin/ai?tab=confidence', icon: '▭', text: 'Confidence Distribution' },
-      { to: '/admin/ai?tab=confusion', icon: '✕', text: 'Confusion Matrix' },
-      { to: '/admin/ai?tab=overrides', icon: '↹', text: 'Override Logs' },
-    ],
-  },
-  {
-    label: 'User Governance',
-    links: [
-      { to: '/admin/users', icon: '◎', text: 'All Users', badge: '2', badgeType: 'info' },
-      { to: '/admin/users?filter=at-risk', icon: '⚠', text: 'At Risk Users' },
-      { to: '/admin/users?filter=trusted', icon: '★', text: 'Top Contributors' },
-      { to: '/admin/users?filter=suspended', icon: '⊘', text: 'Suspensions' },
-    ],
-  },
-  {
-    label: 'Data & Analytics',
-    links: [
-      { to: '/admin/analytics', icon: '◫', text: 'Analytics Dashboard' },
-    ],
-  },
-  {
-    label: 'System',
-    links: [
-      { to: '/admin/system', icon: '⚙', text: 'Configuration' },
-    ],
-  },
-]
+import siaraLogo from '../../assets/logos/siara-logo.png'
+import { fetchAdminIncidentCounts } from '../../services/adminIncidentsService'
+import { fetchAdminOperationalAlertCounts } from '../../services/adminOperationalAlertsService'
+
+function buildSections(incidentCounts, alertCounts) {
+  return [
+    {
+      label: 'Overview',
+      links: [
+        { to: '/admin/overview', icon: '\u25C9', text: 'System Overview', badge: null },
+      ],
+    },
+    {
+      label: 'Incident Management',
+      links: [
+        { to: '/admin/incidents', icon: '\u26A1', text: 'Pending Review', badge: String(incidentCounts.pending ?? 0), badgeType: '' },
+        { to: '/admin/incidents?filter=ai-flagged', icon: '\u25CE', text: 'AI-Flagged High Risk', badge: String(incidentCounts['ai-flagged'] ?? 0), badgeType: 'warning' },
+        { to: '/admin/incidents?filter=community', icon: '\u2691', text: 'Community Flagged', badge: String(incidentCounts.community ?? 0), badgeType: 'warning' },
+        { to: '/admin/incidents?filter=merged', icon: '\u2295', text: 'Merged Incidents', badge: String(incidentCounts.merged ?? 0), badgeType: '' },
+        { to: '/admin/incidents?filter=archived', icon: '\u25AA', text: 'Archived', badge: String(incidentCounts.archived ?? 0), badgeType: '' },
+      ],
+    },
+    {
+      label: 'Alert Operations',
+      links: [
+        { to: '/admin/alerts', icon: '\u25B2', text: 'Active Alerts', badge: String(alertCounts.active ?? 0), badgeType: '' },
+        { to: '/admin/alerts?tab=scheduled', icon: '\u25F7', text: 'Scheduled Alerts', badge: String(alertCounts.scheduled ?? 0), badgeType: 'info' },
+        { to: '/admin/alerts?tab=expired', icon: '\u25D4', text: 'Expiring / Expired', badge: String(alertCounts.expired ?? 0), badgeType: '' },
+        { to: '/admin/alerts?tab=emergency', icon: '\u25C6', text: 'Emergency Broadcast', badge: String(alertCounts.emergency ?? 0), badgeType: 'warning' },
+        { to: '/admin/alerts?tab=templates', icon: '\u25E7', text: 'Alert Templates', badge: String(alertCounts.templates ?? 0), badgeType: 'info' },
+      ],
+    },
+    {
+      label: 'Risk & Zones',
+      links: [
+        { to: '/admin/zones', icon: '\u25C8', text: 'Risk Heatmap' },
+        { to: '/admin/zones?tab=thresholds', icon: '\u25AC', text: 'Zone Thresholds' },
+        { to: '/admin/zones?tab=table', icon: '\u270E', text: 'Zone Management' },
+        { to: '/admin/zones?tab=ranking', icon: '\u25BD', text: 'Wilaya Risk Ranking' },
+      ],
+    },
+    {
+      label: 'AI & Model Supervision',
+      links: [
+        { to: '/admin/ai', icon: '\u25C7', text: 'Accuracy Trends' },
+        { to: '/admin/ai?tab=confidence', icon: '\u25AD', text: 'Confidence Distribution' },
+        { to: '/admin/ai?tab=confusion', icon: '\u2715', text: 'Confusion Matrix' },
+        { to: '/admin/ai?tab=overrides', icon: '\u21B9', text: 'Override Logs' },
+      ],
+    },
+    {
+      label: 'User Governance',
+      links: [
+        { to: '/admin/users', icon: '\u25CE', text: 'All Users', badge: '2', badgeType: 'info' },
+        { to: '/admin/users?filter=at-risk', icon: '\u26A0', text: 'At Risk Users' },
+        { to: '/admin/users?filter=trusted', icon: '\u2605', text: 'Top Contributors' },
+        { to: '/admin/users?filter=suspended', icon: '\u2298', text: 'Suspensions' },
+      ],
+    },
+    {
+      label: 'Data & Analytics',
+      links: [
+        { to: '/admin/analytics', icon: '\u25EB', text: 'Analytics Dashboard' },
+      ],
+    },
+    {
+      label: 'System',
+      links: [
+        { to: '/admin/system', icon: '\u2699', text: 'Configuration' },
+      ],
+    },
+  ]
+}
 
 export default function AdminSidebar() {
   const location = useLocation()
+  const [incidentCounts, setIncidentCounts] = useState({
+    pending: 0,
+    'ai-flagged': 0,
+    community: 0,
+    merged: 0,
+    archived: 0,
+  })
+  const [alertCounts, setAlertCounts] = useState({
+    all: 0,
+    active: 0,
+    scheduled: 0,
+    expired: 0,
+    emergency: 0,
+    templates: 0,
+  })
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadCounts() {
+      const [incidentResult, alertResult] = await Promise.allSettled([
+        fetchAdminIncidentCounts({
+          signal: controller.signal,
+        }),
+        fetchAdminOperationalAlertCounts({
+          signal: controller.signal,
+        }),
+      ])
+
+      if (controller.signal.aborted) {
+        return
+      }
+
+      if (incidentResult.status === 'fulfilled') {
+        setIncidentCounts(incidentResult.value)
+      }
+
+      if (alertResult.status === 'fulfilled') {
+        setAlertCounts(alertResult.value)
+      }
+    }
+
+    loadCounts().catch(() => {
+      // Keep the shell usable even if counts fail to load.
+    })
+
+    return () => controller.abort()
+  }, [])
+
+  const sections = buildSections(incidentCounts, alertCounts)
 
   const isLinkActive = (to) => {
     const [path, search] = to.split('?')
@@ -82,7 +137,6 @@ export default function AdminSidebar() {
 
   return (
     <aside className="admin-sidebar">
-      {/* Brand */}
       <div className="admin-sidebar-brand">
         <img src={siaraLogo} alt="SIARA" />
         <div className="admin-sidebar-brand-text">
@@ -91,7 +145,6 @@ export default function AdminSidebar() {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="admin-sidebar-nav">
         {sections.map((section) => (
           <div className="admin-nav-section" key={section.label}>
@@ -104,7 +157,7 @@ export default function AdminSidebar() {
               >
                 <span className="nav-icon">{link.icon}</span>
                 {link.text}
-                {link.badge && (
+                {link.badge != null && (
                   <span className={`nav-badge ${link.badgeType || ''}`}>{link.badge}</span>
                 )}
               </Link>
@@ -113,7 +166,6 @@ export default function AdminSidebar() {
         ))}
       </nav>
 
-      {/* Footer */}
       <div className="admin-sidebar-footer">
         <div className="admin-env-badge">
           <span className="env-dot"></span>

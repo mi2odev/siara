@@ -3,18 +3,13 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton'
 import { AuthContext } from '../../contexts/AuthContext'
+import { getAuthenticatedRedirect } from '../../routes/routeAccess'
 import logo from '../../assets/logos/siara-logo.png'
 import '../../styles/LoginPage.css'
 import '../../styles/RegisterPage.css'
 
 function getErrorMessage(error) {
   return error.response?.data?.message || error.message || 'Unable to create your account right now.'
-}
-
-function getRedirectPath(user) {
-  return Array.isArray(user?.roles) && user.roles.includes('admin')
-    ? '/admin/overview'
-    : '/dashboard'
 }
 
 export default function RegisterPage() {
@@ -94,7 +89,7 @@ export default function RegisterPage() {
     try {
       const user = await loginWithGoogle(idToken, rememberMe)
       console.info('[google-auth] Backend Google login succeeded on /register')
-      navigate(getRedirectPath(user), { replace: true })
+      navigate(getAuthenticatedRedirect(user, Boolean(user?.email_verified ?? true)), { replace: true })
     } catch (authError) {
       console.error('[google-auth] Backend Google login failed on /register', authError)
       setGoogleError(getErrorMessage(authError))

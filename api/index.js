@@ -11,6 +11,10 @@ dotenv.config({
 });
 const pool = require("./db");
 const authRoutes = require("./contollers/auth");
+const adminIncidentRoutes = require("./contollers/adminIncidents");
+const adminOperationalAlertRoutes = require("./contollers/adminOperationalAlerts");
+const adminOverviewRoutes = require("./contollers/adminOverview");
+const adminZonesRoutes = require("./contollers/adminZones");
 const adminAreaRoutes = require("./contollers/adminAreas");
 const alertRoutes = require("./contollers/alerts");
 const emailRoutes = require("./contollers/emails");
@@ -42,6 +46,10 @@ app.use(bodyParser.json({ limit: "50mb" }));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminIncidentRoutes);
+app.use("/api/admin", adminOperationalAlertRoutes);
+app.use("/api/admin", adminOverviewRoutes);
+app.use("/api/admin", adminZonesRoutes);
 app.use("/api/admin-areas", adminAreaRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/dashboard", dashboardRoutes);

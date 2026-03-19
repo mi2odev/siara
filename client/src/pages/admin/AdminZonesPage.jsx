@@ -1,217 +1,717 @@
 /**
  * @file AdminZonesPage.jsx
- * @description Admin risk-zone geo-management page.
- *
- * Layout:
- *   - Page header with zone count, export & add-zone buttons
- *   - 4 tabs: Map | Zone Management | Wilaya Ranking | Threshold Config
- *   - Edit-zone modal overlay (form: risk level, threshold, lat/lng)
- *
- * Features:
- *   - Interactive Google Map with risk-colored circle markers
- *   - Marker size scales with incident count; InfoWindow shows zone stats
- *   - CRUD table with AI-override toggle and trend indicators
- *   - Wilaya ranking by total incidents with per-100k rate
- *   - Per-zone threshold configuration with AI-override toggles
- *
- * Data: 8 mock zones across Algerian wilayas (Algiers, Oran, Constantine, etc.)
- *       with coordinates, risk level, incident count, and population.
- *
- * Dependencies: @react-google-maps/api (GoogleMap, Marker, InfoWindow)
+ * @description Admin risk-zone geo-management page backed by wilaya polygons.
  */
-import React, { useState, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { GoogleMap, Marker, InfoWindow, useLoadScript } from '@react-google-maps/api'
+import { GeoJSON, MapContainer, Marker, Pane, TileLayer, useMap, ZoomControl } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
-/* ═══════════════════════════════════════════════════════════════
-   MOCK DATA — 8 risk zones with geo-coordinates and metrics
-   ═══════════════════════════════════════════════════════════════ */
-const allZones = [
-  { id: 'Z-01', name: 'Algiers Centre', wilaya: 'Algiers', lat: 36.7538, lng: 3.0588, risk: 'high', incidents: 18, population: 1200000, threshold: 15, aiOverride: false, trend: 'rising' },
-  { id: 'Z-02', name: 'Oran Industrial', wilaya: 'Oran', lat: 35.6969, lng: -0.6331, risk: 'high', incidents: 12, population: 850000, threshold: 12, aiOverride: false, trend: 'stable' },
-  { id: 'Z-03', name: 'Constantine University District', wilaya: 'Constantine', lat: 36.3650, lng: 6.6147, risk: 'medium', incidents: 7, population: 450000, threshold: 10, aiOverride: false, trend: 'declining' },
-  { id: 'Z-04', name: 'Blida Highway Corridor', wilaya: 'Blida', lat: 36.4700, lng: 2.8300, risk: 'medium', incidents: 5, population: 340000, threshold: 8, aiOverride: true, trend: 'stable' },
-  { id: 'Z-05', name: 'Sétif Bypass', wilaya: 'Sétif', lat: 36.1910, lng: 5.4078, risk: 'medium', incidents: 6, population: 290000, threshold: 7, aiOverride: false, trend: 'rising' },
-  { id: 'Z-06', name: 'Annaba Port Road', wilaya: 'Annaba', lat: 36.8974, lng: 7.7659, risk: 'low', incidents: 3, population: 260000, threshold: 6, aiOverride: false, trend: 'declining' },
-  { id: 'Z-07', name: 'Batna Mountain Pass', wilaya: 'Batna', lat: 35.5569, lng: 6.1742, risk: 'high', incidents: 9, population: 310000, threshold: 8, aiOverride: true, trend: 'rising' },
-  { id: 'Z-08', name: 'Tlemcen City Ring', wilaya: 'Tlemcen', lat: 34.8784, lng: -1.3150, risk: 'low', incidents: 2, population: 180000, threshold: 5, aiOverride: false, trend: 'stable' },
-]
+import {
+  fetchAdminZoneDetails,
+  fetchAdminZoneMap,
+  normalizeZoneMetric,
+  normalizeZonePeriod,
+  rebuildAdminZoneSummary,
+} from '../../services/adminZonesService'
 
-/* ── Google Maps configuration ── */
-const mapContainerStyle = { width: '100%', height: '100%', borderRadius: 8 }
-const mapCenter = { lat: 36.0, lng: 3.0 }  // roughly centered on northern Algeria
-const mapOptions = {
-  styles: [
-    { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-    { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  ],
-  disableDefaultUI: true,
-  zoomControl: true,
-}
-
-/** Color map for risk-level markers and pills */
-const riskColors = { high: '#EF4444', medium: '#F59E0B', low: '#22C55E' }
-
-/** Tab definitions for the 4 zone-management views */
-const tabs = [
+const EMPTY_TEXT = '\u2014'
+const DEFAULT_TAB = 'map'
+const TABS = [
   { key: 'map', label: 'Zone Map' },
   { key: 'table', label: 'Zone Management' },
   { key: 'ranking', label: 'Wilaya Ranking' },
   { key: 'thresholds', label: 'Threshold Config' },
 ]
+const PERIOD_OPTIONS = [
+  { value: '24h', label: '24h' },
+  { value: '7d', label: '7 days' },
+  { value: '30d', label: '30 days' },
+]
+const METRIC_OPTIONS = [
+  { value: 'composite', label: 'Composite' },
+  { value: 'model', label: 'Model' },
+  { value: 'reports', label: 'Reports' },
+  { value: 'alerts', label: 'Alerts' },
+]
+const BASE_CENTER = [28.0, 2.8]
+const MAP_BOUNDS_PADDING = [18, 18]
+const RISK_COLORS = {
+  low: '#22C55E',
+  medium: '#F59E0B',
+  high: '#EF4444',
+  critical: '#991B1B',
+}
 
-/* ═══════════════════════════════════════════════════════════════
-   COMPONENT
-   ═══════════════════════════════════════════════════════════════ */
-export default function AdminZonesPage() {
-  /* --- URL-driven tab state (defaults to 'map') --- */
-  const [searchParams, setSearchParams] = useSearchParams()
-  const currentTab = searchParams.get('tab') || 'map'
+function formatScore(value, digits = 1, suffix = '') {
+  return typeof value === 'number' ? `${value.toFixed(digits)}${suffix}` : EMPTY_TEXT
+}
 
-  /* --- Local UI state --- */
-  const [selectedZone, setSelectedZone] = useState(null)  // zone whose InfoWindow is open on map
-  const [editZone, setEditZone] = useState(null)          // zone being edited in modal
+function formatCount(value) {
+  return typeof value === 'number' ? value.toLocaleString() : EMPTY_TEXT
+}
 
-  /* Load Google Maps script — API key from env variable */
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '',
+function formatTrend(value) {
+  if (typeof value !== 'number') {
+    return EMPTY_TEXT
+  }
+
+  if (value > 0) {
+    return `+${value.toFixed(1)}`
+  }
+
+  if (value < 0) {
+    return value.toFixed(1)
+  }
+
+  return '0.0'
+}
+
+function getTrendTone(value) {
+  if (typeof value !== 'number') {
+    return 'var(--admin-text-muted)'
+  }
+
+  if (value > 0) {
+    return 'var(--admin-danger)'
+  }
+
+  if (value < 0) {
+    return 'var(--admin-success)'
+  }
+
+  return 'var(--admin-text-muted)'
+}
+
+function getMetricTitle(metric) {
+  switch (metric) {
+    case 'model':
+      return 'Model weighted score'
+    case 'reports':
+      return 'Report score'
+    case 'alerts':
+      return 'Alert score'
+    case 'composite':
+    default:
+      return 'Composite risk score'
+  }
+}
+
+function getLevelFromScore(score) {
+  if (score >= 75) {
+    return 'critical'
+  }
+
+  if (score >= 50) {
+    return 'high'
+  }
+
+  if (score >= 25) {
+    return 'medium'
+  }
+
+  return 'low'
+}
+
+function getZoneColor(zone, metric) {
+  const score = metric === 'composite'
+    ? zone.riskScore
+    : zone.metricScore
+
+  return RISK_COLORS[getLevelFromScore(score)] || RISK_COLORS.low
+}
+
+function createZoneBadgeIcon(zone) {
+  const badgeValue = Math.round(zone.metricScore)
+  const riskLevel = getLevelFromScore(zone.metricScore)
+
+  return L.divIcon({
+    className: 'admin-zone-badge-shell',
+    html: `<span class="admin-zone-badge admin-zone-badge-${riskLevel}">${badgeValue}</span>`,
+    iconSize: [34, 22],
+    iconAnchor: [17, 11],
   })
+}
 
-  /**
-   * Aggregate zones by wilaya for the ranking tab.
-   * Computes total incidents, population, high-risk zone count per wilaya.
-   * Sorted descending by total incidents.
-   */
-  const wilayaRanking = useMemo(() => {
-    const map = {}
-    allZones.forEach(z => {
-      if (!map[z.wilaya]) map[z.wilaya] = { wilaya: z.wilaya, zones: 0, totalIncidents: 0, highRisk: 0, population: 0 }
-      map[z.wilaya].zones++
-      map[z.wilaya].totalIncidents += z.incidents
-      map[z.wilaya].population += z.population
-      if (z.risk === 'high') map[z.wilaya].highRisk++
+function ZoneBoundsController({ featureCollection }) {
+  const map = useMap()
+
+  useEffect(() => {
+    const features = featureCollection?.features || []
+    if (features.length === 0) {
+      return
+    }
+
+    const bounds = L.geoJSON(featureCollection).getBounds()
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: MAP_BOUNDS_PADDING, maxZoom: 7 })
+    }
+  }, [featureCollection, map])
+
+  return null
+}
+
+export default function AdminZonesPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const currentTab = searchParams.get('tab') || DEFAULT_TAB
+  const [period, setPeriod] = useState('24h')
+  const [metric, setMetric] = useState('composite')
+  const [mapPayload, setMapPayload] = useState({
+    featureCollection: { type: 'FeatureCollection', features: [] },
+    items: [],
+    stats: { zoneCount: 0, low: 0, medium: 0, high: 0, critical: 0 },
+    generatedAt: null,
+    summaryRebuilt: false,
+  })
+  const [selectedZoneId, setSelectedZoneId] = useState(null)
+  const [selectedDetails, setSelectedDetails] = useState(null)
+  const [hoveredZoneId, setHoveredZoneId] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [detailsLoading, setDetailsLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [reloadToken, setReloadToken] = useState(0)
+  const [rebuilding, setRebuilding] = useState(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let isActive = true
+
+    async function loadZoneMap() {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const payload = await fetchAdminZoneMap(period, metric, { signal: controller.signal })
+
+        if (isActive && !controller.signal.aborted) {
+          setMapPayload(payload)
+        }
+      } catch (requestError) {
+        if (isActive && !controller.signal.aborted) {
+          setError(requestError)
+        }
+      } finally {
+        if (isActive && !controller.signal.aborted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadZoneMap()
+
+    return () => {
+      isActive = false
+      controller.abort()
+    }
+  }, [metric, period, reloadToken])
+
+  useEffect(() => {
+    if (mapPayload.items.length === 0) {
+      setSelectedZoneId(null)
+      return
+    }
+
+    const existingSelection = mapPayload.items.find((zone) => zone.adminAreaId === selectedZoneId)
+    if (existingSelection) {
+      return
+    }
+
+    const preferred = mapPayload.items.find((zone) => zone.riskLevel === 'critical')
+      || mapPayload.items.find((zone) => zone.riskLevel === 'high')
+      || mapPayload.items[0]
+
+    setSelectedZoneId(preferred?.adminAreaId || null)
+  }, [mapPayload.items, selectedZoneId])
+
+  useEffect(() => {
+    if (!selectedZoneId) {
+      setSelectedDetails(null)
+      return
+    }
+
+    const controller = new AbortController()
+    let isActive = true
+
+    async function loadZoneDetails() {
+      setDetailsLoading(true)
+
+      try {
+        const payload = await fetchAdminZoneDetails(selectedZoneId, period, {
+          signal: controller.signal,
+        })
+
+        if (isActive && !controller.signal.aborted) {
+          setSelectedDetails(payload)
+        }
+      } catch (requestError) {
+        if (isActive && !controller.signal.aborted) {
+          setError(requestError)
+        }
+      } finally {
+        if (isActive && !controller.signal.aborted) {
+          setDetailsLoading(false)
+        }
+      }
+    }
+
+    loadZoneDetails()
+
+    return () => {
+      isActive = false
+      controller.abort()
+    }
+  }, [period, selectedZoneId])
+
+  const selectedZone = useMemo(
+    () => mapPayload.items.find((zone) => zone.adminAreaId === selectedZoneId) || null,
+    [mapPayload.items, selectedZoneId],
+  )
+
+  const rankingRows = useMemo(
+    () => [...mapPayload.items].sort((left, right) => {
+      if (right.riskScore !== left.riskScore) {
+        return right.riskScore - left.riskScore
+      }
+
+      if (right.recentReportCount !== left.recentReportCount) {
+        return right.recentReportCount - left.recentReportCount
+      }
+
+      return left.name.localeCompare(right.name)
+    }),
+    [mapPayload.items],
+  )
+
+  const zoneTableRows = useMemo(
+    () => [...mapPayload.items].sort((left, right) => {
+      if (right.metricScore !== left.metricScore) {
+        return right.metricScore - left.metricScore
+      }
+
+      return left.name.localeCompare(right.name)
+    }),
+    [mapPayload.items],
+  )
+
+  function handleTabChange(nextTab) {
+    setSearchParams({ tab: nextTab })
+  }
+
+  async function handleRebuildSummary() {
+    setRebuilding(true)
+    setError(null)
+
+    try {
+      await rebuildAdminZoneSummary(period)
+      setReloadToken((value) => value + 1)
+    } catch (requestError) {
+      setError(requestError)
+    } finally {
+      setRebuilding(false)
+    }
+  }
+
+  function handleExportGeoJson() {
+    if (!mapPayload.featureCollection?.features?.length) {
+      return
+    }
+
+    const blob = new Blob(
+      [JSON.stringify(mapPayload.featureCollection, null, 2)],
+      { type: 'application/geo+json' },
+    )
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `siara-zone-risk-${period}-${metric}.geojson`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function handleZoneFeature(feature, layer) {
+    const zone = feature?.properties
+    if (!zone) {
+      return
+    }
+
+    layer.bindTooltip(
+      `
+        <div class="admin-zone-tooltip-content">
+          <strong>${zone.name}</strong>
+          <span>Risk ${Number(zone.riskScore || 0).toFixed(1)} | ${String(zone.riskLevel || 'low').toUpperCase()}</span>
+        </div>
+      `,
+      {
+        direction: 'top',
+        sticky: true,
+        className: 'admin-zone-tooltip',
+      },
+    )
+
+    layer.on({
+      mouseover() {
+        setHoveredZoneId(zone.adminAreaId)
+      },
+      mouseout() {
+        setHoveredZoneId((current) => (current === zone.adminAreaId ? null : current))
+      },
+      click() {
+        setSelectedZoneId(zone.adminAreaId)
+      },
     })
-    return Object.values(map).sort((a, b) => b.totalIncidents - a.totalIncidents)
-  }, [])
+  }
 
-  /* ═══ RENDER ═══ */
+  function getFeatureStyle(feature) {
+    const zone = feature?.properties
+    const isSelected = zone?.adminAreaId === selectedZoneId
+    const isHovered = zone?.adminAreaId === hoveredZoneId
+    const fillColor = getZoneColor(zone, metric)
+
+    return {
+      color: isSelected ? '#0F172A' : '#FFFFFF',
+      weight: isSelected ? 2.4 : isHovered ? 2 : 1.2,
+      fillColor,
+      fillOpacity: isSelected ? 0.78 : isHovered ? 0.68 : 0.58,
+      opacity: 0.9,
+    }
+  }
+
   return (
     <>
-      {/* ═══ PAGE HEADER — zone/wilaya counts, export & add actions ═══ */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Risk Zones & Geo Management</h1>
-          <p className="admin-page-subtitle">{allZones.length} monitored zones across {wilayaRanking.length} wilayas</p>
+          <p className="admin-page-subtitle">
+            {mapPayload.stats.zoneCount} monitored wilaya zones
+            {mapPayload.generatedAt ? ` | refreshed ${new Date(mapPayload.generatedAt).toLocaleString()}` : ''}
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button className="admin-btn admin-btn-ghost">Export Zones</button>
-          <button className="admin-btn admin-btn-primary">+ Add Zone</button>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <select
+            className="admin-select"
+            value={period}
+            onChange={(event) => setPeriod(normalizeZonePeriod(event.target.value))}
+          >
+            {PERIOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          <select
+            className="admin-select"
+            value={metric}
+            onChange={(event) => setMetric(normalizeZoneMetric(event.target.value))}
+          >
+            {METRIC_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          <button className="admin-btn admin-btn-ghost" onClick={handleExportGeoJson}>
+            Export Zones
+          </button>
+          <button
+            className="admin-btn admin-btn-primary"
+            onClick={() => { void handleRebuildSummary() }}
+            disabled={rebuilding}
+          >
+            {rebuilding ? 'Rebuilding...' : 'Rebuild Summary'}
+          </button>
         </div>
       </div>
 
-      {/* ═══ TAB BAR — Map | Table | Ranking | Thresholds ═══ */}
       <div className="admin-tabs" style={{ marginBottom: 14 }}>
-        {tabs.map(t => (
-          <button key={t.key}
-            className={`admin-tab ${currentTab === t.key ? 'active' : ''}`}
-            onClick={() => setSearchParams({ tab: t.key })}
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            className={`admin-tab ${currentTab === tab.key ? 'active' : ''}`}
+            onClick={() => handleTabChange(tab.key)}
           >
-            {t.label}
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {/* ═══ TAB: ZONE MAP — Google Maps with risk-colored markers ═══ */}
-      {currentTab === 'map' && (
-        <div className="admin-card" style={{ height: 500, padding: 0, overflow: 'hidden' }}>
-          {isLoaded ? (
-            <GoogleMap mapContainerStyle={mapContainerStyle} center={mapCenter} zoom={6} options={mapOptions}>
-              {/* Render a circle marker per zone; size ∝ incident count */}
-              {allZones.map(zone => (
-                <Marker
-                  key={zone.id}
-                  position={{ lat: zone.lat, lng: zone.lng }}
-                  icon={{
-                    path: window.google?.maps?.SymbolPath?.CIRCLE,
-                    scale: 8 + zone.incidents * 0.5,  // larger circle = more incidents
-                    fillColor: riskColors[zone.risk],
-                    fillOpacity: 0.85,
-                    strokeColor: '#ffffff',
-                    strokeWeight: 2,
-                  }}
-                  onClick={() => setSelectedZone(zone)}
-                />
-              ))}
-              {/* InfoWindow tooltip for the clicked zone */}
-              {selectedZone && (
-                <InfoWindow
-                  position={{ lat: selectedZone.lat, lng: selectedZone.lng }}
-                  onCloseClick={() => setSelectedZone(null)}
-                >
-                  <div style={{ padding: '4px 2px', minWidth: 180, color: '#111' }}>
-                    <h4 style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 700 }}>{selectedZone.name}</h4>
-                    <div style={{ fontSize: 11, lineHeight: 1.8 }}>
-                      <div>Wilaya: <strong>{selectedZone.wilaya}</strong></div>
-                      <div>Risk Level: <strong style={{ color: riskColors[selectedZone.risk] }}>{selectedZone.risk.toUpperCase()}</strong></div>
-                      <div>Incidents (30d): <strong>{selectedZone.incidents}</strong></div>
-                      <div>Population: <strong>{selectedZone.population.toLocaleString()}</strong></div>
-                      <div>Trend: <strong>{selectedZone.trend}</strong></div>
-                      {selectedZone.aiOverride && <div style={{ color: '#F59E0B', fontWeight: 600, marginTop: 4 }}>⚠ AI Override Active</div>}
-                    </div>
-                  </div>
-                </InfoWindow>
-              )}
-            </GoogleMap>
-          ) : (
-            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--admin-text-muted)' }}>
-              Loading map…
+      {error && (
+        <div
+          className="admin-card"
+          style={{
+            marginBottom: 14,
+            borderColor: 'rgba(239, 68, 68, 0.35)',
+            background: 'rgba(239, 68, 68, 0.05)',
+          }}
+        >
+          <div className="admin-card-header">
+            <div>
+              <h2 className="admin-card-title">Zone intelligence unavailable</h2>
+              <p className="admin-card-subtitle">{error.message || 'Please try again.'}</p>
             </div>
-          )}
+            <button
+              className="admin-btn admin-btn-primary"
+              onClick={() => setReloadToken((value) => value + 1)}
+            >
+              Retry
+            </button>
+          </div>
         </div>
       )}
 
-      {/* ═══ TAB: ZONE MANAGEMENT TABLE — CRUD with AI override toggle ═══ */}
+      {currentTab === 'map' && (
+        <div className="admin-card">
+          <div className="admin-card-header" style={{ marginBottom: 10 }}>
+            <div>
+              <h3 className="admin-card-title">Zone Intelligence Map</h3>
+              <p className="admin-card-subtitle">
+                Polygon-first wilaya risk view colored by {getMetricTitle(metric).toLowerCase()}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div className="admin-mini-stat">
+                <span className="admin-mini-stat-label">Critical</span>
+                <span className="admin-mini-stat-value">{mapPayload.stats.critical}</span>
+              </div>
+              <div className="admin-mini-stat">
+                <span className="admin-mini-stat-label">High</span>
+                <span className="admin-mini-stat-value">{mapPayload.stats.high}</span>
+              </div>
+              <div className="admin-mini-stat">
+                <span className="admin-mini-stat-label">Selected Metric</span>
+                <span className="admin-mini-stat-value">{getMetricTitle(metric)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="admin-zone-map-layout">
+            <div className="admin-zone-map-canvas">
+              {mapPayload.featureCollection.features.length > 0 ? (
+                <>
+                  <MapContainer
+                    center={BASE_CENTER}
+                    zoom={6}
+                    zoomControl={false}
+                    className="admin-zone-leaflet"
+                  >
+                    <ZoomControl position="bottomright" />
+                    <TileLayer
+                      attribution='&copy; OpenStreetMap contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <ZoneBoundsController featureCollection={mapPayload.featureCollection} />
+                    <GeoJSON
+                      key={`${metric}-${selectedZoneId || 'none'}-${hoveredZoneId || 'none'}-${mapPayload.generatedAt || 'empty'}`}
+                      data={mapPayload.featureCollection}
+                      style={getFeatureStyle}
+                      onEachFeature={handleZoneFeature}
+                    />
+                    <Pane name="zone-badges" style={{ zIndex: 550 }}>
+                      {mapPayload.items
+                        .filter((zone) => zone.centroid)
+                        .map((zone) => (
+                          <Marker
+                            key={`badge-${zone.adminAreaId}`}
+                            position={[zone.centroid.lat, zone.centroid.lng]}
+                            icon={createZoneBadgeIcon(zone)}
+                            interactive={false}
+                            pane="zone-badges"
+                          />
+                        ))}
+                    </Pane>
+                  </MapContainer>
+                  <div className="admin-zone-legend">
+                    <div className="admin-zone-legend-title">{getMetricTitle(metric)}</div>
+                    {[
+                      { label: 'Critical', tone: 'critical' },
+                      { label: 'High', tone: 'high' },
+                      { label: 'Medium', tone: 'medium' },
+                      { label: 'Low', tone: 'low' },
+                    ].map((entry) => (
+                      <div key={entry.tone} className="admin-zone-legend-row">
+                        <span
+                          className="admin-zone-legend-swatch"
+                          style={{ background: RISK_COLORS[entry.tone] }}
+                        ></span>
+                        <span>{entry.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="admin-map-placeholder" style={{ height: '100%' }}>
+                  No polygon summary is available yet for this period.
+                </div>
+              )}
+
+              {loading && (
+                <div className="admin-zone-map-loading">
+                  Loading wilaya polygons and risk summaries...
+                </div>
+              )}
+            </div>
+
+            <div className="admin-zone-detail-panel">
+              {selectedZone ? (
+                <>
+                  <div className="admin-zone-detail-header">
+                    <div>
+                      <h3 className="admin-card-title" style={{ fontSize: 15 }}>{selectedZone.name}</h3>
+                      <p className="admin-card-subtitle">
+                        Final score {formatScore(selectedZone.riskScore)}
+                        {' | '}
+                        <span className={`admin-pill ${selectedZone.riskLevel}`}>{selectedZone.riskLevel}</span>
+                      </p>
+                    </div>
+                    <span className="admin-pill info">{getMetricTitle(metric)}</span>
+                  </div>
+
+                  <div className="admin-zone-detail-grid">
+                    <div className="admin-mini-stat">
+                      <span className="admin-mini-stat-label">Model Weighted</span>
+                      <span className="admin-mini-stat-value">{formatScore(selectedZone.modelWeightedScore)}</span>
+                    </div>
+                    <div className="admin-mini-stat">
+                      <span className="admin-mini-stat-label">Recent Reports</span>
+                      <span className="admin-mini-stat-value">{formatCount(selectedZone.recentReportCount)}</span>
+                    </div>
+                    <div className="admin-mini-stat">
+                      <span className="admin-mini-stat-label">Active Alerts</span>
+                      <span className="admin-mini-stat-value">{formatCount(selectedZone.activeAlertCount)}</span>
+                    </div>
+                    <div className="admin-mini-stat">
+                      <span className="admin-mini-stat-label">Confidence Avg</span>
+                      <span className="admin-mini-stat-value">{formatScore(selectedZone.confidenceAvg, 1, '%')}</span>
+                    </div>
+                  </div>
+
+                  <div className="admin-zone-detail-section">
+                    <div className="admin-zone-detail-row">
+                      <span>Trend vs previous</span>
+                      <strong style={{ color: getTrendTone(selectedZone.trendVsPrevious) }}>
+                        {formatTrend(selectedZone.trendVsPrevious)}
+                      </strong>
+                    </div>
+                    <div className="admin-zone-detail-row">
+                      <span>Top road</span>
+                      <strong>{selectedZone.topRoadName || EMPTY_TEXT}</strong>
+                    </div>
+                    <div className="admin-zone-detail-row">
+                      <span>Top road risk</span>
+                      <strong>{formatScore(selectedZone.topRoadRiskScore)}</strong>
+                    </div>
+                  </div>
+
+                  <div className="admin-zone-detail-section">
+                    <h4 className="admin-zone-detail-title">Zone breakdown</h4>
+                    <div className="admin-zone-detail-row">
+                      <span>Composite score</span>
+                      <strong>{formatScore(selectedZone.riskScore)}</strong>
+                    </div>
+                    <div className="admin-zone-detail-row">
+                      <span>Report score</span>
+                      <strong>{formatScore(selectedZone.reportScore)}</strong>
+                    </div>
+                    <div className="admin-zone-detail-row">
+                      <span>Alert score</span>
+                      <strong>{formatScore(selectedZone.alertScore)}</strong>
+                    </div>
+                    <div className="admin-zone-detail-row">
+                      <span>Verified / Pending / Flagged</span>
+                      <strong>
+                        {selectedZone.verifiedReportCount} / {selectedZone.pendingReportCount} / {selectedZone.flaggedReportCount}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="admin-zone-detail-section">
+                    <h4 className="admin-zone-detail-title">Selected zone details</h4>
+                    {detailsLoading ? (
+                      <p className="admin-card-subtitle">Loading zone details...</p>
+                    ) : selectedDetails ? (
+                      <>
+                        <div className="admin-zone-detail-row">
+                          <span>Top roads</span>
+                          <strong>{selectedDetails.topRoads.length}</strong>
+                        </div>
+                        <div className="admin-zone-detail-row">
+                          <span>Recent reports</span>
+                          <strong>{selectedDetails.recentReportsSummary.total}</strong>
+                        </div>
+                        <div className="admin-zone-detail-row">
+                          <span>Scheduled alerts</span>
+                          <strong>{selectedDetails.operationalAlertsSummary.scheduled}</strong>
+                        </div>
+                        <div style={{ marginTop: 10 }}>
+                          {selectedDetails.topRoads.slice(0, 3).map((road) => (
+                            <div key={road.roadSegmentId} className="admin-zone-list-row">
+                              <span>{road.roadName}</span>
+                              <strong>{formatScore(road.riskScore)}</strong>
+                            </div>
+                          ))}
+                          {selectedDetails.topRoads.length === 0 ? (
+                            <div className="admin-zone-list-row">
+                              <span>No model-covered roads in this period</span>
+                              <strong>{EMPTY_TEXT}</strong>
+                            </div>
+                          ) : null}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="admin-card-subtitle">Click a zone to inspect its road and alert signals.</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="admin-map-placeholder" style={{ height: '100%' }}>
+                  Select a wilaya polygon to inspect its risk signals.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {currentTab === 'table' && (
         <div className="admin-card">
+          <div className="admin-card-header">
+            <div>
+              <h3 className="admin-card-title">Zone Management</h3>
+              <p className="admin-card-subtitle">Real wilaya summaries from the current polygon cache</p>
+            </div>
+          </div>
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Zone Name</th>
-                  <th>Wilaya</th>
-                  <th>Risk Level</th>
-                  <th>Incidents (30d)</th>
-                  <th>Threshold</th>
-                  <th>AI Override</th>
+                  <th>Zone</th>
+                  <th>Risk</th>
+                  <th>Score</th>
+                  <th>Model</th>
+                  <th>Reports</th>
+                  <th>Alerts</th>
+                  <th>Top Road</th>
                   <th>Trend</th>
-                  <th>Actions</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {allZones.map(zone => (
-                  <tr key={zone.id}>
-                    <td style={{ fontWeight: 600, fontSize: 11 }}>{zone.id}</td>
-                    <td style={{ fontWeight: 500, fontSize: 11.5 }}>{zone.name}</td>
-                    <td style={{ fontSize: 11 }}>{zone.wilaya}</td>
-                    <td><span className={`admin-pill ${zone.risk}`}>{zone.risk}</span></td>
-                    <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{zone.incidents}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{zone.threshold}</td>
+                {zoneTableRows.map((zone) => (
+                  <tr key={zone.adminAreaId}>
+                    <td style={{ fontWeight: 600 }}>{zone.name}</td>
+                    <td><span className={`admin-pill ${zone.riskLevel}`}>{zone.riskLevel}</span></td>
+                    <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{formatScore(zone.riskScore)}</td>
+                    <td>{formatScore(zone.modelWeightedScore)}</td>
+                    <td>{formatCount(zone.recentReportCount)}</td>
+                    <td>{formatCount(zone.activeAlertCount)}</td>
+                    <td>{zone.topRoadName || EMPTY_TEXT}</td>
+                    <td style={{ color: getTrendTone(zone.trendVsPrevious) }}>{formatTrend(zone.trendVsPrevious)}</td>
                     <td>
-                      <div className={`admin-toggle small ${zone.aiOverride ? 'active' : ''}`}>
-                        <div className="admin-toggle-thumb"></div>
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: 11, color: zone.trend === 'rising' ? 'var(--admin-danger)' : zone.trend === 'declining' ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
-                        {zone.trend === 'rising' ? '↑' : zone.trend === 'declining' ? '↓' : '—'} {zone.trend}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => setEditZone(zone)}>Edit</button>
-                        <button className="admin-btn admin-btn-sm admin-btn-danger">Delete</button>
-                      </div>
+                      <button
+                        className="admin-btn admin-btn-sm admin-btn-primary"
+                        onClick={() => {
+                          setSelectedZoneId(zone.adminAreaId)
+                          handleTabChange('map')
+                        }}
+                      >
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -221,45 +721,35 @@ export default function AdminZonesPage() {
         </div>
       )}
 
-      {/* ═══ TAB: WILAYA RANKING — aggregated by province ═══ */}
       {currentTab === 'ranking' && (
         <div className="admin-card">
           <h3 className="admin-card-title">Wilaya Risk Ranking</h3>
-          <p className="admin-card-subtitle">Ranked by total incident count (last 30 days)</p>
+          <p className="admin-card-subtitle">Sorted by composite risk score with current report and alert pressure</p>
           <div className="admin-table-wrapper" style={{ marginTop: 12 }}>
             <table className="admin-table">
               <thead>
                 <tr>
                   <th>Rank</th>
                   <th>Wilaya</th>
-                  <th>Zones</th>
-                  <th>Total Incidents</th>
-                  <th>High Risk Zones</th>
-                  <th>Population</th>
-                  <th>Incidents / 100k</th>
+                  <th>Risk Level</th>
+                  <th>Final Score</th>
+                  <th>Model Score</th>
+                  <th>Reports</th>
+                  <th>Active Alerts</th>
+                  <th>Trend</th>
                 </tr>
               </thead>
               <tbody>
-                {wilayaRanking.map((w, i) => (
-                  <tr key={w.wilaya}>
-                    <td style={{ fontWeight: 700, fontSize: 13, color: i === 0 ? 'var(--admin-danger)' : i === 1 ? 'var(--admin-warning)' : 'var(--admin-text)' }}>
-                      #{i + 1}
-                    </td>
-                    <td style={{ fontWeight: 600, fontSize: 12 }}>{w.wilaya}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{w.zones}</td>
-                    <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{w.totalIncidents}</td>
-                    <td>
-                      {w.highRisk > 0 ? (
-                        <span style={{ fontWeight: 600, color: 'var(--admin-danger)' }}>{w.highRisk}</span>
-                      ) : (
-                        <span style={{ color: 'var(--admin-text-muted)' }}>0</span>
-                      )}
-                    </td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>{w.population.toLocaleString()}</td>
-                    {/* Incident rate normalized per 100,000 population */}
-                    <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                      {((w.totalIncidents / w.population) * 100000).toFixed(1)}
-                    </td>
+                {rankingRows.map((zone, index) => (
+                  <tr key={zone.adminAreaId}>
+                    <td style={{ fontWeight: 700 }}>#{index + 1}</td>
+                    <td style={{ fontWeight: 600 }}>{zone.name}</td>
+                    <td><span className={`admin-pill ${zone.riskLevel}`}>{zone.riskLevel}</span></td>
+                    <td style={{ fontWeight: 600 }}>{formatScore(zone.riskScore)}</td>
+                    <td>{formatScore(zone.modelWeightedScore)}</td>
+                    <td>{formatCount(zone.recentReportCount)}</td>
+                    <td>{formatCount(zone.activeAlertCount)}</td>
+                    <td style={{ color: getTrendTone(zone.trendVsPrevious) }}>{formatTrend(zone.trendVsPrevious)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -268,67 +758,39 @@ export default function AdminZonesPage() {
         </div>
       )}
 
-      {/* ═══ TAB: THRESHOLD CONFIG — per-zone escalation settings ═══ */}
       {currentTab === 'thresholds' && (
         <div className="admin-card">
-          <h3 className="admin-card-title">Alert Threshold Configuration</h3>
-          <p className="admin-card-subtitle">Set incident count thresholds that trigger automatic risk escalation per zone</p>
-          <div style={{ marginTop: 14 }}>
-            {allZones.map(zone => (
-              <div key={zone.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--admin-border)' }}>
-                <div style={{ width: 200 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500 }}>{zone.name}</div>
-                  <div style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>{zone.wilaya}</div>
-                </div>
-                <span className={`admin-pill ${zone.risk}`} style={{ width: 60, textAlign: 'center' }}>{zone.risk}</span>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 10, color: 'var(--admin-text-muted)', width: 60 }}>Threshold:</span>
-                  <input className="admin-input" type="number" defaultValue={zone.threshold} min={1} max={100} style={{ width: 60, height: 28, textAlign: 'center', fontSize: 12 }} />
-                  <span style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>incidents / 30 days</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 10, color: zone.aiOverride ? 'var(--admin-warning)' : 'var(--admin-text-muted)' }}>AI Override</span>
-                  <div className={`admin-toggle small ${zone.aiOverride ? 'active' : ''}`}>
-                    <div className="admin-toggle-thumb"></div>
-                  </div>
-                </div>
-                <button className="admin-btn admin-btn-sm admin-btn-primary">Save</button>
+          <h3 className="admin-card-title">Threshold Config</h3>
+          <p className="admin-card-subtitle">Current V1 score bands and composite weighting used to color the zone map</p>
+          <div className="admin-zone-threshold-grid">
+            {[
+              { label: 'Low', value: '0 - 24.9', tone: 'low' },
+              { label: 'Medium', value: '25 - 49.9', tone: 'medium' },
+              { label: 'High', value: '50 - 74.9', tone: 'high' },
+              { label: 'Critical', value: '75 - 100', tone: 'critical' },
+            ].map((band) => (
+              <div key={band.label} className="admin-mini-stat">
+                <span className="admin-mini-stat-label">{band.label} band</span>
+                <span className="admin-mini-stat-value" style={{ color: RISK_COLORS[band.tone] }}>{band.value}</span>
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* ═══ EDIT ZONE MODAL — overlay form for risk/threshold/coords ═══ */}
-      {editZone && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="admin-card" style={{ width: 440, padding: 24 }}>
-            <h3 className="admin-card-title" style={{ fontSize: 15 }}>Edit Zone: {editZone.name}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
-              <div>
-                <label className="admin-form-label">Risk Level</label>
-                <select className="admin-select" defaultValue={editZone.risk}>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-              <div>
-                <label className="admin-form-label">Threshold</label>
-                <input className="admin-input" type="number" defaultValue={editZone.threshold} />
-              </div>
-              <div>
-                <label className="admin-form-label">Latitude</label>
-                <input className="admin-input" type="number" step="0.0001" defaultValue={editZone.lat} />
-              </div>
-              <div>
-                <label className="admin-form-label">Longitude</label>
-                <input className="admin-input" type="number" step="0.0001" defaultValue={editZone.lng} />
-              </div>
+          <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Model score</span>
+              <span className="admin-mini-stat-value">50%</span>
             </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button className="admin-btn admin-btn-ghost" onClick={() => setEditZone(null)}>Cancel</button>
-              <button className="admin-btn admin-btn-primary" onClick={() => { alert('Zone updated'); setEditZone(null) }}>Save Changes</button>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Report score</span>
+              <span className="admin-mini-stat-value">25%</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Alert score</span>
+              <span className="admin-mini-stat-value">20%</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Incident history</span>
+              <span className="admin-mini-stat-value">5%</span>
             </div>
           </div>
         </div>
@@ -336,3 +798,4 @@ export default function AdminZonesPage() {
     </>
   )
 }
+

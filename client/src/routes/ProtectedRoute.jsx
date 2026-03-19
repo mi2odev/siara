@@ -1,7 +1,8 @@
 import React, { useContext } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 
 import { AuthContext } from '../contexts/AuthContext'
+import { buildVerifyEmailRedirect, getAuthenticatedRedirect } from './routeAccess'
 
 export default function ProtectedRoute({ children, roles, allowUnverified = false }) {
   const {
@@ -26,18 +27,12 @@ export default function ProtectedRoute({ children, roles, allowUnverified = fals
   }
 
   if (!allowUnverified && !isEmailVerified) {
-    const params = new URLSearchParams()
-    if (user.email) {
-      params.set('email', user.email)
-    }
-
-    const search = params.toString()
-    return <Navigate to={`/verify-email${search ? `?${search}` : ''}`} replace />
+    return <Navigate to={buildVerifyEmailRedirect(user)} replace />
   }
 
   if (roles && !roles.some((role) => userRoles.includes(role))) {
-    return <Navigate to={userRoles.includes('admin') ? '/admin/overview' : '/dashboard'} replace />
+    return <Navigate to={getAuthenticatedRedirect(user, isEmailVerified)} replace />
   }
 
-  return children
+  return children ?? <Outlet />
 }

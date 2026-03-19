@@ -149,6 +149,7 @@ export default function ReportIncidentPage() {
       ...prev,
       locationType: 'map',
       locationCoords: { lat: latlng.lat, lng: latlng.lng },
+      // TODO: replace this fallback with reverse geocoding when a shared address lookup is available.
       locationAddress: 'Position selected on map',
       locationAccuracy: 'Map selection'
     }))

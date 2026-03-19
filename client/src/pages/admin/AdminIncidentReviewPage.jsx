@@ -1,295 +1,608 @@
 /**
  * @file AdminIncidentReviewPage.jsx
- * @description Admin page for reviewing a single incident report in a 3-column
- *   split layout.
- *
- *   Layout:
- *     LEFT   — Incident details, evidence photos, reporter profile, AI
- *              classification, and event timeline.
- *     CENTER — Map placeholder showing incident location & nearby report cluster.
- *     RIGHT  — Decision engine (approve / change severity / merge / request info /
- *              flag / reject) and an internal notes thread.
- *
- *   Data:
- *     Uses mock incident objects keyed by ID; falls back to a default stub when
- *     the requested ID is not found.
- *
- *   Key features:
- *     • Decision engine with 6 action types and a confirmation step
- *     • Internal notes system with real-time append
- *     • AI classification display with confidence bar and contributing factors
- *     • Nearby-report cluster detection with visual warning
+ * @description Admin page for reviewing a single incident report in a 3-column split layout.
  */
-import React, { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 
-/* ── Mock incident data (keyed by incident ID) ── */
-const mockIncidents = {
-  'INC-2401': {
-    id: 'INC-2401', location: 'Blvd Zirout Youcef, Algiers', lat: 36.7538, lng: 3.0588,
-    severity: 'high', confidence: 94, status: 'pending', type: 'Collision',
-    description: 'Multi-vehicle collision involving 3 cars on the main boulevard. Traffic is blocked in both directions. Emergency services have been notified.',
-    reporter: { name: 'ahmed_b', reliability: 92, totalReports: 48, accuracy: 94, joined: '2023-06-12' },
-    aiClassification: { type: 'Vehicle Collision', severity: 'High', confidence: 94, model: 'SiaraNet v2.3', factors: ['Multiple vehicles detected', 'Road blockage confirmed', 'Rush hour timing'] },
-    nearby: [
-      { id: 'INC-2396', location: 'Place des Martyrs', distance: '0.8 km', severity: 'medium' },
-      { id: 'INC-2397', location: 'El Harrach Bridge', distance: '3.2 km', severity: 'high' },
-    ],
-    photos: ['photo_collision_01.jpg', 'photo_collision_02.jpg'],
-    timeline: [
-      { time: '08:34', event: 'Reported by ahmed_b' },
-      { time: '08:34', event: 'AI classification: High severity (94%)' },
-      { time: '08:36', event: 'Entered review queue' },
-    ],
-    notes: [],
-  },
+import {
+  fetchAdminIncident,
+  submitAdminIncidentAction,
+} from '../../services/adminIncidentsService'
+
+const EMPTY_TEXT = '\u2014'
+
+function formatIncidentType(value) {
+  return String(value || 'other')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase())
 }
 
-/** Fallback stub used when the requested incident ID is not found in mock data. */
-const defaultInc = {
-  id: 'INC-0000', location: 'Unknown Location', lat: 36.75, lng: 3.06,
-  severity: 'medium', confidence: 75, status: 'pending', type: 'Unknown',
-  description: 'No additional details available for this incident.',
-  reporter: { name: 'unknown', reliability: 50, totalReports: 0, accuracy: 0, joined: 'N/A' },
-  aiClassification: { type: 'Unclassified', severity: 'Medium', confidence: 75, model: 'SiaraNet v2.3', factors: [] },
-  nearby: [], photos: [], timeline: [{ time: '--:--', event: 'Report created' }], notes: [],
+function formatDateTime(value) {
+  if (!value) {
+    return EMPTY_TEXT
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return EMPTY_TEXT
+  }
+
+  return date.toLocaleString('en', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatDateOnly(value) {
+  if (!value) {
+    return EMPTY_TEXT
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return EMPTY_TEXT
+  }
+
+  return date.toLocaleDateString('en', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+function formatDistance(distanceKm) {
+  return typeof distanceKm === 'number' ? `${distanceKm.toFixed(1)} km` : EMPTY_TEXT
+}
+
+function getConfidenceFillClass(confidence) {
+  if (typeof confidence !== 'number') {
+    return ''
+  }
+
+  if (confidence >= 85) {
+    return 'success'
+  }
+
+  if (confidence >= 65) {
+    return 'warning'
+  }
+
+  return 'danger'
+}
+
+function getConfidenceLabel(incident) {
+  if (typeof incident?.aiAssessment?.confidence === 'number' && incident.aiAssessment.status === 'completed') {
+    return `${incident.aiAssessment.confidence}%`
+  }
+
+  if (incident?.aiAssessment?.status === 'pending') {
+    return 'Pending AI'
+  }
+
+  if (incident?.aiAssessment?.status === 'failed') {
+    return 'AI failed'
+  }
+
+  return EMPTY_TEXT
+}
+
+function getAssessmentStatusLabel(status) {
+  if (status === 'completed') return 'Completed'
+  if (status === 'pending') return 'Pending'
+  if (status === 'failed') return 'Failed'
+  return 'Not available'
+}
+
+function getDecisionAction(decision) {
+  switch (decision) {
+    case 'approve':
+      return 'verify'
+    case 'change':
+      return 'change_severity'
+    case 'merge':
+      return 'merge'
+    case 'info':
+      return 'request_info'
+    case 'flag':
+      return 'flag'
+    case 'reject':
+      return 'reject'
+    case 'archive':
+      return 'archive'
+    default:
+      return null
+  }
 }
 
 export default function AdminIncidentReviewPage() {
-  const { id } = useParams()      // Incident ID from URL (e.g. /admin/incidents/:id)
+  const { id } = useParams()
   const navigate = useNavigate()
-  // Resolve the incident from mock store; fall back to defaultInc stub
-  const inc = mockIncidents[id] || { ...defaultInc, id: id || 'INC-0000' }
+  const [incident, setIncident] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [decision, setDecision] = useState('')
+  const [newSeverity, setNewSeverity] = useState('medium')
+  const [actionNote, setActionNote] = useState('')
+  const [internalNote, setInternalNote] = useState('')
+  const [mergeTargetReportId, setMergeTargetReportId] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [noteSubmitting, setNoteSubmitting] = useState(false)
 
-  /* ── State ── */
-  const [decision, setDecision] = useState('')           // Currently selected action (approve|change|merge|info|flag|reject)
-  const [newSeverity, setNewSeverity] = useState(inc.severity)  // Severity override for "Change Severity" action
-  const [internalNote, setInternalNote] = useState('')   // Text input for a new internal note
-  const [notes, setNotes] = useState(inc.notes)          // Accumulated internal notes array
+  useEffect(() => {
+    const controller = new AbortController()
 
-  /** Set the active decision; in production this would also POST to the API. */
-  const handleDecision = (d) => {
-    setDecision(d)
+    async function loadIncident() {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const payload = await fetchAdminIncident(id, {
+          signal: controller.signal,
+        })
+
+        if (!controller.signal.aborted) {
+          setIncident(payload)
+          setNewSeverity(payload.severity)
+          setMergeTargetReportId(payload.nearbyReports[0]?.reportId || '')
+        }
+      } catch (requestError) {
+        if (!controller.signal.aborted) {
+          setError(requestError)
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadIncident()
+
+    return () => controller.abort()
+  }, [id])
+
+  const openFlags = useMemo(
+    () => (incident?.flags || []).filter((flag) => flag.open),
+    [incident],
+  )
+
+  async function handleDecisionSubmit() {
+    const action = getDecisionAction(decision)
+    if (!incident || !action || isSubmitting) {
+      return
+    }
+
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      await submitAdminIncidentAction(incident.reportId, {
+        action,
+        note: actionNote,
+        severity: decision === 'change' ? newSeverity : null,
+        mergeTargetReportId: decision === 'merge' ? mergeTargetReportId : null,
+      })
+
+      navigate('/admin/incidents')
+    } catch (requestError) {
+      setError(requestError)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  /** Append a timestamped internal note from the current admin user. */
-  const addNote = () => {
-    if (!internalNote.trim()) return
-    setNotes([...notes, { author: 'Super Admin', time: new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' }), text: internalNote }])
-    setInternalNote('')
+  async function addNote() {
+    if (!incident || !internalNote.trim() || noteSubmitting) {
+      return
+    }
+
+    setNoteSubmitting(true)
+    setError(null)
+
+    try {
+      const updatedIncident = await submitAdminIncidentAction(incident.reportId, {
+        action: 'note',
+        note: internalNote,
+      })
+
+      setIncident(updatedIncident)
+      setInternalNote('')
+    } catch (requestError) {
+      setError(requestError)
+    } finally {
+      setNoteSubmitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="admin-card">
+        <h2 className="admin-card-title">Loading incident...</h2>
+        <p className="admin-card-subtitle" style={{ marginTop: 6 }}>
+          Fetching the latest incident details and moderation history.
+        </p>
+      </div>
+    )
+  }
+
+  if (error && !incident) {
+    return (
+      <div className="admin-card">
+        <h2 className="admin-card-title">Incident unavailable</h2>
+        <p className="admin-card-subtitle" style={{ marginTop: 6 }}>
+          {error.message || 'Unable to load this incident report.'}
+        </p>
+        <div style={{ marginTop: 12 }}>
+          <button className="admin-btn admin-btn-primary" onClick={() => navigate('/admin/incidents')}>
+            Back to Queue
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!incident) {
+    return null
   }
 
   return (
     <div className="admin-review-split">
-      {/* ═══ LEFT PANEL — Incident Details, Photos, Reporter, AI, Timeline ═══ */}
       <div className="admin-review-left">
         <button className="admin-btn admin-btn-ghost" onClick={() => navigate('/admin/incidents')} style={{ marginBottom: 10, fontSize: 11 }}>
           ← Back to Queue
         </button>
 
+        {error && (
+          <div
+            className="admin-card"
+            style={{
+              borderColor: 'rgba(239, 68, 68, 0.35)',
+              background: 'rgba(239, 68, 68, 0.05)',
+            }}
+          >
+            <h3 className="admin-card-title">Action failed</h3>
+            <p className="admin-card-subtitle" style={{ marginTop: 6 }}>
+              {error.message || 'Please try again.'}
+            </p>
+          </div>
+        )}
+
         <div className="admin-card">
           <div className="admin-card-header">
             <div>
-              <h2 className="admin-card-title" style={{ fontSize: 15 }}>{inc.id}</h2>
-              <p className="admin-card-subtitle">{inc.type} · {inc.location}</p>
+              <h2 className="admin-card-title" style={{ fontSize: 15 }}>{incident.displayId}</h2>
+              <p className="admin-card-subtitle">{formatIncidentType(incident.incidentType)} · {incident.location}</p>
             </div>
-            <span className={`admin-pill ${inc.severity}`}>{inc.severity}</span>
+            <span className={`admin-pill ${incident.severity}`}>{incident.severity}</span>
           </div>
-          <p style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--admin-text-secondary)', marginTop: 8 }}>{inc.description}</p>
+          <p style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--admin-text-secondary)', marginTop: 8 }}>
+            {incident.description || 'No additional description was provided for this report.'}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Status</span>
+              <span className="admin-mini-stat-value">{incident.status}</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Reported</span>
+              <span className="admin-mini-stat-value">{formatDateTime(incident.createdAt)}</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Severity Source</span>
+              <span className="admin-mini-stat-value">{incident.severitySource === 'ai' ? 'AI assessment' : 'Report hint'}</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Open Flags</span>
+              <span className="admin-mini-stat-value">{incident.openFlagCount}</span>
+            </div>
+          </div>
+          {incident.mergedIntoReportId ? (
+            <div className="admin-internal-note">
+              <div className="admin-internal-note-label">Merge</div>
+              <div style={{ fontSize: 11, color: 'var(--admin-text-secondary)' }}>
+                Merged into {incident.mergedIntoReportId} on {formatDateTime(incident.mergedAt)}
+              </div>
+              {incident.mergeReason ? (
+                <div style={{ marginTop: 4, fontSize: 11, color: 'var(--admin-text-secondary)' }}>
+                  Reason: {incident.mergeReason}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
-        {/* Photos */}
-        {inc.photos.length > 0 && (
+        {incident.media.length > 0 && (
           <div className="admin-card">
-            <h3 className="admin-card-title">Evidence ({inc.photos.length})</h3>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              {inc.photos.map((p, i) => (
-                <div key={i} style={{ width: 100, height: 70, background: 'var(--admin-surface-alt)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--admin-text-muted)' }}>
-                  📷 {i + 1}
-                </div>
+            <h3 className="admin-card-title">Evidence ({incident.media.length})</h3>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              {incident.media.map((mediaItem, index) => (
+                <a
+                  key={mediaItem.id}
+                  href={mediaItem.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: 'block', width: 100, height: 70, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--admin-border)' }}
+                >
+                  <img
+                    src={mediaItem.url}
+                    alt={`Evidence ${index + 1}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </a>
               ))}
             </div>
           </div>
         )}
 
-        {/* Reporter Details */}
         <div className="admin-card">
           <h3 className="admin-card-title">Reporter Profile</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Username</span>
-              <span className="admin-mini-stat-value">{inc.reporter.name}</span>
+              <span className="admin-mini-stat-label">Reporter</span>
+              <span className="admin-mini-stat-value">{incident.reporter.name}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Reliability Score</span>
-              <span className="admin-mini-stat-value" style={{ color: inc.reporter.reliability >= 80 ? 'var(--admin-success)' : 'var(--admin-warning)' }}>
-                {inc.reporter.reliability}%
-              </span>
+              <span className="admin-mini-stat-label">Reporter Score</span>
+              <span className="admin-mini-stat-value">{EMPTY_TEXT}</span>
             </div>
             <div className="admin-mini-stat">
               <span className="admin-mini-stat-label">Total Reports</span>
-              <span className="admin-mini-stat-value">{inc.reporter.totalReports}</span>
+              <span className="admin-mini-stat-value">{incident.reporter.totalReports}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Past Accuracy</span>
-              <span className="admin-mini-stat-value">{inc.reporter.accuracy}%</span>
+              <span className="admin-mini-stat-label">Joined</span>
+              <span className="admin-mini-stat-value">{formatDateOnly(incident.reporter.joinedAt)}</span>
             </div>
           </div>
         </div>
 
-        {/* AI Classification */}
         <div className="admin-card">
-          <h3 className="admin-card-title">AI Classification</h3>
+          <h3 className="admin-card-title">AI Assessment</h3>
           <div style={{ marginTop: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11.5 }}>
-              <span style={{ color: 'var(--admin-text-muted)' }}>Model</span>
-              <span style={{ fontWeight: 600 }}>{inc.aiClassification.model}</span>
+              <span style={{ color: 'var(--admin-text-muted)' }}>Status</span>
+              <span style={{ fontWeight: 600 }}>{getAssessmentStatusLabel(incident.aiAssessment.status)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11.5 }}>
-              <span style={{ color: 'var(--admin-text-muted)' }}>Type</span>
-              <span style={{ fontWeight: 600 }}>{inc.aiClassification.type}</span>
+              <span style={{ color: 'var(--admin-text-muted)' }}>Severity</span>
+              <span style={{ fontWeight: 600 }}>
+                {incident.severitySource === 'ai'
+                  ? `AI ${incident.severity}`
+                  : `Report hint (${incident.severity})`}
+              </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11.5 }}>
               <span style={{ color: 'var(--admin-text-muted)' }}>Confidence</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div className="admin-progress" style={{ width: 60 }}>
-                  <div className={`admin-progress-fill ${inc.aiClassification.confidence >= 85 ? 'success' : 'warning'}`} style={{ width: `${inc.aiClassification.confidence}%` }}></div>
+              {typeof incident.aiAssessment.confidence === 'number' && incident.aiAssessment.status === 'completed' ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div className="admin-progress" style={{ width: 60 }}>
+                    <div
+                      className={`admin-progress-fill ${getConfidenceFillClass(incident.aiAssessment.confidence)}`}
+                      style={{ width: `${incident.aiAssessment.confidence}%` }}
+                    ></div>
+                  </div>
+                  <span style={{ fontWeight: 600, fontSize: 11 }}>{incident.aiAssessment.confidence}%</span>
                 </div>
-                <span style={{ fontWeight: 600, fontSize: 11 }}>{inc.aiClassification.confidence}%</span>
-              </div>
+              ) : (
+                <span style={{ fontWeight: 600 }}>{getConfidenceLabel(incident)}</span>
+              )}
             </div>
-            {inc.aiClassification.factors.length > 0 && (
-              <div style={{ marginTop: 10 }}>
-                <span style={{ fontSize: 10, color: 'var(--admin-text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Contributing Factors</span>
-                <ul style={{ margin: '6px 0 0', paddingLeft: 16, fontSize: 11, color: 'var(--admin-text-secondary)', lineHeight: 1.8 }}>
-                  {inc.aiClassification.factors.map((f, i) => <li key={i}>{f}</li>)}
-                </ul>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11.5 }}>
+              <span style={{ color: 'var(--admin-text-muted)' }}>Latest Update</span>
+              <span style={{ fontWeight: 600 }}>{formatDateTime(incident.aiAssessment.assessedAt)}</span>
+            </div>
+            {incident.aiAssessment.modelVersionId ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11.5 }}>
+                <span style={{ color: 'var(--admin-text-muted)' }}>Model Version</span>
+                <span style={{ fontWeight: 600 }}>{incident.aiAssessment.modelVersionId.slice(0, 8)}</span>
               </div>
-            )}
+            ) : null}
+            {incident.aiAssessment.status !== 'completed' ? (
+              <div style={{ marginTop: 10, padding: '8px 10px', background: 'var(--admin-surface-2)', borderRadius: 6, color: 'var(--admin-text-secondary)', fontSize: 11 }}>
+                AI verification is not fully active yet for incident reports, so severity falls back to the report hint until a completed assessment exists.
+              </div>
+            ) : null}
           </div>
         </div>
 
-        {/* Timeline */}
+        {incident.flags.length > 0 && (
+          <div className="admin-card">
+            <h3 className="admin-card-title">Community Flags</h3>
+            <div style={{ marginTop: 8 }}>
+              {openFlags.length > 0 ? openFlags.map((flag) => (
+                <div key={flag.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--admin-border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontWeight: 600, fontSize: 11.5 }}>{flag.reason}</span>
+                    <span style={{ color: 'var(--admin-text-muted)', fontSize: 10.5 }}>{formatDateTime(flag.createdAt)}</span>
+                  </div>
+                  {flag.comment ? (
+                    <p style={{ fontSize: 11, color: 'var(--admin-text-secondary)', marginTop: 4 }}>{flag.comment}</p>
+                  ) : null}
+                </div>
+              )) : (
+                <p style={{ fontSize: 11, color: 'var(--admin-text-muted)' }}>All community flags have been resolved.</p>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="admin-card">
           <h3 className="admin-card-title">Timeline</h3>
           <div className="admin-audit-log" style={{ marginTop: 8, maxHeight: 'none' }}>
-            {inc.timeline.map((t, i) => (
-              <div className="admin-audit-entry" key={i}>
-                <span className="admin-audit-time">{t.time}</span>
-                <span className="admin-audit-text">{t.event}</span>
+            {incident.timeline.map((entry) => (
+              <div className="admin-audit-entry" key={entry.id}>
+                <span className="admin-audit-time">{entry.timeLabel}</span>
+                <span className="admin-audit-text">{entry.event}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ═══ CENTER PANEL — Map Location & Nearby Reports ═══ */}
       <div className="admin-review-center">
         <div className="admin-card" style={{ flex: 1, minHeight: 300 }}>
           <h3 className="admin-card-title">Incident Location</h3>
           <div style={{ background: 'var(--admin-surface-alt)', borderRadius: 8, height: 260, marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--admin-text-muted)', fontSize: 12, position: 'relative' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 28, marginBottom: 6 }}>📍</div>
-              <div>{inc.location}</div>
-              <div style={{ fontSize: 10, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{inc.lat.toFixed(4)}°N, {inc.lng.toFixed(4)}°E</div>
+              <div>{incident.location}</div>
+              <div style={{ fontSize: 10, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
+                {incident.coordinates.lat != null && incident.coordinates.lng != null
+                  ? `${incident.coordinates.lat.toFixed(4)}°N, ${incident.coordinates.lng.toFixed(4)}°E`
+                  : EMPTY_TEXT}
+              </div>
             </div>
             <div style={{ position: 'absolute', top: 8, right: 8 }}>
-              <button className="admin-btn admin-btn-sm admin-btn-ghost">Open Full Map</button>
+              <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => navigate('/map')}>
+                Open Full Map
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Nearby Reports */}
         <div className="admin-card">
           <h3 className="admin-card-title">Nearby Reports</h3>
-          {inc.nearby.length > 0 ? (
+          {incident.nearbyReports.length > 0 ? (
             <div style={{ marginTop: 8 }}>
-              {inc.nearby.map(n => (
-                <div key={n.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--admin-border)' }}>
+              {incident.nearbyReports.map((nearby) => (
+                <div key={nearby.reportId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--admin-border)' }}>
                   <div>
-                    <div style={{ fontSize: 11.5, fontWeight: 600 }}>{n.id}</div>
-                    <div style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>{n.location} · {n.distance}</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 600 }}>{nearby.displayId}</div>
+                    <div style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>
+                      {nearby.location} · {formatDistance(nearby.distanceKm)}
+                    </div>
+                    {decision === 'merge' ? (
+                      <button
+                        className={`admin-btn admin-btn-sm ${mergeTargetReportId === nearby.reportId ? 'admin-btn-primary' : 'admin-btn-ghost'}`}
+                        style={{ marginTop: 6 }}
+                        onClick={() => setMergeTargetReportId(nearby.reportId)}
+                      >
+                        {mergeTargetReportId === nearby.reportId ? 'Selected Target' : 'Use as Merge Target'}
+                      </button>
+                    ) : null}
                   </div>
-                  <span className={`admin-pill ${n.severity}`}>{n.severity}</span>
+                  <span className={`admin-pill ${nearby.severity}`}>{nearby.severity}</span>
                 </div>
               ))}
             </div>
           ) : (
             <p style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 8 }}>No nearby reports found</p>
           )}
-          {/* Cluster warning — shown when 2+ nearby reports exist within 5 km */}
-          {inc.nearby.length >= 2 && (
+          {incident.nearbyReports.length >= 2 && (
             <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: 6, border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-              <span style={{ fontSize: 10.5, color: 'var(--admin-warning)', fontWeight: 600 }}>⚠ Cluster Detected — {inc.nearby.length + 1} incidents within 5km radius</span>
+              <span style={{ fontSize: 10.5, color: 'var(--admin-warning)', fontWeight: 600 }}>
+                ⚠ Cluster detected · {incident.nearbyReports.length + 1} incidents within 5 km
+              </span>
             </div>
           )}
         </div>
       </div>
 
-      {/* ═══ RIGHT PANEL — Decision Engine & Internal Notes ═══ */}
       <div className="admin-review-right">
         <div className="admin-card">
           <h3 className="admin-card-title">Decision Engine</h3>
-          <p style={{ fontSize: 10.5, color: 'var(--admin-text-muted)', marginTop: 4, marginBottom: 12 }}>Select an action for this incident</p>
+          <p style={{ fontSize: 10.5, color: 'var(--admin-text-muted)', marginTop: 4, marginBottom: 12 }}>
+            Select an action for this incident
+          </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button className={`admin-btn admin-btn-full ${decision === 'approve' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => handleDecision('approve')}>
+            <button className={`admin-btn admin-btn-full ${decision === 'approve' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('approve')}>
               ✓ Approve & Publish
             </button>
-            <button className={`admin-btn admin-btn-full ${decision === 'change' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => handleDecision('change')}>
+            <button className={`admin-btn admin-btn-full ${decision === 'change' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('change')}>
               ✎ Change Severity
             </button>
-            {/* Severity dropdown — only visible when "Change Severity" is the active decision */}
             {decision === 'change' && (
-              <select className="admin-select" value={newSeverity} onChange={e => setNewSeverity(e.target.value)} style={{ marginLeft: 8 }}>
+              <select className="admin-select" value={newSeverity} onChange={(event) => setNewSeverity(event.target.value)} style={{ marginLeft: 8 }}>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
-                <option value="critical">Critical</option>
               </select>
             )}
-            <button className={`admin-btn admin-btn-full ${decision === 'merge' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => handleDecision('merge')}>
+            <button className={`admin-btn admin-btn-full ${decision === 'merge' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('merge')}>
               ⊕ Merge with Cluster
             </button>
-            <button className={`admin-btn admin-btn-full ${decision === 'info' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => handleDecision('info')}>
+            {decision === 'merge' && (
+              <input
+                className="admin-input"
+                type="text"
+                placeholder="Merge target report ID"
+                value={mergeTargetReportId}
+                onChange={(event) => setMergeTargetReportId(event.target.value)}
+                style={{ marginLeft: 8 }}
+              />
+            )}
+            <button className={`admin-btn admin-btn-full ${decision === 'info' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('info')}>
               ? Request More Info
             </button>
-            <button className={`admin-btn admin-btn-full ${decision === 'flag' ? 'admin-btn-warning' : 'admin-btn-ghost'}`} onClick={() => handleDecision('flag')}>
+            <button className={`admin-btn admin-btn-full ${decision === 'flag' ? 'admin-btn-warning' : 'admin-btn-ghost'}`} onClick={() => setDecision('flag')}>
               ⚑ Flag for Review
             </button>
-            <button className={`admin-btn admin-btn-full ${decision === 'reject' ? 'admin-btn-danger' : 'admin-btn-ghost'}`} onClick={() => handleDecision('reject')}>
+            <button className={`admin-btn admin-btn-full ${decision === 'archive' ? 'admin-btn-warning' : 'admin-btn-ghost'}`} onClick={() => setDecision('archive')}>
+              ▪ Archive
+            </button>
+            <button className={`admin-btn admin-btn-full ${decision === 'reject' ? 'admin-btn-danger' : 'admin-btn-ghost'}`} onClick={() => setDecision('reject')}>
               ✕ Reject
             </button>
           </div>
 
-          {/* Show confirmation button only after a decision is selected */}
           {decision && (
             <div style={{ marginTop: 12 }}>
-              <button className="admin-btn admin-btn-primary admin-btn-full" onClick={() => { alert(`Decision "${decision}" submitted for ${inc.id}`); navigate('/admin/incidents') }}>
-                Confirm Decision →
+              <textarea
+                className="admin-textarea"
+                value={actionNote}
+                onChange={(event) => setActionNote(event.target.value)}
+                placeholder={
+                  decision === 'merge'
+                    ? 'Merge reason (optional)'
+                    : decision === 'info'
+                      ? 'Request details (optional)'
+                      : 'Reviewer note (optional)'
+                }
+              />
+              <button
+                className="admin-btn admin-btn-primary admin-btn-full"
+                style={{ marginTop: 10 }}
+                onClick={handleDecisionSubmit}
+                disabled={isSubmitting || (decision === 'merge' && !mergeTargetReportId)}
+              >
+                {isSubmitting ? 'Submitting...' : 'Confirm Decision →'}
               </button>
             </div>
           )}
         </div>
 
-        {/* Internal Notes */}
         <div className="admin-card">
           <h3 className="admin-card-title">Internal Notes</h3>
           <div style={{ marginTop: 8, maxHeight: 150, overflowY: 'auto' }}>
-            {notes.length === 0 && <p style={{ fontSize: 10.5, color: 'var(--admin-text-muted)' }}>No notes yet</p>}
-            {notes.map((n, i) => (
-              <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid var(--admin-border)', fontSize: 11 }}>
+            {incident.notes.length === 0 && <p style={{ fontSize: 10.5, color: 'var(--admin-text-muted)' }}>No notes yet</p>}
+            {incident.notes.map((note) => (
+              <div key={note.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--admin-border)', fontSize: 11 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <span style={{ fontWeight: 600, color: 'var(--admin-primary)' }}>{n.author}</span>
-                  <span style={{ color: 'var(--admin-text-muted)', fontSize: 10 }}>{n.time}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--admin-primary)' }}>{note.author}</span>
+                  <span style={{ color: 'var(--admin-text-muted)', fontSize: 10 }}>{formatDateTime(note.time)}</span>
                 </div>
-                <p style={{ color: 'var(--admin-text-secondary)', margin: 0 }}>{n.text}</p>
+                <p style={{ color: 'var(--admin-text-secondary)', margin: 0 }}>{note.text}</p>
               </div>
             ))}
           </div>
           <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-            <input className="admin-input" type="text" placeholder="Add internal note…" value={internalNote} onChange={e => setInternalNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && addNote()} style={{ flex: 1, height: 30, fontSize: 11 }} />
-            <button className="admin-btn admin-btn-sm admin-btn-primary" onClick={addNote}>Add</button>
+            <input
+              className="admin-input"
+              type="text"
+              placeholder="Add internal note..."
+              value={internalNote}
+              onChange={(event) => setInternalNote(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && addNote()}
+              style={{ flex: 1, height: 30, fontSize: 11 }}
+            />
+            <button className="admin-btn admin-btn-sm admin-btn-primary" onClick={addNote} disabled={noteSubmitting}>
+              {noteSubmitting ? 'Saving...' : 'Add'}
+            </button>
           </div>
         </div>
       </div>

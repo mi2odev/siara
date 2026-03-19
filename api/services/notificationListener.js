@@ -23,6 +23,8 @@ function normalizeNotificationPayload(payload) {
     ...payload,
     userId: payload.userId || payload.user_id || null,
     reportId: payload.reportId || payload.report_id || null,
+    operationalAlertId:
+      payload.operationalAlertId || payload.operational_alert_id || null,
     createdAt: payload.createdAt || payload.created_at || null,
     eventType: payload.eventType || payload.event_type || null,
   };

@@ -1,255 +1,494 @@
 /**
  * @file AdminOverviewPage.jsx
  * @description System overview dashboard for national risk supervision.
- *
- * Layout:
- *   1. Critical alerts bar — urgent action items displayed at the top
- *   2. Page header with time-range selector and export button
- *   3. KPI grid — 6 real-time metrics (incidents, pending, AI confidence, risk zones, alerts, rate)
- *   4. Review queue table — all incidents sorted by AI confidence (desc)
- *   5. Bottom stats grid (3-col): weekly volume chart, severity distribution, top risk zones
- *
- * Data is currently mocked (liveIncidents, criticalAlerts).
  */
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-/* ═══════════════════════════════════════════════════════════
-   MOCK DATA
-   ═══════════════════════════════════════════════════════════ */
+import {
+  fetchAdminOverview,
+  normalizeOverviewResponse,
+  normalizeRange,
+} from '../../services/adminOverviewService'
 
-/* 7 sample incidents with AI confidence, reporter reliability, severity & status */
-const liveIncidents = [
-  { id: 'INC-2401', location: 'Blvd Zirout Youcef, Algiers', severity: 'high', confidence: 94, status: 'pending', type: 'Collision', reporter: 'ahmed_b', reliability: 92, time: '08:34', ago: '12m' },
-  { id: 'INC-2400', location: 'RN11 Industrial Zone, Oran', severity: 'medium', confidence: 78, status: 'pending', type: 'Roadwork', reporter: 'fatima_k', reliability: 88, time: '07:18', ago: '1h 28m' },
-  { id: 'INC-2399', location: 'East-West Highway km120', severity: 'high', confidence: 91, status: 'pending', type: 'Collision', reporter: 'yacine_m', reliability: 95, time: '06:55', ago: '1h 51m' },
-  { id: 'INC-2398', location: 'University Dist., Constantine', severity: 'low', confidence: 65, status: 'verified', type: 'Weather', reporter: 'nour_l', reliability: 96, time: '06:02', ago: '2h 44m' },
-  { id: 'INC-2397', location: 'El Harrach Bridge, Algiers', severity: 'high', confidence: 88, status: 'flagged', type: 'Collision', reporter: 'amine_r', reliability: 34, time: '05:47', ago: '2h 59m' },
-  { id: 'INC-2396', location: 'Place des Martyrs, Algiers', severity: 'medium', confidence: 72, status: 'pending', type: 'Traffic', reporter: 'sara_z', reliability: 90, time: '04:15', ago: '4h 31m' },
-  { id: 'INC-2395', location: 'Route Nationale 5, Blida', severity: 'low', confidence: 58, status: 'rejected', type: 'False alarm', reporter: 'karim_d', reliability: 22, time: '03:30', ago: '5h 16m' },
-]
+const EMPTY_OVERVIEW = normalizeOverviewResponse()
+const EMPTY_TEXT = '\u2014'
+const KPI_ICONS = {
+  incidents: '\u26A1',
+  pendingReview: '\u25F7',
+  aiConfidence: '\u25C7',
+  highRiskZones: '\u25C8',
+  activeAlerts: '\u25B2',
+  reportsPerMin: '\u25EB',
+}
+const RANGE_TITLE_SUFFIX = {
+  '1h': 'Last hour',
+  '24h': 'Last 24h',
+  '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+}
 
-/* Urgent alerts shown in the red bar at the top of the page */
-const criticalAlerts = [
-  { text: '3 unreviewed high-severity incidents older than 1 hour', action: 'Review Queue' },
-  { text: 'AI confidence below 70% on 2 recent predictions', action: 'View AI' },
-]
+function getTrendTone(trend) {
+  const value = String(trend || '').trim().toLowerCase()
 
-/* ═══════════════════════════════════════════════════════════
-   COMPONENT
-   ═══════════════════════════════════════════════════════════ */
+  if (!value || value === 'stable' || value === 'live' || value.startsWith('0')) {
+    return 'stable'
+  }
+
+  if (value.startsWith('-')) {
+    return 'down'
+  }
+
+  if (value.startsWith('+')) {
+    return 'up'
+  }
+
+  return 'stable'
+}
+
+function formatTrendText(trend) {
+  if (!trend) {
+    return EMPTY_TEXT
+  }
+
+  const value = String(trend).trim()
+
+  if (value.startsWith('+')) {
+    return `Up ${value.slice(1)}`
+  }
+
+  if (value.startsWith('-')) {
+    return `Down ${value.slice(1)}`
+  }
+
+  return value
+}
+
+function formatPercent(value) {
+  return typeof value === 'number' ? `${value.toFixed(1)}%` : EMPTY_TEXT
+}
+
+function formatDecimal(value) {
+  return typeof value === 'number' ? value.toFixed(1) : EMPTY_TEXT
+}
+
+function getConfidenceFillClass(confidence) {
+  if (typeof confidence !== 'number') {
+    return ''
+  }
+
+  if (confidence >= 85) {
+    return 'success'
+  }
+
+  if (confidence >= 65) {
+    return 'warning'
+  }
+
+  return 'danger'
+}
+
+function getConfidenceText(incident) {
+  if (typeof incident?.confidence === 'number' && incident?.confidenceStatus === 'completed') {
+    return `${incident.confidence}%`
+  }
+
+  if (incident?.confidenceStatus === 'pending') {
+    return 'Pending AI'
+  }
+
+  if (incident?.confidenceStatus === 'failed') {
+    return 'AI failed'
+  }
+
+  return EMPTY_TEXT
+}
+
 export default function AdminOverviewPage() {
   const navigate = useNavigate()
-  const [timeRange, setTimeRange] = useState('24h') // active time-range filter (1h | 24h | 7d | 30d)
+  const [timeRange, setTimeRange] = useState('24h')
+  const [overview, setOverview] = useState(EMPTY_OVERVIEW)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [hasResolvedInitialLoad, setHasResolvedInitialLoad] = useState(false)
+  const [reloadToken, setReloadToken] = useState(0)
 
-  // Derived: count incidents still awaiting review
-  const pendingCount = liveIncidents.filter(i => i.status === 'pending').length
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadOverview() {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const nextOverview = await fetchAdminOverview(timeRange, {
+          signal: controller.signal,
+        })
+
+        if (!controller.signal.aborted) {
+          setOverview(nextOverview)
+        }
+      } catch (requestError) {
+        if (!controller.signal.aborted) {
+          setError(requestError)
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false)
+          setHasResolvedInitialLoad(true)
+        }
+      }
+    }
+
+    loadOverview()
+
+    return () => controller.abort()
+  }, [reloadToken, timeRange])
+
+  const maxWeeklyCount = Math.max(...overview.weeklyVolume.map((entry) => entry.count), 0)
+  const reviewQueueCount = overview.reviewQueue.length
+
+  const showInitialLoading = loading && !hasResolvedInitialLoad
 
   return (
     <>
-      {/* ═══ CRITICAL ALERTS BAR ═══ */}
-      {/* Renders a red banner per critical alert with a CTA button */}
-      {criticalAlerts.map((alert, i) => (
-        <div className="admin-critical-bar" key={i}>
+      {error && (
+        <div
+          className="admin-card"
+          style={{
+            marginBottom: 14,
+            borderColor: 'rgba(239, 68, 68, 0.35)',
+            background: 'rgba(239, 68, 68, 0.05)',
+          }}
+        >
+          <div className="admin-card-header">
+            <div>
+              <h2 className="admin-card-title">Overview unavailable</h2>
+              <p className="admin-card-subtitle">
+                {error.message || 'Failed to load the admin overview.'}
+              </p>
+            </div>
+            <button
+              className="admin-btn admin-btn-primary"
+              onClick={() => setReloadToken((value) => value + 1)}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
+      {overview.criticalAlerts.map((alert) => (
+        <div className="admin-critical-bar" key={`${alert.type}-${alert.route}`}>
           <span className="critical-dot"></span>
           <span className="critical-text">{alert.text}</span>
-          <button className="critical-action" onClick={() => navigate(i === 0 ? '/admin/incidents' : '/admin/ai')}>
-            {alert.action} →
+          <button
+            className="critical-action"
+            onClick={() => navigate(alert.route)}
+          >
+            {alert.action} &rarr;
           </button>
         </div>
       ))}
 
-      {/* ═══ PAGE HEADER ═══ */}
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">System Overview</h1>
-          <p className="admin-page-subtitle">National Risk Supervision — Real-time</p>
+          <p className="admin-page-subtitle">
+            National Risk Supervision - Real-time
+            {loading && hasResolvedInitialLoad ? <> &middot; Refreshing...</> : null}
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <select className="admin-select" value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
+          <select
+            className="admin-select"
+            value={timeRange}
+            onChange={(event) => setTimeRange(normalizeRange(event.target.value))}
+          >
             <option value="1h">Last hour</option>
             <option value="24h">Last 24h</option>
             <option value="7d">Last 7 days</option>
             <option value="30d">Last 30 days</option>
           </select>
-          <button className="admin-btn admin-btn-ghost">Export</button>
-        </div>
-      </div>
-
-      {/* ═══ KPI METRICS GRID (6 cards) ═══ */}
-      {/* Incidents 24h | Pending Review | AI Confidence | High Risk Zones | Active Alerts | Reports/min */}
-      <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-        <div className="admin-kpi">
-          <div className="admin-kpi-icon danger">⚡</div>
-          <div className="admin-kpi-body">
-            <span className="admin-kpi-label">Incidents 24h</span>
-            <span className="admin-kpi-value">47</span>
-            <span className="admin-kpi-trend up">↑ 12%</span>
-          </div>
-        </div>
-        <div className="admin-kpi">
-          <div className="admin-kpi-icon warning">◷</div>
-          <div className="admin-kpi-body">
-            <span className="admin-kpi-label">Pending Review</span>
-            <span className="admin-kpi-value">{pendingCount}</span>
-            <span className="admin-kpi-trend up">↑ 3 new</span>
-          </div>
-        </div>
-        <div className="admin-kpi">
-          <div className="admin-kpi-icon primary">◇</div>
-          <div className="admin-kpi-body">
-            <span className="admin-kpi-label">AI Confidence</span>
-            <span className="admin-kpi-value">78.2%</span>
-            <span className="admin-kpi-trend stable">— stable</span>
-          </div>
-        </div>
-        <div className="admin-kpi">
-          <div className="admin-kpi-icon danger">◈</div>
-          <div className="admin-kpi-body">
-            <span className="admin-kpi-label">High Risk Zones</span>
-            <span className="admin-kpi-value">8</span>
-            <span className="admin-kpi-trend down">↓ 2</span>
-          </div>
-        </div>
-        <div className="admin-kpi">
-          <div className="admin-kpi-icon success">▲</div>
-          <div className="admin-kpi-body">
-            <span className="admin-kpi-label">Active Alerts</span>
-            <span className="admin-kpi-value">34</span>
-            <span className="admin-kpi-trend stable">— normal</span>
-          </div>
-        </div>
-        <div className="admin-kpi">
-          <div className="admin-kpi-icon info">◫</div>
-          <div className="admin-kpi-body">
-            <span className="admin-kpi-label">Reports/min</span>
-            <span className="admin-kpi-value">2.4</span>
-            <span className="admin-kpi-trend up">↑ 0.3</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ═══ REVIEW QUEUE TABLE ═══ */}
-      {/* Sorted by confidence (desc); shows ID, location, severity pill, confidence bar, reporter score, time, status, review CTA */}
-      <div className="admin-card" style={{ marginBottom: 14 }}>
-        <div className="admin-card-header">
-          <div>
-            <h2 className="admin-card-title">Review Queue</h2>
-            <p className="admin-card-subtitle">Sorted by risk score (descending) · {pendingCount} pending</p>
-          </div>
-          <button className="admin-btn admin-btn-primary" onClick={() => navigate('/admin/incidents')}>
-            View All →
+          <button className="admin-btn admin-btn-ghost" type="button">
+            Export
           </button>
         </div>
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Location</th>
-                <th>AI Severity</th>
-                <th>Confidence</th>
-                <th>Reporter Score</th>
-                <th>Since Reported</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Spread + sort so we don't mutate the original array */}
-              {[...liveIncidents].sort((a, b) => b.confidence - a.confidence).map((inc) => (
-                <tr key={inc.id}>
-                  <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{inc.id}</td>
-                  <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inc.location}</td>
-                  <td><span className={`admin-pill ${inc.severity}`}>{inc.severity}</span></td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div className="admin-progress" style={{ width: 48 }}>
-                        <div className={`admin-progress-fill ${inc.confidence >= 85 ? 'success' : inc.confidence >= 65 ? 'warning' : 'danger'}`} style={{ width: `${inc.confidence}%` }}></div>
-                      </div>
-                      <span style={{ fontSize: 11, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{inc.confidence}%</span>
+      </div>
+
+      {showInitialLoading ? (
+        <div className="admin-card" style={{ marginBottom: 14 }}>
+          <h2 className="admin-card-title">Loading overview...</h2>
+          <p className="admin-card-subtitle" style={{ marginTop: 6 }}>
+            Pulling real incident, AI, and zone data from the backend.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
+            <div className="admin-kpi">
+              <div className="admin-kpi-icon danger">{KPI_ICONS.incidents}</div>
+              <div className="admin-kpi-body">
+                <span className="admin-kpi-label">{RANGE_TITLE_SUFFIX[timeRange]} Incidents</span>
+                <span className="admin-kpi-value">{overview.kpis.incidents.value}</span>
+                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.incidents.trend)}`}>
+                  {formatTrendText(overview.kpis.incidents.trend)}
+                </span>
+              </div>
+            </div>
+            <div className="admin-kpi">
+              <div className="admin-kpi-icon warning">{KPI_ICONS.pendingReview}</div>
+              <div className="admin-kpi-body">
+                <span className="admin-kpi-label">Pending Review</span>
+                <span className="admin-kpi-value">{overview.kpis.pendingReview.value}</span>
+                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.pendingReview.trend)}`}>
+                  {formatTrendText(overview.kpis.pendingReview.trend)}
+                </span>
+              </div>
+            </div>
+            <div className="admin-kpi">
+              <div className="admin-kpi-icon primary">{KPI_ICONS.aiConfidence}</div>
+              <div className="admin-kpi-body">
+                <span className="admin-kpi-label">AI Confidence</span>
+                <span className="admin-kpi-value">{formatPercent(overview.kpis.aiConfidence.value)}</span>
+                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.aiConfidence.trend)}`}>
+                  {formatTrendText(overview.kpis.aiConfidence.trend)}
+                </span>
+              </div>
+            </div>
+            <div className="admin-kpi">
+              <div className="admin-kpi-icon danger">{KPI_ICONS.highRiskZones}</div>
+              <div className="admin-kpi-body">
+                <span className="admin-kpi-label">High Risk Zones</span>
+                <span className="admin-kpi-value">{overview.kpis.highRiskZones.value}</span>
+                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.highRiskZones.trend)}`}>
+                  {formatTrendText(overview.kpis.highRiskZones.trend)}
+                </span>
+              </div>
+            </div>
+            <div className="admin-kpi">
+              <div className="admin-kpi-icon success">{KPI_ICONS.activeAlerts}</div>
+              <div className="admin-kpi-body">
+                <span className="admin-kpi-label">Active Alerts</span>
+                <span className="admin-kpi-value">{overview.kpis.activeAlerts.value}</span>
+                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.activeAlerts.trend)}`}>
+                  {formatTrendText(overview.kpis.activeAlerts.trend)}
+                </span>
+              </div>
+            </div>
+            <div className="admin-kpi">
+              <div className="admin-kpi-icon info">{KPI_ICONS.reportsPerMin}</div>
+              <div className="admin-kpi-body">
+                <span className="admin-kpi-label">Reports/min</span>
+                <span className="admin-kpi-value">{formatDecimal(overview.kpis.reportsPerMin.value)}</span>
+                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.reportsPerMin.trend)}`}>
+                  {formatTrendText(overview.kpis.reportsPerMin.trend)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="admin-card" style={{ marginBottom: 14 }}>
+            <div className="admin-card-header">
+              <div>
+                <h2 className="admin-card-title">Review Queue</h2>
+                <p className="admin-card-subtitle">
+                  Pending and flagged incidents across all time &middot; {reviewQueueCount} open
+                </p>
+              </div>
+              <button
+                className="admin-btn admin-btn-primary"
+                onClick={() => navigate('/admin/incidents')}
+              >
+                View All &rarr;
+              </button>
+            </div>
+            <div className="admin-table-wrapper">
+              {overview.reviewQueue.length > 0 ? (
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Location</th>
+                      <th>Severity</th>
+                      <th>Confidence</th>
+                      <th>Reporter Score</th>
+                      <th>Since Reported</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {overview.reviewQueue.map((incident) => (
+                      <tr key={incident.reportId}>
+                        <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                          {incident.displayId}
+                        </td>
+                        <td
+                          style={{
+                            maxWidth: 200,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {incident.location}
+                        </td>
+                        <td>
+                          <span className={`admin-pill ${incident.severity}`}>{incident.severity}</span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div className="admin-progress" style={{ width: 48 }}>
+                              {typeof incident.confidence === 'number' && (
+                                <div
+                                  className={`admin-progress-fill ${getConfidenceFillClass(incident.confidence)}`}
+                                  style={{ width: `${incident.confidence}%` }}
+                                ></div>
+                              )}
+                            </div>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                fontVariantNumeric: incident.confidenceStatus === 'completed' ? 'tabular-nums' : 'normal',
+                              }}
+                            >
+                              {getConfidenceText(incident)}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span style={{ fontWeight: 600, color: 'var(--admin-text-muted)' }}>
+                            {EMPTY_TEXT}
+                          </span>
+                        </td>
+                        <td
+                          style={{
+                            fontVariantNumeric: 'tabular-nums',
+                            fontSize: 11.5,
+                            color: incident.ago.includes('h')
+                              ? 'var(--admin-warning)'
+                              : 'var(--admin-text-secondary)',
+                          }}
+                        >
+                          {incident.ago}
+                        </td>
+                        <td>
+                          <span className={`admin-pill ${incident.status}`}>{incident.status}</span>
+                        </td>
+                        <td>
+                          <button
+                            className="admin-btn admin-btn-sm admin-btn-primary"
+                            onClick={() => navigate(`/admin/incidents/${incident.reportId}`)}
+                          >
+                            Review
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div style={{ padding: '18px 4px', color: 'var(--admin-text-muted)', fontSize: 11.5 }}>
+                  No pending or flagged incidents are waiting in the review queue.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="admin-grid-3">
+            <div className="admin-card">
+              <h3 className="admin-card-title">Weekly Incident Volume</h3>
+              <div className="admin-chart-placeholder" style={{ height: 120 }}>
+                {overview.weeklyVolume.map((entry) => {
+                  const height = maxWeeklyCount > 0 ? (entry.count / maxWeeklyCount) * 100 : 0
+
+                  return (
+                    <div
+                      key={entry.label}
+                      className="admin-chart-bar"
+                      style={{ height: `${height}%` }}
+                      title={`${entry.label}: ${entry.count}`}
+                    ></div>
+                  )
+                })}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: 9.5,
+                  color: 'var(--admin-text-muted)',
+                  padding: '0 2px',
+                }}
+              >
+                {overview.weeklyVolume.map((day) => (
+                  <span key={day.label}>{day.label}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="admin-card">
+              <h3 className="admin-card-title">Severity Distribution</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+                {[
+                  { label: 'Critical / High', pct: overview.severityDistribution.high, cls: 'danger' },
+                  { label: 'Medium', pct: overview.severityDistribution.medium, cls: 'warning' },
+                  { label: 'Low', pct: overview.severityDistribution.low, cls: 'success' },
+                ].map((segment) => (
+                  <div key={segment.label}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+                      <span style={{ color: 'var(--admin-text-secondary)' }}>{segment.label}</span>
+                      <span style={{ fontWeight: 600 }}>{segment.pct}%</span>
                     </div>
-                  </td>
-                  <td>
-                    <span style={{ fontWeight: 600, color: inc.reliability >= 80 ? 'var(--admin-success)' : inc.reliability >= 50 ? 'var(--admin-warning)' : 'var(--admin-danger)' }}>
-                      {inc.reliability}%
-                    </span>
-                  </td>
-                  <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 11.5, color: inc.ago.includes('h') ? 'var(--admin-warning)' : 'var(--admin-text-secondary)' }}>
-                    {inc.ago}
-                  </td>
-                  <td><span className={`admin-pill ${inc.status}`}>{inc.status}</span></td>
-                  <td>
-                    <button className="admin-btn admin-btn-sm admin-btn-primary" onClick={() => navigate(`/admin/incidents/${inc.id}`)}>
-                      Review
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ═══ BOTTOM STATS GRID (3-column) ═══ */}
-      <div className="admin-grid-3">
-        {/* --- Weekly Incident Volume bar chart --- */}
-        <div className="admin-card">
-          <h3 className="admin-card-title">Weekly Incident Volume</h3>
-          <div className="admin-chart-placeholder" style={{ height: 120 }}>
-            {/* Each value = bar height %, Mon–Sun */}
-            {[40, 65, 30, 80, 55, 90, 47].map((h, i) => (
-              <div key={i} className="admin-chart-bar" style={{ height: `${h}%` }}></div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5, color: 'var(--admin-text-muted)', padding: '0 2px' }}>
-            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <span key={d}>{d}</span>)}
-          </div>
-        </div>
-
-        {/* --- Severity Distribution progress bars --- */}
-        <div className="admin-card">
-          <h3 className="admin-card-title">Severity Distribution</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-            {[
-              { label: 'Critical / High', pct: 38, cls: 'danger' },
-              { label: 'Medium', pct: 35, cls: 'warning' },
-              { label: 'Low', pct: 27, cls: 'success' },
-            ].map((s) => (
-              <div key={s.label}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
-                  <span style={{ color: 'var(--admin-text-secondary)' }}>{s.label}</span>
-                  <span style={{ fontWeight: 600 }}>{s.pct}%</span>
-                </div>
-                <div className="admin-progress">
-                  <div className={`admin-progress-fill ${s.cls}`} style={{ width: `${s.pct}%` }}></div>
-                </div>
+                    <div className="admin-progress">
+                      <div
+                        className={`admin-progress-fill ${segment.cls}`}
+                        style={{ width: `${segment.pct}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* --- Top Risk Zones list --- */}
-        <div className="admin-card">
-          <h3 className="admin-card-title">Top Risk Zones</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
-            {[
-              { zone: 'Algiers Centre', incidents: 18, risk: 'high' },
-              { zone: 'Oran Industrial', incidents: 12, risk: 'high' },
-              { zone: 'Constantine Univ.', incidents: 7, risk: 'medium' },
-              { zone: 'Blida Highway', incidents: 5, risk: 'medium' },
-            ].map((z) => (
-              <div key={z.zone} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--admin-border)' }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--admin-text)' }}>{z.zone}</div>
-                  <div style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>{z.incidents} incidents</div>
+            <div className="admin-card">
+              <h3 className="admin-card-title">Top Risk Zones</h3>
+              {overview.topRiskZones.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+                  {overview.topRiskZones.map((zone) => (
+                    <div
+                      key={zone.zone}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 0',
+                        borderBottom: '1px solid var(--admin-border)',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--admin-text)' }}>
+                          {zone.zone}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>
+                          {zone.incidents} incidents
+                        </div>
+                      </div>
+                      <span className={`admin-pill ${zone.risk}`}>{zone.risk}</span>
+                    </div>
+                  ))}
                 </div>
-                <span className={`admin-pill ${z.risk}`}>{z.risk}</span>
-              </div>
-            ))}
+              ) : (
+                <p style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 8 }}>
+                  No zone activity was found for this time range.
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </>
   )
 }

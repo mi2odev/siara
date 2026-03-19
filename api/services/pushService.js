@@ -9,6 +9,8 @@ const PUSH_ELIGIBLE_EVENTS = new Set([
   "MULTIPLE_REPORTS_IN_ZONE",
   "USER_ENTERING_WATCHED_ZONE",
   "HIGH_DANGER_NEARBY",
+  "OPERATIONAL_ALERT_STARTED",
+  "OPERATIONAL_ALERT_EXPIRED",
 ]);
 const PUSH_ALWAYS_URGENT_EVENTS = new Set([
   "RISK_LEVEL_INCREASED",
@@ -413,11 +415,17 @@ function normalizeNotificationForPush(notification) {
 
   const data = normalizeObject(notification.data);
   const reportId = notification.reportId || notification.report_id || data.reportId || null;
+  const operationalAlertId =
+    notification.operationalAlertId
+    || notification.operational_alert_id
+    || data.operationalAlertId
+    || null;
 
   return {
     id: notification.id || null,
     userId: notification.userId || notification.user_id || null,
     reportId,
+    operationalAlertId,
     eventType: notification.eventType || notification.event_type || null,
     title: String(notification.title || "").trim(),
     body: String(notification.body || "").trim(),
@@ -471,6 +479,7 @@ function buildPushPayload(notification) {
     data: {
       notificationId: normalized.id,
       reportId: normalized.reportId,
+      operationalAlertId: normalized.operationalAlertId,
       zoneName,
       eventType: normalized.eventType,
       url,

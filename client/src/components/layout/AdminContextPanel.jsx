@@ -1,102 +1,124 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+
+import { fetchAdminIncidents } from '../../services/adminIncidentsService'
+
+const PANEL_ICONS = {
+  reviewQueue: '\u{1F534}',
+  queueLoad: '\u26A1',
+  workflow: '\u2295',
+  severity: '\u25C6',
+  reporter: '\u25B2',
+}
 
 export default function AdminContextPanel() {
   const navigate = useNavigate()
+  const [queueSummary, setQueueSummary] = useState({
+    leadIncident: null,
+    counts: {
+      pending: 0,
+      community: 0,
+      merged: 0,
+      archived: 0,
+      'ai-flagged': 0,
+      completedAiReports: 0,
+    },
+  })
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadContext() {
+      try {
+        const payload = await fetchAdminIncidents(
+          {
+            filter: 'pending',
+            sortField: 'createdAt',
+            sortDir: 'asc',
+            limit: 1,
+          },
+          { signal: controller.signal },
+        )
+
+        if (!controller.signal.aborted) {
+          setQueueSummary({
+            leadIncident: payload.incidents[0] || null,
+            counts: payload.counts,
+          })
+        }
+      } catch {
+        // Leave the panel quiet if context data cannot be loaded.
+      }
+    }
+
+    loadContext()
+
+    return () => controller.abort()
+  }, [])
+
+  const { leadIncident, counts } = queueSummary
 
   return (
     <aside className="admin-ctx-panel">
-      {/* Live Intelligence */}
       <div className="admin-ctx-title">Live Intelligence</div>
 
       <div className="admin-ctx-card">
-        <h4>🔴 Critical Alert Active</h4>
-        <p>Major collision on Blvd Zirout Youcef — Algiers Centre. 3 pending reviews.</p>
+        <h4>{PANEL_ICONS.reviewQueue} Review Queue Active</h4>
+        <p>
+          {leadIncident
+            ? `${counts.pending} incident${counts.pending === 1 ? '' : 's'} pending review. Oldest in queue: ${leadIncident.location}.`
+            : 'No incidents are currently waiting in the review queue.'}
+        </p>
         <button
           className="admin-btn admin-btn-sm admin-btn-danger"
           style={{ marginTop: 8, width: '100%' }}
-          onClick={() => navigate('/admin/incidents/INC-2401')}
+          onClick={() => navigate(leadIncident ? `/admin/incidents/${leadIncident.reportId}` : '/admin/incidents')}
         >
-          Review Now
+          {leadIncident ? 'Review Oldest Incident' : 'Open Queue'}
         </button>
       </div>
 
       <div className="admin-ctx-card">
-        <h4>📊 AI Health</h4>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span>Accuracy</span>
-          <span style={{ fontWeight: 700, color: 'var(--admin-success)' }}>92.4%</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span>Avg Confidence</span>
-          <span style={{ fontWeight: 700, color: 'var(--admin-text)' }}>78.2%</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Model Drift</span>
-          <span style={{ fontWeight: 700, color: 'var(--admin-success)' }}>Normal</span>
-        </div>
-      </div>
-
-      <div className="admin-ctx-card">
-        <h4>⚡ Queue Load</h4>
+        <h4>{PANEL_ICONS.queueLoad} Queue Load</h4>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
           <span>Pending Reviews</span>
-          <span style={{ fontWeight: 700, color: 'var(--admin-warning)' }}>8</span>
+          <span style={{ fontWeight: 700, color: 'var(--admin-warning)' }}>{counts.pending}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span>Oldest Unreviewed</span>
-          <span style={{ fontWeight: 700, color: 'var(--admin-danger)' }}>2h 14m</span>
+          <span>Community Flagged</span>
+          <span style={{ fontWeight: 700, color: 'var(--admin-danger)' }}>{counts.community}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Avg Review Time</span>
-          <span style={{ fontWeight: 700, color: 'var(--admin-text)' }}>18m</span>
+          <span>AI High Risk</span>
+          <span style={{ fontWeight: 700, color: 'var(--admin-text)' }}>{counts['ai-flagged']}</span>
         </div>
       </div>
 
-      <div className="admin-ctx-title" style={{ marginTop: 16 }}>Risk Zones</div>
+      <div className="admin-ctx-card">
+        <h4>{PANEL_ICONS.workflow} Workflow Snapshot</h4>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span>Merged Reports</span>
+          <span style={{ fontWeight: 700, color: 'var(--admin-text)' }}>{counts.merged}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span>Archived Reports</span>
+          <span style={{ fontWeight: 700, color: 'var(--admin-text)' }}>{counts.archived}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span>Completed AI Assessments</span>
+          <span style={{ fontWeight: 700, color: 'var(--admin-success)' }}>{counts.completedAiReports}</span>
+        </div>
+      </div>
+
+      <div className="admin-ctx-title" style={{ marginTop: 16 }}>Moderation Guidance</div>
 
       <div className="admin-ctx-card">
-        <h4 style={{ color: 'var(--admin-danger)' }}>▲ Algiers Centre</h4>
-        <p>42 incidents (30d) · AI Score: 87 · Trend: Rising</p>
+        <h4 style={{ color: 'var(--admin-warning)' }}>{PANEL_ICONS.severity} Severity hints remain the fallback</h4>
+        <p>Incident reports use the user-submitted severity hint until a completed AI assessment exists.</p>
       </div>
       <div className="admin-ctx-card">
-        <h4 style={{ color: 'var(--admin-danger)' }}>▲ Oran Industrial Port</h4>
-        <p>28 incidents (30d) · AI Score: 82 · Trend: Stable</p>
-      </div>
-      <div className="admin-ctx-card">
-        <h4 style={{ color: 'var(--admin-warning)' }}>◆ Constantine University</h4>
-        <p>18 incidents (30d) · AI Score: 58 · Trend: Declining</p>
-      </div>
-
-      <div className="admin-ctx-title" style={{ marginTop: 16 }}>Recent Activity</div>
-
-      <div className="admin-audit-row">
-        <span className="admin-audit-dot"></span>
-        <span className="admin-audit-time">2m</span>
-        <span className="admin-audit-event">
-          <span className="admin-audit-actor">Admin A</span> approved INC-2398
-        </span>
-      </div>
-      <div className="admin-audit-row">
-        <span className="admin-audit-dot" style={{ background: 'var(--admin-warning)' }}></span>
-        <span className="admin-audit-time">8m</span>
-        <span className="admin-audit-event">
-          <span className="admin-audit-actor">System</span> AI confidence dropped to 72% on INC-2397
-        </span>
-      </div>
-      <div className="admin-audit-row">
-        <span className="admin-audit-dot" style={{ background: 'var(--admin-danger)' }}></span>
-        <span className="admin-audit-time">12m</span>
-        <span className="admin-audit-event">
-          <span className="admin-audit-actor">Admin B</span> triggered emergency broadcast for Algiers
-        </span>
-      </div>
-      <div className="admin-audit-row">
-        <span className="admin-audit-dot"></span>
-        <span className="admin-audit-time">25m</span>
-        <span className="admin-audit-event">
-          <span className="admin-audit-actor">Admin A</span> overrode INC-2390 severity: high → medium
-        </span>
+        <h4 style={{ color: 'var(--admin-warning)' }}>{PANEL_ICONS.reporter} Reporter score is intentionally blank</h4>
+        <p>Trust and reporter reputation are not implemented yet, so moderation views show a dash instead of fake scoring.</p>
       </div>
     </aside>
   )

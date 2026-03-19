@@ -1,13 +1,37 @@
 import React, { useContext } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
-import logo from '../../../assets/logos/siara-logo.png'
+import {
+  ADMIN_LANDING_PATH,
+  USER_LANDING_PATH,
+  isAdminUser,
+} from '../../routes/routeAccess'
+import logo from '../../assets/logos/siara-logo.png'
+
+const userNavLinks = [
+  { to: '/home', label: 'Home' },
+  { to: '/map', label: 'Map' },
+  { to: '/predictions', label: 'Predictions' },
+  { to: USER_LANDING_PATH, label: 'Dashboard' },
+  { to: '/contact', label: 'Contact' },
+]
+
+const adminNavLinks = [
+  { to: ADMIN_LANDING_PATH, label: 'Overview' },
+  { to: '/admin/incidents', label: 'Incidents' },
+  { to: '/admin/alerts', label: 'Alerts' },
+  { to: '/admin/zones', label: 'Zones' },
+  { to: '/admin/system', label: 'System' },
+]
 
 export default function Header() {
   const location = useLocation()
-  const { user } = useContext(AuthContext)
-  const isHome = location.pathname === '/home'
-  const dashboardPath = user?.role === 'admin' ? '/admin/dashboard' : '/dashboard'
+  const { user, isAuthenticated } = useContext(AuthContext)
+  const isAdmin = isAdminUser(user)
+  const isHome = !isAdmin && location.pathname === '/home'
+  const homePath = isAdmin ? ADMIN_LANDING_PATH : '/home'
+  const navLinks = isAdmin ? adminNavLinks : userNavLinks
+  const dashboardPath = isAdmin ? ADMIN_LANDING_PATH : USER_LANDING_PATH
 
   function scrollTo(id){
     const el = document.getElementById(id)
@@ -18,26 +42,30 @@ export default function Header() {
     <header className="siara-header">
       <div className="siara-header-inner">
         <div className="brand-group">
-          <Link to="/home" className="logo-link" aria-label="Home SIARA">
+          <Link to={homePath} className="logo-link" aria-label={isAdmin ? 'Admin SIARA' : 'Home SIARA'}>
             <img src={logo} alt="SIARA" className="logo-img" loading="lazy" />
             <span className="logo-text">SIARA</span>
           </Link>
         </div>
 
         <nav className="main-nav" aria-label="Main navigation">
-          {isHome ? (
-            <button onClick={()=>scrollTo('hero')} className="nav-link">Home</button>
-          ) : (
-            <Link to="/home" className="nav-link">Home</Link>
-          )}
-          <Link to="/map" className="nav-link">Map</Link>
-          <Link to="/predictions" className="nav-link">Predictions</Link>
-          <Link to={dashboardPath} className="nav-link">Dashboard</Link>
-          <Link to="/contact" className="nav-link">Contact</Link>
+          {navLinks.map((link) => (
+            link.to === '/home' && isHome ? (
+              <button key={link.to} onClick={() => scrollTo('hero')} className="nav-link">{link.label}</button>
+            ) : (
+              <Link key={link.to} to={link.to} className="nav-link">{link.label}</Link>
+            )
+          ))}
         </nav>
 
         <div className="header-cta">
-          <Link to="/login" className="btn-cta" aria-label="Log in">Log in</Link>
+          {isAuthenticated ? (
+            <Link to={dashboardPath} className="btn-cta" aria-label={isAdmin ? 'Open admin' : 'Open dashboard'}>
+              {isAdmin ? 'Admin' : 'Dashboard'}
+            </Link>
+          ) : (
+            <Link to="/login" className="btn-cta" aria-label="Log in">Log in</Link>
+          )}
         </div>
       </div>
     </header>

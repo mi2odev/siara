@@ -17,12 +17,14 @@
  *   Routing: useNavigate for page transitions; dropdown links to profile/settings/etc.
  *   Data: Entirely mock — mockMarkers, barData, wilayaData, typeData.
  */
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import SiaraMap from '../../components/map/SiaraMap'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
+import { AuthContext } from '../../contexts/AuthContext'
+import { ADMIN_LANDING_PATH } from '../../routes/routeAccess'
 
 /* ── Simulated data ── */
 
@@ -66,6 +68,7 @@ const typeData = [
 
 export default function DashboardPage(){
   const navigate = useNavigate()
+  const { logout } = useContext(AuthContext)
 
   /* ── State ── */
   const [filters, setFilters] = useState({ date: '', wilaya: '', severity: '' }) // Active filter selections
@@ -102,13 +105,13 @@ export default function DashboardPage(){
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
-            <div className="dash-logo-block" onClick={() => navigate('/home')} style={{cursor:'pointer'}}>
+            <div className="dash-logo-block" onClick={() => navigate(ADMIN_LANDING_PATH)} style={{cursor:'pointer'}}>
               <img src={siaraLogo} alt="SIARA" className="dash-logo" />
             </div>
             <nav className="dash-header-tabs">
-              <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
-              <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
-              <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
+              <button className="dash-tab" onClick={() => navigate(ADMIN_LANDING_PATH)}>Overview</button>
+              <button className="dash-tab" onClick={() => navigate('/admin/zones')}>Zones</button>
+              <button className="dash-tab" onClick={() => navigate('/admin/alerts')}>Alerts</button>
               <button className="dash-tab dash-tab-active">Dashboard</button>
             </nav>
           </div>
@@ -116,18 +119,26 @@ export default function DashboardPage(){
             <input type="search" className="dash-search" placeholder="Search for an incident, a road, a province…" aria-label="Search dashboard" />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
+            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/admin/alerts')}>🔔<span className="notification-badge"></span></button>
             <button className="dash-icon-btn" aria-label="Messages">💬</button>
             <div className="dash-avatar-wrapper">
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">ZM</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/admin/users') }}>👤 User Governance</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/admin/system') }}>⚙️ Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/admin/alerts') }}>🔔 Notifications</button>
                   <button className="dropdown-item" onClick={handleOpenQuiz}>🚗 Quiz Conducteur</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout">🚪 Log Out</button>
+                  <button
+                    className="dropdown-item logout"
+                    onClick={() => {
+                      setShowDropdown(false)
+                      Promise.resolve(logout()).finally(() => navigate('/login'))
+                    }}
+                  >
+                    🚪 Log Out
+                  </button>
                 </div>
               )}
             </div>
@@ -404,7 +415,7 @@ export default function DashboardPage(){
                 <li className="alert-item medium"><span className="alert-dot"></span>East-West axis — dense fog</li>
                 <li className="alert-item low"><span className="alert-dot"></span>Night roadwork scheduled</li>
               </ul>
-              <button className="btn-primary-full" onClick={() => navigate('/alerts')}>🔔 Manage Alerts</button>
+              <button className="btn-primary-full" onClick={() => navigate('/admin/alerts')}>🔔 Manage Alerts</button>
             </div>
 
             {/* Weather */}
