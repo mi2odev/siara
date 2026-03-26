@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
 
 import { AuthContext } from '../../contexts/AuthContext'
+import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import { deleteAlert, fetchAlerts, updateAlertStatus } from '../../services/alertService'
 import { fetchEmailPreferences, updateEmailPreferences } from '../../services/authService'
@@ -455,6 +456,7 @@ export default function AlertsPage() {
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <PoliceModeTab user={user} />
             </nav>
           </div>
           <div className="dash-header-center">

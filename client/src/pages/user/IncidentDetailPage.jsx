@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { CircleMarker, MapContainer, TileLayer } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { AuthContext } from '../../contexts/AuthContext'
+import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import { deleteReport, getReport, updateReport } from '../../services/reportsService'
 import '../../styles/IncidentDetailPage.css'
 import '../../styles/DashboardPage.css'
@@ -464,6 +465,7 @@ export default function IncidentDetailPage() {
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <PoliceModeTab user={user} />
             </nav>
           </div>
           <div className="dash-header-center">

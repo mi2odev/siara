@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
 
 import { AuthContext } from '../../contexts/AuthContext'
+import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import { listReports } from '../../services/reportsService'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -663,6 +664,7 @@ export default function NewsPage() {
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <PoliceModeTab user={user} />
             </nav>
           </div>
           <div className="dash-header-center">

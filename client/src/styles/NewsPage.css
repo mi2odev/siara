@@ -530,6 +530,18 @@
   background: linear-gradient(135deg, #EF4444, #F87171);
 }
 
+.role-badge-btn {
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.role-badge-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 5px 14px rgba(59, 130, 246, 0.28);
+}
+
 .profile-bio {
   font-size: 13px;
   color: #64748B;

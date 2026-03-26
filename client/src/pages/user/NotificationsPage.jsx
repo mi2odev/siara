@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useNotificationStore } from '../../stores/notificationStore'
+import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import '../../styles/DashboardPage.css'
 import '../../styles/NotificationsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -277,6 +278,7 @@ export default function NotificationsPage() {
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <PoliceModeTab user={user} />
             </nav>
           </div>
           <div className="dash-header-center">

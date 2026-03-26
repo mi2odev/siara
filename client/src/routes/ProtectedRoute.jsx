@@ -2,7 +2,15 @@ import React, { useContext } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 
 import { AuthContext } from '../contexts/AuthContext'
+import { getUserRoles } from '../utils/roleUtils'
 import { buildVerifyEmailRedirect, getAuthenticatedRedirect } from './routeAccess'
+
+function normalizeRole(role) {
+  return String(role || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '')
+}
 
 export default function ProtectedRoute({ children, roles, allowUnverified = false }) {
   const {
@@ -11,11 +19,7 @@ export default function ProtectedRoute({ children, roles, allowUnverified = fals
     isEmailVerified,
     hasCheckedSession,
   } = useContext(AuthContext)
-  const userRoles = Array.isArray(user?.roles)
-    ? user.roles
-    : user?.role
-      ? [user.role]
-      : []
+  const normalizedUserRoles = getUserRoles(user)
 
   if (!hasCheckedSession) {
     return null
@@ -29,7 +33,7 @@ export default function ProtectedRoute({ children, roles, allowUnverified = fals
     return <Navigate to={buildVerifyEmailRedirect(user)} replace />
   }
 
-  if (roles && !roles.some((role) => userRoles.includes(role))) {
+  if (roles && !roles.some((role) => normalizedUserRoles.includes(normalizeRole(role)))) {
     return <Navigate to={getAuthenticatedRedirect(user, isEmailVerified)} replace />
   }
 

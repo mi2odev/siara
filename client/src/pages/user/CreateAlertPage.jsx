@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Circle, GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
 
 import { AuthContext } from '../../contexts/AuthContext'
+import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import { createAlert, fetchCommunes, fetchWilayas, updateAlert } from '../../services/alertService'
 import '../../styles/CreateAlertPage.css'
 import '../../styles/DashboardPage.css'
@@ -248,6 +249,7 @@ export default function CreateAlertPage() {
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <PoliceModeTab user={user} />
             </nav>
           </div>
           <div className="dash-header-center">

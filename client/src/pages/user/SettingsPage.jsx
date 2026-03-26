@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
+import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import { changePassword, getUserSettings, updateUserSettings } from '../../services/authService'
 import '../../styles/DashboardPage.css'
 import '../../styles/SettingsPage.css'
@@ -325,6 +326,7 @@ export default function SettingsPage() {
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <PoliceModeTab user={user} />
             </nav>
           </div>
           <div className="dash-header-center">

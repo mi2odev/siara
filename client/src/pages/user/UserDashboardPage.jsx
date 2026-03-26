@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
+import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import '../../styles/NewsPage.css'
 import '../../styles/DashboardPage.css'
 import '../../styles/UserDashboardPage.css'
@@ -203,6 +204,7 @@ export default function UserDashboardPage() {
             </div>
             <nav className="dash-header-tabs">
               {headerActions.map((item) => <button key={item.label} className={`dash-tab ${item.active ? 'dash-tab-active' : ''}`} onClick={() => item.path && navigate(item.path)}>{item.label}</button>)}
+              <PoliceModeTab user={user} />
             </nav>
           </div>
           <div className="dash-header-center"><input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya..." aria-label="Search" /></div>

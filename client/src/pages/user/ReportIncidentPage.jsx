@@ -19,6 +19,7 @@
 import React, { useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
+import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -334,6 +335,7 @@ export default function ReportIncidentPage() {
                 <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
                 <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
                 <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+                <PoliceModeTab user={user} />
               </nav>
             </div>
             <div className="dash-header-center">
@@ -414,8 +416,8 @@ export default function ReportIncidentPage() {
               <button className="action-btn secondary" onClick={() => navigate('/alerts/create', { state: { fromIncident: reportData } })}>
                 🔔 Create an alert for this incident
               </button>
-              <button className="action-btn tertiary" onClick={() => navigate('/news')}>
-                ← Back to feed
+              <button className="action-btn tertiary" onClick={() => navigate('/report', { state: { newReport: reportData.title || getPreviewTitle() } })}>
+                ← Back to my reports
               </button>
             </div>
 
@@ -442,9 +444,10 @@ export default function ReportIncidentPage() {
               <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
               <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
               <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-              <button className="dash-tab dash-tab-active">Report</button>
+              <button className="dash-tab dash-tab-active" onClick={() => navigate('/report')}>Report</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <PoliceModeTab user={user} />
             </nav>
           </div>
           <div className="dash-header-center">
@@ -505,7 +508,7 @@ export default function ReportIncidentPage() {
             </div>
           </div>
 
-          <button className="cancel-btn" onClick={() => navigate(-1)}>
+          <button className="cancel-btn" onClick={() => navigate('/report')}>
             ✕ Cancel
           </button>
         </aside>

@@ -21,6 +21,7 @@
 import React, { useEffect, useRef, useState, useContext } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
+import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import { getCurrentUser } from '../../services/authService'
 import { listReports } from '../../services/reportsService'
 import { fetchAlerts } from '../../services/alertService'
@@ -360,6 +361,7 @@ export default function ProfilePage(){
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
               <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <PoliceModeTab user={user} />
             </nav>
           </div>
           <div className="dash-header-center">

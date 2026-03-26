@@ -150,6 +150,21 @@
   display: none;
 }
 
+.dash-tab-police {
+  background: linear-gradient(90deg, #0f766e, #0e7490);
+  color: #fff;
+  font-weight: 600;
+}
+
+.dash-tab-police:hover {
+  background: linear-gradient(90deg, #0d9488, #0284c7);
+  color: #fff;
+}
+
+.dash-tab-police::after {
+  display: none;
+}
+
 /* Header CENTER: Search */
 .dash-header-center {
   flex: 1;

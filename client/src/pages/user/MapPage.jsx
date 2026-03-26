@@ -11,6 +11,8 @@
 import React, { useEffect, useMemo, useState, useContext, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from '../../contexts/AuthContext';
+import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import { getUserRoles, isPoliceOfficerUser } from '../../utils/roleUtils'
 
 /* ── Styles ── */
 import "../../styles/NewsPage.css";
@@ -1234,10 +1236,19 @@ export default function MapPage() {
       || user?.email
       || "SIARA User",
   ).trim();
-  const roleLabel = Array.isArray(user?.roles) && user.roles.includes("admin")
-    ? "Admin"
-    : "Citizen";
-  const roleClass = roleLabel === "Admin" ? "role-admin" : "role-citoyen";
+  const normalizedRoles = getUserRoles(user)
+  const primaryRole = normalizedRoles.includes('admin')
+    ? 'admin'
+    : normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
+      ? 'police'
+      : normalizedRoles[0] || 'citizen'
+  const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1)
+  const roleClass = primaryRole === 'admin'
+    ? 'role-admin'
+    : primaryRole === 'police'
+      ? 'role-police'
+      : 'role-citoyen'
+  const isPoliceAccount = isPoliceOfficerUser(user)
   const profileInitials = profileName
     ? profileName
       .split(" ")
@@ -1270,6 +1281,7 @@ export default function MapPage() {
               <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
               <button className="dash-tab" onClick={() => navigate("/dashboard")}>Dashboard</button>
               <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <PoliceModeTab user={user} />
             </nav>
           </div>
 
@@ -1342,7 +1354,17 @@ export default function MapPage() {
             </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
-              <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
+              {isPoliceAccount ? (
+                <PoliceModeTab
+                  user={user}
+                  className={`role-badge ${roleClass} role-badge-btn`}
+                  policeLabel="Switch to Police Mode"
+                  basicLabel="Switch to Basic Mode"
+                  basicPath="/dashboard"
+                />
+              ) : (
+                <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
+              )}
               <p className="profile-bio">Browse live road reports and share updates from the field.</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>

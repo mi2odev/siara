@@ -686,6 +686,116 @@
   max-width: 260px;
 }
 
+/* Reports page right panel enhancements */
+.reports-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reports-overview-item {
+  padding: 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.reports-overview-item-pending {
+  background: linear-gradient(180deg, #fffbeb 0%, #fff7ed 100%);
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.reports-overview-item-verified {
+  background: linear-gradient(180deg, #ecfeff 0%, #f0f9ff 100%);
+  border-color: rgba(14, 165, 233, 0.24);
+}
+
+.reports-overview-item-resolved {
+  background: linear-gradient(180deg, #ecfdf5 0%, #f0fdf4 100%);
+  border-color: rgba(16, 185, 129, 0.24);
+}
+
+.reports-overview-k {
+  display: block;
+  font-size: 11px;
+  color: var(--al-muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.reports-overview-v {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--al-text);
+  letter-spacing: -0.02em;
+}
+
+.reports-detail-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.reports-detail-chip-row {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reports-detail-desc {
+  margin: 12px 0 0;
+  color: var(--al-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.reports-detail-list {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reports-detail-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.reports-detail-row > span {
+  color: var(--al-muted);
+  font-size: 12px;
+}
+
+.reports-detail-row > strong {
+  text-align: right;
+  color: var(--al-text);
+  font-size: 12px;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.reports-detail-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.reports-detail-actions .act-btn {
+  flex: 1;
+  justify-content: center;
+  margin-left: 0;
+}
+
 /* ======================== RESPONSIVE ======================== */
 @media (max-width: 1200px) {
   .al-grid { grid-template-columns: 220px 1fr 280px; }
