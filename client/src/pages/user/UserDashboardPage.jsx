@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect, useMemo, useCallback } from 're
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import { getUserRoles } from '../../utils/roleUtils'
 import '../../styles/NewsPage.css'
 import '../../styles/DashboardPage.css'
 import '../../styles/UserDashboardPage.css'
@@ -53,7 +54,6 @@ const signedPct = (value) => `${Number(value || 0) >= 0 ? '+' : '-'}${Math.abs(M
 const trendTone = (value) => Number(value) >= 0 ? 'up' : 'down'
 const riskTone = (score) => Number(score) >= 80 ? 'high' : Number(score) >= 50 ? 'medium' : 'low'
 const metric = (value, suffix = '') => (value == null || Number.isNaN(Number(value)) ? '--' : `${Math.round(Number(value))}${suffix}`)
-const roleLabel = (value) => value ? `${String(value).charAt(0).toUpperCase()}${String(value).slice(1)}` : 'Citizen'
 const weekLabels = (() => {
   const formatter = new Intl.DateTimeFormat('en-US', { weekday: 'short' })
   return [...Array(7)].map((_, index) => {
@@ -160,6 +160,18 @@ export default function UserDashboardPage() {
 
   const dashboard = dashboardData || EMPTY_DASHBOARD
   const profileName = dashboard.profile?.name || user?.name || 'SIARA User'
+  const normalizedRoles = getUserRoles(user)
+  const primaryRole = normalizedRoles.includes('admin')
+    ? 'admin'
+    : normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
+      ? 'police'
+      : normalizedRoles[0] || 'citizen'
+  const roleBadgeLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1)
+  const roleBadgeClass = primaryRole === 'admin'
+    ? 'role-admin'
+    : primaryRole === 'police'
+      ? 'role-police'
+      : 'role-citoyen'
   const updatedAt = dashboard.currentRiskOverview?.updatedAt ? new Date(dashboard.currentRiskOverview.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Unavailable'
   const forecastPoints = Array.isArray(dashboard.riskForecast48h?.points) ? dashboard.riskForecast48h.points : []
   const hourlyDist = dashboard.incidentDistribution24h.map((item) => ({ ...item, count: Number(item.incidents || 0) }))
@@ -236,7 +248,8 @@ export default function UserDashboardPage() {
             </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
-              <span className="role-badge role-citoyen">{roleLabel(dashboard.profile?.role)}</span>
+              <span className={`role-badge ${roleBadgeClass}`}>{roleBadgeLabel}</span>
+              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>

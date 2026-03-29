@@ -4,6 +4,7 @@ import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import { getUserRoles } from '../../utils/roleUtils'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import { listReports } from '../../services/reportsService'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -573,10 +574,18 @@ export default function NewsPage() {
   }, [reports])
 
   const profileName = user?.name || 'Guest Driver'
-  const roleLabel = Array.isArray(user?.roles) && user.roles.includes('admin')
-    ? 'Admin'
-    : 'Citizen'
-  const roleClass = roleLabel === 'Admin' ? 'role-admin' : 'role-citoyen'
+  const normalizedRoles = getUserRoles(user)
+  const primaryRole = normalizedRoles.includes('admin')
+    ? 'admin'
+    : normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
+      ? 'police'
+      : normalizedRoles[0] || 'citizen'
+  const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1)
+  const roleClass = primaryRole === 'admin'
+    ? 'role-admin'
+    : primaryRole === 'police'
+      ? 'role-police'
+      : 'role-citoyen'
 
   const feedHeadline = useMemo(() => {
     if (isLoading) {

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import { getUserRoles } from '../../utils/roleUtils'
 import { deleteReport, listReports } from '../../services/reportsService'
 import '../../styles/NewsPage.css'
 import '../../styles/AlertsPage.css'
@@ -212,6 +213,20 @@ export default function ReportsPage() {
     resolved: reports.filter((report) => getStatusValue(report) === 'resolved').length,
   }), [reports])
 
+  const profileName = user?.name || user?.email || 'SIARA User'
+  const normalizedRoles = getUserRoles(user)
+  const primaryRole = normalizedRoles.includes('admin')
+    ? 'admin'
+    : normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
+      ? 'police'
+      : normalizedRoles[0] || 'citizen'
+  const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1)
+  const roleClass = primaryRole === 'admin'
+    ? 'role-admin'
+    : primaryRole === 'police'
+      ? 'role-police'
+      : 'role-citoyen'
+
   async function handleDelete(event, reportId) {
     event.stopPropagation()
     if (!window.confirm('Delete this report?')) return
@@ -284,8 +299,9 @@ export default function ReportsPage() {
               <span className="verified-badge">✓</span>
             </div>
             <div className="profile-info">
-              <p className="profile-name">{user?.name || 'SIARA User'}</p>
-              <span className="role-badge role-citoyen">Citizen</span>
+              <p className="profile-name">{profileName}</p>
+              <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
+              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>

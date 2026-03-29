@@ -40,33 +40,37 @@ export default function PoliceVerificationQueuePage() {
   )
 
   return (
-    <PoliceShell activeKey="verification-queue" rightPanel={rightPanel} notificationCount={queue.length}>
+    <PoliceShell
+      activeKey="verification-queue"
+      rightPanel={rightPanel}
+      notificationCount={queue.length}
+      verificationPendingCount={queue.length}
+    >
       <section className="police-section">
         <h2>Verification Queue</h2>
         <div className="police-verification-grid">
           {queue.map((incident) => (
             <article key={incident.id} className="police-verification-card">
-              {incident.image
-                ? <img src={incident.image} alt={incident.type} />
-                : <div className="police-verification-placeholder">No image provided</div>}
-              <div>
-                <div className="police-row">
-                  <strong className="police-title">{incident.id} · {incident.type}</strong>
-                  <span className={`police-badge ${incident.severity}`}>{incident.severity}</span>
-                </div>
-                <p className="police-meta" style={{ margin: '6px 0' }}>{incident.description}</p>
-                <div className="police-row">
-                  <span className="police-meta">Reporter: {incident.reporter}</span>
-                  <span className="police-meta">Reliability: {incident.reliability}%</span>
-                </div>
-                <div className="police-row">
-                  <span className="police-meta">📍 {incident.location}</span>
-                  <span className="police-meta">{incident.timeAgo}</span>
-                </div>
-                <div className="police-action-row" style={{ marginTop: 8 }}>
-                  <button className="police-action" onClick={() => takeAction(incident.id, 'approved')}>Approve</button>
-                  <button className="police-action" onClick={() => takeAction(incident.id, 'rejected')}>Reject</button>
-                  <button className="police-action" onClick={() => takeAction(incident.id, 'flagged')}>Flag user</button>
+              <div className="police-verification-left">
+                {incident.image
+                  ? <img src={incident.image} alt={incident.type} />
+                  : <div className="police-verification-placeholder">No image provided</div>}
+              </div>
+
+              <div className="police-verification-center">
+                <strong className="police-title">{incident.id} · {incident.type}</strong>
+                <p className="police-meta">{incident.description}</p>
+                <span className="police-meta">Reporter: {incident.reporter}</span>
+                <span className="police-meta">📍 {incident.location}</span>
+              </div>
+
+              <div className="police-verification-right">
+                <span className="police-verification-reliability">🟢 {incident.reliability}% reliability</span>
+                <span className="police-meta">{incident.timeAgo}</span>
+                <div className="police-verification-actions">
+                  <button className="police-action police-action-verify" onClick={() => takeAction(incident.id, 'approved')}>✔ Approve</button>
+                  <button className="police-action police-action-reject" onClick={() => takeAction(incident.id, 'rejected')}>✖ Reject</button>
+                  <button className="police-action police-action-view" onClick={() => takeAction(incident.id, 'flagged')}>🚩 Flag user</button>
                 </div>
               </div>
             </article>

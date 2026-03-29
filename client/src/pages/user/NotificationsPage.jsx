@@ -5,6 +5,7 @@ import { AuthContext } from '../../contexts/AuthContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useNotificationStore } from '../../stores/notificationStore'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import { getUserRoles } from '../../utils/roleUtils'
 import '../../styles/DashboardPage.css'
 import '../../styles/NotificationsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -117,7 +118,13 @@ export default function NotificationsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [timeFilter, setTimeFilter] = useState('all')
   const displayName = user?.name || user?.email || 'SIARA User'
-  const roleLabel = Array.isArray(user?.roles) && user.roles.includes('admin') ? 'Admin' : 'Citizen'
+  const normalizedRoles = getUserRoles(user)
+  const primaryRole = normalizedRoles.includes('admin')
+    ? 'admin'
+    : normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
+      ? 'police'
+      : normalizedRoles[0] || 'citizen'
+  const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1)
 
   useEffect(() => {
     if (!isAuthenticated || hasLoaded) {
@@ -318,7 +325,7 @@ export default function NotificationsPage() {
             </div>
             <h3 className="notif-profile-name">{displayName}</h3>
             <span className="notif-profile-role">{roleLabel}</span>
-            <p className="notif-profile-copy">Track incident updates and manage your notification workflow.</p>
+            <p className="notif-profile-copy">Browse live road reports and share updates from the field.</p>
             <button className="notif-profile-btn" onClick={() => navigate('/profile')}>View Profile</button>
           </div>
 

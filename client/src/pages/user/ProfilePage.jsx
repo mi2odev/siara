@@ -22,6 +22,7 @@ import React, { useEffect, useRef, useState, useContext } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import { getUserRoles } from '../../utils/roleUtils'
 import { getCurrentUser } from '../../services/authService'
 import { listReports } from '../../services/reportsService'
 import { fetchAlerts } from '../../services/alertService'
@@ -213,7 +214,14 @@ export default function ProfilePage(){
     || currentUser.phone
     || 'SIARA User'
   const initials = getUserInitials(displayName)
-  const roleLabel = toTitleCase(currentUser.role || (Array.isArray(currentUser.roles) ? currentUser.roles[0] : '') || 'citizen')
+  const normalizedRoles = getUserRoles(currentUser)
+  const primaryRole = normalizedRoles.includes('admin')
+    ? 'admin'
+    : normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
+      ? 'police'
+      : normalizedRoles[0] || 'citizen'
+  const roleLabel = toTitleCase(primaryRole)
+  const roleBadgeClass = primaryRole === 'admin' ? 'admin' : primaryRole === 'police' ? 'police' : 'citoyen'
   const bio = currentUser.bio || 'Active contributor helping make roads safer.'
   const locationLabel = currentUser.city
     || currentUser.location
@@ -396,7 +404,7 @@ export default function ProfilePage(){
               <span className="verified-badge">✓</span>
             </div>
             <h2 className="user-card-name">{displayName}</h2>
-            <span className="user-role-badge citoyen">{roleLabel}</span>
+            <span className={`user-role-badge ${roleBadgeClass}`}>{roleLabel}</span>
             <p className="user-bio">{bio}</p>
             <button className="btn-edit-profile">✏️ Edit Profile</button>
           </div>

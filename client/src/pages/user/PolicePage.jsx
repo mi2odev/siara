@@ -11,7 +11,7 @@ function severityOrder(value) {
   return 1
 }
 
-const STATUS_FLOW = ['reported', 'under_review', 'verified', 'dispatched', 'resolved']
+const STATUS_FLOW = ['reported', 'under_review', 'verified', 'resolved']
 const DISPATCH_UNITS = [
   { id: 'Unit 12', eta: '3 min', distance: '1.2 km' },
   { id: 'Unit 07', eta: '5 min', distance: '2.4 km' },
@@ -73,31 +73,68 @@ export default function PolicePage() {
   const incidentRefs = useRef({})
   const activeView = searchParams.get('view') === 'active'
   const insightsView = searchParams.get('view') === 'insights'
+  const mineView = searchParams.get('view') === 'mine'
+  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
 
   const visibleIncidents = useMemo(() => {
     if (!activeView) return incidents
     return incidents.filter((item) => item.status !== 'resolved' && item.status !== 'rejected')
   }, [incidents, activeView])
 
+  const filteredIncidents = useMemo(() => {
+    const needle = String(searchTerm || '').trim().toLowerCase()
+
+    return visibleIncidents.filter((item) => {
+      if (priorityFilter !== 'all' && item.severity !== priorityFilter) {
+        return false
+      }
+
+      if (statusFilter !== 'all' && item.status !== statusFilter) {
+        return false
+      }
+
+      if (needle) {
+        const text = `${item.id} ${item.location} ${item.type} ${item.description}`.toLowerCase()
+        if (!text.includes(needle)) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [priorityFilter, searchTerm, statusFilter, visibleIncidents])
+
   const criticalCount = useMemo(
     () => visibleIncidents.filter((item) => item.severity === 'high' && item.status !== 'resolved').length,
     [visibleIncidents],
   )
 
+  const verificationPendingCount = useMemo(
+    () => incidents.filter((item) => item.status === 'reported').length,
+    [incidents],
+  )
+
   const emergencyMode = criticalCount >= 3
 
   const priorityIncidents = useMemo(
-    () => visibleIncidents.filter((item) => item.severity === 'high' && item.status !== 'resolved'),
-    [visibleIncidents],
+    () => filteredIncidents.filter((item) => item.severity === 'high' && item.status !== 'resolved'),
+    [filteredIncidents],
+  )
+
+  const criticalAlerts = useMemo(
+    () => filteredIncidents.filter((item) => item.severity === 'high' && item.status !== 'resolved').slice(0, 5),
+    [filteredIncidents],
   )
 
   const selectedIncident = useMemo(
-    () => visibleIncidents.find((item) => item.id === selectedIncidentId) || visibleIncidents[0] || null,
-    [visibleIncidents, selectedIncidentId],
+    () => filteredIncidents.find((item) => item.id === selectedIncidentId) || filteredIncidents[0] || null,
+    [filteredIncidents, selectedIncidentId],
   )
 
   const stats = useMemo(() => {
-    const total = incidents.length
+    const total = incidents.filter((item) => item.status !== 'resolved' && item.status !== 'rejected').length
     const verified = incidents.filter((item) => item.status === 'verified' || item.status === 'dispatched').length
     const pending = incidents.filter((item) => item.status === 'reported' || item.status === 'under_review').length
     const responseAvg = Math.round(
@@ -130,7 +167,6 @@ export default function PolicePage() {
 
   const quickStats = useMemo(() => ({
     incidentsTrend: '+12%',
-    verifiedTrend: 'stable',
     pendingTrend: '-5%',
     responseTrend: 'down',
   }), [])
@@ -221,33 +257,36 @@ export default function PolicePage() {
     if (!incident) return []
     if (incident.status === 'reported') {
       return [
-        { key: 'view', label: 'View', style: 'police-action-view' },
-        { key: 'review', label: 'Start Review', style: 'police-action-secondary' },
+        { key: 'view', label: '👁 View', style: 'police-action-view' },
+        { key: 'review', label: '▶ Start Review', style: 'police-action-review' },
       ]
     }
 
     if (incident.status === 'under_review') {
       return [
-        { key: 'verify', label: 'Verify', style: 'police-action-verify' },
-        { key: 'reject', label: 'Reject', style: 'police-action-reject' },
-        { key: 'cancel_review', label: 'Cancel Review', style: 'police-action-secondary' },
+        { key: 'verify', label: '✔ Verify', style: 'police-action-verify' },
+        { key: 'reject', label: '✖ Reject', style: 'police-action-reject' },
       ]
     }
 
     if (incident.status === 'verified') {
       return [
-        { key: 'dispatch', label: 'Dispatch Unit', style: 'police-action-dispatch' },
+        { key: 'dispatch', label: '🛡 Request Backup', style: 'police-action-dispatch' },
       ]
+    }
+
+    if (incident.status === 'resolved' || incident.status === 'rejected') {
+      return []
     }
 
     if (incident.status === 'dispatched') {
       return [
-        { key: 'close', label: 'Close Incident', style: 'police-action-resolve' },
+        { key: 'close', label: '✔ Close Incident', style: 'police-action-resolve' },
       ]
     }
 
     return [
-      { key: 'view', label: 'View', style: 'police-action-view' },
+      { key: 'view', label: '👁 View', style: 'police-action-view' },
     ]
   }
 
@@ -263,7 +302,7 @@ export default function PolicePage() {
   }
 
   useEffect(() => {
-    const topCritical = visibleIncidents.find((item) => item.severity === 'high' && item.status !== 'resolved')
+    const topCritical = filteredIncidents.find((item) => item.severity === 'high' && item.status !== 'resolved')
     if (!topCritical) return
     setSelectedIncidentId(topCritical.id)
     const target = incidentRefs.current[topCritical.id]
@@ -272,7 +311,7 @@ export default function PolicePage() {
         target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
       })
     }
-  }, [visibleIncidents])
+  }, [filteredIncidents])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -327,14 +366,14 @@ export default function PolicePage() {
       return [selectedIncident.lat, selectedIncident.lng]
     }
 
-    if (!visibleIncidents.length) {
+    if (!filteredIncidents.length) {
       return [36.365, 6.614]
     }
 
-    const latAvg = visibleIncidents.reduce((sum, item) => sum + Number(item.lat || 0), 0) / visibleIncidents.length
-    const lngAvg = visibleIncidents.reduce((sum, item) => sum + Number(item.lng || 0), 0) / visibleIncidents.length
+    const latAvg = filteredIncidents.reduce((sum, item) => sum + Number(item.lat || 0), 0) / filteredIncidents.length
+    const lngAvg = filteredIncidents.reduce((sum, item) => sum + Number(item.lng || 0), 0) / filteredIncidents.length
     return [latAvg, lngAvg]
-  }, [visibleIncidents, selectedIncident])
+  }, [filteredIncidents, selectedIncident])
 
   const riskColor = (severity) => {
     if (severity === 'high') return '#dc2626'
@@ -348,6 +387,7 @@ export default function PolicePage() {
     <>
       <section className="police-section">
         <h2>Operational Map</h2>
+        <div className="police-section-divider" aria-hidden="true"></div>
         <div className="police-mini-map">
           <MapContainer
             center={mapCenter}
@@ -360,7 +400,7 @@ export default function PolicePage() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             />
-            {visibleIncidents.map((incident) => (
+            {filteredIncidents.map((incident) => (
               <React.Fragment key={incident.id}>
                 <Circle
                   center={[incident.lat, incident.lng]}
@@ -389,19 +429,18 @@ export default function PolicePage() {
             ))}
           </MapContainer>
         </div>
-        <p className="police-map-hint">Click marker to focus incident, then verify or dispatch directly from stream.</p>
         <p className="police-map-hint">Auto refresh: every 20s · Last sync {lastRefreshAt.toLocaleTimeString()}</p>
       </section>
 
       <section className="police-section police-selected-incident-panel">
-        <h2>Selected Incident</h2>
+        <h2>Selected Incident Summary</h2>
         {selectedIncident ? (
           <div className="police-selected-details">
             <div className="police-selected-line"><span>Location</span><strong>{selectedIncident.location}</strong></div>
             <div className="police-selected-line"><span>Type</span><strong>{selectedIncident.type}</strong></div>
             <div className="police-selected-line"><span>Severity</span><strong className={`police-severity-text ${selectedIncident.severity}`}>{selectedIncident.severity.toUpperCase()}</strong></div>
-            <div className="police-selected-line"><span>Units assigned</span><strong>{selectedIncident.status === 'dispatched' ? 2 : 0}</strong></div>
-            <div className="police-selected-line"><span>ETA</span><strong>{selectedIncident.status === 'dispatched' ? '4 min' : 'Pending dispatch'}</strong></div>
+            <div className="police-selected-line"><span>Reliability</span><strong>{selectedIncident.reliability}%</strong></div>
+            <div className="police-selected-line"><span>Status</span><strong>{displayStatus(selectedIncident.status)}</strong></div>
           </div>
         ) : (
           <p className="police-meta">No incident selected.</p>
@@ -411,7 +450,13 @@ export default function PolicePage() {
       <section className="police-section">
         <h2>Active Alerts</h2>
         <ul className="police-list">
-          {POLICE_ACTIVE_ALERTS.map((alert) => <li key={alert}>{alert}</li>)}
+          {criticalAlerts.slice(0, 5).map((alert) => (
+            <li key={alert.id} className="police-alert-item">
+              <span className={`police-alert-dot ${alert.severity}`} aria-hidden="true"></span>
+              <span>{alert.type} · {alert.location}</span>
+            </li>
+          ))}
+          {criticalAlerts.length === 0 ? POLICE_ACTIVE_ALERTS.map((alert) => <li key={alert}>{alert}</li>) : null}
         </ul>
       </section>
 
@@ -429,16 +474,52 @@ export default function PolicePage() {
 
   return (
     <PoliceShell
-      activeKey={insightsView ? 'analytics' : activeView ? 'active-incidents' : 'dashboard'}
+      activeKey={insightsView ? 'analytics' : mineView ? 'my-incidents' : activeView ? 'active-incidents' : 'dashboard'}
       rightPanel={rightPanel}
       notificationCount={criticalCount}
       emergencyMode={emergencyMode}
+      verificationPendingCount={verificationPendingCount}
     >
       <section className="police-section">
-        <h2>{activeView ? 'Active Incidents Stream' : 'Live Incident Stream'}</h2>
-        <p className="police-shortcuts-hint">Keyboard: V verify · R reject · D dispatch (for selected incident).</p>
+        <div className="police-stream-header">
+          <div>
+            <h2>{activeView ? 'Active Incidents Stream' : mineView ? 'My Incident Stream' : 'Live Incident Stream'}</h2>
+            <p className="police-shortcuts-hint">Keyboard: V verify · R reject · D backup request.</p>
+          </div>
+          <div className="police-stream-controls">
+            <label className="police-filter-field">
+              <span>Priority</span>
+              <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} aria-label="Filter by priority">
+                <option value="all">All</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </label>
+            <label className="police-filter-field">
+              <span>Status</span>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
+                <option value="all">All</option>
+                <option value="reported">Reported</option>
+                <option value="under_review">Under Review</option>
+                <option value="verified">Verified</option>
+                <option value="resolved">Resolved</option>
+              </select>
+            </label>
+            <label className="police-filter-field police-filter-search">
+              <span>Search</span>
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="ID, location, type..."
+                aria-label="Search incidents"
+              />
+            </label>
+          </div>
+        </div>
         <div className="police-feed">
-          {visibleIncidents.map((incident) => {
+          {filteredIncidents.map((incident) => {
             const reliability = reliabilityMeta(incident.reliability)
             const locationParts = splitLocation(incident.location)
             return (
@@ -447,33 +528,37 @@ export default function PolicePage() {
                 ref={(element) => { incidentRefs.current[incident.id] = element }}
                 className={`police-stream-row ${selectedIncident?.id === incident.id ? 'active' : ''}`}
                 data-reliability={reliability.tier}
+                data-severity={incident.severity}
                 onClick={() => setSelectedIncidentId(incident.id)}
                 onMouseEnter={() => setSelectedIncidentId(incident.id)}
               >
                 <span className={`police-severity-strip ${incident.severity}`} aria-hidden="true"></span>
                 <div className="police-stream-main">
                   <div className="police-stream-headline">
-                    <span className={`police-badge ${incident.severity}`}>{incident.severity.toUpperCase()}</span>
                     <strong className="police-stream-title">
                       {locationParts.city ? `${locationParts.road} - ${locationParts.city}` : locationParts.road}
                     </strong>
                     <span className="police-stream-time">{incident.timeAgo}</span>
                   </div>
                   <div className="police-stream-meta-line">
-                    <span className={`police-reliability ${reliability.tier}`}>{reliability.icon} {reliability.label}</span>
+                    <span className="police-reliability">{reliability.icon} {incident.reliability}% reliability</span>
                     <span className="police-status-label">Status: {displayStatus(incident.status)}</span>
                   </div>
                   <p className="police-stream-description">{incident.description}</p>
                   <div className="police-status-flow" aria-label="Status flow">
                     {STATUS_FLOW.map((status) => {
-                      const isCurrent = incident.status === status
-                      const currentIndex = STATUS_FLOW.indexOf(incident.status)
+                      const flowStatus = incident.status === 'dispatched' ? 'verified' : incident.status
+                      const isCurrent = flowStatus === status
+                      const currentIndex = STATUS_FLOW.indexOf(flowStatus)
                       const statusIndex = STATUS_FLOW.indexOf(status)
                       const isDone = currentIndex > -1 && currentIndex > statusIndex
-                      const marker = isDone ? '✔' : isCurrent ? '●' : '○'
                       return (
-                        <span key={`${incident.id}-${status}`} className={`police-flow-step ${isCurrent ? 'current' : ''} ${isDone ? 'done' : ''}`}>
-                          {marker} {displayStatus(status)}
+                        <span
+                          key={`${incident.id}-${status}`}
+                          className={`police-flow-step ${isCurrent ? 'current' : ''} ${isDone ? 'done' : ''} ${!isCurrent && !isDone ? 'future' : ''}`}
+                        >
+                          <span className="police-flow-marker" aria-hidden="true"></span>
+                          <span className="police-flow-label">{displayStatus(status)}</span>
                         </span>
                       )
                     })}
@@ -496,14 +581,14 @@ export default function PolicePage() {
               </article>
             )
           })}
-          {!visibleIncidents.length ? <p className="police-meta">No active incidents right now.</p> : null}
+          {!filteredIncidents.length ? <p className="police-meta">No incidents match current filters.</p> : null}
         </div>
       </section>
 
       <section className="police-section">
         <h2>Priority Incidents</h2>
         <div className="police-priority">
-          {priorityIncidents.map((incident) => (
+          {priorityIncidents.slice(0, 3).map((incident) => (
             <div key={incident.id} className="police-priority-alert-block">
               <div className="police-priority-header">
                 <span className="police-high-priority">HIGH PRIORITY INCIDENT</span>
@@ -512,7 +597,6 @@ export default function PolicePage() {
               <strong>{incident.location}</strong>
               <p className="police-meta" style={{ margin: '6px 0 10px' }}>{incident.description}</p>
               <div className="police-priority-actions">
-                <button className="police-action police-action-dispatch" onClick={() => openDispatch(incident.id)}>DISPATCH NOW</button>
                 <button className="police-action police-action-view" onClick={() => navigate(`/police/incident/${incident.id}`)}>OPEN DETAILS</button>
               </div>
             </div>
@@ -523,54 +607,9 @@ export default function PolicePage() {
       <section className="police-section">
         <h2>Quick Stats</h2>
         <div className="police-stats-grid">
-          <div className="police-stat"><span>Incidents</span><strong>{stats.total}</strong><em className="trend-up">{quickStats.incidentsTrend}</em></div>
-          <div className="police-stat"><span>Verified</span><strong>{stats.verified}</strong><em className="trend-stable">{quickStats.verifiedTrend}</em></div>
-          <div className="police-stat"><span>Pending</span><strong>{stats.pending}</strong><em className="trend-down">{quickStats.pendingTrend}</em></div>
-          <div className="police-stat"><span>Response</span><strong>{stats.responseAvg} min</strong><em className="trend-down">{quickStats.responseTrend === 'down' ? '↓' : '↑'}</em></div>
-        </div>
-      </section>
-
-      <section className="police-section">
-        <h2>Incident Table</h2>
-        <div className="police-table-wrap">
-          <table className="police-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Location</th>
-                <th>Type</th>
-                <th>Severity</th>
-                <th>Time</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleIncidents.map((incident) => (
-                <tr key={incident.id}>
-                  <td>{incident.id}</td>
-                  <td>{incident.location}</td>
-                  <td>{incident.type}</td>
-                  <td><span className={`police-badge ${incident.severity}`}>{incident.severity}</span></td>
-                  <td>{incident.timeAgo}</td>
-                  <td><span className={`police-badge ${incident.status}`}>{displayStatus(incident.status)}</span></td>
-                  <td>
-                    <div className="police-action-row">
-                      {contextualActions(incident).map((action) => (
-                        <button
-                          key={`table-${incident.id}-${action.key}`}
-                          className={`police-action ${action.style}`}
-                          onClick={() => handleContextAction(incident, action.key)}
-                        >
-                          {action.label}
-                        </button>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="police-stat"><span>Active incidents</span><strong>{stats.total}</strong><em className="trend-up">{quickStats.incidentsTrend}</em></div>
+          <div className="police-stat"><span>Pending verification</span><strong>{verificationPendingCount}</strong><em className="trend-down">{quickStats.pendingTrend}</em></div>
+          <div className="police-stat"><span>Avg response time</span><strong>{stats.responseAvg} min</strong><em className="trend-down">{quickStats.responseTrend === 'down' ? '↓' : '↑'}</em></div>
         </div>
       </section>
 

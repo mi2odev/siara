@@ -21,6 +21,11 @@ export default function PoliceIncidentDetailPage() {
     [incident.id],
   )
 
+  const verificationPendingCount = useMemo(
+    () => POLICE_INCIDENTS.filter((item) => item.status === 'reported').length,
+    [],
+  )
+
   const triggerAction = (label) => {
     setToast(label)
     setTimeout(() => setToast(''), 1700)
@@ -41,10 +46,10 @@ export default function PoliceIncidentDetailPage() {
   const rightPanel = (
     <section className="police-section police-detail-actions">
       <h2>Incident Actions</h2>
-      <div className="police-detail-action-grid">
+      <div className="police-detail-action-stack">
         <button className="police-action police-action-verify" onClick={() => triggerAction('Incident verified')}>Verify Incident</button>
-        <button className="police-action police-action-reject" onClick={() => triggerAction('Marked as false')}>Mark as False</button>
         <button className="police-action police-action-view" onClick={() => triggerAction('Ambulance requested')}>Request Ambulance</button>
+        <button className="police-action police-action-reject" onClick={() => triggerAction('Marked as false')}>Mark as False</button>
         <button className="police-action police-action-resolve" onClick={() => triggerAction('Incident closed')}>Close Incident</button>
       </div>
 
@@ -57,14 +62,19 @@ export default function PoliceIncidentDetailPage() {
         placeholder="Operational notes..."
       />
       <div className="police-action-row police-detail-note-actions">
-        <button className="police-action police-action-secondary" onClick={() => triggerAction('Notes saved')}>Save Notes</button>
-        <button className="police-action police-action-dispatch" onClick={() => navigate('/police/verification')}>Go to Queue</button>
+        <button className="police-action police-action-verify" onClick={() => triggerAction('Notes saved')}>Save Notes</button>
+        <button className="police-action police-action-view" onClick={() => navigate('/police/verification')}>Go to Queue</button>
       </div>
     </section>
   )
 
   return (
-    <PoliceShell activeKey="active-incidents" rightPanel={rightPanel} notificationCount={3}>
+    <PoliceShell
+      activeKey="active-incidents"
+      rightPanel={rightPanel}
+      notificationCount={3}
+      verificationPendingCount={verificationPendingCount}
+    >
       <div className="police-detail-layout">
         <section className="police-section police-incident-profile">
           <div className="police-incident-header">
@@ -135,9 +145,9 @@ export default function PoliceIncidentDetailPage() {
             <ul className="police-list police-nearby-list">
               {nearby.map((item) => (
                 <li key={item.id} className="police-nearby-item" onClick={() => navigate(`/police/incident/${item.id}`)} role="button" tabIndex={0}>
-                  <strong>{item.id}</strong>
-                  <span>{item.type}</span>
-                  <span>{item.location}</span>
+                  <strong className="police-nearby-id">{item.id}</strong>
+                  <span className="police-nearby-type">{item.type}</span>
+                  <span className="police-nearby-location">{item.location}</span>
                 </li>
               ))}
             </ul>

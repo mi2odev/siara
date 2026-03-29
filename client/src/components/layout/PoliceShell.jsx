@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from './PoliceModeTab'
 import 'leaflet/dist/leaflet.css'
+import '../../styles/DashboardPage.css'
 import '../../styles/PoliceMode.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
@@ -18,11 +19,17 @@ function getUserInitials(name) {
     .join('')
 }
 
-export default function PoliceShell({ activeKey, children, rightPanel, notificationCount = 0, emergencyMode = false }) {
+export default function PoliceShell({
+  activeKey,
+  children,
+  rightPanel,
+  notificationCount = 0,
+  emergencyMode = false,
+  verificationPendingCount = 0,
+}) {
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
   const [showDropdown, setShowDropdown] = useState(false)
-  const [showQuickActions, setShowQuickActions] = useState(false)
 
   const menuGroups = useMemo(() => [
     {
@@ -30,21 +37,23 @@ export default function PoliceShell({ activeKey, children, rightPanel, notificat
       items: [
         { key: 'dashboard', label: 'Dashboard', icon: '🏛️', path: '/police' },
         { key: 'active-incidents', label: 'Active Incidents', icon: '🔴', path: '/police?view=active' },
-        { key: 'verification-queue', label: 'Verification Queue', icon: '🟡', path: '/police/verification' },
-      ],
-    },
-    {
-      title: 'CONTROL',
-      items: [
+        {
+          key: 'verification-queue',
+          label: 'Verification Queue',
+          icon: '🟡',
+          path: '/police/verification',
+          badge: verificationPendingCount,
+        },
+        { key: 'my-incidents', label: 'My Incidents', icon: '👮', path: '/police?view=mine' },
       ],
     },
     {
       title: 'ANALYTICS',
       items: [
-        { key: 'analytics', label: 'AI Insights', icon: '🧠', path: '/police?view=insights' },
+        { key: 'analytics', label: 'AI Insights', icon: '🧠', path: '/police/insights' },
       ],
     },
-  ], [])
+  ], [verificationPendingCount])
 
   const visibleMenuGroups = useMemo(
     () => menuGroups.filter((group) => Array.isArray(group.items) && group.items.length > 0),
@@ -55,46 +64,50 @@ export default function PoliceShell({ activeKey, children, rightPanel, notificat
 
   return (
     <div className={`police-root ${emergencyMode ? 'police-root-emergency' : ''}`}>
-      <header className="police-header">
-        <div className="police-header-left" onClick={() => navigate('/police')} role="button" tabIndex={0}>
-          <img src={siaraLogo} alt="SIARA" className="police-header-logo" />
-          <div className="police-header-brand-copy">
-            <span className="police-header-kicker">SIARA Command Center</span>
-            <strong>Police Operations Dashboard</strong>
+      <header className="siara-dashboard-header">
+        <div className="dash-header-inner">
+          <div className="dash-header-left">
+            <div className="dash-logo-block" onClick={() => navigate('/police')} role="button" tabIndex={0}>
+              <img src={siaraLogo} alt="SIARA" className="dash-logo" />
+            </div>
+            <nav className="dash-header-tabs police-switch-anchor" aria-label="Police mode switch">
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Feed</button>
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Map</button>
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Alerts</button>
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Report</button>
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Dashboard</button>
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Predictions</button>
+              <PoliceModeTab user={user} basicLabel="Switch to Normal Mode" />
+            </nav>
           </div>
-        </div>
 
-        <div className="police-header-center">
-          <PoliceModeTab
-            user={user}
-            className="police-mode-toggle"
-            policeLabel="Switch to Police Mode"
-            basicLabel="Police Mode Active · Switch to Basic Mode"
-            basicPath="/dashboard"
-          />
-        </div>
-
-        <div className="police-header-right">
-          <div className="police-live-status" aria-label="Live Status">
-            <span className="police-live-dot">●</span>
-            <span>System Active</span>
-            <strong>{notificationCount} Critical incidents</strong>
+          <div className="dash-header-center">
+            <input
+              type="search"
+              className="dash-search"
+              placeholder="Search for an incident, a road, a zone..."
+              aria-label="Search"
+            />
           </div>
-          <button className="police-header-notif" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-            🔔
-            {notificationCount > 0 ? <span className="police-header-notif-badge">{notificationCount}</span> : null}
-          </button>
-          <div className="police-header-avatar-wrapper">
-            <button className="police-header-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{profileInitials}</button>
-            {showDropdown && (
-              <div className="user-dropdown">
-                <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
-                <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
-                <div className="dropdown-divider"></div>
-                <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
-              </div>
-            )}
+
+          <div className="dash-header-right">
+            <button className="dash-icon-btn" aria-label="Messages">💬</button>
+            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
+              🔔
+              {notificationCount > 0 ? <span className="notification-badge"></span> : null}
+            </button>
+            <div className="dash-avatar-wrapper">
+              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{profileInitials}</button>
+              {showDropdown && (
+                <div className="user-dropdown">
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
+                  <div className="dropdown-divider"></div>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -114,6 +127,7 @@ export default function PoliceShell({ activeKey, children, rightPanel, notificat
                     >
                       <span className="police-menu-icon" aria-hidden="true">{item.icon}</span>
                       <span className="police-menu-label">{item.label}</span>
+                      {item.badge > 0 ? <span className="police-menu-badge">{item.badge}</span> : null}
                     </button>
                   ))}
                 </div>
@@ -123,32 +137,6 @@ export default function PoliceShell({ activeKey, children, rightPanel, notificat
         </aside>
 
         <main className="police-center">
-          <div className="police-topbar">
-            <input className="police-search" placeholder="Search incidents..." aria-label="Search incidents" />
-            <button className="police-icon-btn" onClick={() => navigate('/notifications')}>
-              🔔 Alerts
-            </button>
-            <button className="police-icon-btn" onClick={() => navigate('/profile')}>
-              👮 {user?.name || 'Officer'}
-            </button>
-            <div className="police-quick-wrap">
-              <button
-                className="police-quick-btn"
-                onClick={() => setShowQuickActions((prev) => !prev)}
-                aria-expanded={showQuickActions}
-                aria-haspopup="menu"
-              >
-                + Quick Action
-              </button>
-              {showQuickActions ? (
-                <div className="police-quick-menu" role="menu" aria-label="Quick actions">
-                  <button role="menuitem" onClick={() => { setShowQuickActions(false); navigate('/police') }}>Create Alert</button>
-                  <button role="menuitem" onClick={() => { setShowQuickActions(false); navigate('/police/verification') }}>Assign Patrol</button>
-                  <button role="menuitem" onClick={() => { setShowQuickActions(false); navigate('/police') }}>View Critical Zones</button>
-                </div>
-              ) : null}
-            </div>
-          </div>
           {children}
         </main>
 

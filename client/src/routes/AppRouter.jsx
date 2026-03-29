@@ -23,6 +23,7 @@ import NewsPage from "../pages/user/NewsPage";
 import NotificationsPage from "../pages/user/NotificationsPage";
 import PredictionsPage from "../pages/user/PredictionsPage";
 import PolicePage from "../pages/user/PolicePage";
+import PoliceAIInsightsPage from "../pages/user/PoliceAIInsightsPage";
 import PoliceIncidentDetailPage from "../pages/user/PoliceIncidentDetailPage";
 import PoliceVerificationQueuePage from "../pages/user/PoliceVerificationQueuePage";
 import ProfilePage from "../pages/user/ProfilePage";
@@ -70,6 +71,7 @@ export default function AppRouter() {
           <Route path="alerts/create" element={<CreateAlertPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="police" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PolicePage /></ProtectedRoute>} />
+          <Route path="police/insights" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PoliceAIInsightsPage /></ProtectedRoute>} />
           <Route path="police/verification" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PoliceVerificationQueuePage /></ProtectedRoute>} />
           <Route path="police/incident/:id" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PoliceIncidentDetailPage /></ProtectedRoute>} />
           <Route path="report" element={<ReportsPage />} />

@@ -4,6 +4,7 @@ import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import { getUserRoles } from '../../utils/roleUtils'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import { deleteAlert, fetchAlerts, updateAlertStatus } from '../../services/alertService'
 import { fetchEmailPreferences, updateEmailPreferences } from '../../services/authService'
@@ -297,6 +298,20 @@ export default function AlertsPage() {
     archived: alerts.filter((alert) => alert.status === 'archived').length,
   }
 
+  const profileName = user?.name || user?.email || 'SIARA User'
+  const normalizedRoles = getUserRoles(user)
+  const primaryRole = normalizedRoles.includes('admin')
+    ? 'admin'
+    : normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
+      ? 'police'
+      : normalizedRoles[0] || 'citizen'
+  const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1)
+  const roleClass = primaryRole === 'admin'
+    ? 'role-admin'
+    : primaryRole === 'police'
+      ? 'role-police'
+      : 'role-citoyen'
+
   useEffect(() => {
     if (filteredAlerts.length === 0) {
       setSelectedAlertId(null)
@@ -500,8 +515,9 @@ export default function AlertsPage() {
               <span className="verified-badge">✓</span>
             </div>
             <div className="profile-info">
-              <p className="profile-name">{user?.name || 'SIARA User'}</p>
-              <span className="role-badge role-citoyen">Citizen</span>
+              <p className="profile-name">{profileName}</p>
+              <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
+              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>

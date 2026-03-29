@@ -12,7 +12,7 @@ import React, { useEffect, useMemo, useState, useContext, useCallback, useRef } 
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from '../../contexts/AuthContext';
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
-import { getUserRoles, isPoliceOfficerUser } from '../../utils/roleUtils'
+import { getUserRoles } from '../../utils/roleUtils'
 
 /* ── Styles ── */
 import "../../styles/NewsPage.css";
@@ -1248,7 +1248,6 @@ export default function MapPage() {
     : primaryRole === 'police'
       ? 'role-police'
       : 'role-citoyen'
-  const isPoliceAccount = isPoliceOfficerUser(user)
   const profileInitials = profileName
     ? profileName
       .split(" ")
@@ -1354,17 +1353,7 @@ export default function MapPage() {
             </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
-              {isPoliceAccount ? (
-                <PoliceModeTab
-                  user={user}
-                  className={`role-badge ${roleClass} role-badge-btn`}
-                  policeLabel="Switch to Police Mode"
-                  basicLabel="Switch to Basic Mode"
-                  basicPath="/dashboard"
-                />
-              ) : (
-                <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
-              )}
+              <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
               <p className="profile-bio">Browse live road reports and share updates from the field.</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>

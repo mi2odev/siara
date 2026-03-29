@@ -19,6 +19,7 @@ import React, { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import { getUserRoles } from '../../utils/roleUtils'
 import '../../styles/NewsPage.css'
 import '../../styles/DashboardPage.css'
 import '../../styles/PredictionsPage.css'
@@ -85,10 +86,18 @@ export default function PredictionsPage() {
       || user?.email
       || 'SIARA User',
   ).trim()
-  const roleLabel = Array.isArray(user?.roles) && user.roles.includes('admin')
-    ? 'Admin'
-    : 'Citizen'
-  const roleClass = roleLabel === 'Admin' ? 'role-admin' : 'role-citoyen'
+  const normalizedRoles = getUserRoles(user)
+  const primaryRole = normalizedRoles.includes('admin')
+    ? 'admin'
+    : normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
+      ? 'police'
+      : normalizedRoles[0] || 'citizen'
+  const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1)
+  const roleClass = primaryRole === 'admin'
+    ? 'role-admin'
+    : primaryRole === 'police'
+      ? 'role-police'
+      : 'role-citoyen'
   const profileInitials = profileName
     ? profileName
       .split(' ')
