@@ -2342,6 +2342,38 @@ exports.getCurrentWeather = async (req, res) => {
   }
 };
 
+exports.getReversePlace = async (req, res) => {
+  const point = validateLatLngStrict(req.query);
+  if (!point) {
+    return res.status(400).json({ error: "valid lat and lng query params are required" });
+  }
+
+  try {
+    const response = await axios.get("https://nominatim.openstreetmap.org/reverse", {
+      params: {
+        format: "jsonv2",
+        lat: point.lat,
+        lon: point.lng,
+        zoom: 18,
+        addressdetails: 1,
+        namedetails: 1,
+      },
+      timeout: TIMEOUT_MS,
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "SIARA/1.0 (map reverse geocoding)",
+      },
+    });
+
+    return res.json(response.data || {});
+  } catch (err) {
+    const status = err.response?.status || 500;
+    const payload = err.response?.data || { error: "Reverse geocoding failed" };
+    console.error("[Node] /api/location/reverse error:", err.message);
+    return res.status(status).json(payload);
+  }
+};
+
 exports.getRiskForecast24h = async (req, res) => {
   const point = validateLatLngStrict(req.query);
   if (!point) {

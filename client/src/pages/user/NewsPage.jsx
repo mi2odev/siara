@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
+import { createPortal } from 'react-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
@@ -116,6 +117,13 @@ function buildReportTags(report) {
 
 function getReportAuthorProfile(report) {
   const author = report?.reportedBy || report?.reported_by || {}
+  const authorRoles = Array.isArray(author?.roles)
+    ? author.roles
+    : Array.isArray(report?.reportedBy?.roles)
+      ? report.reportedBy.roles
+      : Array.isArray(report?.reported_by?.roles)
+        ? report.reported_by.roles
+        : []
 
   return {
     id: author?.id
@@ -129,11 +137,28 @@ function getReportAuthorProfile(report) {
     name: author?.name || report?.authorName || 'Citizen',
     email: author?.email || report?.createdByEmail || report?.created_by_email || '',
     role: author?.role || report?.authorRole || 'citizen',
+    roles: authorRoles,
     city: author?.city || author?.location || '',
     createdAt: author?.createdAt || author?.created_at || null,
     reportCount: author?.reportCount ?? author?.reports_count,
     verificationRate: author?.verificationRate ?? author?.verification_rate,
   }
+}
+
+function getAuthorRoleBadge(profile) {
+  const normalizedRoles = getUserRoles(profile)
+  const isAdmin = normalizedRoles.includes('admin')
+  const isPolice = normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
+
+  if (isAdmin) {
+    return { className: 'badge-admin', label: 'Admin' }
+  }
+
+  if (isPolice) {
+    return { className: 'badge-police', label: 'Police' }
+  }
+
+  return { className: 'badge-citoyen', label: 'Citizen' }
 }
 
 function mergeReports(previousReports, nextReports) {
@@ -153,6 +178,7 @@ function mergeReports(previousReports, nextReports) {
 function ReportCard({ report, navigate, onOpenAuthorProfile }) {
   const authorProfile = getReportAuthorProfile(report)
   const authorName = authorProfile.name
+  const authorRoleBadge = getAuthorRoleBadge(authorProfile)
   const severityClass = getSeverityClass(report?.severity)
   const severityLabel = getSeverityLabel(report?.severity)
   const media = Array.isArray(report?.media) ? report.media : []
@@ -164,8 +190,102 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
   const isVerified = report?.status === 'verified'
   const statusLabel = report?.status ? report.status.charAt(0).toUpperCase() + report.status.slice(1) : 'Pending'
   const occurredAt = report?.occurredAt || report?.createdAt
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(null)
+  const [zoomScale, setZoomScale] = useState(1)
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragRef = useRef(null)
+  const activeMedia = selectedMediaIndex == null ? null : media[selectedMediaIndex]
   const handleOpenProfile = () => {
     onOpenAuthorProfile(authorProfile)
+  }
+
+  useEffect(() => {
+    if (selectedMediaIndex == null) return () => {}
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setSelectedMediaIndex(null)
+      }
+
+      if (event.key === 'ArrowRight' && media.length > 1) {
+        setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev + 1) % media.length))
+      }
+
+      if (event.key === 'ArrowLeft' && media.length > 1) {
+        setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev - 1 + media.length) % media.length))
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [selectedMediaIndex, media.length])
+
+  useEffect(() => {
+    if (selectedMediaIndex == null) return () => {}
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [selectedMediaIndex])
+
+  useEffect(() => {
+    if (selectedMediaIndex == null) setZoomScale(1)
+    setPanOffset({ x: 0, y: 0 })
+    setIsDragging(false)
+    dragRef.current = null
+  }, [selectedMediaIndex])
+
+  useEffect(() => {
+    if (zoomScale <= 1) {
+      setPanOffset({ x: 0, y: 0 })
+      setIsDragging(false)
+      dragRef.current = null
+    }
+  }, [zoomScale])
+
+  const clampScale = (value) => Math.min(4, Math.max(0.25, value))
+  const zoomIn = () => setZoomScale((prev) => clampScale(prev + 0.15))
+  const zoomOut = () => setZoomScale((prev) => clampScale(prev - 0.15))
+  const zoomReset = () => setZoomScale(1)
+
+  const handleLightboxWheel = (event) => {
+    event.preventDefault()
+    const delta = event.deltaY > 0 ? -0.12 : 0.12
+    setZoomScale((prev) => clampScale(prev + delta))
+  }
+
+  const startPan = (clientX, clientY) => {
+    dragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      originX: panOffset.x,
+      originY: panOffset.y,
+    }
+    setIsDragging(true)
+  }
+
+  const movePan = (clientX, clientY) => {
+    if (!dragRef.current) return
+
+    const deltaX = clientX - dragRef.current.startX
+    const deltaY = clientY - dragRef.current.startY
+
+    setPanOffset({
+      x: dragRef.current.originX + deltaX,
+      y: dragRef.current.originY + deltaY,
+    })
+  }
+
+  const stopPan = () => {
+    if (!dragRef.current) return
+    dragRef.current = null
+    setIsDragging(false)
   }
 
   return (
@@ -181,7 +301,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
                 {authorName}
               </button>
               {isVerified && <span className="badge badge-verified">Verified</span>}
-              <span className="badge badge-citoyen">Citizen</span>
+              <span className={`badge ${authorRoleBadge.className}`}>{authorRoleBadge.label}</span>
             </div>
             <div className="post-meta-row">
               <span className="post-time">{formatRelativeTime(report?.createdAt || occurredAt)}</span>
@@ -226,12 +346,22 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
 
               return (
                 <div className={`media-item ${showOverlay ? 'media-more' : ''}`} key={mediaItem.id || `${report.id}-${index}`}>
-                  <img
-                    className="media-thumbnail"
-                    src={mediaItem.url}
-                    alt={report?.title || 'Report media'}
-                    loading="lazy"
-                  />
+                  <button
+                    type="button"
+                    className="post-media-open-btn"
+                    onClick={() => {
+                      setSelectedMediaIndex(index)
+                      setZoomScale(1)
+                    }}
+                    aria-label="Open photo"
+                  >
+                    <img
+                      className="media-thumbnail"
+                      src={mediaItem.url}
+                      alt={report?.title || 'Report media'}
+                      loading="lazy"
+                    />
+                  </button>
                   {showOverlay && <span className="media-more-count">+{remainingMediaCount}</span>}
                 </div>
               )
@@ -277,12 +407,72 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
           <strong>Occurred:</strong> {formatDateTime(occurredAt)}
         </div>
       </div>
+
+      {activeMedia && createPortal(
+        <div className="post-media-lightbox" role="dialog" aria-modal="true" aria-label="Photo preview" onClick={() => setSelectedMediaIndex(null)}>
+          <div className="post-media-lightbox-content" onClick={(event) => event.stopPropagation()}>
+            <div className="post-media-lightbox-toolbar">
+              <button type="button" className="post-media-zoom-btn" onClick={zoomOut} aria-label="Zoom out">−</button>
+              <button type="button" className="post-media-zoom-btn reset" onClick={zoomReset} aria-label="Reset zoom">
+                {Math.round(zoomScale * 100)}%
+              </button>
+              <button type="button" className="post-media-zoom-btn" onClick={zoomIn} aria-label="Zoom in">+</button>
+            </div>
+
+            <button
+              type="button"
+              className="post-media-lightbox-close"
+              onClick={() => setSelectedMediaIndex(null)}
+              aria-label="Close photo preview"
+            >
+              ×
+            </button>
+
+            <div
+              className={`post-media-lightbox-stage ${zoomScale > 1 ? 'zoomed' : ''} ${isDragging ? 'dragging' : ''}`}
+              onClick={(event) => {
+                if (event.target === event.currentTarget) {
+                  setSelectedMediaIndex(null)
+                }
+              }}
+              onWheel={handleLightboxWheel}
+              onMouseDown={(event) => {
+                event.preventDefault()
+                startPan(event.clientX, event.clientY)
+              }}
+              onMouseMove={(event) => movePan(event.clientX, event.clientY)}
+              onMouseUp={stopPan}
+              onMouseLeave={stopPan}
+              onTouchStart={(event) => {
+                const touch = event.touches[0]
+                if (!touch) return
+                startPan(touch.clientX, touch.clientY)
+              }}
+              onTouchMove={(event) => {
+                const touch = event.touches[0]
+                if (!touch) return
+                movePan(touch.clientX, touch.clientY)
+              }}
+              onTouchEnd={stopPan}
+            >
+              <img
+                className="post-media-lightbox-image"
+                src={activeMedia.url}
+                alt={report?.title || 'Report image'}
+                style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})` }}
+              />
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </article>
   )
 }
 
 export default function NewsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout } = useContext(AuthContext)
 
   const [showDropdown, setShowDropdown] = useState(false)
@@ -320,6 +510,11 @@ export default function NewsPage() {
     console.log('Quiz completed:', result)
     setShowQuiz(false)
   }
+
+  useEffect(() => {
+    const nextQuery = new URLSearchParams(location.search).get('q') || ''
+    setUserSearchQuery((previousQuery) => (previousQuery === nextQuery ? previousQuery : nextQuery))
+  }, [location.search])
 
   useEffect(() => {
     if (activeFeed !== 'nearby' || geoState.status !== 'idle') {
@@ -494,19 +689,45 @@ export default function NewsPage() {
     }
   }
 
-  const markerReports = useMemo(
-    () => reports.filter((report) => report?.location?.lat != null && report?.location?.lng != null),
-    [reports],
-  )
+  const filteredReports = useMemo(() => {
+    const query = userSearchQuery.trim().toLowerCase()
+
+    if (!query) {
+      return reports
+    }
+
+    return reports.filter((report) => {
+      const authorProfile = getReportAuthorProfile(report)
+      const title = String(report?.title || '').toLowerCase()
+      const location = String(report?.locationLabel || '').toLowerCase()
+      const type = String(report?.incidentType || '').toLowerCase()
+      const description = String(report?.description || '').toLowerCase()
+      const status = String(report?.status || '').toLowerCase()
+      const severity = String(report?.severity || '').toLowerCase()
+      const authorName = String(authorProfile?.name || '').toLowerCase()
+      const authorEmail = String(authorProfile?.email || '').toLowerCase()
+
+      return (
+        title.includes(query)
+        || location.includes(query)
+        || type.includes(query)
+        || description.includes(query)
+        || status.includes(query)
+        || severity.includes(query)
+        || authorName.includes(query)
+        || authorEmail.includes(query)
+      )
+    })
+  }, [reports, userSearchQuery])
+
+  const quickSearchIncidents = useMemo(() => filteredReports.slice(0, 8), [filteredReports])
 
   const searchableUsers = useMemo(() => {
     const uniqueUsers = new Map()
 
     reports.forEach((report) => {
       const profile = getReportAuthorProfile(report)
-      if (!profile?.name) {
-        return
-      }
+      if (!profile?.name) return
 
       const identityKey = profile.id != null
         ? `id:${String(profile.id)}`
@@ -522,10 +743,7 @@ export default function NewsPage() {
 
   const filteredUsers = useMemo(() => {
     const query = userSearchQuery.trim().toLowerCase()
-
-    if (!query) {
-      return searchableUsers.slice(0, 8)
-    }
+    if (!query) return []
 
     return searchableUsers
       .filter((profile) => {
@@ -533,8 +751,36 @@ export default function NewsPage() {
         const emailMatch = String(profile.email || '').toLowerCase().includes(query)
         return nameMatch || emailMatch
       })
-      .slice(0, 8)
+      .slice(0, 5)
   }, [searchableUsers, userSearchQuery])
+
+  const quickSearchItems = useMemo(() => {
+    const query = userSearchQuery.trim()
+    if (!query) return []
+
+    const accountItems = filteredUsers.map((profile) => ({
+      kind: 'account',
+      id: profile.id != null ? `account-${profile.id}` : `account-${profile.name}`,
+      title: profile.name,
+      subtitle: profile.email || 'Feed contributor',
+      profile,
+    }))
+
+    const incidentItems = quickSearchIncidents.map((report) => ({
+      kind: 'report',
+      id: `report-${report.id}`,
+      title: report?.title || 'Reported incident',
+      subtitle: report?.locationLabel || report?.incidentType || 'Incident report',
+      report,
+    }))
+
+    return [...accountItems, ...incidentItems].slice(0, 10)
+  }, [filteredUsers, quickSearchIncidents, userSearchQuery])
+
+  const markerReports = useMemo(
+    () => filteredReports.filter((report) => report?.location?.lat != null && report?.location?.lng != null),
+    [filteredReports],
+  )
 
   const mapCenter = useMemo(() => {
     if (activeFeed === 'nearby' && geoState.status === 'ready' && geoState.coords) {
@@ -552,7 +798,7 @@ export default function NewsPage() {
   }, [activeFeed, geoState.coords, geoState.status, markerReports])
 
   const trendingReports = useMemo(() => {
-    return [...reports]
+    return [...filteredReports]
       .sort((left, right) => {
         const severityWeight = (value) => {
           if (value === 'high') return 3
@@ -571,7 +817,7 @@ export default function NewsPage() {
         return rightDate - leftDate
       })
       .slice(0, 3)
-  }, [reports])
+  }, [filteredReports])
 
   const profileName = user?.name || 'Guest Driver'
   const normalizedRoles = getUserRoles(user)
@@ -597,8 +843,11 @@ export default function NewsPage() {
     if (!reports.length) {
       return 'No reports available for this feed'
     }
+    if (userSearchQuery.trim()) {
+      return `Found ${filteredReports.length} matching report${filteredReports.length === 1 ? '' : 's'}`
+    }
     return `Showing ${reports.length} live report${reports.length === 1 ? '' : 's'}`
-  }, [feedError, isLoading, reports.length])
+  }, [feedError, filteredReports.length, isLoading, reports.length, userSearchQuery])
 
   const followingUnsupported = activeFeed === 'following' && feedMeta?.followingSupported === false
 
@@ -631,6 +880,12 @@ export default function NewsPage() {
       },
     })
 
+    setIsUserSearchOpen(false)
+  }
+
+  const handleOpenIncident = (report) => {
+    if (!report?.id) return
+    navigate(`/incident/${report.id}`)
     setIsUserSearchOpen(false)
   }
 
@@ -681,38 +936,61 @@ export default function NewsPage() {
               <input
                 className="dash-search"
                 type="search"
-                placeholder="Search users from the feed..."
-                aria-label="Search users"
+                placeholder="Search accounts or accidents..."
+                aria-label="Search accounts or accidents"
                 value={userSearchQuery}
                 onChange={(event) => setUserSearchQuery(event.target.value)}
                 onFocus={handleSearchFocus}
                 onBlur={handleSearchBlur}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter' && filteredUsers.length > 0) {
+                  if (event.key !== 'Enter') return
+
+                  const query = event.currentTarget.value.trim()
+                  if (!query) return
+
+                  if (quickSearchItems.length > 0) {
                     event.preventDefault()
-                    handleOpenAuthorProfile(filteredUsers[0])
+                    const firstItem = quickSearchItems[0]
+                    if (firstItem.kind === 'account') {
+                      handleOpenAuthorProfile(firstItem.profile)
+                    } else {
+                      handleOpenIncident(firstItem.report)
+                    }
+                    return
                   }
+
+                  setUserSearchQuery(query)
+                  setIsUserSearchOpen(false)
                 }}
               />
 
-              {isUserSearchOpen && (
-                <div className="news-user-search-menu" role="listbox" aria-label="Feed users">
-                  {filteredUsers.length > 0 ? (
-                    filteredUsers.map((profile) => (
+              {isUserSearchOpen && userSearchQuery.trim() && (
+                <div className="news-user-search-menu" role="listbox" aria-label="Matching accounts and incidents">
+                  {quickSearchItems.length > 0 ? (
+                    quickSearchItems.map((item) => (
                       <button
-                        key={profile.id != null ? `search-user-${profile.id}` : `search-user-${profile.name}`}
+                        key={item.id}
                         className="news-user-search-item"
-                        onMouseDown={() => handleOpenAuthorProfile(profile)}
+                        onMouseDown={() => {
+                          if (item.kind === 'account') {
+                            handleOpenAuthorProfile(item.profile)
+                          } else {
+                            handleOpenIncident(item.report)
+                          }
+                        }}
                       >
-                        <span className="news-user-search-avatar">{getAuthorInitials(profile.name)}</span>
+                        <span className="news-user-search-avatar">{getAuthorInitials(item.title || 'R')}</span>
                         <span className="news-user-search-labels">
-                          <span className="news-user-search-name">{profile.name}</span>
-                          <span className="news-user-search-meta">{profile.email || 'Feed contributor'}</span>
+                          <span className="news-user-search-name-row">
+                            <span className="news-user-search-name">{item.title}</span>
+                            <span className={`news-user-search-type ${item.kind}`}>{item.kind === 'account' ? 'Account' : 'Report'}</span>
+                          </span>
+                          <span className="news-user-search-meta">{item.subtitle}</span>
                         </span>
                       </button>
                     ))
                   ) : (
-                    <div className="news-user-search-empty">No matching user found in current feed.</div>
+                    <div className="news-user-search-empty">No matching account or accident found in current feed.</div>
                   )}
                 </div>
               )}
@@ -723,7 +1001,7 @@ export default function NewsPage() {
               🔔
               <span className="notification-badge"></span>
             </button>
-            <button className="dash-icon-btn" aria-label="Messages">💬</button>
+            <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
               <button className="dash-avatar" onClick={() => setShowDropdown((previous) => !previous)} aria-label="User profile">
                 {getAuthorInitials(profileName)}
@@ -905,18 +1183,20 @@ export default function NewsPage() {
             </div>
           )}
 
-          {!feedError && !isLoading && reports.length === 0 && (
+          {!feedError && !isLoading && filteredReports.length === 0 && (
             <div className="card feed-state-card">
-              <h3 className="feed-state-title">{followingUnsupported ? 'Following feed not available yet' : 'No reports found'}</h3>
+              <h3 className="feed-state-title">{followingUnsupported && !userSearchQuery.trim() ? 'Following feed not available yet' : 'No reports found'}</h3>
               <p>
-                {followingUnsupported
+                {userSearchQuery.trim()
+                  ? 'Try a different search term for the incident title, location, or type.'
+                  : followingUnsupported
                   ? 'This repository does not currently include a following relationship, so there are no follow-based reports to show yet.'
                   : 'Try switching tabs or sorting options to load a different set of reports.'}
               </p>
             </div>
           )}
 
-          {!feedError && !isLoading && reports.map((report) => (
+          {!feedError && !isLoading && filteredReports.map((report) => (
             <ReportCard key={report.id} report={report} navigate={navigate} onOpenAuthorProfile={handleOpenAuthorProfile} />
           ))}
 
@@ -998,12 +1278,12 @@ export default function NewsPage() {
 
           <div className="card widget-alerts">
             <h3 className="widget-title">Priority Alerts</h3>
-            {reports.filter((report) => report.status === 'verified' || report.severity === 'high').slice(0, 3).map((report) => (
+            {filteredReports.filter((report) => report.status === 'verified' || report.severity === 'high').slice(0, 3).map((report) => (
               <div className="alert-item" key={`alert-${report.id}`}>
                 {report.title || report.locationLabel || 'Reported incident'} in {report.locationLabel || 'the selected area'}
               </div>
             ))}
-            {reports.length === 0 && (
+            {filteredReports.length === 0 && (
               <div className="alert-item">Live feed alerts will appear here when reports are available.</div>
             )}
             <button className="btn-activate-alerts" onClick={() => navigate('/alerts')}>Enable Alerts</button>

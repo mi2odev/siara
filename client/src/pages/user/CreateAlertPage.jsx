@@ -4,6 +4,7 @@ import { Circle, GoogleMap, Marker, useLoadScript } from '@react-google-maps/api
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { createAlert, fetchCommunes, fetchWilayas, updateAlert } from '../../services/alertService'
 import '../../styles/CreateAlertPage.css'
 import '../../styles/DashboardPage.css'
@@ -106,6 +107,7 @@ export default function CreateAlertPage() {
   const { isLoaded: mapReady } = useLoadScript({ googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '' })
 
   const [showDropdown, setShowDropdown] = useState(false)
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const [currentStep, setCurrentStep] = useState(1)
   const [errorMessage, setErrorMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -253,7 +255,14 @@ export default function CreateAlertPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya..." aria-label="Search" />
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
+              placeholder="Search for an incident, a road, a wilaya..."
+              ariaLabel="Search"
+              currentUser={user}
+            />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
@@ -266,11 +275,11 @@ export default function CreateAlertPage() {
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
                 </div>
               )}
             </div>

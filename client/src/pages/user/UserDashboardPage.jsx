@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect, useMemo, useCallback } from 're
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import '../../styles/NewsPage.css'
 import '../../styles/DashboardPage.css'
@@ -136,6 +137,7 @@ export default function UserDashboardPage() {
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const [showQuiz, setShowQuiz] = useState(false)
   const [dashboardData, setDashboardData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -219,19 +221,28 @@ export default function UserDashboardPage() {
               <PoliceModeTab user={user} />
             </nav>
           </div>
-          <div className="dash-header-center"><input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya..." aria-label="Search" /></div>
+          <div className="dash-header-center">
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
+              placeholder="Search for an incident, a road, a wilaya..."
+              ariaLabel="Search"
+              currentUser={user}
+            />
+          </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔</button>
-            <button className="dash-icon-btn" aria-label="Messages">💬</button>
+            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}></button>
+            <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{profileName.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2)}</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => navigate('/profile')}>👤 My Profile</button>
-                  <button className="dropdown-item" onClick={() => navigate('/settings')}>⚙️ Settings</button>
-                  <button className="dropdown-item" onClick={() => navigate('/notifications')}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => navigate('/profile')}>My Profile</button>
+                  <button className="dropdown-item" onClick={() => navigate('/settings')}>Settings</button>
+                  <button className="dropdown-item" onClick={() => navigate('/notifications')}>Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => Promise.resolve(logout()).finally(() => navigate('/home'))}>🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => Promise.resolve(logout()).finally(() => navigate('/home'))}>Log Out</button>
                 </div>
               )}
             </div>

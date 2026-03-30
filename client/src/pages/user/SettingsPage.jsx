@@ -1,8 +1,9 @@
-﻿import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { changePassword, getUserSettings, updateUserSettings } from '../../services/authService'
 import '../../styles/DashboardPage.css'
 import '../../styles/SettingsPage.css'
@@ -48,6 +49,7 @@ export default function SettingsPage() {
 
   const [activeSection, setActiveSection] = useState('profile')
   const [showDropdown, setShowDropdown] = useState(false)
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const [editing, setEditing] = useState(null)
   const [saved, setSaved] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -330,22 +332,29 @@ export default function SettingsPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya..." aria-label="Search" />
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
+              placeholder="Search for an incident, a road, a wilaya..."
+              ariaLabel="Search"
+              currentUser={user}
+            />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
-            <button className="dash-icon-btn" aria-label="Messages">💬</button>
+            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}><span className="notification-badge"></span></button>
+            <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {profileData.name ? profileData.name.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2) : 'U'}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
                 </div>
               )}
             </div>
@@ -405,7 +414,7 @@ export default function SettingsPage() {
                     <span className="settings-value">{profileData[key]}</span>
                   )}
                   {saved === key ? (
-                    <span className="settings-saved">Saved ✓</span>
+                    <span className="settings-saved">Saved</span>
                   ) : editing !== key ? (
                     <button className="settings-action" onClick={() => handleEdit(key)}>Edit</button>
                   ) : null}
@@ -437,7 +446,7 @@ export default function SettingsPage() {
                     <span className="settings-value">{profileData[key]}</span>
                   )}
                   {saved === key ? (
-                    <span className="settings-saved">Saved ✓</span>
+                    <span className="settings-saved">Saved</span>
                   ) : editing !== key ? (
                     <button className="settings-action" onClick={() => handleEdit(key)}>Edit</button>
                   ) : null}

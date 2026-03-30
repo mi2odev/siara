@@ -265,11 +265,11 @@
    ================================================ */
 .profile-layout {
   display: grid;
-  grid-template-columns: 280px 1fr 360px;
+  grid-template-columns: var(--siara-left-sidebar-width, 260px) minmax(0, 1fr) 360px;
   gap: 20px;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 88px 20px 40px;
+  max-width: none;
+  margin: 0;
+  padding: 88px 12px 40px;
   width: 100%;
   height: calc(100vh - 80px);
   overflow: hidden;
@@ -361,8 +361,8 @@
 }
 
 .user-role-badge.police {
-  background: linear-gradient(90deg, #FEE2E2, #FECACA);
-  color: #991B1B;
+  background: linear-gradient(90deg, #DBEAFE, #BFDBFE);
+  color: #1E40AF;
 }
 
 .user-role-badge.admin {

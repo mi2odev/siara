@@ -3,6 +3,7 @@
    ================================================ */
 
 :root {
+  --siara-left-sidebar-width: 260px;
   --siara-primary: #6366F1;
   --siara-primary-dark: #4F46E5;
   --siara-accent: #8B5CF6;
@@ -25,6 +26,22 @@
   --siara-radius-lg: 16px;
   --siara-radius-xl: 20px;
   --siara-transition: cubic-bezier(.4,0,.2,1);
+}
+
+/* Keep all app left sidebars visually identical across pages. */
+.sidebar-left,
+.al-left,
+.map-sidebar-left,
+.notif-left,
+.profile-sidebar-left,
+.report-left,
+.create-left,
+.incident-detail-page .incident-sidebar-left,
+.police-sidebar {
+  width: var(--siara-left-sidebar-width, 260px);
+  min-width: var(--siara-left-sidebar-width, 260px);
+  max-width: var(--siara-left-sidebar-width, 260px);
+  box-sizing: border-box;
 }
 
 /* ================================================
@@ -208,6 +225,28 @@
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
+}
+
+.dash-icon-btn[aria-label="Notifications"]:not(.dash-icon-btn-notification),
+.dash-icon-btn[aria-label="Messages"]:not(.dash-icon-btn-messages) {
+  font-size: 0;
+  color: transparent;
+}
+
+.dash-icon-btn[aria-label="Notifications"]:not(.dash-icon-btn-notification)::before,
+.dash-icon-btn[aria-label="Messages"]:not(.dash-icon-btn-messages)::before {
+  font-size: 16px;
+  line-height: 1;
+  color: #64748B;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.dash-icon-btn[aria-label="Notifications"]:not(.dash-icon-btn-notification)::before {
+  content: "\1F514";
+}
+
+.dash-icon-btn[aria-label="Messages"]:not(.dash-icon-btn-messages)::before {
+  content: "\1F4AC";
 }
 
 .dash-icon-glyph {

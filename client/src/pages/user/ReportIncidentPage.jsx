@@ -20,6 +20,7 @@ import React, { useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -59,6 +60,7 @@ export default function ReportIncidentPage() {
 
   /* ═══ UI STATE ═══ */
   const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const [currentStep, setCurrentStep] = useState(1)         // Active wizard step (1-5)
   const [isSubmitting, setIsSubmitting] = useState(false)   // Loading spinner during submit
   const [isSubmitted, setIsSubmitted] = useState(false)     // Switches to success screen
@@ -339,22 +341,29 @@ export default function ReportIncidentPage() {
               </nav>
             </div>
             <div className="dash-header-center">
-              <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya…" aria-label="Search" />
+              <GlobalHeaderSearch
+                navigate={navigate}
+                query={headerSearchQuery}
+                setQuery={setHeaderSearchQuery}
+                placeholder="Search for an incident, a road, a wilaya…"
+                ariaLabel="Search"
+                currentUser={user}
+              />
             </div>
             <div className="dash-header-right">
               <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
                 🔔<span className="notification-badge"></span>
               </button>
-              <button className="dash-icon-btn" aria-label="Messages">💬</button>
+              <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
               <div className="dash-avatar-wrapper">
                 <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
                 {showDropdown && (
                   <div className="user-dropdown">
-                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
-                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
+                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
+                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
+                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
                     <div className="dropdown-divider"></div>
-                    <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
+                    <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
                   </div>
                 )}
               </div>
@@ -451,7 +460,14 @@ export default function ReportIncidentPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya…" aria-label="Search" />
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
+              placeholder="Search for an incident, a road, a wilaya…"
+              ariaLabel="Search"
+              currentUser={user}
+            />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
@@ -462,11 +478,11 @@ export default function ReportIncidentPage() {
               <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
                 </div>
               )}
             </div>

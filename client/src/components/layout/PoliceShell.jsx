@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from './PoliceModeTab'
+import GlobalHeaderSearch from '../search/GlobalHeaderSearch'
 import 'leaflet/dist/leaflet.css'
 import '../../styles/DashboardPage.css'
 import '../../styles/PoliceMode.css'
@@ -23,6 +24,7 @@ export default function PoliceShell({
   activeKey,
   children,
   rightPanel,
+  rightPanelCollapsed = false,
   notificationCount = 0,
   emergencyMode = false,
   verificationPendingCount = 0,
@@ -30,6 +32,7 @@ export default function PoliceShell({
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('')
 
   const menuGroups = useMemo(() => [
     {
@@ -82,11 +85,13 @@ export default function PoliceShell({
           </div>
 
           <div className="dash-header-center">
-            <input
-              type="search"
-              className="dash-search"
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
               placeholder="Search for an incident, a road, a zone..."
-              aria-label="Search"
+              ariaLabel="Search"
+              currentUser={user}
             />
           </div>
 
@@ -112,7 +117,7 @@ export default function PoliceShell({
         </div>
       </header>
 
-      <div className="police-layout">
+      <div className={`police-layout ${rightPanelCollapsed ? 'police-layout-collapsed' : ''}`}>
         <aside className="police-sidebar">
           <nav className="police-menu">
             {visibleMenuGroups.map((group) => (
@@ -140,9 +145,11 @@ export default function PoliceShell({
           {children}
         </main>
 
-        <aside className="police-right">
-          {rightPanel}
-        </aside>
+        {!rightPanelCollapsed ? (
+          <aside className="police-right">
+            {rightPanel}
+          </aside>
+        ) : null}
       </div>
     </div>
   )

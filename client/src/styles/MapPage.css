@@ -197,6 +197,22 @@
   display: none;
 }
 
+/* Keep police mode switch colors on map header (avoid generic .map-page .dash-tab override) */
+.map-page .dash-tab.dash-tab-police {
+  background: linear-gradient(90deg, #0f766e, #0e7490);
+  color: #fff;
+  font-weight: 600;
+}
+
+.map-page .dash-tab.dash-tab-police:hover {
+  background: linear-gradient(90deg, #0d9488, #0284c7);
+  color: #fff;
+}
+
+.map-page .dash-tab.dash-tab-police::after {
+  display: none;
+}
+
 /* Header CENTER: Search */
 .map-page .dash-header-center {
   flex: 1;
@@ -375,10 +391,10 @@
 .map-content {
   flex: 1;
   display: grid;
-  grid-template-columns: 260px 1fr 336px;
+  grid-template-columns: var(--siara-left-sidebar-width, 260px) 1fr 336px;
   grid-template-rows: 1fr;
   margin-top: 78px;
-  padding: 0 12px 12px;
+  padding: 0 12px 12px 0;
   gap: 12px;
   background: #EEF2FF;
   overflow: hidden;
@@ -387,6 +403,10 @@
 
 /* ==================== LEFT SIDEBAR — CONTROLS ==================== */
 .map-sidebar-left {
+  width: var(--siara-left-sidebar-width, 260px);
+  min-width: var(--siara-left-sidebar-width, 260px);
+  max-width: var(--siara-left-sidebar-width, 260px);
+  box-sizing: border-box;
   background: #ffffff;
   border: 1px solid #E2E8F0;
   border-radius: 16px;
@@ -1763,6 +1783,19 @@
 .weather-temp {
   font-size: 24px;
   font-weight: 700;
+}
+
+.weather-hour {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  opacity: 0.9;
+}
+
+.weather-place {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.86;
 }
 
 .weather-desc {

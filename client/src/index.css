@@ -16,6 +16,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scrollbar-gutter: stable;
+}
+
 a {
   font-weight: 500;
   color: var(--siara-primary);

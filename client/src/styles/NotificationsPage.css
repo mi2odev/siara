@@ -58,7 +58,7 @@
 /* ======================== GRID ======================== */
 .notif-grid {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) 340px;
+  grid-template-columns: var(--siara-left-sidebar-width, 260px) minmax(0, 1fr) 340px;
   width: 100%;
   max-width: none;
   margin: 0;

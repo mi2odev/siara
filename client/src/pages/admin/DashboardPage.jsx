@@ -23,6 +23,7 @@ import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import SiaraMap from '../../components/map/SiaraMap'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
+import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { AuthContext } from '../../contexts/AuthContext'
 import { ADMIN_LANDING_PATH } from '../../routes/routeAccess'
 
@@ -68,13 +69,14 @@ const typeData = [
 
 export default function DashboardPage(){
   const navigate = useNavigate()
-  const { logout } = useContext(AuthContext)
+  const { user, logout } = useContext(AuthContext)
 
   /* ── State ── */
   const [filters, setFilters] = useState({ date: '', wilaya: '', severity: '' }) // Active filter selections
   const [showFilterBanner, setShowFilterBanner] = useState(false)  // Temporary "filters applied" toast
   const [activeKPI, setActiveKPI] = useState(null)       // Which KPI card is highlighted (null|'zones'|'ai'|'accidents'|'alerts')
   const [showDropdown, setShowDropdown] = useState(false) // User avatar dropdown visibility
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('') // Header global search query
   const [mapLayer, setMapLayer] = useState('heatmap')     // Active map layer: 'heatmap' | 'points'
   const [selectedIncident, setSelectedIncident] = useState(null) // Incident focused on the map
   const [showQuiz, setShowQuiz] = useState(false)         // DrivingQuiz modal visibility
@@ -116,7 +118,14 @@ export default function DashboardPage(){
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a province…" aria-label="Search dashboard" />
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
+              placeholder="Search for an incident, a road, a province…"
+              ariaLabel="Search dashboard"
+              currentUser={user}
+            />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/admin/alerts')}>🔔<span className="notification-badge"></span></button>

@@ -12,6 +12,7 @@ import React, { useEffect, useMemo, useState, useContext, useCallback, useRef } 
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from '../../contexts/AuthContext';
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 
 /* ── Styles ── */
@@ -177,26 +178,6 @@ function mapGeolocationError(err) {
   return err.message || "Unable to get your position.";
 }
 
-function resolveContextPoint(selectedIncident, userPosition) {
-  const incidentPoint = normalizePoint(selectedIncident);
-  if (incidentPoint) {
-    return incidentPoint;
-  }
-
-  if (Array.isArray(selectedIncident?.path) && selectedIncident.path.length > 0) {
-    const firstPoint = selectedIncident.path[0];
-    if (Array.isArray(firstPoint) && firstPoint.length >= 2) {
-      const lat = toFiniteNumber(firstPoint[0]);
-      const lng = toFiniteNumber(firstPoint[1]);
-      if (lat != null && lng != null) {
-        return { lat, lng };
-      }
-    }
-  }
-
-  return normalizePoint(userPosition);
-}
-
 function toPointKey(point) {
   if (!point) {
     return "";
@@ -216,85 +197,34 @@ function weatherIconFromCondition(condition) {
 }
 
 function renderHeaderIcon(type) {
-  if (type === "notification") {
-    return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M18 16V11C18 7.7 15.8 5 12.7 4.2V3.5C12.7 3 12.3 2.7 11.8 2.7C11.3 2.7 10.9 3 10.9 3.5V4.2C7.8 5 5.6 7.7 5.6 11V16L4.2 17.4C3.8 17.8 4.1 18.6 4.7 18.6H19C19.6 18.6 19.9 17.8 19.5 17.4L18 16Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-        <path d="M9.6 19.4C10 20.4 10.8 21 11.8 21C12.8 21 13.6 20.4 14 19.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M6 17.2L3.8 20.2C3.4 20.8 3.8 21.6 4.5 21.6H16.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 15.8C5.8 15.8 4 14 4 11.8V8.8C4 6.6 5.8 4.8 8 4.8H16C18.2 4.8 20 6.6 20 8.8V11.8C20 14 18.2 15.8 16 15.8H8Z" stroke="currentColor" strokeWidth="1.7" />
-    </svg>
-  );
+  if (type === "notification") return "🔔";
+  return "💬";
 }
 
 function renderNavIcon(type) {
-  if (type === "home") {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 11L12 4L20 11V20H14V14H10V20H4V11Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (type === "feed") {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="4" y="5" width="16" height="14" rx="3" stroke="currentColor" strokeWidth="1.7" />
-        <path d="M8 10H16M8 14H13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (type === "report") {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M8 4H14L18 8V20H8V4Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-        <path d="M14 4V8H18" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (type === "map") {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M9 4.5L15 7.5L21 4.5V19.5L15 22.5L9 19.5L3 22.5V7.5L9 4.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (type === "quiz") {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.7" />
-        <path d="M12 8V12L15 14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (type === "stats") {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M5 19V12M12 19V8M19 19V5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (type === "alerts") {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 3L21 19H3L12 3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-        <path d="M12 9V13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-        <circle cx="12" cy="16.5" r="1" fill="currentColor" />
-      </svg>
-    );
+  if (type === "home") return "🏠";
+  if (type === "feed") return "📰";
+  if (type === "report") return "📝";
+  if (type === "map") return "🗺️";
+  if (type === "quiz") return "🚗";
+  if (type === "stats") return "📊";
+  if (type === "alerts") return "🚨";
+  if (type === "settings") return "⚙️";
+  return "📍";
+}
+
+function resolveContextPoint(selectedIncident, userPosition) {
+  const incidentPoint = normalizePoint(selectedIncident);
+  if (incidentPoint) {
+    return incidentPoint;
   }
 
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M6 10V4H18V10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" strokeWidth="1.7" />
-    </svg>
-  );
+  const userPoint = normalizePoint(userPosition);
+  if (userPoint) {
+    return userPoint;
+  }
+
+  return null;
 }
 
 function normalizeSeverityLevel(value) {
@@ -360,6 +290,84 @@ function formatZoneLastTriggered(value) {
   return relativeAge === "Unknown" ? relativeAge : `${relativeAge} ago`;
 }
 
+function formatCurrentHourLabel(dateValue = new Date()) {
+  return dateValue.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function normalizeReversePlace(payload) {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+
+  const address = payload.address && typeof payload.address === "object"
+    ? payload.address
+    : {};
+
+  const displayParts = String(payload.display_name || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const locality =
+    address.city
+    || address.town
+    || address.village
+    || address.municipality
+    || address.county
+    || "";
+  const quartier =
+    address.suburb
+    || address.neighbourhood
+    || address.neighborhood
+    || address.city_district
+    || address.quarter
+    || address.hamlet
+    || address.residential
+    || address.borough
+    || "";
+  const street =
+    address.road
+    || address.pedestrian
+    || address.footway
+    || address.path
+    || "";
+  const region =
+    address.state
+    || address.province
+    || address.region
+    || address.state_district
+    || "";
+
+  const normalizedLocality = String(locality || "").toLowerCase();
+  const normalizedRegion = String(region || "").toLowerCase();
+  const displayDetail = displayParts.find((part) => {
+    const normalizedPart = String(part || "").toLowerCase();
+    return normalizedPart
+      && normalizedPart !== normalizedLocality
+      && normalizedPart !== normalizedRegion;
+  }) || "";
+  const preciseDetail = quartier || street || displayDetail;
+
+  const composed = [
+    preciseDetail,
+    locality,
+    region,
+  ]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .filter((value, index, list) => list.indexOf(value) === index)
+    .join(", ");
+
+  if (composed) {
+    return composed;
+  }
+
+  return String(payload.display_name || "").split(",").slice(0, 3).join(",").trim();
+}
+
 export default function MapPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -369,6 +377,7 @@ export default function MapPage() {
 
   // Controls the visibility of the user-profile dropdown in the header
   const [showDropdown, setShowDropdown] = useState(false);
+  const [headerSearchQuery, setHeaderSearchQuery] = useState("");
 
   // Driving quiz overlay
   const [showQuiz, setShowQuiz] = useState(false);
@@ -419,11 +428,23 @@ export default function MapPage() {
   const [forecastError, setForecastError] = useState("");
   const [forecastPoints, setForecastPoints] = useState([]);
   const [weatherRefreshTick, setWeatherRefreshTick] = useState(0);
+  const [currentHourText, setCurrentHourText] = useState(() => formatCurrentHourLabel(new Date()));
+  const [resolvedPlaceName, setResolvedPlaceName] = useState("");
+  const [isResolvingPlace, setIsResolvingPlace] = useState(false);
 
   const contextPoint = useMemo(
     () => resolveContextPoint(selectedIncident, userPosition),
     [selectedIncident, userPosition],
   );
+
+  useEffect(() => {
+    const updateTime = () => setCurrentHourText(formatCurrentHourLabel(new Date()));
+    updateTime();
+
+    const intervalId = window.setInterval(updateTime, 60 * 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   const contextPointKey = useMemo(() => toPointKey(contextPoint), [contextPoint]);
   const hasGrantedLocation = useMemo(
     () => locationStatus === "granted" && normalizePoint(userPosition) != null,
@@ -449,6 +470,7 @@ export default function MapPage() {
   const requestSequenceRef = useRef(0);
   const lastErrorRef = useRef(null);
   const autoLocateAttemptedRef = useRef(false);
+  const placeCacheRef = useRef(new Map());
 
   useEffect(() => {
     userPositionRef.current = userPosition;
@@ -809,6 +831,55 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
+    if (!hasGrantedLocation || !contextPoint) {
+      setResolvedPlaceName("");
+      setIsResolvingPlace(false);
+      return undefined;
+    }
+
+    const cacheKey = `${contextPoint.lat.toFixed(4)}:${contextPoint.lng.toFixed(4)}`;
+    const cached = placeCacheRef.current.get(cacheKey);
+    if (cached) {
+      setResolvedPlaceName(cached);
+      setIsResolvingPlace(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timerId = window.setTimeout(async () => {
+      setIsResolvingPlace(true);
+      try {
+        const payload = await getJson(
+          `/api/location/reverse?lat=${encodeURIComponent(contextPoint.lat)}&lng=${encodeURIComponent(contextPoint.lng)}`,
+          controller.signal,
+        );
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const place = normalizeReversePlace(payload);
+        if (place) {
+          placeCacheRef.current.set(cacheKey, place);
+          setResolvedPlaceName(place);
+        }
+      } catch {
+        if (controller.signal.aborted) {
+          return;
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsResolvingPlace(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timerId);
+      controller.abort();
+    };
+  }, [contextPoint, hasGrantedLocation]);
+
+  useEffect(() => {
     if (!hasGrantedLocation || !userPosition || !contextPoint) {
       setWeatherLoading(false);
       setWeatherRefreshing(false);
@@ -913,6 +984,31 @@ export default function MapPage() {
   const pressureText = weatherData?.pressure_hpa == null
     ? "n/a"
     : `${Number(weatherData.pressure_hpa).toFixed(0)} hPa`;
+  const weatherPlaceText = hasGrantedLocation
+    ? (
+      String(
+        resolvedPlaceName
+        || weatherData?.location_name
+        || weatherData?.locationLabel
+        || weatherData?.place
+        || weatherData?.city
+        || weatherData?.wilaya
+        || (selectedWilaya !== "all" ? selectedWilaya : ""),
+      ).trim()
+      || (isResolvingPlace ? "Resolving neighborhood..." : "Current location")
+    )
+    : (
+      String(
+        selectedIncident?.locationLabel
+        || weatherData?.location_name
+        || weatherData?.locationLabel
+        || weatherData?.place
+        || weatherData?.city
+        || weatherData?.wilaya
+        || (selectedWilaya !== "all" ? selectedWilaya : ""),
+      ).trim()
+      || "Unknown place"
+    );
 
   /* ──────────────────────── Report Data & Derived UI Data ──────────────────────── */
 
@@ -1286,11 +1382,13 @@ export default function MapPage() {
 
           {/* ── Center: Search bar ── */}
           <div className="dash-header-center">
-            <input
-              type="search"
-              className="dash-search"
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
               placeholder="Search for an incident, a road, a wilaya…"
-              aria-label="Search"
+              ariaLabel="Search"
+              currentUser={user}
             />
           </div>
 
@@ -1319,19 +1417,19 @@ export default function MapPage() {
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate("/profile"); }}>
-                    👤 My Profile
+                    My Profile
                   </button>
                   <button
                     className="dropdown-item"
                     onClick={() => { setShowDropdown(false); navigate("/settings"); }}
                   >
-                    ⚙️ Settings
+                    Settings
                   </button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate("/notifications"); }}>
-                    🔔 Notifications
+                    Notifications
                   </button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home'); }}>🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home'); }}>Log Out</button>
                 </div>
               )}
             </div>
@@ -1552,6 +1650,8 @@ export default function MapPage() {
             <div className="weather-info">
 
               <span className="weather-temp">{weatherTempText}</span>
+              <span className="weather-hour">Current hour: {currentHourText}</span>
+              <span className="weather-place">Current place: {weatherPlaceText}</span>
               <span className="weather-desc">{weatherDescText}</span>
               {weatherUpdating && (
                 <span className="weather-detail weather-detail-muted">Updating weather...</span>

@@ -9,7 +9,6 @@
  *   - Center: cover photo + profile overview with stats;
  *              tabbed activity section (posts / reports / badges / history / timeline)
  *              with full keyboard navigation (ArrowLeft/Right/Home/End);
- *              saved locations grid
  *   - Right:  safety score gauge (SVG donut), contribution impact stats,
  *             recent triggered alerts, account health checklist
  *
@@ -22,6 +21,7 @@ import React, { useEffect, useRef, useState, useContext } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import { getCurrentUser } from '../../services/authService'
 import { listReports } from '../../services/reportsService'
@@ -170,10 +170,17 @@ export default function ProfilePage(){
   const [alertsError, setAlertsError] = useState('')
   const [activeTab, setActiveTab] = useState('alerts')       // Currently selected activity tab
   const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const tabsRef = useRef(null)                              // Ref to the tab-list container for scroll/focus
   const viewedUserFromFeed = location.state?.profileUser || null
   const authUser = user || null
   const isViewingOwnProfile = viewedUserFromFeed ? isSameUser(viewedUserFromFeed, authUser) : true
+  const headerDisplayName = authUser?.name
+    || [authUser?.first_name, authUser?.last_name].filter(Boolean).join(' ')
+    || authUser?.email
+    || authUser?.phone
+    || 'User'
+  const headerInitials = getUserInitials(headerDisplayName)
 
   useEffect(() => {
     setProfileUser(viewedUserFromFeed || null)
@@ -213,7 +220,6 @@ export default function ProfilePage(){
     || currentUser.email
     || currentUser.phone
     || 'SIARA User'
-  const initials = getUserInitials(displayName)
   const normalizedRoles = getUserRoles(currentUser)
   const primaryRole = normalizedRoles.includes('admin')
     ? 'admin'
@@ -373,20 +379,27 @@ export default function ProfilePage(){
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya…" aria-label="Search" />
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
+              placeholder="Search for an incident, a road, a wilaya…"
+              ariaLabel="Search"
+              currentUser={user}
+            />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>🔔<span className="notification-badge"></span></button>
-            <button className="dash-icon-btn" aria-label="Messages">💬</button>
+            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}><span className="notification-badge"></span></button>
+            <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{initials}</button>
+              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{headerInitials}</button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
                 </div>
               )}
             </div>
@@ -406,7 +419,7 @@ export default function ProfilePage(){
             <h2 className="user-card-name">{displayName}</h2>
             <span className={`user-role-badge ${roleBadgeClass}`}>{roleLabel}</span>
             <p className="user-bio">{bio}</p>
-            <button className="btn-edit-profile">✏️ Edit Profile</button>
+            {isViewingOwnProfile && <button className="btn-edit-profile">✏️ Edit Profile</button>}
           </div>
 
           {/* Profile Completion Indicator — progress bar + task checklist (65%) */}
@@ -452,10 +465,6 @@ export default function ProfilePage(){
               <span className="nav-label">My Reports</span>
             </button>
             <button className="profile-nav-item">
-              <span className="nav-icon">📍</span>
-              <span className="nav-label">Saved Locations</span>
-            </button>
-            <button className="profile-nav-item">
               <span className="nav-icon">⚙️</span>
               <span className="nav-label">Account Settings</span>
             </button>
@@ -466,7 +475,7 @@ export default function ProfilePage(){
           </nav>
         </aside>
 
-        {/* ═══ MIDDLE COLUMN — Profile Overview + Activities + Saved Locations ═══ */}
+        {/* ═══ MIDDLE COLUMN — Profile Overview + Activities ═══ */}
         <main className="profile-main">
           {/* Profile Overview */}
           <section className="profile-overview">
@@ -761,28 +770,6 @@ export default function ProfilePage(){
             </div>
           </section>
 
-          {/* ═══ SAVED LOCATIONS GRID ═══ */}
-          <section className="saved-locations">
-            <h2 className="section-title">📍 Saved Locations</h2>
-            <div className="locations-grid">
-              {[
-                { name: 'Home', address: 'Bab Ezzouar, Algiers' },
-                { name: 'Work', address: 'Hydra, Algiers' },
-                { name: 'Preferred Route', address: 'East-West Highway' },
-                { name: 'Dangerous Intersection', address: 'El Madania Intersection' }
-              ].map((loc, i) => (
-                <div key={i} className="location-card">
-                  <div className="location-map-thumb"></div>
-                  <h3 className="location-name">{loc.name}</h3>
-                  <p className="location-address">{loc.address}</p>
-                  <div className="location-actions">
-                    <button className="btn-location-action">✏️</button>
-                    <button className="btn-location-action">🗑️</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
         </main>
 
         {/* ═══ RIGHT COLUMN — Profile Insights (score, impact, alerts, health) ═══ */}

@@ -1,6 +1,6 @@
-﻿/**
+/**
  * @file ServicesPage.jsx
- * @description Services page — placeholder awaiting implementation.
+ * @description Services page - placeholder awaiting implementation.
  */
 
 // React imports and associated stylesheet

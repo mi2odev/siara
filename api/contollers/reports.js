@@ -91,7 +91,17 @@ const REPORT_SELECT_SQL = `
     ST_X(ar.incident_location::geometry) as lng,
     concat_ws(' ', u.first_name, u.last_name) as reporter_name,
     u.first_name as reporter_first_name,
-    u.last_name as reporter_last_name
+    u.last_name as reporter_last_name,
+    coalesce(
+      (
+        select array_agg(distinct r.name)
+        from auth.user_roles ur
+        left join auth.roles r on r.id = ur.role_id
+        where ur.user_id = ar.reported_by
+          and r.name is not null
+      ),
+      '{}'::varchar[]
+    ) as reporter_roles
   from app.accident_reports ar
   left join auth.users u on u.id = ar.reported_by
 `;
@@ -375,6 +385,7 @@ function mapReportRow(row) {
             row.reporter_name ||
             [row.reporter_first_name, row.reporter_last_name].filter(Boolean).join(" ") ||
             null,
+          roles: Array.isArray(row.reporter_roles) ? row.reporter_roles : [],
         }
       : null,
   };

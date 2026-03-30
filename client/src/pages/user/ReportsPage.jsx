@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import { deleteReport, listReports } from '../../services/reportsService'
 import '../../styles/NewsPage.css'
@@ -119,6 +120,7 @@ export default function ReportsPage() {
   const { user, logout } = useContext(AuthContext)
 
   const [showDropdown, setShowDropdown] = useState(false)
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [toast, setToast] = useState('')
@@ -259,11 +261,13 @@ export default function ReportsPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input
-              type="search"
-              className="dash-search"
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
               placeholder="Search for an incident, a road, a wilaya..."
-              aria-label="Search"
+              ariaLabel="Search"
+              currentUser={user}
             />
           </div>
           <div className="dash-header-right">
@@ -277,11 +281,11 @@ export default function ReportsPage() {
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
                 </div>
               )}
             </div>
@@ -305,6 +309,8 @@ export default function ReportsPage() {
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>
+
+          <button className="al-cta" onClick={() => navigate('/report/create')}>+ New Report</button>
 
           <div className="card al-filter-section">
             <div className="nav-section-label">REPORT STATUS</div>
@@ -338,8 +344,6 @@ export default function ReportsPage() {
             <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-icon">🔔</span><span className="nav-label">Manage Alerts</span></button>
             <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-icon">📰</span><span className="nav-label">Back to Feed</span></button>
           </div>
-
-          <button className="al-cta" onClick={() => navigate('/report/create')}>+ New Report</button>
         </aside>
 
         <main className="al-center">

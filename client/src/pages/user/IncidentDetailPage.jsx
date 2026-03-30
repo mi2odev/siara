@@ -1,24 +1,30 @@
 import React, { useState, useContext, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CircleMarker, MapContainer, TileLayer } from 'react-leaflet'
+import { createPortal } from 'react-dom'
 import 'leaflet/dist/leaflet.css'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
+import { getUserRoles } from '../../utils/roleUtils'
 import { deleteReport, getReport, updateReport } from '../../services/reportsService'
 import '../../styles/IncidentDetailPage.css'
+import '../../styles/NewsPage.css'
+import '../../styles/AlertsPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
+import profileAvatar from '../../assets/logos/siara-logo1.png'
 
 const REPORT_ID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const INCIDENT_TYPE_META = {
-  accident: { label: 'Accident', icon: 'ACC' },
-  traffic: { label: 'Traffic', icon: 'TRF' },
-  danger: { label: 'Danger', icon: 'DNG' },
-  weather: { label: 'Weather', icon: 'WTH' },
-  roadworks: { label: 'Roadworks', icon: 'RDW' },
-  other: { label: 'Other', icon: 'OTH' },
+  accident: { label: 'Accident', icon: '🚗' },
+  traffic: { label: 'Traffic', icon: '🚦' },
+  danger: { label: 'Danger', icon: '⚠️' },
+  weather: { label: 'Weather', icon: '🌧️' },
+  roadworks: { label: 'Roadworks', icon: '🚧' },
+  other: { label: 'Other', icon: '📍' },
 }
 
 const STATUS_META = {
@@ -52,11 +58,11 @@ Authorities advise all motorists to avoid this section of the highway until furt
     { type: 'image', caption: 'Emergency response' },
   ],
   timeline: [
-    { time: '08:45', source: 'user', text: 'Initial report submitted by citizen' },
-    { time: '08:52', source: 'system', text: 'Incident verified by 5+ users' },
-    { time: '08:57', source: 'authority', text: 'Emergency services dispatched' },
-    { time: '09:03', source: 'authority', text: 'Traffic diversion activated' },
-    { time: '09:08', source: 'user', text: 'Ambulances arriving on scene' },
+    { time: '08:45', source: 'user', sourceLabel: 'Citizen Reporter', text: 'Report submitted by a citizen.' },
+    { time: '08:52', source: 'system', sourceLabel: 'System', text: 'Incident verified by five community reports.' },
+    { time: '08:57', source: 'authority', sourceLabel: 'Authority', text: 'Emergency response units were dispatched.' },
+    { time: '09:03', source: 'authority', sourceLabel: 'Authority', text: 'Traffic diversion was activated.' },
+    { time: '09:08', source: 'authority', sourceLabel: 'Authority', text: 'Ambulance teams arrived on scene.' },
   ],
   confirmations: 47,
   comments: 12,
@@ -140,40 +146,14 @@ function renderHeaderIcon(type) {
 }
 
 function renderNavIcon(type) {
-  if (type === 'feed') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="4" y="5" width="16" height="14" rx="3" stroke="currentColor" strokeWidth="1.7" />
-        <path d="M8 10H16M8 14H13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
-    )
-  }
-  if (type === 'map') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M9 4.5L15 7.5L21 4.5V19.5L15 22.5L9 19.5L3 22.5V7.5L9 4.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      </svg>
-    )
-  }
-  if (type === 'alerts') {
-    return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 3L21 19H3L12 3Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-        <path d="M12 9V13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-        <circle cx="12" cy="16.5" r="1" fill="currentColor" />
-      </svg>
-    )
-  }
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="8" r="3.8" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M4.5 20C5.4 16.8 8.2 14.8 12 14.8C15.8 14.8 18.6 16.8 19.5 20" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  )
+  if (type === 'feed') return '📰'
+  if (type === 'map') return '🗺️'
+  if (type === 'alerts') return '🚨'
+  return '👤'
 }
 
 function getIncidentTypeMeta(type) {
-  return INCIDENT_TYPE_META[type] || { label: 'Incident', icon: 'INC' }
+  return INCIDENT_TYPE_META[type] || { label: 'Incident', icon: '📍' }
 }
 
 function formatTimeAgo(value) {
@@ -214,12 +194,46 @@ function toDateTimeLocalValue(value) {
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16)
 }
 
-function buildTimelineFromReport(report) {
+function formatReporterDisplayName(name) {
+  if (typeof name !== 'string' || !name.trim()) return 'an identified user'
+
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((part) => {
+      if (!part) return part
+      if (part === part.toUpperCase()) return part
+      return part.charAt(0).toUpperCase() + part.slice(1)
+    })
+    .join(' ')
+}
+
+function buildTimelineFromReport(report, viewerUser = null) {
+  const reporter = report?.reportedBy || report?.reported_by || null
+  const reporterName = formatReporterDisplayName(reporter?.name || report?.authorName || '')
+  const reporterId = reporter?.id || report?.reportedById || report?.reported_by_id || null
+  const viewerId = viewerUser?.id || viewerUser?.userId || null
+  const viewerRoles = getUserRoles(viewerUser)
+
+  let reporterRoles = getUserRoles(reporter || { role: report?.authorRole })
+  if (reporterRoles.length === 0 && reporterId && viewerId && reporterId === viewerId) {
+    reporterRoles = viewerRoles
+  }
+
+  const isPoliceReporter = reporterRoles.includes('police') || reporterRoles.includes('policeofficer')
+  const isAdminReporter = reporterRoles.includes('admin')
+  const submitterLabel = isAdminReporter
+    ? 'Administrator'
+    : isPoliceReporter
+      ? 'Police Officer'
+      : 'Citizen Reporter'
+
   const timeline = [
     {
       time: formatClock(report.createdAt),
-      source: 'user',
-      text: `Report submitted by ${report.reportedBy?.name || 'a citizen'}`,
+      source: isPoliceReporter || isAdminReporter ? 'authority' : 'user',
+      sourceLabel: submitterLabel,
+      text: `Report submitted by ${reporterName}.`,
     },
   ]
 
@@ -227,15 +241,18 @@ function buildTimelineFromReport(report) {
     timeline.push({
       time: formatClock(report.updatedAt),
       source: 'system',
-      text: 'Report information was updated',
+      sourceLabel: 'System',
+      text: 'Report details were updated.',
     })
   }
 
   if (report.status && report.status !== 'pending') {
+    const statusLabel = STATUS_META[report.status]?.label || report.status
     timeline.push({
       time: formatClock(report.updatedAt || report.createdAt),
       source: 'authority',
-      text: `Report status changed to ${STATUS_META[report.status]?.label || report.status}`,
+      sourceLabel: 'Authority',
+      text: `Status updated to ${statusLabel}.`,
     })
   }
 
@@ -256,7 +273,7 @@ function buildEditForm(report) {
   }
 }
 
-function buildDisplayIncident(report, id) {
+function buildDisplayIncident(report, id, viewerUser = null) {
   if (!report) {
     return { ...mockIncident, id: id || mockIncident.id }
   }
@@ -281,7 +298,7 @@ function buildDisplayIncident(report, id) {
           uploadedAt: media.uploadedAt,
         }))
       : [],
-    timeline: buildTimelineFromReport(report),
+    timeline: buildTimelineFromReport(report, viewerUser),
     confirmations: 0,
     comments: 0,
     estimatedDelay: 'Unknown',
@@ -307,7 +324,13 @@ export default function IncidentDetailPage() {
   const [saveError, setSaveError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(null)
+  const [zoomScale, setZoomScale] = useState(1)
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragRef = React.useRef(null)
 
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const isRealReport = REPORT_ID_REGEX.test(id || '')
   const isAdmin = Array.isArray(user?.roles)
     ? user.roles.includes('admin')
@@ -316,6 +339,7 @@ export default function IncidentDetailPage() {
   const canManageReport = Boolean(
     report && user && (isAdmin || user.id === report.reportedBy?.id),
   )
+  const incident = buildDisplayIncident(report, id, user)
 
   useEffect(() => {
     let isMounted = true
@@ -354,13 +378,125 @@ export default function IncidentDetailPage() {
     }
   }, [id, isRealReport])
 
-  const incident = buildDisplayIncident(report, id)
+  useEffect(() => {
+    if (selectedMediaIndex == null) return () => {}
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setSelectedMediaIndex(null)
+      }
+
+      if (event.key === 'ArrowRight' && incident.media.length > 1) {
+        setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev + 1) % incident.media.length))
+      }
+
+      if (event.key === 'ArrowLeft' && incident.media.length > 1) {
+        setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev - 1 + incident.media.length) % incident.media.length))
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [selectedMediaIndex, incident.media.length])
+
+  useEffect(() => {
+    if (selectedMediaIndex == null) return () => {}
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [selectedMediaIndex])
+
+  useEffect(() => {
+    if (selectedMediaIndex == null) setZoomScale(1)
+    setPanOffset({ x: 0, y: 0 })
+    setIsDragging(false)
+    dragRef.current = null
+  }, [selectedMediaIndex])
+
+  useEffect(() => {
+    if (zoomScale <= 1) {
+      setPanOffset({ x: 0, y: 0 })
+      setIsDragging(false)
+      dragRef.current = null
+    }
+  }, [zoomScale])
+
   const typeMeta = getIncidentTypeMeta(incident.type)
   const statusMeta = STATUS_META[incident.status] || STATUS_META.pending
+  const normalizedRoles = getUserRoles(user)
+  const primaryRole = normalizedRoles.includes('admin')
+    ? 'admin'
+    : normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
+      ? 'police'
+      : normalizedRoles[0] || 'citizen'
+  const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1)
+  const roleClass = primaryRole === 'admin'
+    ? 'role-admin'
+    : primaryRole === 'police'
+      ? 'role-police'
+      : 'role-citoyen'
+  const profileName = user?.name || user?.email || incident.reporterName || 'SIARA User'
+  const leftStats = {
+    all: 1,
+    pending: incident.status === 'pending' ? 1 : 0,
+    verified: incident.status === 'verified' ? 1 : 0,
+    resolved: incident.status === 'resolved' ? 1 : 0,
+    rejected: incident.status === 'rejected' ? 1 : 0,
+  }
   const hasMapLocation = Number.isFinite(Number(incident.location?.lat)) && Number.isFinite(Number(incident.location?.lng))
   const mapCenter = hasMapLocation
     ? [Number(incident.location.lat), Number(incident.location.lng)]
     : [28.5, 2.5]
+  const activeMedia = selectedMediaIndex == null ? null : incident.media[selectedMediaIndex]
+
+  const clampScale = (value) => Math.min(4, Math.max(0.25, value))
+  const zoomIn = () => setZoomScale((prev) => clampScale(prev + 0.15))
+  const zoomOut = () => setZoomScale((prev) => clampScale(prev - 0.15))
+  const zoomReset = () => setZoomScale(1)
+
+  const handleLightboxWheel = (event) => {
+    event.preventDefault()
+    const delta = event.deltaY > 0 ? -0.12 : 0.12
+    setZoomScale((prev) => clampScale(prev + delta))
+  }
+
+  const handleLightboxDoubleClick = () => {
+    setZoomScale((prev) => (prev <= 1 ? 2 : 1))
+  }
+
+  const startPan = (clientX, clientY) => {
+    dragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      originX: panOffset.x,
+      originY: panOffset.y,
+    }
+    setIsDragging(true)
+  }
+
+  const movePan = (clientX, clientY) => {
+    if (!dragRef.current) return
+
+    const deltaX = clientX - dragRef.current.startX
+    const deltaY = clientY - dragRef.current.startY
+
+    setPanOffset({
+      x: dragRef.current.originX + deltaX,
+      y: dragRef.current.originY + deltaY,
+    })
+  }
+
+  const stopPan = () => {
+    if (!dragRef.current) return
+    dragRef.current = null
+    setIsDragging(false)
+  }
 
   const handleEditField = (field, value) => {
     setEditForm((prev) => ({ ...prev, [field]: value }))
@@ -469,7 +605,14 @@ export default function IncidentDetailPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input type="search" className="dash-search" placeholder="Search for an incident, a road, a wilaya..." aria-label="Search" />
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
+              placeholder="Search for an incident, a road, a wilaya..."
+              ariaLabel="Search"
+              currentUser={user}
+            />
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
@@ -495,57 +638,54 @@ export default function IncidentDetailPage() {
       </header>
 
       <div className="incident-layout">
-        <aside className="incident-sidebar-left">
-          <div className="user-mini-card">
-            <div className="user-mini-avatar">
-              {(incident.reporterName || 'U').split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2)}
+        <aside className="incident-sidebar-left al-left">
+          <div className="card profile-summary">
+            <div className="profile-avatar-container">
+              <img src={profileAvatar} alt="Profile" className="profile-avatar-large" />
+              <span className="verified-badge">✓</span>
             </div>
-            <div className="user-mini-info">
-              <span className="user-mini-name">{incident.reporterName}</span>
-              <span className="user-mini-role">{isAdmin && report ? 'Admin view' : 'Citizen'}</span>
+            <div className="profile-info">
+              <p className="profile-name">{profileName}</p>
+              <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
+              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
+              <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>
 
-          <div className="back-nav">
-            <button className="back-btn" onClick={() => navigate(-1)}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-              Back
-            </button>
+          <div className="card al-filter-section">
+            <div className="nav-section-label">REPORT STATUS</div>
+            <nav className="al-nav">
+              <button className="al-nav-btn active" type="button">
+                <span className="nav-label">All</span>
+                <span className="nav-count">{leftStats.all}</span>
+              </button>
+              <button className={`al-nav-btn ${incident.status === 'pending' ? 'active' : ''}`} type="button">
+                <span className="nav-label">Pending</span>
+                <span className="nav-count">{leftStats.pending}</span>
+              </button>
+              <button className={`al-nav-btn ${incident.status === 'verified' ? 'active' : ''}`} type="button">
+                <span className="nav-label">Verified</span>
+                <span className="nav-count">{leftStats.verified}</span>
+              </button>
+              <button className={`al-nav-btn ${incident.status === 'resolved' ? 'active' : ''}`} type="button">
+                <span className="nav-label">Resolved</span>
+                <span className="nav-count">{leftStats.resolved}</span>
+              </button>
+              <button className={`al-nav-btn ${incident.status === 'rejected' ? 'active' : ''}`} type="button">
+                <span className="nav-label">Rejected</span>
+                <span className="nav-count">{leftStats.rejected}</span>
+              </button>
+            </nav>
           </div>
 
-          <nav className="sidebar-nav">
-            <div className="nav-section-label">NAVIGATION</div>
-            <button className="nav-item" onClick={() => navigate('/news')}>
-              <span className="nav-icon">{renderNavIcon('feed')}</span>
-              <span className="nav-label">Feed</span>
-            </button>
-            <button className="nav-item" onClick={() => navigate('/map')}>
-              <span className="nav-icon">{renderNavIcon('map')}</span>
-              <span className="nav-label">Map</span>
-            </button>
-            <button className="nav-item" onClick={() => navigate('/alerts')}>
-              <span className="nav-icon">{renderNavIcon('alerts')}</span>
-              <span className="nav-label">Alerts</span>
-            </button>
-            <button className="nav-item" onClick={() => navigate('/profile')}>
-              <span className="nav-icon">{renderNavIcon('profile')}</span>
-              <span className="nav-label">Profile</span>
-            </button>
-          </nav>
+          <div className="card nav-menu">
+            <div className="nav-section-label">TOOLS</div>
+            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-icon">🗺️</span><span className="nav-label">Open Map</span></button>
+            <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-icon">🔔</span><span className="nav-label">Manage Alerts</span></button>
+            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-icon">📰</span><span className="nav-label">Back to Feed</span></button>
+          </div>
 
-          {!isRealReport && (
-            <div className="related-incidents">
-              <div className="nav-section-label">NEARBY INCIDENTS</div>
-              {relatedIncidents.map((related) => (
-                <button key={related.id} className="related-item" onClick={() => navigate(`/incident/${related.id}`)}>
-                  <span className="related-severity-dot" style={{ background: getSeverityColor(related.severity) }}></span>
-                  <span className="related-title">{related.title}</span>
-                </button>
-              ))}
-            </div>
-          )}
+          <button className="al-cta" onClick={() => navigate('/report/create')}>+ New Report</button>
         </aside>
 
         <main className="incident-main">
@@ -566,8 +706,8 @@ export default function IncidentDetailPage() {
             <>
               <div className="incident-header-block">
                 <div className="incident-type-badge">
-                  <span className="type-icon">{typeMeta.icon}</span>
-                  <span className="type-label">{typeMeta.label}</span>
+                  <span className="incident-type-icon">{typeMeta.icon}</span>
+                  <span className="incident-type-label">{typeMeta.label}</span>
                 </div>
                 <h1 className="incident-title">{incident.title}</h1>
                 <div className="incident-meta-row">
@@ -628,7 +768,17 @@ export default function IncidentDetailPage() {
                       <div key={media.id || index} className="media-item">
                         {media.url ? (
                           <>
-                            <img className="media-image" src={media.url} alt={media.caption} loading="lazy" />
+                            <button
+                              type="button"
+                              className="media-open-btn"
+                              onClick={() => {
+                                setSelectedMediaIndex(index)
+                                setZoomScale(1)
+                              }}
+                              aria-label="Open photo"
+                            >
+                              <img className="media-image" src={media.url} alt={media.caption || 'Report image'} loading="lazy" />
+                            </button>
                             <span className="media-caption-badge">{media.caption}</span>
                           </>
                         ) : (
@@ -656,7 +806,7 @@ export default function IncidentDetailPage() {
                         <span className="timeline-time">{event.time}</span>
                         <span className="timeline-text">{event.text}</span>
                         <span className={`timeline-source ${event.source}`}>
-                          {event.source === 'user' ? 'Citizen' : event.source === 'authority' ? 'Authority' : 'System'}
+                          {event.sourceLabel || (event.source === 'user' ? 'Citizen' : event.source === 'authority' ? 'Authority' : 'System')}
                         </span>
                       </div>
                     </div>
@@ -882,6 +1032,61 @@ export default function IncidentDetailPage() {
           </div>
         </aside>
       </div>
+
+      {activeMedia && createPortal(
+        <div className="media-lightbox" role="dialog" aria-modal="true" aria-label="Photo preview" onClick={() => setSelectedMediaIndex(null)}>
+          <div className="media-lightbox-content" onClick={(event) => event.stopPropagation()}>
+            <div className="media-lightbox-toolbar">
+              <button type="button" className="media-zoom-btn" onClick={zoomOut} aria-label="Zoom out">−</button>
+              <button type="button" className="media-zoom-btn reset" onClick={zoomReset} aria-label="Reset zoom">
+                {Math.round(zoomScale * 100)}%
+              </button>
+              <button type="button" className="media-zoom-btn" onClick={zoomIn} aria-label="Zoom in">+</button>
+            </div>
+
+            <button type="button" className="media-lightbox-close" onClick={() => setSelectedMediaIndex(null)} aria-label="Close photo preview">
+              ×
+            </button>
+
+            <div
+              className={`media-lightbox-stage ${zoomScale > 1 ? 'zoomed' : ''} ${isDragging ? 'dragging' : ''}`}
+              onClick={(event) => {
+                if (event.target === event.currentTarget) {
+                  setSelectedMediaIndex(null)
+                }
+              }}
+              onWheel={handleLightboxWheel}
+              onDoubleClick={handleLightboxDoubleClick}
+              onMouseDown={(event) => {
+                event.preventDefault()
+                startPan(event.clientX, event.clientY)
+              }}
+              onMouseMove={(event) => movePan(event.clientX, event.clientY)}
+              onMouseUp={stopPan}
+              onMouseLeave={stopPan}
+              onTouchStart={(event) => {
+                const touch = event.touches[0]
+                if (!touch) return
+                startPan(touch.clientX, touch.clientY)
+              }}
+              onTouchMove={(event) => {
+                const touch = event.touches[0]
+                if (!touch) return
+                movePan(touch.clientX, touch.clientY)
+              }}
+              onTouchEnd={stopPan}
+            >
+              <img
+                className="media-lightbox-image"
+                src={activeMedia.url}
+                alt={activeMedia.caption || 'Report image'}
+                style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})` }}
+              />
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }

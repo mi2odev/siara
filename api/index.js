@@ -33,6 +33,7 @@ const {
   predictNearbyZones,
   predictRouteGuide,
   getCurrentWeather,
+  getReversePlace,
   getRiskForecast24h,
 } = require("./contollers/Model/models");
 
@@ -60,6 +61,7 @@ app.use("/api/reports", reportRoutes);
 
 app.post("/api/model/predict", predictDriverRisk);
 app.get("/api/weather/current", getCurrentWeather);
+app.get("/api/location/reverse", getReversePlace);
 app.post("/api/risk/current", predictCurrentRisk);
 app.get("/api/risk/forecast24h", getRiskForecast24h);
 app.post("/api/risk/overlay", predictRiskOverlay);
@@ -69,6 +71,7 @@ app.post("/api/risk/route", predictRouteGuide);
 
 // Compatibility aliases
 app.get("/api/model/weather/current", getCurrentWeather);
+app.get("/api/model/location/reverse", getReversePlace);
 app.post("/api/model/risk/current", predictCurrentRisk);
 app.get("/api/model/risk/forecast24h", getRiskForecast24h);
 app.post("/api/model/risk/overlay", predictRiskOverlay);

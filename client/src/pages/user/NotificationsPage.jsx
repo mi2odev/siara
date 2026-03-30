@@ -5,6 +5,7 @@ import { AuthContext } from '../../contexts/AuthContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useNotificationStore } from '../../stores/notificationStore'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import '../../styles/DashboardPage.css'
 import '../../styles/NotificationsPage.css'
@@ -105,6 +106,7 @@ export default function NotificationsPage() {
   const navigate = useNavigate()
   const { isAuthenticated, logout, user } = useContext(AuthContext)
   const { loadNotifications, markAllNotificationsRead, markNotificationRead } = useNotifications()
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('')
 
   const error = useNotificationStore((state) => state.error)
   const hasLoaded = useNotificationStore((state) => state.hasLoaded)
@@ -289,15 +291,17 @@ export default function NotificationsPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input
-              type="search"
-              className="dash-search"
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
               placeholder="Search notifications, incidents, zones..."
-              aria-label="Search"
+              ariaLabel="Search"
+              currentUser={user}
             />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Messages">💬</button>
+            <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
               <button className="dash-avatar" onClick={() => setShowDropdown((current) => !current)}>
                 {getUserInitial(user?.name || user?.email)}

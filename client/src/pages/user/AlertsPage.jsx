@@ -4,6 +4,7 @@ import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import { deleteAlert, fetchAlerts, updateAlertStatus } from '../../services/alertService'
@@ -34,6 +35,15 @@ const DEFAULT_CENTER = { lat: 36.753, lng: 3.0588 }
 
 function icon(type) {
   return { accident: '🚗', traffic: '🚦', danger: '⚠️', roadworks: '🚧', ai_prediction: '🤖' }[type] || '🔔'
+}
+
+function renderSidebarIcon(type) {
+  if (type === 'quiz') return '🚗'
+  if (type === 'map') return '🗺️'
+  if (type === 'report') return '📝'
+  if (type === 'pin') return '📍'
+  if (type === 'time') return '🕐'
+  return '🧭'
 }
 
 function color(severity) {
@@ -152,6 +162,7 @@ export default function AlertsPage() {
   const { isLoaded: mapReady } = useLoadScript({ googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '' })
 
   const [showDropdown, setShowDropdown] = useState(false)
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState('active')
   const [severityFilter, setSeverityFilter] = useState('all')
   const [areaFilter, setAreaFilter] = useState('all')
@@ -475,11 +486,13 @@ export default function AlertsPage() {
             </nav>
           </div>
           <div className="dash-header-center">
-            <input
-              type="search"
-              className="dash-search"
+            <GlobalHeaderSearch
+              navigate={navigate}
+              query={headerSearchQuery}
+              setQuery={setHeaderSearchQuery}
               placeholder="Search for an incident, a road, a wilaya..."
-              aria-label="Search"
+              ariaLabel="Search"
+              currentUser={user}
             />
           </div>
           <div className="dash-header-right">
@@ -493,11 +506,11 @@ export default function AlertsPage() {
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
                 </div>
               )}
             </div>
@@ -522,6 +535,8 @@ export default function AlertsPage() {
             </div>
           </div>
 
+          <button className="al-cta" onClick={() => navigate('/alerts/create')}>+ New Alert</button>
+
           <div className="card al-filter-section">
             <div className="nav-section-label">ALERT STATUS</div>
             <nav className="al-nav">
@@ -536,12 +551,10 @@ export default function AlertsPage() {
 
           <div className="card nav-menu">
             <div className="nav-section-label">TOOLS</div>
-            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-icon">🚗</span><span className="nav-label">Driver Quiz</span></button>
-            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-icon">🗺️</span><span className="nav-label">Open Map</span></button>
-            <button className="nav-item" onClick={() => navigate('/report')}><span className="nav-icon">📝</span><span className="nav-label">Report Incident</span></button>
+            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-icon">{renderSidebarIcon('quiz')}</span><span className="nav-label">Driver Quiz</span></button>
+            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-icon">{renderSidebarIcon('map')}</span><span className="nav-label">Open Map</span></button>
+            <button className="nav-item" onClick={() => navigate('/report')}><span className="nav-icon">{renderSidebarIcon('report')}</span><span className="nav-label">Report Incident</span></button>
           </div>
-
-          <button className="al-cta" onClick={() => navigate('/alerts/create')}>+ New Alert</button>
         </aside>
 
         <main className="al-center">
@@ -570,7 +583,7 @@ export default function AlertsPage() {
               <div className="al-empty"><h3>Loading alerts...</h3></div>
             ) : filteredAlerts.length === 0 ? (
               <div className="al-empty">
-                <span className="empty-icon">🔔</span>
+                <span className="empty-icon" aria-hidden="true">{icon('notification')}</span>
                 <h3>No Alerts</h3>
                 <p>Create your first alert to get notified.</p>
                 <button className="empty-btn" onClick={() => navigate('/alerts/create')}>Create an Alert</button>
@@ -588,8 +601,8 @@ export default function AlertsPage() {
                   </div>
                   <div className="card-body">
                     <div className="body-line">
-                      <span className="info">📍 {alert.area?.name || alert.zone?.displayName}</span>
-                      <span className="info">🕐 {alert.timeWindow}</span>
+                      <span className="info">{renderSidebarIcon('pin')} {alert.area?.name || alert.zone?.displayName}</span>
+                      <span className="info">{renderSidebarIcon('time')} {alert.timeWindow}</span>
                     </div>
                     <div className="body-line">
                       <span className="types">
@@ -824,7 +837,7 @@ export default function AlertsPage() {
             </>
           ) : (
             <div className="al-panel al-no-sel">
-              <span className="no-sel-icon">🧭</span>
+              <span className="no-sel-icon">{renderSidebarIcon('map')}</span>
               <h4>No Alert Selected</h4>
               <p>Select an alert from the list to view live zone details and recent trigger activity.</p>
               <button type="button" className="al-map-link" onClick={() => navigate('/alerts/create')}>
