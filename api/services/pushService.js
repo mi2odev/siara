@@ -26,12 +26,34 @@ const PUSH_DEBUG_ENABLED =
   process.env.NODE_ENV !== "production"
   || process.env.NOTIFICATION_DEBUG === "true"
   || process.env.PUSH_DEBUG === "true";
+const MOBILE_PUSH_PLATFORM_VALUES = new Set(["android", "ios"]);
+const MOBILE_PUSH_PROVIDER_VALUES = new Set(["expo", "fcm", "apns"]);
+const EXPO_PUSH_API_URL = String(
+  process.env.EXPO_PUSH_API_URL || "https://exp.host/--/api/v2/push/send",
+).trim();
+const EXPO_PUSH_RECEIPTS_URL = String(
+  process.env.EXPO_PUSH_RECEIPTS_URL || "https://exp.host/--/api/v2/push/getReceipts",
+).trim();
+const EXPO_PUSH_TOKEN_REGEX = /^(Expo|Exponent)PushToken\[[A-Za-z0-9\-_]+\]$/;
 
 let vapidConfigured = false;
 let vapidUnavailableLogged = false;
 
 function normalizeObject(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function previewToken(value) {
+  const token = String(value || "").trim();
+  if (!token) {
+    return null;
+  }
+
+  if (token.length <= 18) {
+    return token;
+  }
+
+  return `${token.slice(0, 12)}...${token.slice(-6)}`;
 }
 
 function normalizePushMode(value, fallback = "important_only") {
@@ -167,6 +189,44 @@ function mapPushSubscriptionRow(row) {
   };
 }
 
+function normalizeMobilePlatform(value, fallback = "android") {
+  const normalized = String(value || fallback).trim().toLowerCase();
+  if (!MOBILE_PUSH_PLATFORM_VALUES.has(normalized)) {
+    throw createError(400, "platform must be android or ios");
+  }
+  return normalized;
+}
+
+function normalizeMobileProvider(value, fallback = "expo") {
+  const normalized = String(value || fallback).trim().toLowerCase();
+  if (!MOBILE_PUSH_PROVIDER_VALUES.has(normalized)) {
+    throw createError(400, "provider must be expo, fcm, or apns");
+  }
+  return normalized;
+}
+
+function mapMobilePushDeviceRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    userId: row.user_id,
+    token: row.token,
+    platform: row.platform,
+    provider: row.provider,
+    appVersion: row.app_version,
+    deviceName: row.device_name,
+    isActive: Boolean(row.is_active),
+    lastUsedAt: row.last_used_at,
+    disabledAt: row.disabled_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    meta: normalizeObject(row.meta),
+  };
+}
+
 function mapNotificationPreferenceRow(row) {
   if (!row) {
     return null;
@@ -297,6 +357,23 @@ function normalizePushSubscriptionPayload(payload = {}) {
   };
 }
 
+function normalizeMobilePushDevicePayload(payload = {}) {
+  const input = normalizeObject(payload);
+  const token = String(input.token || "").trim();
+  if (!token) {
+    throw createError(400, "token is required");
+  }
+
+  return {
+    token,
+    platform: normalizeMobilePlatform(input.platform),
+    provider: normalizeMobileProvider(input.provider || "expo"),
+    appVersion: input.appVersion == null ? null : String(input.appVersion).trim() || null,
+    deviceName: input.deviceName == null ? null : String(input.deviceName).trim() || null,
+    meta: normalizeObject(input.data || input.meta),
+  };
+}
+
 async function upsertPushSubscription(
   userId,
   payload,
@@ -356,6 +433,69 @@ async function deactivatePushSubscription(userId, endpoint, db = pool) {
   return mapPushSubscriptionRow(result.rows[0] || null);
 }
 
+async function upsertMobilePushDevice(userId, payload, db = pool) {
+  const device = normalizeMobilePushDevicePayload(payload);
+  const result = await db.query(
+    `
+      insert into app.mobile_push_devices (
+        user_id,
+        token,
+        platform,
+        provider,
+        app_version,
+        device_name,
+        is_active,
+        disabled_at,
+        meta,
+        created_at,
+        updated_at
+      )
+      values ($1, $2, $3, $4, $5, $6, true, null, $7::jsonb, now(), now())
+      on conflict (token) do update
+      set
+        user_id = excluded.user_id,
+        platform = excluded.platform,
+        provider = excluded.provider,
+        app_version = excluded.app_version,
+        device_name = excluded.device_name,
+        is_active = true,
+        disabled_at = null,
+        meta = excluded.meta,
+        updated_at = now()
+      returning *
+    `,
+    [
+      userId,
+      device.token,
+      device.platform,
+      device.provider,
+      device.appVersion,
+      device.deviceName,
+      JSON.stringify(device.meta),
+    ],
+  );
+
+  return mapMobilePushDeviceRow(result.rows[0] || null);
+}
+
+async function deactivateMobilePushDevice(userId, token, db = pool) {
+  const result = await db.query(
+    `
+      update app.mobile_push_devices
+      set
+        is_active = false,
+        disabled_at = coalesce(disabled_at, now()),
+        updated_at = now()
+      where user_id = $1
+        and token = $2
+      returning *
+    `,
+    [userId, token],
+  );
+
+  return mapMobilePushDeviceRow(result.rows[0] || null);
+}
+
 async function fetchActivePushSubscriptionsForUser(userId, db = pool) {
   const result = await db.query(
     `
@@ -382,6 +522,21 @@ async function fetchActivePushSubscriptionsForUser(userId, db = pool) {
   }));
 }
 
+async function fetchActiveMobilePushDevicesForUser(userId, db = pool) {
+  const result = await db.query(
+    `
+      select *
+      from app.mobile_push_devices
+      where user_id = $1
+        and is_active = true
+      order by updated_at desc, created_at desc, id desc
+    `,
+    [userId],
+  );
+
+  return result.rows.map(mapMobilePushDeviceRow);
+}
+
 async function markPushSubscriptionUsed(subscriptionId, db = pool) {
   await db.query(
     `
@@ -406,6 +561,48 @@ async function disablePushSubscription(subscriptionId, db = pool) {
     `,
     [subscriptionId],
   );
+}
+
+async function markMobilePushDeviceUsed(deviceId, db = pool) {
+  await db.query(
+    `
+      update app.mobile_push_devices
+      set
+        is_active = true,
+        last_used_at = now(),
+        updated_at = now()
+      where id = $1
+    `,
+    [deviceId],
+  );
+}
+
+async function disableMobilePushDeviceById(deviceId, db = pool) {
+  await db.query(
+    `
+      update app.mobile_push_devices
+      set
+        is_active = false,
+        disabled_at = coalesce(disabled_at, now()),
+        updated_at = now()
+      where id = $1
+    `,
+    [deviceId],
+  );
+}
+
+async function deactivateMobilePushDeviceWithLog(device, reason, db = pool) {
+  if (!device?.id) {
+    return;
+  }
+
+  await disableMobilePushDeviceById(device.id, db);
+
+  console.warn("[push] mobile_token_deactivated", {
+    userId: device.userId || device.user_id || null,
+    reason,
+    tokenPreview: previewToken(device.token),
+  });
 }
 
 function normalizeNotificationForPush(notification) {
@@ -615,6 +812,33 @@ async function isNotificationWithinPushCooldown(notification, db = pool) {
   });
 }
 
+function resolveCooldownBypass(notification) {
+  const normalized = normalizeNotificationForPush(notification);
+  if (!normalized?.id || !normalized?.userId) {
+    return {
+      bypass: false,
+      reason: null,
+    };
+  }
+
+  const reportedBy = String(normalized.data?.reportedBy || "").trim();
+  if (
+    normalized.eventType === "INCIDENT_REPORTED_IN_ZONE"
+    && reportedBy
+    && reportedBy === String(normalized.userId)
+  ) {
+    return {
+      bypass: true,
+      reason: "self_originated_zone_report",
+    };
+  }
+
+  return {
+    bypass: false,
+    reason: null,
+  };
+}
+
 function mapPushUrgency(priority) {
   if (priority <= 1) {
     return "high";
@@ -625,7 +849,38 @@ function mapPushUrgency(priority) {
   return "low";
 }
 
-async function sendPushToUser(userId, payload, { db = pool } = {}) {
+function delay(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function fetchExpoPushReceipts(receiptIds = []) {
+  if (!Array.isArray(receiptIds) || receiptIds.length === 0) {
+    return {};
+  }
+
+  const response = await fetch(EXPO_PUSH_RECEIPTS_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "Accept-Encoding": "gzip, deflate",
+    },
+    body: JSON.stringify({ ids: receiptIds }),
+  });
+
+  const responseBody = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(
+      responseBody?.errors?.[0]?.message || `Expo receipts failed with status ${response.status}`,
+    );
+  }
+
+  return normalizeObject(responseBody?.data);
+}
+
+async function sendWebPushToUser(userId, payload, { db = pool } = {}) {
   if (!ensureWebPushConfigured()) {
     return {
       ok: false,
@@ -706,11 +961,306 @@ async function sendPushToUser(userId, payload, { db = pool } = {}) {
   };
 }
 
+function buildExpoPushMessage(device, payload) {
+  const notificationData = {
+    ...normalizeObject(payload?.data),
+    notificationId: payload?.notificationId || null,
+    eventType: payload?.eventType || null,
+    url: payload?.url || "/notifications",
+    zoneName: payload?.zoneName || null,
+    priority: Number(payload?.priority ?? 2),
+  };
+
+  return {
+    to: device.token,
+    title: payload?.title || "SIARA alert",
+    body: payload?.body || "A watched-zone alert was triggered.",
+    data: notificationData,
+    sound: "default",
+    priority: Number(payload?.priority ?? 2) <= 1 ? "high" : "default",
+    channelId: "default",
+  };
+}
+
+async function sendMobilePushToUser(userId, payload, { db = pool } = {}) {
+  const devices = await fetchActiveMobilePushDevicesForUser(userId, db);
+  if (devices.length === 0) {
+    return {
+      ok: false,
+      sentCount: 0,
+      deactivatedCount: 0,
+      failureCount: 0,
+      reason: "no_active_mobile_devices",
+    };
+  }
+
+  let sentCount = 0;
+  let deactivatedCount = 0;
+  let failureCount = 0;
+
+  const expoDevices = [];
+  for (const device of devices) {
+    if (device.provider !== "expo") {
+      failureCount += 1;
+      continue;
+    }
+
+    if (!EXPO_PUSH_TOKEN_REGEX.test(String(device.token || "").trim())) {
+      deactivatedCount += 1;
+      await deactivateMobilePushDeviceWithLog(device, "malformed_expo_token", db);
+      continue;
+    }
+
+    expoDevices.push(device);
+  }
+
+  if (expoDevices.length === 0) {
+    return {
+      ok: false,
+      sentCount,
+      deactivatedCount,
+      failureCount,
+      reason: deactivatedCount > 0 && failureCount === 0
+        ? "mobile_tokens_invalid"
+        : "send_failed",
+    };
+  }
+
+  let responseBody = null;
+  try {
+    const messages = expoDevices.map((device) => buildExpoPushMessage(device, payload));
+    const response = await fetch(EXPO_PUSH_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Accept-Encoding": "gzip, deflate",
+      },
+      body: JSON.stringify(messages),
+    });
+
+    responseBody = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(responseBody?.errors?.[0]?.message || `Expo push failed with status ${response.status}`);
+    }
+  } catch (error) {
+    console.warn("[push] mobile_delivery_failed", {
+      userId,
+      provider: "expo",
+      message: error?.message || "Unknown Expo push delivery error",
+    });
+    return {
+      ok: false,
+      sentCount,
+      deactivatedCount,
+      failureCount: failureCount + expoDevices.length,
+      reason: "send_failed",
+    };
+  }
+
+  const tickets = Array.isArray(responseBody?.data) ? responseBody.data : [];
+  const acceptedReceiptRequests = [];
+  for (let index = 0; index < expoDevices.length; index += 1) {
+    const device = expoDevices[index];
+    const ticket = tickets[index] || null;
+    const ticketStatus = String(ticket?.status || "").toLowerCase();
+    const ticketError = String(ticket?.details?.error || ticket?.message || "").trim();
+    const ticketId = String(ticket?.id || "").trim() || null;
+
+    if (ticketStatus === "ok") {
+      sentCount += 1;
+      await markMobilePushDeviceUsed(device.id, db);
+      if (ticketId) {
+        acceptedReceiptRequests.push({
+          deviceId: device.id,
+          token: device.token,
+          receiptId: ticketId,
+        });
+      }
+      continue;
+    }
+
+    if (ticketError === "DeviceNotRegistered") {
+      deactivatedCount += 1;
+      await deactivateMobilePushDeviceWithLog(device, "DeviceNotRegistered", db);
+      continue;
+    }
+
+    failureCount += 1;
+    console.warn("[push] mobile_ticket_failed", {
+      userId,
+      provider: device.provider,
+      tokenPreview: previewToken(device.token),
+      error: ticketError || "Unknown Expo ticket error",
+    });
+  }
+
+  if (PUSH_DEBUG_ENABLED) {
+    console.info("[push] expo_ticket_ids", {
+      notificationId: payload?.notificationId || null,
+      ticketIds: acceptedReceiptRequests.map((item) => item.receiptId),
+    });
+  }
+
+  let receiptResults = [];
+  if (acceptedReceiptRequests.length > 0) {
+    try {
+      await delay(4000);
+      const receiptsById = await fetchExpoPushReceipts(
+        acceptedReceiptRequests.map((item) => item.receiptId),
+      );
+
+      receiptResults = acceptedReceiptRequests.map((item) => {
+        const receipt = normalizeObject(receiptsById[item.receiptId]);
+        return {
+          receiptId: item.receiptId,
+          token: item.token,
+          status: String(receipt.status || "").toLowerCase() || "pending",
+          details: normalizeObject(receipt.details),
+          message: receipt.message || null,
+        };
+      });
+
+      for (const receipt of receiptResults) {
+        console.info("[push] expo_receipt_result", {
+          notificationId: payload?.notificationId || null,
+          ticketId: receipt.receiptId,
+          receiptStatus: receipt.status,
+          details: receipt.details,
+          message: receipt.message,
+        });
+
+        if (receipt.details?.error === "DeviceNotRegistered") {
+          const matchedDevice = acceptedReceiptRequests.find((item) => item.receiptId === receipt.receiptId);
+          if (matchedDevice?.deviceId) {
+            deactivatedCount += 1;
+            await deactivateMobilePushDeviceWithLog({
+              id: matchedDevice.deviceId,
+              userId,
+              token: matchedDevice.token,
+            }, "DeviceNotRegistered", db);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("[push] expo_receipt_fetch_failed", {
+        userId,
+        message: error?.message || "Unknown Expo receipt fetch error",
+      });
+    }
+  }
+
+  return {
+    ok: sentCount > 0,
+    sentCount,
+    deactivatedCount,
+    failureCount,
+    tickets: acceptedReceiptRequests.map((item) => item.receiptId),
+    receipts: receiptResults,
+    reason: sentCount > 0
+      ? null
+      : deactivatedCount > 0 && failureCount === 0
+        ? "mobile_tokens_invalid"
+        : "send_failed",
+  };
+}
+
+function summarizePushSendReason(webResult, mobileResult) {
+  const reasons = [webResult?.reason, mobileResult?.reason].filter(Boolean);
+  if (reasons.length === 0) {
+    return null;
+  }
+  if (reasons.every((reason) => reason === "no_active_subscriptions" || reason === "no_active_mobile_devices")) {
+    return "no_active_destinations";
+  }
+  if (reasons.every((reason) => reason === "missing_vapid_configuration" || reason === "no_active_mobile_devices")) {
+    return mobileResult?.reason === "no_active_mobile_devices" ? "missing_vapid_configuration" : mobileResult.reason;
+  }
+  if (reasons.includes("send_failed")) {
+    return "send_failed";
+  }
+  if (reasons.includes("subscriptions_invalid") || reasons.includes("mobile_tokens_invalid")) {
+    return reasons.includes("subscriptions_invalid") && reasons.includes("mobile_tokens_invalid")
+      ? "destinations_invalid"
+      : reasons.includes("subscriptions_invalid")
+        ? "subscriptions_invalid"
+        : "mobile_tokens_invalid";
+  }
+  return reasons[0];
+}
+
+async function sendPushToUser(userId, payload, { db = pool } = {}) {
+  const [webTargets, mobileTargets] = await Promise.all([
+    fetchActivePushSubscriptionsForUser(userId, db),
+    fetchActiveMobilePushDevicesForUser(userId, db),
+  ]);
+  const mobileExpoTargets = mobileTargets.filter((device) => device.provider === "expo");
+  const mobileDirectTargets = mobileTargets.filter((device) => device.provider !== "expo");
+
+  if (PUSH_DEBUG_ENABLED) {
+    console.info("[push] target_breakdown", {
+      notificationId: payload?.notificationId || null,
+      userId,
+      webTargetCount: webTargets.length,
+      mobileExpoTargetCount: mobileExpoTargets.length,
+      mobileDirectTargetCount: mobileDirectTargets.length,
+    });
+    console.info("[push] push_payload_summary", {
+      notificationId: payload?.notificationId || null,
+      eventType: payload?.eventType || null,
+      title: payload?.title || null,
+      body: payload?.body || null,
+      targetKinds: [
+        webTargets.length > 0 ? "web" : null,
+        mobileExpoTargets.length > 0 ? "mobile_expo" : null,
+        mobileDirectTargets.length > 0 ? "mobile_direct" : null,
+      ].filter(Boolean),
+    });
+    console.info("[push] push_token_targets", {
+      notificationId: payload?.notificationId || null,
+      userId,
+      tokenCount: mobileExpoTargets.length,
+      tokenPreviews: mobileExpoTargets.map((device) => previewToken(device.token)).filter(Boolean),
+    });
+  }
+
+  const [webResult, mobileResult] = await Promise.all([
+    sendWebPushToUser(userId, payload, { db }),
+    sendMobilePushToUser(userId, payload, { db }),
+  ]);
+
+  return {
+    ok: Boolean(webResult.ok || mobileResult.ok),
+    sentCount: Number(webResult.sentCount || 0) + Number(mobileResult.sentCount || 0),
+    deactivatedCount: Number(webResult.deactivatedCount || 0) + Number(mobileResult.deactivatedCount || 0),
+    failureCount: Number(webResult.failureCount || 0) + Number(mobileResult.failureCount || 0),
+    reason: summarizePushSendReason(webResult, mobileResult),
+    channels: {
+      web: webResult,
+      mobile: mobileResult,
+    },
+  };
+}
+
 async function evaluateAndSendPushForNotification(notification, db = pool) {
   const normalized = normalizeNotificationForPush(notification);
   const evaluationAt = new Date().toISOString();
 
+  function logPushSkipped(reason, extra = {}) {
+    if (!PUSH_DEBUG_ENABLED) {
+      return;
+    }
+
+    console.info("[push] push_delivery_skipped_reason", {
+      notificationId: normalized?.id || null,
+      userId: normalized?.userId || null,
+      reason,
+      ...extra,
+    });
+  }
+
   if (!normalized?.id || !normalized?.userId) {
+    logPushSkipped("invalid_notification");
     return {
       ok: false,
       attempted: false,
@@ -720,24 +1270,11 @@ async function evaluateAndSendPushForNotification(notification, db = pool) {
 
   const existingPushState = await fetchNotificationPushState(normalized.id, db);
   if (existingPushState.sentAt || existingPushState.status === "sent") {
+    logPushSkipped("already_sent");
     return {
       ok: true,
       attempted: false,
       reason: "already_sent",
-    };
-  }
-
-  if (!ensureWebPushConfigured()) {
-    await updateNotificationPushState(normalized.id, {
-      status: "skipped",
-      reason: "missing_vapid_configuration",
-      lastEvaluatedAt: evaluationAt,
-    }, db);
-
-    return {
-      ok: false,
-      attempted: false,
-      reason: "missing_vapid_configuration",
     };
   }
 
@@ -752,13 +1289,9 @@ async function evaluateAndSendPushForNotification(notification, db = pool) {
       lastEvaluatedAt: evaluationAt,
     }, db);
 
-    if (PUSH_DEBUG_ENABLED) {
-      console.info("[push] skipped", {
-        notificationId: normalized.id,
-        userId: normalized.userId,
-        reason: eligibility.reason,
-      });
-    }
+    logPushSkipped(eligibility.reason, {
+      mode: preferences.pushMode,
+    });
 
     return {
       ok: false,
@@ -768,32 +1301,63 @@ async function evaluateAndSendPushForNotification(notification, db = pool) {
   }
 
   const withinCooldown = await isNotificationWithinPushCooldown(normalized, db);
+  const cooldownBypass = resolveCooldownBypass(normalized);
   if (withinCooldown) {
-    await updateNotificationPushState(normalized.id, {
-      status: "skipped",
-      reason: "cooldown",
-      mode: preferences.pushMode,
-      lastEvaluatedAt: evaluationAt,
-    }, db);
+    if (cooldownBypass.bypass) {
+      if (PUSH_DEBUG_ENABLED) {
+        console.info("[push] cooldown_bypassed", {
+          notificationId: normalized.id,
+          userId: normalized.userId,
+          eventType: normalized.eventType,
+          cooldown_bypass_reason: cooldownBypass.reason,
+          reportId: normalized.reportId,
+        });
+      }
+    } else {
+      await updateNotificationPushState(normalized.id, {
+        status: "skipped",
+        reason: "cooldown",
+        mode: preferences.pushMode,
+        lastEvaluatedAt: evaluationAt,
+      }, db);
 
-    if (PUSH_DEBUG_ENABLED) {
-      console.info("[push] cooldown_skipped", {
-        notificationId: normalized.id,
-        userId: normalized.userId,
+      if (PUSH_DEBUG_ENABLED) {
+        console.info("[push] cooldown_applied", {
+          notificationId: normalized.id,
+          userId: normalized.userId,
+          eventType: normalized.eventType,
+          zoneName: normalized.data.zoneName || null,
+          cooldownMinutes: PUSH_COOLDOWN_MINUTES,
+        });
+      }
+
+      logPushSkipped("cooldown", {
         eventType: normalized.eventType,
         zoneName: normalized.data.zoneName || null,
         cooldownMinutes: PUSH_COOLDOWN_MINUTES,
       });
-    }
 
-    return {
-      ok: false,
-      attempted: false,
-      reason: "cooldown",
-    };
+      return {
+        ok: false,
+        attempted: false,
+        reason: "cooldown",
+      };
+    }
   }
 
   const payload = buildPushPayload(normalized);
+  if (PUSH_DEBUG_ENABLED) {
+    console.info("[push] push_delivery_attempted", {
+      notificationId: normalized.id,
+      userId: normalized.userId,
+      eventType: normalized.eventType,
+      priority: normalized.priority,
+      channelTargets: {
+        web: true,
+        mobile: true,
+      },
+    });
+  }
   const result = await sendPushToUser(normalized.userId, payload, { db });
 
   if (result.ok) {
@@ -806,6 +1370,7 @@ async function evaluateAndSendPushForNotification(notification, db = pool) {
       sentCount: result.sentCount,
       deactivatedCount: result.deactivatedCount,
       url: payload.url,
+      channels: result.channels,
     }, db);
 
     if (PUSH_DEBUG_ENABLED) {
@@ -826,7 +1391,7 @@ async function evaluateAndSendPushForNotification(notification, db = pool) {
     };
   }
 
-  const nextStatus = result.reason === "no_active_subscriptions" ? "skipped" : "failed";
+  const nextStatus = result.reason === "no_active_destinations" ? "skipped" : "failed";
   await updateNotificationPushState(normalized.id, {
     status: nextStatus,
     reason: result.reason,
@@ -836,22 +1401,30 @@ async function evaluateAndSendPushForNotification(notification, db = pool) {
     deactivatedCount: result.deactivatedCount,
     failureCount: result.failureCount,
     url: payload?.url || null,
+    channels: result.channels,
   }, db);
 
   if (PUSH_DEBUG_ENABLED) {
-    console.info("[push] not_sent", {
-      notificationId: normalized.id,
-      userId: normalized.userId,
-      reason: result.reason,
-      sentCount: result.sentCount,
-      deactivatedCount: result.deactivatedCount,
-      failureCount: result.failureCount,
-    });
+    if (result.reason) {
+      logPushSkipped(result.reason, {
+        sentCount: result.sentCount,
+        deactivatedCount: result.deactivatedCount,
+        failureCount: result.failureCount,
+      });
+    } else {
+      console.info("[push] not_sent", {
+        notificationId: normalized.id,
+        userId: normalized.userId,
+        sentCount: result.sentCount,
+        deactivatedCount: result.deactivatedCount,
+        failureCount: result.failureCount,
+      });
+    }
   }
 
   return {
     ok: false,
-    attempted: result.reason !== "no_active_subscriptions",
+    attempted: result.reason !== "no_active_destinations",
     reason: result.reason,
     sentCount: result.sentCount,
     deactivatedCount: result.deactivatedCount,
@@ -865,10 +1438,14 @@ module.exports = {
   decidePushEligibility,
   ensureUserNotificationPreferences,
   evaluateAndSendPushForNotification,
+  fetchActiveMobilePushDevicesForUser,
   fetchActivePushSubscriptionsForUser,
   getPushPublicKey,
+  deactivateMobilePushDevice,
+  mapMobilePushDeviceRow,
   mapNotificationPreferenceRow,
   sendPushToUser,
+  upsertMobilePushDevice,
   upsertPushSubscription,
   updateUserNotificationPreferences,
   deactivatePushSubscription,

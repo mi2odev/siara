@@ -4,9 +4,11 @@ const router = require("express").Router();
 const { verifyToken } = require("./verifytoken");
 const {
   deactivatePushSubscription,
+  deactivateMobilePushDevice,
   ensureUserNotificationPreferences,
   getPushPublicKey,
   sendPushToUser,
+  upsertMobilePushDevice,
   upsertPushSubscription,
   updateUserNotificationPreferences,
 } = require("../services/pushService");
@@ -62,6 +64,32 @@ router.delete("/unsubscribe", verifyToken, async (req, res, next) => {
     return res.status(200).json({
       ok: true,
       deactivated: Boolean(subscription),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/mobile/register", verifyToken, async (req, res, next) => {
+  try {
+    const device = await upsertMobilePushDevice(req.user.userId, req.body || {});
+    return res.status(200).json({ device });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.delete("/mobile/unregister", verifyToken, async (req, res, next) => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    if (!token) {
+      throw createError(400, "token is required");
+    }
+
+    const device = await deactivateMobilePushDevice(req.user.userId, token);
+    return res.status(200).json({
+      ok: true,
+      deactivated: Boolean(device),
     });
   } catch (error) {
     return next(error);

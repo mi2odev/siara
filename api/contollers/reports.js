@@ -5,6 +5,7 @@ const multer = require("multer");
 const pool = require("../db");
 const { deleteCloudinaryAsset, uploadBufferToCloudinary } = require("../services/reportMediaStorage");
 const { verifyToken } = require("./verifytoken");
+const { createNotificationsForReport } = require("../services/reportNotificationService");
 
 const REPORT_ID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -779,10 +780,15 @@ router.get("/:id", async (req, res, next) => {
 });
 
 router.post("/", verifyToken, async (req, res, next) => {
+  let reportId = null;
+  let client = null;
+
   try {
     const payload = normalizeCreatePayload(req.body || {});
+    client = await pool.connect();
+    await client.query("begin");
 
-    const insertResult = await pool.query(
+    const insertResult = await client.query(
       `
         insert into app.accident_reports (
           reported_by,
@@ -821,25 +827,58 @@ router.post("/", verifyToken, async (req, res, next) => {
       ],
     );
 
-    const reportId = insertResult.rows[0]?.id;
-    if (NOTIFICATION_DEBUG_ENABLED) {
-      const notificationDiagnostics = await fetchReportNotificationDiagnostics(reportId);
+    reportId = insertResult.rows[0]?.id;
 
-      console.info("[reports] created", {
+    if (NOTIFICATION_DEBUG_ENABLED) {
+      console.info("[reports] report_created", {
         reportId,
         reportedBy: req.user.userId,
         incidentType: payload.incidentType,
         severityHint: payload.severityHint,
         locationLabel: payload.locationLabel,
-        matchedRuleCount: Number(notificationDiagnostics.matched_rule_count || 0),
-        notificationCount: Number(notificationDiagnostics.notification_count || 0),
-        matchedAlertIds: notificationDiagnostics.matched_alert_ids || [],
+        occurredAt: payload.occurredAt,
       });
     }
+
+    const notificationResult = await createNotificationsForReport(reportId, client);
+    const notificationDiagnostics = await fetchReportNotificationDiagnostics(reportId, client);
+
+    if (NOTIFICATION_DEBUG_ENABLED) {
+      const totalNotificationCount = Number(notificationDiagnostics.notification_count || 0);
+      const appInsertedNotificationCount = Number(notificationResult.notifications?.length || 0);
+      console.info("[reports] notification_pipeline_status", {
+        reportId,
+        matchedRuleCount: Number(notificationDiagnostics.matched_rule_count || 0),
+        notificationCount: totalNotificationCount,
+        appInsertedNotificationCount,
+        effectiveInsertedNotificationCount: totalNotificationCount,
+        matchedCommuneId: notificationResult.matchedCommuneId,
+        matchedWilayaId: notificationResult.matchedWilayaId,
+        matchedAlertIds: notificationDiagnostics.matched_alert_ids || [],
+        matchedRadiusAlertIds: notificationResult.matchedRadiusAlertIds || [],
+        matchedAdminAreaAlertIds: notificationResult.matchedAdminAreaAlertIds || [],
+        finalRecipientUserIds: notificationResult.recipientUserIds || [],
+        mode:
+          appInsertedNotificationCount > 0
+            ? "application_pipeline"
+            : totalNotificationCount > 0
+              ? "database_trigger_present"
+              : "no_matching_alerts",
+      });
+    }
+
+    await client.query("commit");
+    client.release();
+    client = null;
 
     const createdRow = await requireExistingReport(reportId);
     return res.status(201).json({ report: await buildReportResponse(createdRow) });
   } catch (error) {
+    if (client) {
+      await client.query("rollback").catch(() => {});
+      client.release();
+      client = null;
+    }
     return next(error);
   }
 });
