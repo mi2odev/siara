@@ -17,8 +17,10 @@ function buildSections(incidentCounts, alertCounts) {
       label: 'Incident Management',
       links: [
         { to: '/admin/incidents', icon: '\u26A1', text: 'Pending Review', badge: String(incidentCounts.pending ?? 0), badgeType: '' },
+        { to: '/admin/incidents?filter=suspicious', icon: '\u2691', text: 'Suspected Spam', badge: String(incidentCounts.suspicious ?? 0), badgeType: 'warning' },
+        { to: '/admin/incidents?filter=pending-review', icon: '\u25F7', text: 'Manual Spam Review', badge: String(incidentCounts['pending-review'] ?? 0), badgeType: 'warning' },
         { to: '/admin/incidents?filter=ai-flagged', icon: '\u25CE', text: 'AI-Flagged High Risk', badge: String(incidentCounts['ai-flagged'] ?? 0), badgeType: 'warning' },
-        { to: '/admin/incidents?filter=community', icon: '\u2691', text: 'Community Flagged', badge: String(incidentCounts.community ?? 0), badgeType: 'warning' },
+        { to: '/admin/incidents?filter=community', icon: '\u2690', text: 'Community Flagged', badge: String(incidentCounts.community ?? 0), badgeType: 'warning' },
         { to: '/admin/incidents?filter=merged', icon: '\u2295', text: 'Merged Incidents', badge: String(incidentCounts.merged ?? 0), badgeType: '' },
         { to: '/admin/incidents?filter=archived', icon: '\u25AA', text: 'Archived', badge: String(incidentCounts.archived ?? 0), badgeType: '' },
       ],
@@ -54,7 +56,7 @@ function buildSections(incidentCounts, alertCounts) {
     {
       label: 'User Governance',
       links: [
-        { to: '/admin/users', icon: '\u25CE', text: 'All Users', badge: '2', badgeType: 'info' },
+        { to: '/admin/users', icon: '\u25CE', text: 'All Users' },
         { to: '/admin/users?filter=at-risk', icon: '\u26A0', text: 'At Risk Users' },
         { to: '/admin/users?filter=trusted', icon: '\u2605', text: 'Top Contributors' },
         { to: '/admin/users?filter=suspended', icon: '\u2298', text: 'Suspensions' },
@@ -79,6 +81,8 @@ export default function AdminSidebar() {
   const location = useLocation()
   const [incidentCounts, setIncidentCounts] = useState({
     pending: 0,
+    suspicious: 0,
+    'pending-review': 0,
     'ai-flagged': 0,
     community: 0,
     merged: 0,

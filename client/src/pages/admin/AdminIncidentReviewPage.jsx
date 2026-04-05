@@ -58,6 +58,29 @@ function formatDistance(distanceKm) {
   return typeof distanceKm === 'number' ? `${distanceKm.toFixed(1)} km` : EMPTY_TEXT
 }
 
+function formatPercent(value, digits = 2) {
+  return typeof value === 'number' ? `${value.toFixed(digits)}%` : EMPTY_TEXT
+}
+
+function formatMlStatus(value) {
+  const normalized = String(value || '').trim()
+  if (!normalized) {
+    return 'Not started'
+  }
+
+  return normalized
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase())
+}
+
+function formatPredictedLabel(value) {
+  if (!value) {
+    return 'Unclassified'
+  }
+
+  return value === 'spam' ? 'Spam' : 'Real'
+}
+
 function getConfidenceFillClass(confidence) {
   if (typeof confidence !== 'number') {
     return ''
@@ -346,8 +369,12 @@ export default function AdminIncidentReviewPage() {
               <span className="admin-mini-stat-value">{incident.reporter.name}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Reporter Score</span>
-              <span className="admin-mini-stat-value">{EMPTY_TEXT}</span>
+              <span className="admin-mini-stat-label">Reporter Trust</span>
+              <span className="admin-mini-stat-value">
+                {typeof incident.reporter.reporterScore === 'number'
+                  ? `${incident.reporter.reporterScore.toFixed(1)}%`
+                  : 'Not provided'}
+              </span>
             </div>
             <div className="admin-mini-stat">
               <span className="admin-mini-stat-label">Total Reports</span>
@@ -407,6 +434,60 @@ export default function AdminIncidentReviewPage() {
               </div>
             ) : null}
           </div>
+        </div>
+
+        <div className="admin-card">
+          <h3 className="admin-card-title">Spam Analysis</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Predicted Label</span>
+              <span className="admin-mini-stat-value">{formatPredictedLabel(incident.spamAnalysis.predictedLabel)}</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">ML Status</span>
+              <span className="admin-mini-stat-value">{formatMlStatus(incident.spamAnalysis.status)}</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Spam Score</span>
+              <span className="admin-mini-stat-value">{formatPercent(incident.spamAnalysis.spamScore)}</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">ML Confidence</span>
+              <span className="admin-mini-stat-value">{formatPercent(incident.spamAnalysis.confidence)}</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Model Version</span>
+              <span className="admin-mini-stat-value">{incident.spamAnalysis.modelVersion || EMPTY_TEXT}</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Classified At</span>
+              <span className="admin-mini-stat-value">{formatDateTime(incident.spamAnalysis.classifiedAt)}</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Review Verdict</span>
+              <span className="admin-mini-stat-value">{incident.spamAnalysis.reviewVerdict || 'Pending'}</span>
+            </div>
+            <div className="admin-mini-stat">
+              <span className="admin-mini-stat-label">Reviewed By</span>
+              <span className="admin-mini-stat-value">{incident.spamAnalysis.reviewedBy || EMPTY_TEXT}</span>
+            </div>
+          </div>
+          {incident.spamAnalysis.pendingReview ? (
+            <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: 6, border: '1px solid rgba(245, 158, 11, 0.2)', color: 'var(--admin-warning)', fontSize: 11 }}>
+              This report is classified as suspicious and is waiting for manual review.
+            </div>
+          ) : null}
+          {incident.spamAnalysis.reviewNotes ? (
+            <div className="admin-internal-note" style={{ marginTop: 10 }}>
+              <div className="admin-internal-note-label">Review Notes</div>
+              <div style={{ fontSize: 11, color: 'var(--admin-text-secondary)' }}>{incident.spamAnalysis.reviewNotes}</div>
+              {incident.spamAnalysis.reviewedAt ? (
+                <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
+                  Reviewed at {formatDateTime(incident.spamAnalysis.reviewedAt)}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         {incident.flags.length > 0 && (

@@ -1,8 +1,4 @@
-/**
- * @file AdminOverviewPage.jsx
- * @description System overview dashboard for national risk supervision.
- */
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -10,6 +6,7 @@ import {
   normalizeOverviewResponse,
   normalizeRange,
 } from '../../services/adminOverviewService'
+import { fetchAdminIncidentCounts } from '../../services/adminIncidentsService'
 
 const EMPTY_OVERVIEW = normalizeOverviewResponse()
 const EMPTY_TEXT = '\u2014'
@@ -64,12 +61,50 @@ function formatTrendText(trend) {
   return value
 }
 
-function formatPercent(value) {
-  return typeof value === 'number' ? `${value.toFixed(1)}%` : EMPTY_TEXT
+function formatPercent(value, digits = 1) {
+  return typeof value === 'number' ? `${value.toFixed(digits)}%` : EMPTY_TEXT
 }
 
 function formatDecimal(value) {
   return typeof value === 'number' ? value.toFixed(1) : EMPTY_TEXT
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return EMPTY_TEXT
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return EMPTY_TEXT
+  }
+
+  return date.toLocaleString('en', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatPredictedLabel(value) {
+  if (!value) {
+    return 'Unclassified'
+  }
+
+  return value === 'spam' ? 'Spam' : 'Real'
+}
+
+function formatMlStatus(value) {
+  const normalized = String(value || '').trim()
+  if (!normalized) {
+    return 'Not started'
+  }
+
+  return normalized
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase())
 }
 
 function getConfidenceFillClass(confidence) {
@@ -108,6 +143,12 @@ export default function AdminOverviewPage() {
   const navigate = useNavigate()
   const [timeRange, setTimeRange] = useState('24h')
   const [overview, setOverview] = useState(EMPTY_OVERVIEW)
+  const [incidentCounts, setIncidentCounts] = useState({
+    all: 0,
+    pending: 0,
+    suspicious: 0,
+    'pending-review': 0,
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [hasResolvedInitialLoad, setHasResolvedInitialLoad] = useState(false)
@@ -121,12 +162,18 @@ export default function AdminOverviewPage() {
       setError(null)
 
       try {
-        const nextOverview = await fetchAdminOverview(timeRange, {
-          signal: controller.signal,
-        })
+        const [nextOverview, nextIncidentCounts] = await Promise.all([
+          fetchAdminOverview(timeRange, {
+            signal: controller.signal,
+          }),
+          fetchAdminIncidentCounts({
+            signal: controller.signal,
+          }),
+        ])
 
         if (!controller.signal.aborted) {
           setOverview(nextOverview)
+          setIncidentCounts(nextIncidentCounts)
         }
       } catch (requestError) {
         if (!controller.signal.aborted) {
@@ -147,6 +194,13 @@ export default function AdminOverviewPage() {
 
   const maxWeeklyCount = Math.max(...overview.weeklyVolume.map((entry) => entry.count), 0)
   const reviewQueueCount = overview.reviewQueue.length
+  const spamRate = useMemo(() => {
+    if (!incidentCounts.all) {
+      return null
+    }
+
+    return (incidentCounts.suspicious / incidentCounts.all) * 100
+  }, [incidentCounts.all, incidentCounts.suspicious])
 
   const showInitialLoading = loading && !hasResolvedInitialLoad
 
@@ -210,8 +264,8 @@ export default function AdminOverviewPage() {
             <option value="7d">Last 7 days</option>
             <option value="30d">Last 30 days</option>
           </select>
-          <button className="admin-btn admin-btn-ghost" type="button">
-            Export
+          <button className="admin-btn admin-btn-ghost" type="button" onClick={() => navigate('/admin/incidents?filter=suspicious')}>
+            Open Spam Queue
           </button>
         </div>
       </div>
@@ -220,7 +274,7 @@ export default function AdminOverviewPage() {
         <div className="admin-card" style={{ marginBottom: 14 }}>
           <h2 className="admin-card-title">Loading overview...</h2>
           <p className="admin-card-subtitle" style={{ marginTop: 6 }}>
-            Pulling real incident, AI, and zone data from the backend.
+            Pulling real incident, AI, and spam-classification data from the backend.
           </p>
         </div>
       ) : (
@@ -288,6 +342,35 @@ export default function AdminOverviewPage() {
             </div>
           </div>
 
+          <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 14 }}>
+            <div className="admin-kpi">
+              <div className="admin-kpi-icon warning">⚑</div>
+              <div className="admin-kpi-body">
+                <span className="admin-kpi-label">Suspected Spam Reports</span>
+                <span className="admin-kpi-value">{incidentCounts.suspicious}</span>
+                <span className="admin-kpi-trend stable">Live admin queue count</span>
+              </div>
+            </div>
+            <div className="admin-kpi">
+              <div className="admin-kpi-icon warning">⌛</div>
+              <div className="admin-kpi-body">
+                <span className="admin-kpi-label">Pending Manual Review</span>
+                <span className="admin-kpi-value">{incidentCounts['pending-review']}</span>
+                <span className="admin-kpi-trend stable">Spam-labelled, not yet reviewed</span>
+              </div>
+            </div>
+            <div className="admin-kpi">
+              <div className="admin-kpi-icon primary">%</div>
+              <div className="admin-kpi-body">
+                <span className="admin-kpi-label">Spam Rate</span>
+                <span className="admin-kpi-value">{formatPercent(spamRate)}</span>
+                <span className="admin-kpi-trend stable">
+                  {incidentCounts.all ? `${incidentCounts.suspicious} of ${incidentCounts.all} reports` : 'No reports yet'}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="admin-card" style={{ marginBottom: 14 }}>
             <div className="admin-card-header">
               <div>
@@ -298,9 +381,9 @@ export default function AdminOverviewPage() {
               </div>
               <button
                 className="admin-btn admin-btn-primary"
-                onClick={() => navigate('/admin/incidents')}
+                onClick={() => navigate('/admin/incidents?filter=pending-review')}
               >
-                View All &rarr;
+                Review Spam Queue &rarr;
               </button>
             </div>
             <div className="admin-table-wrapper">
@@ -311,10 +394,10 @@ export default function AdminOverviewPage() {
                       <th>ID</th>
                       <th>Location</th>
                       <th>Severity</th>
-                      <th>Confidence</th>
-                      <th>Reporter Score</th>
+                      <th>Spam Analysis</th>
+                      <th>AI Confidence</th>
+                      <th>Review</th>
                       <th>Since Reported</th>
-                      <th>Status</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -338,14 +421,29 @@ export default function AdminOverviewPage() {
                           <span className={`admin-pill ${incident.severity}`}>{incident.severity}</span>
                         </td>
                         <td>
+                          <div style={{ display: 'grid', gap: 4, minWidth: 170 }}>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                              <span className={`admin-pill ${incident.predictedLabel === 'spam' ? 'warning' : incident.predictedLabel === 'real' ? 'success' : ''}`}>
+                                {formatPredictedLabel(incident.predictedLabel)}
+                              </span>
+                              <span className={`admin-pill ${incident.pendingSpamReview ? 'warning' : ''}`}>
+                                {incident.pendingSpamReview ? 'Pending review' : formatMlStatus(incident.mlStatus)}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--admin-text-secondary)' }}>
+                              Score {formatPercent(incident.spamScore)} · ML {formatPercent(incident.mlConfidence)} · {incident.modelVersion || EMPTY_TEXT}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <div className="admin-progress" style={{ width: 48 }}>
-                              {typeof incident.confidence === 'number' && (
+                              {typeof incident.confidence === 'number' ? (
                                 <div
                                   className={`admin-progress-fill ${getConfidenceFillClass(incident.confidence)}`}
                                   style={{ width: `${incident.confidence}%` }}
                                 ></div>
-                              )}
+                              ) : null}
                             </div>
                             <span
                               style={{
@@ -358,10 +456,9 @@ export default function AdminOverviewPage() {
                             </span>
                           </div>
                         </td>
-                        <td>
-                          <span style={{ fontWeight: 600, color: 'var(--admin-text-muted)' }}>
-                            {EMPTY_TEXT}
-                          </span>
+                        <td style={{ fontSize: 11, color: 'var(--admin-text-secondary)' }}>
+                          <div>{incident.reviewVerdict || (incident.pendingSpamReview ? 'Awaiting review' : EMPTY_TEXT)}</div>
+                          <div style={{ marginTop: 4 }}>{formatDateTime(incident.classifiedAt)}</div>
                         </td>
                         <td
                           style={{
@@ -373,9 +470,6 @@ export default function AdminOverviewPage() {
                           }}
                         >
                           {incident.ago}
-                        </td>
-                        <td>
-                          <span className={`admin-pill ${incident.status}`}>{incident.status}</span>
                         </td>
                         <td>
                           <button

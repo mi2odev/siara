@@ -1,11 +1,39 @@
 import { userRequest } from '../requestMethodes'
 
 const DEFAULT_FILTER = 'all'
-const DEFAULT_SORT_FIELD = 'confidence'
+const DEFAULT_SORT_FIELD = 'spamScore'
 const DEFAULT_SORT_DIR = 'desc'
-const ALLOWED_FILTERS = new Set(['all', 'pending', 'ai-flagged', 'community', 'merged', 'archived'])
-const ALLOWED_SORT_FIELDS = new Set(['id', 'incidentType', 'location', 'severity', 'confidence', 'reporterScore', 'createdAt', 'status'])
+const ALLOWED_FILTERS = new Set([
+  'all',
+  'pending',
+  'suspicious',
+  'pending-review',
+  'ai-flagged',
+  'community',
+  'merged',
+  'archived',
+])
+const ALLOWED_SORT_FIELDS = new Set([
+  'id',
+  'incidentType',
+  'location',
+  'severity',
+  'spamScore',
+  'confidence',
+  'reporterScore',
+  'createdAt',
+  'classifiedAt',
+  'status',
+])
 const ALLOWED_CONFIDENCE_STATUSES = new Set(['completed', 'pending', 'failed'])
+const ALLOWED_ML_STATUSES = new Set([
+  'waiting_for_text',
+  'waiting_for_image',
+  'processing',
+  'completed',
+  'failed',
+])
+const ALLOWED_PREDICTED_LABELS = new Set(['spam', 'real'])
 
 function normalizeApiError(error, fallbackMessage) {
   return new Error(
@@ -38,15 +66,36 @@ function ensureNullableNumber(value, digits = null) {
   return Number(numeric.toFixed(digits))
 }
 
+function ensureNullableText(value) {
+  const normalized = String(value || '').trim()
+  return normalized || null
+}
+
 function normalizeConfidenceStatus(value) {
   const normalized = String(value || '').trim().toLowerCase()
   return ALLOWED_CONFIDENCE_STATUSES.has(normalized) ? normalized : null
+}
+
+function normalizeMlStatus(value) {
+  const normalized = String(value || '').trim().toLowerCase()
+  return ALLOWED_ML_STATUSES.has(normalized) ? normalized : null
+}
+
+function normalizePredictedLabel(value) {
+  const normalized = String(value || '').trim().toLowerCase()
+  return ALLOWED_PREDICTED_LABELS.has(normalized) ? normalized : null
+}
+
+function normalizeReporterScore(value) {
+  return ensureNullableNumber(value, 2)
 }
 
 function normalizeCounts(counts) {
   return {
     all: ensureNumber(counts?.all, 0),
     pending: ensureNumber(counts?.pending, 0),
+    suspicious: ensureNumber(counts?.suspicious, 0),
+    'pending-review': ensureNumber(counts?.['pending-review'], 0),
     'ai-flagged': ensureNumber(counts?.['ai-flagged'], 0),
     community: ensureNumber(counts?.community, 0),
     merged: ensureNumber(counts?.merged, 0),
@@ -55,7 +104,41 @@ function normalizeCounts(counts) {
   }
 }
 
+function normalizeSpamAnalysis(rawItem) {
+  const item = rawItem?.spamAnalysis || rawItem || {}
+  const predictedLabel = normalizePredictedLabel(item?.predictedLabel ?? rawItem?.predictedLabel)
+  const reviewVerdict = ensureNullableText(item?.reviewVerdict ?? rawItem?.reviewVerdict)
+  const status = normalizeMlStatus(item?.status ?? rawItem?.mlStatus)
+  const pendingReview = Boolean(
+    item?.pendingReview
+      ?? rawItem?.pendingSpamReview
+      ?? (predictedLabel === 'spam' && !reviewVerdict),
+  )
+
+  return {
+    status,
+    predictedLabel,
+    spamScore: ensureNullableNumber(item?.spamScore ?? rawItem?.spamScore, 2),
+    confidence: ensureNullableNumber(item?.confidence ?? rawItem?.mlConfidence, 2),
+    modelVersion: ensureNullableText(item?.modelVersion ?? rawItem?.modelVersion),
+    classifiedAt: item?.classifiedAt ?? rawItem?.classifiedAt ?? null,
+    reviewVerdict,
+    reviewedBy: ensureNullableText(item?.reviewedBy),
+    reviewedAt: item?.reviewedAt || null,
+    reviewNotes: item?.reviewNotes || '',
+    pendingReview,
+  }
+}
+
 function normalizeIncidentRow(item) {
+  const spamAnalysis = normalizeSpamAnalysis(item)
+  const reporterScore = normalizeReporterScore(
+    item?.reporterScore
+      ?? item?.trustScore
+      ?? item?.reporter?.reporterScore
+      ?? item?.reporter?.trustScore,
+  )
+
   return {
     reportId: item?.reportId || '',
     displayId: item?.displayId || 'INC-UNKNOWN',
@@ -66,7 +149,16 @@ function normalizeIncidentRow(item) {
     severitySource: item?.severitySource === 'ai' ? 'ai' : 'hint',
     confidence: ensureNullableNumber(item?.confidence, 0),
     confidenceStatus: normalizeConfidenceStatus(item?.confidenceStatus),
-    reporterScore: null,
+    mlStatus: spamAnalysis.status,
+    predictedLabel: spamAnalysis.predictedLabel,
+    spamScore: spamAnalysis.spamScore,
+    mlConfidence: spamAnalysis.confidence,
+    modelVersion: spamAnalysis.modelVersion,
+    classifiedAt: spamAnalysis.classifiedAt,
+    reviewVerdict: spamAnalysis.reviewVerdict,
+    pendingSpamReview: spamAnalysis.pendingReview,
+    reporterScore,
+    spamAnalysis,
     createdAt: item?.createdAt || null,
     ago: item?.ago || '\u2014',
     status: item?.status || 'pending',
@@ -130,6 +222,14 @@ function normalizeNote(item) {
 }
 
 function normalizeIncidentDetail(item) {
+  const spamAnalysis = normalizeSpamAnalysis(item)
+  const reporterScore = normalizeReporterScore(
+    item?.reporterScore
+      ?? item?.trustScore
+      ?? item?.reporter?.reporterScore
+      ?? item?.reporter?.trustScore,
+  )
+
   return {
     reportId: item?.reportId || '',
     displayId: item?.displayId || 'INC-UNKNOWN',
@@ -145,7 +245,16 @@ function normalizeIncidentDetail(item) {
     severitySource: item?.severitySource === 'ai' ? 'ai' : 'hint',
     confidence: ensureNullableNumber(item?.confidence, 0),
     confidenceStatus: normalizeConfidenceStatus(item?.confidenceStatus),
-    reporterScore: null,
+    mlStatus: spamAnalysis.status,
+    predictedLabel: spamAnalysis.predictedLabel,
+    spamScore: spamAnalysis.spamScore,
+    mlConfidence: spamAnalysis.confidence,
+    modelVersion: spamAnalysis.modelVersion,
+    classifiedAt: spamAnalysis.classifiedAt,
+    reviewVerdict: spamAnalysis.reviewVerdict,
+    pendingSpamReview: spamAnalysis.pendingReview,
+    reporterScore,
+    spamAnalysis,
     createdAt: item?.createdAt || null,
     occurredAt: item?.occurredAt || null,
     ago: item?.ago || '\u2014',
@@ -160,7 +269,7 @@ function normalizeIncidentDetail(item) {
       email: item?.reporter?.email || null,
       totalReports: ensureNumber(item?.reporter?.totalReports, 0),
       joinedAt: item?.reporter?.joinedAt || null,
-      reporterScore: null,
+      reporterScore,
       accuracy: null,
     },
     aiAssessment: {
