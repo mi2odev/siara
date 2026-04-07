@@ -5,7 +5,7 @@ const NOTIFICATION_SELECT_SQL = `
     n.id,
     n.user_id,
     n.report_id,
-    n.operational_alert_id,
+    n.data ->> 'operationalAlertId' as operational_alert_id,
     n.channel,
     n.status,
     n.priority,

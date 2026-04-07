@@ -3,7 +3,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet'
 
 import PoliceShell from '../../components/layout/PoliceShell'
-import { POLICE_ACTIVE_ALERTS, POLICE_INCIDENTS } from '../../data/policeMockData'
+import {
+  POLICE_ACTIVE_ALERTS,
+  POLICE_INCIDENTS,
+  getPoliceIncidents,
+  savePoliceIncidents,
+  subscribePoliceIncidents,
+} from '../../data/policeMockData'
+import { fetchCommunes, fetchWilayas } from '../../services/alertService'
 
 function severityOrder(value) {
   if (value === 'high') return 3
@@ -33,6 +40,23 @@ function splitLocation(value) {
     road: cleanRoad,
     city: cleanCity,
   }
+}
+
+function incidentCity(incident) {
+  if (incident?.commune) return String(incident.commune).trim()
+  if (incident?.city) return String(incident.city).trim()
+  return splitLocation(incident?.location).city
+}
+
+function incidentRegion(incident) {
+  if (incident?.wilaya) return String(incident.wilaya).trim()
+  if (incident?.region) return String(incident.region).trim()
+  if (incident?.zone) return String(incident.zone).trim()
+  return ''
+}
+
+function normalizeFilterText(value) {
+  return String(value || '').trim().toLowerCase()
 }
 
 function reliabilityMeta(score) {
@@ -113,8 +137,9 @@ function sortIncidents(items) {
 export default function PolicePage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [incidents, setIncidents] = useState(sortIncidents(POLICE_INCIDENTS))
-  const [selectedIncidentId, setSelectedIncidentId] = useState(POLICE_INCIDENTS[0]?.id || null)
+  const initialIncidents = useMemo(() => sortIncidents(getPoliceIncidents()), [])
+  const [incidents, setIncidents] = useState(initialIncidents)
+  const [selectedIncidentId, setSelectedIncidentId] = useState(initialIncidents[0]?.id || POLICE_INCIDENTS[0]?.id || null)
   const [dispatchIncident, setDispatchIncident] = useState(null)
   const [selectedUnitId, setSelectedUnitId] = useState(DISPATCH_UNITS[0].id)
   const [lastRefreshAt, setLastRefreshAt] = useState(new Date())
@@ -131,9 +156,16 @@ export default function PolicePage() {
   const activeView = searchParams.get('view') === 'active'
   const insightsView = searchParams.get('view') === 'insights'
   const mineView = searchParams.get('view') === 'mine'
+  const dashboardView = false
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [wilayaFilterId, setWilayaFilterId] = useState('all')
+  const [communeFilterId, setCommuneFilterId] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [loadingWilayas, setLoadingWilayas] = useState(true)
+  const [loadingCommunes, setLoadingCommunes] = useState(false)
+  const [wilayas, setWilayas] = useState([])
+  const [communes, setCommunes] = useState([])
 
   const visibleIncidents = useMemo(() => {
     if (mineView) {
@@ -145,6 +177,16 @@ export default function PolicePage() {
     return incidents.filter((item) => item.status !== 'resolved' && item.status !== 'rejected')
   }, [incidents, activeView, mineView])
 
+  const selectedWilaya = useMemo(
+    () => wilayas.find((item) => String(item.id) === String(wilayaFilterId)) || null,
+    [wilayas, wilayaFilterId],
+  )
+
+  const selectedCommune = useMemo(
+    () => communes.find((item) => String(item.id) === String(communeFilterId)) || null,
+    [communes, communeFilterId],
+  )
+
   const filteredIncidents = useMemo(() => {
     const needle = String(searchTerm || '').trim().toLowerCase()
 
@@ -155,6 +197,24 @@ export default function PolicePage() {
 
       if (statusFilter !== 'all' && item.status !== statusFilter) {
         return false
+      }
+
+      if (wilayaFilterId !== 'all') {
+        const selectedWilayaName = normalizeFilterText(selectedWilaya?.name)
+        const wilayaText = normalizeFilterText(incidentRegion(item))
+        const locationText = normalizeFilterText(item.location)
+        if (!selectedWilayaName || (wilayaText !== selectedWilayaName && !locationText.includes(selectedWilayaName))) {
+          return false
+        }
+      }
+
+      if (communeFilterId !== 'all') {
+        const selectedCommuneName = normalizeFilterText(selectedCommune?.name)
+        const communeText = normalizeFilterText(incidentCity(item))
+        const locationText = normalizeFilterText(item.location)
+        if (!selectedCommuneName || (communeText !== selectedCommuneName && !locationText.includes(selectedCommuneName))) {
+          return false
+        }
       }
 
       if (mineView && mineStatusFilter !== 'all' && item.status !== mineStatusFilter) {
@@ -170,7 +230,18 @@ export default function PolicePage() {
 
       return true
     })
-  }, [priorityFilter, searchTerm, statusFilter, visibleIncidents, mineView, mineStatusFilter])
+  }, [
+    communeFilterId,
+    mineStatusFilter,
+    mineView,
+    priorityFilter,
+    searchTerm,
+    selectedCommune,
+    selectedWilaya,
+    statusFilter,
+    visibleIncidents,
+    wilayaFilterId,
+  ])
 
   const sortedIncidents = useMemo(() => {
     const distanceAnchor = filteredIncidents.find((item) => item.id === selectedIncidentId) || filteredIncidents[0] || null
@@ -227,10 +298,12 @@ export default function PolicePage() {
     const tags = []
     if (priorityFilter !== 'all') tags.push({ key: 'priority', label: `Priority: ${displayStatus(priorityFilter)}` })
     if (statusFilter !== 'all') tags.push({ key: 'status', label: `Status: ${displayStatus(statusFilter)}` })
+    if (wilayaFilterId !== 'all' && selectedWilaya?.name) tags.push({ key: 'wilaya', label: `Wilaya: ${selectedWilaya.name}` })
+    if (communeFilterId !== 'all' && selectedCommune?.name) tags.push({ key: 'commune', label: `Commune: ${selectedCommune.name}` })
     if (mineView && mineStatusFilter !== 'all') tags.push({ key: 'mine_status', label: `Mine: ${displayStatus(mineStatusFilter)}` })
     if (String(searchTerm || '').trim()) tags.push({ key: 'search', label: `Search: ${searchTerm.trim()}` })
     return tags
-  }, [priorityFilter, searchTerm, statusFilter, mineView, mineStatusFilter])
+  }, [communeFilterId, mineStatusFilter, mineView, priorityFilter, searchTerm, selectedCommune, selectedWilaya, statusFilter, wilayaFilterId])
 
   const groupedIncidents = useMemo(() => {
     const high = sortedIncidents.filter((item) => item.severity === 'high')
@@ -270,6 +343,12 @@ export default function PolicePage() {
     }
   }, [incidents])
 
+  const mineCounts = useMemo(() => ({
+    under_review: visibleIncidents.filter((item) => item.status === 'under_review').length,
+    verified: visibleIncidents.filter((item) => item.status === 'verified').length,
+    resolved: visibleIncidents.filter((item) => item.status === 'resolved').length,
+  }), [visibleIncidents])
+
   const topDangerousZone = useMemo(() => {
     const zoneScore = new Map()
 
@@ -292,38 +371,102 @@ export default function PolicePage() {
     responseTrend: 'down',
   }), [])
 
+  const dashboardPriorityIncidents = useMemo(
+    () => sortIncidents(incidents.filter((item) => item.severity === 'high' && item.status !== 'resolved' && item.status !== 'rejected')).slice(0, 3),
+    [incidents],
+  )
+
+  const recentIncidents = useMemo(
+    () => [...incidents]
+      .sort((left, right) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime())
+      .slice(0, 5),
+    [incidents],
+  )
+
+  const dashboardCriticalAlerts = useMemo(
+    () => dashboardPriorityIncidents.slice(0, 4),
+    [dashboardPriorityIncidents],
+  )
+
+  const zoneClusters = useMemo(() => {
+    const clusters = new Map()
+    incidents.forEach((item) => {
+      const key = item.wilaya || item.zone || 'Unknown zone'
+      clusters.set(key, (clusters.get(key) || 0) + 1)
+    })
+    return [...clusters.entries()]
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, 4)
+      .map(([name, count]) => ({ name, count }))
+  }, [incidents])
+
+  const activityFeedItems = useMemo(
+    () => [...incidents]
+      .sort((left, right) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime())
+      .slice(0, 6)
+      .map((item) => ({
+        id: item.id,
+        timeAgo: item.timeAgo,
+        text:
+          item.status === 'reported'
+            ? `New report received in ${item.location}`
+            : item.status === 'under_review'
+              ? `Officer started review for ${item.id}`
+              : item.status === 'verified'
+                ? `${item.id} verified by control unit`
+                : item.status === 'dispatched'
+                  ? `Backup dispatched to ${item.id}`
+                  : item.status === 'resolved'
+                    ? `${item.id} resolved and archived`
+                    : `${item.id} updated`,
+      })),
+    [incidents],
+  )
+
+  const dashboardMapCenter = useMemo(() => {
+    if (!incidents.length) return [36.365, 6.614]
+    const latAvg = incidents.reduce((sum, item) => sum + Number(item.lat || 0), 0) / incidents.length
+    const lngAvg = incidents.reduce((sum, item) => sum + Number(item.lng || 0), 0) / incidents.length
+    return [latAvg, lngAvg]
+  }, [incidents])
+
   const handleAction = (incidentId, action) => {
-    setIncidents((prev) => sortIncidents(prev.map((incident) => {
-      if (incident.id !== incidentId) {
+    setIncidents((prev) => {
+      const next = sortIncidents(prev.map((incident) => {
+        if (incident.id !== incidentId) {
+          return incident
+        }
+
+        if (action === 'review') {
+          return { ...incident, status: 'under_review' }
+        }
+
+        if (action === 'cancel_review') {
+          return { ...incident, status: 'reported' }
+        }
+
+        if (action === 'verify') {
+          return { ...incident, status: 'verified' }
+        }
+
+        if (action === 'reject') {
+          return { ...incident, status: 'rejected' }
+        }
+
+        if (action === 'resolve') {
+          return { ...incident, status: 'resolved' }
+        }
+
+        if (action === 'assign') {
+          return { ...incident, status: 'dispatched' }
+        }
+
         return incident
-      }
+      }))
 
-      if (action === 'review') {
-        return { ...incident, status: 'under_review' }
-      }
-
-      if (action === 'cancel_review') {
-        return { ...incident, status: 'reported' }
-      }
-
-      if (action === 'verify') {
-        return { ...incident, status: 'verified' }
-      }
-
-      if (action === 'reject') {
-        return { ...incident, status: 'rejected' }
-      }
-
-      if (action === 'resolve') {
-        return { ...incident, status: 'resolved' }
-      }
-
-      if (action === 'assign') {
-        return { ...incident, status: 'dispatched' }
-      }
-
-      return incident
-    })))
+      savePoliceIncidents(next)
+      return next
+    })
 
     const actionLabel =
       action === 'assign'
@@ -350,84 +493,46 @@ export default function PolicePage() {
       return
     }
 
+    if (action === 'queue') {
+      navigate('/police/verification', { state: { incidentId: incident.id } })
+      return
+    }
+
     if (action === 'dispatch') {
+      if (incident.severity !== 'high') return
       openDispatch(incident.id)
       return
     }
 
     if (action === 'review') {
-      handleAction(incident.id, 'review')
-      return
-    }
-
-    if (action === 'verify') {
-      handleAction(incident.id, 'verify')
-      return
-    }
-
-    if (action === 'cancel_review') {
-      handleAction(incident.id, 'cancel_review')
-      return
-    }
-
-    if (action === 'reject') {
-      setConfirmAction({
-        incident,
-        action: 'reject',
-        title: 'Confirm Rejection',
-        message: 'Are you sure you want to reject this incident?',
-        confirmLabel: 'Reject Incident',
-      })
-      return
-    }
-
-    if (action === 'close') {
-      setConfirmAction({
-        incident,
-        action: 'resolve',
-        title: 'Confirm Closure',
-        message: 'Are you sure you want to close this incident?',
-        confirmLabel: 'Close Incident',
-      })
+      if (incident.status === 'reported') {
+        handleAction(incident.id, 'review')
+      }
+      navigate('/police/verification', { state: { incidentId: incident.id } })
     }
   }
 
   const contextualActions = (incident) => {
     if (!incident) return []
+
+    const baseActions = [
+      { key: 'view', label: 'Open Incident', style: 'police-action-view' },
+      { key: 'queue', label: 'Go to Verification Queue', style: 'police-action-review' },
+    ]
+
     if (incident.status === 'reported') {
       return [
-        { key: 'view', label: '👁 View', style: 'police-action-view' },
-        { key: 'review', label: '▶ Start Review', style: 'police-action-review' },
+        { key: 'view', label: 'Open Incident', style: 'police-action-view' },
+        { key: 'review', label: 'Start Review', style: 'police-action-review' },
+        { key: 'queue', label: 'Go to Verification Queue', style: 'police-action-review' },
       ]
     }
 
-    if (incident.status === 'under_review') {
-      return [
-        { key: 'verify', label: '✔ Verify', style: 'police-action-verify' },
-        { key: 'reject', label: '✖ Reject', style: 'police-action-reject' },
-      ]
+    if (incident.status !== 'resolved' && incident.status !== 'rejected' && incident.severity === 'high') {
+      return [...baseActions, { key: 'dispatch', label: 'Request Backup', style: 'police-action-dispatch' }]
     }
 
-    if (incident.status === 'verified') {
-      return [
-        { key: 'dispatch', label: '🛡 Request Backup', style: 'police-action-dispatch' },
-        { key: 'close', label: '✔ Close Incident', style: 'police-action-resolve' },
-      ]
-    }
-
-    if (incident.status === 'resolved' || incident.status === 'rejected') {
-      return []
-    }
-
-    if (incident.status === 'dispatched') {
-      return [
-        { key: 'close', label: '✔ Close Incident', style: 'police-action-resolve' },
-      ]
-    }
-
-    return [
-      { key: 'view', label: '👁 View', style: 'police-action-view' },
-    ]
+    return baseActions
   }
 
   const openDispatch = (incidentId) => {
@@ -444,7 +549,7 @@ export default function PolicePage() {
   useEffect(() => {
     const loadingTimer = setTimeout(() => {
       try {
-        if (!Array.isArray(POLICE_INCIDENTS)) {
+        if (!Array.isArray(getPoliceIncidents())) {
           throw new Error('Invalid incident payload')
         }
         setIsLoading(false)
@@ -458,16 +563,81 @@ export default function PolicePage() {
   }, [])
 
   useEffect(() => {
-    const topCritical = sortedIncidents.find((item) => item.severity === 'high' && item.status !== 'resolved')
-    if (!topCritical) return
-    setSelectedIncidentId(topCritical.id)
-    const target = incidentRefs.current[topCritical.id]
-    if (target?.scrollIntoView) {
-      requestAnimationFrame(() => {
-        target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-      })
+    const unsubscribe = subscribePoliceIncidents((items) => {
+      setIncidents(sortIncidents(items))
+    })
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    let ignore = false
+    ;(async () => {
+      try {
+        const items = await fetchWilayas()
+        if (!ignore) {
+          setWilayas(items)
+        }
+      } catch {
+        if (!ignore) {
+          setWilayas([])
+        }
+      } finally {
+        if (!ignore) {
+          setLoadingWilayas(false)
+        }
+      }
+    })()
+
+    return () => {
+      ignore = true
     }
-  }, [sortedIncidents])
+  }, [])
+
+  useEffect(() => {
+    if (wilayaFilterId === 'all') {
+      setCommunes([])
+      setCommuneFilterId('all')
+      return
+    }
+
+    let ignore = false
+    setLoadingCommunes(true)
+    ;(async () => {
+      try {
+        const items = await fetchCommunes(wilayaFilterId)
+        if (!ignore) {
+          setCommunes(items)
+        }
+      } catch {
+        if (!ignore) {
+          setCommunes([])
+        }
+      } finally {
+        if (!ignore) {
+          setLoadingCommunes(false)
+        }
+      }
+    })()
+
+    return () => {
+      ignore = true
+    }
+  }, [wilayaFilterId])
+
+  useEffect(() => {
+    if (!sortedIncidents.length) return
+
+    const selectedStillVisible = sortedIncidents.some((item) => item.id === selectedIncidentId)
+    if (selectedStillVisible) return
+
+    const nextIncident =
+      sortedIncidents.find((item) => item.severity === 'high' && item.status !== 'resolved')
+      || sortedIncidents[0]
+
+    if (nextIncident?.id) {
+      setSelectedIncidentId(nextIncident.id)
+    }
+  }, [sortedIncidents, selectedIncidentId])
 
   useEffect(() => {
     if (!autoRefreshEnabled) return () => {}
@@ -499,23 +669,7 @@ export default function PolicePage() {
       if (!incident) return
 
       const key = String(event.key || '').toLowerCase()
-      if (key === 'v' && incident.status === 'under_review') {
-        event.preventDefault()
-        handleAction(incident.id, 'verify')
-      }
-
-      if (key === 'r' && incident.status === 'under_review') {
-        event.preventDefault()
-        setConfirmAction({
-          incident,
-          action: 'reject',
-          title: 'Confirm Rejection',
-          message: 'Are you sure you want to reject this incident?',
-          confirmLabel: 'Reject Incident',
-        })
-      }
-
-      if ((key === 'b' || key === 'd') && incident.status === 'verified') {
+      if ((key === 'b' || key === 'd') && incident.severity === 'high' && incident.status !== 'resolved' && incident.status !== 'rejected') {
         event.preventDefault()
         openDispatch(incident.id)
       }
@@ -550,6 +704,11 @@ export default function PolicePage() {
   const clearFilterTag = (key) => {
     if (key === 'priority') setPriorityFilter('all')
     if (key === 'status') setStatusFilter('all')
+    if (key === 'wilaya') {
+      setWilayaFilterId('all')
+      setCommuneFilterId('all')
+    }
+    if (key === 'commune') setCommuneFilterId('all')
     if (key === 'mine_status') setMineStatusFilter('all')
     if (key === 'search') setSearchTerm('')
   }
@@ -571,8 +730,12 @@ export default function PolicePage() {
   const renderIncidentCard = (incident) => {
     const reliability = reliabilityMeta(incident.reliability)
     const locationParts = splitLocation(incident.location)
+    const communeLabel = incidentCity(incident) || 'N/A'
+    const wilayaLabel = incidentRegion(incident) || 'N/A'
     const urgency = urgencyMeta(incident)
     const reliabilityValue = Math.max(0, Math.min(100, Number(incident.reliability || 0)))
+    const responseTarget = Number(incident.responseMinutes || 0)
+    const hasEvidence = Boolean(incident.image)
 
     return (
       <article
@@ -621,6 +784,17 @@ export default function PolicePage() {
             <span className="police-status-label" title="Current incident status">Status: {displayStatus(incident.status)}</span>
           </div>
 
+          <div className="police-stream-detail-grid">
+            <span className="police-detail-chip">Wilaya: {wilayaLabel}</span>
+            <span className="police-detail-chip">Commune: {communeLabel}</span>
+            <span className="police-detail-chip">Reporter: {incident.reporter || 'Unknown'}</span>
+            <span className="police-detail-chip">Response target: {responseTarget > 0 ? `${responseTarget} min` : 'N/A'}</span>
+            <span className={`police-detail-chip ${hasEvidence ? 'ok' : 'missing'}`}>
+              Evidence: {hasEvidence ? 'Photo available' : 'No photo'}
+            </span>
+            <span className="police-detail-chip">Coords: {Number(incident.lat || 0).toFixed(3)}, {Number(incident.lng || 0).toFixed(3)}</span>
+          </div>
+
           <p className="police-stream-description">{incident.description}</p>
           <div className="police-hover-preview" aria-hidden="true">
             <strong>{incident.id}</strong>
@@ -655,16 +829,12 @@ export default function PolicePage() {
               key={`${incident.id}-${action.key}`}
               className={`police-action ${action.style}`}
               title={
-                action.key === 'verify'
-                  ? 'Mark incident as confirmed'
-                  : action.key === 'reject'
-                    ? 'Reject incident as invalid'
-                    : action.key === 'dispatch'
+                action.key === 'dispatch'
                       ? 'Request backup for this incident'
-                      : action.key === 'close'
-                        ? 'Close incident after completion'
-                        : action.key === 'review'
-                          ? 'Move incident to review state'
+                      : action.key === 'review'
+                        ? 'Start review and open verification queue'
+                        : action.key === 'queue'
+                          ? 'Open verification queue'
                           : 'Open incident details'
               }
               onClick={(event) => {
@@ -794,183 +964,399 @@ export default function PolicePage() {
     </>
   )
 
+  const leftSidebarContent = (
+    <>
+      <h3 className="police-sidebar-widget-title">Quick Stats</h3>
+      <div className="police-sidebar-stats">
+        <div className="police-sidebar-stat">
+          <span>Active incidents</span>
+          <strong>{stats.total}</strong>
+          <em className="trend-up">{quickStats.incidentsTrend}</em>
+        </div>
+        <div className="police-sidebar-stat">
+          <span>Pending verification</span>
+          <strong>{verificationPendingCount}</strong>
+          <em className="trend-down">{quickStats.pendingTrend}</em>
+        </div>
+        <div className="police-sidebar-stat">
+          <span>Avg response time</span>
+          <strong>{stats.responseAvg} min</strong>
+          <em className="trend-down">{quickStats.responseTrend === 'down' ? 'down' : 'up'}</em>
+        </div>
+      </div>
+    </>
+  )
+
   return (
     <PoliceShell
       activeKey={insightsView ? 'analytics' : mineView ? 'my-incidents' : activeView ? 'active-incidents' : 'dashboard'}
+      leftSidebarContent={leftSidebarContent}
       rightPanel={rightPanel}
       rightPanelCollapsed={rightPanelCollapsed}
       notificationCount={criticalCount}
       emergencyMode={emergencyMode}
       verificationPendingCount={verificationPendingCount}
     >
-      <section className="police-section">
-        <div className="police-stream-header">
-          <div>
-            <h2>{activeView ? 'Active Incidents Stream' : mineView ? 'My Incident Stream' : 'Live Incident Stream'}</h2>
-            <p className="police-shortcuts-hint">Keyboard: V = Verify • R = Reject • B = Backup.</p>
-            <div className="police-counter-summary">
-              <span>Active: <strong>{visibleIncidents.length}</strong></span>
-              <span>High: <strong>{criticalCount}</strong></span>
-              <span>Pending: <strong>{verificationPendingCount}</strong></span>
+      {dashboardView ? (
+        <>
+          <section className="police-section">
+            <h2>Operations Command Center</h2>
+            <p className="police-shortcuts-hint">Fast overview of current status, hotspots, and team activity.</p>
+            <div className="police-command-kpi-grid">
+              <article className="police-command-kpi-card">
+                <span>Active Incidents</span>
+                <strong>{stats.total}</strong>
+              </article>
+              <article className="police-command-kpi-card critical">
+                <span>Critical Incidents</span>
+                <strong>{criticalCount}</strong>
+              </article>
+              <article className="police-command-kpi-card">
+                <span>Pending Verification</span>
+                <strong>{verificationPendingCount}</strong>
+              </article>
+              <article className="police-command-kpi-card">
+                <span>Avg Response Time</span>
+                <strong>{stats.responseAvg} min</strong>
+              </article>
             </div>
-          </div>
-          <div className="police-stream-controls">
-            <label className="police-filter-field">
-              <span>Sort</span>
-              <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} aria-label="Sort incidents">
-                <option value="priority">Priority</option>
-                <option value="time">Time</option>
-                <option value="distance">Distance</option>
-              </select>
-            </label>
-            <label className="police-filter-field">
-              <span>Priority</span>
-              <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} aria-label="Filter by priority">
-                <option value="all">All</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-            </label>
-            <label className="police-filter-field">
-              <span>Status</span>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
-                <option value="all">All</option>
-                <option value="reported">Reported</option>
-                <option value="under_review">Under Review</option>
-                <option value="verified">Verified</option>
-                <option value="resolved">Resolved</option>
-              </select>
-            </label>
-            <label className="police-filter-field police-filter-search">
-              <span>Search</span>
-              <input
-                type="search"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="ID, location, type..."
-                aria-label="Search incidents"
-              />
-            </label>
-            <button
-              className={`police-action ${autoRefreshEnabled ? 'police-action-dispatch' : 'police-action-view'}`}
-              onClick={() => setAutoRefreshEnabled((prev) => !prev)}
-              title="Toggle auto refresh"
-            >
-              {autoRefreshEnabled ? 'Auto Refresh: ON' : 'Auto Refresh: OFF'}
-            </button>
-            <button
-              className="police-action police-action-view"
-              onClick={() => setRightPanelCollapsed((prev) => !prev)}
-              title={rightPanelCollapsed ? 'Expand right panel' : 'Collapse right panel'}
-            >
-              {rightPanelCollapsed ? 'Expand Panel' : 'Collapse Panel'}
-            </button>
-          </div>
-        </div>
+          </section>
 
-        {mineView ? (
-          <div className="police-mine-toolbar">
-            <strong className="police-meta">You are handling: {visibleIncidents.length} incidents</strong>
-            <div className="police-mine-filters">
-              {[
-                { key: 'all', label: 'All' },
-                { key: 'under_review', label: 'Under Review' },
-                { key: 'verified', label: 'Verified' },
-                { key: 'resolved', label: 'Resolved' },
-              ].map((item) => (
-                <button
-                  key={item.key}
-                  className={`police-status-chip ${mineStatusFilter === item.key ? 'active' : ''}`}
-                  onClick={() => setMineStatusFilter(item.key)}
-                >
-                  {item.label}
-                </button>
+          <section className="police-section">
+            <div className="police-command-section-head">
+              <h2>Priority Incidents</h2>
+              <button className="police-action police-action-view" onClick={() => navigate('/police?view=active')}>View All Incidents</button>
+            </div>
+            <div className="police-priority">
+              {dashboardPriorityIncidents.map((incident) => (
+                <div key={incident.id} className="police-priority-alert-block">
+                  <div className="police-priority-header">
+                    <span className="police-high-priority">HIGH PRIORITY</span>
+                    <span className="police-meta">{incident.timeAgo}</span>
+                  </div>
+                  <strong>{incident.location}</strong>
+                  <p className="police-meta" style={{ margin: '6px 0 10px' }}>{incident.description}</p>
+                  <div className="police-priority-actions">
+                    <button className="police-action police-action-view" onClick={() => navigate(`/police/incident/${incident.id}`)}>Open Incident</button>
+                    <button className="police-action police-action-review" onClick={() => navigate('/police/verification')}>Go to Verification Queue</button>
+                  </div>
+                </div>
+              ))}
+              {dashboardPriorityIncidents.length === 0 ? <p className="police-meta">No critical incidents right now.</p> : null}
+            </div>
+          </section>
+
+          <section className="police-section">
+            <div className="police-command-section-head">
+              <h2>Map Overview</h2>
+              <span className="police-meta">Live spread and high-risk concentration</span>
+            </div>
+            <div className="police-command-map-wrap">
+              <div className="police-command-map">
+                <MapContainer center={dashboardMapCenter} zoom={12} scrollWheelZoom className="police-leaflet-map" key="dashboard-map">
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  />
+                  {incidents.map((incident) => (
+                    <React.Fragment key={`dashboard-map-${incident.id}`}>
+                      <Circle
+                        center={[incident.lat, incident.lng]}
+                        radius={incident.severity === 'high' ? 760 : incident.severity === 'medium' ? 520 : 360}
+                        pathOptions={{
+                          color: riskColor(incident.severity),
+                          opacity: 0.55,
+                          fillOpacity: incident.severity === 'high' ? 0.18 : 0.1,
+                          weight: 1,
+                        }}
+                      />
+                      <CircleMarker
+                        center={[incident.lat, incident.lng]}
+                        radius={incident.severity === 'high' ? 7 : 5}
+                        pathOptions={{ color: '#fff', weight: 2, fillColor: riskColor(incident.severity), fillOpacity: 0.95 }}
+                      >
+                        <Popup>
+                          <strong>{incident.id}</strong><br />
+                          {incident.type}<br />
+                          {incident.location}
+                        </Popup>
+                      </CircleMarker>
+                    </React.Fragment>
+                  ))}
+                </MapContainer>
+              </div>
+              <div className="police-cluster-list">
+                {zoneClusters.map((cluster) => (
+                  <div key={cluster.name} className="police-cluster-item">
+                    <span>{cluster.name}</span>
+                    <strong>{cluster.count}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="police-section">
+            <h2>Quick Action Panel</h2>
+            <div className="police-quick-actions-grid">
+              <button className="police-command-action-btn" onClick={() => navigate('/police/verification')}>Go to Verification Queue</button>
+              <button className="police-command-action-btn" onClick={() => navigate('/police?view=active')}>View All Incidents</button>
+              <button className="police-command-action-btn" onClick={() => navigate('/police?view=mine')}>My Assigned Incidents</button>
+            </div>
+          </section>
+
+          <section className="police-section">
+            <div className="police-command-two-col">
+              <div>
+                <h2>Recent Incidents</h2>
+                <div className="police-recent-list">
+                  {recentIncidents.map((incident) => (
+                    <button key={`recent-${incident.id}`} className="police-recent-item" onClick={() => navigate(`/police/incident/${incident.id}`)}>
+                      <strong>{incident.id}</strong>
+                      <span>{incident.location}</span>
+                      <em>{incident.timeAgo}</em>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h2>Alerts Panel</h2>
+                <div className="police-alerts-list">
+                  {dashboardCriticalAlerts.map((incident) => (
+                    <div key={`alert-${incident.id}`} className="police-alerts-item critical">
+                      <strong>{incident.type}</strong>
+                      <span>{incident.location}</span>
+                    </div>
+                  ))}
+                  {dashboardCriticalAlerts.length === 0 ? <p className="police-meta">No critical alerts.</p> : null}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="police-section">
+            <h2>Activity Feed</h2>
+            <div className="police-activity-feed">
+              {activityFeedItems.map((item) => (
+                <div key={`activity-${item.id}`} className="police-activity-item">
+                  <strong>{item.id}</strong>
+                  <span>{item.text}</span>
+                  <em>{item.timeAgo}</em>
+                </div>
               ))}
             </div>
-          </div>
-        ) : null}
-
-        {activeFilterTags.length > 0 ? (
-          <div className="police-filter-tags" aria-label="Active filters">
-            {activeFilterTags.map((tag) => (
-              <button
-                key={tag.key}
-                className="police-filter-tag"
-                onClick={() => clearFilterTag(tag.key)}
-                title="Remove filter"
-              >
-                {tag.label} <span aria-hidden="true">×</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="police-feed">
-          {isLoading ? (
-            <>
-              <div className="police-stream-skeleton"></div>
-              <div className="police-stream-skeleton"></div>
-              <div className="police-stream-skeleton"></div>
-            </>
-          ) : loadError ? (
-            <div className="police-empty-state" role="alert">
-              <div className="police-empty-icon" aria-hidden="true">⚠️</div>
-              <h3>{loadError}</h3>
-              <button className="police-action police-action-review" onClick={retryLoad}>Retry</button>
-            </div>
-          ) : !filteredIncidents.length ? (
-            <div className="police-empty-state" role="status" aria-live="polite">
-              <div className="police-empty-icon" aria-hidden="true">🛰️</div>
-              <h3>No active incidents</h3>
-              <p>Try clearing one or more filters to see incidents again.</p>
-            </div>
-          ) : (
-            <>
-              {groupedIncidents.high.length > 0 ? (
-                <div className="police-group-block">
-                  <h3 className="police-group-title">High Priority</h3>
-                  {groupedIncidents.high.map((incident) => renderIncidentCard(incident))}
+          </section>
+        </>
+      ) : (
+        <>
+          <section className="police-section">
+            <div className="police-stream-header">
+              <div>
+                <h2>{activeView ? 'Active Incidents Stream' : mineView ? 'My Incident Stream' : 'Live Incident Stream'}</h2>
+                <p className="police-shortcuts-hint">Dashboard = quick actions only. Keyboard: B = Backup (high priority).</p>
+                <div className="police-counter-summary">
+                  <span>Active: <strong>{visibleIncidents.length}</strong></span>
+                  <span>High: <strong>{criticalCount}</strong></span>
+                  <span>Pending: <strong>{verificationPendingCount}</strong></span>
                 </div>
-              ) : null}
-              {groupedIncidents.others.length > 0 ? (
-                <div className="police-group-block">
-                  <h3 className="police-group-title">Others</h3>
-                  {groupedIncidents.others.map((incident) => renderIncidentCard(incident))}
-                </div>
-              ) : null}
-            </>
-          )}
-        </div>
-      </section>
-
-      <section className="police-section">
-        <h2>Priority Incidents</h2>
-        <div className="police-priority">
-          {priorityIncidents.slice(0, 3).map((incident) => (
-            <div key={incident.id} className="police-priority-alert-block">
-              <div className="police-priority-header">
-                <span className="police-high-priority">HIGH PRIORITY INCIDENT</span>
-                <span className="police-meta">{incident.timeAgo}</span>
               </div>
-              <strong>{incident.location}</strong>
-              <p className="police-meta" style={{ margin: '6px 0 10px' }}>{incident.description}</p>
-              <div className="police-priority-actions">
-                <button className="police-action police-action-view" onClick={() => navigate(`/police/incident/${incident.id}`)}>OPEN DETAILS</button>
+              <div className="police-stream-controls">
+                <label className="police-filter-field">
+                  <span>Sort</span>
+                  <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} aria-label="Sort incidents">
+                    <option value="priority">Priority</option>
+                    <option value="time">Time</option>
+                    <option value="distance">Distance</option>
+                  </select>
+                </label>
+                <label className="police-filter-field">
+                  <span>Priority</span>
+                  <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)} aria-label="Filter by priority">
+                    <option value="all">All</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </label>
+                <label className="police-filter-field">
+                  <span>Status</span>
+                  <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
+                    <option value="all">All</option>
+                    <option value="reported">Reported</option>
+                    <option value="under_review">Under Review</option>
+                    <option value="verified">Verified</option>
+                    <option value="resolved">Resolved</option>
+                  </select>
+                </label>
+                <label className="police-filter-field">
+                  <span>Wilaya</span>
+                  <select
+                    value={wilayaFilterId}
+                    onChange={(event) => {
+                      setWilayaFilterId(event.target.value)
+                      setCommuneFilterId('all')
+                    }}
+                    aria-label="Filter by wilaya"
+                    disabled={loadingWilayas}
+                  >
+                    <option value="all">{loadingWilayas ? 'Loading wilayas...' : 'All'}</option>
+                    {wilayas.map((wilaya) => (
+                      <option key={wilaya.id} value={String(wilaya.id)}>{wilaya.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="police-filter-field">
+                  <span>Commune</span>
+                  <select
+                    value={communeFilterId}
+                    onChange={(event) => setCommuneFilterId(event.target.value)}
+                    aria-label="Filter by commune"
+                    disabled={wilayaFilterId === 'all' || loadingCommunes}
+                  >
+                    <option value="all">
+                      {wilayaFilterId === 'all'
+                        ? 'Choose a wilaya first'
+                        : loadingCommunes
+                          ? 'Loading communes...'
+                          : 'All'}
+                    </option>
+                    {communes.map((commune) => (
+                      <option key={commune.id} value={String(commune.id)}>{commune.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="police-filter-field police-filter-search">
+                  <span>Search</span>
+                  <input
+                    type="search"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder="ID, location, type..."
+                    aria-label="Search incidents"
+                  />
+                </label>
+                <button
+                  className={`police-action ${autoRefreshEnabled ? 'police-action-dispatch' : 'police-action-view'}`}
+                  onClick={() => setAutoRefreshEnabled((prev) => !prev)}
+                  title="Toggle auto refresh"
+                >
+                  {autoRefreshEnabled ? 'Auto Refresh: ON' : 'Auto Refresh: OFF'}
+                </button>
+                <button
+                  className="police-action police-action-view"
+                  onClick={() => setRightPanelCollapsed((prev) => !prev)}
+                  title={rightPanelCollapsed ? 'Expand right panel' : 'Collapse right panel'}
+                >
+                  {rightPanelCollapsed ? 'Expand Panel' : 'Collapse Panel'}
+                </button>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
 
-      <section className="police-section">
-        <h2>Quick Stats</h2>
-        <div className="police-stats-grid">
-          <div className="police-stat"><span>Active incidents</span><strong>{stats.total}</strong><em className="trend-up">{quickStats.incidentsTrend}</em></div>
-          <div className="police-stat"><span>Pending verification</span><strong>{verificationPendingCount}</strong><em className="trend-down">{quickStats.pendingTrend}</em></div>
-          <div className="police-stat"><span>Avg response time</span><strong>{stats.responseAvg} min</strong><em className="trend-down">{quickStats.responseTrend === 'down' ? '↓' : '↑'}</em></div>
-        </div>
-      </section>
+            {mineView ? (
+              <div className="police-mine-toolbar">
+                <div className="police-mine-toolbar-head">
+                  <strong className="police-meta">You are handling: {visibleIncidents.length} incidents</strong>
+                  <div className="police-mine-summary">
+                    <span><strong>{mineCounts.under_review}</strong> Under Review</span>
+                    <span><strong>{mineCounts.verified}</strong> Verified</span>
+                    <span><strong>{mineCounts.resolved}</strong> Resolved</span>
+                  </div>
+                </div>
+                <div className="police-mine-filters">
+                  {[
+                    { key: 'all', label: 'All' },
+                    { key: 'under_review', label: 'Under Review' },
+                    { key: 'verified', label: 'Verified' },
+                    { key: 'resolved', label: 'Resolved' },
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      className={`police-status-chip ${mineStatusFilter === item.key ? 'active' : ''}`}
+                      onClick={() => setMineStatusFilter(item.key)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {activeFilterTags.length > 0 ? (
+              <div className="police-filter-tags" aria-label="Active filters">
+                {activeFilterTags.map((tag) => (
+                  <button
+                    key={tag.key}
+                    className="police-filter-tag"
+                    onClick={() => clearFilterTag(tag.key)}
+                    title="Remove filter"
+                  >
+                    {tag.label} <span aria-hidden="true">×</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="police-feed">
+              {isLoading ? (
+                <>
+                  <div className="police-stream-skeleton"></div>
+                  <div className="police-stream-skeleton"></div>
+                  <div className="police-stream-skeleton"></div>
+                </>
+              ) : loadError ? (
+                <div className="police-empty-state" role="alert">
+                  <div className="police-empty-icon" aria-hidden="true">⚠️</div>
+                  <h3>{loadError}</h3>
+                  <button className="police-action police-action-review" onClick={retryLoad}>Retry</button>
+                </div>
+              ) : !filteredIncidents.length ? (
+                <div className="police-empty-state" role="status" aria-live="polite">
+                  <div className="police-empty-icon" aria-hidden="true">🛰️</div>
+                  <h3>No active incidents</h3>
+                  <p>Try clearing one or more filters to see incidents again.</p>
+                </div>
+              ) : (
+                <>
+                  {groupedIncidents.high.length > 0 ? (
+                    <div className="police-group-block">
+                      <h3 className="police-group-title">{mineView ? 'Assigned High Priority' : 'High Priority'}</h3>
+                      {groupedIncidents.high.map((incident) => renderIncidentCard(incident))}
+                    </div>
+                  ) : null}
+                  {groupedIncidents.others.length > 0 ? (
+                    <div className="police-group-block">
+                      <h3 className="police-group-title">{mineView ? 'Assigned Other Incidents' : 'Others'}</h3>
+                      {groupedIncidents.others.map((incident) => renderIncidentCard(incident))}
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </section>
+
+          {!mineView ? (
+          <section className="police-section">
+            <h2>Priority Incidents</h2>
+            <div className="police-priority">
+              {priorityIncidents.slice(0, 3).map((incident) => (
+                <div key={incident.id} className="police-priority-alert-block">
+                  <div className="police-priority-header">
+                    <span className="police-high-priority">HIGH PRIORITY INCIDENT</span>
+                    <span className="police-meta">{incident.timeAgo}</span>
+                  </div>
+                  <strong>{incident.location}</strong>
+                  <p className="police-meta" style={{ margin: '6px 0 10px' }}>{incident.description}</p>
+                  <div className="police-priority-actions">
+                    <button className="police-action police-action-view" onClick={() => navigate(`/police/incident/${incident.id}`)}>OPEN DETAILS</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+          ) : null}
+        </>
+      )}
 
       {dispatchIncident ? (
         <div className="police-dispatch-backdrop" role="presentation" onClick={() => setDispatchIncident(null)}>

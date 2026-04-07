@@ -34,6 +34,8 @@ import { fetchAlerts } from "../../services/alertService";
 import LocationOnTwoToneIcon from "@mui/icons-material/LocationOnTwoTone";
 import FullscreenTwoToneIcon from "@mui/icons-material/FullscreenTwoTone";
 import FullscreenExitTwoToneIcon from "@mui/icons-material/FullscreenExitTwoTone";
+import FmdGoodOutlinedIcon from "@mui/icons-material/FmdGoodOutlined";
+import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const WEATHER_DEBOUNCE_MS = 700;
@@ -1645,27 +1647,43 @@ export default function MapPage() {
         <aside className="map-sidebar-right">
 
           {/* ── Current weather widget ── */}
-          <div className="context-weather">
-            <div className="weather-icon">{weatherIcon}</div>
-            <div className="weather-info">
+            <div className="context-weather-wrap">
+              <div className="context-weather">
+                <div className="weather-icon">{weatherIcon}</div>
+                <div className="weather-info">
 
-              <span className="weather-temp">{weatherTempText}</span>
-              <span className="weather-hour">Current hour: {currentHourText}</span>
-              <span className="weather-place">Current place: {weatherPlaceText}</span>
-              <span className="weather-desc">{weatherDescText}</span>
-              {weatherUpdating && (
-                <span className="weather-detail weather-detail-muted">Updating weather...</span>
-              )}
-              <span className="weather-detail">
-                {hasGrantedLocation && contextPoint
-                  ? `Visibilite: ${visibilityText} • Vent: ${windText}${windDirectionText}`
-                  : "Activez votre position pour charger la meteo"}
-              </span>
-              <span className="weather-detail weather-detail-muted">
-                Humidite: {humidityText} • Pression: {pressureText}
-              </span>
+                  <span className="weather-temp">{weatherTempText}</span>
+                  <span className="weather-desc">{weatherDescText}</span>
+                  {weatherUpdating && (
+                    <span className="weather-detail weather-detail-muted">Updating weather...</span>
+                  )}
+                  <span className="weather-detail">
+                    {hasGrantedLocation && contextPoint
+                      ? `Visibilite: ${visibilityText} • Vent: ${windText}${windDirectionText}`
+                      : "Activez votre position pour charger la meteo"}
+                  </span>
+                  <span className="weather-detail weather-detail-muted">
+                    Humidite: {humidityText} • Pression: {pressureText}
+                  </span>
 
-            </div>
+                </div>
+              </div>
+              <div className="weather-location-meta">
+                <div className="weather-meta-row">
+                  <span className="weather-meta-icon" aria-hidden="true">
+                    <FmdGoodOutlinedIcon fontSize="inherit" />
+                  </span>
+                  <span className="weather-meta-label">Place</span>
+                  <span className="weather-meta-value">{weatherPlaceText}</span>
+                </div>
+                <div className="weather-meta-row">
+                  <span className="weather-meta-icon" aria-hidden="true">
+                    <AccessTimeOutlinedIcon fontSize="inherit" />
+                  </span>
+                  <span className="weather-meta-label">Hour</span>
+                  <span className="weather-meta-value">{currentHourText}</span>
+                </div>
+              </div>
           </div>
 
           <div className="context-section danger-forecast-section">

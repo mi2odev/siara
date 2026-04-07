@@ -429,14 +429,18 @@ export default function AlertsPage() {
 
     try {
       const result = await sendPushTest()
-      if (!result.ok || result.sentCount === 0) {
+      if (!result.ok && !result.inAppCreated) {
         setPushError(result.reason === 'no_active_subscriptions'
           ? 'No active browser subscription was found for your account on this browser.'
           : 'Unable to send a test system alert right now.')
         return
       }
 
-      setPushNotice('Test alert sent. Check your browser notifications.')
+      if (result.ok && result.sentCount > 0) {
+        setPushNotice('Test alert sent. It should appear in browser notifications and Notifications page.')
+      } else if (result.inAppCreated) {
+        setPushNotice('Test alert created in Notifications page. Browser push could not be delivered on this device.')
+      }
     } catch (error) {
       setPushError(error.response?.data?.message || error.message || 'Unable to send a test system alert.')
     } finally {

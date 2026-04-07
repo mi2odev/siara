@@ -769,7 +769,6 @@ async function createOperationalAlertNotifications(alert, eventType, db = pool) 
         INSERT INTO app.notifications (
           user_id,
           report_id,
-          operational_alert_id,
           channel,
           status,
           priority,
@@ -781,7 +780,6 @@ async function createOperationalAlertNotifications(alert, eventType, db = pool) 
         SELECT
           recipients.user_id,
           NULL,
-          $2::uuid,
           $3::varchar,
           'pending',
           $4::integer,
@@ -794,7 +792,7 @@ async function createOperationalAlertNotifications(alert, eventType, db = pool) 
           SELECT 1
           FROM app.notifications n
           WHERE n.user_id = recipients.user_id
-            AND n.operational_alert_id = $2::uuid
+            AND COALESCE(n.data ->> 'operationalAlertId', '') = $2::text
             AND n.event_type = $5::varchar
             AND n.channel = $3::varchar
         )
