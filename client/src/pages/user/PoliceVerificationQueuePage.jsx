@@ -1,21 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
 
 import PoliceShell from '../../components/layout/PoliceShell'
-import {
-  getPoliceIncidents,
-  subscribePoliceIncidents,
-  updatePoliceIncidentStatus,
-} from '../../data/policeMockData'
-
-function isInVerificationQueue(item) {
-  return item?.status === 'reported' || item?.status === 'under_review'
-}
+import { POLICE_INCIDENTS } from '../../data/policeMockData'
 
 export default function PoliceVerificationQueuePage() {
-  const navigate = useNavigate()
-  const [queue, setQueue] = useState(() => getPoliceIncidents().filter(isInVerificationQueue))
+  const [queue, setQueue] = useState(POLICE_INCIDENTS.filter((item) => item.status === 'reported'))
   const [toast, setToast] = useState('')
   const [selectedImageUrl, setSelectedImageUrl] = useState(null)
   const [selectedImageAlt, setSelectedImageAlt] = useState('Incident image')
@@ -30,29 +20,10 @@ export default function PoliceVerificationQueuePage() {
   }, [queue])
 
   const takeAction = (incidentId, action) => {
-    if (action === 'approved') {
-      updatePoliceIncidentStatus(incidentId, 'verified')
-      setToast(`Incident ${incidentId} approved`)
-    } else if (action === 'rejected') {
-      updatePoliceIncidentStatus(incidentId, 'rejected')
-      setToast(`Incident ${incidentId} rejected`)
-    } else if (action === 'flagged') {
-      updatePoliceIncidentStatus(incidentId, 'under_review')
-      setToast(`Incident ${incidentId} flagged for follow-up`)
-    } else {
-      setToast(`Incident ${incidentId} ${action}`)
-    }
-
+    setQueue((prev) => prev.filter((item) => item.id !== incidentId))
+    setToast(`Incident ${incidentId} ${action}`)
     setTimeout(() => setToast(''), 1700)
   }
-
-  useEffect(() => {
-    const unsubscribe = subscribePoliceIncidents((items) => {
-      setQueue(items.filter(isInVerificationQueue))
-    })
-
-    return unsubscribe
-  }, [])
 
   useEffect(() => {
     if (!selectedImageUrl) return () => {}
@@ -166,27 +137,14 @@ export default function PoliceVerificationQueuePage() {
         <h2>Verification Queue</h2>
         <div className="police-verification-grid">
           {queue.map((incident) => (
-            <article
-              key={incident.id}
-              className="police-verification-card"
-              role="button"
-              tabIndex={0}
-              onClick={() => navigate(`/police/incident/${incident.id}`)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  navigate(`/police/incident/${incident.id}`)
-                }
-              }}
-            >
+            <article key={incident.id} className="police-verification-card">
               <div className="police-verification-left">
                 {incident.image
                   ? (
                     <button
                       type="button"
                       className="police-image-open-btn"
-                      onClick={(event) => {
-                        event.stopPropagation()
+                      onClick={() => {
                         setSelectedImageUrl(incident.image)
                         setSelectedImageAlt(incident.type)
                       }}
@@ -215,33 +173,9 @@ export default function PoliceVerificationQueuePage() {
                 <span className="police-verification-reliability">🟢 {incident.reliability}% reliability</span>
                 <span className="police-meta">{incident.timeAgo}</span>
                 <div className="police-verification-actions">
-                  <button
-                    className="police-action police-action-verify"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      takeAction(incident.id, 'approved')
-                    }}
-                  >
-                    ✔ Approve
-                  </button>
-                  <button
-                    className="police-action police-action-reject"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      takeAction(incident.id, 'rejected')
-                    }}
-                  >
-                    ✖ Reject
-                  </button>
-                  <button
-                    className="police-action police-action-view"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      takeAction(incident.id, 'flagged')
-                    }}
-                  >
-                    🚩 Flag user
-                  </button>
+                  <button className="police-action police-action-verify" onClick={() => takeAction(incident.id, 'approved')}>✔ Approve</button>
+                  <button className="police-action police-action-reject" onClick={() => takeAction(incident.id, 'rejected')}>✖ Reject</button>
+                  <button className="police-action police-action-view" onClick={() => takeAction(incident.id, 'flagged')}>🚩 Flag user</button>
                 </div>
               </div>
             </article>

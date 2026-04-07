@@ -178,7 +178,5 @@ export async function sendPushTest() {
     deactivatedCount: Number(response.data?.deactivatedCount || 0),
     failureCount: Number(response.data?.failureCount || 0),
     reason: response.data?.reason || null,
-    inAppCreated: Boolean(response.data?.inAppCreated),
-    inAppNotificationId: response.data?.inAppNotificationId || null,
   }
 }

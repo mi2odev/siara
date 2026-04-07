@@ -23,7 +23,6 @@ function getUserInitials(name) {
 export default function PoliceShell({
   activeKey,
   children,
-  leftSidebarContent,
   rightPanel,
   rightPanelCollapsed = false,
   notificationCount = 0,
@@ -48,11 +47,7 @@ export default function PoliceShell({
           path: '/police/verification',
           badge: verificationPendingCount,
         },
-        { key: 'alert-center', label: 'Alert Center', icon: '🚨', path: '/police/alert-center' },
-        { key: 'field-reports', label: 'Field Reports', icon: '📝', path: '/police/field-reports' },
-        { key: 'operation-history', label: 'Operation History', icon: '📚', path: '/police/operation-history' },
-        { key: 'nearby-incidents', label: 'Nearby Incidents', icon: '📍', path: '/police/nearby-incidents' },
-        { key: 'my-incidents', label: 'My Incidents', icon: '👮', path: '/police/my-incidents' },
+        { key: 'my-incidents', label: 'My Incidents', icon: '👮', path: '/police?view=mine' },
       ],
     },
     {
@@ -144,11 +139,6 @@ export default function PoliceShell({
               </section>
             ))}
           </nav>
-          {leftSidebarContent ? (
-            <section className="police-sidebar-widget">
-              {leftSidebarContent}
-            </section>
-          ) : null}
         </aside>
 
         <main className="police-center">
