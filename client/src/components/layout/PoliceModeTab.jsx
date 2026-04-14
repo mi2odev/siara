@@ -1,5 +1,6 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 
 import { isPoliceOfficerUser } from '../../utils/roleUtils'
 
@@ -14,10 +15,19 @@ export default function PoliceModeTab({
 }) {
   const navigate = useNavigate()
   const location = useLocation()
+  const [portalTarget, setPortalTarget] = React.useState(null)
+
+  React.useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const headerRight = document.querySelector('.siara-dashboard-header .dash-header-right')
+    setPortalTarget(headerRight)
+  }, [location.pathname])
 
   const fixedButtonStyle = {
-    minWidth: '210px',
-    height: '40px',
+    minWidth: '172px',
+    height: '38px',
+    padding: '0 14px',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -31,9 +41,19 @@ export default function PoliceModeTab({
 
   const isPoliceMode = location.pathname === policePath || location.pathname.startsWith(`${policePath}/`)
 
-  return (
-    <button className={className} style={{ ...fixedButtonStyle, ...(buttonStyle || {}) }} onClick={() => navigate(isPoliceMode ? basicPath : policePath)}>
+  const modeSwitchButton = (
+    <button
+      className={`${className} dash-police-mode-btn ${isPoliceMode ? 'dash-police-mode-active' : 'dash-police-mode-inactive'}`}
+      style={{ ...fixedButtonStyle, ...(buttonStyle || {}) }}
+      onClick={() => navigate(isPoliceMode ? basicPath : policePath)}
+    >
       {isPoliceMode ? basicLabel : policeLabel}
     </button>
   )
+
+  if (portalTarget) {
+    return createPortal(modeSwitchButton, portalTarget)
+  }
+
+  return modeSwitchButton
 }

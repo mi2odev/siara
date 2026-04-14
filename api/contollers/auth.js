@@ -71,6 +71,46 @@ function normalizeEnum(value, allowedValues, fallback = null) {
   return allowedValues.includes(normalized) ? normalized : fallback;
 }
 
+async function fetchUserTrustSignals(userId, db = pool) {
+  const result = await db.query(
+    `
+      select
+        count(*) filter (where review_verdict = 'confirmed_legit')::int as legit_count,
+        count(*) filter (where review_verdict = 'confirmed_spam')::int as spam_count
+      from app.accident_reports
+      where reported_by = $1
+    `,
+    [userId],
+  );
+
+  const row = result.rows[0] || {};
+  const legitCount = Number(row.legit_count || 0);
+  const spamCount = Number(row.spam_count || 0);
+  const reviewedCount = legitCount + spamCount;
+  const trustScore = Number(
+    (
+      ((legitCount + 1) / (reviewedCount + 2))
+      * 100
+    ).toFixed(2),
+  );
+
+  return {
+    trustScore,
+    signals: {
+      legitReports: legitCount,
+      spamReports: spamCount,
+      reviewedReports: reviewedCount,
+    },
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || "").trim(),
+  );
+}
+
 async function ensureUserProfileSettingsTable(db = pool) {
   await db.query(`
     create table if not exists app.user_profile_settings (
@@ -133,6 +173,8 @@ async function fetchUserSettings(userId, db = pool) {
     throw createError(404, "User profile not found");
   }
 
+  const trust = await fetchUserTrustSignals(userId, db);
+
   const fullName = [row.first_name, row.last_name].filter(Boolean).join(" ").trim();
   const emailPreferences = await fetchEmailPreferences(userId, db);
   const pushPreferences = await ensureUserNotificationPreferences(userId, db);
@@ -147,6 +189,9 @@ async function fetchUserSettings(userId, db = pool) {
       phone: row.phone || "",
       language: row.language || "French",
       memberSince: row.created_at || null,
+      trustScore: trust.trustScore,
+      trustSignals: trust.signals,
+      trustScoreGeneratedAt: trust.generatedAt,
     },
     privacy: {
       visibility: row.privacy_visibility || "public",
@@ -165,6 +210,48 @@ async function fetchUserSettings(userId, db = pool) {
       inAppEnabled: Boolean(pushPreferences?.inAppEnabled),
       pushMode: pushPreferences?.pushMode || "important_only",
     },
+  };
+}
+
+async function fetchUserPrivacyVisibility(userId, db = pool) {
+  await ensureUserProfileSettingsTable(db);
+
+  await db.query(
+    `
+      insert into app.user_profile_settings (user_id)
+      values ($1)
+      on conflict (user_id) do nothing
+    `,
+    [userId],
+  );
+
+  const result = await db.query(
+    `
+      select
+        u.id,
+        coalesce(s.privacy_visibility, 'public') as privacy_visibility
+      from auth.users u
+      left join app.user_profile_settings s
+        on s.user_id = u.id
+      where u.id = $1
+      limit 1
+    `,
+    [userId],
+  );
+
+  const row = result.rows[0] || null;
+  if (!row) {
+    throw createError(404, "User profile not found");
+  }
+
+  const trust = await fetchUserTrustSignals(userId, db);
+
+  return {
+    userId: row.id,
+    visibility: row.privacy_visibility,
+    trustScore: trust.trustScore,
+    trustSignals: trust.signals,
+    trustScoreGeneratedAt: trust.generatedAt,
   };
 }
 
@@ -323,6 +410,31 @@ router.get("/settings", verifyToken, async (req, res, next) => {
   try {
     const settings = await fetchUserSettings(req.user.userId);
     return res.status(200).json(settings);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/users/:userId/privacy", verifyToken, async (req, res, next) => {
+  try {
+    const userId = String(req.params.userId || "").trim();
+    if (!isUuid(userId)) {
+      throw createError(400, "Invalid user id");
+    }
+
+    const privacy = await fetchUserPrivacyVisibility(userId);
+    const isOwner = req.user?.userId === userId;
+    const isPrivate = privacy.visibility === "private";
+
+    return res.status(200).json({
+      userId,
+      visibility: privacy.visibility,
+      isPrivate,
+      canViewActivity: isOwner || !isPrivate,
+      trustScore: privacy.trustScore,
+      trustSignals: privacy.trustSignals,
+      trustScoreGeneratedAt: privacy.trustScoreGeneratedAt,
+    });
   } catch (error) {
     return next(error);
   }

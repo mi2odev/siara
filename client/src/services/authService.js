@@ -82,6 +82,21 @@ export async function getUserSettings() {
   }
 }
 
+export async function getUserPrivacyVisibility(userId) {
+  const response = await userRequest.get(`/auth/users/${userId}/privacy`)
+  return {
+    userId: response.data?.userId || userId,
+    visibility: response.data?.visibility || 'public',
+    isPrivate: Boolean(response.data?.isPrivate),
+    canViewActivity: Boolean(response.data?.canViewActivity ?? true),
+    trustScore: Number.isFinite(Number(response.data?.trustScore))
+      ? Number(response.data?.trustScore)
+      : null,
+    trustSignals: response.data?.trustSignals || null,
+    trustScoreGeneratedAt: response.data?.trustScoreGeneratedAt || null,
+  }
+}
+
 export async function updateUserSettings(payload) {
   const response = await userRequest.patch('/auth/settings', payload)
   return {

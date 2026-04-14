@@ -160,7 +160,7 @@ export async function fetchAdminZoneMap(period = DEFAULT_PERIOD, metric = DEFAUL
       period: normalizeZonePeriod(response.data?.period),
       metric: normalizeZoneMetric(response.data?.metric),
       generatedAt: response.data?.generatedAt || null,
-      summarySource: response.data?.summarySource || 'ml.zone_risk_summary_current',
+      summarySource: response.data?.summarySource || 'ml.zone_risk_summary',
       summaryRebuilt: Boolean(response.data?.summaryRebuilt),
       featureCollection,
       items: Array.isArray(response.data?.items)

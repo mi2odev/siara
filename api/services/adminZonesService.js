@@ -676,7 +676,7 @@ async function ensureZoneRiskSummary(period = DEFAULT_PERIOD, db = pool) {
       SELECT
         count(*)::int AS zone_count,
         max(snapshot_at) AS latest_snapshot_at
-      FROM ml.zone_risk_summary_current
+      FROM ml.zone_risk_summary
       WHERE period_type = $1
         AND zone_level = 'wilaya'
     `,
@@ -818,7 +818,7 @@ async function getZoneMap(period = DEFAULT_PERIOD, metric = DEFAULT_METRIC, db =
         ST_AsGeoJSON(
           ST_SimplifyPreserveTopology(zsc.geom, $2::double precision)
         )::jsonb AS geometry_geojson
-      FROM ml.zone_risk_summary_current zsc
+      FROM ml.zone_risk_summary zsc
       WHERE zsc.period_type = $1
         AND zsc.zone_level = 'wilaya'
       ORDER BY zsc.zone_name ASC
@@ -838,7 +838,7 @@ async function getZoneMap(period = DEFAULT_PERIOD, metric = DEFAULT_METRIC, db =
     period: normalizedPeriod,
     metric: normalizedMetric,
     generatedAt: summaryState.snapshotAt,
-    summarySource: "ml.zone_risk_summary_current",
+    summarySource: "ml.zone_risk_summary",
     summaryRebuilt: summaryState.rebuilt,
     featureCollection,
     items,
@@ -1063,7 +1063,7 @@ async function getZoneDetails(adminAreaId, period = DEFAULT_PERIOD, db = pool) {
         ST_AsGeoJSON(
           ST_SimplifyPreserveTopology(zsc.geom, $3::double precision)
         )::jsonb AS geometry_geojson
-      FROM ml.zone_risk_summary_current zsc
+      FROM ml.zone_risk_summary zsc
       WHERE zsc.period_type = $1
         AND zsc.zone_level = 'wilaya'
         AND zsc.admin_area_id = $2::bigint

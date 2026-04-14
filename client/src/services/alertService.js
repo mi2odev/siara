@@ -12,6 +12,15 @@ export async function fetchAlerts(options = {}) {
   return response.data?.items || []
 }
 
+export async function fetchAlertsForUser(userId, options = {}) {
+  const response = await userRequest.get(`${ALERTS_ENDPOINT}/user/${userId}`, {
+    params: {
+      includeGeometry: options.includeGeometry ? 'true' : undefined,
+    },
+  })
+  return response.data?.items || []
+}
+
 export async function fetchAlert(id, options = {}) {
   const response = await userRequest.get(`${ALERTS_ENDPOINT}/${id}`, {
     params: {

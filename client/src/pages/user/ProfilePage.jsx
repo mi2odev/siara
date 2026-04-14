@@ -3,11 +3,11 @@
  * @description User profile page with a 3-column layout.
  *
  * Layout:
- *   - Left:   user card with avatar, role badge, edit button;
+ *   - Left:   user card with avatar and edit button;
  *              profile completion indicator (progress bar + task checklist);
  *              sidebar navigation links
  *   - Center: cover photo + profile overview with stats;
- *              tabbed activity section (posts / reports / badges / history / timeline)
+ *              tabbed activity section (posts / reports / history / timeline)
  *              with full keyboard navigation (ArrowLeft/Right/Home/End);
  *   - Right:  safety score gauge (SVG donut), contribution impact stats,
  *             recent triggered alerts, account health checklist
@@ -17,16 +17,15 @@
  *   - Auto-scroll to focused tab button on keyboard navigation
  *   - All data is mock/static for prototype purposes
  */
-import React, { useEffect, useRef, useState, useContext } from 'react'
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
-import { getUserRoles } from '../../utils/roleUtils'
-import { getCurrentUser } from '../../services/authService'
+import { getCurrentUser, getUserPrivacyVisibility, getUserSettings } from '../../services/authService'
 import { listReports } from '../../services/reportsService'
-import { fetchAlerts } from '../../services/alertService'
+import { fetchAlerts, fetchAlertsForUser } from '../../services/alertService'
 import '../../styles/ProfilePage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -169,6 +168,7 @@ export default function ProfilePage(){
   const [reportsError, setReportsError] = useState('')
   const [alertsLoading, setAlertsLoading] = useState(false)
   const [alertsError, setAlertsError] = useState('')
+  const [profileVisibility, setProfileVisibility] = useState('public')
   const [activeTab, setActiveTab] = useState('alerts')       // Currently selected activity tab
   const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
@@ -191,6 +191,48 @@ export default function ProfilePage(){
   }, [viewedUserFromFeed])
 
   const isExternalProfileView = Boolean(viewedUserFromFeed) && !isViewingOwnProfile
+  const shouldHideActivityForViewer = isExternalProfileView && profileVisibility === 'private'
+
+  useEffect(() => {
+    if (!isExternalProfileView) {
+      setProfileVisibility('public')
+      return
+    }
+
+    const targetUserId = viewedUserFromFeed?.id ?? viewedUserFromFeed?.userId ?? viewedUserFromFeed?.user_id
+    if (!targetUserId) {
+      setProfileVisibility('public')
+      return
+    }
+
+    let ignore = false
+
+    ;(async () => {
+      try {
+        const privacy = await getUserPrivacyVisibility(targetUserId)
+        if (!ignore) {
+          setProfileVisibility(privacy.visibility === 'private' ? 'private' : 'public')
+          setProfileUser((previous) => {
+            const next = previous || viewedUserFromFeed || {}
+            return {
+              ...next,
+              trustScore: privacy.trustScore ?? next.trustScore ?? next.trust_score ?? null,
+              trustSignals: privacy.trustSignals || next.trustSignals || null,
+              trustScoreGeneratedAt: privacy.trustScoreGeneratedAt || next.trustScoreGeneratedAt || null,
+            }
+          })
+        }
+      } catch {
+        if (!ignore) {
+          setProfileVisibility('public')
+        }
+      }
+    })()
+
+    return () => {
+      ignore = true
+    }
+  }, [isExternalProfileView, viewedUserFromFeed])
 
   useEffect(() => {
     if (isExternalProfileView) {
@@ -201,9 +243,26 @@ export default function ProfilePage(){
 
     ;(async () => {
       try {
-        const freshUser = await getCurrentUser()
+        const [freshUser, settings] = await Promise.all([
+          getCurrentUser(),
+          getUserSettings(),
+        ])
+
+        const profileSettings = settings?.profile || null
         if (!ignore && freshUser) {
-          setProfileUser(freshUser)
+          setProfileUser({
+            ...freshUser,
+            bio: profileSettings?.bio ?? freshUser.bio ?? '',
+            location: profileSettings?.location ?? freshUser.location ?? '',
+            trustScore: profileSettings?.trustScore ?? freshUser.trustScore ?? freshUser.trust_score ?? null,
+            trustSignals: profileSettings?.trustSignals ?? freshUser.trustSignals ?? null,
+            trustScoreGeneratedAt:
+              profileSettings?.trustScoreGeneratedAt
+              ?? freshUser.trustScoreGeneratedAt
+              ?? freshUser.trust_score_generated_at
+              ?? null,
+          })
+          setProfileVisibility(settings?.privacy?.visibility === 'private' ? 'private' : 'public')
         }
       } catch {
         // Keep auth-context data if live profile fetch fails.
@@ -221,15 +280,7 @@ export default function ProfilePage(){
     || currentUser.email
     || currentUser.phone
     || 'SIARA User'
-  const normalizedRoles = getUserRoles(currentUser)
-  const primaryRole = normalizedRoles.includes('admin')
-    ? 'admin'
-    : normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
-      ? 'police'
-      : normalizedRoles[0] || 'citizen'
-  const roleLabel = toTitleCase(primaryRole)
-  const roleBadgeClass = primaryRole === 'admin' ? 'admin' : primaryRole === 'police' ? 'police' : 'citoyen'
-  const bio = currentUser.bio || 'Active contributor helping make roads safer.'
+  const bio = String(currentUser.bio || '').trim() || 'No bio added yet.'
   const locationLabel = currentUser.city
     || currentUser.location
     || currentUser.address
@@ -238,12 +289,177 @@ export default function ProfilePage(){
   const contactLabel = currentUser.email || currentUser.phone || 'No contact info'
   const reportsCount = currentUser.reportCount ?? currentUser.reports_count
   const alertsCount = currentUser.alertsCount ?? currentUser.alerts_count
-  const verificationRate = currentUser.verificationRate ?? currentUser.verification_rate ?? 92
-  const badgesCount = currentUser.badgesCount ?? currentUser.badges_count ?? 18
-  const effectiveReportsCount = Number.isFinite(Number(reportsCount)) ? Number(reportsCount) : myReports.length
-  const effectiveAlertsCount = Number.isFinite(Number(alertsCount)) ? Number(alertsCount) : myAlerts.length
+  const verificationRateRaw = Number(currentUser.verificationRate ?? currentUser.verification_rate)
+  const verificationRate = Number.isFinite(verificationRateRaw)
+    ? Math.max(0, Math.min(100, Math.round(verificationRateRaw)))
+    : null
+  const effectiveReportsCount = shouldHideActivityForViewer
+    ? 0
+    : (Number.isFinite(Number(reportsCount)) ? Number(reportsCount) : myReports.length)
+  const effectiveAlertsCount = shouldHideActivityForViewer
+    ? 0
+    : (Number.isFinite(Number(alertsCount)) ? Number(alertsCount) : myAlerts.length)
+
+  const tabs = useMemo(
+    () => (isExternalProfileView ? ['alerts', 'reports'] : ['alerts', 'reports', 'history', 'timeline']),
+    [isExternalProfileView],
+  )
+
+  const tabLabels = {
+    alerts: '🔔 Alerts',
+    reports: '🚨 Reports',
+    history: '📊 History',
+    timeline: '⏱️ Timeline',
+  }
+
+  const reportMetrics = useMemo(() => {
+    const reports = Array.isArray(myReports) ? myReports : []
+    const total = reports.length
+    const verified = reports.filter((report) => {
+      const status = String(report?.status || '').toLowerCase()
+      return status === 'verified' || status === 'resolved'
+    }).length
+    const pending = reports.filter((report) => String(report?.status || '').toLowerCase() === 'pending').length
+    const highSeverity = reports.filter((report) => {
+      const severity = String(report?.severity || '').toLowerCase()
+      return severity === 'high' || severity === 'critical'
+    }).length
+    const aiValidated = reports.filter((report) => {
+      const status = String(report?.spamAnalysis?.status || '').toLowerCase()
+      return Boolean(report?.spamAnalysis?.classifiedAt) || (status && status !== 'pending')
+    }).length
+
+    return {
+      total,
+      verified,
+      pending,
+      highSeverity,
+      aiValidated,
+      verifiedRate: total > 0 ? Math.round((verified / total) * 100) : 0,
+      aiRate: total > 0 ? Math.round((aiValidated / total) * 100) : 0,
+    }
+  }, [myReports])
+
+  const alertMetrics = useMemo(() => {
+    const alerts = Array.isArray(myAlerts) ? myAlerts : []
+    const total = alerts.length
+    const active = alerts.filter((alert) => String(alert?.status || '').toLowerCase() === 'active').length
+    const triggered = alerts.reduce((sum, alert) => sum + (Number(alert?.triggerCount) || 0), 0)
+
+    return {
+      total,
+      active,
+      triggered,
+    }
+  }, [myAlerts])
+
+  const displayVerificationRate = verificationRate ?? reportMetrics.verifiedRate
+  const trustScoreRaw = Number(currentUser.trustScore ?? currentUser.trust_score)
+  const hasRealTrustScore = Number.isFinite(trustScoreRaw)
+  const trustScore = hasRealTrustScore
+    ? Math.max(0, Math.min(100, Number(trustScoreRaw.toFixed(2))))
+    : 0
+  const trustScoreLabel = hasRealTrustScore
+    ? Number(trustScore.toFixed(1)).toString()
+    : '—'
+  const trustSignals = currentUser?.trustSignals && typeof currentUser.trustSignals === 'object'
+    ? currentUser.trustSignals
+    : {}
+  const legitReportsCountRaw = Number(trustSignals.legitReports ?? trustSignals.legit_count ?? 0)
+  const spamReportsCountRaw = Number(trustSignals.spamReports ?? trustSignals.spam_count ?? 0)
+  const reviewedReportsCountRaw = Number(trustSignals.reviewedReports ?? trustSignals.reviewed_count)
+  const legitReportsCount = Number.isFinite(legitReportsCountRaw) ? Math.max(0, legitReportsCountRaw) : 0
+  const spamReportsCount = Number.isFinite(spamReportsCountRaw) ? Math.max(0, spamReportsCountRaw) : 0
+  const reviewedReportsCount = Number.isFinite(reviewedReportsCountRaw)
+    ? Math.max(0, reviewedReportsCountRaw)
+    : (legitReportsCount + spamReportsCount)
+  const trustScoreGeneratedAt = currentUser.trustScoreGeneratedAt || currentUser.trust_score_generated_at || null
+  const trustGeneratedLabel = trustScoreGeneratedAt ? formatAlertTime(trustScoreGeneratedAt) : 'just now'
+  const trustScoreDashOffset = 314 - (314 * trustScore) / 100
+
+  const topActiveZone = useMemo(() => {
+    const zoneCounts = new Map()
+
+    myReports.forEach((report) => {
+      const label = String(report?.locationLabel || report?.location?.label || '').trim()
+      if (!label) return
+      zoneCounts.set(label, (zoneCounts.get(label) || 0) + 1)
+    })
+
+    myAlerts.forEach((alert) => {
+      const label = String(alert?.area?.name || alert?.zone?.displayName || '').trim()
+      if (!label) return
+      zoneCounts.set(label, (zoneCounts.get(label) || 0) + 1)
+    })
+
+    if (zoneCounts.size === 0) {
+      return 'No zone yet'
+    }
+
+    return [...zoneCounts.entries()].sort((left, right) => right[1] - left[1])[0][0]
+  }, [myAlerts, myReports])
+
+  const recentTriggeredAlerts = useMemo(() => {
+    const results = []
+
+    myAlerts.forEach((alert, alertIndex) => {
+      const location = alert?.area?.name || alert?.zone?.displayName || alert?.name || 'Monitored area'
+      const fallbackSeverity = String(
+        alert?.severity
+          || (Array.isArray(alert?.severityLevels) ? alert.severityLevels[0] : 'medium')
+          || 'medium',
+      ).toLowerCase()
+
+      const recentTriggers = Array.isArray(alert?.recentTriggers) ? alert.recentTriggers : []
+      if (recentTriggers.length > 0) {
+        recentTriggers.forEach((trigger, triggerIndex) => {
+          const matchedAt = trigger?.matchedAt ? new Date(trigger.matchedAt).getTime() : 0
+          results.push({
+            id: `${alert?.id || alertIndex}-${trigger?.id || triggerIndex}`,
+            severity: String(trigger?.severity || fallbackSeverity || 'medium').toLowerCase(),
+            location,
+            subtitle: trigger?.time || formatAlertTime(trigger?.matchedAt),
+            matchedAt,
+          })
+        })
+        return
+      }
+
+      if (alert?.lastTriggeredAt || alert?.lastTriggered) {
+        const matchedAt = alert?.lastTriggeredAt ? new Date(alert.lastTriggeredAt).getTime() : 0
+        results.push({
+          id: `${alert?.id || alertIndex}-last`,
+          severity: fallbackSeverity,
+          location,
+          subtitle: alert?.lastTriggered || formatAlertTime(alert?.lastTriggeredAt),
+          matchedAt,
+        })
+      }
+    })
+
+    return results
+      .sort((left, right) => (right.matchedAt || 0) - (left.matchedAt || 0))
+      .slice(0, 3)
+  }, [myAlerts])
+
+  const isEmailVerified = Boolean(currentUser?.email_verified || currentUser?.email_verified_at)
+  const hasPhoneVerified = Boolean(String(currentUser?.phone || '').trim())
+  const hasLocationSet = locationLabel !== 'Location not set'
 
   useEffect(() => {
+    if (!tabs.includes(activeTab)) {
+      setActiveTab(tabs[0])
+    }
+  }, [activeTab, tabs])
+
+  useEffect(() => {
+    if (shouldHideActivityForViewer) {
+      setMyReports([])
+      setReportsError('')
+      setReportsLoading(false)
+      return
+    }
+
     const userIdentity = {
       id: currentUser?.id,
       email: currentUser?.email,
@@ -281,13 +497,21 @@ export default function ProfilePage(){
     return () => {
       ignore = true
     }
-  }, [currentUser?.email, currentUser?.id, displayName])
+  }, [currentUser?.email, currentUser?.id, displayName, shouldHideActivityForViewer])
 
   useEffect(() => {
-    if (isExternalProfileView) {
+    if (shouldHideActivityForViewer) {
       setMyAlerts([])
       setAlertsLoading(false)
       setAlertsError('')
+      return
+    }
+
+    const targetUserId = currentUser?.id ?? currentUser?.userId ?? currentUser?.user_id
+    if (isExternalProfileView && !targetUserId) {
+      setMyAlerts([])
+      setAlertsLoading(false)
+      setAlertsError('Unable to resolve profile alerts.')
       return
     }
 
@@ -298,7 +522,9 @@ export default function ProfilePage(){
       setAlertsError('')
 
       try {
-        const items = await fetchAlerts()
+        const items = isExternalProfileView
+          ? await fetchAlertsForUser(targetUserId)
+          : await fetchAlerts()
         if (!ignore) {
           setMyAlerts(Array.isArray(items) ? items : [])
         }
@@ -317,10 +543,7 @@ export default function ProfilePage(){
     return () => {
       ignore = true
     }
-  }, [isExternalProfileView])
-
-  // Ordered list of tab identifiers (matches button order)
-  const tabs = ['alerts', 'reports', 'badges', 'history', 'timeline']
+  }, [currentUser?.id, currentUser?.userId, currentUser?.user_id, isExternalProfileView, shouldHideActivityForViewer])
 
   /* ═══ KEYBOARD NAVIGATION FOR TABS ═══ */
   // Implements WAI-ARIA roving tabIndex pattern:
@@ -415,61 +638,33 @@ export default function ProfilePage(){
           <div className="user-card">
             <div className="user-card-avatar">
               <img src={profileAvatar} alt={displayName} />
-              <span className="verified-badge">✓</span>
             </div>
             <h2 className="user-card-name">{displayName}</h2>
-            <span className={`user-role-badge ${roleBadgeClass}`}>{roleLabel}</span>
             <p className="user-bio">{bio}</p>
-            {isViewingOwnProfile && <button className="btn-edit-profile">✏️ Edit Profile</button>}
-          </div>
-
-          {/* Profile Completion Indicator — progress bar + task checklist (65%) */}
-          <div className="profile-completion-card">
-            <div className="completion-header">
-              <h3 className="completion-title">Complete Your Profile</h3>
-              <span className="completion-percentage">65%</span>
-            </div>
-            <div className="completion-progress-bar">
-              <div className="completion-progress-fill" style={{width: '65%'}}></div>
-            </div>
-            <div className="completion-tasks">
-              <div className="completion-task completed">
-                <div className="task-icon completed">✓</div>
-                <span className="task-label">Profile Photo</span>
-              </div>
-              <div className="completion-task">
-                <div className="task-icon">📍</div>
-                <span className="task-label">Add Your Location</span>
-              </div>
-              <div className="completion-task completed">
-                <div className="task-icon completed">✓</div>
-                <span className="task-label">Verify Phone</span>
-              </div>
-              <div className="completion-task">
-                <div className="task-icon">🌍</div>
-                <span className="task-label">Enable Geolocation</span>
-              </div>
-              <div className="completion-task">
-                <div className="task-icon">🆘</div>
-                <span className="task-label">Emergency Contact</span>
-              </div>
-            </div>
+            {isViewingOwnProfile && (
+              <button
+                className="btn-edit-profile"
+                onClick={() => navigate('/settings', { state: { openSection: 'profile' } })}
+              >
+                ✏️ Edit Profile
+              </button>
+            )}
           </div>
 
           <nav className="profile-nav">
-            <button className="profile-nav-item active">
+            <button className="profile-nav-item active" onClick={() => navigate('/profile')}>
               <span className="nav-icon">👤</span>
               <span className="nav-label">My Profile</span>
             </button>
-            <button className="profile-nav-item">
+            <button className="profile-nav-item" onClick={() => navigate('/reports')}>
               <span className="nav-icon">📝</span>
               <span className="nav-label">My Reports</span>
             </button>
-            <button className="profile-nav-item">
+            <button className="profile-nav-item" onClick={() => navigate('/settings', { state: { openSection: 'account' } })}>
               <span className="nav-icon">⚙️</span>
               <span className="nav-label">Account Settings</span>
             </button>
-            <button className="profile-nav-item">
+            <button className="profile-nav-item" onClick={() => navigate('/settings', { state: { openSection: 'privacy' } })}>
               <span className="nav-icon">🔒</span>
               <span className="nav-label">Privacy & Security</span>
             </button>
@@ -486,15 +681,14 @@ export default function ProfilePage(){
             <div className="profile-header-content">
               <div className="profile-avatar-large">
                 <img src={profileAvatar} alt={displayName} />
-                <span className="verified-badge-large">✓</span>
               </div>
               <div className="profile-info">
                 <h1 className="profile-name">{displayName}</h1>
+                <p className="profile-bio-main">{bio}</p>
                 <div className="profile-meta">
                   <span className="meta-item"><span className="meta-key">Location</span><span className="meta-value">{locationLabel}</span></span>
                   <span className="meta-item"><span className="meta-key">Member</span><span className="meta-value">{joinLabel}</span></span>
                   <span className="meta-item"><span className="meta-key">Contact</span><span className="meta-value">{contactLabel}</span></span>
-                  <span className="verified-text">Verified Account</span>
                 </div>
               </div>
             </div>
@@ -509,12 +703,8 @@ export default function ProfilePage(){
                 <span className="stat-label">Reports</span>
               </div>
               <div className="stat-item">
-                <span className="stat-value">{verificationRate}%</span>
+                <span className="stat-value">{displayVerificationRate}%</span>
                 <span className="stat-label">Verification Rate</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-value">{badgesCount}</span>
-                <span className="stat-label">Badges</span>
               </div>
             </div>
           </section>
@@ -522,56 +712,19 @@ export default function ProfilePage(){
           {/* ═══ TABBED ACTIVITIES SECTION ═══ */}
           <section className="profile-activities">
             <div className="activity-tabs" role="tablist" ref={tabsRef}>
-              <button 
-                className={`activity-tab ${activeTab === 'alerts' ? 'active' : ''}`}
-                onClick={() => setActiveTab('alerts')}
-                onKeyDown={(e) => handleKeyDown(e, 0)}
-                role="tab"
-                aria-selected={activeTab === 'alerts'}
-                tabIndex={activeTab === 'alerts' ? 0 : -1}
-              >
-                🔔 Alerts
-              </button>
-              <button 
-                className={`activity-tab ${activeTab === 'reports' ? 'active' : ''}`}
-                onClick={() => setActiveTab('reports')}
-                onKeyDown={(e) => handleKeyDown(e, 1)}
-                role="tab"
-                aria-selected={activeTab === 'reports'}
-                tabIndex={activeTab === 'reports' ? 0 : -1}
-              >
-                🚨 Reports
-              </button>
-              <button 
-                className={`activity-tab ${activeTab === 'badges' ? 'active' : ''}`}
-                onClick={() => setActiveTab('badges')}
-                onKeyDown={(e) => handleKeyDown(e, 2)}
-                role="tab"
-                aria-selected={activeTab === 'badges'}
-                tabIndex={activeTab === 'badges' ? 0 : -1}
-              >
-                🏆 Badges
-              </button>
-              <button 
-                className={`activity-tab ${activeTab === 'history' ? 'active' : ''}`}
-                onClick={() => setActiveTab('history')}
-                onKeyDown={(e) => handleKeyDown(e, 3)}
-                role="tab"
-                aria-selected={activeTab === 'history'}
-                tabIndex={activeTab === 'history' ? 0 : -1}
-              >
-                📊 History
-              </button>
-              <button 
-                className={`activity-tab ${activeTab === 'timeline' ? 'active' : ''}`}
-                onClick={() => setActiveTab('timeline')}
-                onKeyDown={(e) => handleKeyDown(e, 4)}
-                role="tab"
-                aria-selected={activeTab === 'timeline'}
-                tabIndex={activeTab === 'timeline' ? 0 : -1}
-              >
-                ⏱️ Timeline
-              </button>
+              {tabs.map((tabKey, tabIndex) => (
+                <button
+                  key={tabKey}
+                  className={`activity-tab ${activeTab === tabKey ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tabKey)}
+                  onKeyDown={(event) => handleKeyDown(event, tabIndex)}
+                  role="tab"
+                  aria-selected={activeTab === tabKey}
+                  tabIndex={activeTab === tabKey ? 0 : -1}
+                >
+                  {tabLabels[tabKey]}
+                </button>
+              ))}
             </div>
 
             {/* ═══ TAB CONTENT PANELS ═══ */}
@@ -579,10 +732,10 @@ export default function ProfilePage(){
               {/* Alerts tab — user saved alerts */}
               {activeTab === 'alerts' && (
                 <div className="activity-grid">
-                  {isExternalProfileView ? (
+                  {shouldHideActivityForViewer ? (
                     <div className="activity-card">
-                      <h3 className="activity-title">Alerts are private</h3>
-                      <p className="activity-time">Only the account owner can view saved alerts.</p>
+                      <h3 className="activity-title">Activity is private</h3>
+                      <p className="activity-time">This account is private. Alerts are hidden from other users.</p>
                     </div>
                   ) : alertsLoading ? (
                     <div className="activity-card">
@@ -619,10 +772,15 @@ export default function ProfilePage(){
                 </div>
               )}
 
-              {/* Badges tab — unlocked/locked badge grid */}
+              {/* Reports tab */}
               {activeTab === 'reports' && (
                 <div className="activity-grid">
-                  {reportsLoading ? (
+                  {shouldHideActivityForViewer ? (
+                    <div className="activity-card">
+                      <h3 className="activity-title">Reports are private</h3>
+                      <p className="activity-time">This account is private. Report history is hidden from other users.</p>
+                    </div>
+                  ) : reportsLoading ? (
                     <div className="activity-card">
                       <h3 className="activity-title">Loading your reports...</h3>
                     </div>
@@ -657,25 +815,6 @@ export default function ProfilePage(){
                 </div>
               )}
 
-              {/* Badges tab — unlocked/locked badge grid */}
-              {activeTab === 'badges' && (
-                <div className="badges-grid">
-                  {[
-                    { icon: '🛡️', name: 'Verified Reporter', unlocked: true },
-                    { icon: '🚨', name: 'Emergency Assistant', unlocked: true },
-                    { icon: '🌧️', name: 'Weather Observer', unlocked: true },
-                    { icon: '👁️', name: 'Neighborhood Watch', unlocked: true },
-                    { icon: '⭐', name: 'Elite Contributor', unlocked: false },
-                    { icon: '🔥', name: '30-Day Streak', unlocked: false }
-                  ].map((badge, i) => (
-                    <div key={i} className={`badge-card ${badge.unlocked ? 'unlocked' : 'locked'}`}>
-                      <div className="badge-icon">{badge.icon}</div>
-                      <div className="badge-name">{badge.name}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Timeline tab — chronological event list with colored markers */}
               {activeTab === 'timeline' && (
                 <div className="activity-timeline">
@@ -695,14 +834,6 @@ export default function ProfilePage(){
                       description: 'Your report has been verified and confirmed by AI',
                       time: '3 hours ago',
                       color: '#10B981'
-                    },
-                    {
-                      type: 'badge',
-                      icon: '🏆',
-                      title: 'Badge Unlocked',
-                      description: 'You earned the "Emergency Assistant" badge',
-                      time: '1 day ago',
-                      color: '#F59E0B'
                     },
                     {
                       type: 'alert',
@@ -743,14 +874,6 @@ export default function ProfilePage(){
                       description: 'Accuracy rate: 95%',
                       time: '1 week ago',
                       color: '#10B981'
-                    },
-                    {
-                      type: 'badge',
-                      icon: '🛡️',
-                      title: 'Badge Unlocked',
-                      description: '"Verified Reporter" badge earned',
-                      time: '2 weeks ago',
-                      color: '#F59E0B'
                     }
                   ].map((event, i) => (
                     <div key={i} className="timeline-event">
@@ -777,14 +900,14 @@ export default function ProfilePage(){
 
         {/* ═══ RIGHT COLUMN — Profile Insights (score, impact, alerts, health) ═══ */}
         <aside className="profile-sidebar-right">
-          {/* Safety Score */}
+          {/* Trust Score */}
           <div className="insight-card safety-score">
-            <h3 className="insight-title">🛡️ Safety Score</h3>
+            <h3 className="insight-title">🛡️ Trust Score</h3>
             <div className="score-gauge">
               <svg className="gauge-svg" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="50" fill="none" stroke="#E5E7EB" strokeWidth="10"/>
                 <circle cx="60" cy="60" r="50" fill="none" stroke="url(#gradient)" strokeWidth="10" 
-                  strokeDasharray="314" strokeDashoffset="78.5" transform="rotate(-90 60 60)"/>
+                  strokeDasharray="314" strokeDashoffset={trustScoreDashOffset} transform="rotate(-90 60 60)"/>
                 <defs>
                   <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#5A28FF"/>
@@ -792,12 +915,13 @@ export default function ProfilePage(){
                   </linearGradient>
                 </defs>
               </svg>
-              <div className="score-value">85</div>
+              <div className="score-value">{trustScoreLabel}</div>
             </div>
             <div className="score-factors">
-              <div className="factor-item">✓ Verified reports</div>
-              <div className="factor-item">✓ High accuracy rate</div>
-              <div className="factor-item">✓ Active engagement</div>
+              <div className="factor-item">✓ {legitReportsCount} reports confirmed legit</div>
+              <div className="factor-item">✓ {spamReportsCount} reports confirmed spam</div>
+              <div className="factor-item">✓ {reviewedReportsCount} reports reviewed</div>
+              <div className="factor-item">✓ Updated from reviewed reports: {trustGeneratedLabel}</div>
             </div>
           </div>
 
@@ -806,15 +930,15 @@ export default function ProfilePage(){
             <h3 className="insight-title">📊 Contribution Impact</h3>
             <div className="impact-stats">
               <div className="impact-item">
-                <span className="impact-value">3,460</span>
-                <span className="impact-label">users notified (30d)</span>
+                <span className="impact-value">{alertMetrics.triggered.toLocaleString()}</span>
+                <span className="impact-label">alert matches (all time)</span>
               </div>
               <div className="impact-item">
-                <span className="impact-value">82%</span>
-                <span className="impact-label">validated by AI</span>
+                <span className="impact-value">{reportMetrics.aiRate}%</span>
+                <span className="impact-label">reports validated by AI</span>
               </div>
               <div className="impact-item">
-                <span className="impact-value">Bab Ezzouar</span>
+                <span className="impact-value">{topActiveZone}</span>
                 <span className="impact-label">most active zone</span>
               </div>
             </div>
@@ -824,19 +948,25 @@ export default function ProfilePage(){
           <div className="insight-card recent-alerts">
             <h3 className="insight-title">🚨 Recent Triggered Alerts</h3>
             <div className="alerts-list">
-              {[
-                { severity: 'high', location: 'Autoroute Est', users: 2340 },
-                { severity: 'medium', location: 'Rue Didouche', users: 890 },
-                { severity: 'low', location: 'Place Audin', users: 230 }
-              ].map((alert, i) => (
-                <div key={i} className="alert-item">
-                  <span className={`alert-severity ${alert.severity}`}></span>
+              {recentTriggeredAlerts.length > 0 ? (
+                recentTriggeredAlerts.map((alert) => (
+                  <div key={alert.id} className="alert-item">
+                    <span className={`alert-severity ${alert.severity}`}></span>
+                    <div className="alert-info">
+                      <div className="alert-location">{alert.location}</div>
+                      <div className="alert-users">{alert.subtitle || 'Recently triggered'}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="alert-item">
+                  <span className="alert-severity low"></span>
                   <div className="alert-info">
-                    <div className="alert-location">{alert.location}</div>
-                    <div className="alert-users">{alert.users.toLocaleString()} affected users</div>
+                    <div className="alert-location">No recent triggers yet</div>
+                    <div className="alert-users">New triggers will appear here.</div>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -844,21 +974,21 @@ export default function ProfilePage(){
           <div className="insight-card account-health">
             <h3 className="insight-title">✓ Account Health</h3>
             <div className="health-items">
-              <div className="health-item ok">
-                <span className="health-icon">✓</span>
+              <div className={`health-item ${isEmailVerified ? 'ok' : 'warning'}`}>
+                <span className="health-icon">{isEmailVerified ? '✓' : '⚠'}</span>
                 <span className="health-label">Email verified</span>
               </div>
-              <div className="health-item ok">
-                <span className="health-icon">✓</span>
+              <div className={`health-item ${hasPhoneVerified ? 'ok' : 'warning'}`}>
+                <span className="health-icon">{hasPhoneVerified ? '✓' : '⚠'}</span>
                 <span className="health-label">Phone verified</span>
               </div>
-              <div className="health-item ok">
-                <span className="health-icon">✓</span>
-                <span className="health-label">Location enabled</span>
+              <div className={`health-item ${hasLocationSet ? 'ok' : 'warning'}`}>
+                <span className="health-icon">{hasLocationSet ? '✓' : '⚠'}</span>
+                <span className="health-label">Location set</span>
               </div>
-              <div className="health-item warning">
-                <span className="health-icon">⚠</span>
-                <span className="health-label">Data sharing</span>
+              <div className={`health-item ${profileVisibility === 'private' ? 'warning' : 'ok'}`}>
+                <span className="health-icon">{profileVisibility === 'private' ? '⚠' : '✓'}</span>
+                <span className="health-label">Visibility: {profileVisibility}</span>
               </div>
             </div>
           </div>

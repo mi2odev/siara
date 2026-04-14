@@ -1,9 +1,8 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
-import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { changePassword, getUserSettings, updateUserSettings } from '../../services/authService'
 import '../../styles/DashboardPage.css'
@@ -11,12 +10,12 @@ import '../../styles/SettingsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
 const sections = [
-  { key: 'profile', label: 'Profile' },
-  { key: 'account', label: 'Account' },
-  { key: 'security', label: 'Security' },
-  { key: 'notifications', label: 'Notifications' },
-  { key: 'privacy', label: 'Privacy' },
-  { key: 'data', label: 'Data' },
+  { key: 'profile', label: 'Profile', icon: '👤', hint: 'Identity and personal info' },
+  { key: 'account', label: 'Account', icon: '🪪', hint: 'Email, phone, language' },
+  { key: 'security', label: 'Security', icon: '🛡️', hint: 'Password and 2FA' },
+  { key: 'notifications', label: 'Notifications', icon: '🔔', hint: 'Email and push alerts' },
+  { key: 'privacy', label: 'Privacy', icon: '🔒', hint: 'Visibility and sharing' },
+  { key: 'data', label: 'Data', icon: '📦', hint: 'Export and account deletion' },
 ]
 
 const DEFAULT_PROFILE = {
@@ -45,10 +44,19 @@ const DEFAULT_PRIVACY = {
 
 export default function SettingsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout, setUser } = useContext(AuthContext)
   const userId = user?.id || null
 
-  const [activeSection, setActiveSection] = useState('profile')
+  const initialSection = useMemo(() => {
+    const requested = location.state?.openSection
+    if (sections.some((section) => section.key === requested)) {
+      return requested
+    }
+    return 'profile'
+  }, [location.state])
+
+  const [activeSection, setActiveSection] = useState(initialSection)
   const [showDropdown, setShowDropdown] = useState(false)
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const [editing, setEditing] = useState(null)
@@ -77,6 +85,10 @@ export default function SettingsPage() {
     confirmPassword: '',
   })
 
+  useEffect(() => {
+    setActiveSection(initialSection)
+  }, [initialSection])
+
   const memberSinceLabel = useMemo(() => {
     if (!profileData.memberSince) {
       return 'Unknown'
@@ -89,6 +101,11 @@ export default function SettingsPage() {
 
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   }, [profileData.memberSince])
+
+  const activeSectionConfig = useMemo(
+    () => sections.find((section) => section.key === activeSection) || sections[0],
+    [activeSection],
+  )
 
   useEffect(() => {
     let ignore = false
@@ -366,20 +383,29 @@ export default function SettingsPage() {
       <div className="settings-layout">
         <nav className="settings-nav">
           <h2 className="settings-nav-title">Settings</h2>
+          <p className="settings-nav-subtitle">Tune your account experience and security.</p>
+
           {sections.map((section) => (
             <button
               key={section.key}
               className={`settings-nav-item${activeSection === section.key ? ' active' : ''}`}
               onClick={() => setActiveSection(section.key)}
             >
-              {section.label}
+              <span className="settings-nav-item-icon" aria-hidden="true">{section.icon}</span>
+              <span className="settings-nav-item-content">
+                <span className="settings-nav-item-label">{section.label}</span>
+                <span className="settings-nav-item-hint">{section.hint}</span>
+              </span>
             </button>
           ))}
-
-          <LeftQuickInfoLinks className="settings-quick-links" />
         </nav>
 
         <main className="settings-panel">
+          <div className="settings-panel-head">
+            <h2 className="settings-panel-title">{activeSectionConfig.label}</h2>
+            <p className="settings-panel-subtitle">{activeSectionConfig.hint}</p>
+          </div>
+
           {isLoadingSettings ? <p className="settings-muted">Loading settings...</p> : null}
           {isSaving ? <p className="settings-muted">Saving changes...</p> : null}
           {settingsError ? <p className="settings-muted" style={{ color: '#b91c1c' }}>{settingsError}</p> : null}
