@@ -1445,13 +1445,13 @@ export default function MapPage() {
         <aside className="sidebar-left">
 
           {/* ── Profile card ── */}
-          <div className="card profile-summary">
-            <div className="profile-avatar-container">
-              <img src={profileAvatar} alt="Profile" className="profile-avatar-large" />
-              <span className="verified-badge">V</span>
+          <div className="card profile-summary map-profile-summary">
+            <div className="profile-avatar-container map-profile-avatar-container">
+              <img src={profileAvatar} alt="Profile" className="profile-avatar-large map-profile-avatar-large" />
+              <span className="verified-badge map-profile-verified-badge">V</span>
             </div>
-            <div className="profile-info">
-              <p className="profile-name">{profileName}</p>
+            <div className="profile-info map-profile-info">
+              <p className="profile-name map-profile-name">{profileName}</p>
               <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
               <p className="profile-bio">Browse live road reports and share updates from the field.</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>

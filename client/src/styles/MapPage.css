@@ -456,6 +456,70 @@
   flex-shrink: 0;
 }
 
+/* Stabilize profile card avatar placement on map sidebar (avoid cross-page class collisions). */
+.map-content > .sidebar-left .map-profile-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 16px;
+}
+
+.map-content > .sidebar-left .map-profile-avatar-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 8px;
+}
+
+.map-content > .sidebar-left .map-profile-avatar-large {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid transparent;
+  background: linear-gradient(#ffffff, #ffffff) padding-box,
+              linear-gradient(135deg, #5A28FF, #8A3EFF, #C04BFF) border-box;
+  object-fit: cover;
+  display: block;
+  position: relative;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.map-content > .sidebar-left .map-profile-verified-badge {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-content > .sidebar-left .map-profile-info {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.map-content > .sidebar-left .map-profile-name {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.1;
+  letter-spacing: normal;
+}
+
 /* Profile & nav use shared NewsPage.css styles (same as Feed) */
 
 .filters-section {
@@ -613,6 +677,7 @@
   width: 100%;
   height: 100%;
   --map-aside-width: min(320px, calc(100% - 24px));
+  --map-right-controls-space: 232px;
   border-radius: inherit;
   overflow: hidden;
 }
@@ -621,12 +686,15 @@
   position: absolute;
   top: 14px;
   left: 72px;
+  right: calc(16px + var(--map-right-controls-space, 232px));
   z-index: 860;
+  min-width: 0;
 }
 
 .layer-switcher {
   display: flex;
-  max-width: min(100%, calc(100vw - 220px));
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   background: #fff;
@@ -1102,6 +1170,15 @@
 }
 
 @media (max-width: 1200px) {
+  .map-container {
+    --map-right-controls-space: 72px;
+  }
+
+  .map-controls-top {
+    left: 16px;
+    right: calc(12px + var(--map-right-controls-space, 72px));
+  }
+
   .map-controls-right {
     top: 14px;
     right: 16px;
@@ -2287,6 +2364,36 @@
 
   .map-page .dash-header-center {
     max-width: 360px;
+  }
+}
+
+@media (max-width: 1360px) {
+  .map-container {
+    --map-right-controls-space: 120px;
+  }
+
+  .map-controls-top {
+    left: 52px;
+    right: calc(12px + var(--map-right-controls-space, 120px));
+  }
+
+  .map-controls-right {
+    gap: 8px;
+  }
+
+  .map-ctrl-btn {
+    min-width: 40px;
+    height: 40px;
+    padding: 0 10px;
+  }
+
+  .map-ctrl-label {
+    display: none;
+  }
+
+  .layer-btn {
+    padding: 7px 11px;
+    font-size: 12px;
   }
 }
 
