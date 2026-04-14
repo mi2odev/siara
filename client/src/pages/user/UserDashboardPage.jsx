@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect, useMemo, useCallback } from 're
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import '../../styles/NewsPage.css'
@@ -264,18 +265,7 @@ export default function UserDashboardPage() {
               <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>
-          <nav className="card nav-menu">
-            <div className="nav-section-label">NAVIGATION</div>
-            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-accent"></span><span className="nav-icon">📰</span><span className="nav-label">Feed</span></button>
-            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-accent"></span><span className="nav-icon">🗺️</span><span className="nav-label">Map</span></button>
-            <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alerts</span></button>
-            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">📊</span><span className="nav-label">Dashboard</span></button>
-            <button className="nav-item" onClick={() => navigate('/predictions')}><span className="nav-accent"></span><span className="nav-icon">🔮</span><span className="nav-label">Predictions</span></button>
-            <div className="nav-section-label">TOOLS</div>
-            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">🚗</span><span className="nav-label">Driver Quiz</span></button>
-            <button className="nav-item" onClick={() => navigate('/report')}><span className="nav-accent"></span><span className="nav-icon">📝</span><span className="nav-label">Report</span></button>
-            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Settings</span></button>
-          </nav>
+          <FeedSidebarNav activeKey="dashboard" onOpenQuiz={() => setShowQuiz(true)} />
         </aside>
 
         <main className="feed-center ud-feed-wide">

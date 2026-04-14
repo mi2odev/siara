@@ -40,6 +40,7 @@ export default function PoliceShell({
       items: [
         { key: 'dashboard', label: 'Dashboard', icon: '🏛️', path: '/police' },
         { key: 'active-incidents', label: 'Active Incidents', icon: '🔴', path: '/police?view=active' },
+        { key: 'nearby-incidents', label: 'Nearby Incidents', icon: '📍', path: '/police/nearby' },
         {
           key: 'verification-queue',
           label: 'Verification Queue',
@@ -47,13 +48,24 @@ export default function PoliceShell({
           path: '/police/verification',
           badge: verificationPendingCount,
         },
-        { key: 'my-incidents', label: 'My Incidents', icon: '👮', path: '/police?view=mine' },
+        { key: 'my-incidents', label: 'My Incidents', icon: '👮', path: '/police/my-incidents' },
+        { key: 'alert-center', label: 'Alert Center', icon: '🚨', path: '/police/alerts' },
+        { key: 'field-reports', label: 'Field Reports', icon: '📝', path: '/police/field-reports' },
+        { key: 'operation-history', label: 'Operation History', icon: '🕘', path: '/police/history' },
       ],
     },
     {
       title: 'ANALYTICS',
       items: [
         { key: 'analytics', label: 'AI Insights', icon: '🧠', path: '/police/insights' },
+      ],
+    },
+    {
+      title: 'INFO',
+      items: [
+        { key: 'contact', label: 'Contact', icon: '📞', path: '/contact' },
+        { key: 'about', label: 'About', icon: 'ℹ️', path: '/about' },
+        { key: 'description', label: 'Description', icon: '📘', path: '/description' },
       ],
     },
   ], [verificationPendingCount])

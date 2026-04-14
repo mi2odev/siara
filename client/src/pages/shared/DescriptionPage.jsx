@@ -1,53 +1,101 @@
-/**
- * @file DescriptionPage.jsx
- * @description SIARA project description page — presents the purpose,
- *   key features, and getting-started instructions.
- */
-
-// Import React and associated stylesheet
 import React from 'react'
-import '../../styles/DescriptionPage.css'
+import '../../styles/InfoPages.css'
+import siaraLogo from '../../assets/logos/siara-logo.png'
 
-/**
- * Description page component.
- * Provides a textual overview of the project, its features, and how to get started.
- */
-export default function DescriptionPage(){
+const WORKFLOW_STEPS = [
+  {
+    title: 'Incident Intake',
+    detail: 'Reports are captured with location, media, and contextual metadata from users and operators.',
+  },
+  {
+    title: 'Data Validation',
+    detail: 'Input quality checks standardize records and prepare events for downstream analysis.',
+  },
+  {
+    title: 'Risk Assessment',
+    detail: 'Scoring models estimate urgency and confidence to support prioritization decisions.',
+  },
+  {
+    title: 'Operational Review',
+    detail: 'Authorized teams verify incidents and assign the appropriate response workflow.',
+  },
+  {
+    title: 'Alert Distribution',
+    detail: 'Validated alerts are distributed to relevant users, zones, and operational channels.',
+  },
+]
+
+export default function DescriptionPage() {
   return (
-    <div className="description-root">
-      <main className="description-container">
-        {/* --- Header with title and subtitle --- */}
-        <header className="description-header">
-          <h1>SIARA — Description</h1>
-          <p className="lead">Visualization and road risk prediction prototype — project overview and objectives.</p>
+    <div className="info-page-root">
+      <main className="info-page-shell">
+        <header className="info-page-head">
+          <div className="info-brand">
+            <img src={siaraLogo} alt="SIARA" className="info-brand-logo" />
+            <div>
+              <p className="info-brand-name">SIARA</p>
+              <p className="info-brand-caption">Road Safety Intelligence Platform</p>
+            </div>
+          </div>
+          <div className="info-head-topline">
+            <span className="info-head-kicker">System Workflow</span>
+            <span className="info-page-badge">Operational Flow</span>
+          </div>
+          <h1 className="info-page-title">Platform Description</h1>
+          <p className="info-page-intro">
+            SIARA is an operational intelligence platform for road safety. It converts incident data
+            into structured decisions, enabling faster coordination and more consistent field response.
+          </p>
         </header>
 
-        {/* --- Section: main project objective --- */}
-        <section className="description-section">
-          <h2>Project Purpose</h2>
+        <section className="info-section-card info-description-overview">
+          <h2 className="info-section-title">Overview</h2>
           <p>
-            SIARA is a prototype designed to provide an interface for visualizing risk zones
-            and simulating road accident predictions. The goal is to help
-            decision-makers and technical teams identify risk corridors
-            and test preventive measures.
+            The platform combines citizen reporting, geospatial context, and AI-assisted evaluation
+            to improve situational awareness across road safety operations.
           </p>
+          <div className="info-description-highlights">
+            <article>
+              <strong>Operational clarity</strong>
+              <span>One shared view of incidents, priorities, and response status.</span>
+            </article>
+            <article>
+              <strong>Faster response cycles</strong>
+              <span>Clear prioritization reduces delay between detection and action.</span>
+            </article>
+            <article>
+              <strong>Consistent decision support</strong>
+              <span>Standardized scoring helps teams align on urgency and next steps.</span>
+            </article>
+          </div>
         </section>
 
-        {/* --- Section: key features list --- */}
-        <section className="description-section">
-          <h2>Key Features</h2>
-          <ul>
-            <li>Interactive maps with risk layers and markers</li>
-            <li>Simulated predictions and parameter controls</li>
-            <li>Administrative dashboards for monitoring</li>
-            <li>Simple exports and snapshot sharing</li>
-          </ul>
+        <section className="info-section-card info-description-workflow">
+          <h2 className="info-section-title">Service Workflow</h2>
+          <p className="info-section-lead">A transparent end-to-end process from intake to validated communication.</p>
+          <ol className="info-step-list">
+            {WORKFLOW_STEPS.map((step) => (
+              <li key={step.title}>
+                <strong>{step.title}</strong>
+                <span>{step.detail}</span>
+              </li>
+            ))}
+          </ol>
         </section>
 
-        {/* --- Section: getting-started instructions --- */}
-        <section className="description-section">
-          <h2>Getting Started</h2>
-          <p>Log in via the login page to access the maps and simulation tools.</p>
+        <section className="info-section-card info-description-tech">
+          <h2 className="info-section-title">Technology and Governance</h2>
+          <p className="info-section-lead">
+            SIARA balances intelligent automation with human validation to maintain reliability and accountability.
+          </p>
+          <div className="info-tech-tags" role="list" aria-label="Technologies">
+            <span role="listitem">AI Risk Scoring</span>
+            <span role="listitem">Geospatial Mapping</span>
+            <span role="listitem">Real-time Event Stream</span>
+            <span role="listitem">Verification Workflow</span>
+            <span role="listitem">Notification Pipeline</span>
+            <span role="listitem">Operational Analytics</span>
+          </div>
         </section>
       </main>
     </div>

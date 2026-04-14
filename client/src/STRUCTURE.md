@@ -10,7 +10,7 @@ src/
  │   ├─ forms/        → PredictForm, ContactForm
  ├─ pages/
  │   ├─ admin/        → DashboardPage, ServiceControlPage
- │   ├─ user/         → HomePage, NewsPage, ServicesPage, ProfilePage, ContactPage
+ │   ├─ user/         → HomePage, NewsPage, ProfilePage, ContactPage
  │   ├─ shared/       → LoginPage, AboutPage
  ├─ services/         → mock API services (mockApi.js, authService.js)
  ├─ contexts/         → AuthContext, ThemeContext, ApiContext

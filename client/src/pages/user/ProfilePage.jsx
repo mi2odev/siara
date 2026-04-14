@@ -21,6 +21,7 @@ import React, { useEffect, useRef, useState, useContext } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import { getCurrentUser } from '../../services/authService'
@@ -473,6 +474,8 @@ export default function ProfilePage(){
               <span className="nav-label">Privacy & Security</span>
             </button>
           </nav>
+
+          <LeftQuickInfoLinks />
         </aside>
 
         {/* ═══ MIDDLE COLUMN — Profile Overview + Activities ═══ */}

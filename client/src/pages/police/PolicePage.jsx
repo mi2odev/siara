@@ -3,7 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet'
 
 import PoliceShell from '../../components/layout/PoliceShell'
-import { POLICE_ACTIVE_ALERTS, POLICE_INCIDENTS } from '../../data/policeMockData'
+import {
+  POLICE_ACTIVE_ALERTS,
+  getPoliceIncidents,
+  savePoliceIncidents,
+  subscribePoliceIncidents,
+} from '../../data/policeMockData'
 
 function severityOrder(value) {
   if (value === 'high') return 3
@@ -113,8 +118,8 @@ function sortIncidents(items) {
 export default function PolicePage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [incidents, setIncidents] = useState(sortIncidents(POLICE_INCIDENTS))
-  const [selectedIncidentId, setSelectedIncidentId] = useState(POLICE_INCIDENTS[0]?.id || null)
+  const [incidents, setIncidents] = useState(() => sortIncidents(getPoliceIncidents()))
+  const [selectedIncidentId, setSelectedIncidentId] = useState(() => getPoliceIncidents()[0]?.id || null)
   const [dispatchIncident, setDispatchIncident] = useState(null)
   const [selectedUnitId, setSelectedUnitId] = useState(DISPATCH_UNITS[0].id)
   const [lastRefreshAt, setLastRefreshAt] = useState(new Date())
@@ -133,7 +138,19 @@ export default function PolicePage() {
   const mineView = searchParams.get('view') === 'mine'
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [wilayaFilter, setWilayaFilter] = useState('all')
+  const [communeFilter, setCommuneFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
+
+  const wilayaOptions = useMemo(
+    () => Array.from(new Set(incidents.map((item) => String(item.wilaya || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [incidents],
+  )
+
+  const communeOptions = useMemo(() => {
+    const scoped = incidents.filter((item) => wilayaFilter === 'all' || item.wilaya === wilayaFilter)
+    return Array.from(new Set(scoped.map((item) => String(item.commune || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b))
+  }, [incidents, wilayaFilter])
 
   const visibleIncidents = useMemo(() => {
     if (mineView) {
@@ -157,6 +174,14 @@ export default function PolicePage() {
         return false
       }
 
+      if (wilayaFilter !== 'all' && item.wilaya !== wilayaFilter) {
+        return false
+      }
+
+      if (communeFilter !== 'all' && item.commune !== communeFilter) {
+        return false
+      }
+
       if (mineView && mineStatusFilter !== 'all' && item.status !== mineStatusFilter) {
         return false
       }
@@ -170,7 +195,7 @@ export default function PolicePage() {
 
       return true
     })
-  }, [priorityFilter, searchTerm, statusFilter, visibleIncidents, mineView, mineStatusFilter])
+  }, [priorityFilter, searchTerm, statusFilter, visibleIncidents, mineView, mineStatusFilter, wilayaFilter, communeFilter])
 
   const sortedIncidents = useMemo(() => {
     const distanceAnchor = filteredIncidents.find((item) => item.id === selectedIncidentId) || filteredIncidents[0] || null
@@ -227,10 +252,12 @@ export default function PolicePage() {
     const tags = []
     if (priorityFilter !== 'all') tags.push({ key: 'priority', label: `Priority: ${displayStatus(priorityFilter)}` })
     if (statusFilter !== 'all') tags.push({ key: 'status', label: `Status: ${displayStatus(statusFilter)}` })
+    if (wilayaFilter !== 'all') tags.push({ key: 'wilaya', label: `Wilaya: ${wilayaFilter}` })
+    if (communeFilter !== 'all') tags.push({ key: 'commune', label: `Commune: ${communeFilter}` })
     if (mineView && mineStatusFilter !== 'all') tags.push({ key: 'mine_status', label: `Mine: ${displayStatus(mineStatusFilter)}` })
     if (String(searchTerm || '').trim()) tags.push({ key: 'search', label: `Search: ${searchTerm.trim()}` })
     return tags
-  }, [priorityFilter, searchTerm, statusFilter, mineView, mineStatusFilter])
+  }, [priorityFilter, searchTerm, statusFilter, mineView, mineStatusFilter, wilayaFilter, communeFilter])
 
   const groupedIncidents = useMemo(() => {
     const high = sortedIncidents.filter((item) => item.severity === 'high')
@@ -293,7 +320,8 @@ export default function PolicePage() {
   }), [])
 
   const handleAction = (incidentId, action) => {
-    setIncidents((prev) => sortIncidents(prev.map((incident) => {
+    setIncidents((prev) => {
+      const nextItems = sortIncidents(prev.map((incident) => {
       if (incident.id !== incidentId) {
         return incident
       }
@@ -323,7 +351,11 @@ export default function PolicePage() {
       }
 
       return incident
-    })))
+    }))
+
+      savePoliceIncidents(nextItems)
+      return nextItems
+    })
 
     const actionLabel =
       action === 'assign'
@@ -350,6 +382,11 @@ export default function PolicePage() {
       return
     }
 
+    if (action === 'go_queue') {
+      navigate('/police/verification', { state: { incidentId: incident.id } })
+      return
+    }
+
     if (action === 'dispatch') {
       openDispatch(incident.id)
       return
@@ -357,128 +394,50 @@ export default function PolicePage() {
 
     if (action === 'review') {
       handleAction(incident.id, 'review')
+      navigate('/police/verification', { state: { incidentId: incident.id } })
       return
     }
 
-    if (action === 'verify') {
-      handleAction(incident.id, 'verify')
-      return
-    }
-
-    if (action === 'cancel_review') {
-      handleAction(incident.id, 'cancel_review')
-      return
-    }
-
-    if (action === 'reject') {
-      setConfirmAction({
-        incident,
-        action: 'reject',
-        title: 'Confirm Rejection',
-        message: 'Are you sure you want to reject this incident?',
-        confirmLabel: 'Reject Incident',
-      })
-      return
-    }
-
-    if (action === 'close') {
-      setConfirmAction({
-        incident,
-        action: 'resolve',
-        title: 'Confirm Closure',
-        message: 'Are you sure you want to close this incident?',
-        confirmLabel: 'Close Incident',
-      })
-    }
   }
 
   const contextualActions = (incident) => {
     if (!incident) return []
-    if (incident.status === 'reported') {
-      return [
-        { key: 'view', label: '👁 View', style: 'police-action-view' },
-        { key: 'review', label: '▶ Start Review', style: 'police-action-review' },
-      ]
-    }
-
-    if (incident.status === 'under_review') {
-      return [
-        { key: 'verify', label: '✔ Verify', style: 'police-action-verify' },
-        { key: 'reject', label: '✖ Reject', style: 'police-action-reject' },
-      ]
-    }
-
-    if (incident.status === 'verified') {
-      return [
-        { key: 'dispatch', label: '🛡 Request Backup', style: 'police-action-dispatch' },
-        { key: 'close', label: '✔ Close Incident', style: 'police-action-resolve' },
-      ]
-    }
-
-    if (incident.status === 'resolved' || incident.status === 'rejected') {
-      return []
-    }
-
-    if (incident.status === 'dispatched') {
-      return [
-        { key: 'close', label: '✔ Close Incident', style: 'police-action-resolve' },
-      ]
-    }
-
-    return [
+    const actions = [
       { key: 'view', label: '👁 View', style: 'police-action-view' },
+      { key: 'go_queue', label: '🗂 Go to Queue', style: 'police-action-secondary' },
     ]
-  }
 
-  const openDispatch = (incidentId) => {
-    setDispatchIncident(incidents.find((item) => item.id === incidentId) || null)
-    setSelectedUnitId(DISPATCH_UNITS[0].id)
-  }
+    if (incident.status === 'reported') {
+      actions.push({ key: 'review', label: '▶ Start Review', style: 'police-action-review' })
+    }
 
-  const confirmDispatch = () => {
-    if (!dispatchIncident) return
-    handleAction(dispatchIncident.id, 'assign')
-    setDispatchIncident(null)
+    if (incident.severity === 'high' && (incident.status === 'verified' || incident.status === 'under_review')) {
+      actions.push({ key: 'dispatch', label: '🛡 Request Backup', style: 'police-action-dispatch' })
+    }
+
+    return actions
   }
 
   useEffect(() => {
-    const loadingTimer = setTimeout(() => {
-      try {
-        if (!Array.isArray(POLICE_INCIDENTS)) {
-          throw new Error('Invalid incident payload')
-        }
-        setIsLoading(false)
-      } catch {
-        setLoadError('Failed to load data')
-        setIsLoading(false)
-      }
-    }, 700)
+    const unsubscribe = subscribePoliceIncidents((items) => {
+      setIncidents(sortIncidents(items))
+    })
 
-    return () => clearTimeout(loadingTimer)
+    return unsubscribe
   }, [])
 
   useEffect(() => {
-    const topCritical = sortedIncidents.find((item) => item.severity === 'high' && item.status !== 'resolved')
-    if (!topCritical) return
-    setSelectedIncidentId(topCritical.id)
-    const target = incidentRefs.current[topCritical.id]
-    if (target?.scrollIntoView) {
-      requestAnimationFrame(() => {
-        target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-      })
+    const exists = sortedIncidents.some((item) => item.id === selectedIncidentId)
+    if (!exists) {
+      setSelectedIncidentId(sortedIncidents[0]?.id || null)
     }
-  }, [sortedIncidents])
+  }, [sortedIncidents, selectedIncidentId])
 
   useEffect(() => {
-    if (!autoRefreshEnabled) return () => {}
-
-    const timer = setInterval(() => {
-      setIncidents((prev) => sortIncidents(prev))
-      setLastRefreshAt(new Date())
-    }, 20000)
-
-    return () => clearInterval(timer)
-  }, [autoRefreshEnabled])
+    if (communeFilter !== 'all' && !communeOptions.includes(communeFilter)) {
+      setCommuneFilter('all')
+    }
+  }, [communeFilter, communeOptions])
 
   useEffect(() => {
     if (!insightsView) return
@@ -499,25 +458,10 @@ export default function PolicePage() {
       if (!incident) return
 
       const key = String(event.key || '').toLowerCase()
-      if (key === 'v' && incident.status === 'under_review') {
+      if ((key === 'b' || key === 'd') && incident.severity === 'high') {
         event.preventDefault()
-        handleAction(incident.id, 'verify')
-      }
-
-      if (key === 'r' && incident.status === 'under_review') {
-        event.preventDefault()
-        setConfirmAction({
-          incident,
-          action: 'reject',
-          title: 'Confirm Rejection',
-          message: 'Are you sure you want to reject this incident?',
-          confirmLabel: 'Reject Incident',
-        })
-      }
-
-      if ((key === 'b' || key === 'd') && incident.status === 'verified') {
-        event.preventDefault()
-        openDispatch(incident.id)
+        setDispatchIncident(incidents.find((item) => item.id === incident.id) || null)
+        setSelectedUnitId(DISPATCH_UNITS[0].id)
       }
     }
 
@@ -550,6 +494,11 @@ export default function PolicePage() {
   const clearFilterTag = (key) => {
     if (key === 'priority') setPriorityFilter('all')
     if (key === 'status') setStatusFilter('all')
+    if (key === 'wilaya') {
+      setWilayaFilter('all')
+      setCommuneFilter('all')
+    }
+    if (key === 'commune') setCommuneFilter('all')
     if (key === 'mine_status') setMineStatusFilter('all')
     if (key === 'search') setSearchTerm('')
   }
@@ -654,19 +603,6 @@ export default function PolicePage() {
             <button
               key={`${incident.id}-${action.key}`}
               className={`police-action ${action.style}`}
-              title={
-                action.key === 'verify'
-                  ? 'Mark incident as confirmed'
-                  : action.key === 'reject'
-                    ? 'Reject incident as invalid'
-                    : action.key === 'dispatch'
-                      ? 'Request backup for this incident'
-                      : action.key === 'close'
-                        ? 'Close incident after completion'
-                        : action.key === 'review'
-                          ? 'Move incident to review state'
-                          : 'Open incident details'
-              }
               onClick={(event) => {
                 event.stopPropagation()
                 handleContextAction(incident, action.key)
@@ -679,6 +615,54 @@ export default function PolicePage() {
       </article>
     )
   }
+
+  const openDispatch = (incidentId) => {
+    setDispatchIncident(incidents.find((item) => item.id === incidentId) || null)
+    setSelectedUnitId(DISPATCH_UNITS[0].id)
+  }
+
+  const confirmDispatch = () => {
+    if (!dispatchIncident) return
+    handleAction(dispatchIncident.id, 'assign')
+    setDispatchIncident(null)
+  }
+
+  useEffect(() => {
+    const loadingTimer = setTimeout(() => {
+      try {
+        if (!Array.isArray(getPoliceIncidents())) {
+          throw new Error('Invalid incident payload')
+        }
+        setIsLoading(false)
+      } catch {
+        setLoadError('Failed to load data')
+        setIsLoading(false)
+      }
+    }, 700)
+
+    return () => clearTimeout(loadingTimer)
+  }, [])
+
+  useEffect(() => {
+    if (!autoRefreshEnabled) return () => {}
+
+    const timer = setInterval(() => {
+      setIncidents((prev) => sortIncidents(prev))
+      setLastRefreshAt(new Date())
+    }, 20000)
+
+    return () => clearInterval(timer)
+  }, [autoRefreshEnabled])
+
+  useEffect(() => {
+    if (!insightsView) return
+    const section = document.getElementById('police-ai-insights')
+    if (section?.scrollIntoView) {
+      setTimeout(() => {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 80)
+    }
+  }, [insightsView])
 
   const rightPanel = (
     <>
@@ -840,6 +824,24 @@ export default function PolicePage() {
                 <option value="under_review">Under Review</option>
                 <option value="verified">Verified</option>
                 <option value="resolved">Resolved</option>
+              </select>
+            </label>
+            <label className="police-filter-field">
+              <span>Wilaya</span>
+              <select value={wilayaFilter} onChange={(event) => { setWilayaFilter(event.target.value); setCommuneFilter('all') }} aria-label="Filter by wilaya">
+                <option value="all">All</option>
+                {wilayaOptions.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="police-filter-field">
+              <span>Commune</span>
+              <select value={communeFilter} onChange={(event) => setCommuneFilter(event.target.value)} aria-label="Filter by commune">
+                <option value="all">All</option>
+                {communeOptions.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
               </select>
             </label>
             <label className="police-filter-field police-filter-search">

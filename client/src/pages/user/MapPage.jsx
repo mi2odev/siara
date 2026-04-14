@@ -12,6 +12,7 @@ import React, { useEffect, useMemo, useState, useContext, useCallback, useRef } 
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from '../../contexts/AuthContext';
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 
@@ -1458,19 +1459,7 @@ export default function MapPage() {
           </div>
 
           {/* ── Navigation menu ── */}
-          <nav className="card nav-menu">
-            <div className="nav-section-label">NAVIGATION</div>
-            <button className="nav-item" onClick={() => navigate('/home')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('home')}</span><span className="nav-label">Home</span></button>
-            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('feed')}</span><span className="nav-label">News Feed</span></button>
-            <button className="nav-item" onClick={() => navigate('/report')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('report')}</span><span className="nav-label">My Reports</span></button>
-            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('map')}</span><span className="nav-label">Incident Map</span></button>
-            <div className="nav-section-label">TOOLS</div>
-            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('quiz')}</span><span className="nav-label">Driver Quiz</span></button>
-            <button className="nav-item" onClick={() => navigate('/predictions')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('stats')}</span><span className="nav-label">Statistics</span></button>
-            <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('alerts')}</span><span className="nav-label">Alerts</span></button>
-            <div className="nav-section-label">SETTINGS</div>
-            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">{renderNavIcon('settings')}</span><span className="nav-label">Settings</span></button>
-          </nav>
+          <FeedSidebarNav activeKey="map" onOpenQuiz={() => setShowQuiz(true)} />
 
           {/* ── Filter panel ── */}
           <div className="card filters-section">

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import 'leaflet/dist/leaflet.css'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import { deleteReport, getReport, updateReport } from '../../services/reportsService'
@@ -678,12 +679,7 @@ export default function IncidentDetailPage() {
             </nav>
           </div>
 
-          <div className="card nav-menu">
-            <div className="nav-section-label">TOOLS</div>
-            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-icon">🗺️</span><span className="nav-label">Open Map</span></button>
-            <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-icon">🔔</span><span className="nav-label">Manage Alerts</span></button>
-            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-icon">📰</span><span className="nav-label">Back to Feed</span></button>
-          </div>
+          <FeedSidebarNav activeKey="reports" />
 
           <button className="al-cta" onClick={() => navigate('/report/create')}>+ New Report</button>
         </aside>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { changePassword, getUserSettings, updateUserSettings } from '../../services/authService'
 import '../../styles/DashboardPage.css'
@@ -374,6 +375,8 @@ export default function SettingsPage() {
               {section.label}
             </button>
           ))}
+
+          <LeftQuickInfoLinks className="settings-quick-links" />
         </nav>
 
         <main className="settings-panel">

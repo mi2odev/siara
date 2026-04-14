@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import { deleteReport, listReports } from '../../services/reportsService'
@@ -338,12 +339,7 @@ export default function ReportsPage() {
             </nav>
           </div>
 
-          <div className="card nav-menu">
-            <div className="nav-section-label">TOOLS</div>
-            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-icon">🗺️</span><span className="nav-label">Open Map</span></button>
-            <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-icon">🔔</span><span className="nav-label">Manage Alerts</span></button>
-            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-icon">📰</span><span className="nav-label">Back to Feed</span></button>
-          </div>
+          <FeedSidebarNav activeKey="reports" />
         </aside>
 
         <main className="al-center">

@@ -19,6 +19,7 @@ import React, { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import '../../styles/NewsPage.css'
@@ -181,21 +182,7 @@ export default function PredictionsPage() {
           </div>
 
           {/* Navigation */}
-          <nav className="card nav-menu">
-            <div className="nav-section-label">NAVIGATION</div>
-            <button className="nav-item" onClick={() => navigate('/home')}><span className="nav-accent"></span><span className="nav-icon">🏠</span><span className="nav-label">Home</span></button>
-            <button className="nav-item" onClick={() => navigate('/news')}><span className="nav-accent"></span><span className="nav-icon">📰</span><span className="nav-label">News Feed</span></button>
-            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-accent"></span><span className="nav-icon">🗺️</span><span className="nav-label">Incident Map</span></button>
-            <button className="nav-item nav-item-active"><span className="nav-accent"></span><span className="nav-icon">🔮</span><span className="nav-label">Predictions</span></button>
-
-            <div className="nav-section-label">TOOLS</div>
-            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-accent"></span><span className="nav-icon">🚗</span><span className="nav-label">Driver Quiz</span></button>
-            <button className="nav-item" onClick={() => navigate('/dashboard')}><span className="nav-accent"></span><span className="nav-icon">📊</span><span className="nav-label">Statistics</span></button>
-            <button className="nav-item" onClick={() => navigate('/alerts')}><span className="nav-accent"></span><span className="nav-icon">🚨</span><span className="nav-label">Alerts</span></button>
-
-            <div className="nav-section-label">SETTINGS</div>
-            <button className="nav-item" onClick={() => navigate('/settings')}><span className="nav-accent"></span><span className="nav-icon">⚙️</span><span className="nav-label">Settings</span></button>
-          </nav>
+          <FeedSidebarNav activeKey="predictions" onOpenQuiz={() => setShowQuiz(true)} />
 
           {/* Model Summary Widget */}
           <div className="card pred-model-sidebar">

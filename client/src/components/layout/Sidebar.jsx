@@ -7,8 +7,10 @@ import { ADMIN_LANDING_PATH, isAdminUser } from '../../routes/routeAccess'
 const userLinks = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/home', label: 'Home' },
-  { to: '/services', label: 'Services' },
   { to: '/news', label: 'News' },
+  { to: '/contact', label: 'Contact' },
+  { to: '/about', label: 'About' },
+  { to: '/description', label: 'Description' },
 ]
 
 const adminLinks = [

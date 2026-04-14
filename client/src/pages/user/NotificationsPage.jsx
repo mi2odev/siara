@@ -5,6 +5,7 @@ import { AuthContext } from '../../contexts/AuthContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useNotificationStore } from '../../stores/notificationStore'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import '../../styles/DashboardPage.css'
@@ -402,6 +403,8 @@ export default function NotificationsPage() {
               </div>
             </div>
           </div>
+
+          <LeftQuickInfoLinks title="Information" />
         </aside>
 
         <main className="notif-center">

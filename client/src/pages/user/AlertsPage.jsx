@@ -4,6 +4,7 @@ import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
@@ -549,12 +550,7 @@ export default function AlertsPage() {
             </nav>
           </div>
 
-          <div className="card nav-menu">
-            <div className="nav-section-label">TOOLS</div>
-            <button className="nav-item" onClick={() => setShowQuiz(true)}><span className="nav-icon">{renderSidebarIcon('quiz')}</span><span className="nav-label">Driver Quiz</span></button>
-            <button className="nav-item" onClick={() => navigate('/map')}><span className="nav-icon">{renderSidebarIcon('map')}</span><span className="nav-label">Open Map</span></button>
-            <button className="nav-item" onClick={() => navigate('/report')}><span className="nav-icon">{renderSidebarIcon('report')}</span><span className="nav-label">Report Incident</span></button>
-          </div>
+          <FeedSidebarNav activeKey="alerts" onOpenQuiz={() => setShowQuiz(true)} />
         </aside>
 
         <main className="al-center">

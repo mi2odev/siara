@@ -4,6 +4,7 @@ import { Circle, GoogleMap, Marker, useLoadScript } from '@react-google-maps/api
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { createAlert, fetchCommunes, fetchWilayas, updateAlert } from '../../services/alertService'
 import '../../styles/CreateAlertPage.css'
@@ -309,6 +310,7 @@ export default function CreateAlertPage() {
               <p>Only incidents matching your selected filters and area trigger notifications.</p>
             </div>
           </div>
+          <LeftQuickInfoLinks />
           <button className="cancel-btn" onClick={() => navigate('/alerts')}>✕ Cancel</button>
         </aside>
 

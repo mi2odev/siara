@@ -20,6 +20,7 @@ import React, { useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
@@ -523,6 +524,8 @@ export default function ReportIncidentPage() {
               <p>Your data is protected. False reports may be removed.</p>
             </div>
           </div>
+
+          <LeftQuickInfoLinks />
 
           <button className="cancel-btn" onClick={() => navigate('/report')}>
             ✕ Cancel

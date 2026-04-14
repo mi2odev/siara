@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
+import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import { getUserRoles } from '../../utils/roleUtils'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import { listReports } from '../../services/reportsService'
@@ -480,6 +481,7 @@ export default function NewsPage() {
   const [showQuiz, setShowQuiz] = useState(false)
   const [activeFeed, setActiveFeed] = useState('latest')
   const [sortMode, setSortMode] = useState('recent')
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false)
   const [reports, setReports] = useState([])
   const [pagination, setPagination] = useState({
     limit: PAGE_SIZE,
@@ -501,6 +503,7 @@ export default function NewsPage() {
 
   const requestIdRef = useRef(0)
   const closeSearchTimeoutRef = useRef(null)
+  const sortDropdownRef = useRef(null)
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY,
@@ -586,6 +589,37 @@ export default function NewsPage() {
     }
     return 'Nearby feed is unavailable without location access, so the latest reports are shown instead.'
   }, [activeFeed, geoState.status])
+
+  const selectedSortOption = useMemo(
+    () => SORT_OPTIONS.find((option) => option.id === sortMode) || SORT_OPTIONS[0],
+    [sortMode],
+  )
+
+  useEffect(() => {
+    if (!isSortMenuOpen) {
+      return undefined
+    }
+
+    const handlePointerDown = (event) => {
+      if (!sortDropdownRef.current?.contains(event.target)) {
+        setIsSortMenuOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsSortMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isSortMenuOpen])
 
   useEffect(() => {
     if (!effectiveFeed) {
@@ -1035,53 +1069,7 @@ export default function NewsPage() {
             </div>
           </div>
 
-          <nav className="card nav-menu">
-            <div className="nav-section-label">NAVIGATION</div>
-            <button className="nav-item" onClick={() => navigate('/home')}>
-              <span className="nav-accent"></span>
-              <span className="nav-icon">🏠</span>
-              <span className="nav-label">Home</span>
-            </button>
-            <button className="nav-item nav-item-active">
-              <span className="nav-accent"></span>
-              <span className="nav-icon">📰</span>
-              <span className="nav-label">News Feed</span>
-            </button>
-            <button className="nav-item" onClick={() => navigate('/report')}>
-              <span className="nav-accent"></span>
-              <span className="nav-icon">📝</span>
-              <span className="nav-label">My Reports</span>
-            </button>
-            <button className="nav-item" onClick={() => navigate('/map')}>
-              <span className="nav-accent"></span>
-              <span className="nav-icon">🗺️</span>
-              <span className="nav-label">Incident Map</span>
-            </button>
-
-            <div className="nav-section-label">TOOLS</div>
-            <button className="nav-item" onClick={() => setShowQuiz(true)}>
-              <span className="nav-accent"></span>
-              <span className="nav-icon">🚗</span>
-              <span className="nav-label">Driver Quiz</span>
-            </button>
-            <button className="nav-item" onClick={() => navigate('/predictions')}>
-              <span className="nav-accent"></span>
-              <span className="nav-icon">📊</span>
-              <span className="nav-label">Statistics</span>
-            </button>
-            <button className="nav-item" onClick={() => navigate('/alerts')}>
-              <span className="nav-accent"></span>
-              <span className="nav-icon">🚨</span>
-              <span className="nav-label">Alerts</span>
-            </button>
-
-            <div className="nav-section-label">SETTINGS</div>
-            <button className="nav-item" onClick={() => navigate('/settings')}>
-              <span className="nav-accent"></span>
-              <span className="nav-icon">⚙️</span>
-              <span className="nav-label">Settings</span>
-            </button>
-          </nav>
+          <FeedSidebarNav activeKey="feed" onOpenQuiz={() => setShowQuiz(true)} />
 
           <div className="card smart-filters">
             <div className="card-header">
@@ -1153,17 +1141,40 @@ export default function NewsPage() {
               ))}
             </div>
             <div className="feed-sort">
-              <label htmlFor="feed-sort-select">Sort by:</label>
-              <select
-                className="feed-sort-select"
-                id="feed-sort-select"
-                value={sortMode}
-                onChange={(event) => setSortMode(event.target.value)}
-              >
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.id} value={option.id}>{option.label}</option>
-                ))}
-              </select>
+              <span>Sort by:</span>
+              <div className="feed-sort-dropdown" ref={sortDropdownRef}>
+                <button
+                  type="button"
+                  className={`feed-sort-trigger ${isSortMenuOpen ? 'open' : ''}`}
+                  onClick={() => setIsSortMenuOpen((previous) => !previous)}
+                  aria-haspopup="listbox"
+                  aria-expanded={isSortMenuOpen}
+                  aria-label="Sort reports"
+                >
+                  <span>{selectedSortOption.label}</span>
+                  <span className="feed-sort-chevron" aria-hidden="true">▾</span>
+                </button>
+
+                {isSortMenuOpen ? (
+                  <div className="feed-sort-menu" role="listbox" aria-label="Sort options">
+                    {SORT_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={`feed-sort-option ${option.id === sortMode ? 'selected' : ''}`}
+                        onClick={() => {
+                          setSortMode(option.id)
+                          setIsSortMenuOpen(false)
+                        }}
+                        role="option"
+                        aria-selected={option.id === sortMode}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
