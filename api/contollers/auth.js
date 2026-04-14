@@ -75,24 +75,68 @@ async function fetchUserTrustSignals(userId, db = pool) {
   const result = await db.query(
     `
       select
-        count(*) filter (where review_verdict = 'confirmed_legit')::int as legit_count,
-        count(*) filter (where review_verdict = 'confirmed_spam')::int as spam_count
-      from app.accident_reports
-      where reported_by = $1
+        u.id,
+        u.trust_score,
+        u.trust_last_updated_at,
+        coalesce(v.legit_count, 0)::int as legit_count,
+        coalesce(v.spam_count, 0)::int as spam_count
+      from auth.users u
+      left join (
+        select
+          reported_by,
+          count(*) filter (where review_verdict = 'confirmed_legit')::int as legit_count,
+          count(*) filter (where review_verdict = 'confirmed_spam')::int as spam_count
+        from app.accident_reports
+        where reported_by = $1
+        group by reported_by
+      ) v
+        on v.reported_by = u.id
+      where u.id = $1
+      limit 1
     `,
     [userId],
   );
 
-  const row = result.rows[0] || {};
+  const row = result.rows[0] || null;
+  if (!row) {
+    return {
+      trustScore: null,
+      signals: {
+        legitReports: 0,
+        spamReports: 0,
+        reviewedReports: 0,
+      },
+      generatedAt: null,
+      source: "unavailable",
+    };
+  }
+
   const legitCount = Number(row.legit_count || 0);
   const spamCount = Number(row.spam_count || 0);
   const reviewedCount = legitCount + spamCount;
-  const trustScore = Number(
-    (
-      ((legitCount + 1) / (reviewedCount + 2))
-      * 100
-    ).toFixed(2),
-  );
+
+  const storedTrustScoreRaw = Number(row.trust_score);
+  const hasStoredTrustScore = Number.isFinite(storedTrustScoreRaw);
+
+  let trustScore = null;
+  let source = "unavailable";
+
+  if (hasStoredTrustScore) {
+    trustScore = Number(Math.max(0, Math.min(100, storedTrustScoreRaw)).toFixed(2));
+    source = "stored";
+  } else if (reviewedCount > 0) {
+    trustScore = Number(
+      (
+        ((legitCount + 1) / (reviewedCount + 2))
+        * 100
+      ).toFixed(2),
+    );
+    source = "derived";
+  }
+
+  const generatedAt = row.trust_last_updated_at
+    ? new Date(row.trust_last_updated_at).toISOString()
+    : null;
 
   return {
     trustScore,
@@ -101,7 +145,8 @@ async function fetchUserTrustSignals(userId, db = pool) {
       spamReports: spamCount,
       reviewedReports: reviewedCount,
     },
-    generatedAt: new Date().toISOString(),
+    generatedAt,
+    source,
   };
 }
 
@@ -192,6 +237,7 @@ async function fetchUserSettings(userId, db = pool) {
       trustScore: trust.trustScore,
       trustSignals: trust.signals,
       trustScoreGeneratedAt: trust.generatedAt,
+      trustScoreSource: trust.source,
     },
     privacy: {
       visibility: row.privacy_visibility || "public",
@@ -252,6 +298,7 @@ async function fetchUserPrivacyVisibility(userId, db = pool) {
     trustScore: trust.trustScore,
     trustSignals: trust.signals,
     trustScoreGeneratedAt: trust.generatedAt,
+    trustScoreSource: trust.source,
   };
 }
 
@@ -434,6 +481,7 @@ router.get("/users/:userId/privacy", verifyToken, async (req, res, next) => {
       trustScore: privacy.trustScore,
       trustSignals: privacy.trustSignals,
       trustScoreGeneratedAt: privacy.trustScoreGeneratedAt,
+      trustScoreSource: privacy.trustScoreSource,
     });
   } catch (error) {
     return next(error);

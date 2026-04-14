@@ -94,6 +94,7 @@ export async function getUserPrivacyVisibility(userId) {
       : null,
     trustSignals: response.data?.trustSignals || null,
     trustScoreGeneratedAt: response.data?.trustScoreGeneratedAt || null,
+    trustScoreSource: response.data?.trustScoreSource || null,
   }
 }
 

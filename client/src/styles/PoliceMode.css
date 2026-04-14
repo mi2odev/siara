@@ -1889,34 +1889,529 @@
   resize: vertical;
 }
 
+.police-note-author {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  margin: 6px 0 8px;
+}
+
+.police-note-history,
+.police-action-history {
+  margin-top: 12px;
+}
+
+.police-note-history strong,
+.police-action-history strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.police-stream-headline-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.police-pin-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d5dfec;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 12px;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+.police-pin-btn:hover {
+  border-color: #9db7dd;
+  background: #f7fbff;
+  color: #1d4ed8;
+}
+
+.police-pin-btn.active {
+  border-color: #2563eb;
+  background: #eaf2ff;
+  color: #1d4ed8;
+}
+
+.police-hover-preview {
+  display: none;
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: calc(100% + 10px);
+  border: 1px solid #c9d8ed;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
+  padding: 10px;
+  z-index: 4;
+  pointer-events: none;
+  color: #334155;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.police-hover-preview strong {
+  display: block;
+  color: #0f172a;
+  margin-bottom: 3px;
+}
+
+.police-hover-preview span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.police-stream-row:hover .police-hover-preview {
+  display: block;
+}
+
+.police-mine-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid #dbe6f2;
+  border-radius: 10px;
+  background: #f8fbff;
+  margin-bottom: 12px;
+}
+
+.police-mine-filters,
+.police-my-incidents-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.police-status-chip {
+  border: 1px solid #c9d8eb;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 11px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+.police-status-chip:hover {
+  border-color: #9bb9df;
+  background: #f5faff;
+}
+
+.police-status-chip.active {
+  border-color: #1d4ed8;
+  background: #e9f1ff;
+  color: #1d4ed8;
+}
+
+.police-my-incidents-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.police-my-incidents-list {
+  display: grid;
+  gap: 12px;
+}
+
+.police-my-incident-card {
+  border: 1px solid #dbe4f2;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.police-my-incident-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.police-my-incident-main h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.police-my-incident-main p {
+  margin: 0;
+  color: #334155;
+  font-size: 14px;
+}
+
+.police-my-incident-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.police-my-incident-actions {
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.police-my-incident-actions .police-action {
+  width: 100%;
+}
+
+.police-history-officer-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #cbd9ec;
+  border-radius: 999px;
+  background: #f7fbff;
+  color: #334155;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.police-history-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.police-history-filters .police-action {
+  align-self: end;
+}
+
+.police-history-list {
+  display: grid;
+  gap: 12px;
+}
+
+.police-history-item {
+  border: 1px solid #dbe4f2;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.police-history-item-top,
+.police-history-item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.police-history-item-top strong {
+  color: #0f172a;
+}
+
+.police-history-item-top time,
+.police-history-item-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.police-history-item-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.police-conflict-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  border: 1px solid #f5c8c8;
+  border-radius: 999px;
+  background: #fff5f5;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+}
+
+.police-image-open-btn {
+  position: relative;
+}
+
+.police-queue-hover-preview {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: calc(100% + 10px);
+  width: 200px;
+  border: 1px solid #dbe4f2;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 6px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.2);
+  z-index: 8;
+}
+
+.police-queue-hover-preview img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.police-image-open-btn:hover .police-queue-hover-preview {
+  display: block;
+}
+
+.police-alert-severity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.police-alert-severity.high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.police-alert-severity.medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.police-alert-severity.low {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.police-incident-timeline,
+.police-incident-evidence {
+  margin-bottom: 14px;
+}
+
+.police-incident-timeline h3,
+.police-incident-evidence h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.police-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.police-evidence-item {
+  border: 1px solid #dbe4f2;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 6px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.police-evidence-item:hover {
+  border-color: #9dbbe1;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.police-evidence-item .police-incident-image {
+  height: 110px;
+}
+
+.police-evidence-label {
+  font-size: 11px;
+  color: #334155;
+  font-weight: 700;
+}
+
+.police-mobile-menu-toggle,
+.police-mobile-nav,
+.police-mobile-nav-backdrop {
+  display: none;
+}
+
+@media (max-width: 1440px) {
+  .police-layout {
+    grid-template-columns: 240px minmax(0, 1fr) 300px;
+    gap: 14px;
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .police-section {
+    padding: 18px;
+  }
+}
+
 @media (max-width: 1300px) {
-  .police-layout { grid-template-columns: 220px 1fr 280px; }
-  .police-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .police-incident-facts { grid-template-columns: 1fr; }
+  .police-layout {
+    grid-template-columns: 220px minmax(0, 1fr) 272px;
+    gap: 12px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .police-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .police-incident-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .police-evidence-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .police-history-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1120px) {
+  .police-stream-headline {
+    align-items: flex-start;
+  }
+
+  .police-action-row {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .police-my-incident-card {
+    flex-direction: column;
+  }
+
+  .police-my-incident-actions {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .police-my-incident-actions .police-action {
+    width: auto;
+    flex: 1;
+    min-width: 148px;
+  }
 }
 
 @media (max-width: 1024px) {
-  .police-layout { grid-template-columns: 1fr; padding-right: 12px; padding-left: 12px; }
+  .police-layout {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding-right: 12px;
+    padding-left: 12px;
+    padding-top: 80px;
+    gap: 12px;
+  }
+
   .police-sidebar,
-  .police-right { display: none; }
-  .police-stream-header { flex-direction: column; align-items: stretch; }
-  .police-stream-controls { width: 100%; }
+  .police-right {
+    display: none;
+  }
+
+  .police-center {
+    max-height: none;
+    overflow: visible;
+    padding-top: 10px;
+  }
+
+  .police-stream-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .police-stream-controls {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
   .police-filter-field,
-  .police-filter-search { flex: 1; }
+  .police-filter-search {
+    flex: 1;
+    min-width: 0;
+  }
+
   .police-filter-field select,
-  .police-filter-field input { width: 100%; min-width: 0; }
-  .police-detail-layout { grid-template-columns: 1fr; }
-  .police-verification-card { grid-template-columns: 1fr; }
-  .police-verification-left { width: 100%; }
-  .police-verification-right { align-items: stretch; }
-  .police-stream-row { grid-template-columns: auto 1fr; }
-  .police-stream-row .police-action-row { grid-column: 1 / -1; }
-  .dash-header-left { gap: 10px; }
-  .dash-search { display: none; }
-  .dash-icon-btn[aria-label='Messages'] { display: none; }
-  .police-quick-menu {
-    right: auto;
-    left: 0;
+  .police-filter-field input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .police-stream-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .police-stream-row .police-action-row {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .police-hover-preview,
+  .police-queue-hover-preview {
+    display: none !important;
+  }
+
+  .police-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .police-verification-card {
+    grid-template-columns: 1fr;
+  }
+
+  .police-verification-left {
+    width: 100%;
+  }
+
+  .police-verification-right {
+    align-items: stretch;
+  }
+
+  .police-history-filters {
+    grid-template-columns: 1fr;
   }
 
   .police-nearby-layout {
@@ -1951,5 +2446,244 @@
   .police-field-report-dot,
   .police-field-report-item::before {
     display: none;
+  }
+
+  .police-root .dash-header-left {
+    gap: 10px;
+  }
+
+  .police-root .dash-search {
+    display: none;
+  }
+
+  .police-root .dash-icon-btn[aria-label='Messages'] {
+    display: none;
+  }
+
+  .police-mobile-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #d7e1ef;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #1f2937;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  .police-mobile-nav-backdrop {
+    display: block;
+    position: fixed;
+    top: 80px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.46);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+    z-index: 115;
+  }
+
+  .police-mobile-nav-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .police-mobile-nav {
+    display: block;
+    position: fixed;
+    top: 80px;
+    left: 0;
+    bottom: 0;
+    width: min(86vw, 320px);
+    background: #f4f8ff;
+    border-right: 1px solid #d5e1f0;
+    box-shadow: 12px 0 26px rgba(15, 23, 42, 0.24);
+    padding: 12px 10px 16px;
+    overflow-y: auto;
+    transform: translateX(-104%);
+    transition: transform 0.22s ease;
+    z-index: 116;
+  }
+
+  .police-mobile-nav.open {
+    transform: translateX(0);
+  }
+
+  .police-mobile-nav-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .police-mobile-nav-head strong {
+    color: #0f172a;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .police-mobile-nav-close {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #cdd9eb;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #1f2937;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .police-mobile-nav .police-menu {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .police-layout {
+    padding-right: 10px;
+    padding-left: 10px;
+    gap: 10px;
+  }
+
+  .police-section {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .police-stream-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .police-stream-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .police-severity-strip {
+    width: 100%;
+    min-height: 4px;
+    height: 4px;
+  }
+
+  .police-stream-headline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .police-stream-headline-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .police-action-row,
+  .police-priority-actions,
+  .police-nearby-item-actions,
+  .police-alert-item-actions,
+  .police-history-item-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .police-action {
+    flex: 1;
+    min-width: 130px;
+  }
+
+  .police-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .police-mini-map,
+  .police-nearby-map-wrap,
+  .police-detail-map {
+    min-height: 300px;
+    height: 300px;
+  }
+
+  .police-evidence-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .police-dispatch-summary {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .police-unit-option {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .police-my-incident-meta,
+  .police-history-item-meta,
+  .police-field-report-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .police-root .siara-dashboard-header {
+    padding: 8px;
+  }
+
+  .police-root .dash-header-inner {
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .police-root .dash-logo {
+    height: 38px;
+  }
+
+  .police-root .dash-police-mode-btn {
+    min-width: 0 !important;
+    height: 34px !important;
+    padding: 0 10px !important;
+    font-size: 11px;
+  }
+
+  .police-root .dash-police-mode-btn::before {
+    width: 6px;
+    height: 6px;
+    margin-right: 6px;
+  }
+
+  .police-layout {
+    padding-top: 78px;
+  }
+
+  .police-section {
+    padding: 12px;
+  }
+
+  .police-stream-title {
+    font-size: 14px;
+  }
+
+  .police-stream-description {
+    font-size: 12px;
+  }
+
+  .police-mini-map,
+  .police-nearby-map-wrap,
+  .police-detail-map {
+    min-height: 250px;
+    height: 250px;
+  }
+
+  .police-toast {
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
   }
 }

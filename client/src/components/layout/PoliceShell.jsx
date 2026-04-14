@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
@@ -32,6 +32,7 @@ export default function PoliceShell({
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
 
   const menuGroups = useMemo(() => [
@@ -76,6 +77,29 @@ export default function PoliceShell({
   )
 
   const profileInitials = getUserInitials(user?.name)
+
+  const navigateFromMenu = (path) => {
+    setShowDropdown(false)
+    setShowMobileMenu(false)
+    navigate(path)
+  }
+
+  useEffect(() => {
+    if (showMobileMenu) {
+      setShowDropdown(false)
+    }
+  }, [showMobileMenu])
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 1024) {
+        setShowMobileMenu(false)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   return (
     <div className={`police-root ${emergencyMode ? 'police-root-emergency' : ''}`}>
@@ -125,9 +149,60 @@ export default function PoliceShell({
                 </div>
               )}
             </div>
+            <button
+              type="button"
+              className="police-mobile-menu-toggle"
+              aria-label="Open police navigation"
+              aria-expanded={showMobileMenu}
+              onClick={() => setShowMobileMenu((prev) => !prev)}
+            >
+              ☰
+            </button>
           </div>
         </div>
       </header>
+
+      <button
+        type="button"
+        className={`police-mobile-nav-backdrop ${showMobileMenu ? 'open' : ''}`}
+        aria-label="Close police navigation"
+        onClick={() => setShowMobileMenu(false)}
+      ></button>
+
+      <aside className={`police-mobile-nav ${showMobileMenu ? 'open' : ''}`} aria-hidden={!showMobileMenu}>
+        <div className="police-mobile-nav-head">
+          <strong>Operations Menu</strong>
+          <button
+            type="button"
+            className="police-mobile-nav-close"
+            aria-label="Close police navigation"
+            onClick={() => setShowMobileMenu(false)}
+          >
+            ×
+          </button>
+        </div>
+
+        <nav className="police-menu">
+          {visibleMenuGroups.map((group) => (
+            <section key={`mobile-${group.title}`} className="police-menu-group">
+              <h3 className="police-menu-group-title">{group.title}</h3>
+              <div className="police-menu-group-items">
+                {group.items.map((item) => (
+                  <button
+                    key={`mobile-${item.key}`}
+                    className={`police-menu-btn ${activeKey === item.key ? 'active' : ''}`}
+                    onClick={() => navigateFromMenu(item.path)}
+                  >
+                    <span className="police-menu-icon" aria-hidden="true">{item.icon}</span>
+                    <span className="police-menu-label">{item.label}</span>
+                    {item.badge > 0 ? <span className="police-menu-badge">{item.badge}</span> : null}
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
+        </nav>
+      </aside>
 
       <div className={`police-layout ${rightPanelCollapsed ? 'police-layout-collapsed' : ''}`}>
         <aside className="police-sidebar">
@@ -140,7 +215,7 @@ export default function PoliceShell({
                     <button
                       key={item.key}
                       className={`police-menu-btn ${activeKey === item.key ? 'active' : ''}`}
-                      onClick={() => navigate(item.path)}
+                      onClick={() => navigateFromMenu(item.path)}
                     >
                       <span className="police-menu-icon" aria-hidden="true">{item.icon}</span>
                       <span className="police-menu-label">{item.label}</span>

@@ -219,6 +219,7 @@ export default function ProfilePage(){
               trustScore: privacy.trustScore ?? next.trustScore ?? next.trust_score ?? null,
               trustSignals: privacy.trustSignals || next.trustSignals || null,
               trustScoreGeneratedAt: privacy.trustScoreGeneratedAt || next.trustScoreGeneratedAt || null,
+              trustScoreSource: privacy.trustScoreSource || next.trustScoreSource || next.trust_score_source || null,
             }
           })
         }
@@ -260,6 +261,11 @@ export default function ProfilePage(){
               profileSettings?.trustScoreGeneratedAt
               ?? freshUser.trustScoreGeneratedAt
               ?? freshUser.trust_score_generated_at
+              ?? null,
+            trustScoreSource:
+              profileSettings?.trustScoreSource
+              ?? freshUser.trustScoreSource
+              ?? freshUser.trust_score_source
               ?? null,
           })
           setProfileVisibility(settings?.privacy?.visibility === 'private' ? 'private' : 'public')
@@ -374,7 +380,14 @@ export default function ProfilePage(){
     ? Math.max(0, reviewedReportsCountRaw)
     : (legitReportsCount + spamReportsCount)
   const trustScoreGeneratedAt = currentUser.trustScoreGeneratedAt || currentUser.trust_score_generated_at || null
-  const trustGeneratedLabel = trustScoreGeneratedAt ? formatAlertTime(trustScoreGeneratedAt) : 'just now'
+  const trustScoreSource = currentUser.trustScoreSource || currentUser.trust_score_source || null
+  const trustGeneratedLabel = trustScoreGeneratedAt
+    ? `Last synced ${formatAlertTime(trustScoreGeneratedAt)}`
+    : trustScoreSource === 'derived'
+      ? 'Derived from reviewed reports (sync pending)'
+      : reviewedReportsCount > 0
+        ? 'Reviewed reports found'
+        : 'No reviewed reports yet'
   const trustScoreDashOffset = 314 - (314 * trustScore) / 100
 
   const topActiveZone = useMemo(() => {
@@ -921,7 +934,7 @@ export default function ProfilePage(){
               <div className="factor-item">✓ {legitReportsCount} reports confirmed legit</div>
               <div className="factor-item">✓ {spamReportsCount} reports confirmed spam</div>
               <div className="factor-item">✓ {reviewedReportsCount} reports reviewed</div>
-              <div className="factor-item">✓ Updated from reviewed reports: {trustGeneratedLabel}</div>
+              <div className="factor-item">✓ {trustGeneratedLabel}</div>
             </div>
           </div>
 
