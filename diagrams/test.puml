@@ -1,0 +1,101 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor Citizen
+actor Police
+actor Admin
+actor "Emergency Services" as Emergency
+
+' ===== Actor Hierarchy =====
+Police --|> Citizen
+
+rectangle "SIARA Smart Mobility Platform" {
+
+  package "Citizen Services" {
+
+    (Authenticate User) as UC1
+    (Manage Profile) as UC2
+
+    (Browse Incidents) as UC4
+    (View Map) as UC5
+    (Report Incident) as UC3
+
+    (Subscribe to Alerts) as UC6
+    (Receive Notifications) as UC7
+
+    (View Dashboard) as UC8
+    (Take Driver Quiz) as UC9
+  }
+
+  package "Police Operations" {
+    (Monitor Active Incidents) as UC10
+    (Verify Reports) as UC11
+    (Update Incident Status) as UC12
+    (Manage Patrol Zones) as UC13
+    (Issue Emergency Alerts) as UC14
+  }
+
+  package "Emergency Response" {
+    (View Critical Incidents) as UC15
+    (Respond to Incident) as UC16
+  }
+
+  package "Administration" {
+    (Manage Users) as UC17
+    (Moderate Reports) as UC18
+    (Manage Alerts) as UC19
+    (View System Analytics) as UC20
+    (Configure AI Models) as UC21
+  }
+
+  package "AI & Analytics (Internal)" {
+    (Analyze Data) as UC22
+    (Generate Predictions) as UC23
+    (Generate Risk Insights) as UC24
+    (Evaluate Driver Behavior) as UC25
+  }
+}
+
+' 🔥 FORCE ORDER (THIS FIXES YOUR ISSUE)
+"Emergency Response" -[hidden]-> "Administration"
+
+' ===== Actor Links =====
+Citizen -- UC1
+Citizen -- UC2
+Citizen -- UC3
+Citizen -- UC4
+Citizen -- UC5
+Citizen -- UC6
+Citizen -- UC7
+Citizen -- UC8
+Citizen -- UC9
+
+Police -- UC10
+Police -- UC11
+Police -- UC12
+Police -- UC13
+Police -- UC14
+
+Admin -- UC17
+Admin -- UC18
+Admin -- UC19
+Admin -- UC20
+Admin -- UC21
+
+Emergency -- UC15
+Emergency -- UC16
+
+' ===== Relationships =====
+UC3 --> UC22 : <<include>>
+UC22 --> UC23 : <<include>>
+UC23 --> UC24 : <<include>>
+
+UC9 --> UC25 : <<include>>
+
+UC10 --> UC4 : <<include>>
+UC11 --> UC12 : <<include>>
+UC15 --> UC16 : <<include>>
+
+@enduml

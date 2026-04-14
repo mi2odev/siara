@@ -1,6 +1,6 @@
 /* ========================================
    SIARA MAP PAGE — REBUILT FROM ZERO
-   Desktop-only, full-width, three-column layout
+  Adaptive full-width layout (desktop, tablet, mobile)
    Left = Control | Center = Reality | Right = Understanding
    ======================================== */
 
@@ -40,12 +40,13 @@
   right: 0;
   bottom: 0;
   width: 100%;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: #EEF2FF;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
   margin: 0;
   padding: 0;
 }
@@ -391,20 +392,46 @@
 
 /* ==================== MAIN CONTENT AREA ==================== */
 .map-content {
+  --siara-map-left-width: var(--siara-left-sidebar-width, 260px);
+  --siara-map-right-width: 336px;
   flex: 1;
   display: grid;
-  grid-template-columns: var(--siara-left-sidebar-width, 260px) 1fr 336px;
+  grid-template-columns:
+    minmax(220px, var(--siara-map-left-width))
+    minmax(0, 1fr)
+    minmax(272px, var(--siara-map-right-width));
+  grid-template-areas: "left map right";
   grid-template-rows: 1fr;
   margin-top: 78px;
-  padding: 0 12px 12px 0;
+  padding: 0 12px 12px;
   gap: 12px;
   background: #EEF2FF;
   overflow: hidden;
   min-height: 0;
+  align-items: stretch;
+}
+
+.map-content > .sidebar-left {
+  grid-area: left;
+  min-width: 0;
+  min-height: 0;
+}
+
+.map-content > .map-main {
+  grid-area: map;
+  min-width: 0;
+  min-height: 0;
+}
+
+.map-content > .map-sidebar-right {
+  grid-area: right;
+  min-width: 0;
+  min-height: 0;
 }
 
 /* ==================== LEFT SIDEBAR — CONTROLS ==================== */
-.map-sidebar-left {
+.map-sidebar-left,
+.map-content > .sidebar-left {
   width: var(--siara-left-sidebar-width, 260px);
   min-width: var(--siara-left-sidebar-width, 260px);
   max-width: var(--siara-left-sidebar-width, 260px);
@@ -424,7 +451,8 @@
 }
 
 /* Prevent flex children from collapsing — let the sidebar scroll */
-.map-sidebar-left > * {
+.map-sidebar-left > *,
+.map-content > .sidebar-left > * {
   flex-shrink: 0;
 }
 
@@ -572,6 +600,8 @@
 /* ==================== CENTER — MAP ==================== */
 .map-main {
   position: relative;
+  min-width: 0;
+  min-height: clamp(420px, 56vh, 760px);
   background: #FFFFFF;
   overflow: hidden;
   border-radius: 18px;
@@ -596,15 +626,22 @@
 
 .layer-switcher {
   display: flex;
+  max-width: min(100%, calc(100vw - 220px));
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   background: #fff;
   border-radius: 10px;
   padding: 4px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
+.layer-switcher::-webkit-scrollbar {
+  display: none;
+}
+
 .layer-btn {
   padding: 8px 14px;
-  
+  flex: 0 0 auto;
   background: none;
   border: none;
   border-radius: 8px;
@@ -758,7 +795,7 @@
   border: 1px solid rgba(124, 58, 237, 0.10);
   box-shadow: 0 4px 20px rgba(124, 58, 237, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
   padding: 14px 16px;
-  min-width: 220px;
+  min-width: 0;
   min-height: 100px;
   max-width: 360px;
   width: 100%;
@@ -1069,6 +1106,15 @@
     top: 14px;
     right: 16px;
     flex-direction: column;
+  }
+
+  .siara-guide-controls {
+    top: 76px;
+  }
+
+  .siara-map-aside {
+    top: 120px;
+    max-height: calc(100% - 132px);
   }
 }
 
@@ -1744,6 +1790,7 @@
 
 /* ==================== RIGHT SIDEBAR — CONTEXT ==================== */
 .map-sidebar-right {
+  min-width: 0;
   background: #ffffff;
   border: 1px solid #E2E8F0;
   border-radius: 16px;
@@ -2184,6 +2231,542 @@
   font-size: 8px;
   color: #64748B;
   font-weight: 500;
+}
+
+/* ==================== RESPONSIVE LAYOUT ==================== */
+@media (max-width: 1440px) {
+  .map-content {
+    grid-template-columns: minmax(210px, 240px) minmax(0, 1fr) minmax(250px, 312px);
+    padding: 0 10px 10px;
+    gap: 10px;
+  }
+
+  .siara-guide-controls {
+    left: 12px;
+    top: 82px;
+    width: min(300px, calc(58% - 16px));
+    padding: 10px 12px;
+  }
+
+  .siara-map-aside {
+    top: 82px;
+    right: 12px;
+    width: min(250px, calc(42% - 16px));
+    max-height: calc(82% - 64px);
+  }
+
+  .siara-risk-debug {
+    min-height: 0;
+    padding: 11px 12px;
+  }
+
+  .siara-risk-debug .risk-debug-percent {
+    font-size: 24px;
+  }
+
+  .siara-status-pill,
+  .siara-compact-badge,
+  .siara-note-pill,
+  .siara-filter-pill {
+    font-size: 9px;
+  }
+
+  .map-page .dash-header-inner {
+    padding: 0 14px;
+    gap: 14px;
+  }
+
+  .map-page .dash-header-tabs {
+    gap: 6px;
+  }
+
+  .map-page .dash-tab {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .map-page .dash-header-center {
+    max-width: 360px;
+  }
+}
+
+@media (max-width: 1240px) {
+  .map-page {
+    position: relative;
+    min-height: 100dvh;
+    height: auto;
+    overflow-y: auto;
+  }
+
+  .map-page .siara-dashboard-header {
+    position: sticky;
+  }
+
+  .map-content {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "map"
+      "right";
+    grid-template-rows: auto auto;
+    margin-top: 10px;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .map-content > .sidebar-left,
+  .map-sidebar-right {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .map-content > .sidebar-left {
+    display: none !important;
+  }
+
+  .map-main {
+    height: clamp(420px, 62vh, 760px);
+    min-height: clamp(420px, 62vh, 760px);
+  }
+
+  .map-main .map-container,
+  .map-main .map-canvas,
+  .map-main .siara-map-shell,
+  .map-main .siara-leaflet-map {
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .map-page .dash-header-center {
+    max-width: 280px;
+  }
+
+  .map-page .dash-tab {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .map-content {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "map"
+      "right";
+    padding: 0 10px 12px;
+    margin-top: 8px;
+  }
+
+  .map-main {
+    height: clamp(360px, 56vh, 640px);
+    min-height: clamp(360px, 56vh, 640px);
+  }
+
+  .map-main .map-container,
+  .map-main .map-canvas,
+  .map-main .siara-map-shell,
+  .map-main .siara-leaflet-map {
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .map-content > .sidebar-left,
+  .map-sidebar-right {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .map-content > .sidebar-left {
+    display: none !important;
+  }
+
+  .map-page .dash-header-inner {
+    height: auto;
+    min-height: 60px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .map-page .dash-header-left {
+    width: 100%;
+    min-width: 0;
+    gap: 10px;
+    justify-content: space-between;
+  }
+
+  .map-page .dash-header-tabs {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .map-page .dash-header-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .map-page .dash-header-center {
+    order: 3;
+    width: 100%;
+    max-width: none;
+  }
+
+  .map-page .dash-header-right {
+    margin-left: auto;
+  }
+
+  .map-controls-top {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+  }
+
+  .layer-switcher {
+    max-width: 100%;
+  }
+
+  .map-controls-right {
+    top: 12px;
+    right: 12px;
+    gap: 8px;
+  }
+
+  .map-ctrl-btn {
+    min-width: 40px;
+    height: 40px;
+    padding: 0 10px;
+  }
+
+  .map-ctrl-label {
+    display: none;
+  }
+
+  .siara-guide-controls {
+    top: 74px;
+    left: 12px;
+    width: min(300px, calc(100% - 24px));
+    padding: 10px 11px;
+    border-radius: 12px;
+  }
+
+  .siara-time-row {
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .siara-time-label {
+    font-size: 10px;
+  }
+
+  .siara-time-select,
+  .siara-time-custom {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .siara-time-preview {
+    padding: 7px 8px;
+  }
+
+  .siara-time-preview p {
+    font-size: 11px;
+  }
+
+  .siara-guide-row {
+    gap: 6px;
+  }
+
+  .siara-guide-input {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .siara-guide-btn {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .siara-map-aside {
+    top: 108px;
+    right: 12px;
+    width: min(280px, calc(100% - 24px));
+    max-height: min(52%, 330px);
+    gap: 8px;
+  }
+
+  .siara-risk-debug {
+    min-width: 0;
+    min-height: 0;
+    padding: 10px 11px;
+    border-radius: 12px;
+  }
+
+  .siara-risk-debug h4 {
+    font-size: 13px;
+  }
+
+  .siara-risk-debug p {
+    margin: 0 0 2px;
+    font-size: 11px;
+  }
+
+  .siara-risk-debug .risk-debug-percent {
+    margin: 2px 0 4px;
+    font-size: 24px;
+  }
+
+  .siara-status-pill,
+  .siara-compact-badge,
+  .siara-note-pill,
+  .siara-filter-pill {
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  .siara-inline-link {
+    font-size: 10px;
+  }
+
+  .siara-map-legend {
+    left: 12px;
+    bottom: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .map-page .siara-dashboard-header {
+    padding: 6px 10px;
+  }
+
+  .map-page .dash-header-left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .map-page .dash-header-center {
+    display: none;
+  }
+
+  .map-content {
+    padding: 0 8px 12px;
+    gap: 10px;
+  }
+
+  .map-content > .sidebar-left {
+    display: none !important;
+  }
+
+  .map-main {
+    height: clamp(320px, 52vh, 540px);
+    min-height: clamp(320px, 52vh, 540px);
+    border-radius: 14px;
+  }
+
+  .map-main .map-container,
+  .map-main .map-canvas,
+  .map-main .siara-map-shell,
+  .map-main .siara-leaflet-map {
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .map-controls-top {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .layer-btn {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .map-controls-right {
+    top: 8px;
+    right: 8px;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .map-ctrl-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    border-radius: 10px;
+  }
+
+  .siara-guide-controls {
+    top: 62px;
+    left: 8px;
+    width: min(270px, calc(100% - 16px));
+    padding: 8px 10px;
+    border-radius: 10px;
+  }
+
+  .siara-guide-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .siara-guide-input,
+  .siara-guide-btn,
+  .siara-guide-btn-primary {
+    width: 100%;
+    height: 30px;
+    font-size: 11px;
+  }
+
+  .siara-time-hint,
+  .siara-guide-note {
+    font-size: 10px;
+  }
+
+  .siara-map-aside {
+    left: auto;
+    right: 8px;
+    top: 94px;
+    bottom: auto;
+    width: min(250px, calc(100% - 16px));
+    max-width: calc(100% - 16px);
+    max-height: calc(100% - 108px);
+    gap: 6px;
+  }
+
+  .siara-risk-debug {
+    padding: 9px 10px;
+  }
+
+  .siara-risk-debug h4 {
+    font-size: 12px;
+  }
+
+  .siara-risk-debug p {
+    font-size: 10px;
+  }
+
+  .siara-risk-debug .risk-debug-percent {
+    font-size: 20px;
+  }
+
+  .siara-status-pill,
+  .siara-compact-badge,
+  .siara-note-pill,
+  .siara-filter-pill {
+    padding: 2px 6px;
+    font-size: 8px;
+  }
+
+  .siara-map-legend {
+    left: 8px;
+    bottom: 8px;
+    width: min(220px, calc(100% - 16px));
+  }
+
+  .map-status {
+    left: auto;
+    right: 8px;
+    bottom: 8px;
+    max-width: calc(100% - 16px);
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .quick-stats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .map-stat-item {
+    min-width: calc(33.333% - 6px);
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 560px) {
+  .map-page .dash-header-tabs {
+    gap: 4px;
+  }
+
+  .map-page .dash-tab {
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+
+  .map-main {
+    height: 280px;
+    min-height: 280px;
+  }
+
+  .map-main .map-container,
+  .map-main .map-canvas,
+  .map-main .siara-map-shell,
+  .map-main .siara-leaflet-map {
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .siara-guide-controls {
+    top: 58px;
+    left: 6px;
+    width: min(240px, calc(100% - 12px));
+    padding: 8px 9px;
+  }
+
+  .siara-map-aside {
+    right: 6px;
+    top: 92px;
+    width: min(220px, calc(100% - 12px));
+    max-width: calc(100% - 12px);
+    max-height: calc(100% - 100px);
+  }
+
+  .siara-time-select,
+  .siara-time-custom,
+  .siara-guide-input,
+  .siara-guide-btn,
+  .siara-guide-btn-primary {
+    height: 28px;
+    font-size: 10px;
+  }
+
+  .siara-risk-debug {
+    padding: 8px 9px;
+  }
+
+  .siara-risk-debug .risk-debug-percent {
+    font-size: 18px;
+  }
+
+  .siara-guide-row {
+    flex-direction: column;
+  }
+
+  .siara-guide-btn {
+    width: 100%;
+  }
+
+  .siara-help-panel,
+  .siara-segment-panel {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 50%;
+  }
+
+  .quick-stats {
+    flex-direction: column;
+  }
+
+  .map-stat-item {
+    width: 100%;
+  }
 }
 
 

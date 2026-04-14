@@ -94,7 +94,6 @@ body {
 
   .siara-news-layout,
   .profile-layout,
-  .map-content,
   .notif-grid,
   .al-grid,
   .report-grid,
@@ -209,7 +208,6 @@ body {
 
   .siara-news-layout,
   .profile-layout,
-  .map-content,
   .notif-grid,
   .al-grid,
   .report-grid,
@@ -269,7 +267,6 @@ body {
 
   .feed-center,
   .profile-main,
-  .map-main,
   .notif-center,
   .al-center,
   .report-main,
@@ -278,34 +275,6 @@ body {
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
-  }
-
-  /* Map page: keep map primary at tablet sizes and prevent right context panel takeover. */
-  .map-page .map-content {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    grid-template-rows: minmax(0, 1fr) !important;
-    align-items: stretch;
-    min-height: 0 !important;
-  }
-
-  .map-page .map-main {
-    order: 1;
-    height: 100% !important;
-    min-height: 0 !important;
-  }
-
-  .map-page .map-container,
-  .map-page .map-canvas,
-  .map-page .siara-map-shell,
-  .map-page .siara-leaflet-map {
-    height: 100% !important;
-    min-height: 0 !important;
-  }
-
-  .map-page .map-sidebar-left,
-  .map-page .map-sidebar-right {
-    display: none !important;
   }
 }
 
@@ -378,7 +347,6 @@ body {
 
   .siara-news-layout,
   .profile-layout,
-  .map-content,
   .notif-grid,
   .al-grid,
   .report-grid,
@@ -406,18 +374,16 @@ body {
     padding: 12px !important;
   }
 
-  .sidebar-left {
+  .siara-news-layout .sidebar-left {
     display: none !important;
   }
 
-  .sidebar-right {
+  .siara-news-layout .sidebar-right {
     display: none !important;
   }
 
   .notif-left,
   .notif-right,
-  .map-sidebar-left,
-  .map-sidebar-right,
   .profile-sidebar-left,
   .profile-sidebar-right,
   .report-left,
@@ -488,7 +454,6 @@ body {
 
   .siara-news-layout,
   .profile-layout,
-  .map-content,
   .notif-grid,
   .al-grid,
   .report-grid,
