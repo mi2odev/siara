@@ -14,7 +14,7 @@ function normalizeIntParam(value, fallback, { min = 0, max = 500 } = {}) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed)) {
     return fallback;
-  }
+  } 
 
   return Math.min(max, Math.max(min, parsed));
 }

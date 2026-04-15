@@ -2776,3 +2776,421 @@
     bottom: 12px;
   }
 }
+
+/* Police mode quick info popup (Contact / About / Description). */
+.police-root .contact-quick-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(2px);
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.police-root .contact-quick-modal {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #d8e4f4;
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.32);
+  padding: 20px;
+}
+
+.police-root .contact-quick-modal.panel-about,
+.police-root .contact-quick-modal.panel-description {
+  width: min(860px, 100%);
+  padding: 24px;
+}
+
+.police-root .contact-quick-modal.panel-contact {
+  width: min(980px, 100%);
+  padding: 24px;
+  background:
+    radial-gradient(540px 260px at 95% -40px, rgba(37, 99, 235, 0.16), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+}
+
+.police-root .contact-quick-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.police-root .contact-quick-head-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.police-root .contact-quick-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.police-root .contact-quick-brand-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(37, 99, 235, 0.24));
+}
+
+.police-root .contact-quick-kicker {
+  display: inline-block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.police-root .contact-quick-head h3 {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.police-root .contact-quick-close {
+  border: 1px solid #d7deee;
+  background: linear-gradient(160deg, #ffffff 0%, #eef3ff 100%);
+  color: #334155;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+  transition: transform 0.18s ease, box-shadow 0.2s ease;
+}
+
+.police-root .contact-quick-close:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.16);
+}
+
+.police-root .contact-quick-close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25), 0 10px 20px rgba(37, 99, 235, 0.16);
+}
+
+.police-root .contact-quick-sub {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.police-root .contact-quick-layout {
+  display: grid;
+  grid-template-columns: 1.35fr 0.9fr;
+  gap: 14px;
+}
+
+.police-root .contact-quick-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid #e3e9f5;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.police-root .contact-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.police-root .contact-quick-form label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.police-root .contact-quick-form input,
+.police-root .contact-quick-form textarea {
+  width: 100%;
+  border: 1px solid #d4dceb;
+  border-radius: 10px;
+  padding: 11px 12px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #fcfdff;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit;
+}
+
+.police-root .contact-quick-form input:focus,
+.police-root .contact-quick-form textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  background: #ffffff;
+}
+
+.police-root .contact-quick-form input.is-invalid,
+.police-root .contact-quick-form textarea.is-invalid {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.police-root .contact-quick-error {
+  margin: -2px 0 2px;
+  font-size: 12px;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.police-root .contact-quick-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.police-root .contact-quick-submit {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(90deg, #1d4ed8, #0ea5e9);
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
+}
+
+.police-root .contact-quick-submit:hover {
+  transform: translateY(-1px);
+}
+
+.police-root .contact-quick-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.police-root .contact-quick-side article {
+  border: 1px solid #dce5f4;
+  border-radius: 12px;
+  background: linear-gradient(165deg, #ffffff 0%, #f6f9ff 100%);
+  padding: 12px;
+}
+
+.police-root .contact-quick-side h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.police-root .contact-quick-side p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.police-root .contact-quick-mail {
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.police-root .contact-quick-success {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #065f46;
+  font-weight: 700;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.police-root .info-quick-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.police-root .info-quick-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.police-root .info-quick-brand-logo {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+}
+
+.police-root .info-quick-brand-name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.police-root .info-quick-brand-caption {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.police-root .info-quick-pillars {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.police-root .info-quick-pillars article {
+  border: 1px solid #d8e5fb;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #ffffff 0%, #f4f8ff 100%);
+  padding: 12px;
+}
+
+.police-root .info-quick-pillars h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #1e3a8a;
+}
+
+.police-root .info-quick-pillars p {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.police-root .info-quick-lead {
+  font-size: 14px;
+  color: #334155;
+}
+
+.police-root .info-quick-mini-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.police-root .info-quick-mini-cards article {
+  border: 1px solid #e6ebf5;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.police-root .info-quick-block p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #334155;
+}
+
+.police-root .info-quick-block h4 {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.police-root .info-quick-block ol {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.police-root .info-quick-steps li {
+  position: relative;
+  padding: 10px 10px 10px 38px;
+  border: 1px solid #e6ebf5;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 14px;
+}
+
+.police-root .info-quick-steps li::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+.police-root .info-quick-steps-pro li {
+  padding: 12px 12px 12px 38px;
+  background: linear-gradient(165deg, #ffffff 0%, #f8fbff 100%);
+  border-color: #dde6f6;
+}
+
+.police-root .info-quick-steps-pro li strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.police-root .info-quick-steps-pro li span {
+  display: block;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.police-root .info-quick-tech {
+  padding: 10px 12px;
+  border: 1px dashed #ced7ea;
+  border-radius: 10px;
+  background: #f8faff;
+}
+
+@media (max-width: 760px) {
+  .police-root .contact-quick-modal {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .police-root .contact-quick-modal.panel-about,
+  .police-root .contact-quick-modal.panel-description,
+  .police-root .contact-quick-modal.panel-contact {
+    padding: 16px;
+  }
+
+  .police-root .contact-quick-layout,
+  .police-root .contact-quick-grid,
+  .police-root .info-quick-pillars,
+  .police-root .info-quick-mini-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .police-root .contact-quick-head h3 {
+    font-size: 20px;
+  }
+}

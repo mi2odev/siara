@@ -1,50 +1,67 @@
-@startuml
+@startuml SIARA_UseCase
 left to right direction
 skinparam packageStyle rectangle
+skinparam actorStyle awesome
 
-actor "Citizen User" as Citizen
-actor "Police Officer" as Police
-actor "Administrator" as Admin
+actor Citizen
+actor Police
+actor Admin
 actor "Emergency Services" as Emergency
-actor "AI Prediction Engine" as AI
-actor "Map Service" as MapAPI
+
+' ===== Actor Hierarchy =====
+Police --|> Citizen
 
 rectangle "SIARA Smart Mobility Platform" {
 
-  (Register Account) as UC1
-  (Login) as UC2
-  (Manage Profile) as UC3
-  (Report Incident) as UC4
-  (View Incident Feed) as UC5
-  (View Map) as UC6
-  (View Incident Details) as UC7
-  (Create Alert Subscription) as UC8
-  (Receive Notifications) as UC9
-  (View Dashboard) as UC10
-  (View Risk Insights) as UC11
-  (View Predictions) as UC12
-  (Manage Settings) as UC13
+  package "Citizen Services" {
 
-  (Monitor Active Incidents) as UC14
-  (Verify Incident Reports) as UC15
-  (Update Incident Status) as UC16
-  (Issue Emergency Alert) as UC17
-  (Monitor Patrol Zones) as UC18
+    (Authenticate User) as UC1
+    (Manage Profile) as UC2
 
-  (Respond to Incident) as UC19
-  (View Critical Incidents) as UC20
+    (Browse Incidents) as UC4
+    (View Map) as UC5
+    (Report Incident) as UC3
 
-  (Manage Users) as UC21
-  (Moderate Incident Reports) as UC22
-  (Manage Alerts) as UC23
-  (Monitor System Analytics) as UC24
-  (Configure AI Models) as UC25
+    (Subscribe to Alerts) as UC6
+    (Receive Notifications) as UC7
 
-  (Analyze Incident Data) as UC26
-  (Generate Risk Predictions) as UC27
-  (Produce Risk Insights) as UC28
+    (View Dashboard) as UC8
+    (Take Driver Quiz) as UC9
+  }
+
+  package "Police Operations" {
+    (Monitor Active Incidents) as UC10
+    (Verify Reports) as UC11
+    (Update Incident Status) as UC12
+    (Manage Patrol Zones) as UC13
+    (Issue Emergency Alerts) as UC14
+  }
+
+  package "Emergency Response" {
+    (View Critical Incidents) as UC15
+    (Respond to Incident) as UC16
+  }
+
+  package "Administration" {
+    (Manage Users) as UC17
+    (Moderate Reports) as UC18
+    (Manage Alerts) as UC19
+    (View System Analytics) as UC20
+    (Configure AI Models) as UC21
+  }
+
+  package "AI & Analytics (Internal)" {
+    (Analyze Data) as UC22
+    (Generate Predictions) as UC23
+    (Generate Risk Insights) as UC24
+    (Evaluate Driver Behavior) as UC25
+  }
 }
 
+' 🔥 FORCE ORDER (THIS FIXES YOUR ISSUE)
+"Emergency Response" -[hidden]-> "Administration"
+
+' ===== Actor Links =====
 Citizen -- UC1
 Citizen -- UC2
 Citizen -- UC3
@@ -54,38 +71,31 @@ Citizen -- UC6
 Citizen -- UC7
 Citizen -- UC8
 Citizen -- UC9
-Citizen -- UC10
-Citizen -- UC11
-Citizen -- UC12
-Citizen -- UC13
 
+Police -- UC10
+Police -- UC11
+Police -- UC12
+Police -- UC13
 Police -- UC14
-Police -- UC15
-Police -- UC16
-Police -- UC17
-Police -- UC18
 
-Emergency -- UC19
-Emergency -- UC20
-
+Admin -- UC17
+Admin -- UC18
+Admin -- UC19
+Admin -- UC20
 Admin -- UC21
-Admin -- UC22
-Admin -- UC23
-Admin -- UC24
-Admin -- UC25
 
-AI -- UC26
-AI -- UC27
-AI -- UC28
+Emergency -- UC15
+Emergency -- UC16
 
-MapAPI -- UC6
+' ===== Relationships =====
+UC3 --> UC22 : <<include>>
+UC22 --> UC23 : <<include>>
+UC23 --> UC24 : <<include>>
 
-UC4 --> UC26 : <<include>>
-UC26 --> UC27 : <<include>>
-UC27 --> UC28 : <<extend>>
+UC9 --> UC25 : <<include>>
 
-UC14 --> UC7 : <<include>>
+UC10 --> UC4 : <<include>>
+UC11 --> UC12 : <<include>>
 UC15 --> UC16 : <<include>>
-UC20 --> UC19 : <<include>>
 
 @enduml

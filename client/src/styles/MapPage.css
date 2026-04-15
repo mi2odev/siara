@@ -689,11 +689,12 @@
   right: calc(16px + var(--map-right-controls-space, 232px));
   z-index: 860;
   min-width: 0;
+  display: flex;
 }
 
 .layer-switcher {
-  display: flex;
-  width: 100%;
+  display: inline-flex;
+  width: max-content;
   max-width: 100%;
   overflow-x: auto;
   overscroll-behavior-x: contain;
