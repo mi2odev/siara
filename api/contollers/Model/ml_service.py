@@ -1,4 +1,4 @@
-﻿from flask import Flask, jsonify, request
+﻿from flask import Flask, Response, jsonify, request, stream_with_context
 import json
 import joblib
 import numpy as np
@@ -7,6 +7,7 @@ import requests
 import shap
 import os
 import sys
+import time
 from bisect import bisect_right
 
 app = Flask(__name__)
@@ -20,7 +21,11 @@ if ANOMALY_DETECTION_DIR not in sys.path:
     sys.path.append(ANOMALY_DETECTION_DIR)
 
 from report_spam_model import classify_report_payload
-from services.quiz_explainer import build_template_explanation, explain_quiz_result
+from services.quiz_explainer import (
+    build_template_explanation,
+    explain_quiz_result,
+    stream_quiz_explanation,
+)
 
 # Driver mentality model artifacts
 MODEL_PATH = os.path.join(BASE_DIR, "driver-quiz-model", "driver_model.joblib")
@@ -990,21 +995,22 @@ EXAMPLE_QUIZ_EXPLAINER_PAYLOAD = {
 }
 
 
-# -----------------------------
-# Routes
-# -----------------------------
-@app.route("/predict", methods=["POST"])
-def predict():
-    data = request.get_json(silent=True) or {}
+class QuizInputError(ValueError):
+    def __init__(self, payload, status_code=400):
+        super().__init__(payload.get("error", "Invalid quiz payload"))
+        self.payload = payload
+        self.status_code = status_code
 
+
+def build_driver_quiz_prediction(data):
     missing = [f for f in FEATURES if f not in data]
     if missing:
-        return jsonify({"error": "Missing required features", "missing": missing}), 400
+        raise QuizInputError({"error": "Missing required features", "missing": missing}, 400)
 
     try:
         x = pd.DataFrame([[float(data[f]) for f in FEATURES]], columns=FEATURES)
     except (TypeError, ValueError):
-        return jsonify({"error": "All feature values must be numeric"}), 400
+        raise QuizInputError({"error": "All feature values must be numeric"}, 400)
 
     probs = model.predict_proba(x)[0]
     pred_class = int(np.argmax(probs))
@@ -1024,7 +1030,10 @@ def predict():
         elif sv.ndim == 2 and sv.shape[1] == len(FEATURES):
             shap_for_pred = sv[0]
         else:
-            return jsonify({"error": "Unexpected SHAP output shape", "shape": list(sv.shape)}), 500
+            raise QuizInputError(
+                {"error": "Unexpected SHAP output shape", "shape": list(sv.shape)},
+                500,
+            )
 
     base_value = explainer.expected_value
     if isinstance(base_value, (list, np.ndarray)) and len(np.atleast_1d(base_value)) == len(
@@ -1045,29 +1054,100 @@ def predict():
     advice_text = generate_advice_paragraph(
         risk_label=risk_label, risk_percent=risk_percent, shap_per_feature=shap_per_feature
     )
+
+    return {
+        "risk_label": risk_label,
+        "risk_percent": round(risk_percent, 2),
+        "risk_score": round(risk_percent, 2),
+        "class_probabilities": {
+            ordered_labels[i]: float(round(probs[i], 6)) for i in range(len(ordered_labels))
+        },
+        "xai": {
+            "predicted_class_index": pred_class,
+            "base_value": base_value_pred,
+            "shap_per_feature": shap_per_feature,
+        },
+        "advice_text": advice_text,
+        "quiz_result_data": quiz_result_data,
+    }
+
+
+def sse_event(event_name, payload):
+    return f"event: {event_name}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+# -----------------------------
+# Routes
+# -----------------------------
+@app.route("/predict", methods=["POST"])
+def predict():
+    data = request.get_json(silent=True) or {}
+
+    try:
+        response_payload = build_driver_quiz_prediction(data)
+    except QuizInputError as exc:
+        return jsonify(exc.payload), exc.status_code
+
+    quiz_result_data = response_payload["quiz_result_data"]
     try:
         explanation_text = explain_quiz_result(quiz_result_data)
     except Exception as exc:
         print(f"[quiz-explainer] Unexpected fallback: {exc}")
         explanation_text = build_template_explanation(quiz_result_data)
 
-    return jsonify(
-        {
-            "risk_label": risk_label,
-            "risk_percent": round(risk_percent, 2),
-            "risk_score": round(risk_percent, 2),
-            "class_probabilities": {
-                ordered_labels[i]: float(round(probs[i], 6)) for i in range(len(ordered_labels))
+    return jsonify({**response_payload, "explanation_text": explanation_text})
+
+
+@app.route("/predict/stream", methods=["POST"])
+def predict_stream():
+    request_started_at = time.monotonic()
+    print("[quiz-stream] request started")
+    data = request.get_json(silent=True) or {}
+
+    try:
+        response_payload = build_driver_quiz_prediction(data)
+    except QuizInputError as exc:
+        return jsonify(exc.payload), exc.status_code
+
+    quiz_result_data = response_payload["quiz_result_data"]
+
+    @stream_with_context
+    def generate():
+        explanation_parts = []
+        yield sse_event(
+            "result",
+            {
+                **response_payload,
+                "explanation_text": "",
             },
-            "xai": {
-                "predicted_class_index": pred_class,
-                "base_value": base_value_pred,
-                "shap_per_feature": shap_per_feature,
-            },
-            "advice_text": advice_text,
-            "explanation_text": explanation_text,
-            "quiz_result_data": quiz_result_data,
-        }
+        )
+        for event in stream_quiz_explanation(quiz_result_data):
+            event_name = event.get("event", "message")
+            payload = {k: v for k, v in event.items() if k != "event"}
+            if event_name == "chunk":
+                explanation_parts.append(str(payload.get("content") or ""))
+            if event_name == "done":
+                explanation_text = payload.get("explanation_text") or "".join(explanation_parts).strip()
+                final_payload = {
+                    **response_payload,
+                    "explanation_text": explanation_text,
+                }
+                payload["result"] = final_payload
+                payload["elapsed_ms"] = int((time.monotonic() - request_started_at) * 1000)
+                print(
+                    "[quiz-stream] stream completed "
+                    f"in {payload['elapsed_ms']} ms"
+                )
+            yield sse_event(event_name, payload)
+
+    return Response(
+        generate(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
     )
 
 
@@ -1090,6 +1170,27 @@ def quiz_explanation_test():
                 "explanation_text": explanation_text,
             },
         }
+    )
+
+
+@app.route("/quiz/explanation/stream", methods=["POST"])
+def quiz_explanation_stream():
+    payload = request.get_json(silent=True) or {}
+
+    @stream_with_context
+    def generate():
+        for event in stream_quiz_explanation(payload):
+            event_name = event.get("event", "message")
+            yield sse_event(event_name, {k: v for k, v in event.items() if k != "event"})
+
+    return Response(
+        generate(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
     )
 
 

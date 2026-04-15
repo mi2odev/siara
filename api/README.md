@@ -24,7 +24,9 @@ Environment defaults:
 LLM_PROVIDER=ollama
 OLLAMA_MODEL=gemma3:4b
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_TIMEOUT_SECONDS=20
+OLLAMA_TIMEOUT_SECONDS=90
+OLLAMA_STREAM_READ_TIMEOUT_SECONDS=300
+ML_SERVICE_STREAM_TIMEOUT_MS=300000
 ```
 
 To switch to the stronger model, set:
@@ -34,6 +36,38 @@ OLLAMA_MODEL=llama3.1:8b
 ```
 
 If Ollama is unavailable, the Flask service returns a deterministic template explanation and does not crash.
+
+### Streaming quiz explanations
+
+Use the Node API proxy for the live quiz experience:
+
+```bash
+curl -N -X POST http://localhost:5000/api/model/predict/stream \
+  -H "Content-Type: application/json" \
+  -d '{"dissociative":2,"anxious":3,"risky":2,"angry":2,"high_velocity":4,"distress_reduction":2,"patient":3,"careful":5,"errors":2,"violations":1,"lapses":4}'
+```
+
+The Flask service also exposes:
+
+```text
+POST /predict/stream
+POST /quiz/explanation/stream
+```
+
+The stream uses Server-Sent Events:
+
+```text
+event: status
+data: {"status":"loading_model","message":"Loading local language model..."}
+
+event: chunk
+data: {"content":"partial explanation text"}
+
+event: done
+data: {"explanation_text":"final text","metadata":{"eval_count":123}}
+```
+
+Progress is stage-based rather than an exact percentage: preparing, loading the local model, generating, and finalizing. The final `done` event includes the complete explanation text; save that final text rather than partial chunks.
 
 ### Example quiz payload
 

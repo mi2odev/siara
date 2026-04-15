@@ -605,6 +605,66 @@
   margin-bottom: 24px;
 }
 
+.results-explanation {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--quiz-surface);
+  border: 1px solid var(--quiz-border);
+  border-radius: 14px;
+}
+
+.results-explanation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--quiz-text-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.results-live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--quiz-success);
+  flex: 0 0 auto;
+}
+
+.results-live-dot.active {
+  animation: quizLivePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes quizLivePulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.results-fallback-pill {
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #B45309;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.results-explanation-text {
+  white-space: pre-wrap;
+  color: var(--quiz-text-medium);
+  font-size: 14px;
+  line-height: 1.7;
+  min-height: 72px;
+}
+
 /* ================================================
    FINISH BUTTON
    ================================================ */

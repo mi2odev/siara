@@ -9,14 +9,16 @@ Runtime configuration:
 - LLM_PROVIDER=ollama
 - OLLAMA_MODEL=gemma3:4b
 - OLLAMA_BASE_URL=http://localhost:11434
-- OLLAMA_TIMEOUT_SECONDS=20
+- OLLAMA_TIMEOUT_SECONDS=90
+- OLLAMA_STREAM_READ_TIMEOUT_SECONDS=300
 """
 
 from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+import time
+from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional
 
 import requests
 
@@ -24,7 +26,9 @@ import requests
 DEFAULT_PROVIDER = "ollama"
 DEFAULT_MODEL = "gemma3:4b"
 DEFAULT_BASE_URL = "http://localhost:11434"
-DEFAULT_TIMEOUT_SECONDS = 20
+DEFAULT_TIMEOUT_SECONDS = 90
+DEFAULT_STREAM_READ_TIMEOUT_SECONDS = 300
+DEFAULT_CONNECT_TIMEOUT_SECONDS = 10
 
 
 class QuizExplainerError(RuntimeError):
@@ -59,16 +63,34 @@ Return exactly these five short sections:
 def get_quiz_explainer_config(env: Optional[Mapping[str, str]] = None) -> Dict[str, Any]:
     source = env or os.environ
     timeout_raw = source.get("OLLAMA_TIMEOUT_SECONDS", str(DEFAULT_TIMEOUT_SECONDS))
+    stream_read_timeout_raw = source.get(
+        "OLLAMA_STREAM_READ_TIMEOUT_SECONDS",
+        str(DEFAULT_STREAM_READ_TIMEOUT_SECONDS),
+    )
+    connect_timeout_raw = source.get(
+        "OLLAMA_CONNECT_TIMEOUT_SECONDS",
+        str(DEFAULT_CONNECT_TIMEOUT_SECONDS),
+    )
     try:
         timeout_seconds = float(timeout_raw)
     except (TypeError, ValueError):
         timeout_seconds = DEFAULT_TIMEOUT_SECONDS
+    try:
+        stream_read_timeout_seconds = float(stream_read_timeout_raw)
+    except (TypeError, ValueError):
+        stream_read_timeout_seconds = DEFAULT_STREAM_READ_TIMEOUT_SECONDS
+    try:
+        connect_timeout_seconds = float(connect_timeout_raw)
+    except (TypeError, ValueError):
+        connect_timeout_seconds = DEFAULT_CONNECT_TIMEOUT_SECONDS
 
     return {
         "provider": source.get("LLM_PROVIDER", DEFAULT_PROVIDER).strip().lower() or DEFAULT_PROVIDER,
         "model": source.get("OLLAMA_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL,
         "base_url": (source.get("OLLAMA_BASE_URL", DEFAULT_BASE_URL).strip() or DEFAULT_BASE_URL).rstrip("/"),
         "timeout_seconds": max(1.0, timeout_seconds),
+        "stream_read_timeout_seconds": max(1.0, stream_read_timeout_seconds),
+        "connect_timeout_seconds": max(1.0, connect_timeout_seconds),
     }
 
 
@@ -174,6 +196,181 @@ def call_ollama_chat(
         raise OllamaUnavailableError("Ollama returned an empty chat message")
 
     return content.strip()
+
+
+def _stream_event(event: str, **payload: Any) -> Dict[str, Any]:
+    return {"event": event, **payload}
+
+
+def _template_fallback_events(
+    result_data: Mapping[str, Any],
+    *,
+    reason: str,
+    started_at: float,
+) -> Generator[Dict[str, Any], None, None]:
+    explanation_text = build_template_explanation(result_data)
+    elapsed_ms = int((time.monotonic() - started_at) * 1000)
+    print(f"[quiz-explainer] fallback used: {reason}")
+    print(f"[quiz-explainer] total generation duration {elapsed_ms} ms")
+    yield _stream_event(
+        "status",
+        status="fallback",
+        message="Using deterministic fallback explanation...",
+        fallback=True,
+        reason=reason,
+    )
+    yield _stream_event(
+        "chunk",
+        content=explanation_text,
+        fallback=True,
+    )
+    yield _stream_event(
+        "status",
+        status="done",
+        message="Explanation ready.",
+        fallback=True,
+    )
+    yield _stream_event(
+        "done",
+        explanation_text=explanation_text,
+        fallback=True,
+        metadata={"generation_duration_ms": elapsed_ms},
+    )
+
+
+def stream_quiz_explanation(
+    result_data: Mapping[str, Any],
+    *,
+    model: Optional[str] = None,
+    base_url: Optional[str] = None,
+) -> Generator[Dict[str, Any], None, None]:
+    """Yield structured events while Ollama streams an explanation."""
+
+    started_at = time.monotonic()
+    config = get_quiz_explainer_config()
+    print("[quiz-explainer] request started")
+
+    yield _stream_event(
+        "status",
+        status="starting",
+        message="Preparing explanation...",
+    )
+
+    if config["provider"] != "ollama":
+        yield from _template_fallback_events(
+            result_data,
+            reason=f"LLM provider is {config['provider']}",
+            started_at=started_at,
+        )
+        return
+
+    resolved_model = model or config["model"]
+    resolved_base_url = (base_url or config["base_url"]).rstrip("/")
+    url = f"{resolved_base_url}/api/chat"
+    messages = build_quiz_explanation_prompt(result_data)
+    payload = {
+        "model": resolved_model,
+        "messages": messages,
+        "stream": True,
+        "options": {
+            "temperature": 0.2,
+            "top_p": 0.9,
+        },
+    }
+    request_timeout = (
+        config["connect_timeout_seconds"],
+        config["stream_read_timeout_seconds"],
+    )
+    explanation_parts: List[str] = []
+    first_token_received = False
+
+    try:
+        yield _stream_event(
+            "status",
+            status="loading_model",
+            message="Loading local language model...",
+        )
+        print("[quiz-explainer] Ollama connection started")
+        with requests.post(url, json=payload, stream=True, timeout=request_timeout) as response:
+            response.raise_for_status()
+            for raw_line in response.iter_lines(decode_unicode=True):
+                if not raw_line:
+                    continue
+                try:
+                    chunk = json.loads(raw_line)
+                except ValueError as exc:
+                    raise OllamaUnavailableError("Ollama returned an invalid JSON stream chunk") from exc
+
+                content = chunk.get("message", {}).get("content")
+                if isinstance(content, str) and content:
+                    if not first_token_received:
+                        first_token_received = True
+                        print("[quiz-explainer] first token received")
+                        yield _stream_event(
+                            "status",
+                            status="generating",
+                            message="Generating explanation...",
+                        )
+                    explanation_parts.append(content)
+                    yield _stream_event("chunk", content=content)
+
+                if chunk.get("done") is True:
+                    metadata = {
+                        key: chunk[key]
+                        for key in (
+                            "total_duration",
+                            "load_duration",
+                            "prompt_eval_count",
+                            "eval_count",
+                        )
+                        if key in chunk
+                    }
+                    metadata["generation_duration_ms"] = int((time.monotonic() - started_at) * 1000)
+                    explanation_text = "".join(explanation_parts).strip()
+                    if not explanation_text:
+                        raise OllamaUnavailableError("Ollama streamed an empty explanation")
+                    yield _stream_event(
+                        "status",
+                        status="finalizing",
+                        message="Finalizing response...",
+                    )
+                    print(
+                        "[quiz-explainer] stream completed "
+                        f"in {metadata['generation_duration_ms']} ms"
+                    )
+                    yield _stream_event(
+                        "done",
+                        explanation_text=explanation_text,
+                        fallback=False,
+                        metadata=metadata,
+                    )
+                    return
+
+        raise OllamaUnavailableError("Ollama stream ended without a final done chunk")
+    except requests.Timeout as exc:
+        yield from _template_fallback_events(
+            result_data,
+            reason=f"Ollama stream timed out: {exc}",
+            started_at=started_at,
+        )
+    except requests.RequestException as exc:
+        yield from _template_fallback_events(
+            result_data,
+            reason=f"Ollama stream failed: {exc}",
+            started_at=started_at,
+        )
+    except QuizExplainerError as exc:
+        yield from _template_fallback_events(
+            result_data,
+            reason=str(exc),
+            started_at=started_at,
+        )
+    except Exception as exc:
+        yield from _template_fallback_events(
+            result_data,
+            reason=f"Unexpected stream failure: {exc}",
+            started_at=started_at,
+        )
 
 
 def build_template_explanation(result_data: Mapping[str, Any]) -> str:

@@ -139,7 +139,16 @@ const ANSWER_OPTIONS = [
 
 const STORAGE_KEY = 'siara_quiz_completed'
 const ANSWERS_KEY = 'siara_quiz_answers'
-const MODEL_ENDPOINT = 'http://localhost:5000/api/model/predict'
+const STREAM_MODEL_ENDPOINT = 'http://localhost:5000/api/model/predict/stream'
+
+const STREAM_STATUS_LABELS = {
+  starting: 'Preparing explanation...',
+  loading_model: 'Loading local language model...',
+  generating: 'Generating explanation...',
+  finalizing: 'Finalizing response...',
+  fallback: 'Using deterministic fallback explanation...',
+  done: 'Explanation ready.',
+}
 
 const avg = (list) => {
   if (!list.length) return 0
@@ -148,6 +157,64 @@ const avg = (list) => {
 
 const round = (value) => Number(value.toFixed(4))
 const scoreToPercent = (v) => Math.round((Math.min(Math.max(v, 0), 5) / 5) * 100)
+
+const parseSseBlock = (block) => {
+  const lines = block.replace(/\r/g, '').split('\n')
+  let event = 'message'
+  const dataLines = []
+
+  lines.forEach((line) => {
+    if (line.startsWith('event:')) {
+      event = line.slice(6).trim()
+    } else if (line.startsWith('data:')) {
+      dataLines.push(line.slice(5).trimStart())
+    }
+  })
+
+  if (!dataLines.length) {
+    return null
+  }
+
+  try {
+    return { event, data: JSON.parse(dataLines.join('\n')) }
+  } catch {
+    return { event, data: { raw: dataLines.join('\n') } }
+  }
+}
+
+const readSseStream = async (response, onEvent) => {
+  if (!response.body) {
+    throw new Error('Live explanation stream is not supported by this browser')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    let boundary = buffer.indexOf('\n\n')
+
+    while (boundary !== -1) {
+      const block = buffer.slice(0, boundary)
+      buffer = buffer.slice(boundary + 2)
+      const parsed = parseSseBlock(block)
+      if (parsed) {
+        onEvent(parsed.event, parsed.data)
+      }
+      boundary = buffer.indexOf('\n\n')
+    }
+  }
+
+  buffer += decoder.decode()
+  const parsed = parseSseBlock(buffer)
+  if (parsed) {
+    onEvent(parsed.event, parsed.data)
+  }
+}
 
 export default function DrivingQuiz({ onComplete, forceShow = false }) {
   const [isVisible, setIsVisible] = useState(false)
@@ -162,6 +229,9 @@ export default function DrivingQuiz({ onComplete, forceShow = false }) {
   const [featureScores, setFeatureScores] = useState({})
   const [xai, setXai] = useState(null)
   const [advice, setAdvice] = useState(null)
+  const [explanationText, setExplanationText] = useState('')
+  const [streamStatus, setStreamStatus] = useState('')
+  const [streamFallback, setStreamFallback] = useState(false)
 
   useEffect(() => {
     const hasCompleted = localStorage.getItem(STORAGE_KEY)
@@ -179,6 +249,11 @@ export default function DrivingQuiz({ onComplete, forceShow = false }) {
       setRiskPercent(null)
       setSubmitError('')
       setFeatureScores({})
+      setXai(null)
+      setAdvice(null)
+      setExplanationText('')
+      setStreamStatus('')
+      setStreamFallback(false)
       setIsVisible(true)
     }
   }, [forceShow])
@@ -324,52 +399,116 @@ const getDisplayText = (feature, impact) => {
     setFeatureScores(rawFeatureScores)
     setIsSubmitting(true)
     setSubmitError('')
+    setPrediction('')
+    setRiskPercent(null)
+    setXai(null)
+    setAdvice(null)
+    setExplanationText('')
+    setStreamStatus(STREAM_STATUS_LABELS.starting)
+    setStreamFallback(false)
 
     try {
-      const response = await fetch(MODEL_ENDPOINT, {
+      const response = await fetch(STREAM_MODEL_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(rawFeatureScores),
       })
 
-      const data = await response.json()
-      setXai(data.xai || null)
-
-
       if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
         throw new Error(data?.error || 'Model service error')
       }
-setPrediction(data.risk_label) // ✅
-setRiskPercent(typeof data.risk_percent === 'number' ? data.risk_percent : null) // ✅
-setAdvice(data.advice_text || null) // ✅
-localStorage.setItem(
-  ANSWERS_KEY,
-  JSON.stringify({
-    answers: sourceAnswers,
-    featureScores: rawFeatureScores,
-    prediction: data.risk_label,     // ✅
-    riskPercent: data.risk_percent,  // ✅
-    classProbabilities: data.class_probabilities || null, // optional
-    xai: data.xai || null, // optional
-    advice : data.advice_text || null, // optional
-    timestamp: Date.now(),
-  })
-)
 
-onComplete?.({
-  skipped: false,
-  prediction: data.risk_label,      // ✅
-  riskPercent: data.risk_percent,   // ✅
-  classProbabilities: data.class_probabilities || null, // optional
-  xai: data.xai || null, // optional
-  featureScores: rawFeatureScores,
-  answers: sourceAnswers,
-  advice : data.advice_text || null, // optional
+      let finalData = null
+      let streamError = ''
+      let streamedExplanation = ''
 
-})
+      await readSseStream(response, (event, data) => {
+        if (event === 'status') {
+          const nextStatus = data?.message || STREAM_STATUS_LABELS[data?.status] || 'Working on explanation...'
+          setStreamStatus(nextStatus)
+          if (data?.fallback) {
+            setStreamFallback(true)
+          }
+          return
+        }
+
+        if (event === 'result') {
+          setPrediction(data.risk_label)
+          setRiskPercent(typeof data.risk_percent === 'number' ? data.risk_percent : null)
+          setXai(data.xai || null)
+          setAdvice(data.advice_text || null)
+          return
+        }
+
+        if (event === 'chunk') {
+          const content = typeof data?.content === 'string' ? data.content : ''
+          if (content) {
+            streamedExplanation += content
+            setExplanationText(streamedExplanation)
+          }
+          if (data?.fallback) {
+            setStreamFallback(true)
+          }
+          return
+        }
+
+        if (event === 'done') {
+          finalData = data?.result || null
+          const finalExplanation = data?.explanation_text || finalData?.explanation_text || streamedExplanation
+          streamedExplanation = finalExplanation
+          setExplanationText(finalExplanation)
+          setStreamFallback(Boolean(data?.fallback))
+          setStreamStatus(STREAM_STATUS_LABELS.done)
+
+          if (finalData) {
+            setPrediction(finalData.risk_label)
+            setRiskPercent(typeof finalData.risk_percent === 'number' ? finalData.risk_percent : null)
+            setXai(finalData.xai || null)
+            setAdvice(finalData.advice_text || null)
+          }
+          return
+        }
+
+        if (event === 'error') {
+          streamError = data?.error || 'Live explanation stream failed'
+        }
+      })
+
+      if (!finalData) {
+        throw new Error(streamError || 'Live explanation stream ended before completion')
+      }
+
+      localStorage.setItem(
+        ANSWERS_KEY,
+        JSON.stringify({
+          answers: sourceAnswers,
+          featureScores: rawFeatureScores,
+          prediction: finalData.risk_label,
+          riskPercent: finalData.risk_percent,
+          classProbabilities: finalData.class_probabilities || null,
+          xai: finalData.xai || null,
+          advice: finalData.advice_text || null,
+          explanationText: finalData.explanation_text || streamedExplanation || null,
+          timestamp: Date.now(),
+        })
+      )
+
+      onComplete?.({
+        skipped: false,
+        prediction: finalData.risk_label,
+        riskPercent: finalData.risk_percent,
+        classProbabilities: finalData.class_probabilities || null,
+        xai: finalData.xai || null,
+        featureScores: rawFeatureScores,
+        answers: sourceAnswers,
+        advice: finalData.advice_text || null,
+        explanationText: finalData.explanation_text || streamedExplanation || null,
+      })
 
     } catch (error) {
-      setSubmitError(error.message || 'Could not get model prediction')
+      setSubmitError(error.message || 'Could not get live model explanation')
+      setStreamStatus('Live explanation stream failed. Please retry.')
     } finally {
       setIsSubmitting(false)
     }
@@ -496,9 +635,9 @@ onComplete?.({
           <div className="quiz-results">
             <div className="results-header">
               <h3 className="results-title">Model Result</h3>
-              {isSubmitting && <div className="results-message"><p>Sending feature scores to model service...</p></div>}
-              {!isSubmitting && prediction && <div className="results-overall-score" style={{ color: getRiskLevel(riskPercent)?.color || '#000' }}>{pretty(prediction)}</div>}
-              {!isSubmitting && prediction && typeof riskPercent === 'number' && (
+              {isSubmitting && <div className="results-message"><p>{streamStatus || 'Preparing explanation...'}</p></div>}
+              {prediction && <div className="results-overall-score" style={{ color: getRiskLevel(riskPercent)?.color || '#000' }}>{pretty(prediction)}</div>}
+              {prediction && typeof riskPercent === 'number' && (
                 <div className="results-message">
                   <p>Risk score: {riskPercent.toFixed(2)}% ({pretty(prediction)})</p>
                 </div>
@@ -555,7 +694,19 @@ onComplete?.({
                 </div>
               ))}
             </div>
-<div className="results-advice">{advice}</div>
+            {advice && <div className="results-advice">{advice}</div>}
+            {(isSubmitting || explanationText || streamStatus) && (
+              <div className="results-explanation">
+                <div className="results-explanation-header">
+                  <span className={`results-live-dot ${isSubmitting ? 'active' : ''}`} />
+                  <span>{streamStatus || STREAM_STATUS_LABELS.done}</span>
+                  {streamFallback && <span className="results-fallback-pill">Fallback</span>}
+                </div>
+                <div className="results-explanation-text">
+                  {explanationText || 'Waiting for the local language model to begin...'}
+                </div>
+              </div>
+            )}
             {!isSubmitting && prediction && (
               <button className="quiz-finish-btn" onClick={handleClose}>
                 Continue
