@@ -32,6 +32,7 @@ const {
   predictRiskExplain,
   predictNearbyZones,
   predictRouteGuide,
+  testQuizExplanation,
   getCurrentWeather,
   getReversePlace,
   getRiskForecast24h,
@@ -60,6 +61,8 @@ app.use("/api/push", pushRoutes);
 app.use("/api/reports", reportRoutes);
 
 app.post("/api/model/predict", predictDriverRisk);
+app.get("/api/model/quiz/explanation/test", testQuizExplanation);
+app.post("/api/model/quiz/explanation/test", testQuizExplanation);
 app.get("/api/weather/current", getCurrentWeather);
 app.get("/api/location/reverse", getReversePlace);
 app.post("/api/risk/current", predictCurrentRisk);

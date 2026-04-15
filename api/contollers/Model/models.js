@@ -2324,6 +2324,20 @@ exports.predictDriverRisk = async (req, res) => {
   }
 };
 
+exports.testQuizExplanation = async (req, res) => {
+  const body = req.method === "POST" && req.body && typeof req.body === "object" ? req.body : {};
+
+  try {
+    const response = await postToFlask("/quiz/explanation/test", body);
+    return res.json(response.data);
+  } catch (err) {
+    const status = err.response?.status || 500;
+    const payload = err.response?.data || { error: "Quiz explanation test failed" };
+    console.error("[Node] /quiz/explanation/test error:", err.message);
+    return res.status(status).json(payload);
+  }
+};
+
 exports.getCurrentWeather = async (req, res) => {
   const point = validateLatLngStrict(req.query);
   if (!point) {
