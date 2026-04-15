@@ -13,11 +13,14 @@ app = Flask(__name__)
 
 # Base directory (api folder)
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
 ANOMALY_DETECTION_DIR = os.path.join(BASE_DIR, "anomaly-detection")
 if ANOMALY_DETECTION_DIR not in sys.path:
     sys.path.append(ANOMALY_DETECTION_DIR)
 
 from report_spam_model import classify_report_payload
+from services.quiz_explainer import build_template_explanation, explain_quiz_result
 
 # Driver mentality model artifacts
 MODEL_PATH = os.path.join(BASE_DIR, "driver-quiz-model", "driver_model.joblib")
@@ -197,6 +200,54 @@ def generate_advice_paragraph(
         )
 
     return paragraph.strip()
+
+
+def _feature_factor_payload(feature, impact):
+    return {
+        "name": feature,
+        "description": FEATURE_EXPLANATIONS.get(feature, _human_label(feature)),
+        "impact": round(float(impact), 6),
+        "advice": FEATURE_ACTIONS.get(feature),
+    }
+
+
+def _top_quiz_factors(shap_per_feature, positive=True, limit=3):
+    impacts = _sorted_impacts(shap_per_feature)
+    if positive:
+        filtered = [(feature, impact) for feature, impact in impacts if impact > 0]
+    else:
+        filtered = [(feature, impact) for feature, impact in impacts if impact < 0]
+    return [_feature_factor_payload(feature, impact) for feature, impact in filtered[:limit]]
+
+
+def build_quiz_result_data(risk_label, risk_percent, shap_per_feature, factor_scores):
+    top_risk_factors = _top_quiz_factors(shap_per_feature, positive=True, limit=3)
+    top_protective_factors = _top_quiz_factors(shap_per_feature, positive=False, limit=3)
+    advice_focus = [
+        factor["advice"]
+        for factor in top_risk_factors
+        if factor.get("advice")
+    ][:3]
+
+    if not advice_focus:
+        advice_focus = [
+            "Stay attentive, keep a safe speed and distance, and follow traffic rules consistently."
+        ]
+
+    return {
+        "overall_risk_label": risk_label,
+        "overall_risk_score": round(float(risk_percent), 2),
+        "score_scale": "0-100 percent. This score is computed deterministically by the Python quiz model.",
+        "top_risk_factors": top_risk_factors,
+        "top_protective_factors": top_protective_factors,
+        "questionnaire_sources": [
+            "SIARA driver quiz questionnaire",
+            "Deterministic Python model output",
+            "SHAP feature contribution summary",
+        ],
+        "factor_scores": factor_scores,
+        "advice_focus": advice_focus,
+    }
 
 
 # -----------------------------
@@ -888,6 +939,57 @@ def _score_sentinel(raw_row):
     }
 
 
+EXAMPLE_QUIZ_EXPLAINER_PAYLOAD = {
+    "overall_risk_label": "moderate",
+    "overall_risk_score": 48.75,
+    "score_scale": "0-100 percent. This score is computed deterministically by the Python quiz model.",
+    "top_risk_factors": [
+        {
+            "name": "lapses",
+            "description": FEATURE_EXPLANATIONS["lapses"],
+            "impact": 0.0842,
+            "advice": FEATURE_ACTIONS["lapses"],
+        },
+        {
+            "name": "high_velocity",
+            "description": FEATURE_EXPLANATIONS["high_velocity"],
+            "impact": 0.0521,
+            "advice": FEATURE_ACTIONS["high_velocity"],
+        },
+    ],
+    "top_protective_factors": [
+        {
+            "name": "careful",
+            "description": FEATURE_EXPLANATIONS["careful"],
+            "impact": -0.0415,
+            "advice": FEATURE_ACTIONS["careful"],
+        }
+    ],
+    "questionnaire_sources": [
+        "SIARA driver quiz questionnaire",
+        "Deterministic Python model output",
+        "SHAP feature contribution summary",
+    ],
+    "factor_scores": {
+        "dissociative": 2,
+        "anxious": 3,
+        "risky": 2,
+        "angry": 2,
+        "high_velocity": 4,
+        "distress_reduction": 2,
+        "patient": 3,
+        "careful": 5,
+        "errors": 2,
+        "violations": 1,
+        "lapses": 4,
+    },
+    "advice_focus": [
+        FEATURE_ACTIONS["lapses"],
+        FEATURE_ACTIONS["high_velocity"],
+    ],
+}
+
+
 # -----------------------------
 # Routes
 # -----------------------------
@@ -933,14 +1035,27 @@ def predict():
         base_value_pred = float(np.array(base_value).reshape(-1)[0])
 
     shap_per_feature = {FEATURES[i]: float(shap_for_pred[i]) for i in range(len(FEATURES))}
+    factor_scores = {feature: float(x.iloc[0][feature]) for feature in FEATURES}
+    quiz_result_data = build_quiz_result_data(
+        risk_label=risk_label,
+        risk_percent=risk_percent,
+        shap_per_feature=shap_per_feature,
+        factor_scores=factor_scores,
+    )
     advice_text = generate_advice_paragraph(
         risk_label=risk_label, risk_percent=risk_percent, shap_per_feature=shap_per_feature
     )
+    try:
+        explanation_text = explain_quiz_result(quiz_result_data)
+    except Exception as exc:
+        print(f"[quiz-explainer] Unexpected fallback: {exc}")
+        explanation_text = build_template_explanation(quiz_result_data)
 
     return jsonify(
         {
             "risk_label": risk_label,
             "risk_percent": round(risk_percent, 2),
+            "risk_score": round(risk_percent, 2),
             "class_probabilities": {
                 ordered_labels[i]: float(round(probs[i], 6)) for i in range(len(ordered_labels))
             },
@@ -950,6 +1065,30 @@ def predict():
                 "shap_per_feature": shap_per_feature,
             },
             "advice_text": advice_text,
+            "explanation_text": explanation_text,
+            "quiz_result_data": quiz_result_data,
+        }
+    )
+
+
+@app.route("/quiz/explanation/test", methods=["GET", "POST"])
+def quiz_explanation_test():
+    payload = request.get_json(silent=True) or EXAMPLE_QUIZ_EXPLAINER_PAYLOAD
+    try:
+        explanation_text = explain_quiz_result(payload)
+    except Exception as exc:
+        print(f"[quiz-explainer] Test route fallback: {exc}")
+        explanation_text = build_template_explanation(payload)
+
+    return jsonify(
+        {
+            "example_payload": EXAMPLE_QUIZ_EXPLAINER_PAYLOAD,
+            "input_used": payload,
+            "example_response": {
+                "risk_label": payload.get("overall_risk_label"),
+                "risk_score": payload.get("overall_risk_score"),
+                "explanation_text": explanation_text,
+            },
         }
     )
 
