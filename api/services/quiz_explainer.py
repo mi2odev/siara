@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional
 
@@ -50,6 +51,7 @@ Safety and tone rules:
 - Use a supportive, practical, non-judgmental tone.
 - Output in English only.
 - Keep advice concrete and driving-safety focused.
+- Use plain section titles; do not wrap headings or phrases in Markdown bold markers.
 
 Return exactly these five short sections:
 1. Short summary
@@ -202,6 +204,86 @@ def _stream_event(event: str, **payload: Any) -> Dict[str, Any]:
     return {"event": event, **payload}
 
 
+SECTION_ALIASES = {
+    "summary": ("short summary", "summary"),
+    "risk_factors": (
+        "main risk increasing factors",
+        "main risk-increasing factors",
+        "risk increasing factors",
+        "risk factors",
+    ),
+    "protective_factors": (
+        "main protective factors",
+        "protective factors",
+    ),
+    "advice": (
+        "practical advice",
+        "advice",
+    ),
+    "disclaimer": (
+        "brief disclaimer",
+        "disclaimer",
+    ),
+}
+
+
+def _normalize_section_heading(value: str) -> Optional[str]:
+    text = re.sub(r"[*_`#>]+", "", str(value or "")).strip()
+    text = re.sub(r"^\s*[-+*]\s+", "", text)
+    text = re.sub(r"^\s*\d+[\).:-]\s*", "", text)
+    text = re.sub(r"[:.]\s*$", "", text)
+    normalized = re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+    for key, aliases in SECTION_ALIASES.items():
+        if normalized in {re.sub(r"[^a-z0-9]+", " ", alias).strip() for alias in aliases}:
+            return key
+    return None
+
+
+def structure_quiz_explanation(explanation_text: Any) -> Dict[str, Any]:
+    """Parse the expected five-section explanation text into UI-friendly fields."""
+
+    text = str(explanation_text or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    sections: Dict[str, List[str]] = {
+        "summary": [],
+        "risk_factors": [],
+        "protective_factors": [],
+        "advice": [],
+        "disclaimer": [],
+    }
+    current_key: Optional[str] = None
+
+    for raw_line in text.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        heading = _normalize_section_heading(line)
+        if heading:
+            current_key = heading
+            continue
+
+        inline_heading = re.match(
+            r"^\s*(?:\*\*)?\s*(?:\d+[\).:-]\s*)?([A-Za-z][A-Za-z\-\s]+?)(?:\*\*)?\s*[:\-]\s+(.+)$",
+            line,
+        )
+        if inline_heading:
+            heading = _normalize_section_heading(inline_heading.group(1))
+            if heading:
+                current_key = heading
+                line = inline_heading.group(2).strip()
+
+        if current_key:
+            cleaned = re.sub(r"[*_`]+", "", line).strip()
+            cleaned = re.sub(r"^\s*[-+*]\s+", "", cleaned)
+            if cleaned:
+                sections[current_key].append(cleaned)
+
+    return {
+        key: "\n".join(value).strip()
+        for key, value in sections.items()
+    }
+
+
 def _template_fallback_events(
     result_data: Mapping[str, Any],
     *,
@@ -233,6 +315,7 @@ def _template_fallback_events(
     yield _stream_event(
         "done",
         explanation_text=explanation_text,
+        structured_explanation=structure_quiz_explanation(explanation_text),
         fallback=True,
         metadata={"generation_duration_ms": elapsed_ms},
     )
@@ -341,6 +424,7 @@ def stream_quiz_explanation(
                     yield _stream_event(
                         "done",
                         explanation_text=explanation_text,
+                        structured_explanation=structure_quiz_explanation(explanation_text),
                         fallback=False,
                         metadata=metadata,
                     )

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import QuizExplanationResult from './QuizExplanationResult'
 import '../../styles/DrivingQuiz.css'
 
 const QUIZ_SECTIONS = [
@@ -230,6 +231,7 @@ export default function DrivingQuiz({ onComplete, forceShow = false }) {
   const [xai, setXai] = useState(null)
   const [advice, setAdvice] = useState(null)
   const [explanationText, setExplanationText] = useState('')
+  const [structuredExplanation, setStructuredExplanation] = useState(null)
   const [streamStatus, setStreamStatus] = useState('')
   const [streamFallback, setStreamFallback] = useState(false)
 
@@ -252,6 +254,7 @@ export default function DrivingQuiz({ onComplete, forceShow = false }) {
       setXai(null)
       setAdvice(null)
       setExplanationText('')
+      setStructuredExplanation(null)
       setStreamStatus('')
       setStreamFallback(false)
       setIsVisible(true)
@@ -283,6 +286,12 @@ function getRiskLevel(value) {
   const answeredCount = Object.keys(answers).length
   const progress = (answeredCount / totalQuestions) * 100
   const pretty = (s) => s.replaceAll('_',' ').replace(/\b\w/g, c => c.toUpperCase());
+  const getRiskTone = (value) => {
+    if (typeof value !== 'number') return 'neutral'
+    if (value < 34) return 'low'
+    if (value < 67) return 'medium'
+    return 'high'
+  }
 // 1) Define your label order ONCE (same as the model training)
 const ORDERED_LABELS = ['very_low', 'low', 'moderate', 'elevated', 'high', 'extreme'];
 
@@ -404,6 +413,7 @@ const getDisplayText = (feature, impact) => {
     setXai(null)
     setAdvice(null)
     setExplanationText('')
+    setStructuredExplanation(null)
     setStreamStatus(STREAM_STATUS_LABELS.starting)
     setStreamFallback(false)
 
@@ -458,6 +468,7 @@ const getDisplayText = (feature, impact) => {
           const finalExplanation = data?.explanation_text || finalData?.explanation_text || streamedExplanation
           streamedExplanation = finalExplanation
           setExplanationText(finalExplanation)
+          setStructuredExplanation(data?.structured_explanation || finalData?.structured_explanation || null)
           setStreamFallback(Boolean(data?.fallback))
           setStreamStatus(STREAM_STATUS_LABELS.done)
 
@@ -490,6 +501,7 @@ const getDisplayText = (feature, impact) => {
           xai: finalData.xai || null,
           advice: finalData.advice_text || null,
           explanationText: finalData.explanation_text || streamedExplanation || null,
+          structuredExplanation: finalData.structured_explanation || null,
           timestamp: Date.now(),
         })
       )
@@ -504,6 +516,7 @@ const getDisplayText = (feature, impact) => {
         answers: sourceAnswers,
         advice: finalData.advice_text || null,
         explanationText: finalData.explanation_text || streamedExplanation || null,
+        structuredExplanation: finalData.structured_explanation || null,
       })
 
     } catch (error) {
@@ -694,18 +707,18 @@ const getDisplayText = (feature, impact) => {
                 </div>
               ))}
             </div>
-            {advice && <div className="results-advice">{advice}</div>}
             {(isSubmitting || explanationText || streamStatus) && (
-              <div className="results-explanation">
-                <div className="results-explanation-header">
-                  <span className={`results-live-dot ${isSubmitting ? 'active' : ''}`} />
-                  <span>{streamStatus || STREAM_STATUS_LABELS.done}</span>
-                  {streamFallback && <span className="results-fallback-pill">Fallback</span>}
-                </div>
-                <div className="results-explanation-text">
-                  {explanationText || 'Waiting for the local language model to begin...'}
-                </div>
-              </div>
+              <QuizExplanationResult
+                explanationText={explanationText}
+                structuredExplanation={structuredExplanation}
+                isStreaming={isSubmitting}
+                status={streamStatus}
+                fallback={streamFallback}
+                riskLabel={prediction ? pretty(prediction) : ''}
+                riskPercent={riskPercent}
+                riskTone={getRiskTone(riskPercent)}
+                deterministicAdvice={advice}
+              />
             )}
             {!isSubmitting && prediction && (
               <button className="quiz-finish-btn" onClick={handleClose}>

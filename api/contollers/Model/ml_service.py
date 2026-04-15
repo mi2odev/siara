@@ -25,6 +25,7 @@ from services.quiz_explainer import (
     build_template_explanation,
     explain_quiz_result,
     stream_quiz_explanation,
+    structure_quiz_explanation,
 )
 
 # Driver mentality model artifacts
@@ -1095,7 +1096,13 @@ def predict():
         print(f"[quiz-explainer] Unexpected fallback: {exc}")
         explanation_text = build_template_explanation(quiz_result_data)
 
-    return jsonify({**response_payload, "explanation_text": explanation_text})
+    return jsonify(
+        {
+            **response_payload,
+            "explanation_text": explanation_text,
+            "structured_explanation": structure_quiz_explanation(explanation_text),
+        }
+    )
 
 
 @app.route("/predict/stream", methods=["POST"])
@@ -1131,6 +1138,8 @@ def predict_stream():
                 final_payload = {
                     **response_payload,
                     "explanation_text": explanation_text,
+                    "structured_explanation": payload.get("structured_explanation")
+                    or structure_quiz_explanation(explanation_text),
                 }
                 payload["result"] = final_payload
                 payload["elapsed_ms"] = int((time.monotonic() - request_started_at) * 1000)
@@ -1168,6 +1177,7 @@ def quiz_explanation_test():
                 "risk_label": payload.get("overall_risk_label"),
                 "risk_score": payload.get("overall_risk_score"),
                 "explanation_text": explanation_text,
+                "structured_explanation": structure_quiz_explanation(explanation_text),
             },
         }
     )
