@@ -382,7 +382,7 @@ async function persistPrediction({
     });
 
     if (!resolvedRoadSegmentId) {
-      await client.query("ROLLBACK");
+      await client.query("ROLLBACK"); 
       logPersistence("skip", {
         context,
         reason: "missing_road_segment_id",
