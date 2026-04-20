@@ -7,6 +7,7 @@ import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import { getUserRoles } from '../../utils/roleUtils'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import { listReports } from '../../services/reportsService'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -55,16 +56,7 @@ function getSeverityLabel(severity) {
 }
 
 function getAuthorInitials(name) {
-  const normalized = String(name || 'Citizen').trim()
-  if (!normalized) {
-    return 'CT'
-  }
-
-  return normalized
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('')
+  return getInitialsFromName(name || 'Citizen', 'CT')
 }
 
 function formatRelativeTime(value) {
@@ -137,6 +129,18 @@ function getReportAuthorProfile(report) {
       ?? null,
     name: author?.name || report?.authorName || 'Citizen',
     email: author?.email || report?.createdByEmail || report?.created_by_email || '',
+    avatarUrl:
+      author?.avatarUrl
+      || author?.avatar_url
+      || report?.authorAvatarUrl
+      || report?.author_avatar_url
+      || '',
+    avatar_url:
+      author?.avatar_url
+      || author?.avatarUrl
+      || report?.author_avatar_url
+      || report?.authorAvatarUrl
+      || '',
     role: author?.role || report?.authorRole || 'citizen',
     roles: authorRoles,
     city: author?.city || author?.location || '',
@@ -179,6 +183,7 @@ function mergeReports(previousReports, nextReports) {
 function ReportCard({ report, navigate, onOpenAuthorProfile }) {
   const authorProfile = getReportAuthorProfile(report)
   const authorName = authorProfile.name
+  const authorAvatarUrl = getUserAvatarUrl(authorProfile)
   const authorRoleBadge = getAuthorRoleBadge(authorProfile)
   const severityClass = getSeverityClass(report?.severity)
   const severityLabel = getSeverityLabel(report?.severity)
@@ -195,10 +200,21 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
   const [zoomScale, setZoomScale] = useState(1)
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
+  const [hiddenMediaKeys, setHiddenMediaKeys] = useState(() => new Set())
   const dragRef = useRef(null)
   const activeMedia = selectedMediaIndex == null ? null : media[selectedMediaIndex]
   const handleOpenProfile = () => {
     onOpenAuthorProfile(authorProfile)
+  }
+
+  const handleAvatarImageError = (event) => {
+    const avatarButton = event.currentTarget.closest('.post-avatar')
+    if (!avatarButton) {
+      return
+    }
+
+    avatarButton.classList.remove('has-image')
+    event.currentTarget.remove()
   }
 
   useEffect(() => {
@@ -293,8 +309,11 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
     <article className={`card post-card ${report?.severity === 'high' ? 'severity-high-indicator' : ''}`}>
       <header className="post-header">
         <div className="post-header-left">
-          <button className="post-avatar post-avatar-btn" onClick={handleOpenProfile} aria-label={`Open ${authorName} profile`}>
-            {getAuthorInitials(authorName)}
+          <button className={`post-avatar post-avatar-btn ${authorAvatarUrl ? 'has-image' : ''}`} onClick={handleOpenProfile} aria-label={`Open ${authorName} profile`}>
+            {authorAvatarUrl ? (
+              <img src={authorAvatarUrl} alt={`${authorName} avatar`} className="post-avatar-image" loading="lazy" onError={handleAvatarImageError} />
+            ) : null}
+            <span className="post-avatar-fallback">{getAuthorInitials(authorName)}</span>
           </button>
           <div className="post-meta-block">
             <div className="post-author-row">
@@ -342,11 +361,16 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
             style={{ gridTemplateColumns: `repeat(${visibleMedia.length}, minmax(0, 1fr))` }}
           >
             {visibleMedia.map((mediaItem, index) => {
+              const mediaKey = mediaItem.id || `${report.id}-${index}`
+              if (hiddenMediaKeys.has(mediaKey)) {
+                return null
+              }
+
               const isLastVisibleItem = index === visibleMedia.length - 1
               const showOverlay = remainingMediaCount > 0 && isLastVisibleItem
 
               return (
-                <div className={`media-item ${showOverlay ? 'media-more' : ''}`} key={mediaItem.id || `${report.id}-${index}`}>
+                <div className={`media-item ${showOverlay ? 'media-more' : ''}`} key={mediaKey}>
                   <button
                     type="button"
                     className="post-media-open-btn"
@@ -361,6 +385,13 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
                       src={mediaItem.url}
                       alt={report?.title || 'Report media'}
                       loading="lazy"
+                      onError={() => {
+                        setHiddenMediaKeys((previous) => {
+                          const next = new Set(previous)
+                          next.add(mediaKey)
+                          return next
+                        })
+                      }}
                     />
                   </button>
                   {showOverlay && <span className="media-more-count">+{remainingMediaCount}</span>}
@@ -797,6 +828,7 @@ export default function NewsPage() {
       id: profile.id != null ? `account-${profile.id}` : `account-${profile.name}`,
       title: profile.name,
       subtitle: profile.email || 'Feed contributor',
+      avatarUrl: getUserAvatarUrl(profile) || profileAvatar,
       profile,
     }))
 
@@ -854,6 +886,8 @@ export default function NewsPage() {
   }, [filteredReports])
 
   const profileName = user?.name || 'Guest Driver'
+  const userAvatarUrl = getUserAvatarUrl(user)
+  const profileAvatarUrl = userAvatarUrl || profileAvatar
   const normalizedRoles = getUserRoles(user)
   const primaryRole = normalizedRoles.includes('admin')
     ? 'admin'
@@ -866,6 +900,31 @@ export default function NewsPage() {
     : primaryRole === 'police'
       ? 'role-police'
       : 'role-citoyen'
+
+  const handleHeaderAvatarImageError = (event) => {
+    const avatarButton = event.currentTarget.closest('.dash-avatar')
+    if (!avatarButton) {
+      return
+    }
+
+    avatarButton.classList.remove('has-image')
+    event.currentTarget.remove()
+  }
+
+  const handleQuickSearchAvatarImageError = (event) => {
+    if (event.currentTarget.src !== profileAvatar) {
+      event.currentTarget.src = profileAvatar
+      return
+    }
+
+    const avatarElement = event.currentTarget.closest('.news-user-search-avatar')
+    if (!avatarElement) {
+      return
+    }
+
+    avatarElement.classList.remove('has-image')
+    event.currentTarget.remove()
+  }
 
   const feedHeadline = useMemo(() => {
     if (isLoading) {
@@ -1013,7 +1072,12 @@ export default function NewsPage() {
                           }
                         }}
                       >
-                        <span className="news-user-search-avatar">{getAuthorInitials(item.title || 'R')}</span>
+                        <span className={`news-user-search-avatar ${item.avatarUrl ? 'has-image' : ''}`}>
+                          {item.avatarUrl ? (
+                            <img src={item.avatarUrl} alt={`${item.title} avatar`} className="news-user-search-avatar-image" loading="lazy" onError={handleQuickSearchAvatarImageError} />
+                          ) : null}
+                          <span className="news-user-search-avatar-fallback">{getAuthorInitials(item.title || 'R')}</span>
+                        </span>
                         <span className="news-user-search-labels">
                           <span className="news-user-search-name-row">
                             <span className="news-user-search-name">{item.title}</span>
@@ -1037,8 +1101,11 @@ export default function NewsPage() {
             </button>
             <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown((previous) => !previous)} aria-label="User profile">
-                {getAuthorInitials(profileName)}
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown((previous) => !previous)} aria-label="User profile">
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" onError={handleHeaderAvatarImageError} />
+                ) : null}
+                <span className="dash-avatar-fallback">{getAuthorInitials(profileName)}</span>
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
@@ -1058,7 +1125,11 @@ export default function NewsPage() {
         <aside className="sidebar-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatar} alt="Profile" className="profile-avatar-large" />
+              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" onError={(event) => {
+                if (event.currentTarget.src !== profileAvatar) {
+                  event.currentTarget.src = profileAvatar
+                }
+              }} />
               <span className="verified-badge">V</span>
             </div>
             <div className="profile-info">

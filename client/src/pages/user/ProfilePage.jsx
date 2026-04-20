@@ -26,6 +26,7 @@ import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getCurrentUser, getUserPrivacyVisibility, getUserSettings } from '../../services/authService'
 import { listReports } from '../../services/reportsService'
 import { fetchAlerts, fetchAlertsForUser } from '../../services/alertService'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/ProfilePage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -44,17 +45,6 @@ function formatJoinDate(value) {
   if (Number.isNaN(date.getTime())) return 'Recently'
 
   return date.toLocaleDateString([], { month: 'short', year: 'numeric' })
-}
-
-function getUserInitials(name) {
-  const normalized = String(name || 'User').trim()
-  if (!normalized) return 'U'
-
-  return normalized
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('')
 }
 
 function formatReportTime(value) {
@@ -181,7 +171,8 @@ export default function ProfilePage(){
     || authUser?.email
     || authUser?.phone
     || 'User'
-  const headerInitials = getUserInitials(headerDisplayName)
+  const headerAvatarUrl = getUserAvatarUrl(authUser)
+  const headerInitials = getInitialsFromName(headerDisplayName)
 
   useEffect(() => {
     setProfileUser(viewedUserFromFeed || null)
@@ -286,6 +277,7 @@ export default function ProfilePage(){
     || currentUser.email
     || currentUser.phone
     || 'SIARA User'
+  const profileAvatarUrl = getUserAvatarUrl(currentUser) || headerAvatarUrl || profileAvatar
   const bio = String(currentUser.bio || '').trim() || 'No bio added yet.'
   const locationLabel = currentUser.city
     || currentUser.location
@@ -629,7 +621,11 @@ export default function ProfilePage(){
             <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}><span className="notification-badge"></span></button>
             <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{headerInitials}</button>
+              <button className={`dash-avatar ${headerAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {headerAvatarUrl ? (
+                  <img src={headerAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                ) : headerInitials}
+              </button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
@@ -650,7 +646,7 @@ export default function ProfilePage(){
         <aside className="profile-sidebar-left">
           <div className="user-card">
             <div className="user-card-avatar">
-              <img src={profileAvatar} alt={displayName} />
+              <img src={profileAvatarUrl} alt={displayName} loading="lazy" />
             </div>
             <h2 className="user-card-name">{displayName}</h2>
             <p className="user-bio">{bio}</p>
@@ -693,7 +689,7 @@ export default function ProfilePage(){
             <div className="profile-cover"></div>
             <div className="profile-header-content">
               <div className="profile-avatar-large">
-                <img src={profileAvatar} alt={displayName} />
+                <img src={profileAvatarUrl} alt={displayName} loading="lazy" />
               </div>
               <div className="profile-info">
                 <h1 className="profile-name">{displayName}</h1>

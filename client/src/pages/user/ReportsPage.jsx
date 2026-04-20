@@ -6,6 +6,7 @@ import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import { deleteReport, listReports } from '../../services/reportsService'
 import '../../styles/NewsPage.css'
 import '../../styles/AlertsPage.css'
@@ -17,17 +18,6 @@ function toTitleCase(value) {
   const normalized = String(value || '').trim()
   if (!normalized) return 'Unknown'
   return normalized.charAt(0).toUpperCase() + normalized.slice(1)
-}
-
-function getUserInitials(name) {
-  const normalized = String(name || 'User').trim()
-  if (!normalized) return 'U'
-
-  return normalized
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('')
 }
 
 function formatReportTime(value) {
@@ -229,6 +219,9 @@ export default function ReportsPage() {
     : primaryRole === 'police'
       ? 'role-police'
       : 'role-citoyen'
+  const userAvatarUrl = getUserAvatarUrl(user)
+  const profileAvatarUrl = userAvatarUrl || profileAvatar
+  const profileInitials = getInitialsFromName(profileName)
 
   async function handleDelete(event, reportId) {
     event.stopPropagation()
@@ -277,8 +270,10 @@ export default function ReportsPage() {
             </button>
             <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
-                {getUserInitials(user?.name)}
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                ) : profileInitials}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
@@ -300,7 +295,7 @@ export default function ReportsPage() {
         <aside className="al-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatar} alt="Profile" className="profile-avatar-large" />
+              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
               <span className="verified-badge">✓</span>
             </div>
             <div className="profile-info">

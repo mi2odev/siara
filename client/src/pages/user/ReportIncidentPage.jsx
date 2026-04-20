@@ -26,13 +26,14 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { createReport, uploadReportMedia } from '../../services/reportsService'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/ReportIncidentPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
 const MAX_REPORT_MEDIA_FILES = 5
 const MAX_REPORT_MEDIA_FILE_SIZE_BYTES = 5 * 1024 * 1024
-const ALLOWED_REPORT_MEDIA_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const ALLOWED_REPORT_MEDIA_MIME_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/webp'])
 
 /* Fix default Leaflet marker icon paths (broken by bundlers) */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -69,6 +70,9 @@ export default function ReportIncidentPage() {
   const [submitError, setSubmitError] = useState('')        // Submission error banner
   const [submitWarning, setSubmitWarning] = useState('')    // Non-blocking warning after report creation
   const [mediaError, setMediaError] = useState('')          // Media validation banner
+  const [isUploadDragActive, setIsUploadDragActive] = useState(false)
+  const [isResolvingCurrentLocation, setIsResolvingCurrentLocation] = useState(false)
+  const [locationActionError, setLocationActionError] = useState('')
 
   /* ═══ FORM STATE ═══ */
   // All report fields consolidated in a single state object
@@ -111,6 +115,45 @@ export default function ReportIncidentPage() {
     { id: 'low', label: 'Low', color: '#10B981', desc: 'Minor, informational' }
   ]
 
+  const DEFAULT_MAP_CENTER = { lat: 28.0339, lng: 1.6596 }
+
+  const getLocationFallbackLabel = (lat, lng) => `Lat ${Number(lat).toFixed(5)}, Lng ${Number(lng).toFixed(5)}`
+
+  const reverseGeocodeCoordinates = async (lat, lng) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&zoom=18&addressdetails=1`,
+      )
+
+      if (!response.ok) {
+        return ''
+      }
+
+      const data = await response.json()
+      return String(data?.display_name || '').trim()
+    } catch {
+      return ''
+    }
+  }
+
+  const resolveCurrentPosition = () => {
+    if (!navigator?.geolocation) {
+      throw new Error('Geolocation is not supported in this browser.')
+    }
+
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        {
+          enableHighAccuracy: true,
+          timeout: 12000,
+          maximumAge: 60_000,
+        },
+      )
+    })
+  }
+
   const releaseMediaPreviews = (mediaItems) => {
     mediaItems.forEach((mediaItem) => {
       if (mediaItem?.preview) {
@@ -121,18 +164,55 @@ export default function ReportIncidentPage() {
 
   /* ═══ LOCATION HANDLERS ═══ */
   // Simulate getting current GPS location (hardcoded Algiers coordinates)
-  const getCurrentLocation = () => {
-    setReportData(prev => ({
-      ...prev,
-      locationType: 'gps',
-      locationCoords: { lat: 36.7538, lng: 3.0588 },
-      locationAddress: 'Rue Didouche Mourad, Alger Centre',
-      locationAccuracy: 'High-precision GPS'
-    }))
+  const getCurrentLocation = async () => {
+    if (isResolvingCurrentLocation) {
+      return
+    }
+
+    setLocationActionError('')
+    setIsResolvingCurrentLocation(true)
+
+    try {
+      const position = await resolveCurrentPosition()
+      const lat = Number(position?.coords?.latitude)
+      const lng = Number(position?.coords?.longitude)
+      const accuracyMeters = Number(position?.coords?.accuracy)
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        throw new Error('Unable to read your current coordinates.')
+      }
+
+      const resolvedAddress = await reverseGeocodeCoordinates(lat, lng)
+      const accuracyLabel = Number.isFinite(accuracyMeters)
+        ? `GPS accuracy ±${Math.max(1, Math.round(accuracyMeters))} m`
+        : 'High-precision GPS'
+
+      setReportData(prev => ({
+        ...prev,
+        locationType: 'gps',
+        locationCoords: { lat, lng },
+        locationAddress: resolvedAddress || getLocationFallbackLabel(lat, lng),
+        locationAccuracy: accuracyLabel,
+      }))
+    } catch (error) {
+      const code = error?.code
+      if (code === 1) {
+        setLocationActionError('Location permission was denied. Allow location access and try again.')
+      } else if (code === 2) {
+        setLocationActionError('Your location is unavailable right now. Try again in a few seconds.')
+      } else if (code === 3) {
+        setLocationActionError('Location request timed out. Please try again.')
+      } else {
+        setLocationActionError(error?.message || 'Unable to get your current location.')
+      }
+    } finally {
+      setIsResolvingCurrentLocation(false)
+    }
   }
 
   // Simulate address geocoding — accepts query after 3+ characters
   const searchAddress = (query) => {
+    setLocationActionError('')
     if (query.length > 3) {
       setReportData(prev => ({
         ...prev,
@@ -149,6 +229,7 @@ export default function ReportIncidentPage() {
    * @param {L.LatLng} latlng - The coordinates from the map click event.
    */
   const handleMapClick = (latlng) => {
+    setLocationActionError('')
     setReportData(prev => ({
       ...prev,
       locationType: 'map',
@@ -160,9 +241,8 @@ export default function ReportIncidentPage() {
   }
 
   /* ═══ MEDIA HANDLERS ═══ */
-  // Process file input: validate images and create object-URLs for previews
-  const handleMediaUpload = (e) => {
-    const files = Array.from(e.target.files || [])
+  const appendMediaFiles = (inputFiles = []) => {
+    const files = Array.from(inputFiles || [])
     const remainingSlots = Math.max(0, MAX_REPORT_MEDIA_FILES - reportData.media.length)
 
     setMediaError('')
@@ -173,7 +253,6 @@ export default function ReportIncidentPage() {
 
     if (remainingSlots === 0) {
       setMediaError('You can upload up to 5 images per report.')
-      e.target.value = ''
       return
     }
 
@@ -206,7 +285,6 @@ export default function ReportIncidentPage() {
 
     if (!acceptedMedia.length) {
       setMediaError(nextError || 'No valid images were selected.')
-      e.target.value = ''
       return
     }
 
@@ -218,8 +296,33 @@ export default function ReportIncidentPage() {
     if (nextError) {
       setMediaError(nextError)
     }
+  }
 
+  // Process file input: validate images and create object-URLs for previews
+  const handleMediaUpload = (e) => {
+    appendMediaFiles(e.target.files || [])
     e.target.value = ''
+  }
+
+  const handleUploadZoneDrop = (event) => {
+    event.preventDefault()
+    setIsUploadDragActive(false)
+    appendMediaFiles(event.dataTransfer?.files || [])
+  }
+
+  const handleUploadZoneDragOver = (event) => {
+    event.preventDefault()
+    if (!isUploadDragActive) {
+      setIsUploadDragActive(true)
+    }
+  }
+
+  const handleUploadZoneDragLeave = (event) => {
+    if (event.currentTarget.contains(event.relatedTarget)) {
+      return
+    }
+
+    setIsUploadDragActive(false)
   }
 
   // Remove a media item by index
@@ -320,6 +423,9 @@ export default function ReportIncidentPage() {
     return typeInfo ? `${typeInfo.label} reported` : 'New incident'
   }
 
+  const userAvatarUrl = getUserAvatarUrl(user)
+  const userInitials = getInitialsFromName(user?.name || user?.email || 'User')
+
   /* ═══ SUCCESS SCREEN (shown after submission) ═══ */
   // Success screen
   if (isSubmitted) {
@@ -357,7 +463,11 @@ export default function ReportIncidentPage() {
               </button>
               <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
               <div className="dash-avatar-wrapper">
-                <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
+                <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                  {userAvatarUrl ? (
+                    <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" />
+                  ) : userInitials}
+                </button>
                 {showDropdown && (
                   <div className="user-dropdown">
                     <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
@@ -476,7 +586,11 @@ export default function ReportIncidentPage() {
             </button>
             <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}</button>
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" />
+                ) : userInitials}
+              </button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
@@ -572,14 +686,19 @@ export default function ReportIncidentPage() {
                 <button 
                   className={`location-btn ${reportData.locationType === 'gps' ? 'selected' : ''}`}
                   onClick={getCurrentLocation}
+                  disabled={isResolvingCurrentLocation}
                 >
                   <span className="loc-icon">📍</span>
                   <div className="loc-info">
-                    <span className="loc-label">Use my current location</span>
-                    <span className="loc-desc">High-precision GPS</span>
+                    <span className="loc-label">{isResolvingCurrentLocation ? 'Detecting your location...' : 'Use my current location'}</span>
+                    <span className="loc-desc">{isResolvingCurrentLocation ? 'Please wait a moment' : 'High-precision GPS'}</span>
                   </div>
                   {reportData.locationType === 'gps' && <span className="loc-check">✓</span>}
                 </button>
+
+                {locationActionError && (
+                  <p className="input-error">{locationActionError}</p>
+                )}
 
                 <div className="location-search">
                   <label>Or search for an address</label>
@@ -757,10 +876,20 @@ export default function ReportIncidentPage() {
                     onChange={handleMediaUpload}
                     style={{ display: 'none' }}
                   />
-                  <label htmlFor="media-input" className="upload-zone">
+                  <label
+                    htmlFor="media-input"
+                    className={`upload-zone ${isUploadDragActive ? 'is-drag-active' : ''}`}
+                    onDrop={handleUploadZoneDrop}
+                    onDragOver={handleUploadZoneDragOver}
+                    onDragLeave={handleUploadZoneDragLeave}
+                  >
                     <span className="upload-icon">📷</span>
                     <span className="upload-title">Add photos</span>
-                    <span className="upload-desc">Click to select JPEG, PNG, or WebP images</span>
+                    <span className="upload-desc">
+                      {isUploadDragActive
+                        ? 'Drop your images here'
+                        : 'Click or drag JPEG, PNG, or WebP images'}
+                    </span>
                     <span className="upload-limit">Maximum 5 files • 5 MB each</span>
                   </label>
                 </div>
@@ -944,17 +1073,30 @@ export default function ReportIncidentPage() {
           <div className="preview-section">
             <span className="preview-label">Location</span>
             <div className="map-preview">
-              <div className="map-bg-mini">🗺️</div>
-              {reportData.locationCoords && (
-                <div className="marker-preview">
-                  <span className="marker-icon" style={{ background: severityLevels.find(s => s.id === reportData.severity)?.color }}>
-                    {getTypeInfo()?.icon || '📍'}
-                  </span>
-                </div>
-              )}
-              {!reportData.locationCoords && (
-                <p className="map-placeholder-text">Select a location</p>
-              )}
+              <MapContainer
+                key={reportData.locationCoords ? `mini-${reportData.locationCoords.lat}-${reportData.locationCoords.lng}` : 'mini-default'}
+                center={reportData.locationCoords
+                  ? [reportData.locationCoords.lat, reportData.locationCoords.lng]
+                  : [DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng]}
+                zoom={reportData.locationCoords ? 13 : 5}
+                style={{ width: '100%', height: '100%' }}
+                scrollWheelZoom={false}
+                dragging={false}
+                zoomControl={false}
+                doubleClickZoom={false}
+                touchZoom={false}
+                boxZoom={false}
+                keyboard={false}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                />
+                {reportData.locationCoords ? (
+                  <Marker position={[reportData.locationCoords.lat, reportData.locationCoords.lng]} />
+                ) : null}
+              </MapContainer>
+              {!reportData.locationCoords ? <p className="map-placeholder-text">Select a location</p> : null}
             </div>
           </div>
 

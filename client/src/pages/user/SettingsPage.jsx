@@ -1,10 +1,11 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
-import { changePassword, getUserSettings, updateUserSettings } from '../../services/authService'
+import { changePassword, getUserSettings, updateUserSettings, uploadUserAvatar } from '../../services/authService'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/DashboardPage.css'
 import '../../styles/SettingsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -19,6 +20,7 @@ const sections = [
 ]
 
 const DEFAULT_PROFILE = {
+  avatarUrl: '',
   name: '',
   bio: '',
   location: '',
@@ -69,6 +71,7 @@ export default function SettingsPage() {
 
   const [profileData, setProfileData] = useState({
     ...DEFAULT_PROFILE,
+    avatarUrl: getUserAvatarUrl(user) || '',
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
@@ -79,11 +82,14 @@ export default function SettingsPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [avatarUploadError, setAvatarUploadError] = useState('')
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   })
+  const avatarInputRef = useRef(null)
 
   useEffect(() => {
     setActiveSection(initialSection)
@@ -129,6 +135,7 @@ export default function SettingsPage() {
 
         if (settings?.profile) {
           setProfileData({
+            avatarUrl: settings.profile.avatarUrl || settings.profile.avatar_url || getUserAvatarUrl(user) || '',
             name: settings.profile.name || '',
             bio: settings.profile.bio || '',
             location: settings.profile.location || '',
@@ -188,6 +195,7 @@ export default function SettingsPage() {
       if (updated?.profile) {
         setProfileData((prev) => ({
           ...prev,
+          avatarUrl: updated.profile.avatarUrl || updated.profile.avatar_url || prev.avatarUrl || '',
           name: updated.profile.name || prev.name,
           bio: updated.profile.bio || '',
           location: updated.profile.location || '',
@@ -199,6 +207,8 @@ export default function SettingsPage() {
 
         setUser({
           ...user,
+          avatar_url: updated.profile.avatarUrl || updated.profile.avatar_url || user?.avatar_url || '',
+          avatarUrl: updated.profile.avatarUrl || updated.profile.avatar_url || user?.avatarUrl || '',
           name: updated.profile.name || user?.name,
           email: updated.profile.email || user?.email,
           phone: updated.profile.phone || user?.phone,
@@ -331,6 +341,53 @@ export default function SettingsPage() {
     }
   }
 
+  const handleAvatarFileChange = async (event) => {
+    const file = event.target.files?.[0] || null
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    setAvatarUploadError('')
+    setIsUploadingAvatar(true)
+
+    try {
+      const result = await uploadUserAvatar(file)
+      const avatarUrl = result.avatarUrl || result.avatar_url || ''
+
+      if (result.user) {
+        setUser(result.user)
+      } else if (avatarUrl && user) {
+        setUser({
+          ...user,
+          avatar_url: avatarUrl,
+          avatarUrl,
+        })
+      }
+
+      setProfileData((previous) => ({
+        ...previous,
+        avatarUrl: avatarUrl || previous.avatarUrl,
+      }))
+    } catch (error) {
+      setAvatarUploadError(
+        error?.response?.data?.message
+          || error?.message
+          || 'Unable to upload profile photo right now.',
+      )
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
+  const openAvatarPicker = () => {
+    avatarInputRef.current?.click()
+  }
+
+  const userAvatarUrl = getUserAvatarUrl(user) || getUserAvatarUrl({ avatarUrl: profileData.avatarUrl })
+  const profileInitials = getInitialsFromName(profileData.name || user?.name || user?.email || 'User')
+
   return (
     <div className="settings-root">
       <header className="siara-dashboard-header">
@@ -363,8 +420,10 @@ export default function SettingsPage() {
             <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}><span className="notification-badge"></span></button>
             <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
-                {profileData.name ? profileData.name.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                ) : profileInitials}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
@@ -417,12 +476,27 @@ export default function SettingsPage() {
               <div className="settings-row">
                 <span className="settings-label">Profile Photo</span>
                 <span className="settings-value">
-                  <span className="settings-avatar">
-                    {profileData.name ? profileData.name.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+                  <span className={`settings-avatar ${userAvatarUrl ? 'has-image' : ''}`}>
+                    {userAvatarUrl ? (
+                      <img src={userAvatarUrl} alt="Profile" className="settings-avatar-image" loading="lazy" />
+                    ) : profileInitials}
                   </span>
                 </span>
-                <button className="settings-action">Change</button>
+                <button className="settings-action" onClick={openAvatarPicker} disabled={isUploadingAvatar}>
+                  {isUploadingAvatar ? 'Uploading...' : 'Change'}
+                </button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/pjpeg,image/png,image/webp"
+                  onChange={handleAvatarFileChange}
+                  style={{ display: 'none' }}
+                />
               </div>
+
+              {avatarUploadError ? (
+                <p className="settings-muted" style={{ color: '#b91c1c' }}>{avatarUploadError}</p>
+              ) : null}
 
               {[
                 { key: 'name', label: 'Name' },

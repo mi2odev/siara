@@ -89,6 +89,10 @@ export async function getUserPrivacyVisibility(userId) {
     visibility: response.data?.visibility || 'public',
     isPrivate: Boolean(response.data?.isPrivate),
     canViewActivity: Boolean(response.data?.canViewActivity ?? true),
+    name: response.data?.name || '',
+    avatarUrl: response.data?.avatarUrl || response.data?.avatar_url || '',
+    avatar_url: response.data?.avatar_url || response.data?.avatarUrl || '',
+    bio: response.data?.bio || '',
     trustScore: Number.isFinite(Number(response.data?.trustScore))
       ? Number(response.data?.trustScore)
       : null,
@@ -105,6 +109,20 @@ export async function updateUserSettings(payload) {
     security: response.data?.security || null,
     notifications: response.data?.notifications || null,
     privacy: response.data?.privacy || null,
+  }
+}
+
+export async function uploadUserAvatar(file) {
+  const formData = new FormData()
+  formData.append('avatar', file)
+
+  const response = await userRequest.post('/auth/settings/avatar', formData)
+  return {
+    ok: Boolean(response.data?.ok),
+    avatarUrl: response.data?.avatarUrl || response.data?.avatar_url || '',
+    avatar_url: response.data?.avatar_url || response.data?.avatarUrl || '',
+    user: response.data?.user || null,
+    storageProvider: response.data?.storageProvider || null,
   }
 }
 

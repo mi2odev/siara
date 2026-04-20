@@ -7,6 +7,7 @@ import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { createAlert, fetchCommunes, fetchWilayas, updateAlert } from '../../services/alertService'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/CreateAlertPage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -130,6 +131,8 @@ export default function CreateAlertPage() {
         : alertData.zoneType === 'commune'
           ? [selectedCommune?.name, selectedWilaya?.name].filter(Boolean).join(', ') || 'Selected commune'
           : 'Zone'
+  const userAvatarUrl = getUserAvatarUrl(user)
+  const profileInitials = getInitialsFromName(user?.name || user?.email || 'User')
 
   useEffect(() => {
     let ignore = false
@@ -271,8 +274,10 @@ export default function CreateAlertPage() {
             </button>
             <button className="dash-icon-btn" aria-label="Messages">{renderHeaderIcon('message')}</button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
-                {user?.name ? user.name.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                ) : profileInitials}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">

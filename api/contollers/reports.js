@@ -22,7 +22,13 @@ const ALLOWED_INCIDENT_TYPES = new Set([
   "other",
 ]);
 const ALLOWED_STATUSES = new Set(["pending", "verified", "rejected", "resolved"]);
-const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const ALLOWED_IMAGE_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/pjpeg",
+  "image/png",
+  "image/webp",
+]);
 const ALLOWED_FEED_TYPES = new Set(["latest", "nearby", "verified", "following"]);
 const ALLOWED_SORT_TYPES = new Set(["recent", "severity"]);
 const MAX_REPORT_MEDIA_FILES = 5;
@@ -44,6 +50,9 @@ const HINT_TO_SEVERITY = Object.freeze({
 });
 const NOTIFICATION_DEBUG_ENABLED =
   process.env.NODE_ENV !== "production" || process.env.NOTIFICATION_DEBUG === "true";
+const API_PUBLIC_ORIGIN = String(process.env.API_PUBLIC_ORIGIN || process.env.SERVER_PUBLIC_ORIGIN || "")
+  .trim()
+  .replace(/\/+$/, "");
 
 const REPORT_SELECT_SQL = `
   select
@@ -71,6 +80,7 @@ const REPORT_SELECT_SQL = `
     concat_ws(' ', u.first_name, u.last_name) as reporter_name,
     u.first_name as reporter_first_name,
     u.last_name as reporter_last_name,
+    u.avatar_url as reporter_avatar_url,
     coalesce(
       (
         select array_agg(distinct r.name)
@@ -324,12 +334,93 @@ function mapMediaRow(row) {
     return null;
   }
 
+  const normalizedUrl = normalizeReportMediaUrl(row.url);
+
   return {
     id: row.id,
     mediaType: row.media_type,
-    url: row.url,
+    url: normalizedUrl,
     uploadedAt: row.uploaded_at,
   };
+}
+
+function tryParseJson(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed || (trimmed[0] !== "{" && trimmed[0] !== "[" && trimmed[0] !== '"')) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(trimmed);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function extractReportMediaUrlCandidate(value) {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return "";
+    }
+
+    const parsed = tryParseJson(trimmed);
+    if (parsed != null) {
+      return extractReportMediaUrlCandidate(parsed);
+    }
+
+    return trimmed;
+  }
+
+  if (typeof value === "object") {
+    const candidate =
+      value.url
+      || value.secure_url
+      || value.secureUrl
+      || value.media_url
+      || value.mediaUrl
+      || value.path
+      || "";
+
+    return extractReportMediaUrlCandidate(candidate);
+  }
+
+  return "";
+}
+
+function normalizeReportMediaUrl(value) {
+  const candidate = extractReportMediaUrlCandidate(value);
+  if (!candidate) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(candidate) || /^data:/i.test(candidate) || /^blob:/i.test(candidate)) {
+    return candidate;
+  }
+
+  if (candidate.startsWith("//")) {
+    return `https:${candidate}`;
+  }
+
+  const normalizedPath = candidate.replace(/\\/g, "/");
+
+  if (normalizedPath.startsWith("/uploads/")) {
+    return API_PUBLIC_ORIGIN ? `${API_PUBLIC_ORIGIN}${normalizedPath}` : normalizedPath;
+  }
+
+  if (normalizedPath.startsWith("uploads/")) {
+    return API_PUBLIC_ORIGIN ? `${API_PUBLIC_ORIGIN}/${normalizedPath}` : `/${normalizedPath}`;
+  }
+
+  return normalizedPath;
 }
 
 function normalizeMlPercent(value, digits = 2) {
@@ -400,6 +491,8 @@ function mapReportRow(row) {
             row.reporter_name ||
             [row.reporter_first_name, row.reporter_last_name].filter(Boolean).join(" ") ||
             null,
+          avatar_url: row.reporter_avatar_url || "",
+          avatarUrl: row.reporter_avatar_url || "",
           roles: Array.isArray(row.reporter_roles) ? row.reporter_roles : [],
         }
       : null,
@@ -661,13 +754,27 @@ async function cleanupUploadedAssets(uploadedAssets) {
   }
 }
 
-async function deleteRemoteMediaIfNeeded(mediaRows) {
+async function deleteRemoteMediaIfNeeded(mediaRows, { strict = true, context = "report_media_delete" } = {}) {
   for (const mediaRow of mediaRows) {
     if (!mediaRow.storage_key) {
       continue;
     }
 
-    await deleteCloudinaryAsset(mediaRow.storage_key);
+    try {
+      await deleteCloudinaryAsset(mediaRow.storage_key);
+    } catch (error) {
+      if (strict) {
+        throw error;
+      }
+
+      console.error("Failed to delete media asset for report", {
+        context,
+        mediaId: mediaRow.id,
+        reportId: mediaRow.report_id,
+        storageKey: mediaRow.storage_key,
+        message: error.message,
+      });
+    }
   }
 }
 
@@ -933,6 +1040,7 @@ router.post("/:id/media", verifyToken, async (req, res, next) => {
         const uploadedAsset = await uploadBufferToCloudinary(file.buffer, {
           reportId,
           originalFilename: file.originalname,
+          mimeType: file.mimetype,
         });
         uploadedAssets.push(uploadedAsset);
       }
@@ -1114,7 +1222,10 @@ router.delete("/:id", verifyToken, async (req, res, next) => {
     ensureCanManageReport(existingRow, req.user);
 
     const mediaRows = await fetchReportMediaRows(reportId, client);
-    await deleteRemoteMediaIfNeeded(mediaRows);
+    await deleteRemoteMediaIfNeeded(mediaRows, {
+      strict: false,
+      context: "report_delete",
+    });
 
     await client.query(`delete from app.accident_reports where id = $1`, [reportId]);
     await client.query("commit");

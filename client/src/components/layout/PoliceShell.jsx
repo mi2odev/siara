@@ -5,23 +5,13 @@ import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from './PoliceModeTab'
 import GlobalHeaderSearch from '../search/GlobalHeaderSearch'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import 'leaflet/dist/leaflet.css'
 import '../../styles/DashboardPage.css'
 import '../../styles/PoliceMode.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function getUserInitials(name) {
-  const normalized = String(name || 'Officer').trim()
-  if (!normalized) return 'O'
-
-  return normalized
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('')
-}
 
 export default function PoliceShell({
   activeKey,
@@ -83,7 +73,8 @@ export default function PoliceShell({
     [menuGroups],
   )
 
-  const profileInitials = getUserInitials(user?.name)
+  const userAvatarUrl = getUserAvatarUrl(user)
+  const profileInitials = getInitialsFromName(user?.name || user?.email || 'Officer', 'O')
 
   const navigateFromMenu = (item) => {
     setShowDropdown(false)
@@ -205,7 +196,11 @@ export default function PoliceShell({
               {notificationCount > 0 ? <span className="notification-badge"></span> : null}
             </button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{profileInitials}</button>
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                ) : profileInitials}
+              </button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>

@@ -2454,6 +2454,7 @@ const SiaraMap = ({
                     <ReportMapMarker
                       key={`report-${marker.id}`}
                       report={marker}
+                      tooltipPane="risk-layer"
                       onClick={() => handleFeatureClick(marker)}
                     />
                   );

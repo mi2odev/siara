@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { listReports } from '../../services/reportsService'
+import { getUserAvatarUrl } from '../../utils/avatarUtils'
+import profileAvatar from '../../assets/logos/siara-logo1.png'
 import '../../styles/GlobalHeaderSearch.css'
 
 function getInitials(name) {
@@ -27,6 +29,7 @@ function getReportAuthorProfile(report) {
       ?? null,
     name: author?.name || report?.authorName || 'Citizen',
     email: author?.email || report?.createdByEmail || report?.created_by_email || '',
+    avatarUrl: getUserAvatarUrl(author),
   }
 }
 
@@ -138,6 +141,7 @@ export default function GlobalHeaderSearch({
       id: profile.id != null ? `account-${profile.id}` : `account-${profile.name}`,
       title: profile.name,
       subtitle: profile.email || 'Feed contributor',
+      avatarUrl: getUserAvatarUrl(profile) || profileAvatar,
       payload: profile,
     }))
 
@@ -146,6 +150,7 @@ export default function GlobalHeaderSearch({
       id: `report-${report.id}`,
       title: report?.title || 'Reported incident',
       subtitle: report?.locationLabel || report?.incidentType || 'Incident report',
+      avatarUrl: '',
       payload: report,
     }))
 
@@ -250,7 +255,31 @@ export default function GlobalHeaderSearch({
                   }
                 }}
               >
-                <span className="global-header-search-avatar">{getInitials(item.title)}</span>
+                <span className={`global-header-search-avatar ${item.avatarUrl ? 'has-image' : ''}`}>
+                  {item.avatarUrl ? (
+                    <img
+                      src={item.avatarUrl}
+                      alt={`${item.title} avatar`}
+                      className="global-header-search-avatar-image"
+                      loading="lazy"
+                      onError={(event) => {
+                        if (event.currentTarget.src !== profileAvatar) {
+                          event.currentTarget.src = profileAvatar
+                          return
+                        }
+
+                        const avatarElement = event.currentTarget.closest('.global-header-search-avatar')
+                        if (!avatarElement) {
+                          return
+                        }
+
+                        avatarElement.classList.remove('has-image')
+                        event.currentTarget.remove()
+                      }}
+                    />
+                  ) : null}
+                  <span className="global-header-search-avatar-fallback">{getInitials(item.title)}</span>
+                </span>
                 <span className="global-header-search-labels">
                   <span className="global-header-search-name-row">
                     <span className="global-header-search-name">{item.title}</span>

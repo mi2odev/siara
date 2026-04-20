@@ -7,6 +7,32 @@ import {
   logout as logoutRequest,
   registerAccount,
 } from '../services/authService'
+import { API_ORIGIN } from '../requestMethodes'
+
+function normalizeAvatarUrl(value) {
+  const normalized = String(value || '').trim()
+  if (!normalized) {
+    return ''
+  }
+
+  if (/^https?:\/\//i.test(normalized) || /^data:/i.test(normalized) || /^blob:/i.test(normalized)) {
+    return normalized
+  }
+
+  if (normalized.startsWith('//')) {
+    return `https:${normalized}`
+  }
+
+  const normalizedPath = normalized.replace(/\\/g, '/')
+  if (normalizedPath.startsWith('/uploads/')) {
+    return `${API_ORIGIN}${normalizedPath}`
+  }
+  if (normalizedPath.startsWith('uploads/')) {
+    return `${API_ORIGIN}/${normalizedPath}`
+  }
+
+  return normalizedPath
+}
 
 function normalizeAuthUser(rawUser) {
   if (!rawUser || typeof rawUser !== 'object') {
@@ -24,12 +50,21 @@ function normalizeAuthUser(rawUser) {
     || rawUser.email
     || rawUser.phone
     || 'User'
+  const avatarUrl = normalizeAvatarUrl(
+    rawUser.avatarUrl
+    || rawUser.avatar_url
+    || rawUser.avatar
+    || rawUser.photoUrl
+    || rawUser.photo_url,
+  )
 
   return {
     ...rawUser,
     roles,
     role,
     name,
+    avatarUrl,
+    avatar_url: avatarUrl,
   }
 }
 

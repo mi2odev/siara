@@ -1,4 +1,4 @@
-import { publicRequest, userRequest } from '../requestMethodes'
+import { API_ORIGIN, publicRequest, userRequest } from '../requestMethodes'
 
 function normalizeApiError(error, fallbackMessage) {
   return new Error(
@@ -7,6 +7,165 @@ function normalizeApiError(error, fallbackMessage) {
       || error?.message
       || fallbackMessage,
   )
+}
+
+function tryParseJson(value) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed || (trimmed[0] !== '{' && trimmed[0] !== '[' && trimmed[0] !== '"')) {
+    return null
+  }
+
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    return null
+  }
+}
+
+export function extractMediaUrlCandidate(value) {
+  if (!value) {
+    return ''
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return ''
+    }
+
+    const parsed = tryParseJson(trimmed)
+    if (parsed != null) {
+      return extractMediaUrlCandidate(parsed)
+    }
+
+    return trimmed
+  }
+
+  if (typeof value === 'object') {
+    const candidate =
+      value.url
+      || value.secure_url
+      || value.secureUrl
+      || value.media_url
+      || value.mediaUrl
+      || value.path
+      || ''
+
+    return extractMediaUrlCandidate(candidate)
+  }
+
+  return ''
+}
+
+export function normalizeReportMediaUrl(value) {
+  const candidate = extractMediaUrlCandidate(value)
+  if (!candidate) {
+    return ''
+  }
+
+  if (/^https?:\/\//i.test(candidate) || /^data:/i.test(candidate) || /^blob:/i.test(candidate)) {
+    return candidate
+  }
+
+  if (candidate.startsWith('//')) {
+    return `https:${candidate}`
+  }
+
+  const normalizedPath = candidate.replace(/\\/g, '/')
+
+  if (normalizedPath.startsWith('local:')) {
+    const relativePath = normalizedPath.slice('local:'.length).replace(/^\/+/, '')
+    return `${API_ORIGIN}/uploads/${relativePath}`
+  }
+
+  if (normalizedPath.startsWith('/api/uploads/')) {
+    return `${API_ORIGIN}${normalizedPath.slice('/api'.length)}`
+  }
+
+  if (normalizedPath.startsWith('api/uploads/')) {
+    return `${API_ORIGIN}/${normalizedPath.slice('api/'.length)}`
+  }
+
+  const uploadsIndex = normalizedPath.toLowerCase().indexOf('/uploads/')
+  if (uploadsIndex >= 0) {
+    return `${API_ORIGIN}${normalizedPath.slice(uploadsIndex)}`
+  }
+
+  if (normalizedPath.startsWith('/uploads/')) {
+    return `${API_ORIGIN}${normalizedPath}`
+  }
+
+  if (normalizedPath.startsWith('uploads/')) {
+    return `${API_ORIGIN}/${normalizedPath}`
+  }
+
+  return normalizedPath
+}
+
+function normalizeMediaItem(mediaItem) {
+  if (!mediaItem) {
+    return null
+  }
+
+  if (typeof mediaItem === 'string') {
+    const url = normalizeReportMediaUrl(mediaItem)
+    return url ? { mediaType: 'image', url } : null
+  }
+
+  const url = normalizeReportMediaUrl(mediaItem)
+  if (!url) {
+    return null
+  }
+
+  return {
+    ...mediaItem,
+    url,
+    mediaUrl: url,
+    secureUrl: mediaItem.secureUrl || mediaItem.secure_url || url,
+  }
+}
+
+function normalizeReportedBy(reportedBy) {
+  if (!reportedBy || typeof reportedBy !== 'object') {
+    return null
+  }
+
+  const avatarUrl = normalizeReportMediaUrl(
+    reportedBy.avatarUrl
+      || reportedBy.avatar_url
+      || reportedBy.avatar
+      || reportedBy.photoUrl
+      || reportedBy.photo_url,
+  )
+
+  return {
+    ...reportedBy,
+    avatarUrl,
+    avatar_url: avatarUrl,
+  }
+}
+
+function normalizeReport(report) {
+  if (!report || typeof report !== 'object') {
+    return null
+  }
+
+  const media = Array.isArray(report.media)
+    ? report.media.map(normalizeMediaItem).filter(Boolean)
+    : []
+
+  const reportedBy = normalizeReportedBy(report.reportedBy || report.reported_by)
+
+  return {
+    ...report,
+    media,
+    reportedBy,
+    reported_by: reportedBy,
+  }
 }
 
 function buildReportPayload(data) {
@@ -28,7 +187,7 @@ function buildReportPayload(data) {
 export async function createReport(data) {
   try {
     const response = await userRequest.post('/reports', buildReportPayload(data))
-    return response.data?.report
+    return normalizeReport(response.data?.report)
   } catch (error) {
     throw normalizeApiError(error, 'Failed to create report')
   }
@@ -37,7 +196,7 @@ export async function createReport(data) {
 export async function getReport(reportId) {
   try {
     const response = await publicRequest.get(`/reports/${reportId}`)
-    return response.data?.report
+    return normalizeReport(response.data?.report)
   } catch (error) {
     throw normalizeApiError(error, 'Failed to load report')
   }
@@ -46,7 +205,7 @@ export async function getReport(reportId) {
 export async function updateReport(reportId, data) {
   try {
     const response = await userRequest.put(`/reports/${reportId}`, buildReportPayload(data))
-    return response.data?.report
+    return normalizeReport(response.data?.report)
   } catch (error) {
     throw normalizeApiError(error, 'Failed to update report')
   }
@@ -70,7 +229,7 @@ export async function uploadReportMedia(reportId, files) {
     })
 
     const response = await userRequest.post(`/reports/${reportId}/media`, formData)
-    return response.data?.report
+    return normalizeReport(response.data?.report)
   } catch (error) {
     throw normalizeApiError(error, 'Failed to upload report images')
   }
@@ -90,8 +249,12 @@ export async function listReports(params = {}) {
       },
     })
 
+    const normalizedReports = Array.isArray(response.data?.reports)
+      ? response.data.reports.map(normalizeReport).filter(Boolean)
+      : []
+
     return {
-      reports: response.data?.reports || [],
+      reports: normalizedReports,
       pagination: response.data?.pagination || {
         limit: params.limit || 10,
         offset: params.offset || 0,

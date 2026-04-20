@@ -47,6 +47,7 @@ app.use(cors({ origin: allowedOrigin, credentials: true }));
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminIncidentRoutes);

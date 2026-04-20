@@ -46,6 +46,31 @@
   flex-shrink: 0;
 }
 
+.global-header-search-avatar.has-image {
+  overflow: hidden;
+  background: #e2e8f0;
+  color: transparent;
+}
+
+.global-header-search-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.global-header-search-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.global-header-search-avatar.has-image .global-header-search-avatar-fallback {
+  display: none;
+}
+
 .global-header-search-labels {
   min-width: 0;
   display: flex;

@@ -8,6 +8,7 @@ import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/DashboardPage.css'
 import '../../styles/NotificationsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -97,12 +98,6 @@ function getNotificationTarget(notification) {
   return notification.data?.reportUrl || notification.data?.mapUrl || '/notifications'
 }
 
-function getUserInitial(name) {
-  const normalized = String(name || '').trim()
-  if (!normalized) return 'U'
-  return normalized.charAt(0).toUpperCase()
-}
-
 export default function NotificationsPage() {
   const navigate = useNavigate()
   const { isAuthenticated, logout, user } = useContext(AuthContext)
@@ -128,6 +123,9 @@ export default function NotificationsPage() {
       ? 'police'
       : normalizedRoles[0] || 'citizen'
   const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1)
+  const userAvatarUrl = getUserAvatarUrl(user)
+  const profileAvatarUrl = userAvatarUrl || profileAvatar
+  const profileInitials = getInitialsFromName(displayName)
 
   useEffect(() => {
     if (!isAuthenticated || hasLoaded) {
@@ -304,8 +302,10 @@ export default function NotificationsPage() {
           <div className="dash-header-right">
             <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown((current) => !current)}>
-                {getUserInitial(user?.name || user?.email)}
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown((current) => !current)}>
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                ) : profileInitials}
               </button>
               {showDropdown ? (
                 <div className="user-dropdown">
@@ -325,7 +325,7 @@ export default function NotificationsPage() {
         <aside className="notif-left">
           <div className="notif-profile-card">
             <div className="notif-profile-avatar-wrap">
-              <img src={profileAvatar} alt={displayName} className="notif-profile-avatar" />
+              <img src={profileAvatarUrl} alt={displayName} className="notif-profile-avatar" loading="lazy" />
               <span className="notif-profile-badge">✓</span>
             </div>
             <h3 className="notif-profile-name">{displayName}</h3>

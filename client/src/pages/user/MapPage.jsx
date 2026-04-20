@@ -15,6 +15,7 @@ import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 
 /* ── Styles ── */
 import "../../styles/NewsPage.css";
@@ -1345,14 +1346,9 @@ export default function MapPage() {
     : primaryRole === 'police'
       ? 'role-police'
       : 'role-citoyen'
-  const profileInitials = profileName
-    ? profileName
-      .split(" ")
-      .map((word) => word[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
-    : "U";
+  const userAvatarUrl = getUserAvatarUrl(user)
+  const profileAvatarUrl = userAvatarUrl || profileAvatar
+  const profileInitials = getInitialsFromName(profileName)
 
   /* ══════════════════════════ RENDER ══════════════════════════ */
 
@@ -1408,11 +1404,13 @@ export default function MapPage() {
             {/* Avatar with dropdown menu */}
             <div className="dash-avatar-wrapper">
               <button
-                className="dash-avatar"
+                className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`}
                 onClick={() => setShowDropdown(!showDropdown)}
                 aria-label="User profile"
               >
-                {profileInitials}
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                ) : profileInitials}
               </button>
 
               {showDropdown && (
@@ -1447,7 +1445,7 @@ export default function MapPage() {
           {/* ── Profile card ── */}
           <div className="card profile-summary map-profile-summary">
             <div className="profile-avatar-container map-profile-avatar-container">
-              <img src={profileAvatar} alt="Profile" className="profile-avatar-large map-profile-avatar-large" />
+              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large map-profile-avatar-large" loading="lazy" />
               <span className="verified-badge map-profile-verified-badge">V</span>
             </div>
             <div className="profile-info map-profile-info">

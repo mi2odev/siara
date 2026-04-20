@@ -8,6 +8,7 @@ import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import { deleteReport, getReport, updateReport } from '../../services/reportsService'
 import '../../styles/IncidentDetailPage.css'
 import '../../styles/NewsPage.css'
@@ -443,6 +444,9 @@ export default function IncidentDetailPage() {
       ? 'role-police'
       : 'role-citoyen'
   const profileName = user?.name || user?.email || incident.reporterName || 'SIARA User'
+  const userAvatarUrl = getUserAvatarUrl(user)
+  const userInitials = getInitialsFromName(profileName)
+  const profileAvatarUrl = userAvatarUrl || profileAvatar
   const leftStats = {
     all: 1,
     pending: incident.status === 'pending' ? 1 : 0,
@@ -621,8 +625,10 @@ export default function IncidentDetailPage() {
             </button>
             <button className="dash-icon-btn" aria-label="Messages">{renderHeaderIcon('message')}</button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
-                {user?.name ? user.name.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                ) : userInitials}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
@@ -642,7 +648,7 @@ export default function IncidentDetailPage() {
         <aside className="incident-sidebar-left al-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatar} alt="Profile" className="profile-avatar-large" />
+              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
               <span className="verified-badge">✓</span>
             </div>
             <div className="profile-info">

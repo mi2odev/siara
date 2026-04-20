@@ -5,6 +5,7 @@ import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/NewsPage.css'
 import '../../styles/DashboardPage.css'
 import '../../styles/UserDashboardPage.css'
@@ -175,6 +176,9 @@ export default function UserDashboardPage() {
     : primaryRole === 'police'
       ? 'role-police'
       : 'role-citoyen'
+  const userAvatarUrl = getUserAvatarUrl(user)
+  const profileAvatarUrl = userAvatarUrl || profileAvatar
+  const profileInitials = getInitialsFromName(profileName)
   const updatedAt = dashboard.currentRiskOverview?.updatedAt ? new Date(dashboard.currentRiskOverview.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Unavailable'
   const forecastPoints = Array.isArray(dashboard.riskForecast48h?.points) ? dashboard.riskForecast48h.points : []
   const hourlyDist = dashboard.incidentDistribution24h.map((item) => ({ ...item, count: Number(item.incidents || 0) }))
@@ -236,7 +240,11 @@ export default function UserDashboardPage() {
             <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}></button>
             <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{profileName.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2)}</button>
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                ) : profileInitials}
+              </button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => navigate('/profile')}>My Profile</button>
@@ -255,7 +263,7 @@ export default function UserDashboardPage() {
         <aside className="sidebar-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatar} alt="Profile" className="profile-avatar-large" />
+              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
               <span className="verified-badge">✓</span>
             </div>
             <div className="profile-info">

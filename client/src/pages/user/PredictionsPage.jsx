@@ -22,6 +22,7 @@ import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
+import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/NewsPage.css'
 import '../../styles/DashboardPage.css'
 import '../../styles/PredictionsPage.css'
@@ -101,14 +102,9 @@ export default function PredictionsPage() {
     : primaryRole === 'police'
       ? 'role-police'
       : 'role-citoyen'
-  const profileInitials = profileName
-    ? profileName
-      .split(' ')
-      .map((word) => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-    : 'U'
+  const userAvatarUrl = getUserAvatarUrl(user)
+  const profileAvatarUrl = userAvatarUrl || profileAvatar
+  const profileInitials = getInitialsFromName(profileName)
 
   /* ═══ RENDER ═══ */
   return (
@@ -147,7 +143,11 @@ export default function PredictionsPage() {
             <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}><span className="notification-badge"></span></button>
             <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
-              <button className="dash-avatar" onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">{profileInitials}</button>
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                ) : profileInitials}
+              </button>
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
@@ -170,7 +170,7 @@ export default function PredictionsPage() {
           {/* Profile Summary */}
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatar} alt="Profile" className="profile-avatar-large" />
+              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
               <span className="verified-badge">V</span>
             </div>
             <div className="profile-info">

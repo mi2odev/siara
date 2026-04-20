@@ -202,7 +202,7 @@ function ReportHoverCard({ report }) {
   )
 }
 
-function ReportMapMarker({ report, onClick }) {
+function ReportMapMarker({ report, onClick, tooltipPane }) {
   const position = useMemo(() => getReportMarkerPosition(report), [report])
   const icon = useMemo(() => {
     if (!position) {
@@ -236,6 +236,7 @@ function ReportMapMarker({ report, onClick }) {
         offset={[0, -20]}
         sticky
         opacity={1}
+        pane={tooltipPane || undefined}
         className="siara-report-tooltip"
       >
         <ReportHoverCard report={report} />
