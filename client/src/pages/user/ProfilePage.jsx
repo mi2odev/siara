@@ -21,12 +21,13 @@ import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
-import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
+import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getCurrentUser, getUserPrivacyVisibility, getUserSettings } from '../../services/authService'
 import { listReports } from '../../services/reportsService'
 import { fetchAlerts, fetchAlertsForUser } from '../../services/alertService'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
+import '../../styles/NewsPage.css'
 import '../../styles/ProfilePage.css'
 import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -161,6 +162,7 @@ export default function ProfilePage(){
   const [profileVisibility, setProfileVisibility] = useState('public')
   const [activeTab, setActiveTab] = useState('alerts')       // Currently selected activity tab
   const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
+  const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false)
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const tabsRef = useRef(null)                              // Ref to the tab-list container for scroll/focus
   const viewedUserFromFeed = location.state?.profileUser || null
@@ -173,6 +175,30 @@ export default function ProfilePage(){
     || 'User'
   const headerAvatarUrl = getUserAvatarUrl(authUser)
   const headerInitials = getInitialsFromName(headerDisplayName)
+  const openAvatarPreview = () => setIsAvatarPreviewOpen(true)
+  const closeAvatarPreview = () => setIsAvatarPreviewOpen(false)
+
+  useEffect(() => {
+    if (!isAvatarPreviewOpen) {
+      return undefined
+    }
+
+    const previousBodyOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeAvatarPreview()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isAvatarPreviewOpen])
 
   useEffect(() => {
     setProfileUser(viewedUserFromFeed || null)
@@ -207,6 +233,10 @@ export default function ProfilePage(){
             const next = previous || viewedUserFromFeed || {}
             return {
               ...next,
+              name: privacy.name || next.name || '',
+              avatarUrl: privacy.avatarUrl || privacy.avatar_url || next.avatarUrl || next.avatar_url || '',
+              avatar_url: privacy.avatar_url || privacy.avatarUrl || next.avatar_url || next.avatarUrl || '',
+              bio: privacy.bio || next.bio || '',
               trustScore: privacy.trustScore ?? next.trustScore ?? next.trust_score ?? null,
               trustSignals: privacy.trustSignals || next.trustSignals || null,
               trustScoreGeneratedAt: privacy.trustScoreGeneratedAt || next.trustScoreGeneratedAt || null,
@@ -645,9 +675,14 @@ export default function ProfilePage(){
         {/* ═══ LEFT COLUMN — User Card + Completion + Nav ═══ */}
         <aside className="profile-sidebar-left">
           <div className="user-card">
-            <div className="user-card-avatar">
+            <button
+              type="button"
+              className="user-card-avatar profile-avatar-trigger"
+              onClick={openAvatarPreview}
+              aria-label={`Open ${displayName} profile photo`}
+            >
               <img src={profileAvatarUrl} alt={displayName} loading="lazy" />
-            </div>
+            </button>
             <h2 className="user-card-name">{displayName}</h2>
             <p className="user-bio">{bio}</p>
             {isViewingOwnProfile && (
@@ -660,26 +695,7 @@ export default function ProfilePage(){
             )}
           </div>
 
-          <nav className="profile-nav">
-            <button className="profile-nav-item active" onClick={() => navigate('/profile')}>
-              <span className="nav-icon">👤</span>
-              <span className="nav-label">My Profile</span>
-            </button>
-            <button className="profile-nav-item" onClick={() => navigate('/reports')}>
-              <span className="nav-icon">📝</span>
-              <span className="nav-label">My Reports</span>
-            </button>
-            <button className="profile-nav-item" onClick={() => navigate('/settings', { state: { openSection: 'account' } })}>
-              <span className="nav-icon">⚙️</span>
-              <span className="nav-label">Account Settings</span>
-            </button>
-            <button className="profile-nav-item" onClick={() => navigate('/settings', { state: { openSection: 'privacy' } })}>
-              <span className="nav-icon">🔒</span>
-              <span className="nav-label">Privacy & Security</span>
-            </button>
-          </nav>
-
-          <LeftQuickInfoLinks />
+          <FeedSidebarNav activeKey="profile" />
         </aside>
 
         {/* ═══ MIDDLE COLUMN — Profile Overview + Activities ═══ */}
@@ -688,9 +704,14 @@ export default function ProfilePage(){
           <section className="profile-overview">
             <div className="profile-cover"></div>
             <div className="profile-header-content">
-              <div className="profile-avatar-large">
+              <button
+                type="button"
+                className="profile-avatar-large profile-avatar-trigger"
+                onClick={openAvatarPreview}
+                aria-label={`Open ${displayName} profile photo`}
+              >
                 <img src={profileAvatarUrl} alt={displayName} loading="lazy" />
-              </div>
+              </button>
               <div className="profile-info">
                 <h1 className="profile-name">{displayName}</h1>
                 <p className="profile-bio-main">{bio}</p>
@@ -1003,6 +1024,15 @@ export default function ProfilePage(){
           </div>
         </aside>
       </div>
+
+      {isAvatarPreviewOpen && (
+        <div className="profile-avatar-preview-overlay" role="dialog" aria-modal="true" aria-label="Profile photo preview" onClick={closeAvatarPreview}>
+          <button type="button" className="profile-avatar-preview-close" onClick={closeAvatarPreview} aria-label="Close profile photo preview">×</button>
+          <div className="profile-avatar-preview-modal" onClick={(event) => event.stopPropagation()}>
+            <img src={profileAvatarUrl} alt={`${displayName} profile`} className="profile-avatar-preview-image" loading="lazy" />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

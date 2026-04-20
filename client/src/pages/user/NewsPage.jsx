@@ -207,6 +207,13 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
     onOpenAuthorProfile(authorProfile)
   }
 
+  const handleOpenProfileKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      handleOpenProfile()
+    }
+  }
+
   const handleAvatarImageError = (event) => {
     const avatarButton = event.currentTarget.closest('.post-avatar')
     if (!avatarButton) {
@@ -309,17 +316,24 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
     <article className={`card post-card ${report?.severity === 'high' ? 'severity-high-indicator' : ''}`}>
       <header className="post-header">
         <div className="post-header-left">
-          <button className={`post-avatar post-avatar-btn ${authorAvatarUrl ? 'has-image' : ''}`} onClick={handleOpenProfile} aria-label={`Open ${authorName} profile`}>
+          <button type="button" className={`post-avatar post-avatar-btn ${authorAvatarUrl ? 'has-image' : ''}`} onClick={handleOpenProfile} aria-label={`Open ${authorName} profile`}>
             {authorAvatarUrl ? (
               <img src={authorAvatarUrl} alt={`${authorName} avatar`} className="post-avatar-image" loading="lazy" onError={handleAvatarImageError} />
             ) : null}
             <span className="post-avatar-fallback">{getAuthorInitials(authorName)}</span>
           </button>
-          <div className="post-meta-block">
+          <div
+            className="post-meta-block post-meta-block-clickable"
+            role="button"
+            tabIndex={0}
+            onClick={handleOpenProfile}
+            onKeyDown={handleOpenProfileKeyDown}
+            aria-label={`Open ${authorName} profile`}
+          >
             <div className="post-author-row">
-              <button className="post-author post-author-btn hoverable-name" onClick={handleOpenProfile}>
+              <span className="post-author hoverable-name">
                 {authorName}
-              </button>
+              </span>
               {isVerified && <span className="badge badge-verified">Verified</span>}
               <span className={`badge ${authorRoleBadge.className}`}>{authorRoleBadge.label}</span>
             </div>

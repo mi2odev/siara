@@ -225,6 +225,37 @@
   color: #4338CA;
 }
 
+.settings-root .settings-action:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.settings-root .settings-actions-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-root .settings-action-secondary {
+  color: #0F766E;
+  background: rgba(13, 148, 136, 0.12);
+}
+
+.settings-root .settings-action-secondary:hover {
+  color: #115E59;
+  background: rgba(13, 148, 136, 0.2);
+}
+
+.settings-root .settings-action-auto {
+  color: #5B21B6;
+  background: rgba(124, 58, 237, 0.14);
+}
+
+.settings-root .settings-action-auto:hover {
+  color: #4C1D95;
+  background: rgba(124, 58, 237, 0.22);
+}
+
 .settings-root .settings-action-warn {
   color: #DC2626;
   background: rgba(220, 38, 38, 0.08);
@@ -260,6 +291,26 @@
   color: #10B981;
   animation: settingsSavedPulse 0.4s ease;
   white-space: nowrap;
+}
+
+.settings-root .settings-location-feedback {
+  margin: 8px 0 0 192px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.settings-root .settings-location-auto-status {
+  margin: 8px 0 0 192px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.settings-root .settings-location-feedback.success {
+  color: #047857;
+}
+
+.settings-root .settings-location-feedback.error {
+  color: #B91C1C;
 }
 
 @keyframes settingsSavedPulse {

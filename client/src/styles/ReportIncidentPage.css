@@ -525,6 +525,36 @@
   color: var(--report-success);
 }
 
+.confirm-location-details {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(16, 185, 129, 0.35);
+}
+
+.confirm-location-row {
+  display: grid;
+  grid-template-columns: minmax(92px, 120px) 1fr;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.confirm-location-key {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #0f766e;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.confirm-location-value {
+  font-size: 0.82rem;
+  color: var(--report-text);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
 .accuracy-dot {
   width: 8px;
   height: 8px;

@@ -16,13 +16,13 @@
  *   - Simulated API submit with random tracking ID
  *   - Success screen with next-steps explainer and quick-action buttons
  */
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { createReport, uploadReportMedia } from '../../services/reportsService'
@@ -55,6 +55,25 @@ function MapClickHandler({ onClick }) {
   return null;
 }
 
+function MapViewportController({ locationCoords, locationType, defaultCenter, defaultZoom, duration = 1.1 }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!locationCoords) {
+      return
+    }
+
+    const targetZoom = locationType === 'gps' ? 16 : 14
+    map.flyTo([locationCoords.lat, locationCoords.lng], targetZoom, {
+      animate: true,
+      duration,
+      easeLinearity: 0.25,
+    })
+  }, [defaultCenter?.lat, defaultCenter?.lng, defaultZoom, duration, locationCoords, locationType, map])
+
+  return null
+}
+
 export default function ReportIncidentPage() {
   /* ═══ ROUTING ═══ */
   const navigate = useNavigate()
@@ -81,6 +100,7 @@ export default function ReportIncidentPage() {
     locationType: '',          // 'gps' | 'search' | 'map'
     locationCoords: null,      // { lat, lng } or null
     locationAddress: '',       // Human-readable address string
+    locationDetails: null,     // Structured location metadata from reverse geocoding
     locationAccuracy: null,    // Accuracy label (e.g. 'High-precision GPS')
     title: '',                 // Incident title (min 5 chars)
     description: '',           // Optional free-text description (max 500 chars)
@@ -119,6 +139,85 @@ export default function ReportIncidentPage() {
 
   const getLocationFallbackLabel = (lat, lng) => `Lat ${Number(lat).toFixed(5)}, Lng ${Number(lng).toFixed(5)}`
 
+  const buildLocationDetails = (reverseData, lat, lng) => {
+    const address = reverseData?.address || {}
+    const road = [
+      address?.road,
+      address?.pedestrian,
+      address?.footway,
+      address?.path,
+      address?.cycleway,
+      reverseData?.name,
+    ].find((value) => String(value || '').trim()) || ''
+
+    const neighborhood = extractNeighborhoodName(address)
+
+    return {
+      road,
+      neighborhood,
+      district: String(address?.city_district || address?.district || address?.subdistrict || '').trim(),
+      city: String(address?.city || address?.town || address?.village || address?.municipality || '').trim(),
+      county: String(address?.county || '').trim(),
+      state: String(address?.state || '').trim(),
+      postcode: String(address?.postcode || '').trim(),
+      country: String(address?.country || '').trim(),
+      countryCode: String(address?.country_code || '').trim().toUpperCase(),
+      roadType: String(reverseData?.type || '').trim(),
+      osmType: String(reverseData?.osm_type || '').trim(),
+      osmId: reverseData?.osm_id != null ? String(reverseData.osm_id) : '',
+      lat: Number(lat),
+      lng: Number(lng),
+    }
+  }
+
+  const buildLocationDetailsRows = (details, coords) => {
+    const rows = []
+
+    if (details?.fullAddress) rows.push({ label: 'Full address', value: details.fullAddress })
+    if (details?.road) rows.push({ label: 'Road', value: details.road })
+    if (details?.roadType) {
+      const normalizedRoadType = String(details.roadType)
+      rows.push({
+        label: 'Road type',
+        value: normalizedRoadType.charAt(0).toUpperCase() + normalizedRoadType.slice(1),
+      })
+    }
+    if (details?.neighborhood) rows.push({ label: 'Neighborhood', value: details.neighborhood })
+    if (details?.district) rows.push({ label: 'District', value: details.district })
+    if (details?.city) rows.push({ label: 'City', value: details.city })
+    if (details?.county) rows.push({ label: 'County', value: details.county })
+    if (details?.state) rows.push({ label: 'State', value: details.state })
+    if (details?.postcode) rows.push({ label: 'Postcode', value: details.postcode })
+    if (details?.country || details?.countryCode) {
+      const countryValue = [details?.country, details?.countryCode].filter(Boolean).join(' · ')
+      rows.push({ label: 'Country', value: countryValue })
+    }
+
+    const lat = Number(coords?.lat ?? details?.lat)
+    const lng = Number(coords?.lng ?? details?.lng)
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      rows.push({ label: 'Coordinates', value: `${lat.toFixed(6)}, ${lng.toFixed(6)}` })
+    }
+
+    return rows
+  }
+
+  const extractNeighborhoodName = (address = {}) => {
+    const candidate = [
+      address?.neighbourhood,
+      address?.neighborhood,
+      address?.suburb,
+      address?.quarter,
+      address?.city_district,
+      address?.district,
+      address?.village,
+      address?.town,
+      address?.city,
+    ].find((value) => String(value || '').trim())
+
+    return String(candidate || '').trim()
+  }
+
   const reverseGeocodeCoordinates = async (lat, lng) => {
     try {
       const response = await fetch(
@@ -126,14 +225,43 @@ export default function ReportIncidentPage() {
       )
 
       if (!response.ok) {
-        return ''
+        return {
+          displayName: '',
+          neighborhood: '',
+          details: null,
+        }
       }
 
       const data = await response.json()
-      return String(data?.display_name || '').trim()
+      const details = buildLocationDetails(data, lat, lng)
+      return {
+        displayName: String(data?.display_name || '').trim(),
+        neighborhood: details.neighborhood,
+        details,
+      }
     } catch {
-      return ''
+      return {
+        displayName: '',
+        neighborhood: '',
+        details: null,
+      }
     }
+  }
+
+  const buildMapSelectionAddressLabel = (lat, lng, geoDetails) => {
+    const fullRoadName = String(geoDetails?.displayName || '').trim()
+    const primaryRoad = String(geoDetails?.details?.road || '').trim()
+    const neighborhood = String(geoDetails?.details?.neighborhood || geoDetails?.neighborhood || '').trim()
+    const fallback = getLocationFallbackLabel(lat, lng)
+
+    const baseLabel = fullRoadName || primaryRoad || neighborhood || fallback
+    const shouldAppendNeighborhood = neighborhood
+      && primaryRoad
+      && neighborhood.toLowerCase() !== primaryRoad.toLowerCase()
+      && !fullRoadName
+    const fullLabel = shouldAppendNeighborhood ? `${baseLabel}, ${neighborhood}` : baseLabel
+
+    return `${fullLabel} (selected on map)`
   }
 
   const resolveCurrentPosition = () => {
@@ -182,7 +310,7 @@ export default function ReportIncidentPage() {
         throw new Error('Unable to read your current coordinates.')
       }
 
-      const resolvedAddress = await reverseGeocodeCoordinates(lat, lng)
+      const geoDetails = await reverseGeocodeCoordinates(lat, lng)
       const accuracyLabel = Number.isFinite(accuracyMeters)
         ? `GPS accuracy ±${Math.max(1, Math.round(accuracyMeters))} m`
         : 'High-precision GPS'
@@ -191,7 +319,8 @@ export default function ReportIncidentPage() {
         ...prev,
         locationType: 'gps',
         locationCoords: { lat, lng },
-        locationAddress: resolvedAddress || getLocationFallbackLabel(lat, lng),
+        locationAddress: geoDetails.displayName || geoDetails.details?.road || geoDetails.neighborhood || getLocationFallbackLabel(lat, lng),
+        locationDetails: geoDetails.details,
         locationAccuracy: accuracyLabel,
       }))
     } catch (error) {
@@ -219,6 +348,7 @@ export default function ReportIncidentPage() {
         locationType: 'search',
         locationCoords: { lat: 36.7538, lng: 3.0588 },
         locationAddress: query,
+        locationDetails: null,
         locationAccuracy: 'Manual search'
       }))
     }
@@ -228,16 +358,48 @@ export default function ReportIncidentPage() {
    * Handle a real click on the Leaflet map — store the selected coords.
    * @param {L.LatLng} latlng - The coordinates from the map click event.
    */
-  const handleMapClick = (latlng) => {
+  const handleMapClick = async (latlng) => {
     setLocationActionError('')
+    const lat = Number(latlng?.lat)
+    const lng = Number(latlng?.lng)
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return
+    }
+
     setReportData(prev => ({
       ...prev,
       locationType: 'map',
-      locationCoords: { lat: latlng.lat, lng: latlng.lng },
-      // TODO: replace this fallback with reverse geocoding when a shared address lookup is available.
-      locationAddress: 'Position selected on map',
+      locationCoords: { lat, lng },
+      locationAddress: `${getLocationFallbackLabel(lat, lng)} (selected on map)`,
+      locationDetails: {
+        lat,
+        lng,
+      },
       locationAccuracy: 'Map selection'
     }))
+
+    const geoDetails = await reverseGeocodeCoordinates(lat, lng)
+
+    setReportData((prev) => {
+      const isSameSelection = prev.locationType === 'map'
+        && prev.locationCoords
+        && Number(prev.locationCoords.lat) === lat
+        && Number(prev.locationCoords.lng) === lng
+
+      if (!isSameSelection) {
+        return prev
+      }
+
+      return {
+        ...prev,
+        locationAddress: buildMapSelectionAddressLabel(lat, lng, geoDetails),
+        locationDetails: {
+          ...(geoDetails.details || prev.locationDetails || {}),
+          fullAddress: geoDetails.displayName || prev.locationDetails?.fullAddress || '',
+        },
+      }
+    })
   }
 
   /* ═══ MEDIA HANDLERS ═══ */
@@ -425,6 +587,7 @@ export default function ReportIncidentPage() {
 
   const userAvatarUrl = getUserAvatarUrl(user)
   const userInitials = getInitialsFromName(user?.name || user?.email || 'User')
+  const selectedLocationDetailRows = buildLocationDetailsRows(reportData.locationDetails, reportData.locationCoords)
 
   /* ═══ SUCCESS SCREEN (shown after submission) ═══ */
   // Success screen
@@ -717,16 +880,21 @@ export default function ReportIncidentPage() {
                   <label>Or select on the map</label>
                   <div className="map-interactive-leaflet">
                     <MapContainer
-                      center={reportData.locationCoords
-                        ? [reportData.locationCoords.lat, reportData.locationCoords.lng]
-                        : [28.0339, 1.6596]}
-                      zoom={reportData.locationCoords ? 13 : 5}
+                      center={[DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng]}
+                      zoom={5}
                       style={{ width: '100%', height: '100%' }}
                       scrollWheelZoom={true}
                     >
                       <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      />
+                      <MapViewportController
+                        locationCoords={reportData.locationCoords}
+                        locationType={reportData.locationType}
+                        defaultCenter={DEFAULT_MAP_CENTER}
+                        defaultZoom={5}
+                        duration={1.2}
                       />
                       <MapClickHandler onClick={handleMapClick} />
                       {reportData.locationCoords && (
@@ -748,8 +916,18 @@ export default function ReportIncidentPage() {
                         <span className="accuracy-dot"></span>
                         {reportData.locationAccuracy}
                       </span>
+                      {selectedLocationDetailRows.length > 0 && (
+                        <div className="confirm-location-details" role="list" aria-label="Selected location details">
+                          {selectedLocationDetailRows.map((item) => (
+                            <div key={`${item.label}-${item.value}`} className="confirm-location-row" role="listitem">
+                              <span className="confirm-location-key">{item.label}</span>
+                              <span className="confirm-location-value">{item.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <button className="confirm-edit" onClick={() => setReportData(prev => ({ ...prev, locationCoords: null, locationAddress: '', locationType: '' }))}>
+                    <button className="confirm-edit" onClick={() => setReportData(prev => ({ ...prev, locationCoords: null, locationAddress: '', locationType: '', locationDetails: null }))}>
                       ✏️
                     </button>
                   </div>
@@ -1074,11 +1252,8 @@ export default function ReportIncidentPage() {
             <span className="preview-label">Location</span>
             <div className="map-preview">
               <MapContainer
-                key={reportData.locationCoords ? `mini-${reportData.locationCoords.lat}-${reportData.locationCoords.lng}` : 'mini-default'}
-                center={reportData.locationCoords
-                  ? [reportData.locationCoords.lat, reportData.locationCoords.lng]
-                  : [DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng]}
-                zoom={reportData.locationCoords ? 13 : 5}
+                center={[DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng]}
+                zoom={5}
                 style={{ width: '100%', height: '100%' }}
                 scrollWheelZoom={false}
                 dragging={false}
@@ -1091,6 +1266,13 @@ export default function ReportIncidentPage() {
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                />
+                <MapViewportController
+                  locationCoords={reportData.locationCoords}
+                  locationType={reportData.locationType}
+                  defaultCenter={DEFAULT_MAP_CENTER}
+                  defaultZoom={5}
+                  duration={0.95}
                 />
                 {reportData.locationCoords ? (
                   <Marker position={[reportData.locationCoords.lat, reportData.locationCoords.lng]} />

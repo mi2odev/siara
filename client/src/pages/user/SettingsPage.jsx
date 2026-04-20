@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
@@ -44,6 +44,76 @@ const DEFAULT_PRIVACY = {
   location: 'reporting',
 }
 
+const LOCATION_TIMEOUT_MS = 15000
+const AUTO_LOCATION_INTERVAL_MS = 10 * 60 * 1000
+const AUTO_LOCATION_STORAGE_KEY = 'siara.settings.autoLocationEnabled'
+
+function mapGeolocationError(error) {
+  if (!error) {
+    return 'Unable to detect your current location.'
+  }
+
+  if (error.code === 1) {
+    return 'Location permission was denied. Please allow location access and try again.'
+  }
+
+  if (error.code === 2) {
+    return 'Your location is currently unavailable. Please try again in a moment.'
+  }
+
+  if (error.code === 3) {
+    return 'Location request timed out. Please try again.'
+  }
+
+  return error.message || 'Unable to detect your current location.'
+}
+
+async function reverseGeocodeLocation(lat, lng) {
+  const endpoint = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error('Reverse geocoding failed')
+  }
+
+  const payload = await response.json()
+  const address = payload?.address && typeof payload.address === 'object' ? payload.address : null
+  if (!address) {
+    return payload?.display_name || ''
+  }
+
+  const parts = [
+    address.road,
+    address.suburb,
+    address.city || address.town || address.village,
+    address.state,
+    address.country,
+  ].filter(Boolean)
+
+  if (parts.length > 0) {
+    return parts.join(', ')
+  }
+
+  return payload?.display_name || ''
+}
+
+function formatTimeLabel(dateValue) {
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -84,6 +154,20 @@ export default function SettingsPage() {
   const [passwordSuccess, setPasswordSuccess] = useState('')
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [avatarUploadError, setAvatarUploadError] = useState('')
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false)
+  const [locationFeedback, setLocationFeedback] = useState({ type: '', message: '' })
+  const [isAutoLocationEnabled, setIsAutoLocationEnabled] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    try {
+      return window.localStorage.getItem(AUTO_LOCATION_STORAGE_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const [autoLocationLastUpdatedAt, setAutoLocationLastUpdatedAt] = useState('')
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -180,12 +264,12 @@ export default function SettingsPage() {
     }
   }, [userId])
 
-  const setSavedField = (field) => {
+  const setSavedField = useCallback((field) => {
     setSaved(field)
     setTimeout(() => setSaved(null), 1800)
-  }
+  }, [])
 
-  const saveSettings = async (payload) => {
+  const saveSettings = useCallback(async (payload) => {
     setIsSaving(true)
     setSettingsError('')
 
@@ -240,19 +324,151 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false)
     }
-  }
+  }, [setUser, user])
 
-  const handleEdit = (field) => setEditing(field)
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      window.localStorage.setItem(AUTO_LOCATION_STORAGE_KEY, isAutoLocationEnabled ? '1' : '0')
+    } catch {
+      // Ignore localStorage write failures.
+    }
+  }, [isAutoLocationEnabled])
+
+  const handleEdit = (field) => {
+    if (field === 'location') {
+      setLocationFeedback({ type: '', message: '' })
+    }
+    setEditing(field)
+  }
 
   const handleSave = async (field, value) => {
     const nextValue = String(value || '').trim()
     setEditing(null)
+    if (field === 'location') {
+      setLocationFeedback({ type: '', message: '' })
+    }
     setProfileData((prev) => ({ ...prev, [field]: nextValue }))
     const ok = await saveSettings({ profile: { [field]: nextValue } })
     if (ok) {
       setSavedField(field)
     }
   }
+
+  const handleUseCurrentLocation = useCallback(async ({ triggeredByAuto = false, enableAutoOnSuccess = false } = {}) => {
+    if (isDetectingLocation || isSaving) {
+      return false
+    }
+
+    if (!navigator?.geolocation) {
+      setLocationFeedback({
+        type: 'error',
+        message: 'Geolocation is not supported in this browser.',
+      })
+      return false
+    }
+
+    setEditing(null)
+    if (!triggeredByAuto) {
+      setLocationFeedback({ type: '', message: '' })
+    }
+    setIsDetectingLocation(true)
+
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: LOCATION_TIMEOUT_MS,
+          maximumAge: 60000,
+        })
+      })
+
+      const latitude = Number(position?.coords?.latitude)
+      const longitude = Number(position?.coords?.longitude)
+
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        throw new Error('Invalid location data')
+      }
+
+      const coordinatesFallback = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
+      let nextLocation = coordinatesFallback
+
+      try {
+        const resolvedLocation = await reverseGeocodeLocation(latitude, longitude)
+        if (resolvedLocation) {
+          nextLocation = resolvedLocation
+        }
+      } catch {
+        // Keep coordinate fallback when reverse geocoding is unavailable.
+      }
+
+      setProfileData((prev) => ({
+        ...prev,
+        location: nextLocation,
+      }))
+
+      const ok = await saveSettings({ profile: { location: nextLocation } })
+      if (ok) {
+        setSavedField('location')
+        setAutoLocationLastUpdatedAt(formatTimeLabel(Date.now()))
+        if (enableAutoOnSuccess) {
+          setIsAutoLocationEnabled(true)
+        }
+        if (!triggeredByAuto) {
+          setLocationFeedback({ type: 'success', message: 'Current location selected.' })
+        }
+        return true
+      } else {
+        if (!triggeredByAuto) {
+          setLocationFeedback({ type: 'error', message: 'Unable to save your current location.' })
+        }
+        return false
+      }
+    } catch (error) {
+      setLocationFeedback({
+        type: 'error',
+        message: triggeredByAuto
+          ? `Auto update failed: ${mapGeolocationError(error)}`
+          : mapGeolocationError(error),
+      })
+      return false
+    } finally {
+      setIsDetectingLocation(false)
+    }
+  }, [isDetectingLocation, isSaving, saveSettings, setSavedField])
+
+  const handleToggleAutoLocation = async () => {
+    if (isAutoLocationEnabled) {
+      setIsAutoLocationEnabled(false)
+      setLocationFeedback({ type: 'success', message: 'Auto location update disabled.' })
+      return
+    }
+
+    const ok = await handleUseCurrentLocation({ enableAutoOnSuccess: true })
+    if (ok) {
+      setLocationFeedback({
+        type: 'success',
+        message: 'Auto location update enabled. Your location will refresh every 10 minutes.',
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (!isAutoLocationEnabled) {
+      return undefined
+    }
+
+    const intervalId = window.setInterval(() => {
+      void handleUseCurrentLocation({ triggeredByAuto: true })
+    }, AUTO_LOCATION_INTERVAL_MS)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [isAutoLocationEnabled, handleUseCurrentLocation])
 
   const toggleNotif = async (key) => {
     const nextNotifs = {
@@ -501,7 +717,6 @@ export default function SettingsPage() {
               {[
                 { key: 'name', label: 'Name' },
                 { key: 'bio', label: 'Bio' },
-                { key: 'location', label: 'Location' },
               ].map(({ key, label }) => (
                 <div className="settings-row" key={key}>
                   <span className="settings-label">{label}</span>
@@ -523,6 +738,53 @@ export default function SettingsPage() {
                   ) : null}
                 </div>
               ))}
+
+              <div className="settings-row" key="location">
+                <span className="settings-label">Location</span>
+                {editing === 'location' ? (
+                  <input
+                    className="settings-inline-input"
+                    autoFocus
+                    defaultValue={profileData.location}
+                    onBlur={(event) => handleSave('location', event.target.value)}
+                    onKeyDown={(event) => event.key === 'Enter' && handleSave('location', event.target.value)}
+                  />
+                ) : (
+                  <span className="settings-value">{profileData.location || 'Not set'}</span>
+                )}
+                {saved === 'location' ? (
+                  <span className="settings-saved">Saved</span>
+                ) : editing !== 'location' ? (
+                  <div className="settings-actions-group">
+                    <button className="settings-action" onClick={() => handleEdit('location')}>Edit</button>
+                    <button
+                      className="settings-action settings-action-secondary"
+                      onClick={() => handleUseCurrentLocation()}
+                      disabled={isDetectingLocation || isSaving}
+                    >
+                      {isDetectingLocation ? 'Locating...' : 'Locate now'}
+                    </button>
+                    <button
+                      className={`settings-action ${isAutoLocationEnabled ? 'settings-action-warn' : 'settings-action-auto'}`}
+                      onClick={handleToggleAutoLocation}
+                      disabled={isDetectingLocation || isSaving}
+                    >
+                      {isAutoLocationEnabled ? 'Stop auto 10m' : 'Auto every 10m'}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              {isAutoLocationEnabled ? (
+                <p className="settings-location-auto-status">
+                  Auto update is active and refreshes every 10 minutes.
+                  {autoLocationLastUpdatedAt ? ` Last update: ${autoLocationLastUpdatedAt}.` : ''}
+                </p>
+              ) : null}
+              {locationFeedback.message ? (
+                <p className={`settings-location-feedback ${locationFeedback.type === 'error' ? 'error' : 'success'}`}>
+                  {locationFeedback.message}
+                </p>
+              ) : null}
             </section>
           )}
 
