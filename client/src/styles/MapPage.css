@@ -821,11 +821,19 @@
 }
 
 .siara-leaflet-map .leaflet-tooltip-pane {
-  z-index: 12050 !important;
+  z-index: 13050 !important;
 }
 
 .siara-leaflet-map .leaflet-popup-pane {
-  z-index: 12040 !important;
+  z-index: 13040 !important;
+}
+
+.siara-leaflet-map .leaflet-risk-layer-pane {
+  z-index: 13000 !important;
+}
+
+.siara-leaflet-map .leaflet-risk-layer-pane .leaflet-tooltip.siara-report-tooltip {
+  z-index: 13060 !important;
 }
 
 .siara-leaflet-map .leaflet-top,
@@ -1028,7 +1036,7 @@
   position: absolute;
   top: 64px;
   left: 64px;
-  z-index: 850;
+  z-index: 430;
   width: min(360px, calc(100% - 72px));
   padding: 12px 14px;
   border-radius: 14px;
@@ -1037,6 +1045,7 @@
   box-shadow: 0 4px 20px rgba(124, 58, 237, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
   backdrop-filter: blur(12px);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  transition: opacity 0.14s ease;
 }
 
 .siara-time-row {
@@ -1179,7 +1188,7 @@
  bottom: auto;
  right: 12px;
  left: auto;
- z-index: 840;
+ z-index: 420;
  width: var(--map-aside-width, min(320px, calc(100% - 24px)));
  max-width: calc(100% - 24px);
  height: fit-content;
@@ -1189,6 +1198,13 @@
  flex-direction: column;
  align-items: stretch;
  gap: 12px;
+ transition: opacity 0.14s ease;
+}
+
+.siara-guide-controls.siara-overlay-dimmed,
+.siara-map-aside.siara-overlay-dimmed {
+  opacity: 0.14;
+  pointer-events: none;
 }
 
 @media (max-width: 1200px) {

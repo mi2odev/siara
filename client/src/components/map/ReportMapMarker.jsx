@@ -202,7 +202,7 @@ function ReportHoverCard({ report }) {
   )
 }
 
-function ReportMapMarker({ report, onClick, tooltipPane }) {
+function ReportMapMarker({ report, onClick, tooltipPane, onTooltipVisibilityChange }) {
   const position = useMemo(() => getReportMarkerPosition(report), [report])
   const icon = useMemo(() => {
     if (!position) {
@@ -229,6 +229,8 @@ function ReportMapMarker({ report, onClick, tooltipPane }) {
       riseOnHover={true}
       eventHandlers={{
         click: () => onClick?.(report),
+        tooltipopen: () => onTooltipVisibilityChange?.(true),
+        tooltipclose: () => onTooltipVisibilityChange?.(false),
       }}
     >
       <Tooltip

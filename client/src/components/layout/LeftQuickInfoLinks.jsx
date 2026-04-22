@@ -152,7 +152,7 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
 
                         <div className="left-info-actions">
                           <button type="submit" className="left-info-submit">Send Message</button>
-                          <a className="left-info-mail" href="mailto:siara.ai.app@gmail.com">Email directly</a>
+                          <a className="left-info-mail" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">Email directly</a>
                         </div>
                       </form>
 

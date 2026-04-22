@@ -362,7 +362,7 @@ export default function PoliceShell({
 
                         <div className="contact-quick-actions">
                           <button type="submit" className="contact-quick-submit">Send Message</button>
-                          <a className="contact-quick-mail" href="mailto:siara.ai.app@gmail.com">Email directly</a>
+                          <a className="contact-quick-mail" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">Email directly</a>
                         </div>
                       </form>
 

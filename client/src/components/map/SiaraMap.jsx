@@ -1110,6 +1110,7 @@ const SiaraMap = ({
   const [guidanceRefreshTick, setGuidanceRefreshTick] = useState(0);
   const [nearbyFitVersion, setNearbyFitVersion] = useState(0);
   const [guidedRouteFitVersion, setGuidedRouteFitVersion] = useState(0);
+  const [reportTooltipVisible, setReportTooltipVisible] = useState(false);
   const nearbyRequestKeyRef = useRef("");
   const guidanceRequestKeyRef = useRef("");
   const pendingNearbyFitRef = useRef(false);
@@ -1297,6 +1298,12 @@ const SiaraMap = ({
       setLocationUpdatedAt(Date.now());
     }
   }, [userLocationKey]);
+
+  useEffect(() => {
+    if (mapLayer !== "points") {
+      setReportTooltipVisible(false);
+    }
+  }, [mapLayer]);
 
   const clearRouteExplanationSelection = () => {
     setSelectedRouteExplanation(null);
@@ -2456,6 +2463,7 @@ const SiaraMap = ({
                       report={marker}
                       tooltipPane="risk-layer"
                       onClick={() => handleFeatureClick(marker)}
+                      onTooltipVisibilityChange={setReportTooltipVisible}
                     />
                   );
                 }
@@ -2535,7 +2543,7 @@ const SiaraMap = ({
         </div>
       )}
 
-      <aside className="siara-map-aside">
+      <aside className={`siara-map-aside${reportTooltipVisible ? " siara-overlay-dimmed" : ""}`}>
         <div className="siara-risk-debug">
           <div className="siara-map-help-wrap">
             <h4>Current Risk</h4>
@@ -2974,7 +2982,7 @@ const SiaraMap = ({
         </div>
       )}
       {showGuideControls && (
-        <div className="siara-guide-controls">
+        <div className={`siara-guide-controls${reportTooltipVisible ? " siara-overlay-dimmed" : ""}`}>
           <div className="siara-guide-status-row">
             <span className="siara-status-pill">{locationStatusText}</span>
             <span className="siara-status-pill">{navigationUpdatedText}</span>

@@ -75,7 +75,7 @@ export default function ContactPage() {
             <strong>Email:</strong> siara.ai.app@gmail.com
           </p>
           <div className="info-contact-actions">
-            <a className="info-mail-link" href="mailto:siara.ai.app@gmail.com">Send email directly</a>
+            <a className="info-mail-link" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">Send email directly</a>
             <button
               type="button"
               className="info-inline-btn"
