@@ -21,7 +21,7 @@ const ALLOWED_INCIDENT_TYPES = new Set([
   "roadworks",
   "other",
 ]);
-const ALLOWED_STATUSES = new Set(["pending", "verified", "rejected", "resolved"]);
+const ALLOWED_STATUSES = new Set(["pending", "under_review", "verified", "dispatched", "rejected", "resolved"]);
 const ALLOWED_IMAGE_MIME_TYPES = new Set([
   "image/jpeg",
   "image/jpg",
@@ -74,6 +74,13 @@ const REPORT_SELECT_SQL = `
     ar.latest_model_version,
     ar.latest_classified_at,
     ar.review_verdict,
+    ar.assigned_officer_id,
+    ar.verified_by_officer_id,
+    ar.verified_at,
+    ar.resolved_by_officer_id,
+    ar.resolved_at,
+    ar.source_channel,
+    ar.reported_by_role_snapshot,
     ar.incident_location,
     ST_Y(ar.incident_location::geometry) as lat,
     ST_X(ar.incident_location::geometry) as lng,
@@ -484,6 +491,15 @@ function mapReportRow(row) {
     distanceKm:
       row.distance_meters == null ? null : Number((Number(row.distance_meters) / 1000).toFixed(2)),
     spamAnalysis: buildSpamAnalysis(row),
+    sourceChannel: row.source_channel || null,
+    reportedByRoleSnapshot: Array.isArray(row.reported_by_role_snapshot)
+      ? row.reported_by_role_snapshot
+      : [],
+    assignedOfficerId: row.assigned_officer_id || null,
+    verifiedByOfficerId: row.verified_by_officer_id || null,
+    verifiedAt: row.verified_at || null,
+    resolvedByOfficerId: row.resolved_by_officer_id || null,
+    resolvedAt: row.resolved_at || null,
     reportedBy: row.reported_by
       ? {
           id: row.reported_by,
@@ -932,7 +948,9 @@ router.post("/", verifyToken, async (req, res, next) => {
           severity_hint,
           incident_location,
           location_label,
-          occurred_at
+          occurred_at,
+          source_channel,
+          reported_by_role_snapshot
         )
         values (
           $1,
@@ -943,7 +961,9 @@ router.post("/", verifyToken, async (req, res, next) => {
           $5,
           ST_SetSRID(ST_MakePoint($6, $7), 4326)::geography,
           $8,
-          $9::timestamptz
+          $9::timestamptz,
+          $10,
+          $11::jsonb
         )
         returning id
       `,
@@ -957,6 +977,8 @@ router.post("/", verifyToken, async (req, res, next) => {
         payload.lat,
         payload.locationLabel,
         payload.occurredAt,
+        "web",
+        JSON.stringify(Array.isArray(req.user.roles) ? req.user.roles : []),
       ],
     );
 

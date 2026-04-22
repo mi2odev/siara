@@ -1,5 +1,17 @@
 # SIARA API Notes
 
+## Police module
+
+The police domain now uses `/api/police/*` routes for officer profile, work-zone selection, live location updates, dashboard data, incidents, alerts, and operation history.
+
+Key implementation notes:
+
+- Officer role support is handled through shared auth middleware with police role arrays instead of admin-only checks.
+- First login requires work-zone selection through Wilaya then Commune before normal police mode access.
+- Nearby incidents are backed by PostGIS `ST_DWithin` with a 500 meter radius and return `locationRequired=true` when no live officer location exists.
+- Police actions such as verify, reject, assign self, request backup, status updates, notes, and alert reads write to `app.police_operation_history`.
+- The police SQL migration lives in `api/migrations/20260422_police_module.sql` and adds the new police tables plus incident assignment and verification columns on `app.accident_reports`.
+
 ## Local driver quiz explanations
 
 The driver quiz score remains deterministic in Python. The local LLM layer only turns the structured quiz result into a natural-language explanation.

@@ -3,31 +3,32 @@ import { useNavigate } from 'react-router-dom'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import { AuthContext } from '../../contexts/AuthContext'
-import { getPoliceIncidents, getPoliceOperationHistory } from '../../data/policeMockData'
+import {
+  createManualPoliceHistoryEntry,
+  listPoliceOperationHistory,
+} from '../../services/policeService'
 
 const ACTION_TYPES = [
   { value: 'all', label: 'All actions' },
-  { value: 'verified_incident', label: 'Verified incident' },
-  { value: 'rejected_report', label: 'Rejected report' },
-  { value: 'requested_backup', label: 'Requested backup' },
+  { value: 'verify_incident', label: 'Verified incident' },
+  { value: 'reject_incident', label: 'Rejected report' },
+  { value: 'assign_self', label: 'Assigned self' },
+  { value: 'request_backup', label: 'Requested backup' },
+  { value: 'update_status', label: 'Changed status' },
+  { value: 'field_note', label: 'Field note' },
+  { value: 'mark_alert_read', label: 'Acknowledged alert' },
+  { value: 'manual_log_entry', label: 'Manual note' },
 ]
 
-function formatTime(value) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Unknown time'
-
-  return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase()
 }
 
 function localDateKey(value) {
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
 
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -35,26 +36,16 @@ function localDateKey(value) {
   return `${year}-${month}-${day}`
 }
 
-function normalizeText(value) {
-  return String(value || '').trim().toLowerCase()
-}
-
-function isOfficerMatch(itemOfficerName, currentOfficerName) {
-  const itemName = normalizeText(itemOfficerName)
-  const currentName = normalizeText(currentOfficerName)
-  if (!itemName || !currentName) return false
-
-  if (itemName === currentName) return true
-
-  const currentTokens = currentName.split(/\s+/).filter(Boolean)
-  return currentTokens.some((token) => token.length >= 3 && itemName.includes(token))
-}
-
 function actionLabel(value) {
-  if (value === 'verified_incident') return 'Verified incident'
-  if (value === 'rejected_report') return 'Rejected report'
-  if (value === 'requested_backup') return 'Requested backup'
-  return 'Action'
+  if (value === 'verify_incident') return 'Verified incident'
+  if (value === 'reject_incident') return 'Rejected report'
+  if (value === 'assign_self') return 'Assigned self'
+  if (value === 'request_backup') return 'Requested backup'
+  if (value === 'update_status') return 'Changed status'
+  if (value === 'field_note') return 'Added field note'
+  if (value === 'mark_alert_read') return 'Acknowledged alert'
+  if (value === 'manual_log_entry') return 'Manual note'
+  return 'Police action'
 }
 
 export default function PoliceOperationHistoryPage() {
@@ -62,32 +53,40 @@ export default function PoliceOperationHistoryPage() {
   const { user } = useContext(AuthContext)
   const officerName = user?.name || 'Officer'
 
-  const allHistory = useMemo(
-    () => getPoliceOperationHistory()
-      .sort((left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()),
-    [],
-  )
-  const incidents = useMemo(() => getPoliceIncidents(), [])
-  const incidentById = useMemo(
-    () => Object.fromEntries(incidents.map((item) => [item.id, item])),
-    [incidents],
-  )
-
-  const officerHistory = useMemo(
-    () => allHistory.filter((item) => isOfficerMatch(item.officerName, officerName)),
-    [allHistory, officerName],
-  )
-
   const [typeFilter, setTypeFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('')
+  const [historyItems, setHistoryItems] = useState([])
+  const [manualNote, setManualNote] = useState('')
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [actionMessage, setActionMessage] = useState('')
+
+  const loadHistory = React.useCallback(async () => {
+    setIsLoading(true)
+    setError('')
+
+    try {
+      const response = await listPoliceOperationHistory({ page: 1, pageSize: 60 })
+      setHistoryItems(response.items)
+    } catch (loadError) {
+      setError(loadError.message || 'Failed to load operation history.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    loadHistory()
+  }, [loadHistory])
 
   const filteredItems = useMemo(
-    () => officerHistory.filter((item) => {
+    () => historyItems.filter((item) => {
       if (typeFilter !== 'all' && item.actionType !== typeFilter) return false
-      if (dateFilter && localDateKey(item.timestamp) !== dateFilter) return false
+      if (dateFilter && localDateKey(item.createdAt) !== dateFilter) return false
       return true
     }),
-    [officerHistory, typeFilter, dateFilter],
+    [dateFilter, historyItems, typeFilter],
   )
 
   const rightPanel = (
@@ -95,11 +94,47 @@ export default function PoliceOperationHistoryPage() {
       <h2>History Summary</h2>
       <ul className="police-list">
         <li><strong>Officer:</strong> {officerName}</li>
-        <li><strong>Total actions:</strong> {officerHistory.length}</li>
+        <li><strong>Total actions:</strong> {historyItems.length}</li>
         <li><strong>Visible actions:</strong> {filteredItems.length}</li>
       </ul>
     </section>
   )
+
+  const handleSubmitManualEntry = async (event) => {
+    event.preventDefault()
+    setError('')
+    setActionMessage('')
+
+    const trimmedNote = manualNote.trim()
+    if (!trimmedNote) {
+      setError('Enter a short action note before saving.')
+      return
+    }
+
+    setIsSubmittingNote(true)
+    try {
+      const response = await createManualPoliceHistoryEntry({
+        note: trimmedNote,
+        metadata: {
+          source: 'operation_history_page',
+        },
+      })
+
+      if (response.item) {
+        setHistoryItems((previous) => [response.item, ...previous])
+      } else {
+        await loadHistory()
+      }
+
+      setManualNote('')
+      setTypeFilter('all')
+      setActionMessage('Manual action saved.')
+    } catch (submitError) {
+      setError(submitError.message || 'Failed to save manual action.')
+    } finally {
+      setIsSubmittingNote(false)
+    }
+  }
 
   return (
     <PoliceShell activeKey="operation-history" rightPanel={rightPanel} notificationCount={filteredItems.length}>
@@ -124,41 +159,82 @@ export default function PoliceOperationHistoryPage() {
             <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} />
           </label>
 
-          <button type="button" className="police-action police-action-secondary" onClick={() => { setTypeFilter('all'); setDateFilter('') }}>
+          <button
+            type="button"
+            className="police-action police-action-secondary"
+            onClick={() => { setTypeFilter('all'); setDateFilter('') }}
+          >
             Clear filters
           </button>
+
+          <button
+            type="button"
+            className="police-action police-action-secondary"
+            onClick={loadHistory}
+            disabled={isLoading || isSubmittingNote}
+          >
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
+
+        <form className="police-history-filters" onSubmit={handleSubmitManualEntry}>
+          <label className="police-filter-field" style={{ flex: '1 1 24rem' }}>
+            <span>Manual action note</span>
+            <input
+              type="text"
+              value={manualNote}
+              maxLength={1000}
+              placeholder="Add a short field action or operational note"
+              onChange={(event) => setManualNote(event.target.value)}
+              disabled={isSubmittingNote}
+            />
+          </label>
+
+          <button type="submit" className="police-action police-action-review" disabled={isSubmittingNote}>
+            {isSubmittingNote ? 'Saving...' : 'Add note'}
+          </button>
+        </form>
+
+        {error ? <p className="police-meta" style={{ color: '#b91c1c' }}>{error}</p> : null}
+        {!error && actionMessage ? <p className="police-meta" style={{ color: '#166534' }}>{actionMessage}</p> : null}
+        {isLoading ? <p className="police-meta">Loading meaningful police actions...</p> : null}
 
         <div className="police-history-list">
           {filteredItems.map((item) => (
             <article key={item.id} className="police-history-item">
               <div className="police-history-item-top">
                 <strong>{actionLabel(item.actionType)}</strong>
-                <time dateTime={item.timestamp}>{formatTime(item.timestamp)}</time>
+                <time dateTime={item.createdAt}>{item.createdAtLabel}</time>
               </div>
 
               <div className="police-history-item-meta">
-                <span>Incident: <strong>{item.incidentId}</strong></span>
-                <span>Location: <strong>{incidentById[item.incidentId]?.location || 'Unknown area'}</strong></span>
+                <span>Officer: <strong>{item.officer?.name || officerName}</strong></span>
+                {item.reportId ? <span>Incident: <strong>{item.reportTitle || item.reportId}</strong></span> : null}
+                {item.alertId ? <span>Alert: <strong>{item.alertTitle || item.alertId}</strong></span> : null}
+                {item.toStatus ? <span>Status: <strong>{normalizeText(item.toStatus).replace(/_/g, ' ')}</strong></span> : null}
               </div>
 
-              <div className="police-history-item-actions">
-                <button
-                  type="button"
-                  className="police-action police-action-view"
-                  onClick={() => navigate(`/police/incident/${item.incidentId}`)}
-                >
-                  Open incident
-                </button>
-              </div>
+              {item.note ? <p>{item.note}</p> : null}
+
+              {item.reportId ? (
+                <div className="police-history-item-actions">
+                  <button
+                    type="button"
+                    className="police-action police-action-view"
+                    onClick={() => navigate(`/police/incident/${item.reportId}`)}
+                  >
+                    Open incident
+                  </button>
+                </div>
+              ) : null}
             </article>
           ))}
 
-          {filteredItems.length === 0 ? (
+          {!isLoading && filteredItems.length === 0 ? (
             <div className="police-empty-state" role="status" aria-live="polite">
               <div className="police-empty-icon" aria-hidden="true">📚</div>
               <h3>No actions found</h3>
-              <p>Try changing the action type or date filter.</p>
+              <p>Location updates are hidden here so the timeline stays focused on meaningful police actions.</p>
             </div>
           ) : null}
         </div>

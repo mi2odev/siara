@@ -2,7 +2,7 @@ import React, { useContext } from 'react'
 import { Navigate } from 'react-router-dom'
 
 import { AuthContext } from '../contexts/AuthContext'
-import { getAuthenticatedRedirect, isAdminUser } from './routeAccess'
+import { getAuthenticatedRedirect } from './routeAccess'
 
 export default function DefaultRouteRedirect({ defaultPath = '/home' }) {
   const {
@@ -17,7 +17,7 @@ export default function DefaultRouteRedirect({ defaultPath = '/home' }) {
     return null
   }
 
-  if (isAuthenticated && user && isAdminUser(user)) {
+  if (isAuthenticated && user) {
     return <Navigate to={getAuthenticatedRedirect(user, isEmailVerified)} replace />
   }
 

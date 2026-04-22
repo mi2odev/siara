@@ -1,4 +1,5 @@
 export const ADMIN_LANDING_PATH = '/admin/overview'
+export const POLICE_LANDING_PATH = '/police'
 export const USER_LANDING_PATH = '/dashboard'
 
 export function isAdminUser(user) {
@@ -11,6 +12,17 @@ export function isAdminUser(user) {
   }
 
   return user.role === 'admin'
+}
+
+export function isPoliceUser(user) {
+  if (!user || typeof user !== 'object') {
+    return false
+  }
+
+  const roles = Array.isArray(user.roles) ? user.roles : [user.role]
+  return roles
+    .map((entry) => String(entry || '').trim().toLowerCase().replace(/[\s_-]+/g, ''))
+    .some((entry) => entry === 'police' || entry === 'policeofficer')
 }
 
 export function buildVerifyEmailRedirect(user) {
@@ -29,5 +41,13 @@ export function getAuthenticatedRedirect(user, isEmailVerified = true) {
     return buildVerifyEmailRedirect(user)
   }
 
-  return isAdminUser(user) ? ADMIN_LANDING_PATH : USER_LANDING_PATH
+  if (isAdminUser(user)) {
+    return ADMIN_LANDING_PATH
+  }
+
+  if (isPoliceUser(user)) {
+    return POLICE_LANDING_PATH
+  }
+
+  return USER_LANDING_PATH
 }

@@ -45,6 +45,8 @@ function normalizeAuthUser(rawUser) {
       ? [rawUser.role]
       : []
   const role = roles.includes('admin') ? 'admin' : roles[0] || rawUser.role || 'citizen'
+  const normalizedRoles = roles.map((entry) => String(entry || '').trim().toLowerCase().replace(/[\s_-]+/g, ''))
+  const isPolice = normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
   const name = rawUser.name
     || [rawUser.first_name, rawUser.last_name].filter(Boolean).join(' ')
     || rawUser.email
@@ -62,6 +64,7 @@ function normalizeAuthUser(rawUser) {
     ...rawUser,
     roles,
     role,
+    isPolice,
     name,
     avatarUrl,
     avatar_url: avatarUrl,
@@ -75,6 +78,7 @@ function buildLoggedOutState() {
     isAuthenticated: false,
     isAuthLoading: false,
     isAdmin: false,
+    isPolice: false,
     isEmailVerified: false,
     hasCheckedSession: true,
   }
@@ -90,6 +94,7 @@ function setAuthenticatedState(set, response) {
     isAuthenticated: Boolean(normalizedUser),
     isAuthLoading: false,
     isAdmin: normalizedUser?.role === 'admin',
+    isPolice: Boolean(normalizedUser?.isPolice),
     isEmailVerified: Boolean(normalizedUser?.email_verified ?? true),
     hasCheckedSession: true,
   })
@@ -205,6 +210,7 @@ export const useAuthStore = create((set, get) => ({
       user: normalizedUser,
       isAuthenticated: Boolean(normalizedUser),
       isAdmin: normalizedUser?.role === 'admin',
+      isPolice: Boolean(normalizedUser?.isPolice),
       isEmailVerified: Boolean(normalizedUser?.email_verified ?? true),
     }))
 

@@ -31,6 +31,7 @@ import PoliceMyIncidentsPage from "../pages/police/PoliceMyIncidentsPage";
 import PoliceNearbyIncidentsPage from "../pages/police/PoliceNearbyIncidentsPage";
 import PoliceOperationHistoryPage from "../pages/police/PoliceOperationHistoryPage";
 import PoliceVerificationQueuePage from "../pages/police/PoliceVerificationQueuePage";
+import PoliceWorkZoneSetupPage from "../pages/police/PoliceWorkZoneSetupPage";
 import ProfilePage from "../pages/user/ProfilePage";
 import ReportIncidentPage from "../pages/user/ReportIncidentPage";
 import ReportsPage from "../pages/user/ReportsPage";
@@ -46,6 +47,7 @@ import DefaultRouteRedirect from "./DefaultRouteRedirect";
 import NonAdminOnlyRoute from "./NonAdminOnlyRoute";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicOnlyRoute from "./PublicOnlyRoute";
+import PoliceAccessGate from "../components/police/PoliceAccessGate";
 
 export default function AppRouter() {
   return (
@@ -73,15 +75,20 @@ export default function AppRouter() {
           <Route path="alerts" element={<AlertsPage />} />
           <Route path="alerts/create" element={<CreateAlertPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="police" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PolicePage /></ProtectedRoute>} />
-          <Route path="police/alerts" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PoliceAlertCenterPage /></ProtectedRoute>} />
-          <Route path="police/field-reports" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PoliceFieldReportsPage /></ProtectedRoute>} />
-          <Route path="police/insights" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PoliceAIInsightsPage /></ProtectedRoute>} />
-          <Route path="police/my-incidents" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PoliceMyIncidentsPage /></ProtectedRoute>} />
-          <Route path="police/nearby" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PoliceNearbyIncidentsPage /></ProtectedRoute>} />
-          <Route path="police/history" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PoliceOperationHistoryPage /></ProtectedRoute>} />
-          <Route path="police/verification" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PoliceVerificationQueuePage /></ProtectedRoute>} />
-          <Route path="police/incident/:id" element={<ProtectedRoute roles={["police", "police_officer", "police officer"]}><PoliceIncidentDetailPage /></ProtectedRoute>} />
+          <Route element={<ProtectedRoute roles={["police", "police_officer", "police officer"]} />}>
+            <Route element={<PoliceAccessGate />}>
+              <Route path="police" element={<PolicePage />} />
+              <Route path="police/setup-zone" element={<PoliceWorkZoneSetupPage />} />
+              <Route path="police/alerts" element={<PoliceAlertCenterPage />} />
+              <Route path="police/field-reports" element={<PoliceFieldReportsPage />} />
+              <Route path="police/insights" element={<PoliceAIInsightsPage />} />
+              <Route path="police/my-incidents" element={<PoliceMyIncidentsPage />} />
+              <Route path="police/nearby" element={<PoliceNearbyIncidentsPage />} />
+              <Route path="police/history" element={<PoliceOperationHistoryPage />} />
+              <Route path="police/verification" element={<PoliceVerificationQueuePage />} />
+              <Route path="police/incident/:id" element={<PoliceIncidentDetailPage />} />
+            </Route>
+          </Route>
           <Route path="report" element={<ReportsPage />} />
           <Route path="report/create" element={<ReportIncidentPage />} />
           <Route path="predictions" element={<PredictionsPage />} />

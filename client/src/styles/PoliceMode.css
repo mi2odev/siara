@@ -1667,6 +1667,11 @@
   background: linear-gradient(90deg, rgba(254, 242, 242, 0.8), #ffffff);
 }
 
+.police-alert-center-page .police-alert-item.critical {
+  border-left: 4px solid #991b1b;
+  background: linear-gradient(90deg, rgba(254, 226, 226, 0.95), #ffffff);
+}
+
 .police-alert-center-page .police-alert-item.medium {
   border-left: 4px solid #f59e0b;
   background: linear-gradient(90deg, rgba(255, 251, 235, 0.75), #ffffff);
@@ -1679,6 +1684,11 @@
 
 .police-alert-center-page .police-alert-item.read {
   opacity: 0.72;
+}
+
+.police-alert-center-page .police-alert-item.active {
+  border-color: #93c5fd;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.15);
 }
 
 .police-alert-item-main {
@@ -1720,6 +1730,11 @@
 
 .police-alert-item-actions .police-action {
   width: 100%;
+}
+
+.police-badge.neutral {
+  background: #e2e8f0;
+  color: #334155;
 }
 
 .police-nearby-layout {
