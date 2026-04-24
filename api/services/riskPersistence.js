@@ -13,7 +13,7 @@ let activeModelCache = {
   expiresAt: 0,
 };
 
-function logPersistence(event, details = {}) {
+function logPersistence(event, details = {}) { 
   console.info("[risk/persist]", event, details);
 }
 

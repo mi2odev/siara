@@ -21,6 +21,9 @@ export default function PoliceVerificationQueuePage() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
 
+  const highPriorityCount = queue.filter((item) => ['high', 'critical'].includes(item.severity)).length
+  const assignedCount = queue.filter((item) => item.assignedOfficer?.id).length
+
   const loadQueue = React.useCallback(async () => {
     setIsLoading(true)
     setError('')
@@ -66,18 +69,18 @@ export default function PoliceVerificationQueuePage() {
     <>
       <section className="police-section">
         <h2>Queue Metrics</h2>
-        <ul className="police-list">
-          <li><strong>Pending queue:</strong> {queue.length}</li>
-          <li><strong>High priority:</strong> {queue.filter((item) => ['high', 'critical'].includes(item.severity)).length}</li>
-          <li><strong>Assigned already:</strong> {queue.filter((item) => item.assignedOfficer?.id).length}</li>
+        <ul className="police-list police-verification-side-list">
+          <li><strong>Awaiting review:</strong> {queue.length}</li>
+          <li><strong>Urgent reports:</strong> {highPriorityCount}</li>
+          <li><strong>Already assigned:</strong> {assignedCount}</li>
         </ul>
       </section>
       <section className="police-section">
         <h2>Review Tips</h2>
-        <ul className="police-list">
-          <li>Verify incidents that have enough field context and location clarity.</li>
-          <li>Reject reports only when the incident is clearly invalid or duplicated.</li>
-          <li>Assign self when you are taking ownership in the field.</li>
+        <ul className="police-list police-verification-side-list">
+          <li>Approve reports only when location and context are clear.</li>
+          <li>Decline reports that are duplicates, spam, or clearly invalid.</li>
+          <li>Take case before field dispatch when you own the operation.</li>
         </ul>
       </section>
     </>
@@ -90,39 +93,43 @@ export default function PoliceVerificationQueuePage() {
       notificationCount={queue.length}
       verificationPendingCount={queue.length}
     >
-      <section className="police-section">
-        <div className="police-command-section-head">
+      <section className="police-section police-verification-page">
+        <div className="police-command-section-head police-verification-page-head">
           <div>
             <h2>Verification Queue</h2>
-            <p className="police-shortcuts-hint">Pending citizen or officer reports awaiting police verification.</p>
+            <p className="police-shortcuts-hint">Review incoming field reports before they enter active operations.</p>
           </div>
-          <button type="button" className="police-action police-action-secondary" onClick={loadQueue}>
+          <button type="button" className="police-action police-action-secondary police-verification-refresh" onClick={loadQueue}>
             Refresh
           </button>
         </div>
 
-        {error ? <p className="police-meta" style={{ color: '#b91c1c' }}>{error}</p> : null}
-        {isLoading ? <p className="police-meta">Loading verification queue...</p> : null}
+        {error ? <p className="police-meta police-verification-feedback police-verification-feedback-error">{error}</p> : null}
+        {isLoading ? <p className="police-meta police-verification-feedback">Loading verification queue...</p> : null}
 
         <div className="police-verification-grid">
           {queue.map((incident) => (
             <article key={incident.id} className="police-verification-card">
               <div className="police-verification-center">
-                <strong className="police-title">{incident.displayId} · {incident.title}</strong>
-                <p className="police-meta">{incident.description || 'No description provided.'}</p>
-                <span className="police-meta">📍 {incident.locationText}</span>
-                <span className="police-meta">Reported {incident.timeAgo}</span>
-                {incident.reportedBy?.name ? <span className="police-meta">Reporter: {incident.reportedBy.name}</span> : null}
+                <strong className="police-title police-verification-title">{incident.displayId} · {incident.title || 'Untitled report'}</strong>
+                <p className="police-meta police-verification-description">{incident.description || 'No additional description provided.'}</p>
+                <div className="police-verification-facts">
+                  <span className="police-meta police-verification-fact">Location: {incident.locationText || 'Not provided'}</span>
+                  <span className="police-meta police-verification-fact">Reported: {incident.timeAgo || 'Unknown time'}</span>
+                  {incident.reportedBy?.name ? <span className="police-meta police-verification-fact">Reporter: {incident.reportedBy.name}</span> : null}
+                </div>
               </div>
 
               <div className="police-verification-right">
-                <span className={`police-badge ${incident.severity}`}>{displayLabel(incident.severity)}</span>
-                <span className="police-meta">{displayLabel(incident.status)}</span>
+                <div className="police-verification-status-line">
+                  <span className={`police-badge ${incident.severity}`}>{displayLabel(incident.severity)}</span>
+                  <span className="police-meta">{displayLabel(incident.status)}</span>
+                </div>
                 <div className="police-verification-actions">
-                  <button className="police-action police-action-verify" onClick={() => handleAction(incident.id, 'verify')}>Verify</button>
-                  <button className="police-action police-action-reject" onClick={() => handleAction(incident.id, 'reject')}>Reject</button>
-                  <button className="police-action police-action-view" onClick={() => handleAction(incident.id, 'assign')}>Assign Self</button>
-                  <button className="police-action police-action-secondary" onClick={() => navigate(`/police/incident/${incident.id}`)}>Open</button>
+                  <button className="police-action police-verification-btn police-verification-btn-verify" onClick={() => handleAction(incident.id, 'verify')}>Approve</button>
+                  <button className="police-action police-verification-btn police-verification-btn-reject" onClick={() => handleAction(incident.id, 'reject')}>Decline</button>
+                  <button className="police-action police-verification-btn police-verification-btn-assign" onClick={() => handleAction(incident.id, 'assign')}>Take Case</button>
+                  <button className="police-action police-verification-btn police-verification-btn-open" onClick={() => navigate(`/police/incident/${incident.id}`)}>Details</button>
                 </div>
               </div>
             </article>
