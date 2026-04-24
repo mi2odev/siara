@@ -126,7 +126,7 @@ export default function PoliceIncidentDetailPage() {
   return (
     <PoliceShell activeKey="active-incidents" rightPanel={rightPanel} verificationPendingCount={incident?.status === 'pending' ? 1 : 0}>
       <div className="police-detail-layout">
-        <section className="police-section police-incident-profile">
+        <section className="police-section police-incident-profile" data-severity={incident?.severity || 'low'}>
           {error ? <p className="police-meta" style={{ color: '#b91c1c' }}>{error}</p> : null}
           {isLoading ? <p className="police-meta">Loading incident...</p> : null}
 
@@ -220,7 +220,7 @@ export default function PoliceIncidentDetailPage() {
             <strong className="police-nearby-title">Nearby Incidents</strong>
             <ul className="police-list police-nearby-list">
               {nearbyIncidents.map((item) => (
-                <li key={item.id} className="police-nearby-item">
+                <li key={item.id} className="police-nearby-item" data-severity={item.severity}>
                   <strong className="police-nearby-id">{item.displayId}</strong>
                   <span className="police-nearby-type">{item.title}</span>
                   <span className="police-nearby-location">{item.locationText}</span>

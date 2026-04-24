@@ -90,7 +90,7 @@ export default function PoliceMyIncidentsPage() {
 
         <div className="police-my-incidents-list">
           {incidents.map((incident) => (
-            <article key={incident.id} className="police-my-incident-card">
+            <article key={incident.id} className="police-my-incident-card" data-severity={incident.severity}>
               <div className="police-my-incident-main">
                 <h3>{incident.displayId}</h3>
                 <p>{incident.title}</p>

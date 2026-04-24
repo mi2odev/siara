@@ -23,6 +23,37 @@ function displayLabel(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+function formatIncidentCardTime(incident) {
+  const value = incident?.occurredAt || incident?.createdAt || null
+  return value ? formatPoliceDateTime(value, { includeYear: false }) : 'Unknown time'
+}
+
+function formatIncidentRelativeAge(incident) {
+  const value = incident?.occurredAt || incident?.createdAt || null
+  if (!value) {
+    return 'Unknown time'
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown time'
+  }
+
+  const diffMinutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000))
+  if (diffMinutes < 60) {
+    const minutes = Math.max(1, diffMinutes)
+    return `${minutes} min ago`
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) {
+    return `${diffHours} h ago`
+  }
+
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+}
+
 export default function PolicePage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -30,6 +61,7 @@ export default function PolicePage() {
   const [dashboard, setDashboard] = React.useState(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
+  const [lastUpdatedAt, setLastUpdatedAt] = React.useState(null)
 
   const activeView = searchParams.get('view') === 'active'
 
@@ -41,6 +73,7 @@ export default function PolicePage() {
       await syncPoliceBrowserLocation().catch(() => null)
       const nextDashboard = await getPoliceDashboard()
       setDashboard(nextDashboard)
+      setLastUpdatedAt(new Date().toISOString())
     } catch (loadError) {
       setError(loadError.message || 'Failed to load police dashboard.')
     } finally {
@@ -69,25 +102,59 @@ export default function PolicePage() {
     ? dashboard.mapMarkers.filter((item) => item?.lat != null && item?.lng != null)
     : []
 
+  const incidentsToShow = activeIncidents.slice(0, activeView ? 30 : 5)
+  const criticalCount = activeIncidents.filter((item) => item.severity === 'critical').length
+  const unassignedCount = activeIncidents.filter((item) => !item.assignedOfficer?.id).length
+  const officerInitials = String(officer?.name || 'Officer')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'OF'
+
   const mapCenter = mapMarkers[0]
     ? [mapMarkers[0].lat, mapMarkers[0].lng]
     : [36.7538, 3.0588]
 
   const rightPanel = (
     <>
-      <section className="police-section">
+      <section className="police-section police-dashboard-side-card">
         <h2>Officer</h2>
-        <div className="police-selected-details">
+        <div className="police-dashboard-officer-head">
+          <div className="police-dashboard-officer-meta">
+            <strong>{officer?.name || 'Officer'}</strong>
+            <p className="police-meta">{officer?.rank || 'Police Officer'}</p>
+          </div>
+          {officer?.avatarUrl ? (
+            <img
+              src={officer.avatarUrl}
+              alt={officer?.name || 'Officer'}
+              className="police-dashboard-officer-avatar-image"
+            />
+          ) : (
+            <span className="police-dashboard-officer-avatar" aria-hidden="true">{officerInitials}</span>
+          )}
+        </div>
+
+        <div className="police-selected-details police-dashboard-side-details">
           <div className="police-selected-line"><span>Name</span><strong>{officer?.name || 'Officer'}</strong></div>
           <div className="police-selected-line"><span>Rank</span><strong>{officer?.rank || 'Police Officer'}</strong></div>
           <div className="police-selected-line"><span>Badge</span><strong>{officer?.badgeNumber || 'Pending'}</strong></div>
-          <div className="police-selected-line"><span>Status</span><strong>{officer?.isOnDuty ? 'On Duty' : 'Off Duty'}</strong></div>
+          <div className="police-selected-line">
+            <span>Status</span>
+            <strong>
+              <span className={`police-dashboard-duty ${officer?.isOnDuty ? 'on' : 'off'}`}>
+                {officer?.isOnDuty ? 'On Duty' : 'Off Duty'}
+              </span>
+            </strong>
+          </div>
         </div>
       </section>
 
-      <section className="police-section">
+      <section className="police-section police-dashboard-side-card">
         <h2>Work Zone</h2>
-        <ul className="police-list">
+        <ul className="police-list police-dashboard-side-list">
           <li><strong>Wilaya:</strong> {workZone?.wilaya?.name || 'Not selected'}</li>
           <li><strong>Commune:</strong> {workZone?.commune?.name || 'Not selected'}</li>
           <li><strong>Unread alerts:</strong> {stats.unreadAlertsCount}</li>
@@ -105,8 +172,8 @@ export default function PolicePage() {
       verificationPendingCount={stats.pendingVerificationCount}
       emergencyMode={stats.highPriorityCount >= 3}
     >
-      <section className="police-section">
-        <div className="police-command-section-head">
+      <section className="police-section police-dashboard-overview">
+        <div className="police-command-section-head police-dashboard-head">
           <div>
             <h2>{activeView ? 'Active Incidents' : 'Police Dashboard'}</h2>
             <p className="police-shortcuts-hint">
@@ -115,20 +182,28 @@ export default function PolicePage() {
                 : `Live operations summary for ${workZone?.commune?.name || workZone?.wilaya?.name || 'your assigned zone'}.`}
             </p>
           </div>
-          <button type="button" className="police-action police-action-secondary" onClick={loadDashboard}>
-            Refresh
-          </button>
+          <div className="police-dashboard-head-actions">
+            <div className="police-dashboard-sync">
+              <span>Last sync</span>
+              <strong>{lastUpdatedAt ? formatPoliceDateTime(lastUpdatedAt) : 'Pending'}</strong>
+            </div>
+            <button type="button" className="police-action police-action-secondary police-dashboard-refresh" onClick={loadDashboard}>
+              Refresh
+            </button>
+          </div>
         </div>
 
-        {error ? <p className="police-meta" style={{ color: '#b91c1c' }}>{error}</p> : null}
-        {isLoading ? <p className="police-meta">Loading dashboard...</p> : null}
+        {error ? <p className="police-meta police-dashboard-feedback police-dashboard-feedback-error">{error}</p> : null}
+        {isLoading ? <p className="police-meta police-dashboard-feedback">Loading dashboard...</p> : null}
 
         {!activeView ? (
-          <div className="police-stats-grid">
-            <div className="police-stat"><span>Active Incidents</span><strong>{stats.activeCount}</strong><em>Open in zone</em></div>
-            <div className="police-stat"><span>High Priority</span><strong>{stats.highPriorityCount}</strong><em>Need attention</em></div>
-            <div className="police-stat"><span>Pending Verification</span><strong>{stats.pendingVerificationCount}</strong><em>Review queue</em></div>
-            <div className="police-stat"><span>Unread Alerts</span><strong>{stats.unreadAlertsCount}</strong><em>Supervisor channel</em></div>
+          <div className="police-stats-grid police-dashboard-stats">
+            <div className="police-stat police-dashboard-stat"><span>Active Incidents</span><strong>{stats.activeCount}</strong><em>Open in assigned zone</em></div>
+            <div className="police-stat police-dashboard-stat"><span>High Priority</span><strong>{stats.highPriorityCount}</strong><em>Requires fast response</em></div>
+            <div className="police-stat police-dashboard-stat"><span>Pending Verification</span><strong>{stats.pendingVerificationCount}</strong><em>Awaiting decision</em></div>
+            <div className="police-stat police-dashboard-stat"><span>Unread Alerts</span><strong>{stats.unreadAlertsCount}</strong><em>Supervisor channel</em></div>
+            <div className="police-stat police-dashboard-stat"><span>Critical Incidents</span><strong>{criticalCount}</strong><em>Top severity now</em></div>
+            <div className="police-stat police-dashboard-stat"><span>Unassigned Cases</span><strong>{unassignedCount}</strong><em>No officer attached</em></div>
           </div>
         ) : null}
       </section>
@@ -168,7 +243,7 @@ export default function PolicePage() {
         </section>
       ) : null}
 
-      <section className="police-section">
+      <section className="police-section police-dashboard-incidents-section">
         <div className="police-command-section-head">
           <h2>Active Incidents</h2>
           {!activeView ? (
@@ -179,24 +254,43 @@ export default function PolicePage() {
         </div>
 
         <div className="police-feed">
-          {activeIncidents.slice(0, activeView ? 30 : 5).map((incident) => (
-            <article key={incident.id} className="police-stream-row" data-severity={incident.severity}>
+          {incidentsToShow.map((incident) => (
+            <article key={incident.id} className="police-stream-row police-dashboard-incident-card" data-severity={incident.severity}>
               <span className={`police-severity-strip ${incident.severity}`} aria-hidden="true"></span>
               <div className="police-stream-main">
-                <div className="police-stream-headline">
-                  <span className={`police-badge ${incident.severity}`}>{displayLabel(incident.severity)}</span>
-                  <strong className="police-stream-title">{incident.title}</strong>
-                  <span className="police-stream-time">{incident.timeAgo}</span>
+                <div className="police-dashboard-incident-id-row">
+                  <div className="police-dashboard-incident-id-left">
+                    <span className="police-stream-id">{incident.displayId}</span>
+                    <span className={`police-badge ${incident.severity} police-dashboard-severity-badge`}>{displayLabel(incident.severity)}</span>
+                  </div>
+                  <div className="police-dashboard-time-wrap">
+                    <span className="police-stream-time police-dashboard-incident-time">{formatIncidentCardTime(incident)}</span>
+                    <span className="police-meta police-dashboard-incident-time-ago">{formatIncidentRelativeAge(incident)}</span>
+                  </div>
                 </div>
-                <div className="police-stream-meta-line">
-                  <span>{incident.locationText}</span>
-                  <span>Status: {displayLabel(incident.status)}</span>
+                <div className="police-stream-headline police-dashboard-incident-headline">
+                  <strong className="police-stream-title">{incident.title || 'Untitled incident'}</strong>
                 </div>
                 <p className="police-stream-description">{incident.description || 'No description provided.'}</p>
+                <div className="police-stream-meta-line police-dashboard-incident-meta">
+                  <span className="police-dashboard-incident-chip">Location: {incident.locationText}</span>
+                  <span className="police-dashboard-incident-chip">Status: {displayLabel(incident.status)}</span>
+                  {incident.sourceChannel ? (
+                    <span className="police-dashboard-incident-chip">Source: {displayLabel(incident.sourceChannel)}</span>
+                  ) : null}
+                  {incident.reportedBy?.name ? (
+                    <span className="police-dashboard-incident-chip">Reporter: {incident.reportedBy.name}</span>
+                  ) : null}
+                  <span className="police-dashboard-incident-chip">Notes: {incident.fieldNoteCount}</span>
+                </div>
               </div>
-              <div className="police-stream-actions">
-                <button type="button" className="police-action police-action-view" onClick={() => navigate(`/police/incident/${incident.id}`)}>
-                  Open
+              <div className="police-stream-actions police-dashboard-incident-actions">
+                <button
+                  type="button"
+                  className="police-action police-action-view police-dashboard-open-btn"
+                  onClick={() => navigate(`/police/incident/${incident.id}`)}
+                >
+                  Open Case
                 </button>
               </div>
             </article>
@@ -233,15 +327,17 @@ export default function PolicePage() {
                     <th>Incident</th>
                     <th>Location</th>
                     <th>Distance</th>
+                    <th>Severity</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {nearbyIncidents.slice(0, 5).map((incident) => (
-                    <tr key={incident.id}>
+                    <tr key={incident.id} className="police-nearby-table-row" data-severity={incident.severity}>
                       <td>{incident.displayId}</td>
                       <td>{incident.locationText}</td>
                       <td>{incident.distanceLabel || '-'}</td>
+                      <td><span className={`police-badge ${incident.severity}`}>{displayLabel(incident.severity)}</span></td>
                       <td>{displayLabel(incident.status)}</td>
                     </tr>
                   ))}
@@ -261,10 +357,11 @@ export default function PolicePage() {
                 View all
               </button>
             </div>
-            <ul className="police-list">
+            <ul className="police-list police-dashboard-list">
               {myIncidents.slice(0, 5).map((incident) => (
                 <li key={incident.id}>
                   <strong>{incident.displayId}</strong> {incident.title} in {incident.locationText} ({displayLabel(incident.status)})
+                  <span className={`police-badge ${incident.severity}`}>{displayLabel(incident.severity)}</span>
                 </li>
               ))}
               {!isLoading && myIncidents.length === 0 ? <li>No incidents are assigned to you yet.</li> : null}
@@ -278,7 +375,7 @@ export default function PolicePage() {
                 Full history
               </button>
             </div>
-            <ul className="police-list">
+            <ul className="police-list police-dashboard-list">
               {recentHistory.map((entry) => (
                 <li key={entry.id}>
                   <strong>{displayLabel(entry.actionType)}</strong> on {formatPoliceDateTime(entry.createdAt)}{entry.reportId ? ` for ${entry.reportId}` : ''}

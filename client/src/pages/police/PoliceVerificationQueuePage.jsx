@@ -109,7 +109,7 @@ export default function PoliceVerificationQueuePage() {
 
         <div className="police-verification-grid">
           {queue.map((incident) => (
-            <article key={incident.id} className="police-verification-card">
+            <article key={incident.id} className="police-verification-card" data-severity={incident.severity}>
               <div className="police-verification-center">
                 <strong className="police-title police-verification-title">{incident.displayId} · {incident.title || 'Untitled report'}</strong>
                 <p className="police-meta police-verification-description">{incident.description || 'No additional description provided.'}</p>

@@ -136,42 +136,53 @@ export default function PoliceNearbyIncidentsPage() {
       ? [locationCoords.lat, locationCoords.lng]
       : [DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng]
 
+  const highSeverityCount = nearbyIncidents.filter((item) => ['high', 'critical'].includes(item.severity)).length
+
   const rightPanel = (
-    <section className="police-section">
+    <section className="police-section police-nearby-page-side-card">
       <h2>Nearby Summary</h2>
-      <ul className="police-list">
-        <li><strong>Radius:</strong> 500 m</li>
-        <li><strong>Nearby incidents:</strong> {nearbyIncidents.length}</li>
+      <ul className="police-list police-nearby-page-side-list">
+        <li><strong>Search radius:</strong> 500 m</li>
+        <li><strong>Incidents found:</strong> {nearbyIncidents.length}</li>
+        <li><strong>High severity:</strong> {highSeverityCount}</li>
         <li><strong>Location status:</strong> {displayLabel(locationState.key)}</li>
+        <li><strong>Selected case:</strong> {selectedIncident?.displayId || 'None'}</li>
       </ul>
     </section>
   )
 
   return (
     <PoliceShell activeKey="nearby-incidents" rightPanel={rightPanel} notificationCount={nearbyIncidents.length}>
-      <section className="police-section">
-        <div className="police-command-section-head">
-          <h2>Nearby Incidents</h2>
-          <button
-            type="button"
-            className="police-action police-action-secondary"
-            onClick={loadNearby}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Refreshing...' : 'Refresh location'}
-          </button>
+      <section className="police-section police-nearby-page">
+        <div className="police-command-section-head police-nearby-page-head">
+          <div>
+            <h2>Nearby Incidents</h2>
+            <p className="police-shortcuts-hint">Live incidents detected around your latest location with a 500-meter response radius.</p>
+          </div>
+          <div className="police-nearby-page-head-actions">
+            <span className="police-nearby-page-radius">Radius 500 m</span>
+            <button
+              type="button"
+              className="police-action police-action-secondary police-nearby-page-refresh"
+              onClick={loadNearby}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Refreshing...' : 'Refresh location'}
+            </button>
+          </div>
         </div>
 
-        <p className="police-shortcuts-hint">{locationState.message}</p>
-        {error ? <p className="police-meta" style={{ color: '#b91c1c' }}>{error}</p> : null}
-        {!error && isLoading ? <p className="police-meta">Loading nearby incidents...</p> : null}
+        <p className="police-shortcuts-hint police-nearby-page-location-message">{locationState.message}</p>
+        {error ? <p className="police-meta police-nearby-page-feedback police-nearby-page-feedback-error">{error}</p> : null}
+        {!error && isLoading ? <p className="police-meta police-nearby-page-feedback">Loading nearby incidents...</p> : null}
 
-        <div className="police-nearby-layout">
-          <div className="police-nearby-list">
+        <div className="police-nearby-layout police-nearby-page-layout">
+          <div className="police-nearby-list police-nearby-page-list">
             {nearbyIncidents.map((incident) => (
               <article
                 key={incident.id}
-                className={`police-nearby-item ${selectedIncident?.id === incident.id ? 'active' : ''}`}
+                className={`police-nearby-item police-nearby-page-item ${selectedIncident?.id === incident.id ? 'active' : ''}`}
+                data-severity={incident.severity}
                 onClick={() => setSelectedIncidentId(incident.id)}
                 role="button"
                 tabIndex={0}
@@ -182,35 +193,40 @@ export default function PoliceNearbyIncidentsPage() {
                   }
                 }}
               >
-                <div className="police-nearby-item-top">
-                  <strong>{incident.displayId}</strong>
-                  <span>{incident.distanceLabel || 'Nearby'}</span>
+                <div className="police-nearby-item-top police-nearby-page-item-top">
+                  <div className="police-nearby-page-id-wrap">
+                    <strong>{incident.displayId}</strong>
+                    <span className={`police-badge ${incident.severity}`}>{displayLabel(incident.severity)}</span>
+                  </div>
+                  <span className="police-nearby-page-distance">{incident.distanceLabel || 'Nearby'}</span>
                 </div>
-                <p>{incident.locationText}</p>
-                <div className="police-nearby-item-meta">
-                  <span>Priority: {displayLabel(incident.severity)}</span>
-                  <span>Status: {displayLabel(incident.status)}</span>
+                <h3 className="police-nearby-page-title">{incident.title || 'Untitled incident'}</h3>
+                <p className="police-nearby-page-location">{incident.locationText}</p>
+                <div className="police-nearby-item-meta police-nearby-page-meta">
+                  <span className="police-nearby-page-chip">Status: {displayLabel(incident.status)}</span>
+                  {incident.reportedBy?.name ? <span className="police-nearby-page-chip">Reporter: {incident.reportedBy.name}</span> : null}
+                  <span className="police-nearby-page-chip">Notes: {incident.fieldNoteCount}</span>
                 </div>
-                <div className="police-nearby-item-actions">
+                <div className="police-nearby-item-actions police-nearby-page-actions">
                   <button
                     type="button"
-                    className="police-action police-action-view"
+                    className="police-action police-nearby-page-btn police-nearby-page-btn-view"
                     onClick={(event) => {
                       event.stopPropagation()
                       navigate(`/police/incident/${incident.id}`)
                     }}
                   >
-                    View
+                    Open Case
                   </button>
                   <button
                     type="button"
-                    className="police-action police-action-review"
+                    className="police-action police-nearby-page-btn police-nearby-page-btn-handle"
                     onClick={(event) => {
                       event.stopPropagation()
                       navigate('/police/verification', { state: { incidentId: incident.id } })
                     }}
                   >
-                    Continue handling
+                    Continue
                   </button>
                 </div>
               </article>
@@ -229,7 +245,11 @@ export default function PoliceNearbyIncidentsPage() {
             ) : null}
           </div>
 
-          <div className="police-nearby-map-wrap">
+          <div className="police-nearby-map-wrap police-nearby-page-map-wrap">
+            <div className="police-nearby-page-map-head">
+              <strong>Map Focus</strong>
+              <span>{selectedIncident?.displayId || 'No selection'}</span>
+            </div>
             <MapContainer center={mapCenter} zoom={14} scrollWheelZoom className="police-leaflet-map" key={selectedIncident?.id || locationState.key}>
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
