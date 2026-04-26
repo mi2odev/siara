@@ -26,6 +26,7 @@ const reportRoutes = require("./contollers/reports");
 const { startNotificationListener } = require("./services/notificationListener");
 const { initializeNotificationSocketServer } = require("./services/notificationSocket");
 const { startWeeklySummaryScheduler } = require("./services/weeklySummaryScheduler");
+const { ensureLocalUploadRoot } = require("./services/reportMediaStorage");
 const {
   predictDriverRisk,
   predictDriverRiskStream,
@@ -135,6 +136,9 @@ async function runStartupChecks() {
 }
 
 runStartupChecks();
+ensureLocalUploadRoot().catch((error) => {
+  console.warn("[startup] upload_root_create_failed", { message: error?.message });
+});
 initializeNotificationSocketServer(httpServer, {
   cors: {
     origin: allowedOrigin,

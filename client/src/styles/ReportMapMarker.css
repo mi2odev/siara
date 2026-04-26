@@ -149,6 +149,11 @@
   letter-spacing: 0.04em;
 }
 
+.siara-report-tooltip__badge--critical {
+  background: rgba(153, 27, 27, 0.16);
+  color: #7f1d1d;
+}
+
 .siara-report-tooltip__badge--high {
   background: rgba(239, 68, 68, 0.14);
   color: #b91c1c;

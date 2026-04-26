@@ -922,7 +922,10 @@ async function getOperationHistoryRows(
         COUNT(*) OVER() AS total_count,
         CONCAT_WS(' ', officer.first_name, officer.last_name) AS officer_name,
         report.title AS report_title,
-        alert.title AS alert_title
+        report.severity_hint AS report_severity_hint,
+        report.status AS report_status,
+        alert.title AS alert_title,
+        alert.severity AS alert_severity
       FROM app.police_operation_history history
       LEFT JOIN auth.users officer
         ON officer.id = history.officer_user_id
@@ -949,8 +952,15 @@ async function getOperationHistoryRows(
     officer: formatPerson(row.officer_user_id, row.officer_name),
     reportId: row.report_id || null,
     reportTitle: row.report_title || null,
+    reportSeverity: row.report_severity_hint != null
+      ? severityLabelFromHint(row.report_severity_hint)
+      : null,
+    reportStatus: row.report_status || null,
     alertId: row.alert_id || null,
     alertTitle: row.alert_title || null,
+    alertSeverity: row.alert_severity
+      ? String(row.alert_severity).toLowerCase()
+      : null,
   }));
 
   return {
@@ -1398,6 +1408,51 @@ async function getPoliceDashboard(officerUserId, db = pool) {
   const nearbyItems = nearbyIncidents.items || [];
   const myItems = myIncidents.items || [];
 
+  const allIncidentIds = Array.from(
+    new Set(
+      [...activeItems, ...nearbyItems, ...myItems]
+        .map((item) => item.id)
+        .filter(Boolean),
+    ),
+  );
+
+  const mediaByIncidentId = new Map();
+  if (allIncidentIds.length > 0) {
+    const mediaResult = await db.query(
+      `
+        SELECT id, report_id, media_type, url, uploaded_at
+        FROM app.report_media
+        WHERE report_id = ANY($1::uuid[])
+        ORDER BY uploaded_at ASC NULLS LAST, id ASC
+      `,
+      [allIncidentIds],
+    );
+
+    for (const row of mediaResult.rows) {
+      const reportId = row.report_id;
+      if (!mediaByIncidentId.has(reportId)) {
+        mediaByIncidentId.set(reportId, []);
+      }
+      mediaByIncidentId.get(reportId).push({
+        id: row.id,
+        mediaType: row.media_type,
+        url: row.url,
+        uploadedAt: row.uploaded_at ? new Date(row.uploaded_at).toISOString() : null,
+      });
+    }
+  }
+
+  function attachMedia(items) {
+    return items.map((item) => ({
+      ...item,
+      media: mediaByIncidentId.get(item.id) || [],
+    }));
+  }
+
+  const activeWithMedia = attachMedia(activeItems);
+  const nearbyWithMedia = attachMedia(nearbyItems);
+  const myWithMedia = attachMedia(myItems);
+
   return {
     officer: officerContext.officer,
     workZone: officerContext.workZone,
@@ -1409,19 +1464,24 @@ async function getPoliceDashboard(officerUserId, db = pool) {
       pendingVerificationCount: Number(statsResult.rows[0]?.pending_verification_count || 0),
       unreadAlertsCount: alerts.unreadCount,
     },
-    activeIncidents: activeItems,
-    nearbyIncidents: nearbyItems,
+    activeIncidents: activeWithMedia,
+    nearbyIncidents: nearbyWithMedia,
     nearbyLocationRequired: Boolean(nearbyIncidents.locationRequired),
-    myIncidents: myItems,
+    myIncidents: myWithMedia,
     recentHistory: recentHistory.items,
-    mapMarkers: [...activeItems, ...nearbyItems, ...myItems].map((item) => ({
+    mapMarkers: [...activeWithMedia, ...nearbyWithMedia, ...myWithMedia].map((item) => ({
       id: item.id,
       title: item.title,
+      description: item.description,
+      incidentType: item.incidentType,
       severity: item.severity,
       status: item.status,
       lat: item.location?.lat,
       lng: item.location?.lng,
       locationLabel: item.locationLabel,
+      occurredAt: item.occurredAt,
+      createdAt: item.createdAt,
+      media: (item.media || []).slice(0, 3),
     })),
   };
 }
@@ -1909,6 +1969,116 @@ async function addIncidentFieldNote(officerUserId, reportId, payload = {}, db = 
         toStatus: currentRow.status,
         note,
       });
+    },
+    db,
+  );
+}
+
+async function updateIncidentFieldNote(
+  officerUserId,
+  reportId,
+  historyId,
+  payload = {},
+  db = pool,
+) {
+  const note = normalizeOptionalNote(payload.note, "note");
+
+  if (!note) {
+    throw createError(400, "note is required");
+  }
+
+  const numericHistoryId = Number.parseInt(historyId, 10);
+  if (!Number.isInteger(numericHistoryId) || numericHistoryId <= 0) {
+    throw createError(400, "history id must be a positive integer");
+  }
+
+  return applyIncidentAction(
+    officerUserId,
+    reportId,
+    async ({ client }) => {
+      const existing = await client.query(
+        `
+          SELECT id, officer_user_id, report_id, action_type
+          FROM app.police_operation_history
+          WHERE id = $1::bigint
+          LIMIT 1
+        `,
+        [numericHistoryId],
+      );
+
+      const row = existing.rows[0];
+      if (!row) {
+        throw createError(404, "Field note not found");
+      }
+      if (row.action_type !== "field_note") {
+        throw createError(400, "Only field notes can be edited");
+      }
+      if (row.report_id !== reportId) {
+        throw createError(400, "Field note does not belong to this incident");
+      }
+      if (row.officer_user_id !== officerUserId) {
+        throw createError(403, "You can only edit your own field notes");
+      }
+
+      await client.query(
+        `
+          UPDATE app.police_operation_history
+          SET note = $2::text
+          WHERE id = $1::bigint
+        `,
+        [numericHistoryId, note],
+      );
+    },
+    db,
+  );
+}
+
+async function deleteIncidentFieldNote(
+  officerUserId,
+  reportId,
+  historyId,
+  db = pool,
+) {
+  const numericHistoryId = Number.parseInt(historyId, 10);
+  if (!Number.isInteger(numericHistoryId) || numericHistoryId <= 0) {
+    throw createError(400, "history id must be a positive integer");
+  }
+
+  return applyIncidentAction(
+    officerUserId,
+    reportId,
+    async ({ client }) => {
+      const existing = await client.query(
+        `
+          SELECT id, officer_user_id, report_id, action_type
+          FROM app.police_operation_history
+          WHERE id = $1::bigint
+          LIMIT 1
+        `,
+        [numericHistoryId],
+      );
+
+      const row = existing.rows[0];
+      if (!row) {
+        throw createError(404, "Field note not found");
+      }
+      if (row.action_type !== "field_note") {
+        throw createError(400, "Only field notes can be deleted");
+      }
+      if (row.report_id !== reportId) {
+        throw createError(400, "Field note does not belong to this incident");
+      }
+      if (row.officer_user_id !== officerUserId) {
+        throw createError(403, "You can only delete your own field notes");
+      }
+
+      await client.query(
+        `
+          DELETE FROM app.police_operation_history
+          WHERE id = $1::bigint
+        `,
+        [numericHistoryId],
+      );
     },
     db,
   );
@@ -3026,6 +3196,7 @@ module.exports = {
   assignIncidentBySupervisor,
   assignSelfToIncident,
   createSupervisorAlert,
+  deleteIncidentFieldNote,
   getIncidentById,
   getPoliceDashboard,
   getPoliceMe,
@@ -3038,6 +3209,7 @@ module.exports = {
   normalizeIncidentListParams,
   rejectIncident,
   requestIncidentBackup,
+  updateIncidentFieldNote,
   updateIncidentStatus,
   updatePoliceLocation,
   updatePoliceWorkZone,

@@ -8,6 +8,7 @@ const SEVERITY_HINT_TO_LEVEL = {
   1: 'low',
   2: 'medium',
   3: 'high',
+  4: 'critical',
 }
 
 const TYPE_META = {
@@ -20,6 +21,7 @@ const TYPE_META = {
 }
 
 const SEVERITY_COLORS = {
+  critical: '#991b1b',
   high: '#ef4444',
   medium: '#f59e0b',
   low: '#10b981',
@@ -78,7 +80,12 @@ function formatRelativeTime(value) {
 
 function getReportSeverity(report) {
   const explicitSeverity = String(report?.severity || '').trim().toLowerCase()
-  if (explicitSeverity === 'high' || explicitSeverity === 'medium' || explicitSeverity === 'low') {
+  if (
+    explicitSeverity === 'critical'
+    || explicitSeverity === 'high'
+    || explicitSeverity === 'medium'
+    || explicitSeverity === 'low'
+  ) {
     return explicitSeverity
   }
 
@@ -222,6 +229,17 @@ function ReportMapMarker({ report, onClick, tooltipPane, onTooltipVisibilityChan
     return null
   }
 
+  const tooltipProps = {
+    direction: 'top',
+    offset: [0, -20],
+    sticky: true,
+    opacity: 1,
+    className: 'siara-report-tooltip',
+  }
+  if (tooltipPane) {
+    tooltipProps.pane = tooltipPane
+  }
+
   return (
     <Marker
       position={position}
@@ -233,14 +251,7 @@ function ReportMapMarker({ report, onClick, tooltipPane, onTooltipVisibilityChan
         tooltipclose: () => onTooltipVisibilityChange?.(false),
       }}
     >
-      <Tooltip
-        direction="top"
-        offset={[0, -20]}
-        sticky
-        opacity={1}
-        pane={tooltipPane || undefined}
-        className="siara-report-tooltip"
-      >
+      <Tooltip {...tooltipProps}>
         <ReportHoverCard report={report} />
       </Tooltip>
     </Marker>

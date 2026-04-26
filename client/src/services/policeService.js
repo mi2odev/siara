@@ -325,6 +325,14 @@ function normalizeHistoryItem(item) {
     return null
   }
 
+  const reportSeverity = item.reportSeverity
+    ? String(item.reportSeverity).toLowerCase()
+    : null
+  const alertSeverity = item.alertSeverity
+    ? String(item.alertSeverity).toLowerCase()
+    : null
+  const severity = reportSeverity || alertSeverity || null
+
   return {
     ...item,
     id: item.id,
@@ -333,6 +341,9 @@ function normalizeHistoryItem(item) {
     createdAtLabel: formatPoliceDateTime(item.createdAt || null),
     actionType: item.actionType || 'update_status',
     officer: normalizePerson(item.officer),
+    reportSeverity,
+    alertSeverity,
+    severity,
   }
 }
 
@@ -625,6 +636,45 @@ export function updatePoliceIncidentStatus(incidentId, payload = {}) {
 
 export function addPoliceFieldNote(incidentId, payload = {}) {
   return runIncidentAction(incidentId, 'field-note', payload, 'Failed to add field note')
+}
+
+export async function updatePoliceFieldNote(incidentId, noteId, payload = {}) {
+  try {
+    const response = await userRequest.patch(
+      `/police/incidents/${incidentId}/field-note/${noteId}`,
+      payload,
+    )
+    return {
+      incident: normalizeIncident(response.data?.incident),
+      nearbyIncidents: Array.isArray(response.data?.nearbyIncidents)
+        ? response.data.nearbyIncidents.map(normalizeIncident).filter(Boolean)
+        : [],
+      history: Array.isArray(response.data?.history)
+        ? response.data.history.map(normalizeHistoryItem).filter(Boolean)
+        : [],
+    }
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to update field note')
+  }
+}
+
+export async function deletePoliceFieldNote(incidentId, noteId) {
+  try {
+    const response = await userRequest.delete(
+      `/police/incidents/${incidentId}/field-note/${noteId}`,
+    )
+    return {
+      incident: normalizeIncident(response.data?.incident),
+      nearbyIncidents: Array.isArray(response.data?.nearbyIncidents)
+        ? response.data.nearbyIncidents.map(normalizeIncident).filter(Boolean)
+        : [],
+      history: Array.isArray(response.data?.history)
+        ? response.data.history.map(normalizeHistoryItem).filter(Boolean)
+        : [],
+    }
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to delete field note')
+  }
 }
 
 export async function listPoliceAlerts(params = {}) {

@@ -1,13 +1,21 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet'
 import { useNavigate, useParams } from 'react-router-dom'
 
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
+
 import PoliceShell from '../../components/layout/PoliceShell'
+import { AuthContext } from '../../contexts/AuthContext'
 import {
   addPoliceFieldNote,
+  deletePoliceFieldNote,
   getPoliceIncident,
   rejectPoliceIncident,
   requestPoliceBackup,
+  updatePoliceFieldNote,
   updatePoliceIncidentStatus,
   verifyPoliceIncident,
 } from '../../services/policeService'
@@ -25,13 +33,28 @@ function severityColor(severity) {
   return '#16a34a'
 }
 
+function getInitials(name) {
+  return String(name || 'O')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'O'
+}
+
 export default function PoliceIncidentDetailPage() {
   const navigate = useNavigate()
   const { id } = useParams()
+  const { user } = useContext(AuthContext)
+  const currentUserId = user?.id || user?.userId || null
   const [note, setNote] = React.useState('')
   const [detail, setDetail] = React.useState(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
+  const [editingNoteId, setEditingNoteId] = React.useState(null)
+  const [editingDraft, setEditingDraft] = React.useState('')
+  const [noteBusyId, setNoteBusyId] = React.useState(null)
 
   const loadIncident = React.useCallback(async () => {
     setIsLoading(true)
@@ -54,6 +77,63 @@ export default function PoliceIncidentDetailPage() {
   const incident = detail?.incident || null
   const nearbyIncidents = detail?.nearbyIncidents || []
   const history = detail?.history || []
+  const fieldNotes = React.useMemo(
+    () => history.filter((entry) => entry.actionType === 'field_note' && entry.note),
+    [history],
+  )
+
+  const startEditNote = (entry) => {
+    setEditingNoteId(entry.id)
+    setEditingDraft(entry.note || '')
+    setError('')
+  }
+
+  const cancelEditNote = () => {
+    setEditingNoteId(null)
+    setEditingDraft('')
+  }
+
+  const saveEditNote = async (entry) => {
+    const trimmed = editingDraft.trim()
+    if (!trimmed) {
+      setError('Note cannot be empty.')
+      return
+    }
+    setNoteBusyId(entry.id)
+    setError('')
+    try {
+      const next = await updatePoliceFieldNote(incident.id, entry.id, { note: trimmed })
+      setDetail(next)
+      setEditingNoteId(null)
+      setEditingDraft('')
+    } catch (updateError) {
+      setError(updateError.message || 'Failed to update field note.')
+    } finally {
+      setNoteBusyId(null)
+    }
+  }
+
+  const removeNote = async (entry) => {
+    if (!incident) return
+    const confirmed = typeof window !== 'undefined'
+      ? window.confirm('Delete this field note? This cannot be undone.')
+      : true
+    if (!confirmed) return
+    setNoteBusyId(entry.id)
+    setError('')
+    try {
+      const next = await deletePoliceFieldNote(incident.id, entry.id)
+      setDetail(next)
+      if (editingNoteId === entry.id) {
+        setEditingNoteId(null)
+        setEditingDraft('')
+      }
+    } catch (deleteError) {
+      setError(deleteError.message || 'Failed to delete field note.')
+    } finally {
+      setNoteBusyId(null)
+    }
+  }
 
   const handleAction = async (action, payload = {}) => {
     if (!incident) {
@@ -150,6 +230,109 @@ export default function PoliceIncidentDetailPage() {
                 <div className="police-incident-fact"><span>Assigned</span><strong>{incident.assignedOfficer?.name || 'Unassigned'}</strong></div>
               </div>
 
+              <section className="police-incident-notes" aria-labelledby="police-incident-notes-title">
+                <div className="police-incident-notes-head">
+                  <h3 id="police-incident-notes-title">Field Notes</h3>
+                  <span className="police-incident-notes-count">{fieldNotes.length} note{fieldNotes.length === 1 ? '' : 's'}</span>
+                </div>
+
+                {fieldNotes.length === 0 ? (
+                  <p className="police-meta police-incident-notes-empty">
+                    No field notes recorded yet. Use the panel on the right to add one.
+                  </p>
+                ) : (
+                  <ul className="police-incident-notes-list">
+                    {fieldNotes.map((entry) => {
+                      const isMine = entry.officer?.id && currentUserId && entry.officer.id === currentUserId
+                      const isEditing = editingNoteId === entry.id
+                      const isBusy = noteBusyId === entry.id
+                      return (
+                        <li
+                          key={entry.id}
+                          className={`police-incident-note-card${isMine ? ' is-mine' : ''}`}
+                        >
+                          <div className="police-incident-note-avatar" aria-hidden="true">
+                            {getInitials(entry.officer?.name)}
+                          </div>
+                          <div className="police-incident-note-body">
+                            <div className="police-incident-note-head">
+                              <div className="police-incident-note-author">
+                                <strong>{entry.officer?.name || 'Officer'}</strong>
+                                {isMine ? <span className="police-incident-note-tag">You</span> : null}
+                              </div>
+                              <time
+                                className="police-incident-note-time"
+                                dateTime={entry.createdAt || undefined}
+                              >
+                                {entry.createdAtLabel}
+                              </time>
+                            </div>
+
+                            {isEditing ? (
+                              <>
+                                <textarea
+                                  className="police-incident-note-editor"
+                                  value={editingDraft}
+                                  onChange={(event) => setEditingDraft(event.target.value)}
+                                  rows={3}
+                                  disabled={isBusy}
+                                />
+                                <div className="police-incident-note-actions">
+                                  <button
+                                    type="button"
+                                    className="police-action police-action-verify police-incident-note-btn"
+                                    onClick={() => saveEditNote(entry)}
+                                    disabled={isBusy || !editingDraft.trim()}
+                                  >
+                                    <CheckRoundedIcon fontSize="inherit" />
+                                    <span>{isBusy ? 'Saving…' : 'Save'}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="police-action police-action-view police-incident-note-btn"
+                                    onClick={cancelEditNote}
+                                    disabled={isBusy}
+                                  >
+                                    <CloseRoundedIcon fontSize="inherit" />
+                                    <span>Cancel</span>
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <p className="police-incident-note-text">{entry.note}</p>
+                                {isMine ? (
+                                  <div className="police-incident-note-actions">
+                                    <button
+                                      type="button"
+                                      className="police-action police-action-view police-incident-note-btn"
+                                      onClick={() => startEditNote(entry)}
+                                      disabled={isBusy}
+                                    >
+                                      <EditOutlinedIcon fontSize="inherit" />
+                                      <span>Edit</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="police-action police-action-reject police-incident-note-btn"
+                                      onClick={() => removeNote(entry)}
+                                      disabled={isBusy}
+                                    >
+                                      <DeleteOutlineRoundedIcon fontSize="inherit" />
+                                      <span>{isBusy ? 'Removing…' : 'Delete'}</span>
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </>
+                            )}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </section>
+
               <section className="police-incident-timeline">
                 <h3>Operation History</h3>
                 <ul className="police-list">
@@ -167,7 +350,20 @@ export default function PoliceIncidentDetailPage() {
                 <div className="police-evidence-grid">
                   {incident.media.map((item) => (
                     <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="police-evidence-item">
-                      <img src={item.url} alt={incident.title} className="police-incident-image" />
+                      <img
+                        src={item.url}
+                        alt={incident.title}
+                        className="police-incident-image"
+                        onError={(event) => {
+                          const img = event.currentTarget
+                          if (img.dataset.fallbackApplied === '1') return
+                          img.dataset.fallbackApplied = '1'
+                          img.replaceWith(Object.assign(document.createElement('div'), {
+                            className: 'police-evidence-missing',
+                            textContent: 'Image unavailable',
+                          }))
+                        }}
+                      />
                       <span className="police-evidence-label">{displayLabel(item.mediaType)}</span>
                     </a>
                   ))}

@@ -221,7 +221,13 @@ async function deleteCloudinaryAsset(storageKey) {
   }
 }
 
+async function ensureLocalUploadRoot() {
+  await fs.mkdir(REPORT_MEDIA_UPLOAD_ROOT, { recursive: true });
+}
+
 module.exports = {
   deleteCloudinaryAsset,
+  ensureLocalUploadRoot,
   uploadBufferToCloudinary,
+  REPORT_MEDIA_UPLOAD_ROOT,
 };

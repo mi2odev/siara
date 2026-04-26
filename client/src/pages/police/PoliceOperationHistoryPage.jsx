@@ -1,6 +1,16 @@
 import React, { useContext, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
+import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
+import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded'
+import SyncAltRoundedIcon from '@mui/icons-material/SyncAltRounded'
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
+import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded'
+import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded'
+
 import PoliceShell from '../../components/layout/PoliceShell'
 import { AuthContext } from '../../contexts/AuthContext'
 import {
@@ -48,6 +58,36 @@ function actionLabel(value) {
   return 'Police action'
 }
 
+function actionTone(value) {
+  if (value === 'verify_incident') return 'verify'
+  if (value === 'reject_incident') return 'reject'
+  if (value === 'request_backup') return 'backup'
+  if (value === 'update_status') return 'status'
+  if (value === 'assign_self') return 'assign'
+  if (value === 'field_note') return 'note'
+  if (value === 'mark_alert_read') return 'alert'
+  if (value === 'manual_log_entry') return 'manual'
+  return 'default'
+}
+
+function ActionIcon({ value }) {
+  const props = { fontSize: 'inherit' }
+  if (value === 'verify_incident') return <CheckRoundedIcon {...props} />
+  if (value === 'reject_incident') return <CloseRoundedIcon {...props} />
+  if (value === 'assign_self') return <BadgeOutlinedIcon {...props} />
+  if (value === 'request_backup') return <CampaignRoundedIcon {...props} />
+  if (value === 'update_status') return <SyncAltRoundedIcon {...props} />
+  if (value === 'field_note') return <DescriptionOutlinedIcon {...props} />
+  if (value === 'mark_alert_read') return <NotificationsActiveOutlinedIcon {...props} />
+  if (value === 'manual_log_entry') return <EditNoteRoundedIcon {...props} />
+  return <HistoryRoundedIcon {...props} />
+}
+
+function severityLabel(value) {
+  if (!value) return null
+  return String(value).charAt(0).toUpperCase() + String(value).slice(1)
+}
+
 export default function PoliceOperationHistoryPage() {
   const navigate = useNavigate()
   const { user } = useContext(AuthContext)
@@ -89,14 +129,23 @@ export default function PoliceOperationHistoryPage() {
     [dateFilter, historyItems, typeFilter],
   )
 
+  const verifiedCount = historyItems.filter((item) => item.actionType === 'verify_incident').length
+  const rejectedCount = historyItems.filter((item) => item.actionType === 'reject_incident').length
+  const noteCount = historyItems.filter((item) => item.actionType === 'field_note' || item.actionType === 'manual_log_entry').length
+
   const rightPanel = (
-    <section className="police-section">
-      <h2>History Summary</h2>
-      <ul className="police-list">
-        <li><strong>Officer:</strong> {officerName}</li>
-        <li><strong>Total actions:</strong> {historyItems.length}</li>
-        <li><strong>Visible actions:</strong> {filteredItems.length}</li>
-      </ul>
+    <section className="police-section police-dashboard-side-card">
+      <div className="police-dashboard-side-header">
+        <h2>History Summary</h2>
+      </div>
+      <div className="police-selected-details police-dashboard-side-details">
+        <div className="police-selected-line"><span>Officer</span><strong>{officerName}</strong></div>
+        <div className="police-selected-line"><span>Total actions</span><strong>{historyItems.length}</strong></div>
+        <div className="police-selected-line"><span>Visible</span><strong>{filteredItems.length}</strong></div>
+        <div className="police-selected-line"><span>Verified</span><strong>{verifiedCount}</strong></div>
+        <div className="police-selected-line"><span>Rejected</span><strong>{rejectedCount}</strong></div>
+        <div className="police-selected-line"><span>Notes</span><strong>{noteCount}</strong></div>
+      </div>
     </section>
   )
 
@@ -138,12 +187,29 @@ export default function PoliceOperationHistoryPage() {
 
   return (
     <PoliceShell activeKey="operation-history" rightPanel={rightPanel} notificationCount={filteredItems.length}>
-      <section className="police-section police-operation-history-page">
-        <div className="police-command-section-head">
-          <h2>Operation History</h2>
-          <span className="police-history-officer-badge">{officerName}</span>
+      <section className="police-section police-dashboard-overview police-operation-history-page">
+        <div className="police-command-section-head police-dashboard-head">
+          <div>
+            <h2>Operation History</h2>
+            <p className="police-shortcuts-hint">
+              Timeline of meaningful police actions. Location pings are hidden to keep the focus on decisions.
+            </p>
+          </div>
+          <div className="police-dashboard-head-actions">
+            <span className="police-history-officer-badge">{officerName}</span>
+            <button
+              type="button"
+              className="police-action police-dashboard-refresh"
+              onClick={loadHistory}
+              disabled={isLoading || isSubmittingNote}
+            >
+              {isLoading ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
         </div>
+      </section>
 
+      <section className="police-section police-history-toolbox">
         <div className="police-history-filters">
           <label className="police-filter-field">
             <span>Action type</span>
@@ -161,24 +227,15 @@ export default function PoliceOperationHistoryPage() {
 
           <button
             type="button"
-            className="police-action police-action-secondary"
+            className="police-action police-action-secondary police-history-clear"
             onClick={() => { setTypeFilter('all'); setDateFilter('') }}
           >
             Clear filters
           </button>
-
-          <button
-            type="button"
-            className="police-action police-action-secondary"
-            onClick={loadHistory}
-            disabled={isLoading || isSubmittingNote}
-          >
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </button>
         </div>
 
-        <form className="police-history-filters" onSubmit={handleSubmitManualEntry}>
-          <label className="police-filter-field" style={{ flex: '1 1 24rem' }}>
+        <form className="police-history-manual" onSubmit={handleSubmitManualEntry}>
+          <label className="police-filter-field police-history-manual-field">
             <span>Manual action note</span>
             <input
               type="text"
@@ -191,44 +248,72 @@ export default function PoliceOperationHistoryPage() {
           </label>
 
           <button type="submit" className="police-action police-action-review" disabled={isSubmittingNote}>
-            {isSubmittingNote ? 'Saving...' : 'Add note'}
+            {isSubmittingNote ? 'Saving…' : 'Add note'}
           </button>
         </form>
 
-        {error ? <p className="police-meta" style={{ color: '#b91c1c' }}>{error}</p> : null}
-        {!error && actionMessage ? <p className="police-meta" style={{ color: '#166534' }}>{actionMessage}</p> : null}
-        {isLoading ? <p className="police-meta">Loading meaningful police actions...</p> : null}
+        {error ? <p className="police-history-feedback police-history-feedback-error">{error}</p> : null}
+        {!error && actionMessage ? <p className="police-history-feedback police-history-feedback-success">{actionMessage}</p> : null}
+        {isLoading ? <p className="police-meta">Loading meaningful police actions…</p> : null}
+      </section>
+
+      <section className="police-section police-history-feed-section">
+        <div className="police-command-section-head">
+          <h2>Activity Timeline</h2>
+          <span className="police-meta">{filteredItems.length} of {historyItems.length} actions</span>
+        </div>
 
         <div className="police-history-list">
-          {filteredItems.map((item) => (
-            <article key={item.id} className="police-history-item">
-              <div className="police-history-item-top">
-                <strong>{actionLabel(item.actionType)}</strong>
-                <time dateTime={item.createdAt}>{item.createdAtLabel}</time>
-              </div>
-
-              <div className="police-history-item-meta">
-                <span>Officer: <strong>{item.officer?.name || officerName}</strong></span>
-                {item.reportId ? <span>Incident: <strong>{item.reportTitle || item.reportId}</strong></span> : null}
-                {item.alertId ? <span>Alert: <strong>{item.alertTitle || item.alertId}</strong></span> : null}
-                {item.toStatus ? <span>Status: <strong>{normalizeText(item.toStatus).replace(/_/g, ' ')}</strong></span> : null}
-              </div>
-
-              {item.note ? <p>{item.note}</p> : null}
-
-              {item.reportId ? (
-                <div className="police-history-item-actions">
-                  <button
-                    type="button"
-                    className="police-action police-action-view"
-                    onClick={() => navigate(`/police/incident/${item.reportId}`)}
-                  >
-                    Open incident
-                  </button>
+          {filteredItems.map((item) => {
+            const tone = actionTone(item.actionType)
+            const severity = item.severity || null
+            return (
+              <article
+                key={item.id}
+                className={`police-history-item police-history-item-${tone}`}
+                data-severity={severity || undefined}
+              >
+                <div className={`police-history-item-marker tone-${tone}`} aria-hidden="true">
+                  <ActionIcon value={item.actionType} />
                 </div>
-              ) : null}
-            </article>
-          ))}
+
+                <div className="police-history-item-body">
+                  <div className="police-history-item-top">
+                    <div className="police-history-item-title">
+                      <strong>{actionLabel(item.actionType)}</strong>
+                      {severity ? (
+                        <span className={`police-badge ${severity} police-history-severity-badge`}>
+                          {severityLabel(severity)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <time dateTime={item.createdAt}>{item.createdAtLabel}</time>
+                  </div>
+
+                  <div className="police-history-item-meta">
+                    <span>Officer: <strong>{item.officer?.name || officerName}</strong></span>
+                    {item.reportId ? <span>Incident: <strong>{item.reportTitle || item.reportId}</strong></span> : null}
+                    {item.alertId ? <span>Alert: <strong>{item.alertTitle || item.alertId}</strong></span> : null}
+                    {item.toStatus ? <span>Status: <strong>{normalizeText(item.toStatus).replace(/_/g, ' ')}</strong></span> : null}
+                  </div>
+
+                  {item.note ? <p className="police-history-item-note">{item.note}</p> : null}
+
+                  {item.reportId ? (
+                    <div className="police-history-item-actions">
+                      <button
+                        type="button"
+                        className="police-action police-action-view"
+                        onClick={() => navigate(`/police/incident/${item.reportId}`)}
+                      >
+                        Open incident
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </article>
+            )
+          })}
 
           {!isLoading && filteredItems.length === 0 ? (
             <div className="police-empty-state" role="status" aria-live="polite">

@@ -21,6 +21,8 @@ const {
   verifyIncident,
   addIncidentFieldNote,
   addManualPoliceHistoryEntry,
+  deleteIncidentFieldNote,
+  updateIncidentFieldNote,
   normalizeIncidentListParams,
 } = require("../services/policeService");
 const {
@@ -135,6 +137,31 @@ router.post("/incidents/:id/status", verifyTokenAndPolice, async (req, res, next
 router.post("/incidents/:id/field-note", verifyTokenAndPolice, async (req, res, next) => {
   try {
     return res.status(200).json(await addIncidentFieldNote(req.user.userId, req.params.id, req.body || {}));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.patch("/incidents/:id/field-note/:noteId", verifyTokenAndPolice, async (req, res, next) => {
+  try {
+    return res.status(200).json(await updateIncidentFieldNote(
+      req.user.userId,
+      req.params.id,
+      req.params.noteId,
+      req.body || {},
+    ));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.delete("/incidents/:id/field-note/:noteId", verifyTokenAndPolice, async (req, res, next) => {
+  try {
+    return res.status(200).json(await deleteIncidentFieldNote(
+      req.user.userId,
+      req.params.id,
+      req.params.noteId,
+    ));
   } catch (error) {
     return next(error);
   }
