@@ -1617,6 +1617,8 @@ export default function MapPage() {
                 locationRequestVersion={locationRequestVersion}
                 requestLocation={requestLocation}
                 onSelectedTimestampChange={setSelectedTimestampIso}
+                weatherData={weatherData}
+                placeName={resolvedPlaceName}
               />
             </div>
 

@@ -235,6 +235,91 @@ export async function uploadReportMedia(reportId, files) {
   }
 }
 
+function normalizeAuthor(author) {
+  if (!author || typeof author !== 'object') {
+    return null
+  }
+  const avatarUrl = normalizeReportMediaUrl(
+    author.avatarUrl || author.avatar_url || author.avatar || '',
+  )
+  return {
+    ...author,
+    avatarUrl,
+    avatar_url: avatarUrl,
+  }
+}
+
+function normalizeComment(comment) {
+  if (!comment || typeof comment !== 'object') {
+    return null
+  }
+  return {
+    ...comment,
+    author: normalizeAuthor(comment.author),
+  }
+}
+
+export async function getReportComments(reportId, params = {}) {
+  try {
+    const response = await publicRequest.get(`/reports/${reportId}/comments`, {
+      params: {
+        limit: params.limit,
+        offset: params.offset,
+      },
+    })
+    const comments = Array.isArray(response.data?.comments)
+      ? response.data.comments.map(normalizeComment).filter(Boolean)
+      : []
+    return {
+      comments,
+      pagination: response.data?.pagination || {
+        limit: params.limit || 20,
+        offset: params.offset || 0,
+        hasMore: false,
+        returned: comments.length,
+      },
+    }
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to load comments')
+  }
+}
+
+export async function addReportComment(reportId, body) {
+  try {
+    const response = await userRequest.post(`/reports/${reportId}/comments`, { body })
+    return normalizeComment(response.data?.comment)
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to add comment')
+  }
+}
+
+export async function deleteReportComment(reportId, commentId) {
+  try {
+    const response = await userRequest.delete(`/reports/${reportId}/comments/${commentId}`)
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to delete comment')
+  }
+}
+
+export async function toggleReportReaction(reportId, reactionType) {
+  try {
+    const response = await userRequest.post(`/reports/${reportId}/reactions`, { reactionType })
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to update reaction')
+  }
+}
+
+export async function removeReportReaction(reportId, reactionType) {
+  try {
+    const response = await userRequest.delete(`/reports/${reportId}/reactions/${reactionType}`)
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to remove reaction')
+  }
+}
+
 export async function listReports(params = {}) {
   try {
     const response = await publicRequest.get('/reports', {

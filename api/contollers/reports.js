@@ -8,8 +8,17 @@ const {
   createNotificationsForReport,
   fetchReportNotificationDiagnostics,
 } = require("../services/reportNotificationService");
-const { refreshReportSpamAnalysis } = require("../services/reportSpamDetectionService");
-const { verifyToken } = require("./verifytoken");
+const {
+  refreshReportSpamAnalysis,
+  queueReportSpamAnalysis,
+  reclassifyStuckReports,
+} = require("../services/reportSpamDetectionService");
+const {
+  hasRole: tokenHasRole,
+  resolveOptionalAuthenticatedUser,
+  verifyToken,
+  verifyTokenAndAdmin,
+} = require("./verifytoken");
 
 const REPORT_ID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -31,6 +40,15 @@ const ALLOWED_IMAGE_MIME_TYPES = new Set([
 ]);
 const ALLOWED_FEED_TYPES = new Set(["latest", "nearby", "verified", "following"]);
 const ALLOWED_SORT_TYPES = new Set(["recent", "severity"]);
+const ALLOWED_REACTION_TYPES = new Set(["like", "saw_it_too"]);
+const REACTION_COUNT_COLUMNS = Object.freeze({
+  like: "likes_count",
+  saw_it_too: "saw_it_too_count",
+});
+const MAX_COMMENT_BODY_LENGTH = 500;
+const COMMENTS_PREVIEW_LIMIT = 3;
+const DEFAULT_COMMENTS_PAGE_LIMIT = 20;
+const MAX_COMMENTS_PAGE_LIMIT = 100;
 const MAX_REPORT_MEDIA_FILES = 5;
 const MAX_REPORT_MEDIA_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_REPORT_LIST_LIMIT = 10;
@@ -81,6 +99,10 @@ const REPORT_SELECT_SQL = `
     ar.resolved_at,
     ar.source_channel,
     ar.reported_by_role_snapshot,
+    coalesce(ar.comments_count, 0) as comments_count,
+    coalesce(ar.likes_count, 0) as likes_count,
+    coalesce(ar.saw_it_too_count, 0) as saw_it_too_count,
+    ar.last_commented_at,
     ar.incident_location,
     ST_Y(ar.incident_location::geometry) as lat,
     ST_X(ar.incident_location::geometry) as lng,
@@ -465,12 +487,13 @@ function buildSpamAnalysis(row) {
   };
 }
 
-function mapReportRow(row) {
+function mapReportRow(row, { social } = {}) {
   if (!row) {
     return null;
   }
 
   const severityHint = Number(row.severity_hint);
+  const socialState = social || {};
 
   return {
     id: row.id,
@@ -500,6 +523,13 @@ function mapReportRow(row) {
     verifiedAt: row.verified_at || null,
     resolvedByOfficerId: row.resolved_by_officer_id || null,
     resolvedAt: row.resolved_at || null,
+    commentsCount: Number(row.comments_count || 0),
+    likesCount: Number(row.likes_count || 0),
+    sawItTooCount: Number(row.saw_it_too_count || 0),
+    lastCommentedAt: row.last_commented_at || null,
+    viewerHasLiked: Boolean(socialState.viewerHasLiked),
+    viewerSawItToo: Boolean(socialState.viewerSawItToo),
+    commentsPreview: Array.isArray(socialState.commentsPreview) ? socialState.commentsPreview : [],
     reportedBy: row.reported_by
       ? {
           id: row.reported_by,
@@ -513,6 +543,127 @@ function mapReportRow(row) {
         }
       : null,
   };
+}
+
+function mapCommentRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    reportId: row.report_id,
+    body: row.body || "",
+    isDeleted: Boolean(row.is_deleted),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    author: row.user_id
+      ? {
+          id: row.user_id,
+          name:
+            [row.author_first_name, row.author_last_name].filter(Boolean).join(" ") || null,
+          avatarUrl: row.author_avatar_url || "",
+          avatar_url: row.author_avatar_url || "",
+        }
+      : null,
+  };
+}
+
+async function fetchViewerReactionsMap(reportIds, viewerUserId, db = pool) {
+  if (!viewerUserId || !Array.isArray(reportIds) || reportIds.length === 0) {
+    return new Map();
+  }
+
+  const result = await db.query(
+    `
+      select report_id, reaction_type
+      from app.report_reactions
+      where user_id = $1
+        and report_id = any($2::uuid[])
+    `,
+    [viewerUserId, reportIds],
+  );
+
+  const map = new Map();
+  for (const reportId of reportIds) {
+    map.set(reportId, { viewerHasLiked: false, viewerSawItToo: false });
+  }
+  for (const row of result.rows) {
+    const entry = map.get(row.report_id) || { viewerHasLiked: false, viewerSawItToo: false };
+    if (row.reaction_type === "like") entry.viewerHasLiked = true;
+    if (row.reaction_type === "saw_it_too") entry.viewerSawItToo = true;
+    map.set(row.report_id, entry);
+  }
+  return map;
+}
+
+async function fetchCommentsPreviewMap(reportIds, limit = COMMENTS_PREVIEW_LIMIT, db = pool) {
+  if (!Array.isArray(reportIds) || reportIds.length === 0) {
+    return new Map();
+  }
+
+  const safeLimit = Math.max(1, Math.min(10, Number(limit) || COMMENTS_PREVIEW_LIMIT));
+  const result = await db.query(
+    `
+      select
+        ranked.id,
+        ranked.report_id,
+        ranked.user_id,
+        ranked.body,
+        ranked.is_deleted,
+        ranked.created_at,
+        ranked.updated_at,
+        u.first_name as author_first_name,
+        u.last_name as author_last_name,
+        u.avatar_url as author_avatar_url
+      from (
+        select
+          rc.*,
+          row_number() over (partition by rc.report_id order by rc.created_at desc) as rn
+        from app.report_comments rc
+        where rc.report_id = any($1::uuid[])
+          and rc.is_deleted = false
+      ) ranked
+      left join auth.users u on u.id = ranked.user_id
+      where ranked.rn <= $2
+      order by ranked.report_id, ranked.created_at desc
+    `,
+    [reportIds, safeLimit],
+  );
+
+  const map = new Map();
+  for (const reportId of reportIds) {
+    map.set(reportId, []);
+  }
+  for (const row of result.rows) {
+    const list = map.get(row.report_id) || [];
+    list.push(mapCommentRow(row));
+    map.set(row.report_id, list);
+  }
+  for (const [key, list] of map.entries()) {
+    map.set(key, list.reverse());
+  }
+  return map;
+}
+
+async function buildSocialEnrichment(reportIds, viewerUserId, db = pool) {
+  if (!Array.isArray(reportIds) || reportIds.length === 0) {
+    return new Map();
+  }
+
+  const [viewerMap, previewMap] = await Promise.all([
+    fetchViewerReactionsMap(reportIds, viewerUserId, db),
+    fetchCommentsPreviewMap(reportIds, COMMENTS_PREVIEW_LIMIT, db),
+  ]);
+
+  const enrichment = new Map();
+  for (const reportId of reportIds) {
+    enrichment.set(reportId, {
+      ...(viewerMap.get(reportId) || { viewerHasLiked: false, viewerSawItToo: false }),
+      commentsPreview: previewMap.get(reportId) || [],
+    });
+  }
+  return enrichment;
 }
 
 async function fetchReportRowById(reportId, db = pool) {
@@ -561,8 +712,13 @@ async function fetchReportMediaMap(reportIds, db = pool) {
   return mediaMap;
 }
 
-async function buildReportResponse(row, db = pool) {
-  const report = mapReportRow(row);
+async function buildReportResponse(row, db = pool, { viewerUserId = null } = {}) {
+  if (!row) {
+    return null;
+  }
+
+  const enrichment = await buildSocialEnrichment([row.id], viewerUserId, db);
+  const report = mapReportRow(row, { social: enrichment.get(row.id) });
   if (!report) {
     return null;
   }
@@ -573,16 +729,19 @@ async function buildReportResponse(row, db = pool) {
   };
 }
 
-async function buildReportsResponse(rows, db = pool) {
+async function buildReportsResponse(rows, db = pool, { viewerUserId = null } = {}) {
   if (!Array.isArray(rows) || rows.length === 0) {
     return [];
   }
 
   const reportIds = rows.map((row) => row.id);
-  const mediaMap = await fetchReportMediaMap(reportIds, db);
+  const [mediaMap, enrichment] = await Promise.all([
+    fetchReportMediaMap(reportIds, db),
+    buildSocialEnrichment(reportIds, viewerUserId, db),
+  ]);
 
   return rows.map((row) => ({
-    ...mapReportRow(row),
+    ...mapReportRow(row, { social: enrichment.get(row.id) }),
     media: mediaMap.get(row.id) || [],
   }));
 }
@@ -794,19 +953,7 @@ async function deleteRemoteMediaIfNeeded(mediaRows, { strict = true, context = "
   }
 }
 
-async function refreshReportSpamAnalysisSafely(reportId, context) {
-  try {
-    await refreshReportSpamAnalysis(reportId);
-  } catch (error) {
-    console.error("[reports] spam_analysis_refresh_failed", {
-      reportId,
-      context,
-      message: error.message,
-    });
-  }
-}
-
-async function listReports(query, db = pool) {
+async function listReports(query, db = pool, { viewerUserId = null } = {}) {
   const normalizedQuery = normalizeReportListQuery(query);
 
   if (normalizedQuery.feed === "following") {
@@ -888,7 +1035,7 @@ async function listReports(query, db = pool) {
 
   const hasMore = result.rows.length > normalizedQuery.limit;
   const rows = hasMore ? result.rows.slice(0, normalizedQuery.limit) : result.rows;
-  const reports = await buildReportsResponse(rows, db);
+  const reports = await buildReportsResponse(rows, db, { viewerUserId });
 
   return {
     reports,
@@ -906,9 +1053,21 @@ async function listReports(query, db = pool) {
   };
 }
 
+async function resolveViewerUserId(req) {
+  try {
+    const viewer = await resolveOptionalAuthenticatedUser(req);
+    return viewer?.userId || viewer?.id || null;
+  } catch (_error) {
+    return null;
+  }
+}
+
 router.get("/", async (req, res, next) => {
   try {
-    return res.status(200).json(await listReports(req.query || {}));
+    const viewerUserId = await resolveViewerUserId(req);
+    return res
+      .status(200)
+      .json(await listReports(req.query || {}, pool, { viewerUserId }));
   } catch (error) {
     return next(error);
   }
@@ -921,8 +1080,11 @@ router.get("/:id", async (req, res, next) => {
       throw createError(400, "Invalid report id");
     }
 
+    const viewerUserId = await resolveViewerUserId(req);
     const row = await requireExistingReport(reportId);
-    return res.status(200).json({ report: await buildReportResponse(row) });
+    return res
+      .status(200)
+      .json({ report: await buildReportResponse(row, pool, { viewerUserId }) });
   } catch (error) {
     return next(error);
   }
@@ -950,7 +1112,8 @@ router.post("/", verifyToken, async (req, res, next) => {
           location_label,
           occurred_at,
           source_channel,
-          reported_by_role_snapshot
+          reported_by_role_snapshot,
+          ml_status
         )
         values (
           $1,
@@ -963,7 +1126,8 @@ router.post("/", verifyToken, async (req, res, next) => {
           $8,
           $9::timestamptz,
           $10,
-          $11::jsonb
+          $11::jsonb,
+          'pending'
         )
         returning id
       `,
@@ -1026,10 +1190,12 @@ router.post("/", verifyToken, async (req, res, next) => {
     client.release();
     client = null;
 
-    await refreshReportSpamAnalysisSafely(reportId, "report_created");
+    queueReportSpamAnalysis(reportId, "report_created");
 
     const createdRow = await requireExistingReport(reportId);
-    return res.status(201).json({ report: await buildReportResponse(createdRow) });
+    return res.status(201).json({
+      report: await buildReportResponse(createdRow, pool, { viewerUserId: req.user.userId }),
+    });
   } catch (error) {
     if (client) {
       await client.query("rollback").catch(() => {});
@@ -1098,10 +1264,10 @@ router.post("/:id/media", verifyToken, async (req, res, next) => {
       }
 
       const updatedRow = await requireExistingReport(reportId, client);
-      const report = await buildReportResponse(updatedRow, client);
+      const report = await buildReportResponse(updatedRow, client, { viewerUserId: req.user.userId });
 
       await client.query("commit");
-      await refreshReportSpamAnalysisSafely(reportId, "report_media_uploaded");
+      queueReportSpamAnalysis(reportId, "report_media_uploaded");
       return res.status(201).json({
         report,
         media: report.media,
@@ -1190,9 +1356,11 @@ router.put("/:id", verifyToken, async (req, res, next) => {
 
     const updatedRow = await requireExistingReport(reportId);
     if (updates.title !== undefined || updates.description !== undefined) {
-      await refreshReportSpamAnalysisSafely(reportId, "report_text_updated");
+      queueReportSpamAnalysis(reportId, "report_text_updated");
     }
-    return res.status(200).json({ report: await buildReportResponse(updatedRow) });
+    return res.status(200).json({
+      report: await buildReportResponse(updatedRow, pool, { viewerUserId: req.user.userId }),
+    });
   } catch (error) {
     return next(error);
   }
@@ -1216,13 +1384,13 @@ router.delete("/:id/media/:mediaId", verifyToken, async (req, res, next) => {
     const mediaRow = await requireExistingReportMedia(reportId, mediaId);
     await deleteRemoteMediaIfNeeded([mediaRow]);
     await pool.query(`delete from app.report_media where id = $1 and report_id = $2`, [mediaId, reportId]);
-    await refreshReportSpamAnalysisSafely(reportId, "report_media_deleted");
+    queueReportSpamAnalysis(reportId, "report_media_deleted");
 
     const updatedRow = await requireExistingReport(reportId);
     return res.status(200).json({
       id: mediaId,
       message: "Report media deleted successfully",
-      report: await buildReportResponse(updatedRow),
+      report: await buildReportResponse(updatedRow, pool, { viewerUserId: req.user.userId }),
     });
   } catch (error) {
     return next(error);
@@ -1258,6 +1426,379 @@ router.delete("/:id", verifyToken, async (req, res, next) => {
     return next(error);
   } finally {
     client.release();
+  }
+});
+
+function normalizeCommentBody(value) {
+  if (typeof value !== "string") {
+    throw createError(400, "Comment body is required");
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw createError(400, "Comment body cannot be empty");
+  }
+  if (trimmed.length > MAX_COMMENT_BODY_LENGTH) {
+    throw createError(400, `Comment body must be at most ${MAX_COMMENT_BODY_LENGTH} characters`);
+  }
+  return trimmed;
+}
+
+function normalizeReactionType(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!ALLOWED_REACTION_TYPES.has(normalized)) {
+    throw createError(400, `reactionType must be one of: ${[...ALLOWED_REACTION_TYPES].join(", ")}`);
+  }
+  return normalized;
+}
+
+router.get("/:id/comments", async (req, res, next) => {
+  try {
+    const reportId = String(req.params.id || "").trim();
+    if (!isValidUuid(reportId)) {
+      throw createError(400, "Invalid report id");
+    }
+    await requireExistingReport(reportId);
+
+    const limit = normalizeQueryInteger(req.query?.limit, "limit", {
+      defaultValue: DEFAULT_COMMENTS_PAGE_LIMIT,
+      min: 1,
+      max: MAX_COMMENTS_PAGE_LIMIT,
+    });
+    const offset = normalizeQueryInteger(req.query?.offset, "offset", {
+      defaultValue: 0,
+      min: 0,
+    });
+
+    const result = await pool.query(
+      `
+        select
+          rc.id,
+          rc.report_id,
+          rc.user_id,
+          rc.body,
+          rc.is_deleted,
+          rc.created_at,
+          rc.updated_at,
+          u.first_name as author_first_name,
+          u.last_name as author_last_name,
+          u.avatar_url as author_avatar_url
+        from app.report_comments rc
+        left join auth.users u on u.id = rc.user_id
+        where rc.report_id = $1 and rc.is_deleted = false
+        order by rc.created_at desc
+        limit $2 offset $3
+      `,
+      [reportId, limit + 1, offset],
+    );
+
+    const hasMore = result.rows.length > limit;
+    const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
+    return res.status(200).json({
+      comments: rows.map(mapCommentRow),
+      pagination: { limit, offset, hasMore, returned: rows.length },
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/:id/comments", verifyToken, async (req, res, next) => {
+  let client = null;
+  try {
+    const reportId = String(req.params.id || "").trim();
+    if (!isValidUuid(reportId)) {
+      throw createError(400, "Invalid report id");
+    }
+    const body = normalizeCommentBody(req.body?.body);
+
+    client = await pool.connect();
+    await client.query("begin");
+
+    const reportExists = await client.query(
+      `select 1 from app.accident_reports where id = $1 limit 1`,
+      [reportId],
+    );
+    if (reportExists.rows.length === 0) {
+      await client.query("rollback");
+      throw createError(404, "Report not found");
+    }
+
+    const inserted = await client.query(
+      `
+        insert into app.report_comments (report_id, user_id, body)
+        values ($1, $2, $3)
+        returning id, report_id, user_id, body, is_deleted, created_at, updated_at
+      `,
+      [reportId, req.user.userId, body],
+    );
+
+    await client.query(
+      `
+        update app.accident_reports
+        set comments_count = coalesce(comments_count, 0) + 1,
+            last_commented_at = now()
+        where id = $1
+      `,
+      [reportId],
+    );
+
+    const authorRow = await client.query(
+      `select first_name, last_name, avatar_url from auth.users where id = $1 limit 1`,
+      [req.user.userId],
+    );
+
+    await client.query("commit");
+
+    const commentRow = {
+      ...inserted.rows[0],
+      author_first_name: authorRow.rows[0]?.first_name || null,
+      author_last_name: authorRow.rows[0]?.last_name || null,
+      author_avatar_url: authorRow.rows[0]?.avatar_url || null,
+    };
+
+    return res.status(201).json({ comment: mapCommentRow(commentRow) });
+  } catch (error) {
+    if (client) {
+      await client.query("rollback").catch(() => {});
+    }
+    return next(error);
+  } finally {
+    if (client) client.release();
+  }
+});
+
+router.delete("/:id/comments/:commentId", verifyToken, async (req, res, next) => {
+  let client = null;
+  try {
+    const reportId = String(req.params.id || "").trim();
+    const commentId = String(req.params.commentId || "").trim();
+    if (!isValidUuid(reportId)) {
+      throw createError(400, "Invalid report id");
+    }
+    if (!isValidUuid(commentId)) {
+      throw createError(400, "Invalid comment id");
+    }
+
+    client = await pool.connect();
+    await client.query("begin");
+
+    const existing = await client.query(
+      `
+        select id, report_id, user_id, is_deleted
+        from app.report_comments
+        where id = $1 and report_id = $2
+        limit 1
+      `,
+      [commentId, reportId],
+    );
+
+    const commentRow = existing.rows[0];
+    if (!commentRow) {
+      await client.query("rollback");
+      throw createError(404, "Comment not found");
+    }
+
+    const isAdmin = tokenHasRole(req.user, "admin");
+    const isOwner = commentRow.user_id === req.user.userId;
+    if (!isAdmin && !isOwner) {
+      await client.query("rollback");
+      throw createError(403, "You are not allowed to delete this comment");
+    }
+
+    if (commentRow.is_deleted) {
+      await client.query("commit");
+      return res.status(200).json({ id: commentId, alreadyDeleted: true });
+    }
+
+    await client.query(
+      `update app.report_comments set is_deleted = true, updated_at = now() where id = $1`,
+      [commentId],
+    );
+    await client.query(
+      `
+        update app.accident_reports
+        set comments_count = greatest(coalesce(comments_count, 0) - 1, 0)
+        where id = $1
+      `,
+      [reportId],
+    );
+    await client.query("commit");
+
+    return res.status(200).json({ id: commentId, message: "Comment deleted" });
+  } catch (error) {
+    if (client) {
+      await client.query("rollback").catch(() => {});
+    }
+    return next(error);
+  } finally {
+    if (client) client.release();
+  }
+});
+
+router.post("/:id/reactions", verifyToken, async (req, res, next) => {
+  let client = null;
+  try {
+    const reportId = String(req.params.id || "").trim();
+    if (!isValidUuid(reportId)) {
+      throw createError(400, "Invalid report id");
+    }
+    const reactionType = normalizeReactionType(req.body?.reactionType);
+    const counterColumn = REACTION_COUNT_COLUMNS[reactionType];
+
+    client = await pool.connect();
+    await client.query("begin");
+
+    const reportExists = await client.query(
+      `select 1 from app.accident_reports where id = $1 limit 1`,
+      [reportId],
+    );
+    if (reportExists.rows.length === 0) {
+      await client.query("rollback");
+      throw createError(404, "Report not found");
+    }
+
+    const inserted = await client.query(
+      `
+        insert into app.report_reactions (report_id, user_id, reaction_type)
+        values ($1, $2, $3)
+        on conflict on constraint uq_report_reaction_once do nothing
+        returning id
+      `,
+      [reportId, req.user.userId, reactionType],
+    );
+
+    let created = false;
+    if (inserted.rows.length > 0) {
+      created = true;
+      await client.query(
+        `
+          update app.accident_reports
+          set ${counterColumn} = coalesce(${counterColumn}, 0) + 1
+          where id = $1
+        `,
+        [reportId],
+      );
+    }
+
+    const counts = await client.query(
+      `
+        select likes_count, saw_it_too_count
+        from app.accident_reports
+        where id = $1
+        limit 1
+      `,
+      [reportId],
+    );
+    await client.query("commit");
+
+    return res.status(created ? 201 : 200).json({
+      reportId,
+      reactionType,
+      created,
+      active: true,
+      likesCount: Number(counts.rows[0]?.likes_count || 0),
+      sawItTooCount: Number(counts.rows[0]?.saw_it_too_count || 0),
+    });
+  } catch (error) {
+    if (client) {
+      await client.query("rollback").catch(() => {});
+    }
+    return next(error);
+  } finally {
+    if (client) client.release();
+  }
+});
+
+router.delete("/:id/reactions/:reactionType", verifyToken, async (req, res, next) => {
+  let client = null;
+  try {
+    const reportId = String(req.params.id || "").trim();
+    if (!isValidUuid(reportId)) {
+      throw createError(400, "Invalid report id");
+    }
+    const reactionType = normalizeReactionType(req.params.reactionType);
+    const counterColumn = REACTION_COUNT_COLUMNS[reactionType];
+
+    client = await pool.connect();
+    await client.query("begin");
+
+    const removed = await client.query(
+      `
+        delete from app.report_reactions
+        where report_id = $1 and user_id = $2 and reaction_type = $3
+        returning id
+      `,
+      [reportId, req.user.userId, reactionType],
+    );
+
+    if (removed.rows.length > 0) {
+      await client.query(
+        `
+          update app.accident_reports
+          set ${counterColumn} = greatest(coalesce(${counterColumn}, 0) - 1, 0)
+          where id = $1
+        `,
+        [reportId],
+      );
+    }
+
+    const counts = await client.query(
+      `
+        select likes_count, saw_it_too_count
+        from app.accident_reports
+        where id = $1
+        limit 1
+      `,
+      [reportId],
+    );
+    await client.query("commit");
+
+    return res.status(200).json({
+      reportId,
+      reactionType,
+      removed: removed.rows.length > 0,
+      active: false,
+      likesCount: Number(counts.rows[0]?.likes_count || 0),
+      sawItTooCount: Number(counts.rows[0]?.saw_it_too_count || 0),
+    });
+  } catch (error) {
+    if (client) {
+      await client.query("rollback").catch(() => {});
+    }
+    return next(error);
+  } finally {
+    if (client) client.release();
+  }
+});
+
+router.post("/admin/reclassify-stuck", verifyTokenAndAdmin, async (req, res, next) => {
+  try {
+    const limit = Number(req.query?.limit) || Number(req.body?.limit) || 50;
+    const result = await reclassifyStuckReports({ limit });
+    return res.status(200).json(result);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/:id/classify", verifyToken, async (req, res, next) => {
+  try {
+    const reportId = String(req.params.id || "").trim();
+    if (!isValidUuid(reportId)) {
+      throw createError(400, "Invalid report id");
+    }
+
+    const existingRow = await requireExistingReport(reportId);
+    ensureCanManageReport(existingRow, req.user);
+
+    const outcome = await refreshReportSpamAnalysis(reportId);
+    const updatedRow = await requireExistingReport(reportId);
+    return res.status(200).json({
+      classification: outcome,
+      report: await buildReportResponse(updatedRow, pool, { viewerUserId: req.user.userId }),
+    });
+  } catch (error) {
+    return next(error);
   }
 });
 

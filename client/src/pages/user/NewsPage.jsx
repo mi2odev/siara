@@ -9,7 +9,14 @@ import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import { getUserRoles } from '../../utils/roleUtils'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
-import { listReports } from '../../services/reportsService'
+import {
+  addReportComment,
+  deleteReportComment,
+  getReportComments,
+  listReports,
+  removeReportReaction,
+  toggleReportReaction,
+} from '../../services/reportsService'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
 import '../../styles/NewsPage.css'
@@ -180,7 +187,7 @@ function mergeReports(previousReports, nextReports) {
   return Array.from(reportMap.values())
 }
 
-function ReportCard({ report, navigate, onOpenAuthorProfile }) {
+function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, currentUser }) {
   const authorProfile = getReportAuthorProfile(report)
   const authorName = authorProfile.name
   const authorAvatarUrl = getUserAvatarUrl(authorProfile)
@@ -201,8 +208,127 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [hiddenMediaKeys, setHiddenMediaKeys] = useState(() => new Set())
+  const [commentDraft, setCommentDraft] = useState('')
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false)
+  const [commentError, setCommentError] = useState('')
+  const [reactionBusy, setReactionBusy] = useState(false)
+  const [allComments, setAllComments] = useState(null)
+  const [allCommentsLoading, setAllCommentsLoading] = useState(false)
+  const [allCommentsError, setAllCommentsError] = useState('')
   const dragRef = useRef(null)
   const activeMedia = selectedMediaIndex == null ? null : media[selectedMediaIndex]
+  const likesCount = Number(report?.likesCount || 0)
+  const sawItTooCount = Number(report?.sawItTooCount || 0)
+  const commentsCount = Number(report?.commentsCount || 0)
+  const viewerHasLiked = Boolean(report?.viewerHasLiked)
+  const viewerSawItToo = Boolean(report?.viewerSawItToo)
+  const commentsPreview = Array.isArray(report?.commentsPreview) ? report.commentsPreview : []
+  const visibleComments = allComments || commentsPreview
+  const currentUserId = currentUser?.id || currentUser?.userId || null
+  const isAdmin = Array.isArray(currentUser?.roles) && currentUser.roles.includes('admin')
+
+  const handleToggleReaction = async (reactionType) => {
+    if (!currentUserId) {
+      navigate('/login')
+      return
+    }
+    if (reactionBusy) return
+
+    const wasActive =
+      reactionType === 'like' ? viewerHasLiked : reactionType === 'saw_it_too' ? viewerSawItToo : false
+    const countKey = reactionType === 'like' ? 'likesCount' : 'sawItTooCount'
+    const flagKey = reactionType === 'like' ? 'viewerHasLiked' : 'viewerSawItToo'
+    const currentCount = reactionType === 'like' ? likesCount : sawItTooCount
+
+    setReactionBusy(true)
+    onReportUpdated?.(report.id, {
+      [flagKey]: !wasActive,
+      [countKey]: Math.max(0, currentCount + (wasActive ? -1 : 1)),
+    })
+
+    try {
+      const result = wasActive
+        ? await removeReportReaction(report.id, reactionType)
+        : await toggleReportReaction(report.id, reactionType)
+      onReportUpdated?.(report.id, {
+        viewerHasLiked: reactionType === 'like' ? !wasActive : viewerHasLiked,
+        viewerSawItToo: reactionType === 'saw_it_too' ? !wasActive : viewerSawItToo,
+        likesCount: Number(result?.likesCount ?? likesCount),
+        sawItTooCount: Number(result?.sawItTooCount ?? sawItTooCount),
+      })
+    } catch (error) {
+      console.error('reaction error:', error)
+      onReportUpdated?.(report.id, {
+        [flagKey]: wasActive,
+        [countKey]: currentCount,
+      })
+    } finally {
+      setReactionBusy(false)
+    }
+  }
+
+  const handleSubmitComment = async (event) => {
+    event.preventDefault()
+    if (!currentUserId) {
+      navigate('/login')
+      return
+    }
+    const trimmed = commentDraft.trim()
+    if (!trimmed || isSubmittingComment) return
+
+    setIsSubmittingComment(true)
+    setCommentError('')
+    try {
+      const newComment = await addReportComment(report.id, trimmed)
+      setCommentDraft('')
+      const nextPreview = [...commentsPreview, newComment].slice(-3)
+      onReportUpdated?.(report.id, {
+        commentsCount: commentsCount + 1,
+        commentsPreview: nextPreview,
+      })
+      if (allComments) {
+        setAllComments([newComment, ...allComments])
+      }
+    } catch (error) {
+      setCommentError(error.message || 'Could not post comment')
+    } finally {
+      setIsSubmittingComment(false)
+    }
+  }
+
+  const handleLoadAllComments = async () => {
+    if (allCommentsLoading) return
+    if (allComments) {
+      setAllComments(null)
+      return
+    }
+    setAllCommentsLoading(true)
+    setAllCommentsError('')
+    try {
+      const { comments } = await getReportComments(report.id, { limit: 50, offset: 0 })
+      setAllComments(comments)
+    } catch (error) {
+      setAllCommentsError(error.message || 'Could not load comments')
+    } finally {
+      setAllCommentsLoading(false)
+    }
+  }
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await deleteReportComment(report.id, commentId)
+      const removeFromList = (list) => list.filter((entry) => entry.id !== commentId)
+      onReportUpdated?.(report.id, {
+        commentsCount: Math.max(0, commentsCount - 1),
+        commentsPreview: removeFromList(commentsPreview),
+      })
+      if (allComments) {
+        setAllComments(removeFromList(allComments))
+      }
+    } catch (error) {
+      console.error('delete comment error:', error)
+    }
+  }
   const handleOpenProfile = () => {
     onOpenAuthorProfile(authorProfile)
   }
@@ -448,9 +574,106 @@ function ReportCard({ report, navigate, onOpenAuthorProfile }) {
         </div>
       </footer>
 
-      <div className="post-comments-preview">
-        <div className="comment-box">
-          <strong>Occurred:</strong> {formatDateTime(occurredAt)}
+      <div className="post-social">
+        <div className="post-social-actions">
+          <button
+            type="button"
+            className={`post-social-btn ${viewerHasLiked ? 'is-active' : ''}`}
+            onClick={() => handleToggleReaction('like')}
+            disabled={reactionBusy}
+            aria-pressed={viewerHasLiked}
+          >
+            <span className="post-social-btn-icon" aria-hidden>👍</span>
+            <span className="post-social-btn-label">Like</span>
+            <span className="post-social-btn-count">{likesCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`post-social-btn ${viewerSawItToo ? 'is-active' : ''}`}
+            onClick={() => handleToggleReaction('saw_it_too')}
+            disabled={reactionBusy}
+            aria-pressed={viewerSawItToo}
+          >
+            <span className="post-social-btn-icon" aria-hidden>👁️</span>
+            <span className="post-social-btn-label">I saw it too</span>
+            <span className="post-social-btn-count">{sawItTooCount}</span>
+          </button>
+          <span className="post-social-comments-meta">
+            💬 {commentsCount} comment{commentsCount === 1 ? '' : 's'}
+          </span>
+        </div>
+
+        <div className="post-comments-preview">
+          <div className="post-comments-meta">
+            <strong>Occurred:</strong> {formatDateTime(occurredAt)}
+          </div>
+
+          {visibleComments.length > 0 && (
+            <ul className="post-comments-list">
+              {visibleComments.map((comment) => {
+                const canDelete = isAdmin || (currentUserId && comment.author?.id === currentUserId)
+                return (
+                  <li key={comment.id} className="post-comment-item">
+                    <div className="post-comment-author">
+                      {comment.author?.name || 'Anonymous'}
+                      <span className="post-comment-time">{formatRelativeTime(comment.createdAt)}</span>
+                    </div>
+                    <p className="post-comment-body">{comment.body}</p>
+                    {canDelete && (
+                      <button
+                        type="button"
+                        className="post-comment-delete-btn"
+                        onClick={() => handleDeleteComment(comment.id)}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
+          {commentsCount > visibleComments.length && !allComments && (
+            <button
+              type="button"
+              className="post-comments-view-all"
+              onClick={handleLoadAllComments}
+              disabled={allCommentsLoading}
+            >
+              {allCommentsLoading ? 'Loading comments...' : `View all ${commentsCount} comments`}
+            </button>
+          )}
+          {allComments && (
+            <button
+              type="button"
+              className="post-comments-view-all"
+              onClick={handleLoadAllComments}
+            >
+              Hide comments
+            </button>
+          )}
+          {allCommentsError && <p className="post-comments-error">{allCommentsError}</p>}
+
+          <form className="post-comment-form" onSubmit={handleSubmitComment}>
+            <input
+              type="text"
+              className="post-comment-input"
+              placeholder={currentUserId ? 'Write a comment...' : 'Sign in to comment'}
+              value={commentDraft}
+              onChange={(event) => setCommentDraft(event.target.value)}
+              maxLength={500}
+              disabled={!currentUserId || isSubmittingComment}
+            />
+            <button
+              type="submit"
+              className="post-comment-submit"
+              disabled={!currentUserId || isSubmittingComment || !commentDraft.trim()}
+            >
+              {isSubmittingComment ? 'Posting...' : 'Post'}
+            </button>
+          </form>
+          {commentError && <p className="post-comments-error">{commentError}</p>}
         </div>
       </div>
 
@@ -557,6 +780,15 @@ export default function NewsPage() {
   const handleQuizComplete = (result) => {
     console.log('Quiz completed:', result)
     setShowQuiz(false)
+  }
+
+  const handleReportUpdated = (reportId, partialUpdate) => {
+    if (!reportId || !partialUpdate) return
+    setReports((previousReports) =>
+      previousReports.map((report) =>
+        report.id === reportId ? { ...report, ...partialUpdate } : report,
+      ),
+    )
   }
 
   useEffect(() => {
@@ -1293,7 +1525,14 @@ export default function NewsPage() {
           )}
 
           {!feedError && !isLoading && filteredReports.map((report) => (
-            <ReportCard key={report.id} report={report} navigate={navigate} onOpenAuthorProfile={handleOpenAuthorProfile} />
+            <ReportCard
+              key={report.id}
+              report={report}
+              navigate={navigate}
+              onOpenAuthorProfile={handleOpenAuthorProfile}
+              onReportUpdated={handleReportUpdated}
+              currentUser={user}
+            />
           ))}
 
           {!feedError && reports.length > 0 && (

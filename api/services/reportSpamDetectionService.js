@@ -14,12 +14,14 @@ const DEFAULT_REPORT_SPAM_TIMEOUT_MS = Number(process.env.REPORT_SPAM_TIMEOUT_MS
 const DEFAULT_REPORT_SPAM_THRESHOLD = normalizePercent(process.env.REPORT_SPAM_THRESHOLD, 50);
 const DEFAULT_REPORT_SPAM_THRESHOLD_UNIT = normalizeUnitScore(DEFAULT_REPORT_SPAM_THRESHOLD);
 const ML_STATUS = Object.freeze({
+  PENDING: "pending",
   WAITING_FOR_TEXT: "waiting_for_text",
   WAITING_FOR_IMAGE: "waiting_for_image",
   PROCESSING: "processing",
   COMPLETED: "completed",
   FAILED: "failed",
 });
+const DEV_LOGS_ENABLED = (process.env.NODE_ENV || "development") !== "production";
 const VALID_PREDICTED_LABELS = new Set(["spam", "real"]);
 const PREDICTED_LABEL_ALIASES = Object.freeze({
   fake: "spam",
@@ -30,6 +32,12 @@ const PREDICTED_LABEL_ALIASES = Object.freeze({
 
 function logReportSpam(event, details = {}) {
   console.info("[report-spam]", event, details);
+}
+
+function logReportMl(event, details = {}) {
+  if (DEV_LOGS_ENABLED) {
+    console.info("[report-ml]", event, details);
+  }
 }
 
 function normalizePercent(value, fallback) {
@@ -357,9 +365,11 @@ async function persistFailedAnalysis(reportId, reportRow, error) {
 }
 
 async function refreshReportSpamAnalysis(reportId) {
+  logReportMl("classification started", { reportId });
   const reportRow = await fetchReportSpamInputs(reportId);
   if (!reportRow) {
     logReportSpam("skip_missing_report", { reportId });
+    logReportMl("classification skipped - missing report", { reportId });
     return {
       reportId,
       mlStatus: null,
@@ -378,6 +388,12 @@ async function refreshReportSpamAnalysis(reportId) {
       reportId,
       mlStatus: waitingStatus,
     });
+    logReportMl("classification waiting for inputs", {
+      reportId,
+      mlStatus: waitingStatus,
+      hasText: Boolean(text),
+      hasImage: Boolean(imageUrl),
+    });
     return {
       reportId,
       mlStatus: waitingStatus,
@@ -387,6 +403,12 @@ async function refreshReportSpamAnalysis(reportId) {
   }
 
   await updateReportMlStatus(pool, reportId, ML_STATUS.PROCESSING);
+  logReportMl("sending payload", {
+    reportId,
+    title: reportRow.title,
+    description: truncateText(reportRow.description, 120),
+    hasImage: Boolean(imageUrl),
+  });
 
   try {
     const classifierResponse = await callSpamClassifier({ text, imageUrl });
@@ -399,6 +421,13 @@ async function refreshReportSpamAnalysis(reportId) {
     logReportSpam("normalized_prediction", {
       reportId,
       normalized_prediction: normalizedPrediction,
+    });
+    logReportMl("model response", {
+      reportId,
+      predictedLabel: normalizedPrediction.predicted_label,
+      spamScore: normalizedPrediction.spam_score,
+      confidence: normalizedPrediction.confidence_score,
+      modelVersion: normalizedPrediction.model_version,
     });
 
     if (!normalizedPrediction.isComplete) {
@@ -424,6 +453,10 @@ async function refreshReportSpamAnalysis(reportId) {
       spam_score: normalizedPrediction.spam_score,
       confidence_score: normalizedPrediction.confidence_score,
     });
+    logReportMl("classification saved", {
+      reportId,
+      mlStatus: ML_STATUS.COMPLETED,
+    });
     return {
       reportId,
       mlStatus: ML_STATUS.COMPLETED,
@@ -436,6 +469,10 @@ async function refreshReportSpamAnalysis(reportId) {
       reportId,
       message: error?.response?.data?.error || error?.message || "unknown_error",
     });
+    logReportMl("classification failed", {
+      reportId,
+      error: error?.response?.data?.error || error?.message || "unknown_error",
+    });
     return {
       reportId,
       mlStatus: ML_STATUS.FAILED,
@@ -443,6 +480,59 @@ async function refreshReportSpamAnalysis(reportId) {
       error: error?.response?.data || { message: error?.message || "unknown_error" },
     };
   }
+}
+
+function queueReportSpamAnalysis(reportId, context = "queued") {
+  if (!reportId) {
+    return;
+  }
+
+  logReportMl("queued classification", { reportId, context });
+  setImmediate(() => {
+    refreshReportSpamAnalysis(reportId).catch((error) => {
+      console.error("[report-ml] classification failed", {
+        reportId,
+        context,
+        message: error?.message || "unknown_error",
+      });
+    });
+  });
+}
+
+async function reclassifyStuckReports({ limit = 50 } = {}) {
+  const safeLimit = Math.max(1, Math.min(500, Number(limit) || 50));
+  const result = await pool.query(
+    `
+      select id
+      from app.accident_reports
+      where ml_status in ('pending', 'failed', 'processing', 'waiting_for_text', 'waiting_for_image')
+         or ml_status is null
+         or latest_classified_at is null
+      order by created_at desc
+      limit $1
+    `,
+    [safeLimit],
+  );
+
+  const ids = result.rows.map((row) => row.id);
+  logReportMl("reclassify stuck reports", { count: ids.length, limit: safeLimit });
+
+  const outcomes = [];
+  for (const reportId of ids) {
+    try {
+      const outcome = await refreshReportSpamAnalysis(reportId);
+      outcomes.push({ reportId, mlStatus: outcome.mlStatus, skipped: Boolean(outcome.skipped) });
+    } catch (error) {
+      outcomes.push({
+        reportId,
+        mlStatus: ML_STATUS.FAILED,
+        skipped: false,
+        error: error?.message || "unknown_error",
+      });
+    }
+  }
+
+  return { processed: outcomes.length, outcomes };
 }
 
 async function refreshReporterTrustScore(userId, db = pool) {
@@ -491,5 +581,7 @@ module.exports = {
   DEFAULT_REPORT_SPAM_MODEL_VERSION,
   ML_STATUS,
   refreshReportSpamAnalysis,
+  queueReportSpamAnalysis,
+  reclassifyStuckReports,
   refreshReporterTrustScore,
 };

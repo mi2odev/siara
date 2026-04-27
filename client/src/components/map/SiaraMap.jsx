@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Circle,
   CircleMarker,
@@ -1050,6 +1050,8 @@ const SiaraMap = ({
   locationRequestVersion = 0,
   requestLocation,
   onSelectedTimestampChange,
+  weatherData = null,
+  placeName = "",
 }) => {
   const markers = useMemo(() => {
     if (Array.isArray(reportMarkers)) {
@@ -1093,7 +1095,11 @@ const SiaraMap = ({
   const [guidanceActive, setGuidanceActive] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
-  const [qualitySummaryOpen, setQualitySummaryOpen] = useState(false);
+  const [explanationOpen, setExplanationOpen] = useState(false);
+  const [explanationLoading, setExplanationLoading] = useState(false);
+  const [explanationText, setExplanationText] = useState("");
+  const [explanationError, setExplanationError] = useState("");
+  const [explanationSource, setExplanationSource] = useState("");
   const [routeExplainState, setRouteExplainState] = useState("idle");
   const [routeExplainError, setRouteExplainError] = useState("");
   const [selectedRouteExplanation, setSelectedRouteExplanation] = useState(null);
@@ -1942,6 +1948,121 @@ const SiaraMap = ({
       }),
     [fallbackQualityDetails, locationWarning, sentinelHasError, sentinelReasons],
   );
+
+  useEffect(() => {
+    if (!currentRisk) return;
+    setExplanationOpen(false);
+    setExplanationText("");
+    setExplanationError("");
+  }, [currentRisk?.danger_percent, currentRisk?.danger_level]);
+
+  const handleExplainRiskClick = useCallback(async () => {
+    if (explanationOpen) {
+      setExplanationOpen(false);
+      return;
+    }
+
+    if (!currentRisk) {
+      setExplanationOpen(true);
+      setExplanationLoading(false);
+      setExplanationText("");
+      setExplanationSource("");
+      setExplanationError("No risk prediction is available yet.");
+      return;
+    }
+
+    setExplanationOpen(true);
+    setExplanationLoading(true);
+    setExplanationError("");
+    setExplanationText("");
+    setExplanationSource("");
+
+    let enrichedRisk = currentRisk;
+
+    if (!Array.isArray(currentRisk?.xai?.top_reasons) && userPosition) {
+      try {
+        const explainBody = {
+          lat: userPosition.lat,
+          lng: userPosition.lng,
+          timestamp: selectedTimestampIso,
+          top_k: 8,
+        };
+        const explainData = await postJson("/api/risk/explain", explainBody);
+        if (explainData && typeof explainData === "object") {
+          enrichedRisk = { ...currentRisk, ...explainData };
+        }
+      } catch (explainError) {
+        if (import.meta.env.DEV) {
+          console.warn("[explain-risk] explain fetch failed:", explainError?.message);
+        }
+      }
+    }
+
+    const payload = {
+      risk: {
+        score: Number(enrichedRisk?.danger_percent) || null,
+        percent: Number(enrichedRisk?.danger_percent) || null,
+        riskScore: Number(enrichedRisk?.danger_percent) || null,
+        level: enrichedRisk?.danger_level || null,
+        riskLevel: enrichedRisk?.danger_level || null,
+        confidence: compactConfidenceLabel || enrichedRisk?.confidence || null,
+        dataQuality: compactQualityLabel || enrichedRisk?.quality || null,
+        accuracyMeters: Number.isFinite(Number(userPosition?.accuracy))
+          ? Number(userPosition.accuracy)
+          : null,
+        predictionTime: selectedTimestampIso || null,
+        locationLabel: placeName || null,
+        lat: Number.isFinite(Number(userPosition?.lat)) ? Number(userPosition.lat) : null,
+        lng: Number.isFinite(Number(userPosition?.lng)) ? Number(userPosition.lng) : null,
+        qualityNotes: qualitySummaryNotes,
+      },
+      weather: weatherData || null,
+      xai:
+        enrichedRisk?.xai ||
+        enrichedRisk?.explanation ||
+        enrichedRisk?.factors ||
+        enrichedRisk?.featureImportance ||
+        null,
+      rawPrediction: enrichedRisk,
+    };
+
+    if (import.meta.env.DEV) {
+      console.debug("[explain-risk] frontend payload", payload);
+    }
+
+    try {
+      const response = await postJson(
+        "/api/predictions/explain-risk",
+        payload,
+      );
+      if (response?.ok && response.explanation) {
+        setExplanationText(response.explanation);
+        setExplanationSource(response.source || "fallback");
+      } else {
+        setExplanationError(
+          "SIARA could not generate an explanation right now. Please try again.",
+        );
+      }
+    } catch (error) {
+      console.error("Explain risk error:", error);
+      setExplanationError(
+        "SIARA could not generate an explanation right now. Please try again.",
+      );
+    } finally {
+      setExplanationLoading(false);
+    }
+  }, [
+    compactConfidenceLabel,
+    compactQualityLabel,
+    currentRisk,
+    explanationOpen,
+    placeName,
+    qualitySummaryNotes,
+    selectedTimestampIso,
+    userPosition,
+    weatherData,
+  ]);
+
   const routeSummaryPercent = Number(guidedRoute?.summary?.danger_percent);
   const routeSummaryLevel = normalizeDangerLevel(
     guidedRoute?.summary?.danger_level,
@@ -2600,9 +2721,10 @@ const SiaraMap = ({
                 <button
                   type="button"
                   className="siara-inline-link"
-                  onClick={() => setQualitySummaryOpen((value) => !value)}
+                  onClick={handleExplainRiskClick}
+                  disabled={explanationLoading}
                 >
-                  {qualitySummaryOpen ? "Hide notes" : "Why?"}
+                  {explanationOpen ? "Hide" : "Why?"}
                 </button>
                 <MuiTooltip title="Confidence details">
                   <IconButton
@@ -2629,11 +2751,36 @@ const SiaraMap = ({
                   </IconButton>
                 </MuiTooltip>
               </div>
-              {qualitySummaryOpen && qualitySummaryNotes.length > 0 && (
-                <div className="siara-note-list">
-                  {qualitySummaryNotes.map((note) => (
-                    <span key={note} className="siara-note-pill">{note}</span>
-                  ))}
+              {explanationOpen && (
+                <div className="siara-explain-card" role="status">
+                  {explanationLoading && (
+                    <p className="siara-explain-card__text">
+                      SIARA is preparing an explanation...
+                    </p>
+                  )}
+                  {!explanationLoading && explanationError && (
+                    <p className="siara-explain-card__text siara-explain-card__text--error">
+                      {explanationError}
+                    </p>
+                  )}
+                  {!explanationLoading && !explanationError && explanationText && (
+                    <>
+                      <p className="siara-explain-card__text">{explanationText}</p>
+                      {explanationSource && (
+                        <span
+                          className={`siara-explain-card__badge${
+                            explanationSource === "ollama"
+                              ? " siara-explain-card__badge--ai"
+                              : ""
+                          }`}
+                        >
+                          {explanationSource === "ollama"
+                            ? "AI explanation"
+                            : "Generated from available factors"}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             </>

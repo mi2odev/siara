@@ -40,6 +40,7 @@ const {
   getReversePlace,
   getRiskForecast24h,
 } = require("./contollers/Model/models");
+const { generateRiskExplanation } = require("./services/riskExplanationService");
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -75,6 +76,44 @@ app.post("/api/risk/current", predictCurrentRisk);
 app.get("/api/risk/forecast24h", getRiskForecast24h);
 app.post("/api/risk/overlay", predictRiskOverlay);
 app.post("/api/risk/explain", predictRiskExplain);
+app.post("/api/predictions/explain-risk", async (req, res) => {
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const risk = body.risk && typeof body.risk === "object" ? body.risk : null;
+  const weather = body.weather && typeof body.weather === "object" ? body.weather : null;
+  const xai = body.xai && typeof body.xai === "object" ? body.xai : null;
+  const rawPrediction =
+    body.rawPrediction && typeof body.rawPrediction === "object" ? body.rawPrediction : null;
+
+  if (!risk) {
+    return res
+      .status(400)
+      .json({ ok: false, error: "risk payload is required" });
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    console.debug("[explain-risk] received", {
+      riskKeys: Object.keys(risk),
+      hasWeather: Boolean(weather),
+      hasXai: Boolean(xai),
+      rawPredictionKeys: rawPrediction ? Object.keys(rawPrediction) : [],
+    });
+  }
+
+  try {
+    const result = await generateRiskExplanation({ risk, weather, xai, rawPrediction });
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[explain-risk] failure", error);
+    }
+    return res.status(200).json({
+      ok: true,
+      explanation:
+        "SIARA could not generate a detailed explanation right now, so this result is based on the available prediction context only.",
+      source: "fallback",
+    });
+  }
+});
 app.post("/api/risk/nearby-zones", predictNearbyZones);
 app.post("/api/risk/route", predictRouteGuide);
 
