@@ -17,7 +17,7 @@ function logPersistence(event, details = {}) {
   console.info("[risk/persist]", event, details);
 }
 
-function formatDbError(error) {
+function formatDbError(error) { 
   return {
     message: error?.message || "unknown_error",
     code: error?.code || null,

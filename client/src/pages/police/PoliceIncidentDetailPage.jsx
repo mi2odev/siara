@@ -346,29 +346,52 @@ export default function PoliceIncidentDetailPage() {
               </section>
 
               <section className="police-incident-evidence">
-                <h3>Evidence</h3>
-                <div className="police-evidence-grid">
-                  {incident.media.map((item) => (
-                    <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="police-evidence-item">
-                      <img
-                        src={item.url}
-                        alt={incident.title}
-                        className="police-incident-image"
-                        onError={(event) => {
-                          const img = event.currentTarget
-                          if (img.dataset.fallbackApplied === '1') return
-                          img.dataset.fallbackApplied = '1'
-                          img.replaceWith(Object.assign(document.createElement('div'), {
-                            className: 'police-evidence-missing',
-                            textContent: 'Image unavailable',
-                          }))
-                        }}
-                      />
-                      <span className="police-evidence-label">{displayLabel(item.mediaType)}</span>
-                    </a>
-                  ))}
-                </div>
-                {incident.media.length === 0 ? <p className="police-meta">No media evidence attached.</p> : null}
+                <header className="police-incident-evidence-head">
+                  <h3>Evidence</h3>
+                  {incident.media.length > 0 ? (
+                    <span className="police-incident-evidence-count">
+                      {incident.media.length} item{incident.media.length === 1 ? '' : 's'}
+                    </span>
+                  ) : null}
+                </header>
+
+                {incident.media.length === 0 ? (
+                  <div className="police-incident-evidence-empty">
+                    No media evidence attached.
+                  </div>
+                ) : (
+                  <div className="police-evidence-grid">
+                    {incident.media.map((item) => (
+                      <a
+                        key={item.id}
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="police-evidence-item"
+                        title="Open full-size"
+                      >
+                        <div className="police-evidence-thumb">
+                          <img
+                            src={item.url}
+                            alt={incident.title}
+                            className="police-evidence-img"
+                            loading="lazy"
+                            onError={(event) => {
+                              const img = event.currentTarget
+                              if (img.dataset.fallbackApplied === '1') return
+                              img.dataset.fallbackApplied = '1'
+                              img.replaceWith(Object.assign(document.createElement('div'), {
+                                className: 'police-evidence-missing',
+                                textContent: 'Image unavailable',
+                              }))
+                            }}
+                          />
+                        </div>
+                        <span className="police-evidence-label">{displayLabel(item.mediaType)}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </section>
 
               <p className="police-incident-description">{incident.description || 'No description provided.'}</p>

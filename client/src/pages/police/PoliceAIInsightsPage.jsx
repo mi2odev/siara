@@ -109,7 +109,7 @@ export default function PoliceAIInsightsPage() {
           <div className="police-stat"><span>Active Incidents</span><strong>{dashboard?.stats?.activeCount || 0}</strong><em>Zone pressure</em></div>
           <div className="police-stat"><span>High Priority</span><strong>{dashboard?.stats?.highPriorityCount || 0}</strong><em>Escalation watch</em></div>
           <div className="police-stat"><span>Top Zone</span><strong>{topZone}</strong><em>Most incident volume</em></div>
-          <div className="police-stat"><span>Nearby Results</span><strong>{dashboard?.nearbyIncidents?.length || 0}</strong><em>500m radius</em></div>
+          <div className="police-stat"><span>Nearby Results</span><strong>{dashboard?.nearbyIncidents?.length || 0}</strong><em>5 km radius</em></div>
         </div>
       </section>
 

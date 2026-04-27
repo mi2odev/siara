@@ -142,7 +142,7 @@ export default function PoliceNearbyIncidentsPage() {
     <section className="police-section police-nearby-page-side-card">
       <h2>Nearby Summary</h2>
       <ul className="police-list police-nearby-page-side-list">
-        <li><strong>Search radius:</strong> 500 m</li>
+        <li><strong>Search radius:</strong> 5 km</li>
         <li><strong>Incidents found:</strong> {nearbyIncidents.length}</li>
         <li><strong>High severity:</strong> {highSeverityCount}</li>
         <li><strong>Location status:</strong> {displayLabel(locationState.key)}</li>
@@ -157,10 +157,10 @@ export default function PoliceNearbyIncidentsPage() {
         <div className="police-command-section-head police-nearby-page-head">
           <div>
             <h2>Nearby Incidents</h2>
-            <p className="police-shortcuts-hint">Live incidents detected around your latest location with a 500-meter response radius.</p>
+            <p className="police-shortcuts-hint">Live incidents detected around your latest location with a 5-kilometer response radius.</p>
           </div>
           <div className="police-nearby-page-head-actions">
-            <span className="police-nearby-page-radius">Radius 500 m</span>
+            <span className="police-nearby-page-radius">Radius 5 km</span>
             <button
               type="button"
               className="police-action police-action-secondary police-nearby-page-refresh"
@@ -239,7 +239,7 @@ export default function PoliceNearbyIncidentsPage() {
                 <p>
                   {locationRequired
                     ? 'No usable officer location is available yet, so nearby incidents cannot be calculated.'
-                    : 'No active incidents are currently within 500 meters of your latest valid location.'}
+                    : 'No active incidents are currently within 5 kilometers of your latest valid location.'}
                 </p>
               </div>
             ) : null}
@@ -260,7 +260,7 @@ export default function PoliceNearbyIncidentsPage() {
                 <>
                   <Circle
                     center={[locationCoords.lat, locationCoords.lng]}
-                    radius={500}
+                    radius={5000}
                     pathOptions={{ color: '#2563eb', opacity: 0.65, fillOpacity: 0.06 }}
                   />
 

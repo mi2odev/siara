@@ -307,7 +307,7 @@ export default function PolicePage() {
     {
       key: 'nearby',
       label: 'Nearby Incidents',
-      hint: 'Within 500 m',
+      hint: 'Within 5 km',
       count: nearbyIncidents.length,
       icon: <MyLocationRoundedIcon fontSize="inherit" />,
       tone: 'teal',
@@ -815,6 +815,65 @@ export default function PolicePage() {
           </section>
         </div>
       </div>
+
+      {isFullMapOpen ? (
+        <div
+          className="police-cc-fullmap-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Full map"
+          onClick={() => setIsFullMapOpen(false)}
+        >
+          <div
+            className="police-cc-fullmap-shell"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="police-cc-fullmap-head">
+              <div className="police-cc-fullmap-title">
+                <MyLocationRoundedIcon fontSize="inherit" className="police-cc-section-icon blue" />
+                <div>
+                  <h2>Operations Map</h2>
+                  <span>{mapMarkers.length} marker{mapMarkers.length === 1 ? '' : 's'} · {workZone?.commune?.name || workZone?.wilaya?.name || 'assigned zone'}</span>
+                </div>
+              </div>
+              <div className="police-cc-fullmap-legend">
+                <span className="police-cc-map-pill critical"><span className="dot" /> Critical</span>
+                <span className="police-cc-map-pill high"><span className="dot" /> High</span>
+                <span className="police-cc-map-pill medium"><span className="dot" /> Medium</span>
+                <span className="police-cc-map-pill low"><span className="dot" /> Low</span>
+              </div>
+              <button
+                type="button"
+                className="police-cc-fullmap-close"
+                onClick={() => setIsFullMapOpen(false)}
+                aria-label="Close full map"
+                title="Close"
+              >
+                <CloseRoundedIcon fontSize="inherit" />
+              </button>
+            </header>
+
+            <div className="police-cc-fullmap-body">
+              <MapContainer center={mapCenter} zoom={12} scrollWheelZoom className="police-leaflet-map">
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                />
+                <Pane name="police-cc-fullmap-layer" style={{ zIndex: 9999 }}>
+                  {mapReports.map((report) => (
+                    <ReportMapMarker
+                      key={`fullmap-${report.id}`}
+                      report={report}
+                      tooltipPane="police-cc-fullmap-layer"
+                      onClick={(item) => navigate(`/police/incident/${item.id}`)}
+                    />
+                  ))}
+                </Pane>
+              </MapContainer>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </PoliceShell>
   )
 }

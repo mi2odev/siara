@@ -5488,34 +5488,125 @@
   border-color: #dbe5f4;
 }
 
+.police-root .police-incident-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid #e6ecf6;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f9fbff);
+  margin: 14px 0;
+}
+
+.police-root .police-incident-evidence-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.police-root .police-incident-evidence-head h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0b1730;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.police-root .police-incident-evidence-head h3::before {
+  content: '';
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #1d4ed8, #38bdf8);
+}
+
+.police-root .police-incident-evidence-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7d96;
+  background: #ffffff;
+  border: 1px solid #e1e8f3;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.police-root .police-incident-evidence-empty {
+  border: 1px dashed #cbd8ed;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+  color: #6b7d96;
+  font-size: 12.5px;
+}
+
 .police-root .police-evidence-grid {
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
 }
 
 .police-root .police-evidence-item {
-  border: 1px solid #dbe5f4;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid #e1e8f3;
   border-radius: 12px;
-  padding: 10px;
   background: #ffffff;
+  text-decoration: none;
+  cursor: zoom-in;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .police-root .police-evidence-item:hover {
   transform: translateY(-1px);
   border-color: #b8cdee;
-  box-shadow: 0 10px 20px -14px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 12px 22px -16px rgba(15, 23, 42, 0.32);
+}
+
+.police-root .police-evidence-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #eef2f8, #dbe4f0);
+}
+
+.police-root .police-evidence-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.police-root .police-evidence-item:hover .police-evidence-img {
+  transform: scale(1.04);
 }
 
 .police-root .police-evidence-label {
-  font-size: 11px;
+  font-size: 10.5px;
   color: #6b7d96;
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 4px 2px;
 }
 
 .police-root .police-evidence-missing {
-  width: 100%;
-  height: 170px;
-  border-radius: 12px;
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
   border: 1px dashed #cbd8ed;
   background: #f7faff;
   color: #6b7d96;
@@ -7032,6 +7123,161 @@
 .police-root .police-cc-map-shell .leaflet-tooltip.siara-report-tooltip {
   z-index: 13060 !important;
   pointer-events: none;
+}
+
+.police-root .police-cc-fullmap-btn {
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+  padding: 6px 12px;
+  border-radius: 8px;
+  box-shadow: 0 6px 14px -6px rgba(29, 78, 216, 0.55);
+}
+
+.police-root .police-cc-fullmap-btn:hover {
+  background: linear-gradient(180deg, #1d4ed8, #1e40af);
+}
+
+.police-root .police-cc-fullmap-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ----- Full Map fullscreen modal ----- */
+.police-root .police-cc-fullmap-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 14000;
+  background: rgba(11, 23, 48, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 24px;
+  animation: cc-fullmap-fade 0.18s ease;
+}
+
+@keyframes cc-fullmap-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.police-root .police-cc-fullmap-shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #dce6f3;
+  overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.45);
+}
+
+.police-root .police-cc-fullmap-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e6ecf6;
+  background: linear-gradient(180deg, #ffffff, #f7faff);
+}
+
+.police-root .police-cc-fullmap-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.police-root .police-cc-fullmap-title h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0b1730;
+  letter-spacing: -0.01em;
+}
+
+.police-root .police-cc-fullmap-title span {
+  display: block;
+  font-size: 11.5px;
+  color: #6b7d96;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.police-root .police-cc-fullmap-legend {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.police-root .police-cc-fullmap-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #d6dfee;
+  background: #ffffff;
+  color: #1f2c45;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.police-root .police-cc-fullmap-close:hover {
+  background: #f7faff;
+  border-color: #b8cdee;
+  transform: translateY(-1px);
+}
+
+.police-root .police-cc-fullmap-close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.police-root .police-cc-fullmap-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.police-root .police-cc-fullmap-body .police-leaflet-map {
+  width: 100%;
+  height: 100%;
+}
+
+.police-root .police-cc-fullmap-body .leaflet-tooltip-pane {
+  z-index: 13050 !important;
+}
+
+.police-root .police-cc-fullmap-body .leaflet-tooltip.siara-report-tooltip {
+  z-index: 13060 !important;
+  pointer-events: none;
+}
+
+@media (max-width: 720px) {
+  .police-root .police-cc-fullmap-backdrop {
+    padding: 0;
+  }
+
+  .police-root .police-cc-fullmap-shell {
+    border-radius: 0;
+  }
+
+  .police-root .police-cc-fullmap-head {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .police-root .police-cc-fullmap-legend {
+    margin-left: 0;
+    order: 3;
+    width: 100%;
+  }
 }
 
 .police-root .police-cc-map-legend {
