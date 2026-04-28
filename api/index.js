@@ -23,6 +23,8 @@ const notificationRoutes = require("./contollers/notifications");
 const policeRoutes = require("./contollers/police");
 const pushRoutes = require("./contollers/push");
 const reportRoutes = require("./contollers/reports");
+const driverQuizRoutes = require("./contollers/driverQuiz");
+const occurrenceRiskRoutes = require("./contollers/occurrenceRisk");
 const { startNotificationListener } = require("./services/notificationListener");
 const { initializeNotificationSocketServer } = require("./services/notificationSocket");
 const { startWeeklySummaryScheduler } = require("./services/weeklySummaryScheduler");
@@ -65,6 +67,34 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/police", policeRoutes);
 app.use("/api/push", pushRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/driver-quiz", driverQuizRoutes);
+app.use("/api/occurrence-risk", occurrenceRiskRoutes);
+// Spec aliases for police/admin scoped occurrence-risk routes.
+app.use("/api/admin/users", (req, res, next) => {
+  const match = req.path.match(/^\/([^/]+)\/occurrence-risk\/?$/);
+  if (!match) return next();
+  req.url = `/admin/users/${encodeURIComponent(match[1])}`;
+  return occurrenceRiskRoutes(req, res, next);
+});
+app.use("/api/police/users", (req, res, next) => {
+  const match = req.path.match(/^\/([^/]+)\/occurrence-risk\/?$/);
+  if (!match) return next();
+  req.url = `/police/users/${encodeURIComponent(match[1])}`;
+  return occurrenceRiskRoutes(req, res, next);
+});
+// Spec aliases: /api/admin/users/:userId/driver-quiz and /api/police/users/:userId/driver-quiz
+app.use("/api/admin/users", (req, res, next) => {
+  const match = req.path.match(/^\/([^/]+)\/driver-quiz\/?$/);
+  if (!match) return next();
+  req.url = `/admin/users/${encodeURIComponent(match[1])}`;
+  return driverQuizRoutes(req, res, next);
+});
+app.use("/api/police/users", (req, res, next) => {
+  const match = req.path.match(/^\/([^/]+)\/driver-quiz\/?$/);
+  if (!match) return next();
+  req.url = `/police/users/${encodeURIComponent(match[1])}`;
+  return driverQuizRoutes(req, res, next);
+});
 
 app.post("/api/model/predict", predictDriverRisk);
 app.post("/api/model/predict/stream", predictDriverRiskStream);

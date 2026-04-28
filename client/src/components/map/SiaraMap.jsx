@@ -29,6 +29,18 @@ const NEARBY_REFRESH_MS = 60 * 1000;
 const GUIDANCE_REFRESH_MS = 30 * 1000;
 const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const occurrenceRiskColor = (level) => {
+  if (level === "extreme") return "#b91c1c";
+  if (level === "high") return "#ea580c";
+  if (level === "moderate") return "#d97706";
+  return "#15803d";
+};
+
+const occurrenceRiskLabel = (level) => {
+  if (!level) return "n/a";
+  return level.charAt(0).toUpperCase() + level.slice(1);
+};
 const TIME_PRESET_OPTIONS = [
   { value: "0", label: "Now" },
   { value: String(5 * 60 * 1000), label: "+5 min" },
@@ -1100,6 +1112,9 @@ const SiaraMap = ({
   const [explanationText, setExplanationText] = useState("");
   const [explanationError, setExplanationError] = useState("");
   const [explanationSource, setExplanationSource] = useState("");
+  const [occurrenceRisk, setOccurrenceRisk] = useState(null);
+  const [occurrenceRiskLoading, setOccurrenceRiskLoading] = useState(false);
+  const [occurrenceRiskError, setOccurrenceRiskError] = useState("");
   const [routeExplainState, setRouteExplainState] = useState("idle");
   const [routeExplainError, setRouteExplainError] = useState("");
   const [selectedRouteExplanation, setSelectedRouteExplanation] = useState(null);
@@ -1409,6 +1424,40 @@ const SiaraMap = ({
       cancelled = true;
     };
   }, [hasValidUserLocation, selectedTimestampIso, userLocationKey]);
+
+  useEffect(() => {
+    const segmentId = currentRisk?.road_segment_id;
+    if (!segmentId) {
+      setOccurrenceRisk(null);
+      setOccurrenceRiskError("");
+      return undefined;
+    }
+    let cancelled = false;
+    setOccurrenceRiskLoading(true);
+    setOccurrenceRiskError("");
+    import("../../services/occurrenceRiskService")
+      .then(({ predictOccurrenceForSegment }) =>
+        predictOccurrenceForSegment({
+          roadSegmentId: segmentId,
+          timeBucket: selectedTimestampIso,
+          personalize: true,
+        }),
+      )
+      .then((data) => {
+        if (cancelled) return;
+        setOccurrenceRisk(data);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setOccurrenceRiskError(error?.message || "Could not load occurrence risk");
+      })
+      .finally(() => {
+        if (!cancelled) setOccurrenceRiskLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentRisk?.road_segment_id, selectedTimestampIso]);
 
   useEffect(() => {
     if (!hasValidUserLocation || !userPosition) {
@@ -2751,6 +2800,51 @@ const SiaraMap = ({
                   </IconButton>
                 </MuiTooltip>
               </div>
+              {(occurrenceRiskLoading || occurrenceRisk || occurrenceRiskError) && (
+                <div className="siara-occurrence-card" role="status">
+                  <div className="siara-occurrence-card__title">
+                    Prototype occurrence-risk estimate
+                  </div>
+                  {occurrenceRiskLoading && (
+                    <p className="siara-occurrence-card__line">Computing occurrence risk...</p>
+                  )}
+                  {!occurrenceRiskLoading && occurrenceRiskError && (
+                    <p className="siara-occurrence-card__line siara-occurrence-card__error">
+                      {occurrenceRiskError}
+                    </p>
+                  )}
+                  {!occurrenceRiskLoading && !occurrenceRiskError && occurrenceRisk && (
+                    <>
+                      <div className="siara-occurrence-card__row">
+                        <span>Road risk</span>
+                        <strong style={{ color: occurrenceRiskColor(occurrenceRisk.global_risk_level) }}>
+                          {Math.round((occurrenceRisk.global_occurrence_score || 0) * 100)}% ·{' '}
+                          {occurrenceRiskLabel(occurrenceRisk.global_risk_level)}
+                        </strong>
+                      </div>
+                      <div className="siara-occurrence-card__row">
+                        <span>Your personalized risk</span>
+                        <strong
+                          style={{ color: occurrenceRiskColor(occurrenceRisk.personalized_risk_level) }}
+                        >
+                          {Math.round((occurrenceRisk.personalized_occurrence_score || 0) * 100)}% ·{' '}
+                          {occurrenceRiskLabel(occurrenceRisk.personalized_risk_level)}
+                        </strong>
+                      </div>
+                      <div className="siara-occurrence-card__meta">
+                        {occurrenceRisk.driver_behavior?.has_driver_profile
+                          ? `Adjusted using your driver behavior quiz (×${
+                              occurrenceRisk.driver_behavior.multiplier?.toFixed?.(2) ?? '1.00'
+                            }).`
+                          : 'No driver quiz result found; neutral adjustment used.'}
+                      </div>
+                      <div className="siara-occurrence-card__warning">
+                        Relative occurrence-risk estimate. Not a calibrated probability yet.
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               {explanationOpen && (
                 <div className="siara-explain-card" role="status">
                   {explanationLoading && (

@@ -1,5 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import QuizExplanationResult from './QuizExplanationResult'
+import {
+  completeDriverQuiz,
+  saveDriverQuizResponse,
+  startDriverQuiz,
+} from '../../services/driverQuizService'
 import '../../styles/DrivingQuiz.css'
 
 const QUIZ_SECTIONS = [
@@ -234,6 +239,8 @@ export default function DrivingQuiz({ onComplete, forceShow = false }) {
   const [structuredExplanation, setStructuredExplanation] = useState(null)
   const [streamStatus, setStreamStatus] = useState('')
   const [streamFallback, setStreamFallback] = useState(false)
+  const [persistedResult, setPersistedResult] = useState(null)
+  const attemptIdRef = useRef(null)
 
   useEffect(() => {
     const hasCompleted = localStorage.getItem(STORAGE_KEY)
@@ -257,9 +264,27 @@ export default function DrivingQuiz({ onComplete, forceShow = false }) {
       setStructuredExplanation(null)
       setStreamStatus('')
       setStreamFallback(false)
+      setPersistedResult(null)
+      attemptIdRef.current = null
       setIsVisible(true)
     }
   }, [forceShow])
+
+  const ensureAttemptStarted = async () => {
+    if (attemptIdRef.current) return attemptIdRef.current
+    try {
+      const result = await startDriverQuiz({
+        totalQuestions: 40,
+        quizVersion: 'siara-driver-quiz-v1',
+      })
+      attemptIdRef.current = result?.attemptId || null
+      return attemptIdRef.current
+    } catch (error) {
+      // Persistence is best-effort; do not block the UX.
+      console.warn('[driver-quiz] start failed', error?.message || error)
+      return null
+    }
+  }
 
 function getRiskLevel(value) {
   if (value < 17) {
@@ -506,6 +531,18 @@ const getDisplayText = (feature, impact) => {
         })
       )
 
+      // Persist the completion against the backend attempt (best-effort).
+      let backendResult = null
+      try {
+        const attemptId = await ensureAttemptStarted()
+        if (attemptId) {
+          backendResult = await completeDriverQuiz(attemptId)
+          setPersistedResult(backendResult)
+        }
+      } catch (error) {
+        console.warn('[driver-quiz] complete failed', error?.message || error)
+      }
+
       onComplete?.({
         skipped: false,
         prediction: finalData.risk_label,
@@ -517,6 +554,7 @@ const getDisplayText = (feature, impact) => {
         advice: finalData.advice_text || null,
         explanationText: finalData.explanation_text || streamedExplanation || null,
         structuredExplanation: finalData.structured_explanation || null,
+        backendResult,
       })
 
     } catch (error) {
@@ -538,6 +576,34 @@ const getDisplayText = (feature, impact) => {
     }
 
     setAnswers(updatedAnswers)
+
+    // Best-effort persistence: do not block the UX if it fails.
+    ;(async () => {
+      try {
+        const attemptId = await ensureAttemptStarted()
+        if (!attemptId) return
+        const option = ANSWER_OPTIONS.find((entry) => entry.value === value)
+        await saveDriverQuizResponse(attemptId, {
+          questionId: String(question.id),
+          questionText: question.text,
+          questionCategory: currentSection?.id || null,
+          selectedOptionId: option ? String(option.value) : String(value),
+          selectedOptionText: option ? option.label : null,
+          selectedValue: String(value),
+          riskPoints: riskScore,
+          maxPoints: 5,
+          answerSnapshot: {
+            rawValue: value,
+            riskScore,
+            reversed: Boolean(question.reversed),
+            sectionId: currentSection?.id || null,
+            sectionTitle: currentSection?.title || null,
+          },
+        })
+      } catch (error) {
+        console.warn('[driver-quiz] save response failed', error?.message || error)
+      }
+    })()
 
     const isLastQuestionInSection = currentQuestionIndex >= currentSection.questions.length - 1
     const isLastSection = currentSectionIndex >= QUIZ_SECTIONS.length - 1
@@ -656,6 +722,19 @@ const getDisplayText = (feature, impact) => {
                 </div>
               )}
               {!isSubmitting && submitError && <div className="results-message"><p>{submitError}</p></div>}
+              {persistedResult && (
+                <div className="results-siara-summary">
+                  <div className="results-siara-summary-header">
+                    <strong>{persistedResult.resultTitle}</strong>
+                    {typeof persistedResult.riskScore === 'number' && (
+                      <span className="results-siara-summary-score">{persistedResult.riskScore}/100</span>
+                    )}
+                  </div>
+                  <p className="results-siara-summary-desc">{persistedResult.resultDescription}</p>
+                  <p className="results-siara-summary-reco">{persistedResult.recommendationDescription}</p>
+                  <p className="results-siara-summary-meta">Saved to your SIARA profile.</p>
+                </div>
+              )}
             </div>
 
             <div className="results-sections">

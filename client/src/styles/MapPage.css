@@ -2958,3 +2958,59 @@
 }
 
 
+
+.siara-occurrence-card {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #FFFFFF;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-left: 3px solid #ea580c;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.siara-occurrence-card__title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.siara-occurrence-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: #1f2937;
+  padding: 2px 0;
+}
+
+.siara-occurrence-card__row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.siara-occurrence-card__meta {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #475569;
+}
+
+.siara-occurrence-card__warning {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.siara-occurrence-card__line {
+  margin: 0;
+  font-size: 12px;
+  color: #1f2937;
+}
+
+.siara-occurrence-card__error {
+  color: #b91c1c;
+}

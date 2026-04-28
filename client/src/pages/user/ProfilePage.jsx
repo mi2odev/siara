@@ -26,6 +26,10 @@ import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getCurrentUser, getUserPrivacyVisibility, getUserSettings } from '../../services/authService'
 import { listReports } from '../../services/reportsService'
 import { fetchAlerts, fetchAlertsForUser } from '../../services/alertService'
+import {
+  getMyDriverQuizHistory,
+  getMyDriverQuizProfile,
+} from '../../services/driverQuizService'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/NewsPage.css'
 import '../../styles/ProfilePage.css'
@@ -160,6 +164,10 @@ export default function ProfilePage(){
   const [alertsLoading, setAlertsLoading] = useState(false)
   const [alertsError, setAlertsError] = useState('')
   const [profileVisibility, setProfileVisibility] = useState('public')
+  const [driverQuizProfile, setDriverQuizProfile] = useState(null)
+  const [driverQuizHistory, setDriverQuizHistory] = useState([])
+  const [driverQuizLoading, setDriverQuizLoading] = useState(false)
+  const [driverQuizError, setDriverQuizError] = useState('')
   const [activeTab, setActiveTab] = useState('alerts')       // Currently selected activity tab
   const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false)
@@ -177,6 +185,31 @@ export default function ProfilePage(){
   const headerInitials = getInitialsFromName(headerDisplayName)
   const openAvatarPreview = () => setIsAvatarPreviewOpen(true)
   const closeAvatarPreview = () => setIsAvatarPreviewOpen(false)
+
+  useEffect(() => {
+    let cancelled = false
+    if (!isViewingOwnProfile || !authUser) {
+      setDriverQuizProfile(null)
+      setDriverQuizHistory([])
+      return () => {}
+    }
+    setDriverQuizLoading(true)
+    setDriverQuizError('')
+    Promise.all([getMyDriverQuizProfile(), getMyDriverQuizHistory({ limit: 10 })])
+      .then(([profile, history]) => {
+        if (cancelled) return
+        setDriverQuizProfile(profile)
+        setDriverQuizHistory(Array.isArray(history?.attempts) ? history.attempts : [])
+      })
+      .catch((error) => {
+        if (cancelled) return
+        setDriverQuizError(error?.message || 'Failed to load driver quiz profile')
+      })
+      .finally(() => {
+        if (!cancelled) setDriverQuizLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [authUser, isViewingOwnProfile])
 
   useEffect(() => {
     if (!isAvatarPreviewOpen) {
@@ -738,6 +771,82 @@ export default function ProfilePage(){
               </div>
             </div>
           </section>
+
+          {isViewingOwnProfile && (
+            <section className="profile-driver-quiz">
+              <div className="profile-driver-quiz-header">
+                <h3>Driver behavior profile</h3>
+                <button
+                  type="button"
+                  className="profile-driver-quiz-cta"
+                  onClick={() => navigate('/predictions')}
+                >
+                  Take or retake quiz
+                </button>
+              </div>
+              {driverQuizLoading && <p className="profile-driver-quiz-empty">Loading your latest result...</p>}
+              {driverQuizError && !driverQuizLoading && (
+                <p className="profile-driver-quiz-empty profile-driver-quiz-error">{driverQuizError}</p>
+              )}
+              {!driverQuizLoading && !driverQuizError && !driverQuizProfile && (
+                <p className="profile-driver-quiz-empty">
+                  You haven&apos;t completed the SIARA driver quiz yet. Take it to receive a personalized driving profile.
+                </p>
+              )}
+              {!driverQuizLoading && !driverQuizError && driverQuizProfile && (
+                <>
+                  <div className="profile-driver-quiz-summary">
+                    <div className="profile-driver-quiz-score">
+                      <span className="profile-driver-quiz-score-value">
+                        {driverQuizProfile.latestRiskScore == null
+                          ? '--'
+                          : Math.round(Number(driverQuizProfile.latestRiskScore))}
+                      </span>
+                      <span className="profile-driver-quiz-score-suffix">/100 risk</span>
+                    </div>
+                    <div className="profile-driver-quiz-text">
+                      <strong>{driverQuizProfile.latestResultTitle || 'Driver profile'}</strong>
+                      {driverQuizProfile.latestResultDescription && (
+                        <p>{driverQuizProfile.latestResultDescription}</p>
+                      )}
+                      {driverQuizProfile.latestRecommendationDescription && (
+                        <p className="profile-driver-quiz-reco">
+                          {driverQuizProfile.latestRecommendationDescription}
+                        </p>
+                      )}
+                      {driverQuizProfile.lastCompletedAt && (
+                        <span className="profile-driver-quiz-meta">
+                          Last completed{' '}
+                          {new Date(driverQuizProfile.lastCompletedAt).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {driverQuizHistory.length > 1 && (
+                    <details className="profile-driver-quiz-history">
+                      <summary>History ({driverQuizHistory.length})</summary>
+                      <ul>
+                        {driverQuizHistory.map((attempt) => (
+                          <li key={attempt.id}>
+                            <span>
+                              {attempt.completedAt
+                                ? new Date(attempt.completedAt).toLocaleString()
+                                : new Date(attempt.createdAt).toLocaleString()}
+                            </span>
+                            <span>
+                              {attempt.status === 'completed' && attempt.riskScore != null
+                                ? `${Math.round(Number(attempt.riskScore))}/100 · ${attempt.resultTitle || attempt.resultLabel || ''}`
+                                : attempt.status}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </>
+              )}
+            </section>
+          )}
 
           {/* ═══ TABBED ACTIVITIES SECTION ═══ */}
           <section className="profile-activities">
