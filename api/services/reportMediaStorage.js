@@ -86,7 +86,7 @@ function buildPublicUrlFromStorageKey(storageKey) {
 async function uploadBufferToLocalStorage(buffer, { reportId, originalFilename, mimeType }) {
   if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
     throw createError(400, "Image file is empty");
-  }
+  } 
 
   const normalizedReportId = String(reportId || "unknown").trim() || "unknown";
   const extension = normalizeImageExtension(originalFilename, mimeType);

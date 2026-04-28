@@ -23,7 +23,7 @@ function formatDbError(error) {
     code: error?.code || null,
     detail: error?.detail || null,
     constraint: error?.constraint || null,
-    table: error?.table || null,
+    table: error?.table || null, 
     schema: error?.schema || null,
   };
 }
