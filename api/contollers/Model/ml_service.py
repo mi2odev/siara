@@ -21,6 +21,7 @@ if ANOMALY_DETECTION_DIR not in sys.path:
     sys.path.append(ANOMALY_DETECTION_DIR)
 
 from report_spam_model import classify_report_payload
+from report_validator import validate_report as siara_validate_report
 from services.quiz_explainer import (
     build_template_explanation,
     explain_quiz_result,
@@ -1326,6 +1327,40 @@ def risk_confidence():
         return jsonify({"enabled": True, "sentinel": sentinel_payload})
     except Exception as exc:
         return jsonify({"enabled": True, "error": "Sentinel scoring failed", "details": str(exc)}), 500
+
+
+@app.route("/report/validate", methods=["POST"])
+def report_validate():
+    payload = request.get_json(silent=True) or {}
+    _log_incoming("/report/validate", payload)
+
+    try:
+        result = siara_validate_report(
+            title=payload.get("title"),
+            description=payload.get("description"),
+            incident_type=payload.get("incident_type") or payload.get("incidentType"),
+            lat=payload.get("lat"),
+            lon=payload.get("lon") or payload.get("lng"),
+            near_road=payload.get("near_road"),
+            distance_to_road_m=payload.get("distance_to_road_m"),
+            has_image=bool(payload.get("has_image", False)),
+            image_related=payload.get("image_related"),
+        )
+        return jsonify(result)
+    except FileNotFoundError as exc:
+        return (
+            jsonify(
+                {
+                    "error": "Report validator model is not trained",
+                    "details": str(exc),
+                }
+            ),
+            503,
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": "Report validation failed", "details": str(exc)}), 500
 
 
 @app.route("/report-spam/classify", methods=["POST"])

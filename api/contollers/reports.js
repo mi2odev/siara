@@ -110,6 +110,8 @@ const REPORT_SELECT_SQL = `
     u.first_name as reporter_first_name,
     u.last_name as reporter_last_name,
     u.avatar_url as reporter_avatar_url,
+    u.trust_score as reporter_trust_score,
+    u.trust_last_updated_at as reporter_trust_updated_at,
     coalesce(
       (
         select array_agg(distinct r.name)
@@ -487,6 +489,103 @@ function buildSpamAnalysis(row) {
   };
 }
 
+function getReportQualityBadge(row) {
+  if (!row) {
+    return { code: "unverified", label: "Unverified", style: "neutral", icon: "help" };
+  }
+
+  if (row.verified_by_officer_id) {
+    return {
+      code: "officer_verified",
+      label: "Verified by officer",
+      style: "positive_strong",
+      icon: "shield_check",
+    };
+  }
+
+  const predictedLabel = String(row.latest_predicted_label || "").trim().toLowerCase();
+  const spamScoreRaw = Number(row.latest_spam_score);
+  // Stored as decimal 0..1; normalize legacy >1 values defensively without
+  // multiplying twice.
+  const spamScore = Number.isFinite(spamScoreRaw)
+    ? spamScoreRaw > 1.2
+      ? spamScoreRaw / 100
+      : spamScoreRaw
+    : null;
+  const mlStatus = String(row.ml_status || "").trim().toLowerCase();
+
+  if (predictedLabel === "real" && spamScore != null && spamScore < 0.35) {
+    return {
+      code: "ai_verified",
+      label: "AI verified",
+      style: "positive",
+      icon: "check_circle",
+    };
+  }
+  if (predictedLabel === "suspicious") {
+    return {
+      code: "needs_review",
+      label: "Needs review",
+      style: "warning",
+      icon: "alert_triangle",
+    };
+  }
+  if (predictedLabel === "spam" || (spamScore != null && spamScore >= 0.65)) {
+    return {
+      code: "probably_spam",
+      label: "Probably spam",
+      style: "danger",
+      icon: "alert_octagon",
+    };
+  }
+  if (predictedLabel === "out_of_context") {
+    return {
+      code: "out_of_context",
+      label: "Out of SIARA context",
+      style: "muted_warning",
+      icon: "info",
+    };
+  }
+  if (predictedLabel === "invalid_location") {
+    return {
+      code: "invalid_location",
+      label: "Suspicious location",
+      style: "warning",
+      icon: "map_pin_alert",
+    };
+  }
+  if (mlStatus === "pending" || mlStatus === "processing") {
+    return {
+      code: "checking",
+      label: "Checking report",
+      style: "neutral",
+      icon: "loader",
+    };
+  }
+
+  return { code: "unverified", label: "Unverified", style: "neutral", icon: "clock" };
+}
+
+function getReporterTrustTier(score) {
+  const numeric = Number(score);
+  if (!Number.isFinite(numeric)) {
+    return { code: "unknown", label: "Reporter trust unknown", style: "neutral" };
+  }
+  if (numeric >= 80) {
+    return { code: "high", label: "High confidence reporter", style: "positive" };
+  }
+  if (numeric >= 60) {
+    return { code: "trusted", label: "Trusted reporter", style: "positive_muted" };
+  }
+  if (numeric >= 40) {
+    return { code: "normal", label: "New/normal reporter", style: "neutral" };
+  }
+  if (numeric >= 20) {
+    return { code: "low", label: "Low confidence reporter", style: "warning" };
+  }
+  return { code: "very_low", label: "Very low confidence reporter", style: "danger" };
+}
+
 function mapReportRow(row, { social } = {}) {
   if (!row) {
     return null;
@@ -514,6 +613,7 @@ function mapReportRow(row, { social } = {}) {
     distanceKm:
       row.distance_meters == null ? null : Number((Number(row.distance_meters) / 1000).toFixed(2)),
     spamAnalysis: buildSpamAnalysis(row),
+    qualityBadge: getReportQualityBadge(row),
     sourceChannel: row.source_channel || null,
     reportedByRoleSnapshot: Array.isArray(row.reported_by_role_snapshot)
       ? row.reported_by_role_snapshot
@@ -531,16 +631,25 @@ function mapReportRow(row, { social } = {}) {
     viewerSawItToo: Boolean(socialState.viewerSawItToo),
     commentsPreview: Array.isArray(socialState.commentsPreview) ? socialState.commentsPreview : [],
     reportedBy: row.reported_by
-      ? {
-          id: row.reported_by,
-          name:
-            row.reporter_name ||
-            [row.reporter_first_name, row.reporter_last_name].filter(Boolean).join(" ") ||
-            null,
-          avatar_url: row.reporter_avatar_url || "",
-          avatarUrl: row.reporter_avatar_url || "",
-          roles: Array.isArray(row.reporter_roles) ? row.reporter_roles : [],
-        }
+      ? (() => {
+          const trustScoreRaw = Number(row.reporter_trust_score);
+          const trustScore = Number.isFinite(trustScoreRaw) ? trustScoreRaw : null;
+          return {
+            id: row.reported_by,
+            name:
+              row.reporter_name ||
+              [row.reporter_first_name, row.reporter_last_name].filter(Boolean).join(" ") ||
+              null,
+            avatar_url: row.reporter_avatar_url || "",
+            avatarUrl: row.reporter_avatar_url || "",
+            roles: Array.isArray(row.reporter_roles) ? row.reporter_roles : [],
+            trustScore,
+            trustLastUpdatedAt: row.reporter_trust_updated_at
+              ? new Date(row.reporter_trust_updated_at).toISOString()
+              : null,
+            trustTier: getReporterTrustTier(trustScore),
+          };
+        })()
       : null,
   };
 }

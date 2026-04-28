@@ -2734,6 +2734,116 @@
   cursor: not-allowed;
 }
 
+.quality-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.quality-badge-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.quality-badge-meta {
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid currentColor;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.quality-badge-positive_strong {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.30);
+}
+
+.quality-badge-positive {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.quality-badge-positive_muted {
+  background: rgba(34, 197, 94, 0.08);
+  color: #15803D;
+  border-color: rgba(34, 197, 94, 0.18);
+}
+
+.quality-badge-warning,
+.quality-badge-muted_warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #B45309;
+  border-color: rgba(245, 158, 11, 0.30);
+}
+
+.quality-badge-muted_warning {
+  background: rgba(148, 163, 184, 0.15);
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.30);
+}
+
+.quality-badge-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #B91C1C;
+  border-color: rgba(239, 68, 68, 0.30);
+}
+
+.quality-badge-neutral {
+  background: rgba(148, 163, 184, 0.12);
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.reporter-trust-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.reporter-trust-positive {
+  background: rgba(16, 185, 129, 0.10);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.reporter-trust-positive_muted {
+  background: rgba(34, 197, 94, 0.08);
+  color: #15803D;
+  border-color: rgba(34, 197, 94, 0.20);
+}
+
+.reporter-trust-neutral {
+  background: rgba(148, 163, 184, 0.10);
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.reporter-trust-warning {
+  background: rgba(245, 158, 11, 0.10);
+  color: #B45309;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.reporter-trust-danger {
+  background: rgba(239, 68, 68, 0.10);
+  color: #B91C1C;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
 .feed-state-card {
   display: flex;
   flex-direction: column;

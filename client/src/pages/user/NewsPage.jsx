@@ -99,6 +99,62 @@ function formatDateTime(value) {
   })
 }
 
+const QUALITY_BADGE_FALLBACKS = {
+  officer_verified: { code: 'officer_verified', label: 'Verified by officer', style: 'positive_strong', icon: 'shield_check' },
+  ai_verified: { code: 'ai_verified', label: 'AI verified', style: 'positive', icon: 'check_circle' },
+  needs_review: { code: 'needs_review', label: 'Needs review', style: 'warning', icon: 'alert_triangle' },
+  probably_spam: { code: 'probably_spam', label: 'Probably spam', style: 'danger', icon: 'alert_octagon' },
+  out_of_context: { code: 'out_of_context', label: 'Out of SIARA context', style: 'muted_warning', icon: 'info' },
+  invalid_location: { code: 'invalid_location', label: 'Suspicious location', style: 'warning', icon: 'map_pin_alert' },
+  checking: { code: 'checking', label: 'Checking report', style: 'neutral', icon: 'loader' },
+  unverified: { code: 'unverified', label: 'Unverified', style: 'neutral', icon: 'clock' },
+}
+
+const QUALITY_BADGE_ICONS = {
+  shield_check: '🛡️',
+  check_circle: '✅',
+  alert_triangle: '⚠️',
+  alert_octagon: '🚫',
+  info: 'ℹ️',
+  map_pin_alert: '📍',
+  loader: '⏳',
+  clock: '🕒',
+  help: '❓',
+}
+
+function deriveQualityBadge(report) {
+  if (report?.qualityBadge && typeof report.qualityBadge === 'object') {
+    return report.qualityBadge
+  }
+  if (report?.verifiedByOfficerId) {
+    return QUALITY_BADGE_FALLBACKS.officer_verified
+  }
+  const label = String(report?.spamAnalysis?.predictedLabel || '').toLowerCase()
+  const spamRaw = Number(report?.spamAnalysis?.spamScore)
+  // spamAnalysis.spamScore is already a percentage (0..100). Convert to 0..1 for the rules.
+  const spamScore = Number.isFinite(spamRaw) ? spamRaw / 100 : null
+  const status = String(report?.spamAnalysis?.status || '').toLowerCase()
+  if (label === 'real' && spamScore != null && spamScore < 0.35) return QUALITY_BADGE_FALLBACKS.ai_verified
+  if (label === 'suspicious') return QUALITY_BADGE_FALLBACKS.needs_review
+  if (label === 'spam' || (spamScore != null && spamScore >= 0.65)) return QUALITY_BADGE_FALLBACKS.probably_spam
+  if (label === 'out_of_context') return QUALITY_BADGE_FALLBACKS.out_of_context
+  if (label === 'invalid_location') return QUALITY_BADGE_FALLBACKS.invalid_location
+  if (status === 'pending' || status === 'processing') return QUALITY_BADGE_FALLBACKS.checking
+  return QUALITY_BADGE_FALLBACKS.unverified
+}
+
+function formatSpamPercent(value) {
+  if (value == null) return null
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return null
+  // Backend already converts 0..1 to 0..100 in spamAnalysis.spamScore. If the
+  // value drifts above 100 (legacy), clamp; if below 1.2 (raw decimal), scale.
+  let percent = numeric
+  if (percent <= 1.2) percent = percent * 100
+  percent = Math.max(0, Math.min(100, percent))
+  return Math.round(percent)
+}
+
 function buildReportTags(report) {
   const tags = []
 
@@ -194,6 +250,11 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   const authorRoleBadge = getAuthorRoleBadge(authorProfile)
   const severityClass = getSeverityClass(report?.severity)
   const severityLabel = getSeverityLabel(report?.severity)
+  const qualityBadge = deriveQualityBadge(report)
+  const spamPercent = formatSpamPercent(report?.spamAnalysis?.spamScore)
+  const confidencePercent = formatSpamPercent(report?.spamAnalysis?.confidence)
+  const reporterTrustScore = Number(report?.reportedBy?.trustScore)
+  const reporterTrustTier = report?.reportedBy?.trustTier || null
   const media = Array.isArray(report?.media) ? report.media : []
   const visibleMedia = media.slice(0, 3)
   const remainingMediaCount = Math.max(0, media.length - visibleMedia.length)
@@ -462,6 +523,14 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
               </span>
               {isVerified && <span className="badge badge-verified">Verified</span>}
               <span className={`badge ${authorRoleBadge.className}`}>{authorRoleBadge.label}</span>
+              {reporterTrustTier && Number.isFinite(reporterTrustScore) && (
+                <span
+                  className={`reporter-trust-pill reporter-trust-${reporterTrustTier.style || 'neutral'}`}
+                  title={`Trust score ${Math.round(reporterTrustScore)}/100`}
+                >
+                  {reporterTrustTier.label} · {Math.round(reporterTrustScore)}
+                </span>
+              )}
             </div>
             <div className="post-meta-row">
               <span className="post-time">{formatRelativeTime(report?.createdAt || occurredAt)}</span>
@@ -471,6 +540,24 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           </div>
         </div>
         <div className="post-header-right">
+          {qualityBadge && (
+            <span
+              className={`quality-badge quality-badge-${qualityBadge.style || 'neutral'}`}
+              title={
+                spamPercent != null
+                  ? `Spam score ${spamPercent}% • Confidence ${confidencePercent ?? '—'}%`
+                  : qualityBadge.label
+              }
+            >
+              <span className="quality-badge-icon" aria-hidden>
+                {QUALITY_BADGE_ICONS[qualityBadge.icon] || ''}
+              </span>
+              <span className="quality-badge-label">{qualityBadge.label}</span>
+              {spamPercent != null && qualityBadge.code !== 'officer_verified' && (
+                <span className="quality-badge-meta">{spamPercent}%</span>
+              )}
+            </span>
+          )}
           <span className={`severity-pill ${severityClass} small`}>{severityLabel}</span>
           <button className="post-options-btn" onClick={() => navigate(`/incident/${report.id}`)}>...</button>
         </div>
