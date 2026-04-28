@@ -25,6 +25,8 @@ const pushRoutes = require("./contollers/push");
 const reportRoutes = require("./contollers/reports");
 const driverQuizRoutes = require("./contollers/driverQuiz");
 const occurrenceRiskRoutes = require("./contollers/occurrenceRisk");
+const adminUsersRoutes = require("./contollers/adminUsers");
+const reportDangerHeatmapRoutes = require("./contollers/reportDangerHeatmap");
 const { startNotificationListener } = require("./services/notificationListener");
 const { initializeNotificationSocketServer } = require("./services/notificationSocket");
 const { startWeeklySummaryScheduler } = require("./services/weeklySummaryScheduler");
@@ -95,6 +97,11 @@ app.use("/api/police/users", (req, res, next) => {
   req.url = `/police/users/${encodeURIComponent(match[1])}`;
   return driverQuizRoutes(req, res, next);
 });
+// Admin users management. Mounted AFTER the alias middlewares above so that
+// /api/admin/users/:userId/{driver-quiz,occurrence-risk} still resolve first.
+app.use("/api/admin/users", adminUsersRoutes);
+
+app.use("/api/map", reportDangerHeatmapRoutes);
 
 app.post("/api/model/predict", predictDriverRisk);
 app.post("/api/model/predict/stream", predictDriverRiskStream);
