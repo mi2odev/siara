@@ -1,5 +1,5 @@
 import React from 'react'
-import { MapContainer, Pane, TileLayer } from 'react-leaflet'
+import { MapContainer, Pane, TileLayer, useMap } from 'react-leaflet'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import ReportMapMarker from '../../components/map/ReportMapMarker'
@@ -105,6 +105,15 @@ function activityActionLabel(actionType) {
   if (actionType === 'mark_alert_read') return 'Alert acknowledged'
   if (actionType === 'manual_log_entry') return 'Manual log entry'
   return displayLabel(actionType)
+}
+
+function FlyToLocation({ center, zoom }) {
+  const map = useMap()
+  React.useEffect(() => {
+    map.flyTo(center, zoom, { animate: true, duration: 1.5 })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, center[0], center[1], zoom])
+  return null
 }
 
 export default function PolicePage() {
@@ -601,7 +610,8 @@ export default function PolicePage() {
             </header>
 
             <div className="police-cc-map-shell">
-              <MapContainer center={mapCenter} zoom={12} scrollWheelZoom className="police-leaflet-map">
+              <MapContainer center={mapCenter} zoom={11} scrollWheelZoom className="police-leaflet-map">
+                <FlyToLocation center={mapCenter} zoom={14} />
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -648,12 +658,14 @@ export default function PolicePage() {
                   className={`police-cc-quick-btn tone-${action.tone}`}
                   onClick={() => navigate(action.path)}
                 >
-                  <span className="police-cc-quick-icon">{action.icon}</span>
-                  <span className="police-cc-quick-text">
+                  <div className="police-cc-quick-header">
+                    <span className="police-cc-quick-icon">{action.icon}</span>
+                    <span className="police-cc-quick-count">{action.count}</span>
+                  </div>
+                  <div className="police-cc-quick-text">
                     <strong>{action.label}</strong>
                     <span>{action.hint}</span>
-                  </span>
-                  <span className="police-cc-quick-count">{action.count}</span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -854,7 +866,8 @@ export default function PolicePage() {
             </header>
 
             <div className="police-cc-fullmap-body">
-              <MapContainer center={mapCenter} zoom={12} scrollWheelZoom className="police-leaflet-map">
+              <MapContainer center={mapCenter} zoom={11} scrollWheelZoom className="police-leaflet-map">
+                <FlyToLocation center={mapCenter} zoom={14} />
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

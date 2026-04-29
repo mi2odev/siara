@@ -402,12 +402,9 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   }
 
   const handleAvatarImageError = (event) => {
-    const avatarButton = event.currentTarget.closest('.post-avatar')
-    if (!avatarButton) {
-      return
-    }
-
-    avatarButton.classList.remove('has-image')
+    const avatarButton = event.currentTarget.closest('.pc-av')
+    if (!avatarButton) return
+    avatarButton.classList.remove('pc-av--img')
     event.currentTarget.remove()
   }
 
@@ -483,13 +480,9 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
 
   const movePan = (clientX, clientY) => {
     if (!dragRef.current) return
-
-    const deltaX = clientX - dragRef.current.startX
-    const deltaY = clientY - dragRef.current.startY
-
     setPanOffset({
-      x: dragRef.current.originX + deltaX,
-      y: dragRef.current.originY + deltaY,
+      x: dragRef.current.originX + (clientX - dragRef.current.startX),
+      y: dragRef.current.originY + (clientY - dragRef.current.startY),
     })
   }
 
@@ -500,315 +493,231 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   }
 
   return (
-    <article className={`card post-card ${report?.severity === 'high' ? 'severity-high-indicator' : ''}`}>
-      <header className="post-header">
-        <div className="post-header-left">
-          <button type="button" className={`post-avatar post-avatar-btn ${authorAvatarUrl ? 'has-image' : ''}`} onClick={handleOpenProfile} aria-label={`Open ${authorName} profile`}>
-            {authorAvatarUrl ? (
-              <img src={authorAvatarUrl} alt={`${authorName} avatar`} className="post-avatar-image" loading="lazy" onError={handleAvatarImageError} />
-            ) : null}
-            <span className="post-avatar-fallback">{getAuthorInitials(authorName)}</span>
-          </button>
-          <div
-            className="post-meta-block post-meta-block-clickable"
-            role="button"
-            tabIndex={0}
-            onClick={handleOpenProfile}
-            onKeyDown={handleOpenProfileKeyDown}
-            aria-label={`Open ${authorName} profile`}
-          >
-            <div className="post-author-row">
-              <span className="post-author hoverable-name">
-                {authorName}
+    <article className={`pc pc--${report?.severity || 'low'}`}>
+
+      {/* ── AUTHOR ROW ── */}
+      <div className="pc-head">
+        <button
+          type="button"
+          className={`pc-av${authorAvatarUrl ? ' pc-av--img' : ''}`}
+          onClick={handleOpenProfile}
+          aria-label={`View ${authorName} profile`}
+        >
+          {authorAvatarUrl && (
+            <img src={authorAvatarUrl} alt={authorName} className="pc-av-img" loading="lazy" onError={handleAvatarImageError} />
+          )}
+          <span className="pc-av-fb">{getAuthorInitials(authorName)}</span>
+        </button>
+
+        <div
+          className="pc-meta"
+          role="button"
+          tabIndex={0}
+          onClick={handleOpenProfile}
+          onKeyDown={handleOpenProfileKeyDown}
+          aria-label={`View ${authorName} profile`}
+        >
+          <div className="pc-meta-top">
+            <span className="pc-name">{authorName}</span>
+            {isVerified && <span className="badge badge-verified">Verified</span>}
+            <span className={`badge ${authorRoleBadge.className}`}>{authorRoleBadge.label}</span>
+            {reporterTrustTier && Number.isFinite(reporterTrustScore) && (
+              <span className={`reporter-trust-pill reporter-trust-${reporterTrustTier.style || 'neutral'}`} title={`Trust score ${Math.round(reporterTrustScore)}/100`}>
+                {reporterTrustTier.label} · {Math.round(reporterTrustScore)}
               </span>
-              {isVerified && <span className="badge badge-verified">Verified</span>}
-              <span className={`badge ${authorRoleBadge.className}`}>{authorRoleBadge.label}</span>
-              {reporterTrustTier && Number.isFinite(reporterTrustScore) && (
-                <span
-                  className={`reporter-trust-pill reporter-trust-${reporterTrustTier.style || 'neutral'}`}
-                  title={`Trust score ${Math.round(reporterTrustScore)}/100`}
-                >
-                  {reporterTrustTier.label} · {Math.round(reporterTrustScore)}
-                </span>
-              )}
-            </div>
-            <div className="post-meta-row">
-              <span className="post-time">{formatRelativeTime(report?.createdAt || occurredAt)}</span>
-              <span className="post-dot">•</span>
-              <span className="post-location">{report?.locationLabel || 'Reported location'}</span>
-            </div>
+            )}
+          </div>
+          <div className="pc-meta-sub">
+            <span>{formatRelativeTime(report?.createdAt || occurredAt)}</span>
+            <span className="pc-dot">·</span>
+            <span className="pc-loc">{report?.locationLabel || 'Reported location'}</span>
+            {occurredAt && (
+              <>
+                <span className="pc-dot">·</span>
+                <span className="pc-occ">{formatDateTime(occurredAt)}</span>
+              </>
+            )}
           </div>
         </div>
-        <div className="post-header-right">
+
+        <div className="pc-head-right">
           {qualityBadge && (
             <span
               className={`quality-badge quality-badge-${qualityBadge.style || 'neutral'}`}
-              title={
-                spamPercent != null
-                  ? `Spam score ${spamPercent}% • Confidence ${confidencePercent ?? '—'}%`
-                  : qualityBadge.label
-              }
+              title={spamPercent != null ? `Spam ${spamPercent}% · Confidence ${confidencePercent ?? '—'}%` : qualityBadge.label}
             >
-              <span className="quality-badge-icon" aria-hidden>
-                {QUALITY_BADGE_ICONS[qualityBadge.icon] || ''}
-              </span>
+              <span aria-hidden>{QUALITY_BADGE_ICONS[qualityBadge.icon] || ''}</span>
               <span className="quality-badge-label">{qualityBadge.label}</span>
               {spamPercent != null && qualityBadge.code !== 'officer_verified' && (
                 <span className="quality-badge-meta">{spamPercent}%</span>
               )}
             </span>
           )}
-          <span className={`severity-pill ${severityClass} small`}>{severityLabel}</span>
-          <button className="post-options-btn" onClick={() => navigate(`/incident/${report.id}`)}>...</button>
+          <span className={`pc-sev pc-sev--${report?.severity || 'low'}`}>{severityLabel}</span>
+          <button className="pc-more-btn" onClick={() => navigate(`/incident/${report.id}`)} title="View details" aria-label="View details">
+            <svg width="3" height="15" viewBox="0 0 3 15" fill="currentColor" aria-hidden>
+              <circle cx="1.5" cy="1.5" r="1.5"/><circle cx="1.5" cy="7.5" r="1.5"/><circle cx="1.5" cy="13.5" r="1.5"/>
+            </svg>
+          </button>
         </div>
-      </header>
+      </div>
 
-      <div className="post-body">
-        <h2 className="post-title">{report?.title || 'Untitled report'}</h2>
-        <p className={`post-text ${shouldShowSeeMore ? 'clamp-lines' : ''}`}>
-          {description || 'No additional description was provided for this report.'}
+      {/* ── CONTENT ── */}
+      <div className="pc-body">
+        <h2 className="pc-title">{report?.title || 'Untitled report'}</h2>
+        <p className={`pc-desc${shouldShowSeeMore ? ' is-clamped' : ''}`}>
+          {description || 'No description provided for this report.'}
         </p>
         {shouldShowSeeMore && (
-          <button className="post-see-more" onClick={() => navigate(`/incident/${report.id}`)}>
-            See more
+          <button className="pc-read-more" onClick={() => navigate(`/incident/${report.id}`)}>
+            Read more
           </button>
         )}
 
-        {tags.length > 0 && (
-          <div className="post-tags">
-            {tags.map((tag) => (
-              <span className="post-tag" key={`${report.id}-${tag}`}>{tag}</span>
-            ))}
-          </div>
-        )}
-
         {visibleMedia.length > 0 && (
-          <div
-            className="post-media-grid"
-            style={{ gridTemplateColumns: `repeat(${visibleMedia.length}, minmax(0, 1fr))` }}
-          >
+          <div className={`pc-media pc-media--${visibleMedia.length > 2 ? 3 : visibleMedia.length}`}>
             {visibleMedia.map((mediaItem, index) => {
               const mediaKey = mediaItem.id || `${report.id}-${index}`
-              if (hiddenMediaKeys.has(mediaKey)) {
-                return null
-              }
-
-              const isLastVisibleItem = index === visibleMedia.length - 1
-              const showOverlay = remainingMediaCount > 0 && isLastVisibleItem
-
+              if (hiddenMediaKeys.has(mediaKey)) return null
+              const isLastVisible = index === visibleMedia.length - 1
+              const showOverlay = remainingMediaCount > 0 && isLastVisible
               return (
-                <div className={`media-item ${showOverlay ? 'media-more' : ''}`} key={mediaKey}>
+                <div className={`pc-media-item${showOverlay ? ' pc-media-item--more' : ''}`} key={mediaKey}>
                   <button
                     type="button"
-                    className="post-media-open-btn"
-                    onClick={() => {
-                      setSelectedMediaIndex(index)
-                      setZoomScale(1)
-                    }}
+                    className="pc-media-btn"
+                    onClick={() => { setSelectedMediaIndex(index); setZoomScale(1) }}
                     aria-label="Open photo"
                   >
                     <img
-                      className="media-thumbnail"
+                      className="pc-media-img"
                       src={mediaItem.url}
-                      alt={report?.title || 'Report media'}
+                      alt={report?.title || 'Report photo'}
                       loading="lazy"
-                      onError={() => {
-                        setHiddenMediaKeys((previous) => {
-                          const next = new Set(previous)
-                          next.add(mediaKey)
-                          return next
-                        })
-                      }}
+                      onError={() => setHiddenMediaKeys((prev) => { const n = new Set(prev); n.add(mediaKey); return n })}
                     />
                   </button>
-                  {showOverlay && <span className="media-more-count">+{remainingMediaCount}</span>}
+                  {showOverlay && <span className="pc-media-more-label">+{remainingMediaCount}</span>}
                 </div>
               )
             })}
           </div>
         )}
+      </div>
 
-        <button className="post-map-preview" onClick={() => navigate('/map')}>
-          View on map
+      {/* ── ACTIONS ── */}
+      <div className="pc-actions">
+        <button
+          type="button"
+          className={`pc-act pc-act--like${viewerHasLiked ? ' on' : ''}`}
+          onClick={() => handleToggleReaction('like')}
+          disabled={reactionBusy}
+          aria-pressed={viewerHasLiked}
+        >
+          <svg viewBox="0 0 20 20" fill={viewerHasLiked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" aria-hidden>
+            <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+          </svg>
+          <span>{likesCount > 0 ? likesCount : 'Like'}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`pc-act pc-act--saw${viewerSawItToo ? ' on' : ''}`}
+          onClick={() => handleToggleReaction('saw_it_too')}
+          disabled={reactionBusy}
+          aria-pressed={viewerSawItToo}
+        >
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+            <ellipse cx="10" cy="10" rx="8.5" ry="5.5"/>
+            <circle cx="10" cy="10" r="2.5" fill={viewerSawItToo ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5"/>
+          </svg>
+          <span>{sawItTooCount > 0 ? sawItTooCount : 'Saw it'}</span>
+        </button>
+
+        <button type="button" className="pc-act" onClick={handleLoadAllComments}>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+            <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v7a2 2 0 01-2 2H7l-4 4V14H4a2 2 0 01-2-2V5z"/>
+          </svg>
+          <span>{commentsCount > 0 ? commentsCount : 'Comment'}</span>
+        </button>
+
+        <button type="button" className="pc-view-btn" onClick={() => navigate(`/incident/${report.id}`)}>
+          View details
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+            <path d="M3 8h10M9 4l4 4-4 4"/>
+          </svg>
         </button>
       </div>
 
-      <footer className="post-footer">
-        <div className="post-reactions">
-          <button className="reaction-btn">
-            <span>{report?.incidentType || 'report'}</span>
-          </button>
-          <button className="reaction-btn">
-            <span>{statusLabel}</span>
-          </button>
-          {report?.distanceKm != null && (
-            <button className="reaction-btn">
-              <span>{report.distanceKm} km away</span>
-            </button>
-          )}
-        </div>
-
-        <div className="post-stats">
-          <button className="post-stat-btn" onClick={() => navigate(`/incident/${report.id}`)}>
-            View details
-          </button>
-          <button className="post-stat-btn" onClick={() => navigate('/map')}>
-            Open map
-          </button>
-          <button className="post-stat-btn">
-            {media.length} photo{media.length === 1 ? '' : 's'}
-          </button>
-        </div>
-      </footer>
-
-      <div className="post-social">
-        <div className="post-social-actions">
-          <button
-            type="button"
-            className={`post-social-btn ${viewerHasLiked ? 'is-active' : ''}`}
-            onClick={() => handleToggleReaction('like')}
-            disabled={reactionBusy}
-            aria-pressed={viewerHasLiked}
-          >
-            <span className="post-social-btn-icon" aria-hidden>👍</span>
-            <span className="post-social-btn-label">Like</span>
-            <span className="post-social-btn-count">{likesCount}</span>
-          </button>
-          <button
-            type="button"
-            className={`post-social-btn ${viewerSawItToo ? 'is-active' : ''}`}
-            onClick={() => handleToggleReaction('saw_it_too')}
-            disabled={reactionBusy}
-            aria-pressed={viewerSawItToo}
-          >
-            <span className="post-social-btn-icon" aria-hidden>👁️</span>
-            <span className="post-social-btn-label">I saw it too</span>
-            <span className="post-social-btn-count">{sawItTooCount}</span>
-          </button>
-          <span className="post-social-comments-meta">
-            💬 {commentsCount} comment{commentsCount === 1 ? '' : 's'}
-          </span>
-        </div>
-
-        <div className="post-comments-preview">
-          <div className="post-comments-meta">
-            <strong>Occurred:</strong> {formatDateTime(occurredAt)}
-          </div>
-
-          {visibleComments.length > 0 && (
-            <ul className="post-comments-list">
-              {visibleComments.map((comment) => {
-                const canDelete = isAdmin || (currentUserId && comment.author?.id === currentUserId)
-                return (
-                  <li key={comment.id} className="post-comment-item">
-                    <div className="post-comment-author">
-                      {comment.author?.name || 'Anonymous'}
-                      <span className="post-comment-time">{formatRelativeTime(comment.createdAt)}</span>
-                    </div>
-                    <p className="post-comment-body">{comment.body}</p>
+      {/* ── DISCUSSION ── */}
+      <div className="pc-discuss">
+        {visibleComments.length > 0 && (
+          <ul className="pc-cmt-list">
+            {visibleComments.map((comment) => {
+              const canDelete = isAdmin || (currentUserId && comment.author?.id === currentUserId)
+              return (
+                <li key={comment.id} className="pc-cmt">
+                  <div className="pc-cmt-hd">
+                    <span className="pc-cmt-name">{comment.author?.name || 'Anonymous'}</span>
+                    <span className="pc-cmt-time">{formatRelativeTime(comment.createdAt)}</span>
                     {canDelete && (
-                      <button
-                        type="button"
-                        className="post-comment-delete-btn"
-                        onClick={() => handleDeleteComment(comment.id)}
-                      >
-                        Delete
-                      </button>
+                      <button type="button" className="pc-cmt-del" onClick={() => handleDeleteComment(comment.id)}>Delete</button>
                     )}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
+                  </div>
+                  <p className="pc-cmt-body">{comment.body}</p>
+                </li>
+              )
+            })}
+          </ul>
+        )}
 
-          {commentsCount > visibleComments.length && !allComments && (
-            <button
-              type="button"
-              className="post-comments-view-all"
-              onClick={handleLoadAllComments}
-              disabled={allCommentsLoading}
-            >
-              {allCommentsLoading ? 'Loading comments...' : `View all ${commentsCount} comments`}
-            </button>
-          )}
-          {allComments && (
-            <button
-              type="button"
-              className="post-comments-view-all"
-              onClick={handleLoadAllComments}
-            >
-              Hide comments
-            </button>
-          )}
-          {allCommentsError && <p className="post-comments-error">{allCommentsError}</p>}
+        {commentsCount > visibleComments.length && !allComments && (
+          <button type="button" className="pc-load-cmt" onClick={handleLoadAllComments} disabled={allCommentsLoading}>
+            {allCommentsLoading ? 'Loading...' : `View all ${commentsCount} comments`}
+          </button>
+        )}
+        {allComments && (
+          <button type="button" className="pc-load-cmt" onClick={handleLoadAllComments}>Hide comments</button>
+        )}
+        {allCommentsError && <p className="pc-cmt-err">{allCommentsError}</p>}
 
-          <form className="post-comment-form" onSubmit={handleSubmitComment}>
-            <input
-              type="text"
-              className="post-comment-input"
-              placeholder={currentUserId ? 'Write a comment...' : 'Sign in to comment'}
-              value={commentDraft}
-              onChange={(event) => setCommentDraft(event.target.value)}
-              maxLength={500}
-              disabled={!currentUserId || isSubmittingComment}
-            />
-            <button
-              type="submit"
-              className="post-comment-submit"
-              disabled={!currentUserId || isSubmittingComment || !commentDraft.trim()}
-            >
-              {isSubmittingComment ? 'Posting...' : 'Post'}
-            </button>
-          </form>
-          {commentError && <p className="post-comments-error">{commentError}</p>}
-        </div>
+        <form className="pc-cmt-form" onSubmit={handleSubmitComment}>
+          <input
+            type="text"
+            className="pc-cmt-input"
+            placeholder={currentUserId ? 'Write a comment...' : 'Sign in to comment'}
+            value={commentDraft}
+            onChange={(e) => setCommentDraft(e.target.value)}
+            maxLength={500}
+            disabled={!currentUserId || isSubmittingComment}
+          />
+          <button type="submit" className="pc-cmt-submit" disabled={!currentUserId || isSubmittingComment || !commentDraft.trim()}>
+            {isSubmittingComment ? '···' : 'Post'}
+          </button>
+        </form>
+        {commentError && <p className="pc-cmt-err">{commentError}</p>}
       </div>
 
+      {/* ── LIGHTBOX ── */}
       {activeMedia && createPortal(
         <div className="post-media-lightbox" role="dialog" aria-modal="true" aria-label="Photo preview" onClick={() => setSelectedMediaIndex(null)}>
-          <div className="post-media-lightbox-content" onClick={(event) => event.stopPropagation()}>
+          <div className="post-media-lightbox-content" onClick={(e) => e.stopPropagation()}>
             <div className="post-media-lightbox-toolbar">
               <button type="button" className="post-media-zoom-btn" onClick={zoomOut} aria-label="Zoom out">−</button>
-              <button type="button" className="post-media-zoom-btn reset" onClick={zoomReset} aria-label="Reset zoom">
-                {Math.round(zoomScale * 100)}%
-              </button>
+              <button type="button" className="post-media-zoom-btn reset" onClick={zoomReset} aria-label="Reset zoom">{Math.round(zoomScale * 100)}%</button>
               <button type="button" className="post-media-zoom-btn" onClick={zoomIn} aria-label="Zoom in">+</button>
             </div>
-
-            <button
-              type="button"
-              className="post-media-lightbox-close"
-              onClick={() => setSelectedMediaIndex(null)}
-              aria-label="Close photo preview"
-            >
-              ×
-            </button>
-
+            <button type="button" className="post-media-lightbox-close" onClick={() => setSelectedMediaIndex(null)} aria-label="Close photo preview">×</button>
             <div
-              className={`post-media-lightbox-stage ${zoomScale > 1 ? 'zoomed' : ''} ${isDragging ? 'dragging' : ''}`}
-              onClick={(event) => {
-                if (event.target === event.currentTarget) {
-                  setSelectedMediaIndex(null)
-                }
-              }}
+              className={`post-media-lightbox-stage${zoomScale > 1 ? ' zoomed' : ''}${isDragging ? ' dragging' : ''}`}
+              onClick={(e) => { if (e.target === e.currentTarget) setSelectedMediaIndex(null) }}
               onWheel={handleLightboxWheel}
-              onMouseDown={(event) => {
-                event.preventDefault()
-                startPan(event.clientX, event.clientY)
-              }}
-              onMouseMove={(event) => movePan(event.clientX, event.clientY)}
+              onMouseDown={(e) => { if (zoomScale > 1) { e.preventDefault(); startPan(e.clientX, e.clientY) } }}
+              onMouseMove={(e) => movePan(e.clientX, e.clientY)}
               onMouseUp={stopPan}
               onMouseLeave={stopPan}
-              onTouchStart={(event) => {
-                const touch = event.touches[0]
-                if (!touch) return
-                startPan(touch.clientX, touch.clientY)
-              }}
-              onTouchMove={(event) => {
-                const touch = event.touches[0]
-                if (!touch) return
-                movePan(touch.clientX, touch.clientY)
-              }}
+              onTouchStart={(e) => { if (zoomScale > 1) { const t = e.touches[0]; if (t) startPan(t.clientX, t.clientY) } }}
+              onTouchMove={(e) => { const t = e.touches[0]; if (t) movePan(t.clientX, t.clientY) }}
               onTouchEnd={stopPan}
             >
               <img

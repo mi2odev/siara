@@ -2,10 +2,17 @@ import React, { useContext } from 'react'
 import { CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
+import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined'
+import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline'
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
+import NoteAddOutlinedIcon from '@mui/icons-material/NoteAddOutlined'
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import { AuthContext } from '../../contexts/AuthContext'
@@ -20,27 +27,29 @@ import {
   verifyPoliceIncident,
 } from '../../services/policeService'
 
-function displayLabel(value) {
+function label(value) {
   return String(value || '')
     .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function severityColor(severity) {
-  if (severity === 'critical') return '#991b1b'
-  if (severity === 'high') return '#dc2626'
-  if (severity === 'medium') return '#f59e0b'
+function severityColor(sev) {
+  if (sev === 'critical') return '#991b1b'
+  if (sev === 'high') return '#dc2626'
+  if (sev === 'medium') return '#d97706'
   return '#16a34a'
 }
 
-function getInitials(name) {
-  return String(name || 'O')
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase() || 'O'
+function initials(name) {
+  return (
+    String(name || 'O')
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0])
+      .join('')
+      .toUpperCase() || 'O'
+  )
 }
 
 export default function PoliceIncidentDetailPage() {
@@ -48,411 +57,528 @@ export default function PoliceIncidentDetailPage() {
   const { id } = useParams()
   const { user } = useContext(AuthContext)
   const currentUserId = user?.id || user?.userId || null
-  const [note, setNote] = React.useState('')
+
   const [detail, setDetail] = React.useState(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
+  const [note, setNote] = React.useState('')
   const [editingNoteId, setEditingNoteId] = React.useState(null)
   const [editingDraft, setEditingDraft] = React.useState('')
   const [noteBusyId, setNoteBusyId] = React.useState(null)
+  const [actionBusy, setActionBusy] = React.useState(false)
 
+  // Lightbox
+  const [lightboxUrl, setLightboxUrl] = React.useState(null)
+  const [lightboxScale, setLightboxScale] = React.useState(1)
+  const [lightboxOffset, setLightboxOffset] = React.useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = React.useState(false)
+  const dragStartRef = React.useRef(null)
+  const stageRef = React.useRef(null)
+
+  const closeLightbox = React.useCallback(() => {
+    setLightboxUrl(null)
+    setLightboxScale(1)
+    setLightboxOffset({ x: 0, y: 0 })
+    setIsDragging(false)
+  }, [])
+
+  const openLightbox = React.useCallback((url) => {
+    setLightboxUrl(url)
+    setLightboxScale(1)
+    setLightboxOffset({ x: 0, y: 0 })
+    setIsDragging(false)
+  }, [])
+
+  React.useEffect(() => {
+    if (!lightboxUrl) return
+    const onKey = (e) => { if (e.key === 'Escape') closeLightbox() }
+    window.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [lightboxUrl, closeLightbox])
+
+  React.useEffect(() => {
+    const stage = stageRef.current
+    if (!stage || !lightboxUrl) return
+    const onWheel = (e) => {
+      e.preventDefault()
+      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15
+      setLightboxScale((s) => {
+        const next = s * factor
+        if (next <= 1) { setLightboxOffset({ x: 0, y: 0 }); return 1 }
+        return Math.min(next, 6)
+      })
+    }
+    stage.addEventListener('wheel', onWheel, { passive: false })
+    return () => stage.removeEventListener('wheel', onWheel)
+  }, [lightboxUrl])
+
+  const lbZoomIn = () => setLightboxScale((s) => Math.min(s * 1.5, 6))
+  const lbZoomOut = () => setLightboxScale((s) => {
+    const next = s / 1.5
+    if (next <= 1) { setLightboxOffset({ x: 0, y: 0 }); return 1 }
+    return next
+  })
+  const lbReset = () => { setLightboxScale(1); setLightboxOffset({ x: 0, y: 0 }) }
+
+  const onDragStart = (e) => {
+    if (lightboxScale <= 1) return
+    setIsDragging(true)
+    dragStartRef.current = { mx: e.clientX, my: e.clientY, ox: lightboxOffset.x, oy: lightboxOffset.y }
+  }
+  const onDragMove = (e) => {
+    if (!isDragging || !dragStartRef.current) return
+    setLightboxOffset({
+      x: dragStartRef.current.ox + e.clientX - dragStartRef.current.mx,
+      y: dragStartRef.current.oy + e.clientY - dragStartRef.current.my,
+    })
+  }
+  const onDragEnd = () => setIsDragging(false)
+
+  // Data
   const loadIncident = React.useCallback(async () => {
     setIsLoading(true)
     setError('')
-
     try {
-      const response = await getPoliceIncident(id)
-      setDetail(response)
-    } catch (loadError) {
-      setError(loadError.message || 'Failed to load incident details.')
+      setDetail(await getPoliceIncident(id))
+    } catch (e) {
+      setError(e.message || 'Failed to load incident.')
     } finally {
       setIsLoading(false)
     }
   }, [id])
 
-  React.useEffect(() => {
-    loadIncident()
-  }, [loadIncident])
+  React.useEffect(() => { loadIncident() }, [loadIncident])
 
   const incident = detail?.incident || null
   const nearbyIncidents = detail?.nearbyIncidents || []
   const history = detail?.history || []
   const fieldNotes = React.useMemo(
-    () => history.filter((entry) => entry.actionType === 'field_note' && entry.note),
+    () => history.filter((e) => e.actionType === 'field_note' && e.note),
     [history],
   )
 
-  const startEditNote = (entry) => {
-    setEditingNoteId(entry.id)
-    setEditingDraft(entry.note || '')
-    setError('')
-  }
+  const startEdit = (entry) => { setEditingNoteId(entry.id); setEditingDraft(entry.note || ''); setError('') }
+  const cancelEdit = () => { setEditingNoteId(null); setEditingDraft('') }
 
-  const cancelEditNote = () => {
-    setEditingNoteId(null)
-    setEditingDraft('')
-  }
-
-  const saveEditNote = async (entry) => {
+  const saveEdit = async (entry) => {
     const trimmed = editingDraft.trim()
-    if (!trimmed) {
-      setError('Note cannot be empty.')
-      return
-    }
+    if (!trimmed) { setError('Note cannot be empty.'); return }
     setNoteBusyId(entry.id)
     setError('')
     try {
-      const next = await updatePoliceFieldNote(incident.id, entry.id, { note: trimmed })
-      setDetail(next)
+      setDetail(await updatePoliceFieldNote(incident.id, entry.id, { note: trimmed }))
       setEditingNoteId(null)
       setEditingDraft('')
-    } catch (updateError) {
-      setError(updateError.message || 'Failed to update field note.')
+    } catch (e) {
+      setError(e.message || 'Failed to update note.')
     } finally {
       setNoteBusyId(null)
     }
   }
 
-  const removeNote = async (entry) => {
+  const deleteNote = async (entry) => {
     if (!incident) return
-    const confirmed = typeof window !== 'undefined'
-      ? window.confirm('Delete this field note? This cannot be undone.')
-      : true
-    if (!confirmed) return
+    if (!window.confirm('Delete this field note? This cannot be undone.')) return
     setNoteBusyId(entry.id)
     setError('')
     try {
-      const next = await deletePoliceFieldNote(incident.id, entry.id)
-      setDetail(next)
-      if (editingNoteId === entry.id) {
-        setEditingNoteId(null)
-        setEditingDraft('')
-      }
-    } catch (deleteError) {
-      setError(deleteError.message || 'Failed to delete field note.')
+      setDetail(await deletePoliceFieldNote(incident.id, entry.id))
+      if (editingNoteId === entry.id) cancelEdit()
+    } catch (e) {
+      setError(e.message || 'Failed to delete note.')
     } finally {
       setNoteBusyId(null)
     }
   }
 
   const handleAction = async (action, payload = {}) => {
-    if (!incident) {
-      return
-    }
-
+    if (!incident || actionBusy) return
     setError('')
-
+    setActionBusy(true)
     try {
-      if (action === 'verify') {
-        setDetail(await verifyPoliceIncident(incident.id, payload))
-      } else if (action === 'reject') {
-        setDetail(await rejectPoliceIncident(incident.id, payload))
-      } else if (action === 'backup') {
-        setDetail(await requestPoliceBackup(incident.id, payload))
-      } else if (action === 'resolve') {
-        setDetail(await updatePoliceIncidentStatus(incident.id, { status: 'resolved', ...payload }))
-      } else if (action === 'note') {
+      if (action === 'verify') setDetail(await verifyPoliceIncident(incident.id, payload))
+      else if (action === 'reject') setDetail(await rejectPoliceIncident(incident.id, payload))
+      else if (action === 'backup') setDetail(await requestPoliceBackup(incident.id, payload))
+      else if (action === 'resolve') setDetail(await updatePoliceIncidentStatus(incident.id, { status: 'resolved', ...payload }))
+      else if (action === 'note') {
         setDetail(await addPoliceFieldNote(incident.id, payload))
         setNote('')
       }
-    } catch (actionError) {
-      setError(actionError.message || 'Failed to update incident.')
+    } catch (e) {
+      setError(e.message || 'Action failed.')
+    } finally {
+      setActionBusy(false)
     }
   }
-
-  const rightPanel = (
-    <section className="police-section police-detail-actions">
-      <h2>Incident Actions</h2>
-      <div className="police-detail-action-stack">
-        <button className="police-action police-action-verify" onClick={() => handleAction('verify')}>Verify Incident</button>
-        <button className="police-action police-action-view" onClick={() => handleAction('backup')}>Request Backup</button>
-        <button className="police-action police-action-reject" onClick={() => handleAction('reject')}>Reject Incident</button>
-        <button className="police-action police-action-resolve" onClick={() => handleAction('resolve')}>Resolve Incident</button>
-      </div>
-
-      <label className="police-meta" htmlFor="police-note">Field Note</label>
-      <textarea
-        id="police-note"
-        className="police-note"
-        value={note}
-        onChange={(event) => setNote(event.target.value)}
-        placeholder="Add a field note..."
-      />
-      <div className="police-action-row police-detail-note-actions">
-        <button className="police-action police-action-verify" onClick={() => handleAction('note', { note })} disabled={!note.trim()}>
-          Save Note
-        </button>
-        <button className="police-action police-action-view" onClick={() => navigate('/police/verification')}>
-          Open Queue
-        </button>
-      </div>
-
-      <div className="police-action-history">
-        <strong>Recent Actions</strong>
-        <ul className="police-list">
-          {history.slice(0, 5).map((entry) => (
-            <li key={entry.id}>{displayLabel(entry.actionType)} ({entry.createdAtLabel})</li>
-          ))}
-          {!isLoading && history.length === 0 ? <li>No history recorded yet.</li> : null}
-        </ul>
-      </div>
-    </section>
-  )
 
   const mapCenter = incident?.location?.lat != null && incident?.location?.lng != null
     ? [incident.location.lat, incident.location.lng]
     : [36.7538, 3.0588]
 
+  const rightPanel = (
+    <div className="pid-panel">
+      {incident ? (
+        <div className="pid-panel-status" data-severity={incident.severity}>
+          <span className="pid-panel-dot" />
+          <div className="pid-panel-status-text">
+            <span className="pid-panel-status-label">Severity</span>
+            <span className="pid-panel-status-val">{label(incident.severity)}</span>
+          </div>
+          <div className="pid-panel-status-text pid-panel-status-text--right">
+            <span className="pid-panel-status-label">Status</span>
+            <span className="pid-panel-status-val">{label(incident.status)}</span>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="pid-panel-section">
+        <p className="pid-panel-section-head">Quick Actions</p>
+        <div className="pid-panel-actions">
+          <button type="button" className="pid-action-btn pid-action-btn--verify" onClick={() => handleAction('verify')} disabled={!incident || actionBusy}>
+            <VerifiedUserOutlinedIcon fontSize="small" />
+            <span>Verify Incident</span>
+          </button>
+          <button type="button" className="pid-action-btn pid-action-btn--backup" onClick={() => handleAction('backup')} disabled={!incident || actionBusy}>
+            <GroupsOutlinedIcon fontSize="small" />
+            <span>Request Backup</span>
+          </button>
+          <button type="button" className="pid-action-btn pid-action-btn--resolve" onClick={() => handleAction('resolve')} disabled={!incident || actionBusy}>
+            <CheckCircleOutlineIcon fontSize="small" />
+            <span>Resolve Incident</span>
+          </button>
+          <button type="button" className="pid-action-btn pid-action-btn--reject" onClick={() => handleAction('reject')} disabled={!incident || actionBusy}>
+            <CancelOutlinedIcon fontSize="small" />
+            <span>Reject Incident</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="pid-panel-section">
+        <p className="pid-panel-section-head">Add Field Note</p>
+        <textarea
+          className="pid-note-composer"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Write your field observation…"
+          disabled={!incident || actionBusy}
+          rows={4}
+        />
+        <button
+          type="button"
+          className="pid-save-note-btn"
+          onClick={() => handleAction('note', { note })}
+          disabled={!note.trim() || !incident || actionBusy}
+        >
+          <NoteAddOutlinedIcon fontSize="small" />
+          <span>Save Note</span>
+        </button>
+      </div>
+
+      <div className="pid-panel-section pid-panel-section--timeline">
+        <p className="pid-panel-section-head">Activity Timeline</p>
+        {isLoading ? <p className="pid-timeline-empty">Loading…</p> : null}
+        {!isLoading && history.length === 0 ? (
+          <p className="pid-timeline-empty">No activity recorded yet.</p>
+        ) : null}
+        <ul className="pid-timeline">
+          {history.slice(0, 8).map((entry) => (
+            <li key={entry.id} className="pid-tl-entry">
+              <span className="pid-tl-dot" />
+              <div className="pid-tl-body">
+                <span className="pid-tl-action">{label(entry.actionType)}</span>
+                <span className="pid-tl-time">{entry.createdAtLabel}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+
   return (
-    <PoliceShell activeKey="active-incidents" rightPanel={rightPanel} verificationPendingCount={incident?.status === 'pending' ? 1 : 0}>
-      <div className="police-detail-layout">
-        <section className="police-section police-incident-profile" data-severity={incident?.severity || 'low'}>
-          {error ? <p className="police-meta" style={{ color: '#b91c1c' }}>{error}</p> : null}
-          {isLoading ? <p className="police-meta">Loading incident...</p> : null}
+    <>
+      <PoliceShell
+        activeKey="active-incidents"
+        rightPanel={rightPanel}
+        verificationPendingCount={incident?.status === 'pending' ? 1 : 0}
+      >
+        <div className="pid-layout">
 
+          {/* ── Header ── */}
+          <header className="pid-header">
+            <div className="pid-header-row">
+              <button type="button" className="pid-back-btn" onClick={() => navigate(-1)}>
+                <ArrowBackRoundedIcon sx={{ fontSize: 14 }} />
+                <span>Back</span>
+              </button>
+              {incident ? <span className="pid-header-id">{incident.displayId}</span> : null}
+              {incident ? (
+                <div className="pid-header-badges">
+                  <span className={`pid-sev-badge pid-sev--${incident.severity}`}>
+                    {label(incident.severity)}
+                  </span>
+                  <span className="pid-status-chip">{label(incident.status)}</span>
+                  {incident.incidentType ? (
+                    <span className="pid-type-chip">{label(incident.incidentType)}</span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+            <h1 className="pid-header-title">
+              {incident?.title || (isLoading ? 'Loading…' : 'Incident Detail')}
+            </h1>
+            {incident?.description ? (
+              <p className="pid-header-desc">{incident.description}</p>
+            ) : null}
+          </header>
+
+          {/* ── Alerts ── */}
+          {error ? <div className="pid-alert-error">{error}</div> : null}
+
+          {/* ── Loading ── */}
+          {isLoading && !incident ? (
+            <div className="pid-loading-state">Loading incident data…</div>
+          ) : null}
+
+          {/* ── Body ── */}
           {incident ? (
-            <>
-              <div className="police-incident-header">
-                <p className="police-meta">Incident {incident.displayId}</p>
-                <h2>{incident.title}</h2>
-                <div className="police-incident-header-badges">
-                  <span className={`police-badge ${incident.severity}`}>{displayLabel(incident.severity)}</span>
-                  <span className={`police-badge ${incident.status}`}>{displayLabel(incident.status)}</span>
-                </div>
-              </div>
+            <div className="pid-body">
 
-              <div className="police-incident-facts">
-                <div className="police-incident-fact"><span>Location</span><strong>{incident.locationText}</strong></div>
-                <div className="police-incident-fact"><span>Wilaya</span><strong>{incident.wilaya?.name || 'Unknown'}</strong></div>
-                <div className="police-incident-fact"><span>Commune</span><strong>{incident.commune?.name || 'Unknown'}</strong></div>
-                <div className="police-incident-fact"><span>Reported</span><strong>{incident.occurredAtLabel}</strong></div>
-                <div className="police-incident-fact"><span>Reporter</span><strong>{incident.reportedBy?.name || 'Unknown'}</strong></div>
-                <div className="police-incident-fact"><span>Assigned</span><strong>{incident.assignedOfficer?.name || 'Unassigned'}</strong></div>
-              </div>
+              {/* LEFT */}
+              <div className="pid-col-left">
 
-              <section className="police-incident-notes" aria-labelledby="police-incident-notes-title">
-                <div className="police-incident-notes-head">
-                  <h3 id="police-incident-notes-title">Field Notes</h3>
-                  <span className="police-incident-notes-count">{fieldNotes.length} note{fieldNotes.length === 1 ? '' : 's'}</span>
-                </div>
+                {/* Intelligence */}
+                <section className="pid-card">
+                  <h2 className="pid-card-label">Incident Intelligence</h2>
+                  <div className="pid-intel-grid">
+                    <div className="pid-intel-cell">
+                      <span>Incident Type</span>
+                      <strong>{label(incident.incidentType) || '—'}</strong>
+                    </div>
+                    <div className="pid-intel-cell">
+                      <span>Source Channel</span>
+                      <strong>{label(incident.sourceChannel) || '—'}</strong>
+                    </div>
+                    <div className="pid-intel-cell">
+                      <span>Wilaya</span>
+                      <strong>{incident.wilaya?.name || '—'}</strong>
+                    </div>
+                    <div className="pid-intel-cell">
+                      <span>Commune</span>
+                      <strong>{incident.commune?.name || '—'}</strong>
+                    </div>
+                    <div className="pid-intel-cell">
+                      <span>Reported by</span>
+                      <strong>{incident.reportedBy?.name || '—'}</strong>
+                    </div>
+                    <div className="pid-intel-cell">
+                      <span>Assigned to</span>
+                      <strong>{incident.assignedOfficer?.name || 'Unassigned'}</strong>
+                    </div>
+                    <div className="pid-intel-cell pid-intel-cell--full">
+                      <span>Location</span>
+                      <strong>{incident.locationText || '—'}</strong>
+                    </div>
+                    <div className="pid-intel-cell pid-intel-cell--full">
+                      <span>Occurred</span>
+                      <strong>{incident.occurredAtLabel} · {incident.timeAgo}</strong>
+                    </div>
+                  </div>
+                </section>
 
-                {fieldNotes.length === 0 ? (
-                  <p className="police-meta police-incident-notes-empty">
-                    No field notes recorded yet. Use the panel on the right to add one.
-                  </p>
-                ) : (
-                  <ul className="police-incident-notes-list">
-                    {fieldNotes.map((entry) => {
-                      const isMine = entry.officer?.id && currentUserId && entry.officer.id === currentUserId
-                      const isEditing = editingNoteId === entry.id
-                      const isBusy = noteBusyId === entry.id
-                      return (
-                        <li
-                          key={entry.id}
-                          className={`police-incident-note-card${isMine ? ' is-mine' : ''}`}
+                {/* Evidence */}
+                <section className="pid-card">
+                  <div className="pid-card-head-row">
+                    <h2 className="pid-card-label">Evidence</h2>
+                    {incident.media?.length > 0 ? (
+                      <span className="pid-count-pill">{incident.media.length}</span>
+                    ) : null}
+                  </div>
+                  {!incident.media?.length ? (
+                    <p className="pid-empty-msg">No media evidence attached to this report.</p>
+                  ) : (
+                    <div className="pid-evidence-grid">
+                      {incident.media.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className="pid-evidence-tile"
+                          title="View full size"
+                          onClick={() => openLightbox(item.url)}
                         >
-                          <div className="police-incident-note-avatar" aria-hidden="true">
-                            {getInitials(entry.officer?.name)}
+                          <div className="pid-evidence-thumb">
+                            <img
+                              src={item.url}
+                              alt={incident.title}
+                              className="pid-evidence-img"
+                              loading="lazy"
+                              onError={(e) => {
+                                const img = e.currentTarget
+                                if (img.dataset.fb === '1') return
+                                img.dataset.fb = '1'
+                                img.replaceWith(Object.assign(document.createElement('div'), {
+                                  className: 'pid-evidence-broken',
+                                  textContent: 'Unavailable',
+                                }))
+                              }}
+                            />
                           </div>
-                          <div className="police-incident-note-body">
-                            <div className="police-incident-note-head">
-                              <div className="police-incident-note-author">
-                                <strong>{entry.officer?.name || 'Officer'}</strong>
-                                {isMine ? <span className="police-incident-note-tag">You</span> : null}
-                              </div>
-                              <time
-                                className="police-incident-note-time"
-                                dateTime={entry.createdAt || undefined}
-                              >
-                                {entry.createdAtLabel}
-                              </time>
-                            </div>
+                          <span className="pid-evidence-caption">{label(item.mediaType)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
 
-                            {isEditing ? (
-                              <>
-                                <textarea
-                                  className="police-incident-note-editor"
-                                  value={editingDraft}
-                                  onChange={(event) => setEditingDraft(event.target.value)}
-                                  rows={3}
-                                  disabled={isBusy}
-                                />
-                                <div className="police-incident-note-actions">
-                                  <button
-                                    type="button"
-                                    className="police-action police-action-verify police-incident-note-btn"
-                                    onClick={() => saveEditNote(entry)}
-                                    disabled={isBusy || !editingDraft.trim()}
-                                  >
-                                    <CheckRoundedIcon fontSize="inherit" />
-                                    <span>{isBusy ? 'Saving…' : 'Save'}</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="police-action police-action-view police-incident-note-btn"
-                                    onClick={cancelEditNote}
+                {/* Field Notes */}
+                <section className="pid-card">
+                  <div className="pid-card-head-row">
+                    <h2 className="pid-card-label">Field Notes</h2>
+                    <span className="pid-count-pill">{fieldNotes.length}</span>
+                  </div>
+                  {fieldNotes.length === 0 ? (
+                    <p className="pid-empty-msg">No field notes recorded yet. Add one in the right panel.</p>
+                  ) : (
+                    <ul className="pid-notes-list">
+                      {fieldNotes.map((entry) => {
+                        const isMine = entry.officer?.id && currentUserId && String(entry.officer.id) === String(currentUserId)
+                        const isEditing = editingNoteId === entry.id
+                        const isBusy = noteBusyId === entry.id
+                        return (
+                          <li key={entry.id} className={`pid-note${isMine ? ' pid-note--mine' : ''}`}>
+                            <div className="pid-note-avatar">{initials(entry.officer?.name)}</div>
+                            <div className="pid-note-bubble">
+                              <div className="pid-note-meta">
+                                <strong>{entry.officer?.name || 'Officer'}</strong>
+                                {isMine ? <span className="pid-you-pill">You</span> : null}
+                                <time className="pid-note-time">{entry.createdAtLabel}</time>
+                              </div>
+                              {isEditing ? (
+                                <>
+                                  <textarea
+                                    className="pid-note-editor"
+                                    value={editingDraft}
+                                    onChange={(e) => setEditingDraft(e.target.value)}
+                                    rows={3}
                                     disabled={isBusy}
-                                  >
-                                    <CloseRoundedIcon fontSize="inherit" />
-                                    <span>Cancel</span>
-                                  </button>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <p className="police-incident-note-text">{entry.note}</p>
-                                {isMine ? (
-                                  <div className="police-incident-note-actions">
-                                    <button
-                                      type="button"
-                                      className="police-action police-action-view police-incident-note-btn"
-                                      onClick={() => startEditNote(entry)}
-                                      disabled={isBusy}
-                                    >
-                                      <EditOutlinedIcon fontSize="inherit" />
-                                      <span>Edit</span>
+                                    autoFocus
+                                  />
+                                  <div className="pid-note-actions">
+                                    <button type="button" className="pid-btn pid-btn--save" onClick={() => saveEdit(entry)} disabled={isBusy || !editingDraft.trim()}>
+                                      <CheckRoundedIcon sx={{ fontSize: 13 }} />
+                                      {isBusy ? 'Saving…' : 'Save'}
                                     </button>
-                                    <button
-                                      type="button"
-                                      className="police-action police-action-reject police-incident-note-btn"
-                                      onClick={() => removeNote(entry)}
-                                      disabled={isBusy}
-                                    >
-                                      <DeleteOutlineRoundedIcon fontSize="inherit" />
-                                      <span>{isBusy ? 'Removing…' : 'Delete'}</span>
+                                    <button type="button" className="pid-btn pid-btn--cancel" onClick={cancelEdit} disabled={isBusy}>
+                                      <CloseRoundedIcon sx={{ fontSize: 13 }} />
+                                      Cancel
                                     </button>
                                   </div>
-                                ) : null}
-                              </>
-                            )}
-                          </div>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                )}
-              </section>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="pid-note-text">{entry.note}</p>
+                                  {isMine ? (
+                                    <div className="pid-note-actions">
+                                      <button type="button" className="pid-btn pid-btn--ghost" onClick={() => startEdit(entry)} disabled={isBusy}>
+                                        <EditOutlinedIcon sx={{ fontSize: 13 }} />
+                                        Edit
+                                      </button>
+                                      <button type="button" className="pid-btn pid-btn--delete" onClick={() => deleteNote(entry)} disabled={isBusy}>
+                                        <DeleteOutlineRoundedIcon sx={{ fontSize: 13 }} />
+                                        {isBusy ? 'Removing…' : 'Delete'}
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                </>
+                              )}
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </section>
 
-              <section className="police-incident-timeline">
-                <h3>Operation History</h3>
-                <ul className="police-list">
-                  {history.map((entry) => (
-                    <li key={entry.id}>
-                      {displayLabel(entry.actionType)} on {entry.createdAtLabel}
-                      {entry.note ? ` - ${entry.note}` : ''}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              </div>
 
-              <section className="police-incident-evidence">
-                <header className="police-incident-evidence-head">
-                  <h3>Evidence</h3>
-                  {incident.media.length > 0 ? (
-                    <span className="police-incident-evidence-count">
-                      {incident.media.length} item{incident.media.length === 1 ? '' : 's'}
-                    </span>
-                  ) : null}
-                </header>
+              {/* RIGHT */}
+              <div className="pid-col-right">
 
-                {incident.media.length === 0 ? (
-                  <div className="police-incident-evidence-empty">
-                    No media evidence attached.
+                {/* Map */}
+                <section className="pid-card pid-map-card">
+                  <h2 className="pid-card-label">Location</h2>
+                  <div className="pid-map-wrap">
+                    <MapContainer center={mapCenter} zoom={13} scrollWheelZoom className="police-leaflet-map">
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      />
+                      {incident.location?.lat != null && incident.location?.lng != null ? (
+                        <CircleMarker
+                          center={[incident.location.lat, incident.location.lng]}
+                          radius={10}
+                          pathOptions={{ color: '#fff', weight: 2.5, fillColor: severityColor(incident.severity), fillOpacity: 1 }}
+                        >
+                          <Popup><strong>{incident.displayId}</strong><br />{incident.title}</Popup>
+                        </CircleMarker>
+                      ) : null}
+                      {nearbyIncidents.map((item) =>
+                        item.location?.lat != null && item.location?.lng != null ? (
+                          <CircleMarker
+                            key={item.id}
+                            center={[item.location.lat, item.location.lng]}
+                            radius={6}
+                            pathOptions={{ color: '#fff', weight: 1.5, fillColor: severityColor(item.severity), fillOpacity: 0.85 }}
+                          >
+                            <Popup>{item.displayId}</Popup>
+                          </CircleMarker>
+                        ) : null,
+                      )}
+                    </MapContainer>
                   </div>
-                ) : (
-                  <div className="police-evidence-grid">
-                    {incident.media.map((item) => (
-                      <a
-                        key={item.id}
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="police-evidence-item"
-                        title="Open full-size"
-                      >
-                        <div className="police-evidence-thumb">
-                          <img
-                            src={item.url}
-                            alt={incident.title}
-                            className="police-evidence-img"
-                            loading="lazy"
-                            onError={(event) => {
-                              const img = event.currentTarget
-                              if (img.dataset.fallbackApplied === '1') return
-                              img.dataset.fallbackApplied = '1'
-                              img.replaceWith(Object.assign(document.createElement('div'), {
-                                className: 'police-evidence-missing',
-                                textContent: 'Image unavailable',
-                              }))
-                            }}
-                          />
-                        </div>
-                        <span className="police-evidence-label">{displayLabel(item.mediaType)}</span>
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </section>
+                </section>
 
-              <p className="police-incident-description">{incident.description || 'No description provided.'}</p>
-            </>
+
+              </div>
+            </div>
           ) : null}
-        </section>
 
-        <section className="police-section police-incident-map-panel">
-          <div className="police-incident-map-header">
-            <h2>Map and Nearby Incidents</h2>
-            <button className="police-action police-action-view" onClick={() => navigate('/police?view=active')}>Back to Active Stream</button>
+        </div>
+      </PoliceShell>
+
+      {/* Lightbox */}
+      {lightboxUrl ? (
+        <div className="police-media-lightbox" onClick={closeLightbox}>
+          <div className="police-media-lightbox-toolbar" onClick={(e) => e.stopPropagation()}>
+            <button className="police-media-zoom-btn" onClick={lbZoomIn} title="Zoom in">+</button>
+            <button className="police-media-zoom-btn" onClick={lbZoomOut} title="Zoom out">−</button>
+            <button className="police-media-zoom-btn reset" onClick={lbReset} title="Reset">1:1</button>
           </div>
-
-          <div className="police-mini-map police-detail-map">
-            <MapContainer center={mapCenter} zoom={13} scrollWheelZoom className="police-leaflet-map">
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          <button className="police-media-lightbox-close" onClick={closeLightbox} title="Close">×</button>
+          <div className="police-media-lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <div
+              ref={stageRef}
+              className={`police-media-lightbox-stage${lightboxScale > 1 ? ' zoomed' : ''}${isDragging ? ' dragging' : ''}`}
+              onMouseDown={onDragStart}
+              onMouseMove={onDragMove}
+              onMouseUp={onDragEnd}
+              onMouseLeave={onDragEnd}
+            >
+              <img
+                src={lightboxUrl}
+                alt="Evidence"
+                className="police-media-lightbox-image"
+                draggable={false}
+                style={{ transform: `translate(${lightboxOffset.x}px, ${lightboxOffset.y}px) scale(${lightboxScale})` }}
               />
-              {incident?.location?.lat != null && incident?.location?.lng != null ? (
-                <CircleMarker
-                  center={[incident.location.lat, incident.location.lng]}
-                  radius={8}
-                  pathOptions={{ color: '#ffffff', weight: 2, fillColor: severityColor(incident.severity), fillOpacity: 1 }}
-                >
-                  <Popup>{incident.displayId}</Popup>
-                </CircleMarker>
-              ) : null}
-              {nearbyIncidents.map((item) => (
-                item.location?.lat != null && item.location?.lng != null ? (
-                  <CircleMarker
-                    key={item.id}
-                    center={[item.location.lat, item.location.lng]}
-                    radius={6}
-                    pathOptions={{ color: '#ffffff', weight: 2, fillColor: severityColor(item.severity), fillOpacity: 0.9 }}
-                  >
-                    <Popup>{item.displayId}</Popup>
-                  </CircleMarker>
-                ) : null
-              ))}
-            </MapContainer>
+            </div>
           </div>
-
-          <div className="police-nearby-wrap">
-            <strong className="police-nearby-title">Nearby Incidents</strong>
-            <ul className="police-list police-nearby-list">
-              {nearbyIncidents.map((item) => (
-                <li key={item.id} className="police-nearby-item" data-severity={item.severity}>
-                  <strong className="police-nearby-id">{item.displayId}</strong>
-                  <span className="police-nearby-type">{item.title}</span>
-                  <span className="police-nearby-location">{item.locationText}</span>
-                  <button type="button" className="police-action police-action-view" onClick={() => navigate(`/police/incident/${item.id}`)}>
-                    Open
-                  </button>
-                </li>
-              ))}
-              {!isLoading && nearbyIncidents.length === 0 ? <li>No nearby incidents found around this report.</li> : null}
-            </ul>
-          </div>
-        </section>
-      </div>
-    </PoliceShell>
+        </div>
+      ) : null}
+    </>
   )
 }

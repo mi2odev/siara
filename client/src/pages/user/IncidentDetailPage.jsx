@@ -706,47 +706,47 @@ export default function IncidentDetailPage() {
 
           {!isLoadingReport && !reportError && (
             <>
-              <div className="incident-header-block">
-                <div className="incident-type-badge">
-                  <span className="incident-type-icon">{typeMeta.icon}</span>
-                  <span className="incident-type-label">{typeMeta.label}</span>
-                </div>
-                <h1 className="incident-title">{incident.title}</h1>
-                <div className="incident-meta-row">
-                  <span className="meta-time">Time {formatTimeAgo(incident.reportedAt)}</span>
-                  <span className="meta-separator">•</span>
-                  <span className="meta-location">Loc {incident.locationLabel}</span>
-                  <span className="meta-separator">•</span>
+              <div className={`incident-header-block idp-sev-${incident.severity}`}>
+                <div className="idp-chips-row">
+                  <div className="incident-type-badge">
+                    <span className="incident-type-icon">{typeMeta.icon}</span>
+                    <span className="incident-type-label">{typeMeta.label}</span>
+                  </div>
                   <span className={`meta-verified ${incident.status === 'verified' || incident.status === 'resolved' ? 'verified' : 'pending'}`}>
                     {statusMeta.label}
                   </span>
                 </div>
+                <h1 className="incident-title">{incident.title}</h1>
+                <div className="incident-meta-row">
+                  <span className="idp-meta-icon" aria-hidden="true">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5" strokeLinecap="round"/></svg>
+                  </span>
+                  <span className="meta-time">{formatTimeAgo(incident.reportedAt)}</span>
+                  <span className="meta-separator">·</span>
+                  <span className="idp-meta-icon" aria-hidden="true">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6c0 3.5 4.5 8.5 4.5 8.5S12.5 9.5 12.5 6c0-2.5-2-4.5-4.5-4.5z"/><circle cx="8" cy="6" r="1.6"/></svg>
+                  </span>
+                  <span className="meta-location">{incident.locationLabel}</span>
+                </div>
               </div>
 
-              <div className="severity-trust-block">
+              <div className="idp-info-strip">
                 <div
                   className="severity-indicator"
-                  style={{
-                    background: `${getSeverityColor(incident.severity)}15`,
-                    borderColor: getSeverityColor(incident.severity),
-                  }}
+                  style={{ background: `${getSeverityColor(incident.severity)}14`, borderColor: getSeverityColor(incident.severity) }}
                 >
                   <span className="severity-dot" style={{ background: getSeverityColor(incident.severity) }}></span>
-                  <span className="severity-label" style={{ color: getSeverityColor(incident.severity) }}>
-                    {getSeverityLabel(incident.severity)}
-                  </span>
+                  <span className="severity-label" style={{ color: getSeverityColor(incident.severity) }}>{getSeverityLabel(incident.severity)}</span>
                 </div>
-
-                <div className="trust-indicators">
-                  <div className="trust-item">
-                    <span className="trust-text">Reported by {incident.reporterName}</span>
-                  </div>
-                  <div className="trust-item">
-                    <span className="trust-text">Current status: {statusMeta.label}</span>
-                  </div>
-                  <div className="trust-item ai">
-                    <span className="trust-text">Last updated {formatTimeAgo(incident.updatedAt)}</span>
-                  </div>
+                <div className="idp-strip-meta">
+                  <span className="idp-strip-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c.8-3.2 3.9-5.5 8-5.5s7.2 2.3 8 5.5" strokeLinecap="round"/></svg>
+                    Reported by <strong>{incident.reporterName}</strong>
+                  </span>
+                  <span className="idp-strip-sep">·</span>
+                  <span className="idp-strip-item">Status: <strong>{statusMeta.label}</strong></span>
+                  <span className="idp-strip-sep">·</span>
+                  <span className="idp-strip-item">Updated <strong>{formatTimeAgo(incident.updatedAt)}</strong></span>
                 </div>
               </div>
 

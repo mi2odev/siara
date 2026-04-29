@@ -521,32 +521,35 @@
 }
 
 .media-lightbox-image {
+  display: block;
   width: auto;
   height: auto;
-  max-width: none;
-  max-height: none;
-  object-fit: initial;
-  border-radius: 0;
-  background: #000;
+  max-width: 90vw;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: 4px;
   transform-origin: center center;
-  transition: transform 0.14s ease;
+  transition: transform 0.12s ease;
+  user-select: none;
+  pointer-events: none;
+  will-change: transform;
 }
 
 .media-lightbox-stage {
   width: 100%;
   height: 100%;
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px 20px 20px;
-  cursor: grab;
+  padding: 56px 20px 20px;
+  cursor: default;
   touch-action: none;
+  user-select: none;
 }
 
 .media-lightbox-stage.zoomed {
   cursor: grab;
-  touch-action: none;
 }
 
 .media-lightbox-stage.dragging {
@@ -1096,11 +1099,368 @@
   }
 
   .media-lightbox-image {
-    width: auto;
-    height: auto;
+    max-width: 96vw;
+    max-height: 78vh;
   }
 
   .media-lightbox-stage {
     padding: 44px 10px 10px;
   }
+}
+
+/* ============================================================
+   INCIDENT DETAIL PAGE — Visual Redesign
+   ============================================================ */
+
+/* ── Severity accent on header block ── */
+.incident-detail-page .incident-header-block {
+  padding: 28px 28px 22px;
+  border-left: 4px solid #E2E8F0;
+}
+
+.incident-detail-page .incident-header-block.idp-sev-high   { border-left-color: #EF4444; }
+.incident-detail-page .incident-header-block.idp-sev-critical { border-left-color: #DC2626; }
+.incident-detail-page .incident-header-block.idp-sev-medium { border-left-color: #F59E0B; }
+.incident-detail-page .incident-header-block.idp-sev-low    { border-left-color: #10B981; }
+
+/* chips row: type badge + status pill on same line */
+.incident-detail-page .idp-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+/* meta row icons */
+.incident-detail-page .idp-meta-icon {
+  display: inline-flex;
+  align-items: center;
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+
+.incident-detail-page .incident-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  color: #64748B;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.incident-detail-page .meta-time,
+.incident-detail-page .meta-location {
+  color: #64748B;
+  font-size: 13px;
+}
+
+.incident-detail-page .meta-location {
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.incident-detail-page .meta-separator {
+  color: #CBD5E1;
+  font-size: 11px;
+}
+
+.incident-detail-page .incident-title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.25;
+  color: #0F172A;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+/* ── Info strip (replaces severity-trust-block) ── */
+.incident-detail-page .idp-info-strip {
+  background: var(--id-card);
+  border: 1px solid var(--id-border);
+  border-radius: 16px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.incident-detail-page .severity-trust-block {
+  display: none;
+}
+
+.incident-detail-page .idp-strip-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+  flex: 1;
+}
+
+.incident-detail-page .idp-strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.incident-detail-page .idp-strip-item strong {
+  color: #0F172A;
+  font-weight: 700;
+}
+
+.incident-detail-page .idp-strip-item svg {
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+
+.incident-detail-page .idp-strip-sep {
+  color: #CBD5E1;
+  font-size: 11px;
+}
+
+/* Keep severity indicator clean */
+.incident-detail-page .severity-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.incident-detail-page .severity-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.incident-detail-page .severity-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── Section title polish ── */
+.incident-detail-page .section-title {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E293B;
+  letter-spacing: 0;
+  text-transform: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.incident-detail-page .section-title::before {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 16px;
+  background: #7C3AED;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Section card spacing ── */
+.incident-detail-page .incident-description,
+.incident-detail-page .incident-media,
+.incident-detail-page .incident-timeline,
+.incident-detail-page .community-signals {
+  padding: 22px 24px;
+}
+
+/* ── Media grid — cover fit ── */
+.incident-detail-page .media-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.incident-detail-page .media-open-btn:hover .media-image {
+  transform: scale(1.03);
+}
+
+.incident-detail-page .media-item {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #F1F5F9;
+  border: 0;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.08);
+}
+
+/* ── Status pill colors ── */
+.incident-detail-page .meta-verified {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.incident-detail-page .meta-verified.verified {
+  color: #065F46;
+  background: #ECFDF5;
+  border-color: #A7F3D0;
+}
+
+.incident-detail-page .meta-verified.pending {
+  color: #92400E;
+  background: #FFFBEB;
+  border-color: #FDE68A;
+}
+
+/* ── Timeline polish ── */
+.incident-detail-page .timeline-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--id-border);
+  background: #F8FAFC;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Community signals ── */
+.incident-detail-page .signal-item {
+  min-width: 110px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--id-border);
+  background: #F8FAFC;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.incident-detail-page .signal-count {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1;
+}
+
+/* ── Incident type badge polish ── */
+.incident-detail-page .incident-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+}
+
+.incident-detail-page .incident-type-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.incident-detail-page .incident-type-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #1E3A8A;
+  text-transform: uppercase;
+}
+
+/* ── Context card (right sidebar) ── */
+.incident-detail-page .context-card {
+  background: var(--id-card);
+  border: 1px solid var(--id-border);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.04);
+}
+
+.incident-detail-page .context-title {
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #94A3B8;
+}
+
+/* ── Mini map ── */
+.incident-detail-page .mini-map-container {
+  height: 185px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #F1F5F9;
+  border: 1px solid var(--id-border);
+}
+
+.incident-detail-page .map-location-text {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.incident-detail-page .location-city {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.4;
+}
+
+.incident-detail-page .location-road {
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.incident-detail-page .open-map-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--id-border);
+  border-radius: 10px;
+  background: #F8FAFC;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+
+.incident-detail-page .open-map-btn:hover {
+  background: #E2E8F0;
+}
+
+/* ── Overall card shadow lift ── */
+.incident-detail-page .incident-header-block,
+.incident-detail-page .incident-description,
+.incident-detail-page .incident-media,
+.incident-detail-page .incident-timeline,
+.incident-detail-page .community-signals {
+  box-shadow: 0 1px 4px rgba(15,23,42,0.05);
+}
+
+/* ── Main gap ── */
+.incident-detail-page .incident-main {
+  gap: 12px;
 }
