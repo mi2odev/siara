@@ -820,6 +820,15 @@
   z-index: 400;
 }
 
+.siara-heat-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 400;
+  mix-blend-mode: normal;
+}
+
 .siara-leaflet-map .leaflet-tooltip-pane {
   z-index: 13050 !important;
 }
@@ -3013,4 +3022,907 @@
 
 .siara-occurrence-card__error {
   color: #b91c1c;
+}
+
+/* ==================== RIGHT SIDEBAR — DEFINITIVE REDESIGN v2 ==================== */
+
+/* Sidebar shell */
+.map-sidebar-right {
+  background: #eef2ff;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 16px;
+  border: 1px solid #dde3f8;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ── Weather card ── */
+.context-weather {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 45%, #3b82f6 100%);
+  padding: 16px;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 6px 22px rgba(29, 78, 216, 0.38);
+}
+
+.cw-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.cw-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cw-icon {
+  font-size: 42px;
+  line-height: 1;
+}
+
+.cw-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cw-temp {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.cw-desc {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.84;
+}
+
+.cw-time {
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.cw-place {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.82;
+  margin: 0 0 12px;
+  overflow: hidden;
+}
+
+.cw-place-dot { font-size: 12px; flex-shrink: 0; }
+
+.cw-place-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.cw-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.cw-cell {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cw-cell-val {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cw-dir {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.cw-cell-lbl {
+  font-size: 9px;
+  opacity: 0.65;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cw-no-loc {
+  font-size: 12px;
+  opacity: 0.75;
+  text-align: center;
+  padding: 8px 0 4px;
+  margin: 0;
+  font-style: italic;
+}
+
+.cw-updating {
+  font-size: 10px;
+  opacity: 0.6;
+  text-align: right;
+  margin: 6px 0 0;
+  font-style: italic;
+}
+
+/* ── Context sections as white cards ── */
+.context-section {
+  display: block;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px;
+  border: 1px solid #e0e8f8;
+  border-bottom: 1px solid #e0e8f8;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.context-section:last-child {
+  border-bottom: 1px solid #e0e8f8;
+}
+
+.danger-forecast-section {
+  padding-top: 14px;
+}
+
+/* ── Section title with left accent bar ── */
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 13px;
+  background: linear-gradient(180deg, #6366f1, #a855f7);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.zones-section-head .section-title {
+  margin-bottom: 0;
+}
+
+/* ── Legend as horizontal pills ── */
+.legend {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Active alerts ── */
+.map-alert-item {
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-left: 3px solid #ef4444;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Statistics grid ── */
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.map-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: unset;
+  background: #f8fafc;
+  border: 1px solid #e0e8f8;
+  border-radius: 10px;
+  padding: 10px 6px;
+}
+
+/* ── Zone link button ── */
+.zone-link-btn {
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
+  border: none;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.zone-link-btn:hover {
+  background: rgba(99, 102, 241, 0.16);
+}
+
+/* ── Manage alerts button ── */
+.btn-manage-alerts {
+  display: block;
+  width: 100%;
+  padding: 9px;
+  background: linear-gradient(90deg, rgba(99,102,241,0.06), rgba(168,85,247,0.06));
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4f46e5;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: 2px;
+  text-align: center;
+}
+
+.btn-manage-alerts:hover {
+  background: linear-gradient(90deg, rgba(99,102,241,0.12), rgba(168,85,247,0.12));
+  border-color: #6366f1;
+}
+
+/* ── Zone focus card ── */
+.zone-focus-card {
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fafafa;
+  border: 1px solid #e2e8f0;
+}
+
+.zone-focus-card.severity-high { box-shadow: inset 4px 0 0 #ef4444; }
+.zone-focus-card.severity-medium { box-shadow: inset 4px 0 0 #f59e0b; }
+.zone-focus-card.severity-low { box-shadow: inset 4px 0 0 #6366f1; }
+
+/* ── Zone items ── */
+.zone-item {
+  background: #f8fafc;
+  border: 1px solid #e8eef6;
+  border-radius: 10px;
+  padding: 10px 12px;
+  transition: all 0.15s;
+}
+
+.zone-item:hover {
+  background: #f1f5f9;
+  border-color: #c7d2fe;
+}
+
+.zone-item.selected {
+  background: #eef2ff;
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.14);
+}
+
+/* ── Chart note ── */
+.chart-note {
+  font-size: 12px;
+  color: #64748b;
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.chart-note-error { color: #dc2626; }
+
+/* ==================== MAP OVERLAY PANELS — REDESIGN ==================== */
+
+/* ── Shared panel shell ── */
+.siara-risk-debug,
+.siara-guide-controls {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(99, 102, 241, 0.1) !important;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  backdrop-filter: blur(16px) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* ── CURRENT RISK panel ── */
+.siara-risk-debug {
+  padding: 18px 20px !important;
+}
+
+.siara-map-help-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  padding-bottom: 14px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  margin-bottom: 14px !important;
+}
+
+.siara-map-help-wrap > h4 {
+  margin: 0 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.2px !important;
+}
+
+/* Status pills */
+.siara-status-pills,
+.siara-guide-status-row {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 5px !important;
+}
+
+.siara-status-pill {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 999px !important;
+  padding: 3px 9px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Big percentage */
+.siara-risk-debug .risk-debug-percent {
+  font-size: 46px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1 !important;
+  display: block !important;
+  margin: 4px 0 10px !important;
+}
+
+/* Accuracy text */
+.siara-risk-debug > p,
+.siara-risk-debug p:not(.risk-debug-error) {
+  font-size: 12px !important;
+  color: #64748b !important;
+  margin: 0 0 4px !important;
+  font-weight: 500 !important;
+}
+
+/* Badge row */
+.siara-badge-row {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin: 2px 0 6px !important;
+}
+
+.siara-compact-badge {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border: 1px solid rgba(99, 102, 241, 0.18) !important;
+  border-radius: 999px !important;
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+.siara-inline-link {
+  background: transparent !important;
+  border: none !important;
+  color: #6366f1 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  padding: 2px 4px !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+}
+
+.siara-inline-link:hover { color: #4338ca !important; }
+.siara-inline-link[disabled] { opacity: 0.5 !important; cursor: progress !important; }
+
+/* Occurrence risk card */
+.siara-occurrence-card {
+  margin-top: 12px !important;
+  padding: 12px 14px !important;
+  background: #fafbff !important;
+  border: 1px solid #e0e8ff !important;
+  border-left: 4px solid #f97316 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06) !important;
+}
+
+.siara-occurrence-card__title {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  margin-bottom: 10px !important;
+}
+
+.siara-occurrence-card__row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 7px 0 !important;
+  font-size: 13px !important;
+  color: #334155 !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  gap: 8px !important;
+}
+
+.siara-occurrence-card__row:last-of-type {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+}
+
+.siara-occurrence-card__row strong {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+.siara-occurrence-card__meta {
+  margin-top: 8px !important;
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  line-height: 1.5 !important;
+}
+
+.siara-occurrence-card__warning {
+  font-size: 10px !important;
+  color: #cbd5e1 !important;
+  font-style: italic !important;
+  margin-top: 4px !important;
+}
+
+/* ── PREDICTION TIME / Guide panel ── */
+.siara-guide-controls {
+  padding: 16px 18px !important;
+}
+
+.siara-guide-status-row {
+  margin-bottom: 14px !important;
+}
+
+.siara-time-row {
+  display: grid !important;
+  gap: 8px !important;
+  margin-bottom: 14px !important;
+}
+
+.siara-time-label {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.9px !important;
+}
+
+.siara-time-select,
+.siara-time-custom {
+  width: 100% !important;
+  height: 38px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 11px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #0f172a !important;
+  background: #f8fafc !important;
+  outline: none !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+
+.siara-time-select:focus,
+.siara-time-custom:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+  background: #fff !important;
+}
+
+.siara-time-hint {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  font-weight: 500 !important;
+}
+
+.siara-time-preview {
+  margin-top: 0 !important;
+  padding: 9px 11px !important;
+  border-radius: 10px !important;
+  background: #eef2ff !important;
+  border: 1px solid rgba(99, 102, 241, 0.15) !important;
+}
+
+.siara-time-preview strong {
+  font-size: 10px !important;
+  color: #4338ca !important;
+  display: block !important;
+  margin-bottom: 3px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+
+.siara-time-preview p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: #334155 !important;
+}
+
+.siara-guide-row {
+  display: flex !important;
+  gap: 8px !important;
+}
+
+.siara-guide-input {
+  flex: 1 !important;
+  height: 40px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 11px !important;
+  padding: 0 14px !important;
+  font-size: 13px !important;
+  color: #0f172a !important;
+  background: #f8fafc !important;
+  outline: none !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+
+.siara-guide-input:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+  background: #fff !important;
+}
+
+.siara-guide-input::placeholder { color: #94a3b8 !important; }
+
+.siara-guide-btn {
+  height: 40px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 11px !important;
+  padding: 0 16px !important;
+  background: #f8fafc !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.15s !important;
+}
+
+.siara-guide-btn:hover:not(:disabled) {
+  border-color: #6366f1 !important;
+  color: #4338ca !important;
+  background: #eef2ff !important;
+}
+
+.siara-guide-btn:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+}
+
+.siara-guide-btn-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.32) !important;
+  height: 42px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  border-radius: 12px !important;
+  padding: 0 20px !important;
+  flex: 1 !important;
+}
+
+.siara-guide-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.42) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.siara-guide-actions {
+  display: flex !important;
+  gap: 8px !important;
+  margin-top: 14px !important;
+}
+
+/* Destination search results */
+.siara-guide-results {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 4px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.siara-guide-result {
+  padding: 10px 14px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  background: transparent !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  transition: background 0.12s !important;
+  border-left: 0 !important;
+}
+
+.siara-guide-result:hover {
+  background: #f8fafc !important;
+}
+
+.siara-guide-result:last-child { border-bottom: none !important; }
+
+.siara-guide-result-name {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+.siara-guide-result-subtitle {
+  font-size: 11px !important;
+  color: #64748b !important;
+}
+
+.siara-guide-note {
+  font-size: 12px !important;
+  color: #475569 !important;
+  margin-top: 8px !important;
+  padding: 8px 10px !important;
+  background: #f8fafc !important;
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.siara-guide-note-error {
+  color: #dc2626 !important;
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+}
+
+/* ==================== CURRENT RISK PANEL — REDESIGN ==================== */
+
+/* Panel shell */
+.siara-risk-debug {
+  padding: 16px 18px !important;
+  min-width: 280px !important;
+  max-width: 340px !important;
+}
+
+/* Header row */
+.srd-header {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.srd-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.srd-title-row h4 {
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+
+/* Pulsing live dot */
+.srd-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  animation: srd-pulse 2s infinite;
+}
+
+@keyframes srd-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  70%  { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* Accuracy line */
+.srd-accuracy {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  margin: 0 0 8px !important;
+  font-weight: 500 !important;
+}
+
+/* Hero: big % + level badge side by side */
+.srd-risk-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 4px 0 10px;
+}
+
+.siara-risk-debug .risk-debug-percent {
+  font-size: 48px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 1 !important;
+  display: inline !important;
+  margin: 0 !important;
+}
+
+.srd-danger-level-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.01em;
+  align-self: center;
+}
+
+/* Gauge bar */
+.srd-gauge {
+  position: relative;
+  margin: 4px 0 16px;
+}
+
+.srd-gauge-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #ef4444 100%);
+}
+
+.srd-gauge-thumb {
+  position: absolute;
+  top: -4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2.5px solid #334155;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+  transition: left 0.4s ease;
+}
+
+.srd-gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 9px;
+  color: #cbd5e1;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Refreshing text */
+.srd-refreshing {
+  font-size: 10px !important;
+  color: #94a3b8 !important;
+  font-style: italic !important;
+  margin: 0 0 6px !important;
+}
+
+/* Occurrence risk card — tighter */
+.siara-occurrence-card {
+  margin-top: 10px !important;
+  padding: 11px 13px !important;
+  background: #fafbff !important;
+  border: 1px solid #e0e8ff !important;
+  border-left: 3px solid #f97316 !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+.siara-occurrence-card__title {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  margin-bottom: 8px !important;
+}
+
+.siara-occurrence-card__row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 6px 0 !important;
+  font-size: 12px !important;
+  color: #334155 !important;
+  border-bottom: 1px solid #eef2ff !important;
+  gap: 8px !important;
+}
+
+.siara-occurrence-card__row:last-of-type {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+}
+
+.siara-occurrence-card__row strong {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+.siara-occurrence-card__meta {
+  margin-top: 8px !important;
+  font-size: 10px !important;
+  color: #94a3b8 !important;
+  line-height: 1.5 !important;
+  padding-top: 6px !important;
+  border-top: 1px solid #eef2ff !important;
+}
+
+.siara-occurrence-card__warning {
+  font-size: 9px !important;
+  color: #cbd5e1 !important;
+  font-style: italic !important;
+  margin-top: 3px !important;
 }

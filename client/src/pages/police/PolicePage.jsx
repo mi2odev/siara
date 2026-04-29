@@ -1,4 +1,5 @@
 import React from 'react'
+import ReactDOM from 'react-dom'
 import { MapContainer, Pane, TileLayer, useMap } from 'react-leaflet'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -30,8 +31,11 @@ import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import {
   formatPoliceDateTime,
   getPoliceDashboard,
+  getPoliceWorkZoneOptions,
   listPoliceAlerts,
+  listPoliceIncidents,
   syncPoliceBrowserLocation,
+  updatePoliceWorkZone,
 } from '../../services/policeService'
 
 const AUTO_REFRESH_MS = 30_000
@@ -107,6 +111,53 @@ function activityActionLabel(actionType) {
   return displayLabel(actionType)
 }
 
+function ZoneSelect({ id, value, onChange, options, placeholder, disabled }) {
+  const [open, setOpen] = React.useState(false)
+  const ref = React.useRef(null)
+
+  React.useEffect(() => {
+    if (!open) return undefined
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const selected = options.find((o) => String(o.id) === String(value))
+
+  return (
+    <div className="zone-select" ref={ref} id={id}>
+      <button
+        type="button"
+        className={`zone-select-trigger${open ? ' open' : ''}${disabled ? ' disabled' : ''}`}
+        onClick={() => { if (!disabled) setOpen((p) => !p) }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        disabled={disabled}
+      >
+        <span className={selected ? 'zone-select-value' : 'zone-select-placeholder'}>
+          {selected ? selected.name : placeholder}
+        </span>
+        <span className="zone-select-arrow" aria-hidden="true">▾</span>
+      </button>
+      {open && (
+        <ul className="zone-select-list" role="listbox">
+          {options.map((o) => (
+            <li
+              key={o.id}
+              role="option"
+              aria-selected={String(o.id) === String(value)}
+              className={`zone-select-option${String(o.id) === String(value) ? ' selected' : ''}`}
+              onMouseDown={() => { onChange(String(o.id)); setOpen(false) }}
+            >
+              {o.name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function FlyToLocation({ center, zoom }) {
   const map = useMap()
   React.useEffect(() => {
@@ -119,7 +170,7 @@ function FlyToLocation({ center, zoom }) {
 export default function PolicePage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { policeMe } = usePoliceAccess()
+  const { policeMe, refreshPoliceMe } = usePoliceAccess()
   const [dashboard, setDashboard] = React.useState(null)
   const [alerts, setAlerts] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
@@ -127,6 +178,18 @@ export default function PolicePage() {
   const [lastUpdatedAt, setLastUpdatedAt] = React.useState(null)
   const [selectedMarkerId, setSelectedMarkerId] = React.useState(null)
   const [isFullMapOpen, setIsFullMapOpen] = React.useState(false)
+  const [allAccidents, setAllAccidents] = React.useState([])
+  const [allAccidentsLoading, setAllAccidentsLoading] = React.useState(false)
+  const [allAccidentsError, setAllAccidentsError] = React.useState('')
+
+  const [showZoneModal, setShowZoneModal] = React.useState(false)
+  const [zoneWilayas, setZoneWilayas] = React.useState([])
+  const [zoneCommunes, setZoneCommunes] = React.useState([])
+  const [zoneWilayaId, setZoneWilayaId] = React.useState('')
+  const [zoneCommuneId, setZoneCommuneId] = React.useState('')
+  const [zoneLoading, setZoneLoading] = React.useState(false)
+  const [zoneSaving, setZoneSaving] = React.useState(false)
+  const [zoneError, setZoneError] = React.useState('')
 
   const activeView = searchParams.get('view') === 'active'
 
@@ -166,6 +229,31 @@ export default function PolicePage() {
   React.useEffect(() => {
     loadDashboard()
   }, [loadDashboard])
+
+  React.useEffect(() => {
+    let cancelled = false
+    async function loadAllAccidents() {
+      setAllAccidentsLoading(true)
+      setAllAccidentsError('')
+      try {
+        // 'all' scope: fetch every incident in the work zone regardless of status
+        // Falls back to 'field_reports' if the backend doesn't yet support 'all'
+        let result
+        try {
+          result = await listPoliceIncidents({ scope: 'all', pageSize: 100 })
+        } catch {
+          result = await listPoliceIncidents({ scope: 'field_reports', pageSize: 100 })
+        }
+        if (!cancelled) setAllAccidents(Array.isArray(result?.items) ? result.items : [])
+      } catch (err) {
+        if (!cancelled) setAllAccidentsError(err?.message || 'Failed to load accidents')
+      } finally {
+        if (!cancelled) setAllAccidentsLoading(false)
+      }
+    }
+    loadAllAccidents()
+    return () => { cancelled = true }
+  }, [])
 
   React.useEffect(() => {
     if (activeView) return undefined
@@ -332,6 +420,59 @@ export default function PolicePage() {
     setSelectedMarkerId(markerId === selectedMarkerId ? null : markerId)
   }
 
+  const openZoneModal = React.useCallback(async () => {
+    setZoneError('')
+    setZoneLoading(true)
+    setShowZoneModal(true)
+    try {
+      const data = await getPoliceWorkZoneOptions()
+      setZoneWilayas(data.wilayas || [])
+      const currentWilayaId = String(data.selectedWilayaId || workZone?.wilaya?.id || '')
+      setZoneWilayaId(currentWilayaId)
+      if (currentWilayaId) {
+        const communeData = await getPoliceWorkZoneOptions(currentWilayaId)
+        setZoneCommunes(communeData.communes || [])
+        setZoneCommuneId(String(data.selectedCommuneId || workZone?.commune?.id || ''))
+      } else {
+        setZoneCommunes([])
+        setZoneCommuneId('')
+      }
+    } catch (err) {
+      setZoneError(err?.message || 'Failed to load zone options')
+    } finally {
+      setZoneLoading(false)
+    }
+  }, [workZone])
+
+  const handleZoneWilayaChange = React.useCallback(async (wilayaId) => {
+    setZoneWilayaId(wilayaId)
+    setZoneCommuneId('')
+    setZoneCommunes([])
+    if (!wilayaId) return
+    try {
+      const data = await getPoliceWorkZoneOptions(wilayaId)
+      setZoneCommunes(data.communes || [])
+    } catch {
+      // communes will remain empty
+    }
+  }, [])
+
+  const saveZone = React.useCallback(async () => {
+    if (!zoneWilayaId || !zoneCommuneId) return
+    setZoneSaving(true)
+    setZoneError('')
+    try {
+      await updatePoliceWorkZone({ wilayaId: zoneWilayaId, communeId: zoneCommuneId })
+      await refreshPoliceMe()
+      await loadDashboard({ silent: true })
+      setShowZoneModal(false)
+    } catch (err) {
+      setZoneError(err?.message || 'Failed to update work zone')
+    } finally {
+      setZoneSaving(false)
+    }
+  }, [zoneWilayaId, zoneCommuneId, refreshPoliceMe, loadDashboard])
+
   const rightPanel = (
     <>
       <section className="police-section police-dashboard-side-card">
@@ -368,17 +509,84 @@ export default function PolicePage() {
       <section className="police-section police-dashboard-side-card">
         <div className="police-dashboard-side-header">
           <h2>Work Zone</h2>
+          <button type="button" className="police-zone-change-btn" onClick={openZoneModal}>
+            Change
+          </button>
         </div>
         <div className="police-selected-details police-dashboard-side-details">
           <div className="police-selected-line"><span>Wilaya</span><strong>{workZone?.wilaya?.name || 'Not selected'}</strong></div>
           <div className="police-selected-line"><span>Commune</span><strong>{workZone?.commune?.name || 'Not selected'}</strong></div>
         </div>
       </section>
+
     </>
   )
 
+  const zoneModal = showZoneModal ? ReactDOM.createPortal(
+    <div className="police-zone-modal-overlay" role="dialog" aria-modal="true" aria-label="Change Work Zone">
+      <div className="police-zone-modal">
+        <div className="police-zone-modal-head">
+          <h3>Change Work Zone</h3>
+          <button type="button" className="police-zone-modal-close" onClick={() => setShowZoneModal(false)} aria-label="Close">
+            <CloseRoundedIcon fontSize="small" />
+          </button>
+        </div>
+
+        {zoneLoading ? (
+          <p className="police-zone-modal-loading">Loading options…</p>
+        ) : (
+          <>
+            <div className="police-zone-modal-body">
+              <div className="police-zone-modal-field">
+                <label htmlFor="zone-wilaya-select">Wilaya</label>
+                <ZoneSelect
+                  id="zone-wilaya-select"
+                  value={zoneWilayaId}
+                  onChange={handleZoneWilayaChange}
+                  options={zoneWilayas}
+                  placeholder="— Select wilaya —"
+                  disabled={zoneSaving}
+                />
+              </div>
+
+              <div className="police-zone-modal-field">
+                <label htmlFor="zone-commune-select">Commune</label>
+                <ZoneSelect
+                  id="zone-commune-select"
+                  value={zoneCommuneId}
+                  onChange={setZoneCommuneId}
+                  options={zoneCommunes}
+                  placeholder="— Select commune —"
+                  disabled={!zoneWilayaId || zoneSaving}
+                />
+              </div>
+
+              {zoneError && <p className="police-zone-modal-error">{zoneError}</p>}
+            </div>
+
+            <div className="police-zone-modal-actions">
+              <button type="button" className="police-zone-btn-cancel" onClick={() => setShowZoneModal(false)} disabled={zoneSaving}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="police-zone-btn-save"
+                onClick={saveZone}
+                disabled={!zoneWilayaId || !zoneCommuneId || zoneSaving}
+              >
+                {zoneSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>,
+    document.body,
+  ) : null
+
   if (activeView) {
     return (
+      <>
       <PoliceShell
         activeKey="active-incidents"
         rightPanel={rightPanel}
@@ -459,10 +667,13 @@ export default function PolicePage() {
           </div>
         </section>
       </PoliceShell>
+      {zoneModal}
+      </>
     )
   }
 
   return (
+    <>
     <PoliceShell
       activeKey="dashboard"
       rightPanel={rightPanel}
@@ -826,6 +1037,102 @@ export default function PolicePage() {
             )}
           </section>
         </div>
+
+        {/* 8. ALL ACCIDENTS TABLE */}
+        <section className="police-cc-section police-cc-all-accidents" aria-label="All accidents">
+          <header className="police-cc-section-head">
+            <div className="police-cc-section-title">
+              <ReportRoundedIcon fontSize="inherit" className="police-cc-section-icon critical" />
+              <h2>All Accidents</h2>
+              <span className="police-cc-section-count">{allAccidents.length}</span>
+            </div>
+            {allAccidentsLoading ? (
+              <span className="police-cc-sync">
+                <span className="police-cc-sync-dot" aria-hidden="true"></span>
+                Loading…
+              </span>
+            ) : null}
+          </header>
+
+          {allAccidentsError ? (
+            <div className="police-cc-empty">
+              <ReportProblemOutlinedIcon fontSize="inherit" />
+              <span>{allAccidentsError}</span>
+            </div>
+          ) : !allAccidentsLoading && allAccidents.length === 0 ? (
+            <div className="police-cc-empty">
+              <LocalPoliceOutlinedIcon fontSize="inherit" />
+              <span>No accidents recorded in your work zone.</span>
+            </div>
+          ) : (
+            <div className="police-cc-acc-wrap">
+              <table className="police-cc-acc-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Incident</th>
+                    <th>Type</th>
+                    <th>Severity</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Time</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allAccidents.map((incident) => (
+                    <tr
+                      key={incident.id}
+                      className="police-cc-acc-row"
+                      data-severity={incident.severity}
+                    >
+                      <td className="police-cc-acc-cell police-cc-acc-cell--id">
+                        {incident.displayId || <span className="police-cc-acc-dash">—</span>}
+                      </td>
+                      <td className="police-cc-acc-cell police-cc-acc-cell--title">
+                        <span className="police-cc-acc-title">{incident.title || 'Untitled incident'}</span>
+                        {incident.description ? (
+                          <span className="police-cc-acc-desc">{incident.description}</span>
+                        ) : null}
+                      </td>
+                      <td className="police-cc-acc-cell police-cc-acc-cell--type">
+                        <span className="police-cc-acc-type-chip">{displayLabel(incident.incidentType || 'other')}</span>
+                      </td>
+                      <td className="police-cc-acc-cell">
+                        <span className={`police-badge ${incident.severity}`}>
+                          <SeverityBadgeIcon severity={incident.severity} />
+                          {displayLabel(incident.severity)}
+                        </span>
+                      </td>
+                      <td className="police-cc-acc-cell police-cc-acc-cell--loc">
+                        {incident.locationText || <span className="police-cc-acc-dash">—</span>}
+                      </td>
+                      <td className="police-cc-acc-cell">
+                        <span className={`police-cc-acc-status police-cc-acc-status--${incident.status || 'pending'}`}>
+                          {displayLabel(incident.status || 'pending')}
+                        </span>
+                      </td>
+                      <td className="police-cc-acc-cell police-cc-acc-cell--time">
+                        {formatRelativeAge(incident.occurredAt || incident.createdAt)}
+                      </td>
+                      <td className="police-cc-acc-cell police-cc-acc-cell--action">
+                        <button
+                          type="button"
+                          className="police-cc-btn-ghost police-cc-acc-view-btn"
+                          onClick={() => navigate(`/police/incident/${incident.id}`)}
+                          aria-label={`View incident ${incident.displayId}`}
+                        >
+                          <VisibilityOutlinedIcon fontSize="inherit" />
+                          <span>View</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </div>
 
       {isFullMapOpen ? (
@@ -888,5 +1195,7 @@ export default function PolicePage() {
         </div>
       ) : null}
     </PoliceShell>
+    {zoneModal}
+    </>
   )
 }

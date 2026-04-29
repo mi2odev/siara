@@ -65,7 +65,9 @@ export default function PoliceIncidentDetailPage() {
   const [editingNoteId, setEditingNoteId] = React.useState(null)
   const [editingDraft, setEditingDraft] = React.useState('')
   const [noteBusyId, setNoteBusyId] = React.useState(null)
-  const [actionBusy, setActionBusy] = React.useState(false)
+  const [busyAction, setBusyAction] = React.useState(null)
+  const [confirmDialog, setConfirmDialog] = React.useState(null)
+  const [successMsg, setSuccessMsg] = React.useState('')
 
   // Lightbox
   const [lightboxUrl, setLightboxUrl] = React.useState(null)
@@ -196,28 +198,67 @@ export default function PoliceIncidentDetailPage() {
   }
 
   const handleAction = async (action, payload = {}) => {
-    if (!incident || actionBusy) return
+    if (!incident || busyAction) return
     setError('')
-    setActionBusy(true)
+    setSuccessMsg('')
+    setBusyAction(action)
     try {
-      if (action === 'verify') setDetail(await verifyPoliceIncident(incident.id, payload))
-      else if (action === 'reject') setDetail(await rejectPoliceIncident(incident.id, payload))
-      else if (action === 'backup') setDetail(await requestPoliceBackup(incident.id, payload))
-      else if (action === 'resolve') setDetail(await updatePoliceIncidentStatus(incident.id, { status: 'resolved', ...payload }))
+      let result
+      if (action === 'verify') result = await verifyPoliceIncident(incident.id, payload)
+      else if (action === 'reject') result = await rejectPoliceIncident(incident.id, payload)
+      else if (action === 'backup') result = await requestPoliceBackup(incident.id, payload)
+      else if (action === 'resolve') result = await updatePoliceIncidentStatus(incident.id, { status: 'resolved', ...payload })
       else if (action === 'note') {
-        setDetail(await addPoliceFieldNote(incident.id, payload))
+        result = await addPoliceFieldNote(incident.id, payload)
         setNote('')
+      }
+      setDetail(result)
+      if (action === 'reject') {
+        setSuccessMsg('Incident rejected. Returning to dashboard…')
+        setTimeout(() => navigate(-1), 1800)
+      } else if (action === 'resolve') {
+        setSuccessMsg('Incident resolved. Returning to dashboard…')
+        setTimeout(() => navigate(-1), 1800)
+      } else if (action === 'verify') {
+        setSuccessMsg('Incident verified successfully.')
+      } else if (action === 'backup') {
+        setSuccessMsg('Backup requested.')
       }
     } catch (e) {
       setError(e.message || 'Action failed.')
     } finally {
-      setActionBusy(false)
+      setBusyAction(null)
+    }
+  }
+
+  const requestAction = (action) => {
+    if (!incident || busyAction) return
+    if (action === 'reject') {
+      setConfirmDialog({
+        action,
+        label: 'Reject Incident',
+        message: 'This will mark the incident as rejected and remove it from the active queue. This action cannot be undone.',
+        tone: 'danger',
+      })
+    } else if (action === 'resolve') {
+      setConfirmDialog({
+        action,
+        label: 'Resolve Incident',
+        message: 'This will mark the incident as resolved and close the case.',
+        tone: 'resolve',
+      })
+    } else {
+      handleAction(action)
     }
   }
 
   const mapCenter = incident?.location?.lat != null && incident?.location?.lng != null
     ? [incident.location.lat, incident.location.lng]
     : [36.7538, 3.0588]
+
+  const incidentStatus = incident?.status || ''
+  const isTerminal = incidentStatus === 'resolved' || incidentStatus === 'rejected'
+  const alreadyVerified = incidentStatus === 'verified'
 
   const rightPanel = (
     <div className="pid-panel">
@@ -237,24 +278,76 @@ export default function PoliceIncidentDetailPage() {
 
       <div className="pid-panel-section">
         <p className="pid-panel-section-head">Quick Actions</p>
-        <div className="pid-panel-actions">
-          <button type="button" className="pid-action-btn pid-action-btn--verify" onClick={() => handleAction('verify')} disabled={!incident || actionBusy}>
-            <VerifiedUserOutlinedIcon fontSize="small" />
-            <span>Verify Incident</span>
-          </button>
-          <button type="button" className="pid-action-btn pid-action-btn--backup" onClick={() => handleAction('backup')} disabled={!incident || actionBusy}>
-            <GroupsOutlinedIcon fontSize="small" />
-            <span>Request Backup</span>
-          </button>
-          <button type="button" className="pid-action-btn pid-action-btn--resolve" onClick={() => handleAction('resolve')} disabled={!incident || actionBusy}>
+
+        {successMsg ? (
+          <div className="pid-success-banner">
             <CheckCircleOutlineIcon fontSize="small" />
-            <span>Resolve Incident</span>
-          </button>
-          <button type="button" className="pid-action-btn pid-action-btn--reject" onClick={() => handleAction('reject')} disabled={!incident || actionBusy}>
-            <CancelOutlinedIcon fontSize="small" />
-            <span>Reject Incident</span>
-          </button>
-        </div>
+            <span>{successMsg}</span>
+          </div>
+        ) : null}
+
+        {isTerminal ? (
+          <div className="pid-terminal-banner">
+            {incidentStatus === 'resolved'
+              ? <CheckCircleOutlineIcon fontSize="small" />
+              : <CancelOutlinedIcon fontSize="small" />}
+            <span>Incident <strong>{label(incidentStatus)}</strong> — no further actions available.</span>
+          </div>
+        ) : (
+          <div className="pid-panel-actions">
+            {alreadyVerified ? (
+              <div className="pid-verified-chip">
+                <VerifiedUserOutlinedIcon fontSize="small" />
+                <span>Already Verified</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="pid-action-btn pid-action-btn--verify"
+                onClick={() => requestAction('verify')}
+                disabled={!incident || !!busyAction}
+              >
+                {busyAction === 'verify'
+                  ? <span className="pid-btn-spinner" aria-hidden="true" />
+                  : <VerifiedUserOutlinedIcon fontSize="small" />}
+                <span>{busyAction === 'verify' ? 'Verifying…' : 'Verify Incident'}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="pid-action-btn pid-action-btn--backup"
+              onClick={() => requestAction('backup')}
+              disabled={!incident || !!busyAction}
+            >
+              {busyAction === 'backup'
+                ? <span className="pid-btn-spinner" aria-hidden="true" />
+                : <GroupsOutlinedIcon fontSize="small" />}
+              <span>{busyAction === 'backup' ? 'Requesting…' : 'Request Backup'}</span>
+            </button>
+            <button
+              type="button"
+              className="pid-action-btn pid-action-btn--resolve"
+              onClick={() => requestAction('resolve')}
+              disabled={!incident || !!busyAction}
+            >
+              {busyAction === 'resolve'
+                ? <span className="pid-btn-spinner" aria-hidden="true" />
+                : <CheckCircleOutlineIcon fontSize="small" />}
+              <span>{busyAction === 'resolve' ? 'Resolving…' : 'Resolve Incident'}</span>
+            </button>
+            <button
+              type="button"
+              className="pid-action-btn pid-action-btn--reject"
+              onClick={() => requestAction('reject')}
+              disabled={!incident || !!busyAction}
+            >
+              {busyAction === 'reject'
+                ? <span className="pid-btn-spinner" aria-hidden="true" />
+                : <CancelOutlinedIcon fontSize="small" />}
+              <span>{busyAction === 'reject' ? 'Rejecting…' : 'Reject Incident'}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="pid-panel-section">
@@ -264,14 +357,14 @@ export default function PoliceIncidentDetailPage() {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Write your field observation…"
-          disabled={!incident || actionBusy}
+          disabled={!incident || !!busyAction}
           rows={4}
         />
         <button
           type="button"
           className="pid-save-note-btn"
           onClick={() => handleAction('note', { note })}
-          disabled={!note.trim() || !incident || actionBusy}
+          disabled={!note.trim() || !incident || !!busyAction}
         >
           <NoteAddOutlinedIcon fontSize="small" />
           <span>Save Note</span>
@@ -549,6 +642,40 @@ export default function PoliceIncidentDetailPage() {
 
         </div>
       </PoliceShell>
+
+      {/* Confirm dialog */}
+      {confirmDialog ? (
+        <div
+          className="pid-confirm-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pid-confirm-title"
+          onClick={() => !busyAction && setConfirmDialog(null)}
+        >
+          <div className="pid-confirm-box" onClick={(e) => e.stopPropagation()}>
+            <h3 id="pid-confirm-title" className="pid-confirm-title">{confirmDialog.label}</h3>
+            <p className="pid-confirm-msg">{confirmDialog.message}</p>
+            <div className="pid-confirm-actions">
+              <button
+                type="button"
+                className="pid-confirm-cancel"
+                onClick={() => setConfirmDialog(null)}
+                disabled={!!busyAction}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={`pid-confirm-ok pid-confirm-ok--${confirmDialog.tone}`}
+                onClick={() => { const a = confirmDialog.action; setConfirmDialog(null); handleAction(a) }}
+                disabled={!!busyAction}
+              >
+                {confirmDialog.label}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Lightbox */}
       {lightboxUrl ? (

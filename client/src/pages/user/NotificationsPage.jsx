@@ -5,11 +5,12 @@ import { AuthContext } from '../../contexts/AuthContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useNotificationStore } from '../../stores/notificationStore'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
-import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
+import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/DashboardPage.css'
+import '../../styles/NewsPage.css'
 import '../../styles/NotificationsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
@@ -123,6 +124,7 @@ export default function NotificationsPage() {
       ? 'police'
       : normalizedRoles[0] || 'citizen'
   const roleLabel = primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1)
+  const roleClass = primaryRole === 'admin' ? 'role-admin' : primaryRole === 'police' ? 'role-police' : 'role-citoyen'
   const userAvatarUrl = getUserAvatarUrl(user)
   const profileAvatarUrl = userAvatarUrl || profileAvatar
   const profileInitials = getInitialsFromName(displayName)
@@ -221,6 +223,8 @@ export default function NotificationsPage() {
 
   function renderNotificationItem(notification) {
     const priorityColor = getPriorityColor(notification.priority)
+    const priorityKey = notification.priority <= 1 ? 'high' : notification.priority === 2 ? 'medium' : 'neutral'
+    const priorityLetter = notification.priority <= 1 ? 'H' : notification.priority === 2 ? 'M' : 'N'
 
     return (
       <div
@@ -229,7 +233,7 @@ export default function NotificationsPage() {
           'notif-item',
           !notification.readAt ? 'unread' : '',
           selectedNotification?.id === notification.id ? 'selected' : '',
-          notification.priority <= 1 ? 'priority-high' : notification.priority === 2 ? 'priority-medium' : 'priority-neutral',
+          `priority-${priorityKey}`,
         ].filter(Boolean).join(' ')}
         onClick={() => { void handleSelectNotification(notification) }}
         onKeyDown={(event) => {
@@ -241,17 +245,24 @@ export default function NotificationsPage() {
         role="button"
         tabIndex={0}
       >
-        <div className="notif-icon" style={{ background: `${priorityColor}12`, color: priorityColor }}>
-          {notification.priority <= 1 ? 'H' : notification.priority === 2 ? 'M' : 'N'}
+        <div
+          className="notif-avatar"
+          style={{ background: `${priorityColor}14`, color: priorityColor }}
+        >
+          {priorityLetter}
         </div>
-        <div className="notif-content">
-          <span className="notif-title">{notification.title}</span>
-          <span className="notif-context">{notification.body}</span>
-          <span className="notif-location">{notification.data?.zoneName || notification.data?.locationLabel || 'Monitored area'}</span>
+        <div className="notif-body">
+          <div className="notif-item-title">{notification.title}</div>
+          <div className="notif-item-body">{notification.body}</div>
+          {(notification.data?.zoneName || notification.data?.locationLabel) ? (
+            <span className="notif-item-zone">
+              {notification.data?.zoneName || notification.data?.locationLabel}
+            </span>
+          ) : null}
         </div>
-        <div className="notif-meta">
-          <span className="notif-time">{formatRelativeTime(notification.createdAt)}</span>
-          {!notification.readAt ? <span className="notif-dot"></span> : null}
+        <div className="notif-item-meta">
+          <span className="notif-item-time">{formatRelativeTime(notification.createdAt)}</span>
+          {!notification.readAt ? <span className="notif-unread-dot" aria-label="Unread" /> : null}
         </div>
       </div>
     )
@@ -322,122 +333,160 @@ export default function NotificationsPage() {
       </header>
 
       <div className="notif-grid">
-        <aside className="notif-left">
-          <div className="notif-profile-card">
-            <div className="notif-profile-avatar-wrap">
-              <img src={profileAvatarUrl} alt={displayName} className="notif-profile-avatar" loading="lazy" />
-              <span className="notif-profile-badge">✓</span>
+
+        {/* ── LEFT SIDEBAR — same style as Feed page ── */}
+        <aside className="sidebar-left notif-sidebar-left">
+
+          {/* Profile card — identical to feed page */}
+          <div className="card profile-summary">
+            <div className="profile-avatar-container">
+              <img
+                src={profileAvatarUrl}
+                alt={displayName}
+                className="profile-avatar-large"
+                loading="lazy"
+                onError={(e) => { if (e.currentTarget.src !== profileAvatar) e.currentTarget.src = profileAvatar }}
+              />
+              <span className="verified-badge">✓</span>
             </div>
-            <h3 className="notif-profile-name">{displayName}</h3>
-            <span className="notif-profile-role">{roleLabel}</span>
-            <p className="notif-profile-copy">Browse live road reports and share updates from the field.</p>
-            <button className="notif-profile-btn" onClick={() => navigate('/profile')}>View Profile</button>
-          </div>
-
-          <div className="filter-section">
-            <span className="filter-label">Status</span>
-            {[
-              { key: 'all', label: 'All' },
-              { key: 'unread', label: 'Unread' },
-              { key: 'read', label: 'Read' },
-            ].map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={`filter-btn ${statusFilter === item.key ? 'active' : ''}`}
-                onClick={() => setStatusFilter(item.key)}
-              >
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="filter-section">
-            <span className="filter-label">Priority</span>
-            {[
-              { key: 'all', label: 'All priorities' },
-              { key: 'high', label: 'High' },
-              { key: 'medium', label: 'Medium' },
-              { key: 'normal', label: 'Normal' },
-            ].map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={`filter-btn ${priorityFilter === item.key ? 'active' : ''}`}
-                onClick={() => setPriorityFilter(item.key)}
-              >
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="filter-section">
-            <span className="filter-label">Time</span>
-            {[
-              { key: 'all', label: 'All time' },
-              { key: 'today', label: 'Today' },
-              { key: 'week', label: 'Last 7 days' },
-            ].map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={`filter-btn ${timeFilter === item.key ? 'active' : ''}`}
-                onClick={() => setTimeFilter(item.key)}
-              >
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="detail-section">
-            <span className="section-label">Summary</span>
-            <p className="notif-summary-copy">Unread alerts stay highlighted until you open them or mark them as read.</p>
-            <div className="context-card">
-              <div className="context-row">
-                <span className="context-label">Unread</span>
-                <span className="context-value">{unreadCount}</span>
-              </div>
-              <div className="context-row">
-                <span className="context-label">Visible</span>
-                <span className="context-value">{filteredNotifications.length}</span>
-              </div>
+            <div className="profile-info">
+              <p className="profile-name">{displayName}</p>
+              <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
+              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
+              <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
             </div>
           </div>
 
-          <LeftQuickInfoLinks title="Information" />
+          {/* Shared nav — same as feed page, with "notifications" active */}
+          <FeedSidebarNav activeKey="notifications" />
+
+          {/* Notification filters card */}
+          <div className="card notif-filters-card">
+            <div className="card-header">
+              <h3 className="card-title">Filters</h3>
+              <span className="notif-filter-count-pill">{filteredNotifications.length}</span>
+            </div>
+
+            <div className="filter-section">
+              <label className="filter-label">Status</label>
+              <div className="notif-filter-pill-row">
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'unread', label: 'Unread' },
+                  { key: 'read', label: 'Read' },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={`notif-pill-btn${statusFilter === item.key ? ' active' : ''}`}
+                    onClick={() => setStatusFilter(item.key)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-section">
+              <label className="filter-label">Priority</label>
+              <div className="notif-filter-pill-row">
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'high', label: 'High' },
+                  { key: 'medium', label: 'Med' },
+                  { key: 'normal', label: 'Low' },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={`notif-pill-btn${priorityFilter === item.key ? ' active' : ''}`}
+                    onClick={() => setPriorityFilter(item.key)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="filter-section">
+              <label className="filter-label">Time</label>
+              <div className="notif-filter-pill-row">
+                {[
+                  { key: 'all', label: 'All time' },
+                  { key: 'today', label: 'Today' },
+                  { key: 'week', label: '7 days' },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={`notif-pill-btn${timeFilter === item.key ? ' active' : ''}`}
+                    onClick={() => setTimeFilter(item.key)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Summary stats card */}
+          <div className="card notif-stats-card">
+            <h3 className="card-title">Summary</h3>
+            <div className="notif-stat-row">
+              <span className="notif-stat-label">Unread</span>
+              <span className="notif-stat-value">{unreadCount}</span>
+            </div>
+            <div className="notif-stat-row">
+              <span className="notif-stat-label">Visible</span>
+              <span className="notif-stat-value">{filteredNotifications.length}</span>
+            </div>
+            <div className="notif-stat-row">
+              <span className="notif-stat-label">Total</span>
+              <span className="notif-stat-value">{notifications.length}</span>
+            </div>
+          </div>
+
         </aside>
 
+        {/* ── CENTER ── */}
         <main className="notif-center">
-          <div className="notif-header">
-            <div className="notif-header-left">
+          <div className="notif-topbar">
+            <div className="notif-topbar-left">
               <h1>Notifications</h1>
-              <span className="notif-count">{unreadCount} unread</span>
+              {unreadCount > 0 ? (
+                <span className="notif-unread-badge">{unreadCount} unread</span>
+              ) : null}
             </div>
-            <div className="notif-header-right">
-              <button className="mark-all-btn" onClick={() => { void handleMarkAllRead() }} disabled={unreadCount === 0}>
-                Mark all as read
-              </button>
-            </div>
+            <button
+              type="button"
+              className="notif-mark-all-btn"
+              onClick={() => { void handleMarkAllRead() }}
+              disabled={unreadCount === 0}
+            >
+              Mark all as read
+            </button>
           </div>
 
           {error ? <div className="notif-banner-error">{error}</div> : null}
 
           <div className="notif-list">
             {isLoading ? (
-              <div className="notif-empty">
-                <h3>Loading notifications...</h3>
-                <p>Your latest in-app alerts are on the way.</p>
+              <div className="notif-empty-state">
+                <div className="notif-empty-icon">⏳</div>
+                <h3>Loading…</h3>
+                <p>Your latest alerts are on the way.</p>
               </div>
             ) : filteredNotifications.length === 0 ? (
-              <div className="notif-empty">
-                <h3>No notifications yet</h3>
+              <div className="notif-empty-state">
+                <div className="notif-empty-icon">🔔</div>
+                <h3>No notifications</h3>
                 <p>Create an alert to start receiving live incident updates.</p>
-                <div className="empty-actions">
-                  <button className="empty-btn primary" onClick={() => navigate('/alerts/create')}>
+                <div className="notif-empty-actions">
+                  <button type="button" className="notif-btn-primary" onClick={() => navigate('/alerts/create')}>
                     Create an alert
                   </button>
-                  <button className="empty-btn secondary" onClick={() => navigate('/map')}>
-                    Explore the map
+                  <button type="button" className="notif-btn-secondary" onClick={() => navigate('/map')}>
+                    Explore map
                   </button>
                 </div>
               </div>
@@ -445,19 +494,19 @@ export default function NotificationsPage() {
               <>
                 {groupedNotifications.today.length > 0 ? (
                   <div className="notif-group">
-                    <div className="group-header">Today</div>
+                    <div className="notif-group-label">Today</div>
                     {groupedNotifications.today.map(renderNotificationItem)}
                   </div>
                 ) : null}
                 {groupedNotifications.yesterday.length > 0 ? (
                   <div className="notif-group">
-                    <div className="group-header">Yesterday</div>
+                    <div className="notif-group-label">Yesterday</div>
                     {groupedNotifications.yesterday.map(renderNotificationItem)}
                   </div>
                 ) : null}
                 {groupedNotifications.older.length > 0 ? (
                   <div className="notif-group">
-                    <div className="group-header">Older</div>
+                    <div className="notif-group-label">Older</div>
                     {groupedNotifications.older.map(renderNotificationItem)}
                   </div>
                 ) : null}
@@ -466,108 +515,180 @@ export default function NotificationsPage() {
           </div>
         </main>
 
-        <aside className="notif-right">
-          {selectedNotification ? (
-            <>
-              <div className="detail-header">
-                <div
-                  className="detail-icon"
-                  style={{
-                    background: `${getPriorityColor(selectedNotification.priority)}14`,
-                    color: getPriorityColor(selectedNotification.priority),
-                  }}
-                >
-                  {selectedNotification.priority <= 1 ? 'H' : selectedNotification.priority === 2 ? 'M' : 'N'}
-                </div>
-                <div className="detail-title-block">
-                  <h2 className="detail-title">{selectedNotification.title}</h2>
-                  <div className="detail-meta">
-                    <span
-                      className="detail-badge"
-                      style={{
-                        background: `${getPriorityColor(selectedNotification.priority)}14`,
-                        color: getPriorityColor(selectedNotification.priority),
-                      }}
-                    >
-                      {getPriorityLabel(selectedNotification.priority)}
+        {/* ── RIGHT PANEL ── */}
+        <aside className="sidebar-right notif-sidebar-right">
+          {selectedNotification ? (() => {
+            const sev = selectedNotification.data?.severity || ''
+            const dangerScore = selectedNotification.data?.dangerScore
+            const priorityKey = selectedNotification.priority <= 1 ? 'high' : selectedNotification.priority === 2 ? 'medium' : 'normal'
+            const priorityColor = getPriorityColor(selectedNotification.priority)
+
+            return (
+              <>
+                {/* ── Card 1: Notification header ── */}
+                <div className="card nd-header-card">
+                  <div className="nd-priority-row">
+                    <span className={`nd-priority-badge nd-priority-badge--${priorityKey}`}>
+                      {priorityKey === 'high' ? '🔴' : priorityKey === 'medium' ? '🟡' : '🔵'}
+                      {' '}{getPriorityLabel(selectedNotification.priority)} Priority
                     </span>
-                    <span className="detail-time">{formatDateTime(selectedNotification.createdAt)}</span>
+                    {!selectedNotification.readAt ? (
+                      <span className="nd-unread-tag">● Unread</span>
+                    ) : (
+                      <span className="nd-read-tag">✓ Read</span>
+                    )}
                   </div>
+                  <h2 className="nd-title">{selectedNotification.title}</h2>
+                  <p className="nd-timestamp">
+                    🕐 {formatDateTime(selectedNotification.createdAt)}
+                  </p>
+                  <p className="nd-body">{selectedNotification.body}</p>
                 </div>
-              </div>
 
-              <div className="detail-section">
-                <span className="section-label">Message</span>
-                <p className="explanation-text">{selectedNotification.body}</p>
-              </div>
+                {/* ── Card 2: Incident details ── */}
+                <div className="card nd-details-card">
+                  <h3 className="widget-title">📋 Incident Details</h3>
 
-              <div className="detail-section">
-                <span className="section-label">Context</span>
-                <div className="context-card">
-                  <div className="context-row">
-                    <span className="context-label">Event</span>
-                    <span className="context-value">{selectedNotification.eventType}</span>
+                  {(sev || selectedNotification.data?.incidentType) ? (
+                    <div className="nd-detail-highlights">
+                      {sev ? (
+                        <div className={`nd-sev-chip nd-sev-chip--${sev}`}>
+                          <span className="nd-sev-dot" />
+                          <span>{sev.charAt(0).toUpperCase() + sev.slice(1)} Severity</span>
+                        </div>
+                      ) : null}
+                      {selectedNotification.data?.incidentType ? (
+                        <div className="nd-type-chip">
+                          🚦 {selectedNotification.data.incidentType.charAt(0).toUpperCase() + selectedNotification.data.incidentType.slice(1)}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div className="nd-info-list">
+                    {selectedNotification.eventType ? (
+                      <div className="nd-info-row">
+                        <span className="nd-info-key">Event</span>
+                        <code className="nd-info-code">{selectedNotification.eventType}</code>
+                      </div>
+                    ) : null}
+                    {selectedNotification.data?.zoneName ? (
+                      <div className="nd-info-row">
+                        <span className="nd-info-key">Zone</span>
+                        <span className="nd-info-val">📍 {selectedNotification.data.zoneName}</span>
+                      </div>
+                    ) : null}
+                    {selectedNotification.data?.locationLabel ? (
+                      <div className="nd-info-row">
+                        <span className="nd-info-key">Location</span>
+                        <span className="nd-info-val nd-info-val--loc">{selectedNotification.data.locationLabel}</span>
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="context-row">
-                    <span className="context-label">Zone</span>
-                    <span className="context-value">{selectedNotification.data?.zoneName || 'Monitored area'}</span>
-                  </div>
-                  <div className="context-row">
-                    <span className="context-label">Incident type</span>
-                    <span className="context-value">{selectedNotification.data?.incidentType || 'Incident'}</span>
-                  </div>
-                  <div className="context-row">
-                    <span className="context-label">Severity</span>
-                    <span className="context-value">{selectedNotification.data?.severity || getPriorityLabel(selectedNotification.priority)}</span>
-                  </div>
-                  <div className="context-row">
-                    <span className="context-label">Danger score</span>
-                    <span className="context-value">{selectedNotification.data?.dangerScore ?? '--'}%</span>
-                  </div>
-                  <div className="context-row">
-                    <span className="context-label">Location</span>
-                    <span className="context-value">{selectedNotification.data?.locationLabel || 'Not provided'}</span>
-                  </div>
+
+                  {dangerScore != null ? (
+                    <div className="nd-danger-section">
+                      <div className="nd-danger-header">
+                        <span className="nd-danger-label">⚠️ Danger Score</span>
+                        <span className="nd-danger-value" style={{ color: dangerScore >= 70 ? '#dc2626' : dangerScore >= 40 ? '#d97706' : '#16a34a' }}>
+                          {dangerScore}%
+                        </span>
+                      </div>
+                      <div className="nd-danger-track">
+                        <div
+                          className="nd-danger-fill"
+                          style={{
+                            width: `${dangerScore}%`,
+                            background: dangerScore >= 70
+                              ? 'linear-gradient(90deg, #f97316, #dc2626)'
+                              : dangerScore >= 40
+                                ? 'linear-gradient(90deg, #22c55e, #f59e0b)'
+                                : 'linear-gradient(90deg, #22c55e, #16a34a)',
+                          }}
+                        />
+                      </div>
+                      <div className="nd-danger-scale">
+                        <span>Low</span><span>Medium</span><span>High</span>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
-              </div>
 
-              <div className="detail-section actions">
-                <span className="section-label">Actions</span>
-                <div className="action-buttons">
+                {/* ── Card 3: Actions ── */}
+                <div className="card nd-actions-card">
+                  <h3 className="widget-title">⚡ Quick Actions</h3>
                   <button
                     type="button"
-                    className="action-btn primary"
+                    className="nd-btn-primary"
                     onClick={() => navigate(getNotificationTarget(selectedNotification))}
                   >
-                    Open related page
+                    🔍 Open Related Incident
+                  </button>
+                  <button
+                    type="button"
+                    className="nd-btn-outline"
+                    onClick={() => navigate('/map')}
+                  >
+                    🗺️ View on Map
                   </button>
                   {!selectedNotification.readAt ? (
                     <button
                       type="button"
-                      className="action-btn"
+                      className="nd-btn-ghost"
                       onClick={() => { void handleMarkSingleRead(selectedNotification.id) }}
                     >
-                      Mark as read
+                      ✓ Mark as Read
                     </button>
                   ) : null}
-                  <button
-                    type="button"
-                    className="action-btn"
-                    onClick={() => navigate('/map')}
-                  >
-                    Open map
-                  </button>
+                </div>
+
+                {/* ── Card 4: All recent notifications summary ── */}
+                <div className="card nd-recent-card">
+                  <h3 className="widget-title">🔔 Recent Alerts</h3>
+                  <div className="nd-recent-list">
+                    {filteredNotifications.slice(0, 5).map((n) => (
+                      <div
+                        key={n.id}
+                        className={`nd-recent-item${n.id === selectedNotification.id ? ' nd-recent-item--active' : ''}`}
+                        onClick={() => { void handleSelectNotification(n) }}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleSelectNotification(n) }}
+                      >
+                        <span
+                          className="nd-recent-dot"
+                          style={{ background: getPriorityColor(n.priority) }}
+                        />
+                        <div className="nd-recent-body">
+                          <span className="nd-recent-title">{n.title}</span>
+                          <span className="nd-recent-time">{formatRelativeTime(n.createdAt)}</span>
+                        </div>
+                        {!n.readAt ? <span className="nd-recent-unread" /> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )
+          })() : (
+            <div className="card nd-empty-card">
+              <div className="nd-empty-icon">🔔</div>
+              <h3 className="nd-empty-title">No notification selected</h3>
+              <p className="nd-empty-body">Click any notification in the list to see its full details here.</p>
+              <div className="nd-empty-stats">
+                <div className="nd-empty-stat">
+                  <strong>{unreadCount}</strong>
+                  <span>Unread</span>
+                </div>
+                <div className="nd-empty-stat">
+                  <strong>{notifications.length}</strong>
+                  <span>Total</span>
                 </div>
               </div>
-            </>
-          ) : (
-            <div className="detail-empty">
-              <div className="empty-illustration">N</div>
-              <p>Select a notification to see the full detail.</p>
-              <span className="empty-hint">Unread items are highlighted on the left.</span>
             </div>
           )}
         </aside>
+
       </div>
     </div>
   )

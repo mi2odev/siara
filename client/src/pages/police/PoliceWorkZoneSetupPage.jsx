@@ -3,6 +3,7 @@ import React from 'react'
 import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import { getPoliceWorkZoneOptions, updatePoliceWorkZone } from '../../services/policeService'
 import '../../styles/PoliceMode.css'
+import '../../styles/PoliceWorkZoneSetup.css'
 
 function PoliceSetupSelect({
   label,
@@ -82,11 +83,11 @@ function PoliceSetupSelect({
   const triggerLabel = selectedOption?.name || loadingLabel || placeholder
 
   return (
-    <label className="police-filter-field police-setup-zone-field">
-      <span>{label}</span>
+    <div className="pzs-field">
+      <label className="pzs-field-label">{label}</label>
       <div
         ref={rootRef}
-        className={`police-setup-select ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
+        className={`pzs-select ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
             setIsOpen(false)
@@ -95,19 +96,25 @@ function PoliceSetupSelect({
       >
         <button
           type="button"
-          className="police-setup-select-trigger"
+          className="pzs-select-trigger"
           onClick={() => setIsOpen((current) => !current)}
           disabled={disabled}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
         >
-          <span className={`police-setup-select-label ${selectedOption ? '' : 'placeholder'}`}>{triggerLabel}</span>
-          <span className="police-setup-select-chevron" aria-hidden="true">▾</span>
+          <span className={`pzs-select-value ${selectedOption ? 'has-value' : ''}`}>{triggerLabel}</span>
+          <svg className="pzs-select-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
 
         {isOpen ? (
-          <div className="police-setup-select-menu" role="listbox" tabIndex={-1}>
-            <div className="police-setup-select-search">
+          <div className="pzs-select-menu" role="listbox" tabIndex={-1}>
+            <div className="pzs-select-search">
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="8.5" cy="8.5" r="5.25" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M12.5 12.5l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
               <input
                 ref={searchInputRef}
                 type="text"
@@ -118,10 +125,10 @@ function PoliceSetupSelect({
               />
             </div>
 
-            <div className="police-setup-select-options">
+            <div className="pzs-select-options">
               <button
                 type="button"
-                className={`police-setup-select-option police-setup-select-option-clear ${value ? '' : 'selected'}`}
+                className={`pzs-select-option pzs-select-option-clear ${value ? '' : 'selected'}`}
                 onClick={() => handleSelect('')}
               >
                 {placeholder}
@@ -135,22 +142,92 @@ function PoliceSetupSelect({
                   <button
                     key={item.id}
                     type="button"
-                    className={`police-setup-select-option ${isSelected ? 'selected' : ''}`}
+                    className={`pzs-select-option ${isSelected ? 'selected' : ''}`}
                     onClick={() => handleSelect(optionValue)}
                   >
+                    {isSelected && (
+                      <svg className="pzs-select-option-check" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M3 8l3.5 3.5L13 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
                     {item.name}
                   </button>
                 )
               })}
 
               {!filteredOptions.length ? (
-                <p className="police-setup-select-empty">{emptyLabel}</p>
+                <p className="pzs-select-empty">{emptyLabel}</p>
               ) : null}
             </div>
           </div>
         ) : null}
       </div>
-    </label>
+    </div>
+  )
+}
+
+function ShieldIcon() {
+  return (
+    <svg viewBox="0 0 40 46" fill="none" aria-hidden="true" className="pzs-shield-icon">
+      <path
+        d="M20 2L4 9v12c0 10.5 6.9 19.8 16 22.7C29.1 40.8 36 31.5 36 21V9L20 2z"
+        fill="url(#shield-grad)"
+        stroke="rgba(255,255,255,0.25)"
+        strokeWidth="0.8"
+      />
+      <path
+        d="M14 23l4 4 8-9"
+        stroke="#ffffff"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <defs>
+        <linearGradient id="shield-grad" x1="4" y1="2" x2="36" y2="44" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#2563eb" />
+          <stop offset="1" stopColor="#1d4ed8" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}
+
+function MapPinIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M10 2a6 6 0 0 1 6 6c0 4-6 10-6 10S4 12 4 8a6 6 0 0 1 6-6z" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="10" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function BuildingIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="3" y="5" width="14" height="12" rx="1" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M3 8h14M7 8v9M13 8v9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M7 3h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M10 3v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function UserIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="10" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function BadgeIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="4" y="2" width="12" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M10 2v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
   )
 }
 
@@ -231,7 +308,7 @@ export default function PoliceWorkZoneSetupPage() {
     setError('')
 
     if (!wilayaId || !communeId) {
-      setError('Please choose both Wilaya and Commune.')
+      setError('Please choose both a Wilaya and a Commune before continuing.')
       return
     }
 
@@ -249,87 +326,171 @@ export default function PoliceWorkZoneSetupPage() {
     }
   }
 
+  const officerName = policeMe?.officer?.name || 'Officer'
+  const wilayaName = policeMe?.workZone?.wilaya?.name
+  const communeName = policeMe?.workZone?.commune?.name
+  const badgeNumber = policeMe?.officer?.badgeNumber
+  const rank = policeMe?.officer?.rank || 'Police Officer'
+
   return (
-    <div className="police-root police-setup-zone-root">
-      <main className="police-center police-setup-zone-main">
-        <section className="police-section police-setup-zone-shell">
-          <div className="police-setup-zone-header">
-            <div>
-              <span className="police-setup-zone-eyebrow">Police Workspace Setup</span>
-              <h2>Select Your Working Zone</h2>
-              <p className="police-shortcuts-hint">
-                First login setup for {policeMe?.officer?.name || 'Officer'}.
-              </p>
+    <div className="pzs-root">
+      <div className="pzs-bg-pattern" aria-hidden="true" />
+
+      <main className="pzs-center">
+        <div className="pzs-card">
+
+          {/* ── Header ── */}
+          <div className="pzs-card-header">
+            <div className="pzs-header-left">
+              <ShieldIcon />
+              <div>
+                <p className="pzs-eyebrow">Police Workspace Setup</p>
+                <h1 className="pzs-title">Select Your Working Zone</h1>
+                <p className="pzs-subtitle">First login configuration for <strong>{officerName}</strong></p>
+              </div>
             </div>
-            <span className="police-setup-zone-step">Step 1 of 1</span>
-          </div>
-
-          <p className="police-meta police-setup-zone-description">
-            Choose your active Wilaya and Commune before entering police mode. You can update the active zone later if your assignment changes.
-          </p>
-
-          <form onSubmit={handleSubmit} className="police-setup-zone-form">
-            <div className="police-setup-zone-fields">
-              <PoliceSetupSelect
-                label="Wilaya"
-                value={wilayaId}
-                options={wilayas}
-                onChange={handleWilayaChange}
-                placeholder="Select Wilaya"
-                disabled={isSaving || isLoading}
-                loadingLabel={isLoading && !wilayas.length ? 'Loading wilayas...' : ''}
-                emptyLabel="No wilaya found"
-                searchPlaceholder="Search wilaya"
-              />
-
-              <PoliceSetupSelect
-                label="Commune"
-                value={communeId}
-                options={communes}
-                onChange={setCommuneId}
-                placeholder={!wilayaId ? 'Select Wilaya first' : 'Select Commune'}
-                disabled={!wilayaId || isLoading || isSaving}
-                loadingLabel={isLoading && wilayaId ? 'Loading communes...' : ''}
-                emptyLabel={!wilayaId ? 'Choose a wilaya first' : 'No commune found'}
-                searchPlaceholder="Search commune"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="police-action police-action-verify police-setup-zone-submit"
-              disabled={isSaving || isLoading}
-            >
-              {isSaving ? 'Saving...' : 'Save Working Zone'}
-            </button>
-          </form>
-
-          {error ? <p className="police-setup-zone-message police-setup-zone-message-error">{error}</p> : null}
-          {isLoading ? <p className="police-setup-zone-message">Loading work-zone options...</p> : null}
-
-          <div className="police-stats-grid police-setup-zone-stats">
-            <div className="police-stat police-setup-zone-stat">
-              <span>Wilaya</span>
-              <strong>{policeMe?.workZone?.wilaya?.name || 'Not selected'}</strong>
-              <em>Active Wilaya</em>
-            </div>
-            <div className="police-stat police-setup-zone-stat">
-              <span>Commune</span>
-              <strong>{policeMe?.workZone?.commune?.name || 'Not selected'}</strong>
-              <em>Active Commune</em>
-            </div>
-            <div className="police-stat police-setup-zone-stat">
-              <span>Officer</span>
-              <strong>{policeMe?.officer?.name || 'Officer'}</strong>
-              <em>{policeMe?.officer?.rank || 'Police role'}</em>
-            </div>
-            <div className="police-stat police-setup-zone-stat">
-              <span>Badge</span>
-              <strong>{policeMe?.officer?.badgeNumber || 'Pending'}</strong>
-              <em>Identification</em>
+            <div className="pzs-step-badge">
+              <span className="pzs-step-dot active" />
+              <span className="pzs-step-label">Step 1 of 1</span>
             </div>
           </div>
-        </section>
+
+          {/* ── Divider ── */}
+          <div className="pzs-divider" />
+
+          {/* ── Form body ── */}
+          <div className="pzs-body">
+            <p className="pzs-description">
+              Choose your active <strong>Wilaya</strong> and <strong>Commune</strong> before entering police mode.
+              You can update your active zone later if your assignment changes.
+            </p>
+
+            <form onSubmit={handleSubmit} className="pzs-form" noValidate>
+              <div className="pzs-fields-row">
+                <PoliceSetupSelect
+                  label="Wilaya"
+                  value={wilayaId}
+                  options={wilayas}
+                  onChange={handleWilayaChange}
+                  placeholder="Select Wilaya"
+                  disabled={isSaving || isLoading}
+                  loadingLabel={isLoading && !wilayas.length ? 'Loading…' : ''}
+                  emptyLabel="No wilaya found"
+                  searchPlaceholder="Search wilaya…"
+                />
+
+                <PoliceSetupSelect
+                  label="Commune"
+                  value={communeId}
+                  options={communes}
+                  onChange={setCommuneId}
+                  placeholder={!wilayaId ? 'Select Wilaya first' : 'Select Commune'}
+                  disabled={!wilayaId || isLoading || isSaving}
+                  loadingLabel={isLoading && wilayaId ? 'Loading…' : ''}
+                  emptyLabel={!wilayaId ? 'Choose a wilaya first' : 'No commune found'}
+                  searchPlaceholder="Search commune…"
+                />
+              </div>
+
+              {error ? (
+                <div className="pzs-alert pzs-alert-error" role="alert">
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M10 6.5v4M10 13h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                  {error}
+                </div>
+              ) : null}
+
+              {isLoading && !error ? (
+                <div className="pzs-loading-row" aria-live="polite">
+                  <span className="pzs-spinner" />
+                  <span>Loading zone options…</span>
+                </div>
+              ) : null}
+
+              <div className="pzs-form-footer">
+                <p className="pzs-form-hint">Both fields are required to activate your workspace.</p>
+                <button
+                  type="submit"
+                  className="pzs-submit-btn"
+                  disabled={isSaving || isLoading}
+                >
+                  {isSaving ? (
+                    <>
+                      <span className="pzs-spinner pzs-spinner-white" />
+                      Saving…
+                    </>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Save Working Zone
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* ── Divider ── */}
+          <div className="pzs-divider" />
+
+          {/* ── Officer info cards ── */}
+          <div className="pzs-info-section">
+            <p className="pzs-info-section-label">Current Assignment Summary</p>
+            <div className="pzs-info-grid">
+              <div className={`pzs-info-card ${wilayaName ? 'active' : ''}`}>
+                <div className="pzs-info-card-icon pzs-icon-map">
+                  <MapPinIcon />
+                </div>
+                <div className="pzs-info-card-body">
+                  <span className="pzs-info-card-category">Wilaya</span>
+                  <strong className="pzs-info-card-value">{wilayaName || 'Not selected'}</strong>
+                  <span className="pzs-info-card-sub">Active Wilaya</span>
+                </div>
+                {wilayaName && <span className="pzs-info-card-badge">Active</span>}
+              </div>
+
+              <div className={`pzs-info-card ${communeName ? 'active' : ''}`}>
+                <div className="pzs-info-card-icon pzs-icon-building">
+                  <BuildingIcon />
+                </div>
+                <div className="pzs-info-card-body">
+                  <span className="pzs-info-card-category">Commune</span>
+                  <strong className="pzs-info-card-value">{communeName || 'Not selected'}</strong>
+                  <span className="pzs-info-card-sub">Active Commune</span>
+                </div>
+                {communeName && <span className="pzs-info-card-badge">Active</span>}
+              </div>
+
+              <div className="pzs-info-card pzs-info-card-officer">
+                <div className="pzs-info-card-icon pzs-icon-user">
+                  <UserIcon />
+                </div>
+                <div className="pzs-info-card-body">
+                  <span className="pzs-info-card-category">Officer</span>
+                  <strong className="pzs-info-card-value">{officerName}</strong>
+                  <span className="pzs-info-card-sub">{rank}</span>
+                </div>
+              </div>
+
+              <div className={`pzs-info-card ${badgeNumber ? 'active' : 'pzs-info-card-pending'}`}>
+                <div className="pzs-info-card-icon pzs-icon-badge">
+                  <BadgeIcon />
+                </div>
+                <div className="pzs-info-card-body">
+                  <span className="pzs-info-card-category">Badge</span>
+                  <strong className="pzs-info-card-value">{badgeNumber || 'Pending'}</strong>
+                  <span className="pzs-info-card-sub">Identification</span>
+                </div>
+                {!badgeNumber && <span className="pzs-info-card-badge pzs-badge-pending">Pending</span>}
+              </div>
+            </div>
+          </div>
+
+        </div>
       </main>
     </div>
   )

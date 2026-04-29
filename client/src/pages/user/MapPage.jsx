@@ -1635,26 +1635,43 @@ export default function MapPage() {
 
           {/* ── Current weather widget ── */}
           <div className="context-weather">
-            <div className="weather-icon">{weatherIcon}</div>
-            <div className="weather-info">
-
-              <span className="weather-temp">{weatherTempText}</span>
-              <span className="weather-hour">Current hour: {currentHourText}</span>
-              <span className="weather-place">Current place: {weatherPlaceText}</span>
-              <span className="weather-desc">{weatherDescText}</span>
-              {weatherUpdating && (
-                <span className="weather-detail weather-detail-muted">Updating weather...</span>
-              )}
-              <span className="weather-detail">
-                {hasGrantedLocation && contextPoint
-                  ? `Visibilite: ${visibilityText} • Vent: ${windText}${windDirectionText}`
-                  : "Activez votre position pour charger la meteo"}
-              </span>
-              <span className="weather-detail weather-detail-muted">
-                Humidite: {humidityText} • Pression: {pressureText}
-              </span>
-
+            <div className="cw-top">
+              <div className="cw-left">
+                <span className="cw-icon">{weatherIcon}</span>
+                <div className="cw-main">
+                  <span className="cw-temp">{weatherTempText}</span>
+                  <span className="cw-desc">{weatherDescText}</span>
+                </div>
+              </div>
+              <span className="cw-time">{currentHourText}</span>
             </div>
+            <p className="cw-place">
+              <span className="cw-place-dot">📍</span>
+              <span className="cw-place-text">{weatherPlaceText}</span>
+            </p>
+            {hasGrantedLocation && contextPoint ? (
+              <div className="cw-grid">
+                <div className="cw-cell">
+                  <span className="cw-cell-val">{visibilityText}</span>
+                  <span className="cw-cell-lbl">Visibility</span>
+                </div>
+                <div className="cw-cell">
+                  <span className="cw-cell-val">{windText}{windDirectionText && <span className="cw-dir"> {windDirectionText}</span>}</span>
+                  <span className="cw-cell-lbl">Wind</span>
+                </div>
+                <div className="cw-cell">
+                  <span className="cw-cell-val">{humidityText}</span>
+                  <span className="cw-cell-lbl">Humidity</span>
+                </div>
+                <div className="cw-cell">
+                  <span className="cw-cell-val">{pressureText}</span>
+                  <span className="cw-cell-lbl">Pressure</span>
+                </div>
+              </div>
+            ) : (
+              <p className="cw-no-loc">Enable location for live weather</p>
+            )}
+            {weatherUpdating && <p className="cw-updating">Refreshing…</p>}
           </div>
 
           <div className="context-section danger-forecast-section">

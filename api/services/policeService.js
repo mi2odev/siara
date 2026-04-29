@@ -28,7 +28,7 @@ const ALERT_TYPE_VALUES = new Set([
   "advisory",
 ]);
 const TARGET_TYPE_VALUES = new Set(["officer", "role", "zone"]);
-const INCIDENT_SCOPE_VALUES = new Set(["active", "nearby", "my", "field_reports"]);
+const INCIDENT_SCOPE_VALUES = new Set(["active", "nearby", "my", "field_reports", "all"]);
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
@@ -1098,6 +1098,18 @@ function applyIncidentScope({
   if (scope === "field_reports") {
     whereClauses.push(`base.status <> 'rejected'`);
 
+    if (workZoneCommuneId) {
+      values.push(workZoneCommuneId);
+      whereClauses.push(`base.commune_id = $${values.length}::bigint`);
+    } else if (workZoneWilayaId) {
+      values.push(workZoneWilayaId);
+      whereClauses.push(`base.wilaya_id = $${values.length}::bigint`);
+    }
+
+    return { locationRequired: false };
+  }
+
+  if (scope === "all") {
     if (workZoneCommuneId) {
       values.push(workZoneCommuneId);
       whereClauses.push(`base.commune_id = $${values.length}::bigint`);

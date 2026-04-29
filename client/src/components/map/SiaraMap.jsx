@@ -1027,25 +1027,121 @@ const MapResizeFix = ({ deps = [] }) => {
   return null;
 }
 
-const HeatLayer = ({ points }) => {
+/* ---- Custom canvas heatmap — no dependency on leaflet.heat ---- */
+function drawHeat(ctx, W, H, pts, r, map) {
+  ctx.clearRect(0, 0, W, H);
+  if (!pts.length) return;
+
+  // offscreen shadow canvas for accumulation
+  const shadow = document.createElement('canvas');
+  shadow.width = W;
+  shadow.height = H;
+  const sCtx = shadow.getContext('2d');
+
+  pts.forEach(([lat, lng, intensity = 1]) => {
+    const p = map.latLngToContainerPoint([lat, lng]);
+    const rad = r * (0.6 + intensity * 0.4);
+    const grad = sCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad);
+    const alpha = Math.min(1, 0.25 + intensity * 0.65);
+    grad.addColorStop(0, `rgba(255,255,255,${alpha})`);
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    sCtx.fillStyle = grad;
+    sCtx.beginPath();
+    sCtx.arc(p.x, p.y, rad, 0, Math.PI * 2);
+    sCtx.fill();
+  });
+
+  // colorize via gradient LUT
+  const imgData = sCtx.getImageData(0, 0, W, H);
+  const data = imgData.data;
+  const palette = buildPalette();
+  for (let i = 0; i < data.length; i += 4) {
+    const v = data[i + 3];
+    if (v === 0) continue;
+    const idx = v * 4;
+    data[i]     = palette[idx];
+    data[i + 1] = palette[idx + 1];
+    data[i + 2] = palette[idx + 2];
+    data[i + 3] = Math.round(v * 0.9);
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+function buildPalette() {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 1;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 256, 0);
+  g.addColorStop(0.00, '#1e40af');
+  g.addColorStop(0.25, '#3b82f6');
+  g.addColorStop(0.50, '#10b981');
+  g.addColorStop(0.70, '#f59e0b');
+  g.addColorStop(0.85, '#ef4444');
+  g.addColorStop(1.00, '#7f1d1d');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 1);
+  return ctx.getImageData(0, 0, 256, 1).data;
+}
+
+const HeatLayer = ({ points, radius = 40 }) => {
   const map = useMap();
 
   useEffect(() => {
-    if (!map || !points.length) return undefined;
-    const layer = L.heatLayer(points, {
-      radius: 25,
-      blur: 20,
-      maxZoom: 17,
-      minOpacity: 0.35,
-    });
-    layer.addTo(map);
-    return () => {
-      map.removeLayer(layer);
+    if (!map) return undefined;
+
+    /* ── Try leaflet.heat first ── */
+    if (typeof L.heatLayer === 'function' && points.length > 0) {
+      const layer = L.heatLayer(points, {
+        radius,
+        blur: Math.round(radius * 0.75),
+        minOpacity: 0.45,
+        max: 1.0,
+        gradient: {
+          0.00: '#1e40af',
+          0.25: '#3b82f6',
+          0.50: '#10b981',
+          0.70: '#f59e0b',
+          0.85: '#ef4444',
+          1.00: '#7f1d1d',
+        },
+      });
+      layer.addTo(map);
+      return () => { map.removeLayer(layer); };
+    }
+
+    /* ── Canvas fallback ── */
+    const pane = map.getPanes().overlayPane;
+    const canvas = document.createElement('canvas');
+    canvas.className = 'siara-heat-canvas';
+    canvas.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:400;';
+    pane.appendChild(canvas);
+
+    const resize = () => {
+      const s = map.getSize();
+      canvas.width = s.x;
+      canvas.height = s.y;
     };
-  }, [map, points]);
+    resize();
+
+    const redraw = () => {
+      resize();
+      const mapPos = map.containerPointToLayerPoint([0, 0]);
+      canvas.style.transform = `translate(${mapPos.x}px,${mapPos.y}px)`;
+      const ctx = canvas.getContext('2d');
+      drawHeat(ctx, canvas.width, canvas.height, points, radius, map);
+    };
+
+    map.on('moveend zoomend resize viewreset', redraw);
+    redraw();
+
+    return () => {
+      map.off('moveend zoomend resize viewreset', redraw);
+      canvas.remove();
+    };
+  }, [map, points, radius]);
 
   return null;
-}
+};
 
 const SiaraMap = ({
   alertZones = [],
@@ -2281,7 +2377,7 @@ const SiaraMap = ({
           )}
           {guidedRoute && <FitGuidedRoute routes={guidedRoutes} fitVersion={guidedRouteFitVersion} />}
 
-          {mapLayer === "heatmap" && heatPoints.length > 0 && <HeatLayer points={heatPoints} />}
+          {mapLayer === "heatmap" && <HeatLayer points={heatPoints} radius={40} />}
 
           {mapLayer === "zones" && alertZones.length > 0 && (
             <Pane name="alert-zone-layer" style={{ zIndex: 650 }}>
@@ -2715,8 +2811,11 @@ const SiaraMap = ({
 
       <aside className={`siara-map-aside${reportTooltipVisible ? " siara-overlay-dimmed" : ""}`}>
         <div className="siara-risk-debug">
-          <div className="siara-map-help-wrap">
-            <h4>Current Risk</h4>
+          <div className="srd-header">
+            <div className="srd-title-row">
+              <span className="srd-live-dot" />
+              <h4>Current Risk</h4>
+            </div>
             <div className="siara-status-pills">
               <span className="siara-status-pill">{locationStatusText}</span>
               <span className="siara-status-pill">{riskUpdatedText}</span>
@@ -2746,7 +2845,7 @@ const SiaraMap = ({
               {locationError && <p className="risk-debug-error">{locationError}</p>}
             </>
           )}
-          {hasValidUserLocation && locationAccuracyText && <p>accuracy: {locationAccuracyText}</p>}
+          {hasValidUserLocation && locationAccuracyText && <p className="srd-accuracy">📍 accuracy: {locationAccuracyText}</p>}
           {hasValidUserLocation && locationWarning && <p className="risk-debug-error">{locationWarning}</p>}
           {hasValidUserLocation && currentRiskState === "idle" && <p>Loading current risk...</p>}
           {hasValidUserLocation && currentRiskState === "loading" && <p>Loading current risk...</p>}
@@ -2755,15 +2854,27 @@ const SiaraMap = ({
             (currentRiskState === "success" || currentRiskState === "refreshing") &&
             currentRisk && (
             <>
-              <p>
+              <div className="srd-risk-hero">
                 <strong className="risk-debug-percent" style={{ color: getDangerColor(currentRisk.danger_level) }}>
                   {currentRisk.danger_percent}%
                 </strong>
-              </p>
+                <span className="srd-danger-level-badge" style={{ background: getDangerColor(currentRisk.danger_level) + '18', color: getDangerColor(currentRisk.danger_level), border: `1px solid ${getDangerColor(currentRisk.danger_level)}30` }}>
+                  {currentRisk.danger_level}
+                </span>
+              </div>
+              <div className="srd-gauge">
+                <div className="srd-gauge-track" />
+                <div className="srd-gauge-thumb" style={{ left: `calc(${Math.min(100, Math.max(0, currentRisk.danger_percent))}% - 7px)`, borderColor: getDangerColor(currentRisk.danger_level) }} />
+                <div className="srd-gauge-labels">
+                  <span>Low</span>
+                  <span>Moderate</span>
+                  <span>High</span>
+                </div>
+              </div>
               {currentRiskError && (
                 <p className="risk-debug-error">{currentRiskError}</p>
               )}
-              {currentRiskState === "refreshing" && <p>Refreshing quietly in background...</p>}
+              {currentRiskState === "refreshing" && <p className="srd-refreshing">Refreshing…</p>}
               <div className="siara-badge-row">
                 <span className="siara-compact-badge">Confidence: {compactConfidenceLabel}</span>
                 <span className="siara-compact-badge">Data quality: {compactQualityLabel}</span>
@@ -2803,7 +2914,7 @@ const SiaraMap = ({
               {(occurrenceRiskLoading || occurrenceRisk || occurrenceRiskError) && (
                 <div className="siara-occurrence-card" role="status">
                   <div className="siara-occurrence-card__title">
-                    Prototype occurrence-risk estimate
+                    Occurrence Risk
                   </div>
                   {occurrenceRiskLoading && (
                     <p className="siara-occurrence-card__line">Computing occurrence risk...</p>

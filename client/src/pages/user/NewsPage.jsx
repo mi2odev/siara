@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
+import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import { createPortal } from 'react-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
@@ -36,17 +37,8 @@ const SORT_OPTIONS = [
   { id: 'severity', label: 'Severity' },
 ]
 
-function getMarkerIcon(severity) {
-  const color = severity === 'high' ? '#ff3b30' : severity === 'medium' ? '#ff9500' : '#34c759'
-
-  return {
-    path: window.google.maps.SymbolPath.CIRCLE,
-    fillColor: color,
-    fillOpacity: 1,
-    scale: 7,
-    strokeWeight: 2,
-    strokeColor: '#ffffff',
-  }
+function getMarkerColor(severity) {
+  return severity === 'high' ? '#ff3b30' : severity === 'medium' ? '#ff9500' : '#34c759'
 }
 
 function getSeverityClass(severity) {
@@ -769,9 +761,6 @@ export default function NewsPage() {
   const closeSearchTimeoutRef = useRef(null)
   const sortDropdownRef = useRef(null)
 
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY,
-  })
 
   const handleQuizComplete = (result) => {
     console.log('Quiz completed:', result)
@@ -1556,24 +1545,25 @@ export default function NewsPage() {
               </div>
             </div>
             <div className="map-widget-container" style={{ width: '100%', height: 200, borderRadius: 12, overflow: 'hidden' }}>
-              {isLoaded ? (
-                <GoogleMap
-                  mapContainerStyle={{ width: '100%', height: '100%' }}
-                  center={mapCenter}
-                  zoom={markerReports.length > 0 ? 11 : 8}
-                  options={{ disableDefaultUI: true }}
-                >
-                  {markerReports.map((report) => (
-                    <Marker
-                      key={report.id}
-                      position={{ lat: report.location.lat, lng: report.location.lng }}
-                      icon={getMarkerIcon(report.severity)}
-                    />
-                  ))}
-                </GoogleMap>
-              ) : (
-                <div className="map-widget-loading">Loading map...</div>
-              )}
+              <MapContainer
+                center={[mapCenter.lat, mapCenter.lng]}
+                zoom={markerReports.length > 0 ? 11 : 8}
+                style={{ width: '100%', height: '100%' }}
+                zoomControl={false}
+                attributionControl={false}
+              >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                {markerReports.map((report) => (
+                  <CircleMarker
+                    key={report.id}
+                    center={[report.location.lat, report.location.lng]}
+                    radius={7}
+                    pathOptions={{ color: '#fff', weight: 2, fillColor: getMarkerColor(report.severity), fillOpacity: 1 }}
+                  >
+                    <Popup>{report.title || report.type}</Popup>
+                  </CircleMarker>
+                ))}
+              </MapContainer>
             </div>
             <p className="map-widget-status">
               {markerReports.length > 0
