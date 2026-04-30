@@ -10,6 +10,7 @@ import {
   TileLayer,
   Tooltip,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -18,6 +19,8 @@ import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import IconButton from "@mui/material/IconButton";
 import MuiTooltip from "@mui/material/Tooltip";
 import ReportMapMarker from "./ReportMapMarker";
+import MapDestinationConfirmCard from "./MapDestinationConfirmCard";
+import "../../styles/MapDestinationConfirmCard.css";
 
 const USER_ZOOM = 15;
 const NEARBY_RADIUS_KM = 25;
@@ -87,6 +90,20 @@ const postJson = async (url, body) => {
   }
   return data;
 }
+
+const getJson = async (url) => {
+  const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
+  const response = await fetch(fullUrl, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = data?.error || data?.message || `Request failed (${response.status})`;
+    throw new Error(message);
+  }
+  return data;
+};
 
 const normalizePosition = (pos) => {
   if (!pos) return null;
@@ -1143,6 +1160,30 @@ const HeatLayer = ({ points, radius = 40 }) => {
   return null;
 };
 
+const MapClickHandler = ({ enabled, onMapClick }) => {
+  useMapEvents({
+    click: (event) => {
+      if (!enabled) return;
+      const target = event?.originalEvent?.target;
+      if (target && typeof target.closest === "function") {
+        if (
+          target.closest(
+            ".leaflet-interactive, .leaflet-marker-icon, .leaflet-control, .siara-map-destination-card",
+          )
+        ) {
+          return;
+        }
+      }
+      const lat = Number(event?.latlng?.lat);
+      const lng = Number(event?.latlng?.lng);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        onMapClick({ lat, lng });
+      }
+    },
+  });
+  return null;
+};
+
 const SiaraMap = ({
   alertZones = [],
   reportMarkers,
@@ -1201,6 +1242,12 @@ const SiaraMap = ({
   const [guidedRouteState, setGuidedRouteState] = useState("idle");
   const [guidedRouteError, setGuidedRouteError] = useState("");
   const [guidanceActive, setGuidanceActive] = useState(false);
+  const [pendingMapDestination, setPendingMapDestination] = useState(null);
+  const [pendingMapDestinationName, setPendingMapDestinationName] = useState("");
+  const [pendingDestinationLoading, setPendingDestinationLoading] = useState(false);
+  const [pendingDestinationError, setPendingDestinationError] = useState("");
+  const [pendingTravelStarting, setPendingTravelStarting] = useState(false);
+  const [pendingTravelError, setPendingTravelError] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
   const [explanationOpen, setExplanationOpen] = useState(false);
@@ -1932,6 +1979,105 @@ const SiaraMap = ({
     }
   };
 
+  const reverseGeocodeDestination = async (lat, lng) => {
+    const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
+    const data = await getJson(`/api/location/reverse?${params.toString()}`);
+    const displayName =
+      typeof data?.display_name === "string" ? data.display_name.trim() : "";
+    if (displayName) return displayName;
+    const namedetails = data?.namedetails || {};
+    const fallback =
+      typeof namedetails?.name === "string" && namedetails.name.trim()
+        ? namedetails.name.trim()
+        : typeof data?.name === "string" && data.name.trim()
+          ? data.name.trim()
+          : "";
+    return fallback;
+  };
+
+  const clearPendingMapDestination = () => {
+    setPendingMapDestination(null);
+    setPendingMapDestinationName("");
+    setPendingDestinationLoading(false);
+    setPendingDestinationError("");
+    setPendingTravelStarting(false);
+    setPendingTravelError("");
+  };
+
+  const handleMapDestinationClick = async (latlng) => {
+    if (guidanceActive) return;
+    if (!latlng) return;
+    const lat = Number(latlng.lat);
+    const lng = Number(latlng.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    setPendingMapDestination({ lat, lng });
+    setPendingMapDestinationName("");
+    setPendingDestinationError("");
+    setPendingTravelError("");
+    setPendingDestinationLoading(true);
+
+    try {
+      const placeName = await reverseGeocodeDestination(lat, lng);
+      setPendingMapDestinationName(placeName || "");
+    } catch (error) {
+      setPendingDestinationError(
+        error?.message || "Could not look up a place name for this point",
+      );
+    } finally {
+      setPendingDestinationLoading(false);
+    }
+  };
+
+  const startTravelFromPending = async () => {
+    if (!pendingMapDestination) return;
+    if (!hasValidUserLocation) {
+      setPendingTravelError(
+        "Location is required. Enable location to start travel from this point.",
+      );
+      return;
+    }
+    const origin = normalizePosition(userPosition);
+    if (!origin) {
+      setPendingTravelError(
+        "Location is required. Enable location to start travel from this point.",
+      );
+      return;
+    }
+
+    const destination = {
+      name: pendingMapDestinationName || "Selected destination",
+      lat: pendingMapDestination.lat,
+      lng: pendingMapDestination.lng,
+    };
+
+    setPendingTravelStarting(true);
+    setPendingTravelError("");
+    setSelectedDestination(destination);
+
+    try {
+      await fetchGuidedRoute({
+        origin,
+        destination,
+        timestampIso: selectedTimestampIso,
+        preserveSelection: false,
+        forceRefresh: true,
+      });
+      setGuidedRouteFitVersion((value) => value + 1);
+      setGuidanceActive(true);
+      setPendingMapDestination(null);
+      setPendingMapDestinationName("");
+      setPendingDestinationError("");
+      setPendingTravelError("");
+    } catch (error) {
+      setGuidedRouteState("error");
+      setGuidedRouteError(error.message || "Failed to compute guidance route");
+      setPendingTravelError(error.message || "Failed to compute guidance route");
+    } finally {
+      setPendingTravelStarting(false);
+    }
+  };
+
   useEffect(() => {
     if (!guidanceActive) {
       return;
@@ -2362,6 +2508,26 @@ const SiaraMap = ({
             mapLayer={mapLayer}
             locationRequestVersion={locationRequestVersion}
           />
+          <MapClickHandler
+            enabled={!guidanceActive}
+            onMapClick={handleMapDestinationClick}
+          />
+          {pendingMapDestination && !guidanceActive && (
+            <CircleMarker
+              center={[pendingMapDestination.lat, pendingMapDestination.lng]}
+              radius={9}
+              pathOptions={{
+                color: "#FFFFFF",
+                weight: 3,
+                fillColor: "#2563EB",
+                fillOpacity: 0.95,
+              }}
+            >
+              <Tooltip direction="top" sticky>
+                {pendingMapDestinationName || "Selected destination"}
+              </Tooltip>
+            </CircleMarker>
+          )}
           {mapLayer === "zones" && selectedAlertZone ? (
             <FocusAlertZone
               mapLayer={mapLayer}
@@ -2781,7 +2947,21 @@ const SiaraMap = ({
             </CircleMarker>
           )}
         </MapContainer>
-      ) : (
+      ) : null}
+
+      <MapDestinationConfirmCard
+        open={Boolean(pendingMapDestination) && !guidanceActive}
+        destination={pendingMapDestination}
+        destinationName={pendingMapDestinationName}
+        loading={pendingDestinationLoading}
+        error={pendingDestinationError}
+        starting={pendingTravelStarting}
+        startError={pendingTravelError}
+        onConfirm={startTravelFromPending}
+        onCancel={clearPendingMapDestination}
+      />
+
+      {!hasValidUserLocation && (
         <div className="siara-leaflet-map">
           <div className="siara-map-error-stack">
             <div className="siara-map-error">

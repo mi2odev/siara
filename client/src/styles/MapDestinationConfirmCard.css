@@ -1,0 +1,114 @@
+.siara-map-destination-card {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: min(360px, calc(100% - 32px));
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -16px rgba(15, 23, 42, 0.35);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.siara-map-destination-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.siara-map-destination-card__pin {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.siara-map-destination-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.siara-map-destination-card__label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+  word-break: break-word;
+}
+
+.siara-map-destination-card__hint {
+  margin: 0;
+  font-size: 12px;
+  color: #64748B;
+  line-height: 1.4;
+}
+
+.siara-map-destination-card__error {
+  margin: 0;
+  font-size: 12px;
+  color: #B91C1C;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-weight: 500;
+}
+
+.siara-map-destination-card__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.siara-map-destination-card__btn {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.siara-map-destination-card__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.siara-map-destination-card__btn--secondary {
+  background: #F1F5F9;
+  color: #1E293B;
+  border-color: #CBD5E1;
+}
+
+.siara-map-destination-card__btn--secondary:hover:not(:disabled) {
+  background: #E2E8F0;
+}
+
+.siara-map-destination-card__btn--primary {
+  background: var(--siara-primary, #2563EB);
+  color: #FFFFFF;
+  border-color: var(--siara-primary, #2563EB);
+}
+
+.siara-map-destination-card__btn--primary:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+@media (max-width: 480px) {
+  .siara-map-destination-card {
+    bottom: 12px;
+    padding: 12px 14px;
+  }
+
+  .siara-map-destination-card__title {
+    font-size: 14px;
+  }
+}

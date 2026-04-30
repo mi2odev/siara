@@ -27,6 +27,7 @@ const driverQuizRoutes = require("./contollers/driverQuiz");
 const occurrenceRiskRoutes = require("./contollers/occurrenceRisk");
 const adminUsersRoutes = require("./contollers/adminUsers");
 const reportDangerHeatmapRoutes = require("./contollers/reportDangerHeatmap");
+const travelHistoryRoutes = require("./contollers/travelHistory");
 const { startNotificationListener } = require("./services/notificationListener");
 const { initializeNotificationSocketServer } = require("./services/notificationSocket");
 const { startWeeklySummaryScheduler } = require("./services/weeklySummaryScheduler");
@@ -102,6 +103,7 @@ app.use("/api/police/users", (req, res, next) => {
 app.use("/api/admin/users", adminUsersRoutes);
 
 app.use("/api/map", reportDangerHeatmapRoutes);
+app.use("/api/travel-history", travelHistoryRoutes);
 
 app.post("/api/model/predict", predictDriverRisk);
 app.post("/api/model/predict/stream", predictDriverRiskStream);

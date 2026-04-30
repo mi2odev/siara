@@ -9,10 +9,13 @@ import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/NewsPage.css'
 import '../../styles/DashboardPage.css'
 import '../../styles/UserDashboardPage.css'
+import '../../styles/TravelHistory.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
+import TravelHistoryDetailModal from '../../components/travel/TravelHistoryDetailModal'
 import { fetchDashboard } from '../../services/dashboardService'
+import { getMyTravelHistory } from '../../services/travelHistoryService'
 
 const EMPTY_DASHBOARD = {
   profile: { name: 'SIARA User', role: 'citizen', monitoredZones: 0, activeAlerts: 0 },
@@ -144,6 +147,10 @@ export default function UserDashboardPage() {
   const [dashboardData, setDashboardData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [travelHistoryItems, setTravelHistoryItems] = useState([])
+  const [travelHistoryState, setTravelHistoryState] = useState('idle')
+  const [travelHistoryError, setTravelHistoryError] = useState('')
+  const [selectedTripId, setSelectedTripId] = useState(null)
 
   const loadDashboard = useCallback(async (refresh = false) => {
     try {
@@ -161,6 +168,29 @@ export default function UserDashboardPage() {
   useEffect(() => {
     loadDashboard()
   }, [loadDashboard])
+
+  const loadTravelHistory = useCallback(async () => {
+    try {
+      setTravelHistoryState('loading')
+      setTravelHistoryError('')
+      const payload = await getMyTravelHistory({ limit: 12 })
+      setTravelHistoryItems(Array.isArray(payload?.items) ? payload.items : [])
+      setTravelHistoryState('success')
+    } catch (err) {
+      setTravelHistoryError(err.message || 'Unable to load travel history')
+      setTravelHistoryState('error')
+    }
+  }, [])
+
+  useEffect(() => {
+    loadTravelHistory()
+  }, [loadTravelHistory])
+
+  const handleRatingUpdated = useCallback((tripId, { rating, feedbackText }) => {
+    setTravelHistoryItems((items) =>
+      items.map((item) => (item.id === tripId ? { ...item, rating, feedbackText } : item)),
+    )
+  }, [])
 
   const dashboard = dashboardData || EMPTY_DASHBOARD
   const profileName = dashboard.profile?.name || user?.name || 'SIARA User'
@@ -342,6 +372,109 @@ export default function UserDashboardPage() {
             <div className="ud-section-header"><h3 className="ud-mini-title" style={{ marginBottom: 0 }}>High-Risk Road Ranking</h3></div>
             <div className="ud-table-wrapper"><table className="ud-table"><thead><tr><th>#</th><th>Road</th><th>Risk Score</th><th>Change</th><th></th></tr></thead><tbody>{topRoads.length === 0 ? <tr><td colSpan="5" className="ud-cell-muted">No road risk data available yet.</td></tr> : topRoads.map((road) => <tr key={road.rank}><td className="ud-road-rank">{road.rank}</td><td className="ud-cell-primary">{road.road}</td><td><div className="ud-score-cell"><span className={`ud-score-value ${riskTone(road.riskScore)}`}>{road.riskScore}</span><RiskBar score={road.riskScore} /></div></td><td><span className={`ud-trend ${trendTone(road.change)}`}>{Number(road.change || 0) >= 0 ? '↑' : '↓'} {signedPct(road.change)}</span></td><td><button className="ud-map-btn" onClick={() => navigate('/map')}>Map →</button></td></tr>)}</tbody></table></div>
           </section>
+
+          <section className="card ud-section">
+            <div className="ud-section-header">
+              <h2 className="ud-section-title">My Travel History</h2>
+              {travelHistoryState === 'success' && (
+                <button className="ud-link-btn" onClick={() => loadTravelHistory()}>Refresh</button>
+              )}
+            </div>
+            {travelHistoryState === 'loading' && (
+              <p className="ud-forecast-caption">Loading your completed trips…</p>
+            )}
+            {travelHistoryState === 'error' && (
+              <p className="ud-forecast-caption" role="alert">{travelHistoryError}</p>
+            )}
+            {travelHistoryState === 'success' && travelHistoryItems.length === 0 && (
+              <div className="ud-travel-empty">
+                No completed trips yet. Start route guidance from the map to build your travel history.
+              </div>
+            )}
+            {travelHistoryState === 'success' && travelHistoryItems.length > 0 && (
+              <div className="ud-travel-list">
+                {travelHistoryItems.map((trip) => {
+                  const startedDate = trip.startedAt ? new Date(trip.startedAt) : null
+                  const dateLabel = startedDate && !Number.isNaN(startedDate.getTime())
+                    ? startedDate.toLocaleString()
+                    : '—'
+                  const distanceLabel = Number.isFinite(Number(trip.distanceKm))
+                    ? `${Number(trip.distanceKm).toFixed(1)} km`
+                    : '—'
+                  let durationLabel = '—'
+                  const durationSeconds = Number(trip.durationSeconds)
+                  if (Number.isFinite(durationSeconds) && durationSeconds > 0) {
+                    const minutes = Math.floor(durationSeconds / 60)
+                    if (minutes < 60) {
+                      durationLabel = `${minutes} min`
+                    } else {
+                      const hours = Math.floor(minutes / 60)
+                      const remaining = minutes % 60
+                      durationLabel = remaining > 0 ? `${hours}h ${remaining}m` : `${hours}h`
+                    }
+                  }
+                  const riskPercentValue = Number(trip.overallRiskPercent)
+                  const riskTextLevel = String(trip.overallRiskLevel || '').trim().toLowerCase()
+                  const riskBadgeTone =
+                    riskTextLevel === 'high' || riskTextLevel === 'extreme' || riskTextLevel === 'critical'
+                      ? 'high'
+                      : riskTextLevel === 'medium' || riskTextLevel === 'moderate' ||
+                          (Number.isFinite(riskPercentValue) && riskPercentValue >= 50)
+                        ? 'medium'
+                        : 'low'
+                  const riskLabelText = Number.isFinite(riskPercentValue)
+                    ? `${Math.round(riskPercentValue)}%${trip.overallRiskLevel ? ` • ${trip.overallRiskLevel}` : ''}`
+                    : trip.overallRiskLevel || '—'
+                  const ratingValue = Number(trip.rating)
+                  const stars = Number.isFinite(ratingValue) && ratingValue > 0 ? ratingValue : 0
+                  return (
+                    <article key={trip.id} className="ud-travel-card">
+                      <div className="ud-travel-card-header">
+                        <div>
+                          <p className="ud-travel-destination">
+                            {trip.destinationName || 'Saved trip'}
+                          </p>
+                          <p className="ud-travel-date">{dateLabel}</p>
+                        </div>
+                        <span className={`th-risk-badge ${riskBadgeTone}`}>{riskLabelText}</span>
+                      </div>
+                      <div className="ud-travel-meta">
+                        <div className="ud-travel-meta-item">
+                          <span>Distance</span>
+                          <strong>{distanceLabel}</strong>
+                        </div>
+                        <div className="ud-travel-meta-item">
+                          <span>Duration</span>
+                          <strong>{durationLabel}</strong>
+                        </div>
+                        <div className="ud-travel-meta-item">
+                          <span>Route</span>
+                          <strong>{trip.routeType || '—'}</strong>
+                        </div>
+                      </div>
+                      <div className="ud-travel-card-footer">
+                        <div className={`ud-travel-stars ${stars === 0 ? 'is-empty' : ''}`}>
+                          {stars === 0
+                            ? 'Not rated yet'
+                            : '★'.repeat(stars) + '☆'.repeat(5 - stars)}
+                        </div>
+                        <button className="ud-link-btn" onClick={() => setSelectedTripId(trip.id)}>
+                          View details →
+                        </button>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+
+          <TravelHistoryDetailModal
+            tripId={selectedTripId}
+            open={Boolean(selectedTripId)}
+            onClose={() => setSelectedTripId(null)}
+            onRatingUpdated={handleRatingUpdated}
+          />
 
           <section className="card ud-section ud-alerts-section">
             <div className="ud-section-header"><h2 className="ud-section-title">Active Alerts</h2><button className="ud-link-btn" onClick={() => navigate('/alerts')}>View all →</button></div>
