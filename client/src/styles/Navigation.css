@@ -1,0 +1,265 @@
+/* SIARA pseudo-navigation mode UI.
+ *
+ * Note: react-leaflet (Leaflet 2D) does not support real tilt/perspective.
+ * This stylesheet powers a top-down navigation experience: a top instruction
+ * banner and a bottom trip-summary card. If the project ever migrates to
+ * MapLibre GL or Mapbox GL for true 3D camera, these overlays can stay as-is
+ * — only the camera follow logic in SiaraMap.jsx would need to change.
+ */
+
+.siara-map-shell.is-navigation .siara-map-aside,
+.siara-map-shell.is-navigation .siara-guide-controls,
+.siara-map-shell.is-navigation .siara-map-error-stack,
+.siara-map-shell.is-navigation .siara-commune-insights,
+.siara-map-shell.is-navigation .siara-map-destination-card {
+  display: none !important;
+}
+
+.siara-nav-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  width: min(560px, calc(100% - 24px));
+  background: #0F172A;
+  color: #F8FAFC;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px -16px rgba(2, 6, 23, 0.55);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  pointer-events: auto;
+}
+
+.siara-nav-banner__icon {
+  font-size: 30px;
+  line-height: 1;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(96, 165, 250, 0.18);
+  border-radius: 12px;
+  color: #BFDBFE;
+}
+
+.siara-nav-banner__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.siara-nav-banner__primary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+}
+
+.siara-nav-banner__distance {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #93C5FD;
+}
+
+.siara-nav-banner__instruction {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.siara-nav-banner__next {
+  font-size: 12px;
+  color: #CBD5F5;
+  opacity: 0.85;
+}
+
+.siara-nav-banner__warning {
+  font-size: 11px;
+  color: #FDBA74;
+  margin-top: 2px;
+}
+
+/* Bottom summary */
+
+.siara-nav-summary {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  width: min(620px, calc(100% - 24px));
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px -20px rgba(15, 23, 42, 0.45);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.siara-nav-summary__progress {
+  position: relative;
+  height: 4px;
+  background: #E2E8F0;
+}
+
+.siara-nav-summary__progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #16A34A;
+  transition: width 0.4s ease;
+}
+
+.siara-nav-summary__progress-fill.risk-moderate { background: #F59E0B; }
+.siara-nav-summary__progress-fill.risk-high { background: #EA580C; }
+.siara-nav-summary__progress-fill.risk-extreme { background: #B91C1C; }
+
+.siara-nav-summary__body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.siara-nav-summary__main {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.siara-nav-summary__main > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.siara-nav-summary__eta-value,
+.siara-nav-summary__distance-value,
+.siara-nav-summary__risk-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.1;
+}
+
+.siara-nav-summary__eta-sub,
+.siara-nav-summary__distance-sub,
+.siara-nav-summary__risk-sub {
+  font-size: 11px;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.siara-nav-summary__risk.risk-moderate .siara-nav-summary__risk-value { color: #B45309; }
+.siara-nav-summary__risk.risk-high .siara-nav-summary__risk-value { color: #C2410C; }
+.siara-nav-summary__risk.risk-extreme .siara-nav-summary__risk-value { color: #B91C1C; }
+
+.siara-nav-summary__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid #F1F5F9;
+  padding-top: 10px;
+}
+
+.siara-nav-summary__meta-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.siara-nav-summary__meta-tag {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #DBEAFE;
+  color: #1D4ED8;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.siara-nav-summary__exit {
+  align-self: stretch;
+  background: #DC2626;
+  color: #FFFFFF;
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.siara-nav-summary__exit:hover {
+  background: #B91C1C;
+}
+
+/* Direction arrow icon for the user marker in nav mode */
+.siara-nav-user-marker {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.siara-nav-user-marker__arrow {
+  width: 28px;
+  height: 28px;
+  background: #2563EB;
+  clip-path: polygon(50% 0%, 100% 100%, 50% 75%, 0% 100%);
+  transform-origin: 50% 50%;
+  filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.45));
+  transition: transform 0.25s linear;
+}
+
+.siara-nav-user-marker__halo {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+}
+
+@media (max-width: 480px) {
+  .siara-nav-banner {
+    top: 8px;
+    padding: 10px 12px;
+  }
+
+  .siara-nav-banner__icon {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+
+  .siara-nav-summary {
+    bottom: 8px;
+  }
+
+  .siara-nav-summary__main {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .siara-nav-summary__eta-value,
+  .siara-nav-summary__distance-value,
+  .siara-nav-summary__risk-value {
+    font-size: 17px;
+  }
+}
