@@ -102,6 +102,24 @@
   filter: brightness(0.95);
 }
 
+.siara-map-destination-card__spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: siara-mdc-spin 0.7s linear infinite;
+}
+
+@keyframes siara-mdc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 480px) {
   .siara-map-destination-card {
     bottom: 12px;

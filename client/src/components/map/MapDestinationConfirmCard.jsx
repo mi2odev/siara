@@ -36,7 +36,11 @@ export default function MapDestinationConfirmCard({
       <p className="siara-map-destination-card__label" title={label}>
         {loading ? "Looking up place name…" : label}
       </p>
-      {!loading && !showName ? (
+      {starting ? (
+        <p className="siara-map-destination-card__hint">
+          Calculating SIARA route risk…
+        </p>
+      ) : !loading && !showName ? (
         <p className="siara-map-destination-card__hint">
           {error
             ? "Could not look up a place name, but you can still travel using the coordinates."
@@ -47,7 +51,7 @@ export default function MapDestinationConfirmCard({
           SIARA will calculate road risk and guide you using the safest route.
         </p>
       )}
-      {startError ? (
+      {!starting && startError ? (
         <p className="siara-map-destination-card__error" role="alert">{startError}</p>
       ) : null}
       <div className="siara-map-destination-card__actions">
@@ -55,7 +59,6 @@ export default function MapDestinationConfirmCard({
           type="button"
           className="siara-map-destination-card__btn siara-map-destination-card__btn--secondary"
           onClick={onCancel}
-          disabled={starting}
         >
           Cancel
         </button>
@@ -65,7 +68,17 @@ export default function MapDestinationConfirmCard({
           onClick={onConfirm}
           disabled={starting}
         >
-          {starting ? "Starting…" : "Start travel"}
+          {starting ? (
+            <>
+              <span
+                className="siara-map-destination-card__spinner"
+                aria-hidden="true"
+              />
+              Calculating route…
+            </>
+          ) : (
+            "Start travel"
+          )}
         </button>
       </div>
     </div>

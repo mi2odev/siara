@@ -4,7 +4,6 @@ import {
   CircleMarker,
   GeoJSON,
   MapContainer,
-  Marker,
   Pane,
   Popup,
   Polyline,
@@ -21,27 +20,16 @@ import IconButton from "@mui/material/IconButton";
 import MuiTooltip from "@mui/material/Tooltip";
 import ReportMapMarker from "./ReportMapMarker";
 import MapDestinationConfirmCard from "./MapDestinationConfirmCard";
-import NavigationBanner from "./NavigationBanner";
-import NavigationSummaryCard from "./NavigationSummaryCard";
-import {
-  bearingDegrees,
-  computeRouteProgress,
-  deriveStepsFromPath,
-  findCurrentStepIndex,
-} from "../../utils/navigationHelpers";
+import MapLibreNavigationView from "./MapLibreNavigationView";
 import "../../styles/MapDestinationConfirmCard.css";
 import "../../styles/Navigation.css";
 
-// SIARA navigation mode is implemented as a pseudo-GPS experience on top of
-// react-leaflet (Leaflet 2D). Leaflet does not expose tilt/perspective camera
-// controls, so we approximate driving mode via close zoom, heading-aware
-// follow, lower-screen user offset, a top instruction banner, and a bottom
-// summary card. If we ever need true 3D tilt the next step is to migrate the
-// map engine to MapLibre GL — the navigation overlay components and helpers
-// in this file are decoupled from the camera so only NavigationCamera below
-// would need to be replaced.
-const NAVIGATION_ZOOM = 17;
-const NAVIGATION_USER_OFFSET_RATIO = 0.7;
+// Hybrid map architecture: the normal SIARA map stays Leaflet (this file).
+// When the user starts travel guidance, the map area is replaced by
+// MapLibreNavigationView which renders a tilted/pitched MapLibre GL map for
+// GPS-style navigation. The two engines never run simultaneously — Leaflet
+// unmounts while the MapLibre view is shown and vice versa, so existing
+// Leaflet markers / overlays are unaffected.
 
 const USER_ZOOM = 15;
 const NEARBY_RADIUS_KM = 25;
@@ -1181,60 +1169,6 @@ const HeatLayer = ({ points, radius = 40 }) => {
   return null;
 };
 
-const buildNavUserIcon = (heading) => {
-  const rotation = Number.isFinite(Number(heading)) ? Number(heading) : 0;
-  return L.divIcon({
-    className: 'siara-nav-user-marker',
-    html: `
-      <div class="siara-nav-user-marker__halo"></div>
-      <div class="siara-nav-user-marker__arrow" style="transform: rotate(${rotation}deg)"></div>
-    `,
-    iconSize: [38, 38],
-    iconAnchor: [19, 19],
-  });
-};
-
-const NavigationCamera = ({ enabled, userPosition, heading }) => {
-  const map = useMap();
-  const lastUpdateRef = useRef(0);
-
-  useEffect(() => {
-    if (!enabled || !map) return;
-    const lat = Number(userPosition?.lat);
-    const lng = Number(userPosition?.lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-    // Throttle to avoid jitter at high update rates.
-    const now = Date.now();
-    if (now - lastUpdateRef.current < 350) return;
-    lastUpdateRef.current = now;
-
-    if (map.getZoom() !== NAVIGATION_ZOOM) {
-      map.setView([lat, lng], NAVIGATION_ZOOM, { animate: true });
-    }
-
-    // Place the user marker near the lower portion of the screen by
-    // computing a target latlng that, when set as the map center, leaves
-    // the user position around NAVIGATION_USER_OFFSET_RATIO of the map
-    // height (i.e. lower third). We do this by translating from the user
-    // container point upward by (offsetRatio - 0.5) * mapHeight.
-    const size = map.getSize();
-    if (!size || !size.y) {
-      map.panTo([lat, lng], { animate: true, duration: 0.4 });
-      return;
-    }
-
-    const userPoint = map.latLngToContainerPoint([lat, lng]);
-    const offsetY = (NAVIGATION_USER_OFFSET_RATIO - 0.5) * size.y;
-    const centerPoint = L.point(userPoint.x, userPoint.y - offsetY);
-    const centerLatLng = map.containerPointToLatLng(centerPoint);
-    map.panTo(centerLatLng, { animate: true, duration: 0.4 });
-    return undefined;
-  }, [enabled, map, userPosition?.lat, userPosition?.lng, heading]);
-
-  return null;
-};
-
 const MapClickHandler = ({ enabled, onMapClick }) => {
   useMapEvents({
     click: (event) => {
@@ -1324,12 +1258,21 @@ const SiaraMap = ({
   const [pendingTravelStarting, setPendingTravelStarting] = useState(false);
   const [pendingTravelError, setPendingTravelError] = useState("");
   const [mapMode, setMapMode] = useState("normal");
-  const [followUser, setFollowUser] = useState(true);
-  const [routeProgress, setRouteProgress] = useState(null);
-  const [navigationSteps, setNavigationSteps] = useState([]);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [derivedHeading, setDerivedHeading] = useState(null);
-  const previousUserPositionRef = useRef(null);
+  const [activeNavigationRoute, setActiveNavigationRoute] = useState(null);
+  const [activeNavigationRoutes, setActiveNavigationRoutes] = useState([]);
+  const [activeNavigationDestination, setActiveNavigationDestination] = useState(null);
+  const [activeNavigationStartedAt, setActiveNavigationStartedAt] = useState(null);
+  // navigationError is reserved for surfacing future MapLibre runtime errors
+  // (e.g. style/tile load failures); MapLibreNavigationView currently
+  // self-handles these.
+  // eslint-disable-next-line no-unused-vars
+  const [navigationError, setNavigationError] = useState("");
+  // Monotonic request id for route calculations. Each new attempt bumps it;
+  // any in-flight response whose captured id no longer matches is silently
+  // discarded. This prevents stale errors after the user cancels a starting
+  // trip, exits navigation, or clicks a new destination while a previous
+  // route request is still resolving.
+  const routeRequestIdRef = useRef(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
   const [explanationOpen, setExplanationOpen] = useState(false);
@@ -1429,63 +1372,38 @@ const SiaraMap = ({
     );
   }, [guidedRoutes, selectedGuidedRouteType]);
 
-  // Whenever guidance flips on/off, mirror it to mapMode and prepare /
-  // tear down the navigation step list.
+  // Whenever guidance flips on/off, switch between Leaflet (normal) and the
+  // MapLibre navigation view by setting mapMode and snapshotting the route
+  // payload for MapLibreNavigationView. Per-frame progress tracking and step
+  // detection are handled inside MapLibreNavigationView itself.
   useEffect(() => {
     if (guidanceActive && guidedRoute) {
       setMapMode("navigation");
-      const steps = deriveStepsFromPath(guidedRoute.path);
-      setNavigationSteps(steps);
-      setCurrentStepIndex(0);
-      setFollowUser(true);
-      previousUserPositionRef.current = null;
+      setActiveNavigationRoute(guidedRoute);
+      setActiveNavigationRoutes(Array.isArray(guidedRoutes) ? guidedRoutes : []);
+      setActiveNavigationDestination(
+        guidedRoute?.destination || selectedDestination || null,
+      );
+      setActiveNavigationStartedAt(new Date().toISOString());
+      setNavigationError("");
     } else if (!guidanceActive && mapMode === "navigation") {
       setMapMode("normal");
-      setNavigationSteps([]);
-      setRouteProgress(null);
-      setCurrentStepIndex(0);
-      setDerivedHeading(null);
-      previousUserPositionRef.current = null;
+      setActiveNavigationRoute(null);
+      setActiveNavigationRoutes([]);
+      setActiveNavigationDestination(null);
+      setActiveNavigationStartedAt(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guidanceActive, guidedRoute?.route_id]);
 
-  // Track user progress along the active route while in navigation mode.
+  // Keep active navigation route in sync if the user picks a different
+  // alternative (e.g. fastest → safest) without exiting nav mode.
   useEffect(() => {
-    if (mapMode !== "navigation" || !guidedRoute || !userPosition) return;
-    const lat = Number(userPosition.lat);
-    const lng = Number(userPosition.lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-    const progress = computeRouteProgress({ lat, lng }, guidedRoute);
-    if (!progress) return;
-    setRouteProgress(progress);
-
-    if (Array.isArray(navigationSteps) && navigationSteps.length > 0) {
-      const idx = findCurrentStepIndex(navigationSteps, progress.distanceFromStartM);
-      if (idx >= 0 && idx !== currentStepIndex) {
-        setCurrentStepIndex(idx);
-      }
-    }
-
-    // Derive a heading from successive positions if the geolocation API
-    // does not provide one (common on desktop browsers).
-    const previous = previousUserPositionRef.current;
-    if (previous) {
-      const distance = Math.hypot(
-        (lat - previous.lat) * 111320,
-        (lng - previous.lng) * 111320 * Math.cos((lat * Math.PI) / 180),
-      );
-      if (distance >= 5) {
-        const bearing = bearingDegrees(previous, { lat, lng });
-        setDerivedHeading(bearing);
-        previousUserPositionRef.current = { lat, lng };
-      }
-    } else {
-      previousUserPositionRef.current = { lat, lng };
-    }
+    if (mapMode !== "navigation" || !guidedRoute) return;
+    setActiveNavigationRoute(guidedRoute);
+    setActiveNavigationRoutes(Array.isArray(guidedRoutes) ? guidedRoutes : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapMode, guidedRoute?.route_id, userPosition?.lat, userPosition?.lng]);
+  }, [mapMode, guidedRoute?.route_type, guidedRoutes]);
 
   useEffect(() => {
     if (typeof onSelectedTimestampChange === "function") {
@@ -2002,13 +1920,18 @@ const SiaraMap = ({
   };
 
   const exitNavigation = () => {
+    // Invalidate any in-flight route response so it can't toggle guidance
+    // back on or surface an error after the user has left navigation.
+    routeRequestIdRef.current += 1;
     setMapMode("normal");
-    setRouteProgress(null);
-    setNavigationSteps([]);
-    setCurrentStepIndex(0);
-    setDerivedHeading(null);
-    previousUserPositionRef.current = null;
-    setFollowUser(true);
+    setActiveNavigationRoute(null);
+    setActiveNavigationRoutes([]);
+    setActiveNavigationDestination(null);
+    setActiveNavigationStartedAt(null);
+    setPendingTravelStarting(false);
+    setPendingTravelError("");
+    setPendingDestinationError("");
+    setGuidedRouteError("");
     clearGuidance();
   };
 
@@ -2147,12 +2070,16 @@ const SiaraMap = ({
   };
 
   const clearPendingMapDestination = () => {
+    // Bump the request id so any in-flight route calculation will be
+    // discarded silently (no error toast, no guidance switch).
+    routeRequestIdRef.current += 1;
     setPendingMapDestination(null);
     setPendingMapDestinationName("");
     setPendingDestinationLoading(false);
     setPendingDestinationError("");
     setPendingTravelStarting(false);
     setPendingTravelError("");
+    setGuidedRouteError("");
   };
 
   const handleMapDestinationClick = async (latlng) => {
@@ -2162,10 +2089,14 @@ const SiaraMap = ({
     const lng = Number(latlng.lng);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
+    // Picking a new destination invalidates any previous in-flight request.
+    routeRequestIdRef.current += 1;
     setPendingMapDestination({ lat, lng });
     setPendingMapDestinationName("");
     setPendingDestinationError("");
     setPendingTravelError("");
+    setPendingTravelStarting(false);
+    setGuidedRouteError("");
     setPendingDestinationLoading(true);
 
     try {
@@ -2202,18 +2133,30 @@ const SiaraMap = ({
       lng: pendingMapDestination.lng,
     };
 
+    // Capture this request's id; any later cancel/exit/new-click bumps the
+    // global ref and we discard our own response.
+    const myRequestId = ++routeRequestIdRef.current;
     setPendingTravelStarting(true);
     setPendingTravelError("");
+    setGuidedRouteError("");
     setSelectedDestination(destination);
+
+    // Always use a fresh "now" timestamp so a stale selectedTimestampIso
+    // from a previous navigation session can't poison the request.
+    const freshTimestampIso = new Date().toISOString();
 
     try {
       await fetchGuidedRoute({
         origin,
         destination,
-        timestampIso: selectedTimestampIso,
+        timestampIso: freshTimestampIso,
         preserveSelection: false,
         forceRefresh: true,
       });
+      if (myRequestId !== routeRequestIdRef.current) {
+        // Superseded — silently drop the result.
+        return;
+      }
       setGuidedRouteFitVersion((value) => value + 1);
       setGuidanceActive(true);
       setPendingMapDestination(null);
@@ -2221,11 +2164,18 @@ const SiaraMap = ({
       setPendingDestinationError("");
       setPendingTravelError("");
     } catch (error) {
+      if (myRequestId !== routeRequestIdRef.current) {
+        // Aborted by the user or replaced by a newer request — don't surface
+        // the error.
+        return;
+      }
       setGuidedRouteState("error");
       setGuidedRouteError(error.message || "Failed to compute guidance route");
       setPendingTravelError(error.message || "Failed to compute guidance route");
     } finally {
-      setPendingTravelStarting(false);
+      if (myRequestId === routeRequestIdRef.current) {
+        setPendingTravelStarting(false);
+      }
     }
   };
 
@@ -2627,7 +2577,32 @@ const SiaraMap = ({
 
       
 
-      {hasValidUserLocation ? (
+      {mapMode === "navigation" && activeNavigationRoute ? (
+        <MapLibreNavigationView
+          userLocation={
+            hasValidUserLocation && userPosition
+              ? {
+                  lat: Number(userPosition.lat),
+                  lng: Number(userPosition.lng),
+                  heading: Number.isFinite(Number(userPosition.heading))
+                    ? Number(userPosition.heading)
+                    : null,
+                  accuracy: Number.isFinite(Number(userPosition.accuracy))
+                    ? Number(userPosition.accuracy)
+                    : null,
+                }
+              : null
+          }
+          destination={activeNavigationDestination}
+          selectedRoute={activeNavigationRoute}
+          routes={activeNavigationRoutes}
+          startedAt={activeNavigationStartedAt}
+          onExitNavigation={exitNavigation}
+          onChangeRouteType={(routeType) => {
+            if (routeType) setSelectedGuidedRouteType(routeType);
+          }}
+        />
+      ) : hasValidUserLocation ? (
         <MapContainer
           center={userLatLng}
           zoom={USER_ZOOM}
@@ -2663,29 +2638,9 @@ const SiaraMap = ({
             enabled={!guidanceActive}
             onMapClick={handleMapDestinationClick}
           />
-          {mapMode === "navigation" && followUser && (
-            <NavigationCamera
-              enabled
-              userPosition={userPosition}
-              heading={
-                Number.isFinite(Number(userPosition?.heading))
-                  ? Number(userPosition.heading)
-                  : derivedHeading
-              }
-            />
-          )}
-          {mapMode === "navigation" && userLatLng && (
-            <Marker
-              position={userLatLng}
-              icon={buildNavUserIcon(
-                Number.isFinite(Number(userPosition?.heading))
-                  ? Number(userPosition.heading)
-                  : derivedHeading,
-              )}
-              interactive={false}
-              keyboard={false}
-            />
-          )}
+          {/* Navigation rendering is delegated to MapLibreNavigationView when
+              mapMode === "navigation". Leaflet stays mounted only for normal
+              mode, so no in-Leaflet navigation overlays are required here. */}
           {pendingMapDestination && !guidanceActive && (
             <CircleMarker
               center={[pendingMapDestination.lat, pendingMapDestination.lng]}
@@ -3135,45 +3090,10 @@ const SiaraMap = ({
         onCancel={clearPendingMapDestination}
       />
 
-      <NavigationBanner
-        open={mapMode === "navigation" && navigationSteps.length > 0}
-        currentStep={navigationSteps[currentStepIndex] || null}
-        nextStep={navigationSteps[currentStepIndex + 1] || null}
-        distanceToCurrentStepM={(() => {
-          const step = navigationSteps[currentStepIndex];
-          if (!step || !routeProgress) return null;
-          return Math.max(0, step.distanceFromStartM - routeProgress.distanceFromStartM);
-        })()}
-        routeWarning={guidedRoute?.route_warning || null}
-      />
+      {/* NavigationBanner and NavigationSummaryCard are rendered inside
+          MapLibreNavigationView while in navigation mode. */}
 
-      <NavigationSummaryCard
-        open={mapMode === "navigation" && Boolean(guidedRoute)}
-        destinationName={
-          guidedRoute?.destination?.name || selectedDestination?.name || null
-        }
-        routeType={guidedRoute?.route_label || guidedRoute?.route_type || null}
-        distanceRemainingM={
-          routeProgress?.distanceRemainingM != null
-            ? routeProgress.distanceRemainingM
-            : Number.isFinite(Number(guidedRoute?.distance_km))
-              ? Number(guidedRoute.distance_km) * 1000
-              : null
-        }
-        etaSeconds={
-          routeProgress?.etaSeconds != null
-            ? routeProgress.etaSeconds
-            : Number.isFinite(Number(guidedRoute?.duration_min))
-              ? Number(guidedRoute.duration_min) * 60
-              : null
-        }
-        routeRiskPercent={Number(guidedRoute?.summary?.danger_percent)}
-        routeRiskLevel={guidedRoute?.summary?.danger_level || null}
-        progressFraction={routeProgress?.fraction ?? 0}
-        onExit={exitNavigation}
-      />
-
-      {!hasValidUserLocation && (
+      {!hasValidUserLocation && mapMode !== "navigation" && (
         <div className="siara-leaflet-map">
           <div className="siara-map-error-stack">
             <div className="siara-map-error">
