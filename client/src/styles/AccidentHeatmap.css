@@ -1,0 +1,221 @@
+/* Accident heatmap cluster markers + legend.
+ * Each marker is a Leaflet divIcon with concentric severity rings; the
+ * legend below the map controls explains the size/color encoding.
+ */
+
+.accident-heat-cluster-wrapper {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.accident-heat-cluster {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  /* No drop-shadow — the cloud must look soft / heat-like, not like a chip
+     marker. The blur is baked into the SVG itself. */
+}
+
+.accident-heat-cluster svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.accident-heat-cluster__count {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+  /* Strong text shadow keeps the count readable on any cloud color, since
+     the count is rendered as crisp HTML on top of the blurred SVG. */
+  text-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.95),
+    0 0 6px rgba(15, 23, 42, 0.7);
+  pointer-events: none;
+}
+
+/* Popup styling */
+
+.accident-heat-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+
+.accident-heat-popup__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.accident-heat-popup__sub {
+  font-size: 12px;
+  color: #64748B;
+  margin: 0 0 4px 0;
+}
+
+.accident-heat-popup__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #1E293B;
+  padding: 2px 0;
+}
+
+.accident-heat-popup__row strong {
+  font-weight: 600;
+}
+
+.accident-heat-popup__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.accident-heat-popup__pill--low {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
+
+.accident-heat-popup__pill--moderate {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.accident-heat-popup__pill--high {
+  background: #FFEDD5;
+  color: #C2410C;
+}
+
+.accident-heat-popup__pill--critical {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.accident-heat-popup__counts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 10px;
+  margin-top: 4px;
+}
+
+.accident-heat-popup__count-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #475569;
+}
+
+.accident-heat-popup__count-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Legend overlay */
+
+.accident-heat-legend {
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  z-index: 600;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px -12px rgba(15, 23, 42, 0.35);
+  font-size: 12px;
+  color: #1E293B;
+  max-width: 220px;
+  pointer-events: auto;
+}
+
+.accident-heat-legend__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 6px 0;
+}
+
+.accident-heat-legend__sub {
+  font-size: 11px;
+  color: #64748B;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.accident-heat-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #1E293B;
+  margin-bottom: 3px;
+}
+
+.accident-heat-legend__row:last-child {
+  margin-bottom: 0;
+}
+
+.accident-heat-legend__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.2);
+  flex-shrink: 0;
+}
+
+/* Loading / empty / error toasts */
+
+.accident-heat-status {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 600;
+  background: rgba(15, 23, 42, 0.92);
+  color: #F8FAFC;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.accident-heat-status--error {
+  background: #B91C1C;
+}
+
+.accident-heat-status__spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: accident-heat-spin 0.7s linear infinite;
+}
+
+@keyframes accident-heat-spin {
+  to { transform: rotate(360deg); }
+}

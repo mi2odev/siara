@@ -31,11 +31,27 @@ function parseOptionalBounds(query) {
   return { north, south, east, west };
 }
 
+function parseOptionalZoom(value) {
+  if (value == null || value === "") return null;
+  const num = Number(value);
+  if (!Number.isFinite(num)) return null;
+  return Math.max(0, Math.min(22, num));
+}
+
+function parseOptionalMinReports(value) {
+  if (value == null || value === "") return 1;
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) return 1;
+  return Math.min(50, Math.round(num));
+}
+
 router.get("/report-danger-heatmap", async (req, res, next) => {
   try {
     const hours = parseHoursFromRequest(req.query?.hours ?? req.query?.range);
     const bounds = parseOptionalBounds(req.query || {});
-    const result = await getDangerHeatClusters({ hours, bounds });
+    const zoom = parseOptionalZoom(req.query?.zoom);
+    const minReports = parseOptionalMinReports(req.query?.minReports);
+    const result = await getDangerHeatClusters({ hours, bounds, zoom, minReports });
     return res.status(200).json(result);
   } catch (error) {
     return next(error);

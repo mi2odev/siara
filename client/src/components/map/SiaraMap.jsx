@@ -21,6 +21,9 @@ import MuiTooltip from "@mui/material/Tooltip";
 import ReportMapMarker from "./ReportMapMarker";
 import MapDestinationConfirmCard from "./MapDestinationConfirmCard";
 import MapLibreNavigationView from "./MapLibreNavigationView";
+import AccidentHeatClusterMarker from "./AccidentHeatClusterMarker";
+import { HEATMAP_LEGEND_COLORS } from "./heatmapVisuals";
+import "../../styles/AccidentHeatmap.css";
 import "../../styles/MapDestinationConfirmCard.css";
 import "../../styles/Navigation.css";
 
@@ -126,12 +129,6 @@ const toNearbyRequestKey = (pos) => {
   const normalized = normalizePosition(pos);
   if (!normalized) return "";
   return `${normalized[0].toFixed(3)}:${normalized[1].toFixed(3)}`;
-}
-
-const getWeight = (sev) => {
-  if (sev === "high") return 1;
-  if (sev === "medium") return 0.7;
-  return 0.4;
 }
 
 const getIncidentColor = (sev) => {
@@ -1169,6 +1166,48 @@ const HeatLayer = ({ points, radius = 40 }) => {
   return null;
 };
 
+// Heatmap fetches show every accident report by default; no built-in time
+// window. A future filter UI can pass `?hours=24` / `?range=7d` if needed.
+const HEATMAP_BOUNDS_DEBOUNCE_MS = 350;
+
+const MapBoundsTracker = ({ enabled, onBoundsChange }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!enabled || !map) return undefined;
+    let timer = null;
+
+    const emit = () => {
+      const bounds = map.getBounds();
+      const zoom = map.getZoom();
+      onBoundsChange?.({
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest(),
+        zoom: typeof zoom === "number" ? zoom : null,
+      });
+    };
+
+    const handleMoveEnd = () => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(emit, HEATMAP_BOUNDS_DEBOUNCE_MS);
+    };
+
+    // Emit current bounds once on mount so the first fetch can include them.
+    emit();
+    map.on("moveend", handleMoveEnd);
+    map.on("zoomend", handleMoveEnd);
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      map.off("moveend", handleMoveEnd);
+      map.off("zoomend", handleMoveEnd);
+    };
+  }, [enabled, map, onBoundsChange]);
+
+  return null;
+};
+
 const MapClickHandler = ({ enabled, onMapClick }) => {
   useMapEvents({
     click: (event) => {
@@ -1267,6 +1306,16 @@ const SiaraMap = ({
   // self-handles these.
   // eslint-disable-next-line no-unused-vars
   const [navigationError, setNavigationError] = useState("");
+  // Accident heatmap layer state (used when mapLayer === "heatmap").
+  // We deliberately do NOT track bounds here: the heatmap shows every
+  // accident report in the database, not just what's in the current
+  // viewport. We only track zoom so the backend can size DBSCAN clusters
+  // appropriately for the current scale.
+  const [heatClusters, setHeatClusters] = useState([]);
+  const [heatClustersState, setHeatClustersState] = useState("idle");
+  const [heatClustersError, setHeatClustersError] = useState("");
+  const [heatZoom, setHeatZoom] = useState(null);
+  const heatRequestIdRef = useRef(0);
   // Monotonic request id for route calculations. Each new attempt bumps it;
   // any in-flight response whose captured id no longer matches is silently
   // discarded. This prevents stale errors after the user cancels a starting
@@ -1819,16 +1868,61 @@ const SiaraMap = ({
     setNearbyFitVersion((value) => value + 1);
   }, [guidedRoute, mapLayer, nearbyRoutes.length]);
 
-  const heatPoints = useMemo(
-    () =>
-      markers
-        .map((m) => {
-          const pos = normalizePosition(m);
-          return pos ? [pos[0], pos[1], getWeight(m.severity)] : null;
-        })
-        .filter(Boolean),
-    [markers],
-  );
+  // The MapBoundsTracker still emits the full bounds payload, but for the
+  // heatmap we only care about zoom changes — pans must NOT cause a refetch
+  // that would otherwise hide reports outside the viewport.
+  const handleHeatmapBoundsChange = useCallback((next) => {
+    if (!next) return;
+    const nextZoom = Number.isFinite(Number(next.zoom))
+      ? Math.round(Number(next.zoom))
+      : null;
+    setHeatZoom((prev) => (prev === nextZoom ? prev : nextZoom));
+  }, []);
+
+  // Fetch accident heatmap clusters when the heatmap tab is selected.
+  // Default behaviour intentionally sends NO time filter and NO bounds —
+  // the user wants every accident report in the database to contribute to
+  // a cluster. Zoom is the only thing forwarded (the backend uses it to
+  // size DBSCAN). Stale responses from earlier fetches are discarded via
+  // heatRequestIdRef.
+  useEffect(() => {
+    if (mapLayer !== "heatmap") {
+      setHeatClustersState("idle");
+      setHeatClustersError("");
+      return undefined;
+    }
+
+    const requestId = ++heatRequestIdRef.current;
+    setHeatClustersState((prev) => (prev === "success" ? "refreshing" : "loading"));
+    setHeatClustersError("");
+
+    const params = new URLSearchParams();
+    if (Number.isFinite(Number(heatZoom))) {
+      params.set("zoom", String(heatZoom));
+    }
+    const query = params.toString();
+    const url = query
+      ? `/api/map/report-danger-heatmap?${query}`
+      : "/api/map/report-danger-heatmap";
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getJson(url);
+        if (cancelled || requestId !== heatRequestIdRef.current) return;
+        setHeatClusters(Array.isArray(data?.clusters) ? data.clusters : []);
+        setHeatClustersState("success");
+      } catch (error) {
+        if (cancelled || requestId !== heatRequestIdRef.current) return;
+        setHeatClustersError(error?.message || "Could not load accident heatmap.");
+        setHeatClustersState("error");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mapLayer, heatZoom]);
 
   const handleFeatureClick = async (marker) => {
     if (mapLayer !== "ai") {
@@ -2672,7 +2766,17 @@ const SiaraMap = ({
           )}
           {guidedRoute && <FitGuidedRoute routes={guidedRoutes} fitVersion={guidedRouteFitVersion} />}
 
-          {mapLayer === "heatmap" && <HeatLayer points={heatPoints} radius={40} />}
+          {mapLayer === "heatmap" && (
+            <>
+              <MapBoundsTracker
+                enabled
+                onBoundsChange={handleHeatmapBoundsChange}
+              />
+              {heatClusters.map((cluster) => (
+                <AccidentHeatClusterMarker key={cluster.id} cluster={cluster} />
+              ))}
+            </>
+          )}
 
           {mapLayer === "zones" && alertZones.length > 0 && (
             <Pane name="alert-zone-layer" style={{ zIndex: 650 }}>
@@ -3076,6 +3180,64 @@ const SiaraMap = ({
             </CircleMarker>
           )}
         </MapContainer>
+      ) : null}
+
+      {mapLayer === "heatmap" && mapMode !== "navigation" ? (
+        <>
+          {heatClustersState === "loading" ? (
+            <div className="accident-heat-status" role="status">
+              <span className="accident-heat-status__spinner" aria-hidden="true" />
+              Loading accident heatmap…
+            </div>
+          ) : null}
+          {heatClustersState === "error" ? (
+            <div
+              className="accident-heat-status accident-heat-status--error"
+              role="alert"
+            >
+              {heatClustersError || "Could not load accident heatmap."}
+            </div>
+          ) : null}
+          {heatClustersState === "success" && heatClusters.length === 0 ? (
+            <div className="accident-heat-status" role="status">
+              No accident reports in this area for the selected period.
+            </div>
+          ) : null}
+          <div className="accident-heat-legend" role="region" aria-label="Heatmap legend">
+            <p className="accident-heat-legend__title">Accident heatmap</p>
+            <p className="accident-heat-legend__sub">
+              Circle size = number of reports. Rings = severity mix.
+            </p>
+            <div className="accident-heat-legend__row">
+              <span
+                className="accident-heat-legend__dot"
+                style={{ background: HEATMAP_LEGEND_COLORS.critical }}
+              />
+              <span>Critical</span>
+            </div>
+            <div className="accident-heat-legend__row">
+              <span
+                className="accident-heat-legend__dot"
+                style={{ background: HEATMAP_LEGEND_COLORS.high }}
+              />
+              <span>High</span>
+            </div>
+            <div className="accident-heat-legend__row">
+              <span
+                className="accident-heat-legend__dot"
+                style={{ background: HEATMAP_LEGEND_COLORS.moderate }}
+              />
+              <span>Moderate</span>
+            </div>
+            <div className="accident-heat-legend__row">
+              <span
+                className="accident-heat-legend__dot"
+                style={{ background: HEATMAP_LEGEND_COLORS.low }}
+              />
+              <span>Low</span>
+            </div>
+          </div>
+        </>
       ) : null}
 
       <MapDestinationConfirmCard

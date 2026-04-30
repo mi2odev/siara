@@ -1,9 +1,27 @@
 const pool = require("../db");
 
-const DEFAULT_HOURS = 24;
-const MAX_HOURS = 24 * 30;
-const DBSCAN_EPS_DEG = 0.002;
+// Heatmap shows ALL accident-type reports by default. The caller can opt
+// into a time window via ?hours=24 / ?range=7d, but if no value is given we
+// do NOT filter by time — every accident report in the database
+// contributes to a cluster.
+const MAX_HOURS = 24 * 365; // 1 year cap when an explicit window is given
+const MIN_HOURS = 1;
+const DEFAULT_DBSCAN_EPS_DEG = 0.0025; // ~250 m at the equator
 const DBSCAN_MINPOINTS = 1;
+const CLUSTER_RESULT_LIMIT = 2000;
+const ACCIDENT_INCIDENT_TYPE = "accident";
+
+// Severity colour stops used by the frontend ring renderer. Kept in sync with
+// the heatmap legend in client/src/styles/AccidentHeatmap.css.
+const SEVERITY_COLORS = {
+  low: "#3B82F6",
+  moderate: "#FACC15",
+  high: "#F97316",
+  critical: "#DC2626",
+};
+
+const SEVERITY_ORDER = ["critical", "high", "moderate", "low"];
+const SEVERITY_WEIGHTS = { low: 1, moderate: 3, high: 6, critical: 10 };
 
 function logHeatmap(message, payload) {
   if (process.env.NODE_ENV !== "production") {
@@ -11,12 +29,16 @@ function logHeatmap(message, payload) {
   }
 }
 
+// Returns the requested time window in hours, or null if the caller did
+// not supply one. A null result means "do not filter by time — show all
+// accident reports".
 function parseHoursFromRequest(value) {
-  if (value == null || value === "") return DEFAULT_HOURS;
+  if (value == null || value === "") return null;
   const text = String(value).trim().toLowerCase();
+  if (!text || text === "all" || text === "any") return null;
   const numeric = Number(text);
   if (Number.isFinite(numeric) && numeric > 0) {
-    return Math.min(MAX_HOURS, Math.max(1, Math.round(numeric)));
+    return Math.min(MAX_HOURS, Math.max(MIN_HOURS, Math.round(numeric)));
   }
   const match = text.match(/^(\d+(?:\.\d+)?)\s*([hd])$/);
   if (match) {
@@ -24,52 +46,10 @@ function parseHoursFromRequest(value) {
     const unit = match[2];
     if (Number.isFinite(amount) && amount > 0) {
       const hours = unit === "d" ? amount * 24 : amount;
-      return Math.min(MAX_HOURS, Math.max(1, Math.round(hours)));
+      return Math.min(MAX_HOURS, Math.max(MIN_HOURS, Math.round(hours)));
     }
   }
-  return DEFAULT_HOURS;
-}
-
-function mapDangerWeightToVisuals(weight) {
-  const value = Number(weight);
-  if (!Number.isFinite(value) || value <= 0) {
-    return {
-      level: "low",
-      radiusMeters: 80,
-      fillOpacity: 0.2,
-      color: "#facc15",
-    };
-  }
-  if (value > 20) {
-    return {
-      level: "critical",
-      radiusMeters: 320,
-      fillOpacity: 0.5,
-      color: "#dc2626",
-    };
-  }
-  if (value >= 13) {
-    return {
-      level: "high",
-      radiusMeters: 220,
-      fillOpacity: 0.4,
-      color: "#ea580c",
-    };
-  }
-  if (value >= 6) {
-    return {
-      level: "moderate",
-      radiusMeters: 140,
-      fillOpacity: 0.3,
-      color: "#f59e0b",
-    };
-  }
-  return {
-    level: "low",
-    radiusMeters: 80,
-    fillOpacity: 0.2,
-    color: "#facc15",
-  };
+  return null;
 }
 
 function parseBounds(input) {
@@ -90,20 +70,142 @@ function parseBounds(input) {
   return { north, south, east, west };
 }
 
-async function getDangerHeatClusters({ bounds = null, hours = DEFAULT_HOURS } = {}) {
-  const safeHours = Number.isFinite(Number(hours)) && Number(hours) > 0 ? Number(hours) : DEFAULT_HOURS;
-  const intervalText = `${Math.round(safeHours)} hours`;
-  const safeBounds = parseBounds(bounds);
+function clusterEpsForZoom(zoom) {
+  // Smaller eps at high zooms (closer in) so nearby reports stay separate;
+  // larger eps when zoomed out so distant reports merge into one circle.
+  const value = Number(zoom);
+  if (!Number.isFinite(value)) return DEFAULT_DBSCAN_EPS_DEG;
+  if (value >= 16) return 0.0008;
+  if (value >= 14) return 0.0015;
+  if (value >= 12) return 0.0025;
+  if (value >= 10) return 0.005;
+  if (value >= 8) return 0.012;
+  return 0.025;
+}
 
-  const params = [intervalText];
-  let boundsClause = "";
-  if (safeBounds) {
-    boundsClause = `
-      AND ar.incident_location && ST_MakeEnvelope($2, $3, $4, $5, 4326)::geography
-    `;
-    params.push(safeBounds.west, safeBounds.south, safeBounds.east, safeBounds.north);
+function clamp(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+
+function buildSeverityRatio(counts, total) {
+  if (!total || total <= 0) {
+    return { low: 0, moderate: 0, high: 0, critical: 0 };
+  }
+  return {
+    low: Number((counts.low / total).toFixed(4)),
+    moderate: Number((counts.moderate / total).toFixed(4)),
+    high: Number((counts.high / total).toFixed(4)),
+    critical: Number((counts.critical / total).toFixed(4)),
+  };
+}
+
+function pickDominantSeverity(counts) {
+  let dominant = "low";
+  let best = -1;
+  for (const key of SEVERITY_ORDER) {
+    const value = counts[key] || 0;
+    if (value > best) {
+      best = value;
+      dominant = key;
+    }
+  }
+  return dominant;
+}
+
+function buildColorStops(counts, total) {
+  if (!total || total <= 0) {
+    return [{ color: SEVERITY_COLORS.low, stop: 1 }];
+  }
+  // Concentric ring stops, ordered from center outward by severity.
+  // The center represents the most severe slice (critical → high →
+  // moderate → low). The frontend reads `stop` as a cumulative fraction
+  // [0..1] from the center.
+  const stops = [];
+  let cumulative = 0;
+  for (const key of SEVERITY_ORDER) {
+    const fraction = (counts[key] || 0) / total;
+    if (fraction <= 0) continue;
+    cumulative += fraction;
+    stops.push({
+      severity: key,
+      color: SEVERITY_COLORS[key],
+      stop: Math.min(1, Number(cumulative.toFixed(4))),
+    });
+  }
+  if (stops.length === 0) {
+    return [{ severity: "low", color: SEVERITY_COLORS.low, stop: 1 }];
+  }
+  // Make sure the outermost ring closes at exactly 1.
+  stops[stops.length - 1].stop = 1;
+  return stops;
+}
+
+function buildPopupSummary(counts, dominantSeverity, reportCount) {
+  const parts = [];
+  if (counts.critical > 0) parts.push(`${counts.critical} critical`);
+  if (counts.high > 0) parts.push(`${counts.high} high`);
+  if (counts.moderate > 0) parts.push(`${counts.moderate} moderate`);
+  if (counts.low > 0) parts.push(`${counts.low} low`);
+  const summary = parts.join(", ") || "no severity data";
+  return `${reportCount} report${reportCount === 1 ? "" : "s"} (${summary}). Dominant: ${dominantSeverity}.`;
+}
+
+function metersForRadiusPx(radiusPx, zoom) {
+  // Approximate meters-per-pixel at this zoom. Web mercator at the equator
+  // gives ~156543 m / 2^zoom per pixel. Good enough for rendering sized
+  // circles at the cluster level.
+  const safeZoom = Number.isFinite(Number(zoom)) ? Number(zoom) : 13;
+  const metersPerPx = 156543.03 / Math.pow(2, safeZoom);
+  return Math.round(radiusPx * metersPerPx);
+}
+
+async function getDangerHeatClusters({
+  bounds = null,
+  hours = null,
+  zoom = null,
+  minReports = 1,
+} = {}) {
+  // hours === null means "no time filter, show every accident report".
+  const explicitHours = parseHoursFromRequest(hours);
+  const safeBounds = parseBounds(bounds);
+  const safeZoom = Number.isFinite(Number(zoom)) ? Number(zoom) : null;
+  const epsDeg = clusterEpsForZoom(safeZoom);
+  const safeMinReports = Math.max(1, Math.round(Number(minReports) || 1));
+
+  // Build params + filter SQL incrementally so the time clause is only
+  // attached when the caller asked for one.
+  const params = [ACCIDENT_INCIDENT_TYPE];
+  const filters = [
+    "ar.incident_location IS NOT NULL",
+    "LOWER(COALESCE(ar.incident_type, '')) = $1",
+    "COALESCE(ar.latest_predicted_label, 'real') NOT IN ('spam', 'out_of_context', 'invalid_location')",
+  ];
+
+  if (explicitHours != null) {
+    params.push(`${explicitHours} hours`);
+    filters.push(`ar.created_at >= now() - ($${params.length}::text)::interval`);
   }
 
+  if (safeBounds) {
+    params.push(safeBounds.west, safeBounds.south, safeBounds.east, safeBounds.north);
+    const offset = params.length;
+    filters.push(
+      `ar.incident_location && ST_MakeEnvelope($${offset - 3}, $${offset - 2}, $${offset - 1}, $${offset}, 4326)::geography`,
+    );
+  }
+
+  const whereSql = filters.map((clause) => `        AND ${clause}`).join("\n").replace(/^        AND /, "        ");
+
+  // Severity bucketing matches the project convention used elsewhere
+  // (notification_priority_from_severity, etc.):
+  //   1 → low
+  //   2 → moderate (lower bound)
+  //   3 → moderate
+  //   4 → high
+  //   5+ → critical
   const sql = `
     WITH source AS (
       SELECT
@@ -113,44 +215,46 @@ async function getDangerHeatClusters({ bounds = null, hours = DEFAULT_HOURS } = 
         ar.created_at,
         ar.verified_by_officer_id,
         CASE
-          WHEN COALESCE(ar.severity_hint, 0) >= 5 THEN 8
-          WHEN ar.severity_hint = 4 THEN 6
-          WHEN ar.severity_hint = 3 THEN 4
-          WHEN ar.severity_hint = 2 THEN 2
-          WHEN ar.severity_hint = 1 THEN 1
-          ELSE 1
-        END
-        + CASE WHEN ar.verified_by_officer_id IS NOT NULL THEN 2 ELSE 0 END
-        AS weight
+          WHEN COALESCE(ar.severity_hint, 0) >= 5 THEN 'critical'
+          WHEN ar.severity_hint = 4 THEN 'high'
+          WHEN ar.severity_hint = 3 THEN 'moderate'
+          WHEN ar.severity_hint = 2 THEN 'moderate'
+          WHEN ar.severity_hint = 1 THEN 'low'
+          ELSE 'low'
+        END AS severity_bucket
       FROM app.accident_reports ar
-      WHERE ar.incident_location IS NOT NULL
-        AND ar.created_at >= now() - ($1::text)::interval
-        AND COALESCE(ar.latest_predicted_label, 'real')
-            NOT IN ('spam', 'out_of_context', 'invalid_location')
-        ${boundsClause}
+      WHERE ${whereSql}
     ),
     clustered AS (
       SELECT
-        ST_ClusterDBSCAN(geom, eps := ${DBSCAN_EPS_DEG}, minpoints := ${DBSCAN_MINPOINTS}) OVER () AS cluster_id,
+        ST_ClusterDBSCAN(geom, eps := ${Number(epsDeg).toFixed(6)}, minpoints := ${DBSCAN_MINPOINTS}) OVER () AS cluster_id,
         geom,
         severity_hint,
-        weight,
-        created_at
+        severity_bucket,
+        created_at,
+        verified_by_officer_id
       FROM source
     )
     SELECT
       cluster_id,
       COUNT(*)::int AS report_count,
-      SUM(weight)::int AS danger_weight,
+      COUNT(*) FILTER (WHERE severity_bucket = 'low')::int AS low_count,
+      COUNT(*) FILTER (WHERE severity_bucket = 'moderate')::int AS moderate_count,
+      COUNT(*) FILTER (WHERE severity_bucket = 'high')::int AS high_count,
+      COUNT(*) FILTER (WHERE severity_bucket = 'critical')::int AS critical_count,
+      COUNT(*) FILTER (WHERE verified_by_officer_id IS NOT NULL)::int AS verified_count,
       MAX(severity_hint)::int AS max_severity,
+      AVG(severity_hint)::float AS avg_severity,
       MAX(created_at) AS latest_report_at,
       ST_Y(ST_Centroid(ST_Collect(geom))) AS lat,
-      ST_X(ST_Centroid(ST_Collect(geom))) AS lon
+      ST_X(ST_Centroid(ST_Collect(geom))) AS lon,
+      (SELECT COUNT(*)::int FROM source) AS source_total
     FROM clustered
     WHERE cluster_id IS NOT NULL
     GROUP BY cluster_id
-    ORDER BY danger_weight DESC
-    LIMIT 500
+    HAVING COUNT(*) >= ${safeMinReports}
+    ORDER BY report_count DESC
+    LIMIT ${CLUSTER_RESULT_LIMIT}
   `;
 
   let rows = [];
@@ -163,38 +267,98 @@ async function getDangerHeatClusters({ bounds = null, hours = DEFAULT_HOURS } = 
   }
 
   const clusters = rows.map((row, index) => {
-    const visuals = mapDangerWeightToVisuals(row.danger_weight);
+    const counts = {
+      low: Number(row.low_count || 0),
+      moderate: Number(row.moderate_count || 0),
+      high: Number(row.high_count || 0),
+      critical: Number(row.critical_count || 0),
+    };
+    const total = counts.low + counts.moderate + counts.high + counts.critical;
+    const reportCount = Number(row.report_count || 0);
+    const dominantSeverity = pickDominantSeverity(counts);
+    const ratio = buildSeverityRatio(counts, total || reportCount);
+    const colorStops = buildColorStops(counts, total || reportCount);
+    const dangerWeight =
+      counts.low * SEVERITY_WEIGHTS.low +
+      counts.moderate * SEVERITY_WEIGHTS.moderate +
+      counts.high * SEVERITY_WEIGHTS.high +
+      counts.critical * SEVERITY_WEIGHTS.critical;
+    // Capped square-root scaling so a cluster of 1 still renders, and a
+    // cluster of 100+ does not cover the whole map.
+    const radiusPx = clamp(18 + Math.sqrt(reportCount) * 10, 22, 90);
+    const radiusMeters = metersForRadiusPx(radiusPx, safeZoom ?? 13);
+
     return {
       id: `cluster-${row.cluster_id != null ? row.cluster_id : index + 1}`,
       lat: Number(row.lat),
       lon: Number(row.lon),
-      reportCount: Number(row.report_count || 0),
-      dangerWeight: Number(row.danger_weight || 0),
-      maxSeverity: Number(row.max_severity || 0),
+      reportCount,
       latestReportAt: row.latest_report_at
         ? new Date(row.latest_report_at).toISOString()
         : null,
-      level: visuals.level,
-      radiusMeters: visuals.radiusMeters,
-      fillOpacity: visuals.fillOpacity,
-      color: visuals.color,
+      severityCounts: counts,
+      severityRatio: ratio,
+      dominantSeverity,
+      averageSeverity:
+        row.avg_severity != null ? Number(Number(row.avg_severity).toFixed(2)) : null,
+      maxSeverity: Number(row.max_severity || 0),
+      verifiedCount: Number(row.verified_count || 0),
+      dangerWeight,
+      radiusPx: Number(radiusPx.toFixed(1)),
+      radiusMeters,
+      colorStops,
+      popupSummary: buildPopupSummary(counts, dominantSeverity, reportCount),
     };
   });
 
+  const sourceTotal = Number(rows[0]?.source_total || 0);
   logHeatmap("computed_clusters", {
-    rangeHours: Math.round(safeHours),
+    incidentTypeColumn: "incident_type",
+    incidentTypeFilter: ACCIDENT_INCIDENT_TYPE,
+    rangeHours: explicitHours,
+    timeFilterActive: explicitHours != null,
+    boundsFilterActive: Boolean(safeBounds),
+    zoom: safeZoom,
+    sourceReportCount: sourceTotal,
     clusterCount: clusters.length,
-    bounded: Boolean(safeBounds),
+    clusterLimit: CLUSTER_RESULT_LIMIT,
   });
 
   return {
-    rangeHours: Math.round(safeHours),
+    rangeHours: explicitHours,
+    timeFilterActive: explicitHours != null,
+    boundsFilterActive: Boolean(safeBounds),
+    epsDegrees: epsDeg,
+    minReports: safeMinReports,
+    sourceReportCount: sourceTotal,
+    severityColors: SEVERITY_COLORS,
     clusters,
   };
+}
+
+// Backwards-compatible visual helper kept for callers that may still rely on
+// the old "danger weight → ring style" output. The frontend cluster renderer
+// no longer uses this — it consumes severityCounts/colorStops directly.
+function mapDangerWeightToVisuals(weight) {
+  const value = Number(weight);
+  if (!Number.isFinite(value) || value <= 0) {
+    return { level: "low", radiusMeters: 80, fillOpacity: 0.2, color: SEVERITY_COLORS.low };
+  }
+  if (value > 60) {
+    return { level: "critical", radiusMeters: 320, fillOpacity: 0.5, color: SEVERITY_COLORS.critical };
+  }
+  if (value >= 30) {
+    return { level: "high", radiusMeters: 220, fillOpacity: 0.4, color: SEVERITY_COLORS.high };
+  }
+  if (value >= 10) {
+    return { level: "moderate", radiusMeters: 140, fillOpacity: 0.3, color: SEVERITY_COLORS.moderate };
+  }
+  return { level: "low", radiusMeters: 80, fillOpacity: 0.2, color: SEVERITY_COLORS.low };
 }
 
 module.exports = {
   getDangerHeatClusters,
   mapDangerWeightToVisuals,
   parseHoursFromRequest,
+  SEVERITY_COLORS,
 };
