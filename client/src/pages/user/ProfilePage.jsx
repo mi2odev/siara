@@ -741,133 +741,123 @@ export default function ProfilePage(){
           <FeedSidebarNav activeKey="profile" />
         </aside>
 
-        {/* ═══ MIDDLE COLUMN — Profile Overview + Activities ═══ */}
+        {/* ═══ MIDDLE COLUMN ═══ */}
         <main className="profile-main">
-          {/* Profile Overview */}
-          <section className="profile-overview">
-            <div className="profile-cover"></div>
-            <div className="profile-header-content">
+          {/* ── Hero Card ── */}
+          <section className="prf-hero">
+            {/* Banner */}
+            <div className="prf-banner" aria-hidden="true">
+              <div className="prf-banner-circle prf-banner-circle--a" />
+              <div className="prf-banner-circle prf-banner-circle--b" />
+              <div className="prf-banner-circle prf-banner-circle--c" />
+            </div>
+
+            {/* Avatar + Info row */}
+            <div className="prf-hero-body">
               <button
                 type="button"
-                className="profile-avatar-large profile-avatar-trigger"
+                className="prf-ava-btn"
                 onClick={openAvatarPreview}
-                aria-label={`Open ${displayName} profile photo`}
+                aria-label={`View ${displayName} profile photo`}
               >
                 {profileAvatarUrl && !avatarFailed
-                  ? <img src={profileAvatarUrl} alt={displayName} loading="lazy" onError={() => setAvatarFailed(true)} />
-                  : <span className="profile-avatar-initials profile-avatar-initials--large">{profileInitials}</span>
+                  ? <img src={profileAvatarUrl} alt={displayName} className="prf-ava-img" loading="lazy" onError={() => setAvatarFailed(true)} />
+                  : <span className="prf-ava-initials">{profileInitials}</span>
                 }
               </button>
-              <div className="profile-info">
-                <h1 className="profile-name">{displayName}</h1>
-                <p className="profile-bio-main">{bio}</p>
-                <div className="profile-meta">
-                  <span className="meta-item" data-meta="location"><span className="meta-key">Location</span><span className="meta-value">{locationLabel}</span></span>
-                  <span className="meta-item" data-meta="member"><span className="meta-key">Member</span><span className="meta-value">{joinLabel}</span></span>
-                  <span className="meta-item" data-meta="contact"><span className="meta-key">Contact</span><span className="meta-value">{contactLabel}</span></span>
+
+              <div className="prf-hero-info">
+                <h1 className="prf-name">{displayName}</h1>
+                <p className="prf-bio">{bio}</p>
+                <div className="prf-chips">
+                  <span className="prf-chip">📍 {locationLabel}</span>
+                  <span className="prf-chip">🗓️ {joinLabel}</span>
+                  <span className="prf-chip">✉️ {contactLabel}</span>
                 </div>
               </div>
+
+              {isViewingOwnProfile && (
+                <button
+                  className="prf-edit-btn"
+                  onClick={() => navigate('/settings', { state: { openSection: 'profile' } })}
+                >
+                  Edit Profile
+                </button>
+              )}
             </div>
-            
-            <div className="profile-stats">
-              <div className="stat-item">
-                <span className="stat-value">{effectiveAlertsCount}</span>
-                <span className="stat-label">Alerts</span>
+
+            {/* Stats strip */}
+            <div className="prf-stats">
+              <div className="prf-stat">
+                <strong>{effectiveAlertsCount}</strong>
+                <span>Alerts</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-value">{effectiveReportsCount}</span>
-                <span className="stat-label">Reports</span>
+              <div className="prf-stat-sep" />
+              <div className="prf-stat">
+                <strong>{effectiveReportsCount}</strong>
+                <span>Reports</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-value">{displayVerificationRate}%</span>
-                <span className="stat-label">Verification Rate</span>
+              <div className="prf-stat-sep" />
+              <div className="prf-stat">
+                <strong>{displayVerificationRate}%</strong>
+                <span>Verified</span>
               </div>
             </div>
           </section>
 
           {isViewingOwnProfile && (
-            <section className="profile-driver-quiz">
-              <div className="profile-driver-quiz-header">
-                <h3>Driver behavior profile</h3>
+            <section className="prf-quiz-card">
+              <div className="prf-quiz-head">
+                <div>
+                  <h3 className="prf-section-title">🚗 Driver Behavior Profile</h3>
+                  <p className="prf-section-sub">Your personalized driving risk assessment</p>
+                </div>
                 <button
                   type="button"
-                  className="profile-driver-quiz-cta"
+                  className="prf-quiz-cta"
                   onClick={() => navigate('/predictions')}
                 >
                   Take or retake quiz
                 </button>
               </div>
-              {driverQuizLoading && <p className="profile-driver-quiz-empty">Loading your latest result...</p>}
+              {driverQuizLoading && <p className="prf-quiz-empty">Loading your latest result…</p>}
               {driverQuizError && !driverQuizLoading && (
-                <p className="profile-driver-quiz-empty profile-driver-quiz-error">{driverQuizError}</p>
+                <p className="prf-quiz-empty prf-quiz-empty--error">{driverQuizError}</p>
               )}
               {!driverQuizLoading && !driverQuizError && !driverQuizProfile && (
-                <p className="profile-driver-quiz-empty">
-                  You haven&apos;t completed the SIARA driver quiz yet. Take it to receive a personalized driving profile.
-                </p>
+                <p className="prf-quiz-empty">You haven&apos;t completed the SIARA driver quiz yet. Take it to receive a personalized driving profile.</p>
               )}
               {!driverQuizLoading && !driverQuizError && driverQuizProfile && (
-                <>
-                  <div className="profile-driver-quiz-summary">
-                    <div className="profile-driver-quiz-score">
-                      <span className="profile-driver-quiz-score-value">
-                        {driverQuizProfile.latestRiskScore == null
-                          ? '--'
-                          : Math.round(Number(driverQuizProfile.latestRiskScore))}
-                      </span>
-                      <span className="profile-driver-quiz-score-suffix">/100 risk</span>
-                    </div>
-                    <div className="profile-driver-quiz-text">
-                      <strong>{driverQuizProfile.latestResultTitle || 'Driver profile'}</strong>
-                      {driverQuizProfile.latestResultDescription && (
-                        <p>{driverQuizProfile.latestResultDescription}</p>
-                      )}
-                      {driverQuizProfile.latestRecommendationDescription && (
-                        <p className="profile-driver-quiz-reco">
-                          {driverQuizProfile.latestRecommendationDescription}
-                        </p>
-                      )}
-                      {driverQuizProfile.lastCompletedAt && (
-                        <span className="profile-driver-quiz-meta">
-                          Last completed{' '}
-                          {new Date(driverQuizProfile.lastCompletedAt).toLocaleString()}
-                        </span>
-                      )}
-                    </div>
+                <div className="prf-quiz-body">
+                  <div className="prf-quiz-score-ring">
+                    <strong className="prf-quiz-score-num">
+                      {driverQuizProfile.latestRiskScore == null ? '--' : Math.round(Number(driverQuizProfile.latestRiskScore))}
+                    </strong>
+                    <span className="prf-quiz-score-max">/100</span>
+                    <span className="prf-quiz-score-label">risk</span>
                   </div>
-                  {driverQuizHistory.length > 1 && (
-                    <details className="profile-driver-quiz-history">
-                      <summary>History ({driverQuizHistory.length})</summary>
-                      <ul>
-                        {driverQuizHistory.map((attempt) => (
-                          <li key={attempt.id}>
-                            <span>
-                              {attempt.completedAt
-                                ? new Date(attempt.completedAt).toLocaleString()
-                                : new Date(attempt.createdAt).toLocaleString()}
-                            </span>
-                            <span>
-                              {attempt.status === 'completed' && attempt.riskScore != null
-                                ? `${Math.round(Number(attempt.riskScore))}/100 · ${attempt.resultTitle || attempt.resultLabel || ''}`
-                                : attempt.status}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
-                </>
+                  <div className="prf-quiz-text">
+                    <strong className="prf-quiz-title">{driverQuizProfile.latestResultTitle || 'Driver profile'}</strong>
+                    {driverQuizProfile.latestResultDescription && <p className="prf-quiz-desc">{driverQuizProfile.latestResultDescription}</p>}
+                    {driverQuizProfile.latestRecommendationDescription && (
+                      <p className="prf-quiz-reco">💡 {driverQuizProfile.latestRecommendationDescription}</p>
+                    )}
+                    {driverQuizProfile.lastCompletedAt && (
+                      <span className="prf-quiz-meta">Last completed {new Date(driverQuizProfile.lastCompletedAt).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                </div>
               )}
             </section>
           )}
 
-          {/* ═══ TABBED ACTIVITIES SECTION ═══ */}
-          <section className="profile-activities">
-            <div className="activity-tabs" role="tablist" ref={tabsRef}>
+          {/* ═══ ACTIVITY TABS ═══ */}
+          <section className="prf-activities">
+            <div className="prf-tabs" role="tablist" ref={tabsRef}>
               {tabs.map((tabKey, tabIndex) => (
                 <button
                   key={tabKey}
-                  className={`activity-tab ${activeTab === tabKey ? 'active' : ''}`}
+                  className={`prf-tab${activeTab === tabKey ? ' prf-tab--active' : ''}`}
                   onClick={() => setActiveTab(tabKey)}
                   onKeyDown={(event) => handleKeyDown(event, tabIndex)}
                   role="tab"
@@ -878,44 +868,41 @@ export default function ProfilePage(){
                 </button>
               ))}
             </div>
-
-            {/* ═══ TAB CONTENT PANELS ═══ */}
-            <div className="activity-content">
-              {/* Alerts tab — user saved alerts */}
+            <div className="prf-tab-content">
               {activeTab === 'alerts' && (
-                <div className="activity-grid">
+                <div className="prf-grid">
                   {shouldHideActivityForViewer ? (
-                    <div className="activity-card">
-                      <h3 className="activity-title">Activity is private</h3>
-                      <p className="activity-time">This account is private. Alerts are hidden from other users.</p>
+                    <div className="prf-card">
+                      <h3 className="prf-card-title">Activity is private</h3>
+                      <p className="prf-card-time">This account is private. Alerts are hidden from other users.</p>
                     </div>
                   ) : alertsLoading ? (
-                    <div className="activity-card">
-                      <h3 className="activity-title">Loading your alerts...</h3>
+                    <div className="prf-card">
+                      <h3 className="prf-card-title">Loading your alerts...</h3>
                     </div>
                   ) : alertsError ? (
-                    <div className="activity-card">
-                      <h3 className="activity-title">{alertsError}</h3>
+                    <div className="prf-card">
+                      <h3 className="prf-card-title">{alertsError}</h3>
                     </div>
                   ) : myAlerts.length === 0 ? (
-                    <div className="activity-card">
-                      <h3 className="activity-title">No saved alerts yet</h3>
-                      <p className="activity-time">Create a new alert to monitor your important zones.</p>
+                    <div className="prf-card">
+                      <h3 className="prf-card-title">No saved alerts yet</h3>
+                      <p className="prf-card-time">Create a new alert to monitor your important zones.</p>
                       <button className="btn-edit-profile" onClick={() => navigate('/alerts/create')}>🔔 Create Alert</button>
                     </div>
                   ) : (
                     myAlerts.map((alert) => (
-                      <div key={alert.id} className="activity-card" onClick={() => navigate('/alerts')}>
-                        <div className="activity-header">
-                          <span className="activity-type">🔔 {alert.name || 'Saved alert'}</span>
+                      <div key={alert.id} className="prf-card" onClick={() => navigate('/alerts')}>
+                        <div className="prf-card-header">
+                          <span className="prf-card-type">🔔 {alert.name || 'Saved alert'}</span>
                           <span className={`severity-badge ${String(alert.severity || 'low').toLowerCase()}`}>
                             {toTitleCase(alert.severity || 'low')}
                           </span>
                         </div>
-                        <h3 className="activity-title">{alert.area?.name || alert.zone?.displayName || 'Monitored area'}</h3>
-                        <p className="activity-location">📍 {alert.area?.wilaya || 'Unknown wilaya'}</p>
-                        <p className="activity-time">Last trigger: {formatAlertTime(alert.lastTriggered || alert.last_triggered)}</p>
-                        <div className={`activity-status ${(alert.status || 'paused').toLowerCase() === 'active' ? 'verified' : 'pending'}`}>
+                        <h3 className="prf-card-title">{alert.area?.name || alert.zone?.displayName || 'Monitored area'}</h3>
+                        <p className="prf-card-loc">📍 {alert.area?.wilaya || 'Unknown wilaya'}</p>
+                        <p className="prf-card-time">Last trigger: {formatAlertTime(alert.lastTriggered || alert.last_triggered)}</p>
+                        <div className={`prf-card-status ${(alert.status || 'paused').toLowerCase() === 'active' ? 'verified' : 'pending'}`}>
                           {(alert.status || 'Paused')}
                         </div>
                       </div>
@@ -924,41 +911,40 @@ export default function ProfilePage(){
                 </div>
               )}
 
-              {/* Reports tab */}
               {activeTab === 'reports' && (
-                <div className="activity-grid">
+                <div className="prf-grid">
                   {shouldHideActivityForViewer ? (
-                    <div className="activity-card">
-                      <h3 className="activity-title">Reports are private</h3>
-                      <p className="activity-time">This account is private. Report history is hidden from other users.</p>
+                    <div className="prf-card">
+                      <h3 className="prf-card-title">Reports are private</h3>
+                      <p className="prf-card-time">This account is private. Report history is hidden from other users.</p>
                     </div>
                   ) : reportsLoading ? (
-                    <div className="activity-card">
-                      <h3 className="activity-title">Loading your reports...</h3>
+                    <div className="prf-card">
+                      <h3 className="prf-card-title">Loading your reports...</h3>
                     </div>
                   ) : reportsError ? (
-                    <div className="activity-card">
-                      <h3 className="activity-title">{reportsError}</h3>
+                    <div className="prf-card">
+                      <h3 className="prf-card-title">{reportsError}</h3>
                     </div>
                   ) : myReports.length === 0 ? (
-                    <div className="activity-card">
-                      <h3 className="activity-title">No reports found yet</h3>
-                      <p className="activity-time">Create your first incident report to see it here.</p>
+                    <div className="prf-card">
+                      <h3 className="prf-card-title">No reports found yet</h3>
+                      <p className="prf-card-time">Create your first incident report to see it here.</p>
                       <button className="btn-edit-profile" onClick={() => navigate('/report')}>📝 Create Report</button>
                     </div>
                   ) : (
                     myReports.map((report) => (
-                      <div key={report.id} className="activity-card" onClick={() => navigate(`/incident/${report.id}`)}>
-                        <div className="activity-header">
-                          <span className="activity-type">🚨 {toTitleCase(report.incidentType || report.incident_type || 'incident')}</span>
+                      <div key={report.id} className="prf-card" onClick={() => navigate(`/incident/${report.id}`)}>
+                        <div className="prf-card-header">
+                          <span className="prf-card-type">🚨 {toTitleCase(report.incidentType || report.incident_type || 'incident')}</span>
                           <span className={`severity-badge ${String(report.severity || 'low').toLowerCase()}`}>
                             {toTitleCase(report.severity || 'low')}
                           </span>
                         </div>
-                        <h3 className="activity-title">{report.title || 'Untitled report'}</h3>
-                        <p className="activity-location">📍 {report.locationLabel || report.location?.label || 'Location not set'}</p>
-                        <p className="activity-time">{formatReportTime(report.createdAt || report.created_at || report.occurredAt || report.occurred_at)}</p>
-                        <div className={`activity-status ${(report.status || 'pending').toLowerCase() === 'verified' ? 'verified' : 'pending'}`}>
+                        <h3 className="prf-card-title">{report.title || 'Untitled report'}</h3>
+                        <p className="prf-card-loc">📍 {report.locationLabel || report.location?.label || 'Location not set'}</p>
+                        <p className="prf-card-time">{formatReportTime(report.createdAt || report.created_at || report.occurredAt || report.occurred_at)}</p>
+                        <div className={`prf-card-status ${(report.status || 'pending').toLowerCase() === 'verified' ? 'verified' : 'pending'}`}>
                           {(report.status || 'Pending')}
                         </div>
                       </div>
@@ -969,7 +955,7 @@ export default function ProfilePage(){
 
               {/* Timeline tab — chronological event list with colored markers */}
               {activeTab === 'timeline' && (
-                <div className="activity-timeline">
+                <div className="prf-timeline">
                   {[
                     {
                       type: 'report',
@@ -1050,99 +1036,90 @@ export default function ProfilePage(){
 
         </main>
 
-        {/* ═══ RIGHT COLUMN — Profile Insights (score, impact, alerts, health) ═══ */}
+        {/* ═══ RIGHT COLUMN ═══ */}
         <aside className="profile-sidebar-right">
-          {/* Trust Score */}
-          <div className="insight-card safety-score">
-            <h3 className="insight-title">🛡️ Trust Score</h3>
-            <div className="score-gauge">
-              <svg className="gauge-svg" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="50" fill="none" stroke="#E5E7EB" strokeWidth="10"/>
-                <circle cx="60" cy="60" r="50" fill="none" stroke="url(#gradient)" strokeWidth="10" 
+          {/* ── Trust Score ── */}
+          <div className="prf-r-card">
+            <p className="prf-r-label">Trust Score</p>
+            <div className="prf-gauge-wrap">
+              <svg className="prf-gauge-svg" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#f1f5f9" strokeWidth="10"/>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="url(#prfGrad)" strokeWidth="10"
+                  strokeLinecap="round"
                   strokeDasharray="314" strokeDashoffset={trustScoreDashOffset} transform="rotate(-90 60 60)"/>
                 <defs>
-                  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#5A28FF"/>
-                    <stop offset="100%" stopColor="#C04BFF"/>
+                  <linearGradient id="prfGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#4f46e5"/>
+                    <stop offset="100%" stopColor="#a855f7"/>
                   </linearGradient>
                 </defs>
               </svg>
-              <div className="score-value">{trustScoreLabel}</div>
+              <div className="prf-gauge-center">
+                <span className="prf-gauge-num">{trustScoreLabel}</span>
+                <span className="prf-gauge-sub">/ 100</span>
+              </div>
             </div>
-            <div className="score-factors">
-              <div className="factor-item">✓ {legitReportsCount} reports confirmed legit</div>
-              <div className="factor-item">✓ {spamReportsCount} reports confirmed spam</div>
-              <div className="factor-item">✓ {reviewedReportsCount} reports reviewed</div>
-              <div className="factor-item">✓ {trustGeneratedLabel}</div>
+            <ul className="prf-factors">
+              <li><span className="prf-factor-dot prf-factor-dot--ok" />{legitReportsCount} reports confirmed legit</li>
+              <li><span className="prf-factor-dot prf-factor-dot--warn" />{spamReportsCount} reports confirmed spam</li>
+              <li><span className="prf-factor-dot prf-factor-dot--ok" />{reviewedReportsCount} reports reviewed</li>
+              <li><span className="prf-factor-dot prf-factor-dot--info" />{trustGeneratedLabel}</li>
+            </ul>
+          </div>
+
+          {/* ── Contribution Impact ── */}
+          <div className="prf-r-card">
+            <p className="prf-r-label">Contribution Impact</p>
+            <div className="prf-impact-grid">
+              <div className="prf-impact-cell">
+                <strong>{alertMetrics.triggered.toLocaleString()}</strong>
+                <span>alert matches</span>
+              </div>
+              <div className="prf-impact-cell">
+                <strong>{reportMetrics.aiRate}%</strong>
+                <span>AI validated</span>
+              </div>
+              <div className="prf-impact-zone">
+                <span className="prf-impact-zone-val">{topActiveZone}</span>
+                <span className="prf-impact-zone-lbl">most active zone</span>
+              </div>
             </div>
           </div>
 
-          {/* Contribution Impact */}
-          <div className="insight-card impact">
-            <h3 className="insight-title">📊 Contribution Impact</h3>
-            <div className="impact-stats">
-              <div className="impact-item">
-                <span className="impact-value">{alertMetrics.triggered.toLocaleString()}</span>
-                <span className="impact-label">alert matches (all time)</span>
-              </div>
-              <div className="impact-item">
-                <span className="impact-value">{reportMetrics.aiRate}%</span>
-                <span className="impact-label">reports validated by AI</span>
-              </div>
-              <div className="impact-item">
-                <span className="impact-value">{topActiveZone}</span>
-                <span className="impact-label">most active zone</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Alerts */}
-          <div className="insight-card recent-alerts">
-            <h3 className="insight-title">🚨 Recent Triggered Alerts</h3>
-            <div className="alerts-list">
-              {recentTriggeredAlerts.length > 0 ? (
-                recentTriggeredAlerts.map((alert) => (
-                  <div key={alert.id} className="alert-item">
-                    <span className={`alert-severity ${alert.severity}`}></span>
-                    <div className="alert-info">
-                      <div className="alert-location">{alert.location}</div>
-                      <div className="alert-users">{alert.subtitle || 'Recently triggered'}</div>
-                    </div>
+          {/* ── Recent Alerts ── */}
+          <div className="prf-r-card">
+            <p className="prf-r-label">Recent Triggered Alerts</p>
+            <ul className="prf-alert-list">
+              {recentTriggeredAlerts.length > 0 ? recentTriggeredAlerts.map((alert) => (
+                <li key={alert.id} className="prf-alert-row">
+                  <span className={`prf-alert-dot prf-alert-dot--${alert.severity || 'low'}`} />
+                  <div className="prf-alert-info">
+                    <span className="prf-alert-loc">{alert.location}</span>
+                    <span className="prf-alert-sub">{alert.subtitle || 'Recently triggered'}</span>
                   </div>
-                ))
-              ) : (
-                <div className="alert-item">
-                  <span className="alert-severity low"></span>
-                  <div className="alert-info">
-                    <div className="alert-location">No recent triggers yet</div>
-                    <div className="alert-users">New triggers will appear here.</div>
-                  </div>
-                </div>
+                </li>
+              )) : (
+                <li className="prf-alert-row prf-alert-row--empty">No recent triggers yet</li>
               )}
-            </div>
+            </ul>
           </div>
 
-          {/* Account Health */}
-          <div className="insight-card account-health">
-            <h3 className="insight-title">✓ Account Health</h3>
-            <div className="health-items">
-              <div className={`health-item ${isEmailVerified ? 'ok' : 'warning'}`}>
-                <span className="health-icon">{isEmailVerified ? '✓' : '⚠'}</span>
-                <span className="health-label">Email verified</span>
-              </div>
-              <div className={`health-item ${hasPhoneVerified ? 'ok' : 'warning'}`}>
-                <span className="health-icon">{hasPhoneVerified ? '✓' : '⚠'}</span>
-                <span className="health-label">Phone verified</span>
-              </div>
-              <div className={`health-item ${hasLocationSet ? 'ok' : 'warning'}`}>
-                <span className="health-icon">{hasLocationSet ? '✓' : '⚠'}</span>
-                <span className="health-label">Location set</span>
-              </div>
-              <div className={`health-item ${profileVisibility === 'private' ? 'warning' : 'ok'}`}>
-                <span className="health-icon">{profileVisibility === 'private' ? '⚠' : '✓'}</span>
-                <span className="health-label">Visibility: {profileVisibility}</span>
-              </div>
-            </div>
+          {/* ── Account Health ── */}
+          <div className="prf-r-card">
+            <p className="prf-r-label">Account Health</p>
+            <ul className="prf-health-list">
+              {[
+                { ok: isEmailVerified,   label: 'Email verified' },
+                { ok: hasPhoneVerified,  label: 'Phone verified' },
+                { ok: hasLocationSet,    label: 'Location set' },
+                { ok: profileVisibility !== 'private', label: `Visibility: ${profileVisibility}` },
+              ].map(({ ok, label }) => (
+                <li key={label} className={`prf-health-item${ok ? '' : ' prf-health-item--warn'}`}>
+                  <span className="prf-health-icon">{ok ? '✓' : '!'}</span>
+                  <span>{label}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </aside>
       </div>

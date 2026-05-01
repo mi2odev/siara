@@ -543,7 +543,13 @@ export default function PoliceIncidentDetailPage() {
                         const isBusy = noteBusyId === entry.id
                         return (
                           <li key={entry.id} className={`pid-note${isMine ? ' pid-note--mine' : ''}`}>
-                            <div className="pid-note-avatar">{initials(entry.officer?.name)}</div>
+                            <div className={`pid-note-avatar${entry.officer?.avatar_url || entry.officer?.avatarUrl ? ' has-image' : ''}`}>
+                              {entry.officer?.avatar_url || entry.officer?.avatarUrl ? (
+                                <img src={entry.officer.avatar_url || entry.officer.avatarUrl} alt={entry.officer?.name} className="pid-note-avatar-image" loading="lazy" />
+                              ) : (
+                                initials(entry.officer?.name)
+                              )}
+                            </div>
                             <div className="pid-note-bubble">
                               <div className="pid-note-meta">
                                 <strong>{entry.officer?.name || 'Officer'}</strong>

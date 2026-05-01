@@ -484,7 +484,7 @@ function extractRoleSnapshot(value) {
   return [];
 }
 
-function formatPerson(id, name, email = null) {
+function formatPerson(id, name, email = null, avatarUrl = null) {
   if (!id && !name && !email) {
     return null;
   }
@@ -493,6 +493,8 @@ function formatPerson(id, name, email = null) {
     id: id || null,
     name: name || email || null,
     email: email || null,
+    avatar_url: avatarUrl || null,
+    avatarUrl: avatarUrl || null,
   };
 }
 
@@ -921,6 +923,7 @@ async function getOperationHistoryRows(
         history.*,
         COUNT(*) OVER() AS total_count,
         CONCAT_WS(' ', officer.first_name, officer.last_name) AS officer_name,
+        officer.avatar_url AS officer_avatar_url,
         report.title AS report_title,
         report.severity_hint AS report_severity_hint,
         report.status AS report_status,
@@ -949,7 +952,7 @@ async function getOperationHistoryRows(
     note: row.note || null,
     metadata: row.metadata || {},
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
-    officer: formatPerson(row.officer_user_id, row.officer_name),
+    officer: formatPerson(row.officer_user_id, row.officer_name, null, row.officer_avatar_url),
     reportId: row.report_id || null,
     reportTitle: row.report_title || null,
     reportSeverity: row.report_severity_hint != null

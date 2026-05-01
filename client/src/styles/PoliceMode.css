@@ -8248,8 +8248,20 @@
   justify-content: center;
   font-size: 11.5px;
   font-weight: 700;
+  overflow: hidden;
+}
+.pid-note-avatar.has-image {
+  background: #e2e8f0;
+  padding: 0;
+}
+.pid-note-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .pid-note--mine .pid-note-avatar { background: #7c3aed; }
+.pid-note--mine .pid-note-avatar.has-image { background: #ddd6fe; }
 
 .pid-note-bubble {
   flex: 1;
