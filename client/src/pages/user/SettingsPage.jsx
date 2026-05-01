@@ -174,6 +174,7 @@ export default function SettingsPage() {
     confirmPassword: '',
   })
   const avatarInputRef = useRef(null)
+  const locationHandlerRef = useRef(null)
 
   useEffect(() => {
     setActiveSection(initialSection)
@@ -456,19 +457,26 @@ export default function SettingsPage() {
     }
   }
 
+  // Keep ref in sync with latest handler so the interval never captures a stale closure.
+  useEffect(() => {
+    locationHandlerRef.current = handleUseCurrentLocation
+  }, [handleUseCurrentLocation])
+
+  // The interval only depends on isAutoLocationEnabled — it never resets mid-countdown
+  // just because an unrelated state change recreated handleUseCurrentLocation.
   useEffect(() => {
     if (!isAutoLocationEnabled) {
       return undefined
     }
 
     const intervalId = window.setInterval(() => {
-      void handleUseCurrentLocation({ triggeredByAuto: true })
+      void locationHandlerRef.current?.({ triggeredByAuto: true })
     }, AUTO_LOCATION_INTERVAL_MS)
 
     return () => {
       window.clearInterval(intervalId)
     }
-  }, [isAutoLocationEnabled, handleUseCurrentLocation])
+  }, [isAutoLocationEnabled])
 
   const toggleNotif = async (key) => {
     const nextNotifs = {

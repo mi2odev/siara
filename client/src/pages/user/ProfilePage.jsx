@@ -171,6 +171,7 @@ export default function ProfilePage(){
   const [activeTab, setActiveTab] = useState('alerts')       // Currently selected activity tab
   const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false)
+  const [avatarFailed, setAvatarFailed] = useState(false)
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const tabsRef = useRef(null)                              // Ref to the tab-list container for scroll/focus
   const viewedUserFromFeed = location.state?.profileUser || null
@@ -340,9 +341,13 @@ export default function ProfilePage(){
     || currentUser.email
     || currentUser.phone
     || 'SIARA User'
-  const profileAvatarUrl = getUserAvatarUrl(currentUser) || headerAvatarUrl || profileAvatar
+  const profileAvatarUrl = getUserAvatarUrl(currentUser) || headerAvatarUrl || ''
+  const profileInitials = getInitialsFromName(displayName) || '?'
   const bio = String(currentUser.bio || '').trim() || 'No bio added yet.'
-  const locationLabel = currentUser.city
+  // For own profile, always prefer the fresh AuthContext user.location which is kept
+  // up-to-date by saveSettings in SettingsPage. profileUser may be stale after an update.
+  const locationLabel = (isViewingOwnProfile ? (user?.location || user?.city) : null)
+    || currentUser.city
     || currentUser.location
     || currentUser.address
     || 'Location not set'
@@ -360,6 +365,8 @@ export default function ProfilePage(){
   const effectiveAlertsCount = shouldHideActivityForViewer
     ? 0
     : (Number.isFinite(Number(alertsCount)) ? Number(alertsCount) : myAlerts.length)
+
+  useEffect(() => { setAvatarFailed(false) }, [profileAvatarUrl])
 
   const tabs = useMemo(
     () => (isExternalProfileView ? ['alerts', 'reports'] : ['alerts', 'reports', 'history', 'timeline']),
@@ -714,7 +721,10 @@ export default function ProfilePage(){
               onClick={openAvatarPreview}
               aria-label={`Open ${displayName} profile photo`}
             >
-              <img src={profileAvatarUrl} alt={displayName} loading="lazy" />
+              {profileAvatarUrl && !avatarFailed
+                ? <img src={profileAvatarUrl} alt={displayName} loading="lazy" onError={() => setAvatarFailed(true)} />
+                : <span className="profile-avatar-initials">{profileInitials}</span>
+              }
             </button>
             <h2 className="user-card-name">{displayName}</h2>
             <p className="user-bio">{bio}</p>
@@ -743,15 +753,18 @@ export default function ProfilePage(){
                 onClick={openAvatarPreview}
                 aria-label={`Open ${displayName} profile photo`}
               >
-                <img src={profileAvatarUrl} alt={displayName} loading="lazy" />
+                {profileAvatarUrl && !avatarFailed
+                  ? <img src={profileAvatarUrl} alt={displayName} loading="lazy" onError={() => setAvatarFailed(true)} />
+                  : <span className="profile-avatar-initials profile-avatar-initials--large">{profileInitials}</span>
+                }
               </button>
               <div className="profile-info">
                 <h1 className="profile-name">{displayName}</h1>
                 <p className="profile-bio-main">{bio}</p>
                 <div className="profile-meta">
-                  <span className="meta-item"><span className="meta-key">Location</span><span className="meta-value">{locationLabel}</span></span>
-                  <span className="meta-item"><span className="meta-key">Member</span><span className="meta-value">{joinLabel}</span></span>
-                  <span className="meta-item"><span className="meta-key">Contact</span><span className="meta-value">{contactLabel}</span></span>
+                  <span className="meta-item" data-meta="location"><span className="meta-key">Location</span><span className="meta-value">{locationLabel}</span></span>
+                  <span className="meta-item" data-meta="member"><span className="meta-key">Member</span><span className="meta-value">{joinLabel}</span></span>
+                  <span className="meta-item" data-meta="contact"><span className="meta-key">Contact</span><span className="meta-value">{contactLabel}</span></span>
                 </div>
               </div>
             </div>
@@ -1138,7 +1151,10 @@ export default function ProfilePage(){
         <div className="profile-avatar-preview-overlay" role="dialog" aria-modal="true" aria-label="Profile photo preview" onClick={closeAvatarPreview}>
           <button type="button" className="profile-avatar-preview-close" onClick={closeAvatarPreview} aria-label="Close profile photo preview">×</button>
           <div className="profile-avatar-preview-modal" onClick={(event) => event.stopPropagation()}>
-            <img src={profileAvatarUrl} alt={`${displayName} profile`} className="profile-avatar-preview-image" loading="lazy" />
+            {profileAvatarUrl && !avatarFailed
+              ? <img src={profileAvatarUrl} alt={`${displayName} profile`} className="profile-avatar-preview-image" loading="lazy" onError={() => setAvatarFailed(true)} />
+              : <span className="profile-avatar-initials profile-avatar-initials--preview">{profileInitials}</span>
+            }
           </div>
         </div>
       )}

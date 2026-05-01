@@ -337,6 +337,24 @@
   object-fit: cover;
 }
 
+/* Initials fallback when avatar image fails to load */
+.profile-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 4px solid var(--siara-gradient-mid, #7c3aed);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  user-select: none;
+  box-sizing: border-box;
+}
+
 .user-card-name {
   font-size: 20px;
   font-weight: 700;
@@ -599,6 +617,20 @@
   border: 4px solid white;
   object-fit: cover;
   box-shadow: 0 12px 26px rgba(90, 40, 255, 0.28);
+}
+
+.profile-avatar-initials--large {
+  border: 4px solid #fff;
+  font-size: 32px;
+  box-shadow: 0 12px 26px rgba(90, 40, 255, 0.28);
+}
+
+.profile-avatar-initials--preview {
+  width: 220px;
+  height: 220px;
+  font-size: 64px;
+  border: none;
+  box-shadow: none;
 }
 
 .profile-avatar-preview-overlay {
@@ -1760,4 +1792,166 @@
   background: #F8FAFC;
   border-radius: 8px;
   color: #334155;
+}
+
+/* ══ Profile Page — Professional Redesign ═══════════════════════════════ */
+
+/* Taller cover with decorative circles */
+.profile-cover {
+  height: 160px !important;
+  background: linear-gradient(135deg, #4338ca 0%, #7c3aed 50%, #a855f7 100%) !important;
+  overflow: hidden;
+}
+.profile-cover::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: 6%;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+  pointer-events: none;
+}
+.profile-cover::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: -80px !important;
+  left: 30% !important;
+  width: 200px !important;
+  height: 200px !important;
+  border-radius: 50% !important;
+  background: rgba(255,255,255,0.05) !important;
+  pointer-events: none !important;
+  inset: unset !important;
+}
+
+/* Bigger avatar rising out of cover */
+.siara-profile-root .profile-avatar-large {
+  width: 114px !important;
+  height: 114px !important;
+  margin-top: -64px !important;
+}
+.siara-profile-root .profile-avatar-large img,
+.siara-profile-root .profile-avatar-large .profile-avatar-initials {
+  border: 4px solid #fff !important;
+  box-shadow: 0 8px 32px rgba(99,102,241,0.3) !important;
+}
+
+/* Remove the inner white-card nested effect from profile-info */
+.siara-profile-root .profile-info {
+  background: transparent !important;
+  border: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 8px 0 8px 4px !important;
+  gap: 10px !important;
+}
+
+/* Tighter, cleaner name */
+.siara-profile-root .profile-name {
+  font-size: clamp(19px, 1.6vw, 23px) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  color: #0f172a !important;
+}
+
+/* Bio with slightly de-emphasised style */
+.profile-bio-main {
+  font-size: 13.5px !important;
+  color: #64748b !important;
+  font-style: italic !important;
+}
+
+/* Meta chips: cleaner + emoji icons */
+.meta-item {
+  padding: 5px 12px !important;
+  background: #f8faff !important;
+  border: 1.5px solid #e0e7ff !important;
+  border-radius: 999px !important;
+  gap: 6px !important;
+}
+.meta-item:hover {
+  background: #eef2ff !important;
+  border-color: #c7d2fe !important;
+}
+.meta-key {
+  color: #6366f1 !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.07em !important;
+}
+.meta-value {
+  color: #1e293b !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}
+/* Icon prefix per meta type */
+.meta-item[data-meta="location"] .meta-key::before { content: "📍 "; font-style: normal; }
+.meta-item[data-meta="member"]   .meta-key::before { content: "🗓️ "; font-style: normal; }
+.meta-item[data-meta="contact"]  .meta-key::before { content: "✉️ "; font-style: normal; }
+
+/* Stats strip */
+.profile-stats {
+  background: #fff !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+.stat-item {
+  padding: 20px 10px !important;
+}
+.stat-item:hover {
+  background: #fafbff !important;
+}
+.stat-value {
+  font-size: 32px !important;
+  letter-spacing: -0.03em !important;
+}
+.stat-label {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: #94a3b8 !important;
+}
+
+/* Left sidebar user card — cleaner */
+.user-card {
+  background: #fff !important;
+  border-radius: 18px !important;
+  box-shadow: 0 4px 24px rgba(15,23,42,0.08) !important;
+  border: 1px solid #f1f5f9 !important;
+  padding: 24px 20px 20px !important;
+  text-align: center !important;
+  margin-bottom: 14px !important;
+}
+.user-card-name {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin: 0 0 4px !important;
+}
+.user-bio {
+  font-size: 12.5px !important;
+  color: #94a3b8 !important;
+  margin: 0 0 14px !important;
+}
+.btn-edit-profile {
+  font-size: 13px !important;
+  padding: 9px 20px !important;
+  border-radius: 10px !important;
+}
+
+/* Right panel: Trust Score card */
+.profile-trust-score-card,
+.profile-right-card {
+  border-radius: 18px !important;
+  box-shadow: 0 4px 20px rgba(15,23,42,0.07) !important;
+  border: 1px solid #f1f5f9 !important;
+}
+
+/* Driver quiz card */
+.profile-driver-quiz {
+  border-radius: 18px !important;
+  box-shadow: 0 4px 20px rgba(15,23,42,0.07) !important;
+  border: 1px solid #f1f5f9 !important;
 }
