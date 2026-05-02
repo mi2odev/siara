@@ -1,6 +1,16 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
+import { MapContainer, Marker, TileLayer } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+
+const leafletIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+})
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
@@ -150,7 +160,6 @@ export default function AlertsPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useContext(AuthContext)
-  const { isLoaded: mapReady } = useLoadScript({ googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '' })
 
   const [showDropdown, setShowDropdown] = useState(false)
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
@@ -785,18 +794,20 @@ export default function AlertsPage() {
               <div className="al-panel map">
                 <span className="panel-label">Monitored Area</span>
                 <div className="mini-map-wrap">
-                  {mapReady ? (
-                    <GoogleMap
-                      mapContainerClassName="al-gmap"
-                      center={mapCenter}
-                      zoom={selectedAlert.zone?.zoneType === 'radius' ? 10 : 11}
-                      options={{ disableDefaultUI: true, zoomControl: false, gestureHandling: 'none' }}
-                    >
-                      <Marker position={mapCenter} />
-                    </GoogleMap>
-                  ) : (
-                    <div className="mini-map-fallback">Loading...</div>
-                  )}
+                  <MapContainer
+                    className="al-gmap"
+                    center={[mapCenter.lat, mapCenter.lng]}
+                    zoom={selectedAlert.zone?.zoneType === 'radius' ? 10 : 11}
+                    zoomControl={false}
+                    scrollWheelZoom={false}
+                    dragging={false}
+                    doubleClickZoom={false}
+                    attributionControl={false}
+                    key={`${mapCenter.lat}-${mapCenter.lng}`}
+                  >
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <Marker position={[mapCenter.lat, mapCenter.lng]} icon={leafletIcon} />
+                  </MapContainer>
                 </div>
                 <span className="map-text">{selectedAlert.zone?.displayName || selectedAlert.area?.name}</span>
                 <button

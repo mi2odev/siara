@@ -15,6 +15,8 @@ import NoteAddOutlinedIcon from '@mui/icons-material/NoteAddOutlined'
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
+import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import { AuthContext } from '../../contexts/AuthContext'
 import {
   addPoliceFieldNote,
@@ -55,6 +57,7 @@ function initials(name) {
 export default function PoliceIncidentDetailPage() {
   const navigate = useNavigate()
   const { id } = useParams()
+  const { policeMe } = usePoliceAccess()
   const { user } = useContext(AuthContext)
   const currentUserId = user?.id || user?.userId || null
 
@@ -262,6 +265,7 @@ export default function PoliceIncidentDetailPage() {
 
   const rightPanel = (
     <div className="pid-panel">
+      <PoliceOfficerPanel officer={policeMe?.officer} workZone={policeMe?.workZone} />
       {incident ? (
         <div className="pid-panel-status" data-severity={incident.severity}>
           <span className="pid-panel-dot" />
@@ -397,7 +401,6 @@ export default function PoliceIncidentDetailPage() {
       <PoliceShell
         activeKey="active-incidents"
         rightPanel={rightPanel}
-        verificationPendingCount={incident?.status === 'pending' ? 1 : 0}
       >
         <div className="pid-layout">
 

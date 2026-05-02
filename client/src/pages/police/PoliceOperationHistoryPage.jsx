@@ -12,6 +12,8 @@ import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded'
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
+import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import { AuthContext } from '../../contexts/AuthContext'
 import {
   createManualPoliceHistoryEntry,
@@ -90,6 +92,7 @@ function severityLabel(value) {
 
 export default function PoliceOperationHistoryPage() {
   const navigate = useNavigate()
+  const { policeMe } = usePoliceAccess()
   const { user } = useContext(AuthContext)
   const officerName = user?.name || 'Officer'
 
@@ -134,19 +137,20 @@ export default function PoliceOperationHistoryPage() {
   const noteCount = historyItems.filter((item) => item.actionType === 'field_note' || item.actionType === 'manual_log_entry').length
 
   const rightPanel = (
-    <section className="police-section police-dashboard-side-card">
-      <div className="police-dashboard-side-header">
-        <h2>History Summary</h2>
+    <PoliceOfficerPanel officer={policeMe?.officer} workZone={policeMe?.workZone}>
+      <div className="pop-extra">
+        <div className="pop-extra-head">
+          <span className="pop-extra-title">History Summary</span>
+        </div>
+        <div className="pop-extra-body">
+          <div className="pop-stat-row"><span>Total actions</span><strong>{historyItems.length}</strong></div>
+          <div className="pop-stat-row"><span>Visible</span><strong className="pop-stat--accent">{filteredItems.length}</strong></div>
+          <div className="pop-stat-row"><span>Verified</span><strong className={verifiedCount > 0 ? 'pop-stat--ok' : ''}>{verifiedCount}</strong></div>
+          <div className="pop-stat-row"><span>Rejected</span><strong className={rejectedCount > 0 ? 'pop-stat--danger' : ''}>{rejectedCount}</strong></div>
+          <div className="pop-stat-row"><span>Notes</span><strong>{noteCount}</strong></div>
+        </div>
       </div>
-      <div className="police-selected-details police-dashboard-side-details">
-        <div className="police-selected-line"><span>Officer</span><strong>{officerName}</strong></div>
-        <div className="police-selected-line"><span>Total actions</span><strong>{historyItems.length}</strong></div>
-        <div className="police-selected-line"><span>Visible</span><strong>{filteredItems.length}</strong></div>
-        <div className="police-selected-line"><span>Verified</span><strong>{verifiedCount}</strong></div>
-        <div className="police-selected-line"><span>Rejected</span><strong>{rejectedCount}</strong></div>
-        <div className="police-selected-line"><span>Notes</span><strong>{noteCount}</strong></div>
-      </div>
-    </section>
+    </PoliceOfficerPanel>
   )
 
   const handleSubmitManualEntry = async (event) => {

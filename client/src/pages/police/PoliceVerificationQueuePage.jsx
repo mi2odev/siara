@@ -2,6 +2,8 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import PoliceShell from '../../components/layout/PoliceShell'
+import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import {
   assignSelfToPoliceIncident,
   listPoliceIncidents,
@@ -17,6 +19,7 @@ function displayLabel(value) {
 
 export default function PoliceVerificationQueuePage() {
   const navigate = useNavigate()
+  const { policeMe } = usePoliceAccess()
   const [queue, setQueue] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
@@ -30,9 +33,8 @@ export default function PoliceVerificationQueuePage() {
 
     try {
       const response = await listPoliceIncidents({
-        scope: 'field_reports',
         page: 1,
-        pageSize: 30,
+        pageSize: 50,
         status: 'pending',
       })
       setQueue(response.items)
@@ -66,24 +68,18 @@ export default function PoliceVerificationQueuePage() {
   }
 
   const rightPanel = (
-    <>
-      <section className="police-section">
-        <h2>Queue Metrics</h2>
-        <ul className="police-list police-verification-side-list">
-          <li><strong>Awaiting review:</strong> {queue.length}</li>
-          <li><strong>Urgent reports:</strong> {highPriorityCount}</li>
-          <li><strong>Already assigned:</strong> {assignedCount}</li>
-        </ul>
-      </section>
-      <section className="police-section">
-        <h2>Review Tips</h2>
-        <ul className="police-list police-verification-side-list">
-          <li>Approve reports only when location and context are clear.</li>
-          <li>Decline reports that are duplicates, spam, or clearly invalid.</li>
-          <li>Take case before field dispatch when you own the operation.</li>
-        </ul>
-      </section>
-    </>
+    <PoliceOfficerPanel officer={policeMe?.officer} workZone={policeMe?.workZone}>
+      <div className="pop-extra">
+        <div className="pop-extra-head">
+          <span className="pop-extra-title">Queue Metrics</span>
+        </div>
+        <div className="pop-extra-body">
+          <div className="pop-stat-row"><span>Awaiting review</span><strong className={queue.length > 0 ? 'pop-stat--accent' : ''}>{queue.length}</strong></div>
+          <div className="pop-stat-row"><span>Urgent reports</span><strong className={highPriorityCount > 0 ? 'pop-stat--danger' : ''}>{highPriorityCount}</strong></div>
+          <div className="pop-stat-row"><span>Assigned</span><strong>{assignedCount}</strong></div>
+        </div>
+      </div>
+    </PoliceOfficerPanel>
   )
 
   return (

@@ -1,6 +1,8 @@
 import React from 'react'
 
 import PoliceShell from '../../components/layout/PoliceShell'
+import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import { listPoliceAlerts, markPoliceAlertRead } from '../../services/policeService'
 
 function displayLabel(value) {
@@ -29,6 +31,7 @@ function formatAlertWindow(alert) {
 }
 
 export default function PoliceAlertCenterPage() {
+  const { policeMe } = usePoliceAccess()
   const [alerts, setAlerts] = React.useState([])
   const [unreadCount, setUnreadCount] = React.useState(0)
   const [selectedAlertId, setSelectedAlertId] = React.useState(null)
@@ -110,33 +113,18 @@ export default function PoliceAlertCenterPage() {
   }), [alerts, unreadCount])
 
   const rightPanel = (
-    <>
-      <section className="police-section">
-        <h2>Alert Summary</h2>
-        <ul className="police-list">
-          <li><strong>Visible alerts:</strong> {counters.total}</li>
-          <li><strong>High severity:</strong> {counters.high}</li>
-          <li><strong>Unread:</strong> {counters.unread}</li>
-        </ul>
-      </section>
-
-      <section className="police-section">
-        <h2>Selected Alert</h2>
-        {selectedAlert ? (
-          <>
-            <p><strong>{selectedAlert.title}</strong></p>
-            <ul className="police-list">
-              <li><strong>Severity:</strong> {displayLabel(selectedAlert.severity)}</li>
-              <li><strong>Status:</strong> {selectedAlert.expired ? 'Expired' : displayLabel(selectedAlert.status)}</li>
-              <li><strong>Timing:</strong> {formatAlertWindow(selectedAlert)}</li>
-              <li><strong>Read:</strong> {selectedAlert.read ? 'Yes' : 'No'}</li>
-            </ul>
-          </>
-        ) : (
-          <p className="police-meta">Select an alert to view details.</p>
-        )}
-      </section>
-    </>
+    <PoliceOfficerPanel officer={policeMe?.officer} workZone={policeMe?.workZone}>
+      <div className="pop-extra">
+        <div className="pop-extra-head">
+          <span className="pop-extra-title">Alert Summary</span>
+        </div>
+        <div className="pop-extra-body">
+          <div className="pop-stat-row"><span>Total alerts</span><strong>{counters.total}</strong></div>
+          <div className="pop-stat-row"><span>High severity</span><strong className={counters.high > 0 ? 'pop-stat--danger' : ''}>{counters.high}</strong></div>
+          <div className="pop-stat-row"><span>Unread</span><strong className={counters.unread > 0 ? 'pop-stat--warn' : 'pop-stat--ok'}>{counters.unread}</strong></div>
+        </div>
+      </div>
+    </PoliceOfficerPanel>
   )
 
   return (

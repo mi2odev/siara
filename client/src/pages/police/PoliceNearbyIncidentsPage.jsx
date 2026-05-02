@@ -3,6 +3,8 @@ import { Circle, CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaf
 import { useNavigate } from 'react-router-dom'
 
 import PoliceShell from '../../components/layout/PoliceShell'
+import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import {
   listPoliceIncidents,
   syncPoliceBrowserLocation,
@@ -64,6 +66,7 @@ function buildLocationState(syncResult, responseLocationRequired) {
 
 export default function PoliceNearbyIncidentsPage() {
   const navigate = useNavigate()
+  const { policeMe } = usePoliceAccess()
   const [nearbyIncidents, setNearbyIncidents] = useState([])
   const [locationCoords, setLocationCoords] = useState(null)
   const [locationState, setLocationState] = useState({
@@ -139,16 +142,20 @@ export default function PoliceNearbyIncidentsPage() {
   const highSeverityCount = nearbyIncidents.filter((item) => ['high', 'critical'].includes(item.severity)).length
 
   const rightPanel = (
-    <section className="police-section police-nearby-page-side-card">
-      <h2>Nearby Summary</h2>
-      <ul className="police-list police-nearby-page-side-list">
-        <li><strong>Search radius:</strong> 5 km</li>
-        <li><strong>Incidents found:</strong> {nearbyIncidents.length}</li>
-        <li><strong>High severity:</strong> {highSeverityCount}</li>
-        <li><strong>Location status:</strong> {displayLabel(locationState.key)}</li>
-        <li><strong>Selected case:</strong> {selectedIncident?.displayId || 'None'}</li>
-      </ul>
-    </section>
+    <PoliceOfficerPanel officer={policeMe?.officer} workZone={policeMe?.workZone}>
+      <div className="pop-extra">
+        <div className="pop-extra-head">
+          <span className="pop-extra-title">Nearby Summary</span>
+        </div>
+        <div className="pop-extra-body">
+          <div className="pop-stat-row"><span>Search radius</span><strong>5 km</strong></div>
+          <div className="pop-stat-row"><span>Incidents found</span><strong className={nearbyIncidents.length > 0 ? 'pop-stat--accent' : ''}>{nearbyIncidents.length}</strong></div>
+          <div className="pop-stat-row"><span>High severity</span><strong className={highSeverityCount > 0 ? 'pop-stat--danger' : ''}>{highSeverityCount}</strong></div>
+          <div className="pop-stat-row"><span>Location</span><strong>{displayLabel(locationState.key)}</strong></div>
+          <div className="pop-stat-row"><span>Selected</span><strong>{selectedIncident?.displayId || '—'}</strong></div>
+        </div>
+      </div>
+    </PoliceOfficerPanel>
   )
 
   return (

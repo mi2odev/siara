@@ -7,180 +7,273 @@ import PersonSearchOutlinedIcon from '@mui/icons-material/PersonSearchOutlined'
 import PriorityHighRoundedIcon from '@mui/icons-material/PriorityHighRounded'
 import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
+import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
+import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 
 import PoliceShell from '../../components/layout/PoliceShell'
+import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import { listPoliceIncidents } from '../../services/policeService'
 
 function displayLabel(value) {
   return String(value || '')
     .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function SeverityBadgeIcon({ severity }) {
-  const props = { fontSize: 'inherit' }
-  if (severity === 'critical' || severity === 'high') return <PriorityHighRoundedIcon {...props} />
-  if (severity === 'medium') return <ReportProblemOutlinedIcon {...props} />
-  return <CheckCircleOutlinedIcon {...props} />
+function SeverityIcon({ severity }) {
+  const p = { fontSize: 'inherit' }
+  if (severity === 'critical' || severity === 'high') return <PriorityHighRoundedIcon {...p} />
+  if (severity === 'medium') return <ReportProblemOutlinedIcon {...p} />
+  return <CheckCircleOutlinedIcon {...p} />
 }
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'All statuses' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'under_review', label: 'Under review' },
-  { value: 'verified', label: 'Verified' },
-  { value: 'dispatched', label: 'Dispatched' },
-  { value: 'resolved', label: 'Resolved' },
+function getInitials(name) {
+  return String(name || 'O')
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+const FILTERS = [
+  { value: 'all',          label: 'All' },
+  { value: 'pending',      label: 'Pending' },
+  { value: 'under_review', label: 'Under Review' },
+  { value: 'verified',     label: 'Verified' },
+  { value: 'dispatched',   label: 'Dispatched' },
+  { value: 'resolved',     label: 'Resolved' },
 ]
 
 export default function PoliceMyIncidentsPage() {
   const navigate = useNavigate()
-  const [statusFilter, setStatusFilter] = React.useState('all')
-  const [incidents, setIncidents] = React.useState([])
-  const [isLoading, setIsLoading] = React.useState(true)
-  const [error, setError] = React.useState('')
+  const { policeMe } = usePoliceAccess()
+  const officer  = policeMe?.officer
+  const workZone = policeMe?.workZone
 
-  const loadIncidents = React.useCallback(async () => {
+  const [allIncidents, setAllIncidents]   = React.useState([])
+  const [statusFilter, setStatusFilter]   = React.useState('all')
+  const [isLoading, setIsLoading]         = React.useState(true)
+  const [error, setError]                 = React.useState('')
+
+  const load = React.useCallback(async () => {
     setIsLoading(true)
     setError('')
-
     try {
-      const response = await listPoliceIncidents({
-        scope: 'my',
-        page: 1,
-        pageSize: 30,
-        status: statusFilter === 'all' ? undefined : statusFilter,
-      })
-      setIncidents(response.items)
-    } catch (loadError) {
-      setError(loadError.message || 'Failed to load assigned incidents.')
+      const res = await listPoliceIncidents({ scope: 'my', page: 1, pageSize: 50 })
+      setAllIncidents(res.items)
+    } catch (e) {
+      setError(e.message || 'Failed to load incidents.')
     } finally {
       setIsLoading(false)
     }
-  }, [statusFilter])
+  }, [])
 
-  React.useEffect(() => {
-    loadIncidents()
-  }, [loadIncidents])
+  React.useEffect(() => { load() }, [load])
 
-  const totalCount = incidents.length
-  const underReviewCount = incidents.filter((item) => item.status === 'under_review').length
-  const verifiedCount = incidents.filter((item) => item.status === 'verified').length
-  const resolvedCount = incidents.filter((item) => item.status === 'resolved').length
-  const pendingCount = incidents.filter((item) => item.status === 'pending').length
+  const displayed = statusFilter === 'all'
+    ? allIncidents
+    : allIncidents.filter((i) => i.status === statusFilter)
+
+  const count = (status) =>
+    status === 'all'
+      ? allIncidents.length
+      : allIncidents.filter((i) => i.status === status).length
+
+  const pendingCount = count('pending')
 
   const rightPanel = (
-    <section className="police-section police-dashboard-side-card">
-      <div className="police-dashboard-side-header">
-        <h2>Assignment Summary</h2>
+    <div className="pmi-right">
+
+      {/* Officer card */}
+      <div className="pmi-right-card">
+        <div className="pmi-right-card-head">
+          <span className="pmi-right-card-title">Officer</span>
+          <span className={`pmi-duty-badge pmi-duty-badge--${officer?.isOnDuty ? 'on' : 'off'}`}>
+            <span className="pmi-duty-dot" />
+            {officer?.isOnDuty ? 'On Duty' : 'Off Duty'}
+          </span>
+        </div>
+        <div className="pmi-officer-row">
+          {officer?.avatarUrl
+            ? <img src={officer.avatarUrl} alt={officer.name} className="pmi-officer-avatar-img" />
+            : <span className="pmi-officer-avatar">{getInitials(officer?.name)}</span>
+          }
+          <div className="pmi-officer-meta">
+            <strong>{officer?.name || 'Officer'}</strong>
+            <span>{officer?.rank || 'Police Officer'}</span>
+          </div>
+        </div>
+        <div className="pmi-detail-rows">
+          <div className="pmi-detail-row">
+            <BadgeOutlinedIcon fontSize="inherit" />
+            <span>Badge</span>
+            <strong>{officer?.badgeNumber || 'Pending'}</strong>
+          </div>
+        </div>
       </div>
-      <div className="police-selected-details police-dashboard-side-details">
-        <div className="police-selected-line"><span>Total</span><strong>{totalCount}</strong></div>
-        <div className="police-selected-line"><span>Pending</span><strong>{pendingCount}</strong></div>
-        <div className="police-selected-line"><span>Under review</span><strong>{underReviewCount}</strong></div>
-        <div className="police-selected-line"><span>Verified</span><strong>{verifiedCount}</strong></div>
-        <div className="police-selected-line"><span>Resolved</span><strong>{resolvedCount}</strong></div>
+
+      {/* Work zone card */}
+      <div className="pmi-right-card">
+        <div className="pmi-right-card-head">
+          <span className="pmi-right-card-title">Work Zone</span>
+        </div>
+        <div className="pmi-detail-rows">
+          <div className="pmi-detail-row">
+            <PlaceOutlinedIcon fontSize="inherit" />
+            <span>Wilaya</span>
+            <strong>{workZone?.wilaya?.name || 'Not set'}</strong>
+          </div>
+          <div className="pmi-detail-row">
+            <PlaceOutlinedIcon fontSize="inherit" />
+            <span>Commune</span>
+            <strong>{workZone?.commune?.name || 'Not set'}</strong>
+          </div>
+        </div>
       </div>
-    </section>
+
+      {/* Status summary */}
+      <div className="pmi-right-card pmi-right-card--summary">
+        <div className="pmi-right-card-head">
+          <span className="pmi-right-card-title">By Status</span>
+          <span className="pmi-right-total">{allIncidents.length} total</span>
+        </div>
+        {FILTERS.filter((f) => f.value !== 'all').map((f) => (
+          <button
+            key={f.value}
+            type="button"
+            className={`pmi-summary-row${statusFilter === f.value ? ' pmi-summary-row--active' : ''}`}
+            onClick={() => setStatusFilter(f.value)}
+          >
+            <span className={`pmi-summary-dot pmi-summary-dot--${f.value}`} />
+            <span className="pmi-summary-name">{f.label}</span>
+            <strong className="pmi-summary-num">{count(f.value)}</strong>
+          </button>
+        ))}
+      </div>
+
+    </div>
   )
 
   return (
     <PoliceShell
       activeKey="my-incidents"
       rightPanel={rightPanel}
-      verificationPendingCount={pendingCount}
     >
-      <section className="police-section police-dashboard-overview police-my-incidents-page">
-        <div className="police-command-section-head police-dashboard-head">
-          <div className="police-dashboard-head-text">
-            <h2>My Incidents</h2>
-            <p className="police-shortcuts-hint">
-              Cases you reported or that have been assigned to you.
-            </p>
+      <div className="pmi-page">
+
+        {/* ── Header ── */}
+        <div className="pmi-head">
+          <div>
+            <h2 className="pmi-heading">My Incidents</h2>
+            <p className="pmi-sub">Cases assigned to you or reported by you</p>
           </div>
-          <div className="police-dashboard-head-actions police-my-incidents-actions-bar">
-            <label className="police-filter-field">
-              <span>Status</span>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </label>
+          <button
+            type="button"
+            className="pmi-refresh"
+            onClick={load}
+            disabled={isLoading}
+            title="Refresh list"
+            aria-label="Refresh list"
+          >
+            <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
+          </button>
+        </div>
+
+        {/* ── Status tabs ── */}
+        <div className="pmi-tabs" role="tablist">
+          {FILTERS.map((f) => (
             <button
+              key={f.value}
               type="button"
-              className="police-action police-dashboard-refresh police-dashboard-refresh-icon"
-              onClick={loadIncidents}
-              disabled={isLoading}
-              title="Refresh"
-              aria-label="Refresh"
+              role="tab"
+              aria-selected={statusFilter === f.value}
+              className={`pmi-tab${statusFilter === f.value ? ' pmi-tab--on' : ''}`}
+              onClick={() => setStatusFilter(f.value)}
             >
-              <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
-              <span>Refresh</span>
+              {f.label}
+              <span className="pmi-tab-count">{count(f.value)}</span>
             </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="police-section police-my-incidents-section">
-        {error ? <p className="police-history-feedback police-history-feedback-error">{error}</p> : null}
-        {isLoading ? <p className="police-meta">Loading assigned incidents…</p> : null}
-
-        <div className="police-my-incidents-list">
-          {incidents.map((incident) => (
-            <article
-              key={incident.id}
-              className="police-my-incident-card"
-              data-severity={incident.severity}
-            >
-              <span className={`police-my-incident-strip ${incident.severity}`} aria-hidden="true" />
-              <div className="police-my-incident-main">
-                <div className="police-my-incident-top">
-                  <span className="police-my-incident-id">{incident.displayId}</span>
-                  <span className={`police-badge ${incident.severity}`}>
-                    <SeverityBadgeIcon severity={incident.severity} />
-                    {displayLabel(incident.severity)}
-                  </span>
-                  <span className={`police-badge ${incident.status} police-my-incident-status`}>
-                    {displayLabel(incident.status)}
-                  </span>
-                </div>
-                <h3 className="police-my-incident-title">{incident.title || 'Untitled incident'}</h3>
-                {incident.locationText ? (
-                  <p className="police-my-incident-location">{incident.locationText}</p>
-                ) : null}
-                <div className="police-my-incident-meta">
-                  <span>Updated <strong>{incident.timeAgo || '—'}</strong></span>
-                  {incident.reportedBy?.name ? (
-                    <span>Reporter <strong>{incident.reportedBy.name}</strong></span>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="police-my-incident-actions">
-                <button
-                  type="button"
-                  className="police-action police-action-view police-my-incident-view"
-                  onClick={() => navigate(`/police/incident/${incident.id}`)}
-                >
-                  <VisibilityOutlinedIcon fontSize="inherit" />
-                  <span>View</span>
-                </button>
-              </div>
-            </article>
           ))}
-
-          {!isLoading && incidents.length === 0 ? (
-            <div className="police-empty-state" role="status">
-              <div className="police-empty-icon" aria-hidden="true">
-                <PersonSearchOutlinedIcon fontSize="inherit" />
-              </div>
-              <h3>No incidents found</h3>
-              <p>No assigned incidents match the current status filter.</p>
-            </div>
-          ) : null}
         </div>
-      </section>
+
+        {/* ── Body ── */}
+        <div className="pmi-body">
+          {error && <p className="pmi-error">{error}</p>}
+
+          {isLoading && (
+            <p className="pmi-loading">Loading incidents…</p>
+          )}
+
+          {!isLoading && !error && displayed.length === 0 && (
+            <div className="pmi-empty">
+              <span className="pmi-empty-icon"><PersonSearchOutlinedIcon fontSize="inherit" /></span>
+              <p>No incidents match this filter</p>
+            </div>
+          )}
+
+          {!isLoading && displayed.length > 0 && (
+            <div className="pmi-list">
+              {displayed.map((incident) => (
+                <div
+                  key={incident.id}
+                  className={`pmi-row pmi-row--${incident.severity || 'low'}`}
+                  onClick={() => navigate(`/police/incident/${incident.id}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && navigate(`/police/incident/${incident.id}`)}
+                >
+                  <span className={`pmi-strip pmi-strip--${incident.severity || 'low'}`} />
+
+                  <div className="pmi-info">
+                    <div className="pmi-badges">
+                      <code className="pmi-id">{incident.displayId}</code>
+                      <span className={`pmi-sev pmi-sev--${incident.severity || 'low'}`}>
+                        <SeverityIcon severity={incident.severity} />
+                        {displayLabel(incident.severity)}
+                      </span>
+                      <span className={`pmi-status pmi-status--${incident.status}`}>
+                        {displayLabel(incident.status)}
+                      </span>
+                    </div>
+
+                    <p className="pmi-title">{incident.title || 'Untitled incident'}</p>
+
+                    <div className="pmi-meta">
+                      {incident.locationText && (
+                        <span className="pmi-loc">
+                          <LocationOnOutlinedIcon fontSize="inherit" />
+                          {incident.locationText}
+                        </span>
+                      )}
+                      <span className="pmi-time">
+                        <AccessTimeOutlinedIcon fontSize="inherit" />
+                        {incident.timeAgo || '—'}
+                      </span>
+                      {incident.reportedBy?.name && (
+                        <span className="pmi-reporter">by {incident.reportedBy.name}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="pmi-view"
+                    onClick={(e) => { e.stopPropagation(); navigate(`/police/incident/${incident.id}`) }}
+                    aria-label={`View ${incident.displayId}`}
+                  >
+                    <VisibilityOutlinedIcon fontSize="inherit" />
+                    View
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
     </PoliceShell>
   )
 }

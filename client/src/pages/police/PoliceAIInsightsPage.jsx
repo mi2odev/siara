@@ -1,6 +1,8 @@
 import React from 'react'
 
 import PoliceShell from '../../components/layout/PoliceShell'
+import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import { getPoliceDashboard } from '../../services/policeService'
 
 function groupCount(items, keySelector) {
@@ -19,6 +21,7 @@ function groupCount(items, keySelector) {
 }
 
 export default function PoliceAIInsightsPage() {
+  const { policeMe } = usePoliceAccess()
   const [dashboard, setDashboard] = React.useState(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
@@ -64,26 +67,19 @@ export default function PoliceAIInsightsPage() {
   const criticalCount = incidents.filter((item) => ['high', 'critical'].includes(item.severity)).length
 
   const rightPanel = (
-    <>
-      <section className="police-section">
-        <h2>Context Snapshot</h2>
-        <div className="police-selected-details">
-          <div className="police-selected-line"><span>Top commune</span><strong>{topZone}</strong></div>
-          <div className="police-selected-line"><span>High priority</span><strong>{criticalCount}</strong></div>
-          <div className="police-selected-line"><span>Unread alerts</span><strong>{dashboard?.stats?.unreadAlertsCount || 0}</strong></div>
-          <div className="police-selected-line"><span>Pending verification</span><strong>{dashboard?.stats?.pendingVerificationCount || 0}</strong></div>
+    <PoliceOfficerPanel officer={policeMe?.officer} workZone={policeMe?.workZone}>
+      <div className="pop-extra">
+        <div className="pop-extra-head">
+          <span className="pop-extra-title">Context Snapshot</span>
         </div>
-      </section>
-
-      <section className="police-section">
-        <h2>Decision Support</h2>
-        <ul className="police-list">
-          <li>Prioritize {dashboard?.stats?.pendingVerificationCount || 0} reports still pending verification.</li>
-          <li>Focus field patrol coverage on {topZone} if incident pressure stays elevated.</li>
-          <li>Review unread supervisor alerts before dispatching new field actions.</li>
-        </ul>
-      </section>
-    </>
+        <div className="pop-extra-body">
+          <div className="pop-stat-row"><span>Top commune</span><strong>{topZone}</strong></div>
+          <div className="pop-stat-row"><span>High priority</span><strong className={criticalCount > 0 ? 'pop-stat--danger' : ''}>{criticalCount}</strong></div>
+          <div className="pop-stat-row"><span>Unread alerts</span><strong className={dashboard?.stats?.unreadAlertsCount > 0 ? 'pop-stat--warn' : ''}>{dashboard?.stats?.unreadAlertsCount || 0}</strong></div>
+          <div className="pop-stat-row"><span>Pending verify</span><strong className={dashboard?.stats?.pendingVerificationCount > 0 ? 'pop-stat--accent' : ''}>{dashboard?.stats?.pendingVerificationCount || 0}</strong></div>
+        </div>
+      </div>
+    </PoliceOfficerPanel>
   )
 
   return (

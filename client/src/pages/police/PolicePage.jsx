@@ -27,6 +27,7 @@ import OpenInFullRoundedIcon from '@mui/icons-material/OpenInFullRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
+import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
 import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import {
   formatPoliceDateTime,
@@ -474,52 +475,27 @@ export default function PolicePage() {
   }, [zoneWilayaId, zoneCommuneId, refreshPoliceMe, loadDashboard])
 
   const rightPanel = (
-    <>
-      <section className="police-section police-dashboard-side-card">
-        <div className="police-dashboard-side-header">
-          <h2>Officer</h2>
-          <span className={`police-dashboard-duty ${officer?.isOnDuty ? 'on' : 'off'}`}>
-            <span className="police-dashboard-duty-dot" aria-hidden="true"></span>
-            {officer?.isOnDuty ? 'On Duty' : 'Off Duty'}
-          </span>
+    <PoliceOfficerPanel
+      officer={officer}
+      workZone={workZone}
+      workZoneAction={
+        <button type="button" className="pop-zone-change-btn" onClick={openZoneModal}>
+          Change
+        </button>
+      }
+    >
+      <div className="pop-extra">
+        <div className="pop-extra-head">
+          <span className="pop-extra-title">Live Stats</span>
         </div>
-
-        <div className="police-dashboard-officer-head">
-          {officer?.avatarUrl ? (
-            <img
-              src={officer.avatarUrl}
-              alt={officer?.name || 'Officer'}
-              className="police-dashboard-officer-avatar-image"
-            />
-          ) : (
-            <span className="police-dashboard-officer-avatar" aria-hidden="true">{officerInitials}</span>
-          )}
-          <div className="police-dashboard-officer-meta">
-            <strong>{officer?.name || 'Officer'}</strong>
-            <p className="police-meta">{officer?.rank || 'Police Officer'}</p>
-          </div>
+        <div className="pop-extra-body">
+          <div className="pop-stat-row"><span>Active incidents</span><strong className={stats.activeCount > 0 ? 'pop-stat--accent' : ''}>{stats.activeCount}</strong></div>
+          <div className="pop-stat-row"><span>High priority</span><strong className={stats.highPriorityCount > 0 ? 'pop-stat--danger' : ''}>{stats.highPriorityCount}</strong></div>
+          <div className="pop-stat-row"><span>Unread alerts</span><strong className={stats.unreadAlertsCount > 0 ? 'pop-stat--warn' : ''}>{stats.unreadAlertsCount}</strong></div>
+          <div className="pop-stat-row"><span>Pending verify</span><strong className={stats.pendingVerificationCount > 0 ? 'pop-stat--accent' : ''}>{stats.pendingVerificationCount}</strong></div>
         </div>
-
-        <div className="police-selected-details police-dashboard-side-details">
-          <div className="police-selected-line"><span>Rank</span><strong>{officer?.rank || 'Police Officer'}</strong></div>
-          <div className="police-selected-line"><span>Badge</span><strong>{officer?.badgeNumber || 'Pending'}</strong></div>
-        </div>
-      </section>
-
-      <section className="police-section police-dashboard-side-card">
-        <div className="police-dashboard-side-header">
-          <h2>Work Zone</h2>
-          <button type="button" className="police-zone-change-btn" onClick={openZoneModal}>
-            Change
-          </button>
-        </div>
-        <div className="police-selected-details police-dashboard-side-details">
-          <div className="police-selected-line"><span>Wilaya</span><strong>{workZone?.wilaya?.name || 'Not selected'}</strong></div>
-          <div className="police-selected-line"><span>Commune</span><strong>{workZone?.commune?.name || 'Not selected'}</strong></div>
-        </div>
-      </section>
-
-    </>
+      </div>
+    </PoliceOfficerPanel>
   )
 
   const zoneModal = showZoneModal ? ReactDOM.createPortal(
