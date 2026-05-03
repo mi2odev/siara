@@ -6,6 +6,7 @@ const {
   getTravelHistoryDetail,
   completeTravelHistory,
   updateTravelHistoryRating,
+  getMySafetySummary,
 } = require("../services/travelHistoryService");
 const { verifyToken } = require("./verifytoken");
 
@@ -35,6 +36,17 @@ router.get("/me", verifyToken, async (req, res, next) => {
       limit: req.query?.limit,
       offset: req.query?.offset,
     });
+    return res.status(200).json(result);
+  } catch (error) {
+    return next(rethrow(error));
+  }
+});
+
+router.get("/me/safety-summary", verifyToken, async (req, res, next) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) throw createError(401, "Authentication required");
+    const result = await getMySafetySummary(userId);
     return res.status(200).json(result);
   } catch (error) {
     return next(rethrow(error));

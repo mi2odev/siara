@@ -356,8 +356,221 @@ function mapDangerWeightToVisuals(weight) {
   return { level: "low", radiusMeters: 80, fillOpacity: 0.2, color: SEVERITY_COLORS.low };
 }
 
+function buildClusterExplanation({
+  reportCount,
+  dominantSeverity,
+  severityCounts,
+  verifiedCount,
+  peakHourRange,
+  commonReportTypes,
+}) {
+  if (!reportCount) {
+    return "No accident reports in this zone yet.";
+  }
+  const parts = [];
+  parts.push(`${reportCount} accident ${reportCount === 1 ? "report" : "reports"} clustered here`);
+  const severeCount =
+    Number(severityCounts?.high || 0) + Number(severityCounts?.critical || 0);
+  if (severeCount > 0) {
+    parts.push(
+      `${severeCount} high or critical ${severeCount === 1 ? "report" : "reports"}`,
+    );
+  }
+  if (peakHourRange?.startHour != null && peakHourRange?.endHour != null) {
+    parts.push(
+      `most reports happen between ${String(peakHourRange.startHour).padStart(2, "0")}:00 and ${String(peakHourRange.endHour).padStart(2, "0")}:00`,
+    );
+  }
+  if (verifiedCount > 0) {
+    parts.push(
+      `${verifiedCount} ${verifiedCount === 1 ? "report was" : "reports were"} police-verified`,
+    );
+  }
+  if (Array.isArray(commonReportTypes) && commonReportTypes.length > 0) {
+    parts.push(
+      `most common: ${commonReportTypes.slice(0, 2).map((t) => t.label || t.type).join(" and ")}`,
+    );
+  }
+  if (parts.length === 1) {
+    parts.push(`dominant severity is ${dominantSeverity || "low"}`);
+  }
+  return `${parts[0]}. Other factors: ${parts.slice(1).join(", ")}.`;
+}
+
+async function getClusterDetailByLocation({ lat, lng, radiusMeters, hours, limit = 30 } = {}) {
+  const safeLat = Number(lat);
+  const safeLng = Number(lng);
+  if (!Number.isFinite(safeLat) || !Number.isFinite(safeLng)) {
+    const error = new Error("lat and lng are required");
+    error.status = 400;
+    throw error;
+  }
+  const safeRadius = Math.max(50, Math.min(2000, Number(radiusMeters) || 250));
+  const safeLimit = Math.max(1, Math.min(100, Number(limit) || 30));
+
+  const params = [safeLng, safeLat, safeRadius];
+  let timeClause = "";
+  if (Number.isFinite(Number(hours)) && Number(hours) > 0) {
+    const safeHours = Math.min(MAX_HOURS, Math.max(MIN_HOURS, Math.round(Number(hours))));
+    params.push(safeHours);
+    timeClause = `AND ar.created_at >= NOW() - ($${params.length}::int * INTERVAL '1 hour')`;
+  }
+
+  const detailSql = `
+    WITH base AS (
+      SELECT
+        ar.id,
+        ar.title,
+        ar.description,
+        ar.incident_type,
+        ar.severity_hint,
+        ar.created_at,
+        ar.verified_by_officer_id,
+        ar.review_verdict,
+        ar.lat,
+        ar.lng,
+        EXTRACT(HOUR FROM ar.created_at AT TIME ZONE 'UTC')::int AS hour_utc,
+        CASE
+          WHEN COALESCE(ar.severity_hint, 0) >= 5 THEN 'critical'
+          WHEN ar.severity_hint = 4 THEN 'high'
+          WHEN ar.severity_hint = 3 THEN 'moderate'
+          WHEN ar.severity_hint = 2 THEN 'moderate'
+          WHEN ar.severity_hint = 1 THEN 'low'
+          ELSE 'low'
+        END AS severity_bucket
+      FROM app.accident_reports ar
+      WHERE ar.incident_type = '${ACCIDENT_INCIDENT_TYPE}'
+        AND ar.lat IS NOT NULL
+        AND ar.lng IS NOT NULL
+        AND ar.incident_location IS NOT NULL
+        AND ST_DWithin(
+          ar.incident_location::geography,
+          ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
+          $3
+        )
+        ${timeClause}
+    )
+    SELECT
+      (SELECT COUNT(*)::int FROM base) AS report_count,
+      (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'low') AS low_count,
+      (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'moderate') AS moderate_count,
+      (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'high') AS high_count,
+      (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'critical') AS critical_count,
+      (SELECT COUNT(*)::int FROM base WHERE verified_by_officer_id IS NOT NULL) AS verified_count,
+      (SELECT MAX(created_at) FROM base) AS latest_report_at,
+      (SELECT MIN(created_at) FROM base) AS earliest_report_at,
+      (
+        SELECT json_agg(row_to_json(t)) FROM (
+          SELECT incident_type AS type, COUNT(*)::int AS count
+          FROM base
+          GROUP BY incident_type
+          ORDER BY count DESC
+          LIMIT 4
+        ) t
+      ) AS common_report_types,
+      (
+        SELECT json_agg(row_to_json(t)) FROM (
+          SELECT hour_utc AS hour, COUNT(*)::int AS count
+          FROM base
+          GROUP BY hour_utc
+          ORDER BY count DESC
+          LIMIT 3
+        ) t
+      ) AS hour_distribution,
+      (
+        SELECT json_agg(row_to_json(t)) FROM (
+          SELECT id, title, description, incident_type, severity_hint, created_at,
+                 verified_by_officer_id, review_verdict, lat, lng, severity_bucket
+          FROM base
+          ORDER BY created_at DESC
+          LIMIT ${safeLimit}
+        ) t
+      ) AS reports
+  `;
+
+  const result = await pool.query(detailSql, params);
+  const row = result.rows[0] || {};
+  const reportCount = Number(row.report_count || 0);
+
+  const severityCounts = {
+    low: Number(row.low_count || 0),
+    moderate: Number(row.moderate_count || 0),
+    high: Number(row.high_count || 0),
+    critical: Number(row.critical_count || 0),
+  };
+  const dominantSeverity = pickDominantSeverity(severityCounts);
+  const verifiedCount = Number(row.verified_count || 0);
+
+  const hourDistribution = Array.isArray(row.hour_distribution) ? row.hour_distribution : [];
+  let peakHourRange = null;
+  if (hourDistribution.length > 0) {
+    const topHour = Number(hourDistribution[0].hour);
+    if (Number.isFinite(topHour)) {
+      peakHourRange = {
+        startHour: topHour,
+        endHour: (topHour + 1) % 24,
+        reportCount: Number(hourDistribution[0].count) || 0,
+      };
+    }
+  }
+
+  const commonReportTypesRaw = Array.isArray(row.common_report_types)
+    ? row.common_report_types
+    : [];
+  const commonReportTypes = commonReportTypesRaw.map((t) => ({
+    type: t.type || "unknown",
+    label: String(t.type || "report").replace(/_/g, " "),
+    count: Number(t.count || 0),
+  }));
+
+  const reports = (Array.isArray(row.reports) ? row.reports : []).map((r) => ({
+    id: r.id,
+    title: r.title || null,
+    descriptionSnippet:
+      typeof r.description === "string" ? r.description.slice(0, 240) : null,
+    incidentType: r.incident_type || null,
+    severityHint: Number(r.severity_hint || 0),
+    severityBucket: r.severity_bucket || "low",
+    createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
+    verifiedByPolice: Boolean(r.verified_by_officer_id),
+    reviewVerdict: r.review_verdict || null,
+    lat: r.lat != null ? Number(r.lat) : null,
+    lng: r.lng != null ? Number(r.lng) : null,
+  }));
+
+  const explanation = buildClusterExplanation({
+    reportCount,
+    dominantSeverity,
+    severityCounts,
+    verifiedCount,
+    peakHourRange,
+    commonReportTypes,
+  });
+
+  return {
+    center: { lat: safeLat, lng: safeLng },
+    radiusMeters: safeRadius,
+    reportCount,
+    severityCounts,
+    dominantSeverity,
+    verifiedCount,
+    latestReportAt: row.latest_report_at
+      ? new Date(row.latest_report_at).toISOString()
+      : null,
+    earliestReportAt: row.earliest_report_at
+      ? new Date(row.earliest_report_at).toISOString()
+      : null,
+    peakHourRange,
+    commonReportTypes,
+    explanation,
+    severityColors: SEVERITY_COLORS,
+    reports,
+  };
+}
+
 module.exports = {
   getDangerHeatClusters,
+  getClusterDetailByLocation,
   mapDangerWeightToVisuals,
   parseHoursFromRequest,
   SEVERITY_COLORS,

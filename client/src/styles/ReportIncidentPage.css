@@ -21,7 +21,8 @@
 
 /* PAGE CONTAINER */
 .report-page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: var(--report-bg);
   display: flex;
   flex-direction: column;
@@ -36,7 +37,8 @@
   gap: 0;
   flex: 1;
   margin-top: var(--header-height);
-  min-height: calc(100vh - var(--header-height));
+  height: calc(100vh - var(--header-height));
+  overflow: hidden;
   background: var(--report-bg);
 }
 
@@ -49,10 +51,23 @@
   padding: 32px 24px;
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: var(--header-height);
-  height: calc(100vh - var(--header-height));
-  overflow: hidden;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.report-left::-webkit-scrollbar {
+  width: 4px;
+}
+
+.report-left::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.report-left::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
 }
 
 .stepper-header {
@@ -223,8 +238,24 @@
   padding: 40px 48px;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - var(--header-height));
+  height: 100%;
+  overflow-y: auto;
   background: var(--report-bg);
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.report-center::-webkit-scrollbar {
+  width: 4px;
+}
+
+.report-center::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.report-center::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
 }
 
 .step-panel {
@@ -1152,9 +1183,7 @@
   background: var(--report-card);
   border-left: 1px solid var(--report-border);
   padding: 24px;
-  position: sticky;
-  top: var(--header-height);
-  height: calc(100vh - var(--header-height));
+  height: 100%;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;

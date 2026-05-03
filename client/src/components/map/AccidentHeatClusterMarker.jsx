@@ -14,7 +14,7 @@ const SEVERITY_ROWS = [
   { key: 'low', label: 'Low' },
 ]
 
-export default function AccidentHeatClusterMarker({ cluster }) {
+export default function AccidentHeatClusterMarker({ cluster, onExplain }) {
   const lat = Number(cluster?.lat)
   const lng = Number(cluster?.lon)
   const icon = useMemo(() => buildAccidentHeatClusterIcon(cluster), [cluster])
@@ -68,6 +68,26 @@ export default function AccidentHeatClusterMarker({ cluster }) {
             <span>Latest report</span>
             <strong>{formatHeatmapTimestamp(cluster?.latestReportAt)}</strong>
           </div>
+          {typeof onExplain === 'function' ? (
+            <button
+              type="button"
+              onClick={() => onExplain(cluster)}
+              style={{
+                marginTop: 8,
+                width: '100%',
+                padding: '8px 10px',
+                background: '#007BFF',
+                color: '#FFFFFF',
+                border: '1px solid #007BFF',
+                borderRadius: 8,
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              Why is this dangerous?
+            </button>
+          ) : null}
         </div>
       </Popup>
     </Marker>

@@ -737,3 +737,15 @@ export async function createManualPoliceHistoryEntry(payload = {}) {
     throw normalizeApiError(error, 'Failed to add manual history entry')
   }
 }
+
+export async function getPolicePriorityQueue(params = {}) {
+  try {
+    const response = await userRequest.get('/police/priority-queue', { params })
+    return {
+      items: Array.isArray(response.data?.items) ? response.data.items : [],
+      pagination: response.data?.pagination || { limit: 25, total: 0 },
+    }
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to load priority queue')
+  }
+}

@@ -14,6 +14,7 @@ import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import TravelHistoryDetailModal from '../../components/travel/TravelHistoryDetailModal'
+import PersonalSafetyScoreCard from '../../components/travel/PersonalSafetyScoreCard'
 import { fetchDashboard } from '../../services/dashboardService'
 import { getMyTravelHistory } from '../../services/travelHistoryService'
 
@@ -371,6 +372,10 @@ export default function UserDashboardPage() {
           <section className="card ud-section ud-roads">
             <div className="ud-section-header"><h3 className="ud-mini-title" style={{ marginBottom: 0 }}>High-Risk Road Ranking</h3></div>
             <div className="ud-table-wrapper"><table className="ud-table"><thead><tr><th>#</th><th>Road</th><th>Risk Score</th><th>Change</th><th></th></tr></thead><tbody>{topRoads.length === 0 ? <tr><td colSpan="5" className="ud-cell-muted">No road risk data available yet.</td></tr> : topRoads.map((road) => <tr key={road.rank}><td className="ud-road-rank">{road.rank}</td><td className="ud-cell-primary">{road.road}</td><td><div className="ud-score-cell"><span className={`ud-score-value ${riskTone(road.riskScore)}`}>{road.riskScore}</span><RiskBar score={road.riskScore} /></div></td><td><span className={`ud-trend ${trendTone(road.change)}`}>{Number(road.change || 0) >= 0 ? '↑' : '↓'} {signedPct(road.change)}</span></td><td><button className="ud-map-btn" onClick={() => navigate('/map')}>Map →</button></td></tr>)}</tbody></table></div>
+          </section>
+
+          <section className="ud-section" style={{ marginTop: 16 }}>
+            <PersonalSafetyScoreCard refreshKey={travelHistoryItems?.length || 0} />
           </section>
 
           <section className="card ud-section">

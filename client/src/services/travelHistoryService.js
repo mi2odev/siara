@@ -57,3 +57,12 @@ export async function updateTravelHistoryRating(id, rating, feedbackText) {
     throw normalizeError(error, 'Failed to update trip rating')
   }
 }
+
+export async function getMySafetySummary() {
+  try {
+    const response = await userRequest.get('/travel-history/me/safety-summary')
+    return response.data || null
+  } catch (error) {
+    throw normalizeError(error, 'Failed to load safety summary')
+  }
+}

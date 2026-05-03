@@ -4,12 +4,17 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 
 import NavigationBanner from './NavigationBanner'
 import NavigationSummaryCard from './NavigationSummaryCard'
+import NavigationDangerAlert from './NavigationDangerAlert'
+import { fetchRouteAlerts } from '../../services/routeAlertsService'
 import {
   bearingDegrees,
   computeRouteProgress,
   deriveStepsFromPath,
   findCurrentStepIndex,
 } from '../../utils/navigationHelpers'
+
+const ROUTE_ALERTS_POLL_MS = 30 * 1000
+const ROUTE_ALERTS_LOOKAHEAD_KM = 5
 
 // MapLibre-only navigation view. The normal SIARA map stays Leaflet — this
 // component is mounted only when the user starts travel and unmounted when
@@ -180,6 +185,10 @@ export default function MapLibreNavigationView({
   const [mapReady, setMapReady] = useState(false)
   const [followUser, setFollowUser] = useState(true)
   const [derivedHeading, setDerivedHeading] = useState(null)
+  const [routeAlerts, setRouteAlerts] = useState([])
+  const [dismissedAlertIds, setDismissedAlertIds] = useState(() => new Set())
+  const [rerouting, setRerouting] = useState(false)
+  const lastAlertSinceRef = useRef(null)
 
   // Derive nav steps once per route so banner instructions don't churn.
   const navigationSteps = useMemo(
@@ -547,6 +556,113 @@ export default function MapLibreNavigationView({
       )
     : []
 
+  // Reset dismissed alerts when the active route identity changes (new
+  // route = fresh evaluation).
+  useEffect(() => {
+    setDismissedAlertIds(new Set())
+    setRouteAlerts([])
+    lastAlertSinceRef.current = null
+  }, [selectedRoute?.route_id, selectedRoute?.route_type])
+
+  // Poll for new danger alerts ahead on the active route. Polling is the
+  // first-version transport; we can later swap to socket-pushed alerts.
+  useEffect(() => {
+    const path = Array.isArray(selectedRoute?.path) ? selectedRoute.path : []
+    if (path.length < 2) {
+      setRouteAlerts([])
+      return undefined
+    }
+    if (
+      !Number.isFinite(Number(userLocation?.lat)) ||
+      !Number.isFinite(Number(userLocation?.lng))
+    ) {
+      return undefined
+    }
+
+    let cancelled = false
+    let timer = null
+
+    const runPoll = async () => {
+      try {
+        const since =
+          lastAlertSinceRef.current || new Date(Date.now() - 60 * 60 * 1000).toISOString()
+        const data = await fetchRouteAlerts({
+          routeSnapshot: { path, route_id: selectedRoute?.route_id || null },
+          userLocation: {
+            lat: Number(userLocation.lat),
+            lng: Number(userLocation.lng),
+          },
+          destination: destination
+            ? {
+                lat: Number(destination?.lat),
+                lng: Number(destination?.lng),
+                name: destination?.name || null,
+              }
+            : null,
+          lookAheadKm: ROUTE_ALERTS_LOOKAHEAD_KM,
+          since,
+        })
+        if (cancelled) return
+        const alerts = Array.isArray(data?.alerts) ? data.alerts : []
+        setRouteAlerts(alerts)
+        // Use the latest alert createdAt as the next `since` to avoid
+        // re-evaluating already-seen reports.
+        const latest = alerts.reduce((acc, a) => {
+          const t = a?.createdAt ? new Date(a.createdAt).getTime() : 0
+          return Math.max(acc, t)
+        }, 0)
+        if (latest > 0) {
+          lastAlertSinceRef.current = new Date(latest).toISOString()
+        }
+      } catch (error) {
+        if (cancelled) return
+        if (import.meta.env.DEV) {
+          console.warn('[route-alerts] poll failed', error?.message)
+        }
+      }
+    }
+
+    runPoll()
+    timer = setInterval(runPoll, ROUTE_ALERTS_POLL_MS)
+
+    return () => {
+      cancelled = true
+      if (timer) clearInterval(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    selectedRoute?.route_id,
+    selectedRoute?.route_type,
+    Math.round(Number(userLocation?.lat) * 1000),
+    Math.round(Number(userLocation?.lng) * 1000),
+  ])
+
+  const visibleRouteAlerts = routeAlerts.filter((a) => a && !dismissedAlertIds.has(a.id))
+  const topAlert = visibleRouteAlerts[0] || null
+
+  const handleDismissAlert = useCallback(
+    (alert) => {
+      if (!alert?.id) return
+      setDismissedAlertIds((prev) => {
+        const next = new Set(prev)
+        next.add(alert.id)
+        return next
+      })
+    },
+    [],
+  )
+
+  const handleFindSaferRoute = useCallback(async () => {
+    if (typeof onChangeRouteType !== 'function') return
+    if (selectedRoute?.route_type === 'safest') return
+    setRerouting(true)
+    try {
+      await Promise.resolve(onChangeRouteType('safest'))
+    } finally {
+      setRerouting(false)
+    }
+  }, [onChangeRouteType, selectedRoute?.route_type])
+
   return (
     <div className="siara-mlb-shell">
       <div ref={containerRef} className="siara-mlb-canvas" />
@@ -555,6 +671,20 @@ export default function MapLibreNavigationView({
         <div className="siara-mlb-location-warning" role="status">
           Enable location to use live navigation. Showing route preview only.
         </div>
+      ) : null}
+
+      {topAlert ? (
+        <NavigationDangerAlert
+          alert={topAlert}
+          totalAlerts={visibleRouteAlerts.length}
+          onDismiss={handleDismissAlert}
+          onFindSaferRoute={
+            selectedRoute?.route_type !== 'safest' && typeof onChangeRouteType === 'function'
+              ? handleFindSaferRoute
+              : null
+          }
+          rerouting={rerouting}
+        />
       ) : null}
 
       <NavigationBanner

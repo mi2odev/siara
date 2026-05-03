@@ -1,0 +1,228 @@
+.siara-ds-page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.siara-ds-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.siara-ds-page__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.siara-ds-page__sub {
+  font-size: 13px;
+  color: #64748B;
+  margin: 4px 0 0;
+}
+
+.siara-ds-page__btn {
+  background: #007BFF;
+  color: #FFFFFF;
+  border: 1px solid #007BFF;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.siara-ds-page__btn:hover {
+  background: #0056D6;
+  border-color: #0056D6;
+}
+
+.siara-ds-page__btn--ghost {
+  background: transparent;
+  color: #007BFF;
+}
+
+.siara-ds-page__btn--ghost:hover {
+  background: #EFF6FF;
+}
+
+.siara-ds-page__btn--danger {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border-color: #FECACA;
+}
+
+.siara-ds-page__btn--danger:hover {
+  background: #FECACA;
+}
+
+.siara-ds-list {
+  display: grid;
+  gap: 12px;
+}
+
+.siara-ds-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 14px -8px rgba(15, 23, 42, 0.18);
+}
+
+.siara-ds-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.siara-ds-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.siara-ds-card__type {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #DBEAFE;
+  color: #1E3A8A;
+}
+
+.siara-ds-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.siara-ds-card__pill {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #F1F5F9;
+  color: #475569;
+}
+
+.siara-ds-card__pill.is-active {
+  background: #ECFDF5;
+  color: #047857;
+}
+
+.siara-ds-card__pill.is-inactive {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+.siara-ds-card__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.siara-ds-empty,
+.siara-ds-error {
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: #475569;
+}
+
+.siara-ds-error {
+  background: #FEF2F2;
+  border-color: #FECACA;
+  border-style: solid;
+  color: #B91C1C;
+}
+
+.siara-ds-form {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 14px -8px rgba(15, 23, 42, 0.18);
+}
+
+.siara-ds-form__row {
+  display: grid;
+  gap: 8px;
+}
+
+.siara-ds-form__row--two {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 600px) {
+  .siara-ds-form__row--two {
+    grid-template-columns: 1fr;
+  }
+}
+
+.siara-ds-form__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.siara-ds-form__input,
+.siara-ds-form__select {
+  width: 100%;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #0F172A;
+  background: #FFFFFF;
+}
+
+.siara-ds-form__input:focus,
+.siara-ds-form__select:focus {
+  border-color: #007BFF;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+}
+
+.siara-ds-form__checkbox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: #1E293B;
+}
+
+.siara-ds-form__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.siara-ds-form__hint {
+  font-size: 11px;
+  color: #94A3B8;
+}

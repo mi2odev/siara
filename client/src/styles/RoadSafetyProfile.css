@@ -1,0 +1,253 @@
+.siara-zp {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -16px rgba(15, 23, 42, 0.35);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.siara-zp__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.siara-zp__icon {
+  font-size: 20px;
+}
+
+.siara-zp__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  flex: 1;
+}
+
+.siara-zp__pill {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+.siara-zp__pill.dominant-low { background: #ECFDF5; color: #047857; }
+.siara-zp__pill.dominant-moderate { background: #FEF3C7; color: #B45309; }
+.siara-zp__pill.dominant-high { background: #FFEDD5; color: #C2410C; }
+.siara-zp__pill.dominant-critical { background: #FEE2E2; color: #B91C1C; }
+
+.siara-zp__pill.trend-increasing { background: #FEE2E2; color: #B91C1C; }
+.siara-zp__pill.trend-decreasing { background: #ECFDF5; color: #047857; }
+.siara-zp__pill.trend-flat { background: #F1F5F9; color: #475569; }
+
+.siara-zp__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.siara-zp__metric {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.siara-zp__metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.siara-zp__metric-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.siara-zp__metric-sub {
+  font-size: 11px;
+  color: #64748B;
+}
+
+.siara-zp__chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 80px;
+  padding: 4px 0;
+  border-radius: 8px;
+  background: #F8FAFC;
+  padding: 8px;
+}
+
+.siara-zp__chart-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.siara-zp__chart-fill {
+  width: 100%;
+  background: linear-gradient(180deg, #007BFF, #1E40AF);
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+}
+
+.siara-zp__chart-label {
+  font-size: 10px;
+  color: #64748B;
+}
+
+.siara-zp__list-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 8px 0 0;
+}
+
+.siara-zp__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.siara-zp__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #F1F5F9;
+  color: #1E293B;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.siara-zp__recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.siara-zp__recent-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 6px 10px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #475569;
+  text-decoration: none;
+}
+
+.siara-zp__recent-item:hover {
+  border-color: #BFDBFE;
+  background: #F8FAFC;
+}
+
+.siara-zp__recent-title {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.siara-zp__page {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.siara-zp__page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.siara-zp__page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.siara-zp__page-sub {
+  font-size: 13px;
+  color: #64748B;
+}
+
+.siara-zp__form {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr 120px auto;
+  align-items: end;
+}
+
+.siara-zp__form input,
+.siara-zp__form select {
+  width: 100%;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.siara-zp__form button {
+  background: #007BFF;
+  color: #FFFFFF;
+  border: 1px solid #007BFF;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  height: 36px;
+}
+
+.siara-zp__form button:hover {
+  background: #0056D6;
+  border-color: #0056D6;
+}
+
+.siara-zp__loading,
+.siara-zp__empty,
+.siara-zp__error {
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: #475569;
+}
+
+.siara-zp__error {
+  background: #FEF2F2;
+  border-color: #FECACA;
+  border-style: solid;
+  color: #B91C1C;
+}
+
+@media (max-width: 600px) {
+  .siara-zp__form {
+    grid-template-columns: 1fr 1fr;
+  }
+}

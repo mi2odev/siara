@@ -3,6 +3,7 @@ import {
   getTravelHistoryDetail,
   updateTravelHistoryRating,
 } from '../../services/travelHistoryService'
+import RouteReplayMap from './RouteReplayMap'
 
 const RISK_LEVELS = ['low', 'moderate', 'medium', 'high', 'extreme', 'critical']
 
@@ -83,6 +84,7 @@ export default function TravelHistoryDetailModal({ tripId, open, onClose, onRati
   const [feedback, setFeedback] = useState('')
   const [saving, setSaving] = useState(false)
   const [savedMessage, setSavedMessage] = useState('')
+  const [replayOpen, setReplayOpen] = useState(false)
 
   useEffect(() => {
     if (!open || !tripId) return undefined
@@ -90,6 +92,7 @@ export default function TravelHistoryDetailModal({ tripId, open, onClose, onRati
     setLoading(true)
     setError('')
     setSavedMessage('')
+    setReplayOpen(false)
     getTravelHistoryDetail(tripId)
       .then((data) => {
         if (cancelled) return
@@ -227,6 +230,22 @@ export default function TravelHistoryDetailModal({ tripId, open, onClose, onRati
                     <span className="th-rating-saved">{savedMessage}</span>
                   )}
                 </div>
+              </div>
+
+              <div className="th-segments-block" style={{ marginBottom: 12 }}>
+                <div
+                  className="th-rating-actions"
+                  style={{ justifyContent: 'flex-start', marginBottom: 8 }}
+                >
+                  <button
+                    type="button"
+                    className="ud-link-btn"
+                    onClick={() => setReplayOpen((prev) => !prev)}
+                  >
+                    {replayOpen ? 'Hide replay' : 'Replay trip'}
+                  </button>
+                </div>
+                {replayOpen ? <RouteReplayMap trip={detail} /> : null}
               </div>
 
               <div className="th-segments-block">

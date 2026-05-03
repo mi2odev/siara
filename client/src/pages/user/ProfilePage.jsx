@@ -744,70 +744,61 @@ export default function ProfilePage(){
         {/* ═══ MIDDLE COLUMN ═══ */}
         <main className="profile-main">
 
-          {/* ── Hero ── */}
-          <section className="prm-hero">
-            {/* Gradient banner */}
-            <div className="prm-banner" aria-hidden="true">
-              <div className="prm-banner-orb prm-banner-orb--a" />
-              <div className="prm-banner-orb prm-banner-orb--b" />
-            </div>
+          {/* ── Profile Header Card ── */}
+          <section className="pm-card pm-profile">
+            <div className="pm-profile-banner" aria-hidden="true" />
 
-            {/* Avatar + Info */}
-            <div className="prm-hero-body">
+            <div className="pm-profile-body">
               <button
                 type="button"
-                className="prm-ava-btn"
+                className="pm-profile-avatar"
                 onClick={openAvatarPreview}
                 aria-label={`View ${displayName} profile photo`}
               >
                 {profileAvatarUrl && !avatarFailed
-                  ? <img src={profileAvatarUrl} alt={displayName} className="prm-ava-img" loading="lazy" onError={() => setAvatarFailed(true)} />
-                  : <span className="prm-ava-initials">{profileInitials}</span>
+                  ? <img src={profileAvatarUrl} alt={displayName} loading="lazy" onError={() => setAvatarFailed(true)} />
+                  : <span className="pm-profile-avatar-initials">{profileInitials}</span>
                 }
               </button>
 
-              <div className="prm-hero-info">
-                <h1 className="prm-name">{displayName}</h1>
-                <p className="prm-bio">{bio}</p>
-                <div className="prm-chips">
-                  <span className="prm-chip">
-                    <svg className="prm-chip-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5A4.5 4.5 0 0 1 12.5 6c0 3-4.5 8.5-4.5 8.5S3.5 9 3.5 6A4.5 4.5 0 0 1 8 1.5Zm0 2.75a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 0 0 0-3.5Z" fill="currentColor"/></svg>
+              <div className="pm-profile-info">
+                <h1 className="pm-profile-name">{displayName}</h1>
+                <p className="pm-profile-bio">{bio}</p>
+                <div className="pm-profile-meta">
+                  <span className="pm-meta-item">
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M8 1.5A4.5 4.5 0 0 1 12.5 6c0 3-4.5 8.5-4.5 8.5S3.5 9 3.5 6A4.5 4.5 0 0 1 8 1.5Zm0 2.75a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 0 0 0-3.5Z" fill="currentColor"/>
+                    </svg>
                     {locationLabel}
                   </span>
-                  <span className="prm-chip">
-                    <svg className="prm-chip-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M5 1.5V4M11 1.5V4M2 7h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+                  <span className="pm-meta-item">
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.4"/>
+                      <path d="M5 1.5V4M11 1.5V4M2 7h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                    </svg>
                     Joined {joinLabel}
                   </span>
-                  <span className="prm-chip">
-                    <svg className="prm-chip-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.4"/><path d="M1.5 6l6.5 4 6.5-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+                  <span className="pm-meta-item">
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <rect x="1.5" y="3.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.4"/>
+                      <path d="M1.5 6l6.5 4 6.5-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                    </svg>
                     {contactLabel}
                   </span>
                 </div>
               </div>
-
-              {isViewingOwnProfile && (
-                <button
-                  className="prm-edit-btn"
-                  onClick={() => navigate('/settings', { state: { openSection: 'profile' } })}
-                >
-                  Edit Profile
-                </button>
-              )}
             </div>
 
-            {/* Stats strip */}
-            <div className="prm-stats">
-              <div className="prm-stat">
+            <div className="pm-profile-stats">
+              <div className="pm-stat">
                 <strong>{effectiveAlertsCount}</strong>
                 <span>Alerts</span>
               </div>
-              <div className="prm-stat-sep" />
-              <div className="prm-stat">
+              <div className="pm-stat">
                 <strong>{effectiveReportsCount}</strong>
                 <span>Reports</span>
               </div>
-              <div className="prm-stat-sep" />
-              <div className="prm-stat">
+              <div className="pm-stat">
                 <strong>{displayVerificationRate}%</strong>
                 <span>Verified</span>
               </div>
@@ -816,49 +807,53 @@ export default function ProfilePage(){
 
           {/* ── Driver Quiz Card (own profile only) ── */}
           {isViewingOwnProfile && (
-            <section className="prm-quiz-card">
-              <div className="prm-quiz-head">
-                <div>
-                  <h3 className="prm-quiz-title-text">Driver Behavior Profile</h3>
-                  <p className="prm-quiz-sub">Your personalized driving risk assessment</p>
+            <section className="pm-card pm-quiz">
+              <div className="pm-quiz-head">
+                <div className="pm-quiz-head-text">
+                  <h2 className="pm-quiz-title">Driver Behavior Profile</h2>
+                  <p className="pm-quiz-subtitle">Personalized driving risk assessment</p>
                 </div>
                 <button
                   type="button"
-                  className="prm-quiz-cta"
+                  className="pm-btn-primary"
                   onClick={() => navigate('/predictions')}
                 >
-                  Take or retake quiz
+                  {driverQuizProfile ? 'Retake quiz' : 'Take quiz'}
                 </button>
               </div>
 
               {driverQuizLoading && (
-                <p className="prm-quiz-empty">Loading your latest result...</p>
+                <p className="pm-quiz-state">Loading your latest result…</p>
               )}
               {driverQuizError && !driverQuizLoading && (
-                <p className="prm-quiz-empty prm-quiz-empty--error">{driverQuizError}</p>
+                <p className="pm-quiz-state pm-quiz-state--error">{driverQuizError}</p>
               )}
               {!driverQuizLoading && !driverQuizError && !driverQuizProfile && (
-                <p className="prm-quiz-empty">You haven&apos;t completed the SIARA driver quiz yet. Take it to receive a personalized driving profile.</p>
+                <p className="pm-quiz-state">
+                  You haven&apos;t completed the SIARA driver quiz yet. Take it to receive a personalized driving profile.
+                </p>
               )}
               {!driverQuizLoading && !driverQuizError && driverQuizProfile && (
-                <div className="prm-quiz-body">
-                  <div className="prf-quiz-score-ring">
-                    <strong className="prf-quiz-score-num">
+                <div className="pm-quiz-result">
+                  <div className="pm-quiz-score">
+                    <span className="pm-quiz-score-num">
                       {driverQuizProfile.latestRiskScore == null ? '--' : Math.round(Number(driverQuizProfile.latestRiskScore))}
-                    </strong>
-                    <span className="prf-quiz-score-max">/100</span>
-                    <span className="prf-quiz-score-label">risk</span>
+                    </span>
+                    <span className="pm-quiz-score-max">/100</span>
+                    <span className="pm-quiz-score-label">Risk</span>
                   </div>
-                  <div className="prm-quiz-text">
-                    <strong className="prm-quiz-result-title">{driverQuizProfile.latestResultTitle || 'Driver profile'}</strong>
+                  <div className="pm-quiz-detail">
+                    <h3 className="pm-quiz-detail-title">{driverQuizProfile.latestResultTitle || 'Driver profile'}</h3>
                     {driverQuizProfile.latestResultDescription && (
-                      <p className="prm-quiz-desc">{driverQuizProfile.latestResultDescription}</p>
+                      <p className="pm-quiz-detail-desc">{driverQuizProfile.latestResultDescription}</p>
                     )}
                     {driverQuizProfile.latestRecommendationDescription && (
-                      <p className="prm-quiz-reco">{driverQuizProfile.latestRecommendationDescription}</p>
+                      <p className="pm-quiz-detail-reco">{driverQuizProfile.latestRecommendationDescription}</p>
                     )}
                     {driverQuizProfile.lastCompletedAt && (
-                      <span className="prm-quiz-meta">Last completed {new Date(driverQuizProfile.lastCompletedAt).toLocaleDateString()}</span>
+                      <span className="pm-quiz-detail-meta">
+                        Last completed {new Date(driverQuizProfile.lastCompletedAt).toLocaleDateString()}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -866,13 +861,13 @@ export default function ProfilePage(){
             </section>
           )}
 
-          {/* ── Activity Tabs ── */}
-          <section className="prm-activities">
-            <div className="prm-tabs" role="tablist" ref={tabsRef}>
+          {/* ── Activity Card ── */}
+          <section className="pm-card pm-activity">
+            <div className="pm-activity-tabs" role="tablist" ref={tabsRef}>
               {tabs.map((tabKey, tabIndex) => (
                 <button
                   key={tabKey}
-                  className={`prm-tab${activeTab === tabKey ? ' prm-tab--active' : ''}`}
+                  className={`pm-tab${activeTab === tabKey ? ' pm-tab--active' : ''}`}
                   onClick={() => setActiveTab(tabKey)}
                   onKeyDown={(event) => handleKeyDown(event, tabIndex)}
                   role="tab"
@@ -884,157 +879,157 @@ export default function ProfilePage(){
               ))}
             </div>
 
-            <div className="prm-tab-body">
+            <div className="pm-activity-body">
 
-              {/* ── Alerts tab ── */}
+              {/* Alerts tab */}
               {activeTab === 'alerts' && (
-                <>
-                  {shouldHideActivityForViewer ? (
-                    <div className="prm-empty">
-                      <span className="prm-empty-icon">—</span>
-                      <p className="prm-empty-text">Activity is private</p>
-                      <p className="prm-empty-sub">This account is private. Alerts are hidden from other users.</p>
-                    </div>
-                  ) : alertsLoading ? (
-                    <div className="prm-empty">
-                      <p className="prm-empty-text">Loading alerts...</p>
-                    </div>
-                  ) : alertsError ? (
-                    <div className="prm-empty">
-                      <p className="prm-empty-text prm-empty-text--error">{alertsError}</p>
-                    </div>
-                  ) : myAlerts.length === 0 ? (
-                    <div className="prm-empty">
-                      <span className="prm-empty-icon">&#9888;</span>
-                      <p className="prm-empty-text">No saved alerts yet</p>
-                      <p className="prm-empty-sub">Create a new alert to monitor your important zones.</p>
-                      <button className="prm-empty-cta" onClick={() => navigate('/alerts/create')}>Create Alert</button>
-                    </div>
-                  ) : (
-                    <ul className="prm-list">
-                      {myAlerts.map((alert) => {
-                        const status = String(alert.status || 'paused').toLowerCase()
-                        const chipClass = status === 'active' ? 'prm-chip-status--green'
-                          : status === 'paused' ? 'prm-chip-status--amber'
-                          : 'prm-chip-status--gray'
-                        return (
-                          <li
-                            key={alert.id}
-                            className="prm-list-item"
-                            onClick={() => navigate('/alerts')}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => e.key === 'Enter' && navigate('/alerts')}
-                          >
-                            <span className="prm-list-icon prm-list-icon--bell" aria-hidden="true">
-                              <svg viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 0 1 6 6v2.586l1.707 1.707A1 1 0 0 1 17 14H3a1 1 0 0 1-.707-1.707L4 10.586V8a6 6 0 0 1 6-6Zm0 16a2 2 0 0 1-2-2h4a2 2 0 0 1-2 2Z" fill="currentColor"/></svg>
-                            </span>
-                            <div className="prm-list-main">
-                              <span className="prm-list-title">{alert.name || 'Saved alert'}</span>
-                              <span className="prm-list-loc">{alert.area?.name || alert.zone?.displayName || 'Monitored area'} &middot; {alert.area?.wilaya || ''}</span>
-                            </div>
-                            <div className="prm-list-right">
-                              <span className={`prm-chip-status ${chipClass}`}>{toTitleCase(alert.status || 'Paused')}</span>
-                              <span className="prm-list-time">{formatAlertTime(alert.lastTriggered || alert.last_triggered)}</span>
-                            </div>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  )}
-                </>
+                shouldHideActivityForViewer ? (
+                  <div className="pm-empty">
+                    <span className="pm-empty-icon" aria-hidden="true">&#128274;</span>
+                    <p className="pm-empty-title">Activity is private</p>
+                    <p className="pm-empty-sub">This account is private. Alerts are hidden from other users.</p>
+                  </div>
+                ) : alertsLoading ? (
+                  <div className="pm-empty"><p className="pm-empty-title">Loading alerts…</p></div>
+                ) : alertsError ? (
+                  <div className="pm-empty"><p className="pm-empty-title pm-empty-title--error">{alertsError}</p></div>
+                ) : myAlerts.length === 0 ? (
+                  <div className="pm-empty">
+                    <span className="pm-empty-icon" aria-hidden="true">&#128276;</span>
+                    <p className="pm-empty-title">No saved alerts yet</p>
+                    <p className="pm-empty-sub">Create a new alert to monitor your important zones.</p>
+                    <button className="pm-btn-primary" onClick={() => navigate('/alerts/create')}>Create Alert</button>
+                  </div>
+                ) : (
+                  <ul className="pm-list">
+                    {myAlerts.map((alert) => {
+                      const status = String(alert.status || 'paused').toLowerCase()
+                      const chipClass = status === 'active' ? 'pm-chip--green'
+                        : status === 'paused' ? 'pm-chip--amber'
+                        : 'pm-chip--gray'
+                      const subParts = [
+                        alert.area?.name || alert.zone?.displayName || 'Monitored area',
+                        alert.area?.wilaya,
+                      ].filter(Boolean)
+                      return (
+                        <li
+                          key={alert.id}
+                          className="pm-row"
+                          onClick={() => navigate('/alerts')}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === 'Enter' && navigate('/alerts')}
+                        >
+                          <span className="pm-row-icon pm-row-icon--alert" aria-hidden="true">
+                            <svg viewBox="0 0 20 20" fill="none">
+                              <path d="M10 2a6 6 0 0 1 6 6v2.586l1.707 1.707A1 1 0 0 1 17 14H3a1 1 0 0 1-.707-1.707L4 10.586V8a6 6 0 0 1 6-6Zm0 16a2 2 0 0 1-2-2h4a2 2 0 0 1-2 2Z" fill="currentColor"/>
+                            </svg>
+                          </span>
+                          <div className="pm-row-main">
+                            <span className="pm-row-title">{alert.name || 'Saved alert'}</span>
+                            <span className="pm-row-sub">{subParts.join(' · ')}</span>
+                          </div>
+                          <div className="pm-row-right">
+                            <span className={`pm-chip ${chipClass}`}>{toTitleCase(alert.status || 'Paused')}</span>
+                            <span className="pm-row-time">{formatAlertTime(alert.lastTriggered || alert.last_triggered)}</span>
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )
               )}
 
-              {/* ── Reports tab ── */}
+              {/* Reports tab */}
               {activeTab === 'reports' && (
-                <>
-                  {shouldHideActivityForViewer ? (
-                    <div className="prm-empty">
-                      <span className="prm-empty-icon">—</span>
-                      <p className="prm-empty-text">Reports are private</p>
-                      <p className="prm-empty-sub">This account is private. Report history is hidden from other users.</p>
-                    </div>
-                  ) : reportsLoading ? (
-                    <div className="prm-empty">
-                      <p className="prm-empty-text">Loading reports...</p>
-                    </div>
-                  ) : reportsError ? (
-                    <div className="prm-empty">
-                      <p className="prm-empty-text prm-empty-text--error">{reportsError}</p>
-                    </div>
-                  ) : myReports.length === 0 ? (
-                    <div className="prm-empty">
-                      <span className="prm-empty-icon">&#9432;</span>
-                      <p className="prm-empty-text">No reports found yet</p>
-                      <p className="prm-empty-sub">Create your first incident report to see it here.</p>
-                      <button className="prm-empty-cta" onClick={() => navigate('/report')}>Create Report</button>
-                    </div>
-                  ) : (
-                    <ul className="prm-list">
-                      {myReports.map((report) => {
-                        const status = String(report.status || 'pending').toLowerCase()
-                        const chipClass = (status === 'verified' || status === 'resolved') ? 'prm-chip-status--green'
-                          : status === 'paused' ? 'prm-chip-status--amber'
-                          : 'prm-chip-status--gray'
-                        return (
-                          <li
-                            key={report.id}
-                            className="prm-list-item"
-                            onClick={() => navigate(`/incident/${report.id}`)}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => e.key === 'Enter' && navigate(`/incident/${report.id}`)}
-                          >
-                            <span className="prm-list-icon prm-list-icon--report" aria-hidden="true">
-                              <svg viewBox="0 0 20 20" fill="none"><path d="M10 2a8 8 0 1 0 0 16A8 8 0 0 0 10 2Zm0 4v5m0 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-                            </span>
-                            <div className="prm-list-main">
-                              <span className="prm-list-title">{report.title || 'Untitled report'}</span>
-                              <span className="prm-list-loc">{toTitleCase(report.incidentType || report.incident_type || 'incident')} &middot; {report.locationLabel || report.location?.label || 'Location not set'}</span>
-                            </div>
-                            <div className="prm-list-right">
-                              <span className={`prm-chip-status ${chipClass}`}>{toTitleCase(report.status || 'Pending')}</span>
-                              <span className="prm-list-time">{formatReportTime(report.createdAt || report.created_at || report.occurredAt || report.occurred_at)}</span>
-                            </div>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  )}
-                </>
+                shouldHideActivityForViewer ? (
+                  <div className="pm-empty">
+                    <span className="pm-empty-icon" aria-hidden="true">&#128274;</span>
+                    <p className="pm-empty-title">Reports are private</p>
+                    <p className="pm-empty-sub">This account is private. Report history is hidden from other users.</p>
+                  </div>
+                ) : reportsLoading ? (
+                  <div className="pm-empty"><p className="pm-empty-title">Loading reports…</p></div>
+                ) : reportsError ? (
+                  <div className="pm-empty"><p className="pm-empty-title pm-empty-title--error">{reportsError}</p></div>
+                ) : myReports.length === 0 ? (
+                  <div className="pm-empty">
+                    <span className="pm-empty-icon" aria-hidden="true">&#128221;</span>
+                    <p className="pm-empty-title">No reports found yet</p>
+                    <p className="pm-empty-sub">Create your first incident report to see it here.</p>
+                    <button className="pm-btn-primary" onClick={() => navigate('/report')}>Create Report</button>
+                  </div>
+                ) : (
+                  <ul className="pm-list">
+                    {myReports.map((report) => {
+                      const status = String(report.status || 'pending').toLowerCase()
+                      const chipClass = (status === 'verified' || status === 'resolved') ? 'pm-chip--green'
+                        : status === 'paused' ? 'pm-chip--amber'
+                        : 'pm-chip--gray'
+                      const subParts = [
+                        toTitleCase(report.incidentType || report.incident_type || 'incident'),
+                        report.locationLabel || report.location?.label || 'Location not set',
+                      ].filter(Boolean)
+                      return (
+                        <li
+                          key={report.id}
+                          className="pm-row"
+                          onClick={() => navigate(`/incident/${report.id}`)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === 'Enter' && navigate(`/incident/${report.id}`)}
+                        >
+                          <span className="pm-row-icon pm-row-icon--report" aria-hidden="true">
+                            <svg viewBox="0 0 20 20" fill="none">
+                              <path d="M10 2a8 8 0 1 0 0 16A8 8 0 0 0 10 2Zm0 4v5m0 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                            </svg>
+                          </span>
+                          <div className="pm-row-main">
+                            <span className="pm-row-title">{report.title || 'Untitled report'}</span>
+                            <span className="pm-row-sub">{subParts.join(' · ')}</span>
+                          </div>
+                          <div className="pm-row-right">
+                            <span className={`pm-chip ${chipClass}`}>{toTitleCase(report.status || 'Pending')}</span>
+                            <span className="pm-row-time">{formatReportTime(report.createdAt || report.created_at || report.occurredAt || report.occurred_at)}</span>
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )
               )}
 
-              {/* ── History tab (placeholder — no data yet) ── */}
+              {/* History tab */}
               {activeTab === 'history' && (
-                <div className="prm-empty">
-                  <span className="prm-empty-icon">&#9656;</span>
-                  <p className="prm-empty-text">History coming soon</p>
-                  <p className="prm-empty-sub">Your full activity history will appear here.</p>
+                <div className="pm-empty">
+                  <span className="pm-empty-icon" aria-hidden="true">&#128202;</span>
+                  <p className="pm-empty-title">History coming soon</p>
+                  <p className="pm-empty-sub">Your full activity history will appear here.</p>
                 </div>
               )}
 
-              {/* ── Timeline tab ── */}
+              {/* Timeline tab */}
               {activeTab === 'timeline' && (
-                <div className="prf-timeline">
+                <div className="pm-timeline">
                   {[
-                    { type: 'report',     icon: '\U0001f6a8', title: 'New report created',      description: 'Multi-vehicle collision on East-West Highway',      time: '2 hours ago',  color: '#EF4444' },
-                    { type: 'validation', icon: '\U0001f916', title: 'AI Validation',            description: 'Your report has been verified and confirmed by AI', time: '3 hours ago',  color: '#10B981' },
-                    { type: 'alert',      icon: '\U0001f514', title: 'Alert Triggered',          description: '2,340 users were notified of your report',          time: '1 day ago',    color: '#8B5CF6' },
-                    { type: 'reaction',   icon: '\U0001f44d', title: 'Reaction Received',        description: '15 users found your report helpful',                time: '2 days ago',   color: '#3B82F6' },
-                    { type: 'report',     icon: '\U0001f697', title: 'Report Submitted',         description: 'Slowdown on Rue Didouche Mourad',                   time: '3 days ago',   color: '#EF4444' },
-                    { type: 'profile',    icon: '✏️',  title: 'Profile Updated',          description: 'Profile photo and bio updated',                     time: '5 days ago',   color: '#64748B' },
-                    { type: 'validation', icon: '✓',   title: 'Report Verified',          description: 'Accuracy rate: 95%',                                time: '1 week ago',   color: '#10B981' },
+                    { icon: '🚨', title: 'New report created', description: 'Multi-vehicle collision on East-West Highway', time: '2 hours ago', color: '#EF4444' },
+                    { icon: '🤖', title: 'AI Validation',       description: 'Your report has been verified and confirmed by AI', time: '3 hours ago', color: '#10B981' },
+                    { icon: '🔔', title: 'Alert Triggered',     description: '2,340 users were notified of your report', time: '1 day ago', color: '#8B5CF6' },
+                    { icon: '👍', title: 'Reaction Received',   description: '15 users found your report helpful', time: '2 days ago', color: '#3B82F6' },
+                    { icon: '🚗', title: 'Report Submitted',    description: 'Slowdown on Rue Didouche Mourad', time: '3 days ago', color: '#EF4444' },
+                    { icon: '✏️', title: 'Profile Updated',     description: 'Profile photo and bio updated', time: '5 days ago', color: '#64748B' },
+                    { icon: '✓',  title: 'Report Verified',     description: 'Accuracy rate: 95%', time: '1 week ago', color: '#10B981' },
                   ].map((event, i) => (
-                    <div key={i} className="timeline-event">
-                      <div className="timeline-marker" style={{ borderColor: event.color }}>
-                        <span className="timeline-icon" style={{ background: event.color }}>{event.icon}</span>
+                    <div key={i} className="pm-timeline-event">
+                      <div className="pm-timeline-dot" style={{ background: event.color }}>
+                        <span>{event.icon}</span>
                       </div>
-                      <div className="timeline-content">
-                        <div className="timeline-header">
-                          <h4 className="timeline-title">{event.title}</h4>
-                          <span className="timeline-time">{event.time}</span>
+                      <div className="pm-timeline-content">
+                        <div className="pm-timeline-header">
+                          <h4 className="pm-timeline-title">{event.title}</h4>
+                          <span className="pm-timeline-time">{event.time}</span>
                         </div>
-                        <p className="timeline-description">{event.description}</p>
+                        <p className="pm-timeline-desc">{event.description}</p>
                       </div>
                     </div>
                   ))}

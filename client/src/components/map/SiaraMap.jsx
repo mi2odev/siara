@@ -22,7 +22,12 @@ import ReportMapMarker from "./ReportMapMarker";
 import MapDestinationConfirmCard from "./MapDestinationConfirmCard";
 import MapLibreNavigationView from "./MapLibreNavigationView";
 import AccidentHeatClusterMarker from "./AccidentHeatClusterMarker";
+import RouteExplanationCard from "./RouteExplanationCard";
+import RouteComparisonPanel from "./RouteComparisonPanel";
+import BestTimeToLeavePanel from "./BestTimeToLeavePanel";
+import HeatmapClusterDetailPanel from "./HeatmapClusterDetailPanel";
 import { HEATMAP_LEGEND_COLORS } from "./heatmapVisuals";
+import { explainRoute } from "../../services/riskExplanationService";
 import "../../styles/AccidentHeatmap.css";
 import "../../styles/MapDestinationConfirmCard.css";
 import "../../styles/Navigation.css";
@@ -1289,6 +1294,11 @@ const SiaraMap = ({
   const [selectedGuidedRouteType, setSelectedGuidedRouteType] = useState(null);
   const [guidedRouteState, setGuidedRouteState] = useState("idle");
   const [guidedRouteError, setGuidedRouteError] = useState("");
+  const [routeExplanation, setRouteExplanation] = useState(null);
+  const [routeExplanationLoading, setRouteExplanationLoading] = useState(false);
+  const [routeExplanationError, setRouteExplanationError] = useState("");
+  const [selectedHeatCluster, setSelectedHeatCluster] = useState(null);
+  const [heatClusterPanelOpen, setHeatClusterPanelOpen] = useState(false);
   const [guidanceActive, setGuidanceActive] = useState(false);
   const [pendingMapDestination, setPendingMapDestination] = useState(null);
   const [pendingMapDestinationName, setPendingMapDestinationName] = useState("");
@@ -1453,6 +1463,95 @@ const SiaraMap = ({
     setActiveNavigationRoutes(Array.isArray(guidedRoutes) ? guidedRoutes : []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapMode, guidedRoute?.route_type, guidedRoutes]);
+
+  // Fetch route explanation whenever the recommended route identity changes.
+  // Cluster filter keeps the payload small: only heat clusters within ~1.5km
+  // of any route path point are sent to the explain endpoint.
+  useEffect(() => {
+    if (!guidedRoute || !Array.isArray(guidedRoute?.path) || guidedRoute.path.length < 2) {
+      setRouteExplanation(null);
+      setRouteExplanationLoading(false);
+      setRouteExplanationError("");
+      return undefined;
+    }
+
+    const path = guidedRoute.path;
+    const clustersNearRoute = (Array.isArray(heatClusters) ? heatClusters : [])
+      .filter((cluster) => {
+        const clat = Number(cluster?.lat ?? cluster?.latitude);
+        const clng = Number(cluster?.lng ?? cluster?.longitude);
+        if (!Number.isFinite(clat) || !Number.isFinite(clng)) return false;
+        for (let i = 0; i < path.length; i += 1) {
+          const point = path[i];
+          const plat = Array.isArray(point) ? Number(point[0]) : Number(point?.lat);
+          const plng = Array.isArray(point) ? Number(point[1]) : Number(point?.lng);
+          if (!Number.isFinite(plat) || !Number.isFinite(plng)) continue;
+          if (haversineDistanceKm([plat, plng], [clat, clng]) <= 1.5) {
+            return true;
+          }
+        }
+        return false;
+      })
+      .slice(0, 10);
+
+    let cancelled = false;
+    setRouteExplanationLoading(true);
+    setRouteExplanationError("");
+
+    (async () => {
+      try {
+        const payload = {
+          selectedRoute: {
+            route_type: guidedRoute.route_type,
+            route_id: guidedRoute.route_id,
+            summary: guidedRoute.summary,
+            duration_min: guidedRoute.duration_min,
+            eta_min: guidedRoute.eta_min,
+            distance_km: guidedRoute.distance_km,
+            segments: guidedRoute.segments,
+            is_recommended: guidedRoute.is_recommended,
+          },
+          alternatives: (Array.isArray(guidedRoutes) ? guidedRoutes : []).map((route) => ({
+            route_type: route.route_type,
+            route_id: route.route_id,
+            summary: route.summary,
+            duration_min: route.duration_min,
+            eta_min: route.eta_min,
+            distance_km: route.distance_km,
+            segments: route.segments,
+            is_recommended: route.is_recommended,
+          })),
+          destination: guidedRoute.destination || selectedDestination || null,
+          timestamp: selectedTimestampIso,
+          heatmapClustersNearRoute: clustersNearRoute,
+        };
+        const response = await explainRoute(payload);
+        if (cancelled) return;
+        if (response && response.ok !== false) {
+          setRouteExplanation(response);
+          setRouteExplanationError("");
+        } else {
+          setRouteExplanationError(
+            (response && response.error) ||
+              "SIARA could not explain this route right now.",
+          );
+        }
+      } catch (error) {
+        if (cancelled) return;
+        if (import.meta.env.DEV) {
+          console.warn("[explain-route] frontend fetch failed", error?.message);
+        }
+        setRouteExplanationError("SIARA could not explain this route right now.");
+      } finally {
+        if (!cancelled) setRouteExplanationLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guidedRoute?.route_identity, selectedTimestampIso]);
 
   useEffect(() => {
     if (typeof onSelectedTimestampChange === "function") {
@@ -2555,6 +2654,38 @@ const SiaraMap = ({
     routeSummaryPercent,
   );
   const routeComparisonRows = useMemo(() => buildRouteComparisonRows(guidedRoutes), [guidedRoutes]);
+  const clustersNearbyByRouteType = useMemo(() => {
+    if (!Array.isArray(heatClusters) || heatClusters.length === 0) return null;
+    const result = {};
+    for (const route of Array.isArray(guidedRoutes) ? guidedRoutes : []) {
+      if (!route?.route_type) continue;
+      const path = Array.isArray(route?.path) ? route.path : [];
+      if (path.length < 2) {
+        result[route.route_type] = 0;
+        continue;
+      }
+      let count = 0;
+      for (const cluster of heatClusters) {
+        const clat = Number(cluster?.lat ?? cluster?.latitude);
+        const clng = Number(cluster?.lng ?? cluster?.longitude);
+        if (!Number.isFinite(clat) || !Number.isFinite(clng)) continue;
+        let near = false;
+        for (let i = 0; i < path.length; i += 1) {
+          const point = path[i];
+          const plat = Array.isArray(point) ? Number(point[0]) : Number(point?.lat);
+          const plng = Array.isArray(point) ? Number(point[1]) : Number(point?.lng);
+          if (!Number.isFinite(plat) || !Number.isFinite(plng)) continue;
+          if (haversineDistanceKm([plat, plng], [clat, clng]) <= 1.5) {
+            near = true;
+            break;
+          }
+        }
+        if (near) count += 1;
+      }
+      result[route.route_type] = count;
+    }
+    return result;
+  }, [guidedRoutes, heatClusters]);
   const selectedRouteHazards = useMemo(
     () => buildAheadRouteHazards(guidedRoute, selectedTimestampIso),
     [guidedRoute, selectedTimestampIso],
@@ -2773,7 +2904,14 @@ const SiaraMap = ({
                 onBoundsChange={handleHeatmapBoundsChange}
               />
               {heatClusters.map((cluster) => (
-                <AccidentHeatClusterMarker key={cluster.id} cluster={cluster} />
+                <AccidentHeatClusterMarker
+                  key={cluster.id}
+                  cluster={cluster}
+                  onExplain={(c) => {
+                    setSelectedHeatCluster(c || cluster);
+                    setHeatClusterPanelOpen(true);
+                  }}
+                />
               ))}
             </>
           )}
@@ -3482,56 +3620,59 @@ const SiaraMap = ({
               {timePresetMs !== "0" && (
                 <p>Route forecast time: {selectedTimestampPreview}</p>
               )}
-              <div className="siara-route-card-grid">
-                {routeComparisonRows.map((route) => {
-                  const isSelected = route.route_type === guidedRoute?.route_type;
-                  const dangerPercent = formatPercent(route?.summary?.danger_percent) ?? 0;
-                  return (
-                    <button
-                      key={`route-card-${route.route_type}`}
-                      type="button"
-                      className={`siara-route-card ${isSelected ? "is-selected" : ""}`}
-                      style={{ "--route-accent": route.route_color }}
-                      onClick={() => handleGuidedRouteSelection(route.route_type)}
-                    >
-                      <span className="siara-route-card__header">
-                        <span>{route.route_label}</span>
-                        <span className="siara-route-card__badges">
-                          {route.is_recommended && (
-                            <span className="siara-route-card__badge">Recommended</span>
-                          )}
-                          {isSelected && (
-                            <span className="siara-route-card__badge is-selected">Selected</span>
-                          )}
-                        </span>
-                      </span>
-                      <span className="siara-route-card__meta">
-                        risk {dangerPercent}% • eta{" "}
-                        {Number.isFinite(Number(route?.duration_min))
-                          ? `${Number(route.duration_min).toFixed(1)} min`
-                          : "n/a"}
-                      </span>
-                      <span className="siara-route-card__meta siara-route-card__meta--summary">
-                        ETA{" "}
-                        {Number.isFinite(Number(route?.duration_min))
-                          ? `${Number(route.duration_min).toFixed(1)} min`
-                          : "n/a"}{" "}
-                        • distance{" "}
-                        {Number.isFinite(Number(route?.distance_km))
-                          ? `${Number(route.distance_km).toFixed(1)} km`
-                          : "n/a"}{" "}
-                        • danger {dangerPercent}%
-                      </span>
-                      <span className="siara-route-card__meta">
-                        {route.comparisonText}
-                      </span>
-                      {route.recommendedReason && (
-                        <span className="siara-route-card__reason">{route.recommendedReason}</span>
-                      )}
-                    </button>
-                  );
-                })}
+              <div className="siara-route-explanation-slot">
+                <RouteExplanationCard
+                  loading={routeExplanationLoading}
+                  error={routeExplanationError}
+                  summary={routeExplanation?.summary || ""}
+                  reasons={routeExplanation?.reasons || []}
+                  comparison={routeExplanation?.comparison || null}
+                  recommendedRouteType={
+                    routeExplanation?.recommendedRouteType || guidedRoute?.route_type || ""
+                  }
+                  recommendedRiskLevel={
+                    routeExplanation?.recommendedRiskLevel ||
+                    guidedRoute?.summary?.danger_level ||
+                    ""
+                  }
+                  recommendedRiskPercent={
+                    routeExplanation?.recommendedRiskPercent ??
+                    guidedRoute?.summary?.danger_percent ??
+                    null
+                  }
+                  details={
+                    routeExplanation?.source === "ollama"
+                      ? "Generated by SIARA AI explainer (Ollama). Sources: route risk samples, alternative comparison, nearby heat clusters, and time-of-day."
+                      : routeExplanation?.source === "fallback"
+                        ? "Template explanation generated from route risk samples and alternative comparison."
+                        : ""
+                  }
+                />
               </div>
+              <RouteComparisonPanel
+                routes={routeComparisonRows}
+                selectedRouteType={guidedRoute?.route_type}
+                onSelect={handleGuidedRouteSelection}
+                clustersNearbyByRouteType={clustersNearbyByRouteType}
+              />
+              <BestTimeToLeavePanel
+                enabled={mapMode !== "navigation"}
+                origin={normalizePosition(userPosition)
+                  ? { lat: Number(userPosition.lat), lng: Number(userPosition.lng) }
+                  : null}
+                destination={
+                  guidedRoute?.destination
+                    ? { lat: Number(guidedRoute.destination.lat), lng: Number(guidedRoute.destination.lng) }
+                    : selectedDestination
+                      ? { lat: Number(selectedDestination.lat), lng: Number(selectedDestination.lng) }
+                      : null
+                }
+                onSelectTimestamp={(timestampIso) => {
+                  if (!timestampIso) return;
+                  setTimePresetMs("custom");
+                  setCustomTimestampLocal(toDateTimeLocalValue(new Date(timestampIso)));
+                }}
+              />
               <div className="siara-route-panel">
                 <div className="siara-route-panel__head">
                   <h5>Risk along route</h5>
@@ -3916,6 +4057,14 @@ const SiaraMap = ({
           </div>
         </div>
       )}
+      <HeatmapClusterDetailPanel
+        open={heatClusterPanelOpen}
+        cluster={selectedHeatCluster}
+        onClose={() => {
+          setHeatClusterPanelOpen(false);
+          setSelectedHeatCluster(null);
+        }}
+      />
     </div>
   );
 }

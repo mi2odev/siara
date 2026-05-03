@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { createPortal } from 'react-dom'
 
@@ -18,6 +18,7 @@ import {
   removeReportReaction,
   toggleReportReaction,
 } from '../../services/reportsService'
+import ReportCredibilityBadge from '../../components/reports/ReportCredibilityBadge'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
 import '../../styles/NewsPage.css'
@@ -545,6 +546,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
               )}
             </span>
           )}
+          <ReportCredibilityBadge report={report} compact />
           <span className={`pc-sev pc-sev--${report?.severity || 'low'}`}>{severityLabel}</span>
           <button className="pc-more-btn" onClick={() => navigate(`/incident/${report.id}`)} title="View details" aria-label="View details">
             <svg width="3" height="15" viewBox="0 0 3 15" fill="currentColor" aria-hidden>
@@ -725,6 +727,14 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
       )}
     </article>
   )
+}
+
+function MapCenterUpdater({ center, zoom }) {
+  const map = useMap()
+  useEffect(() => {
+    map.flyTo(center, zoom, { duration: 0.8 })
+  }, [center[0], center[1], zoom]) // eslint-disable-line react-hooks/exhaustive-deps
+  return null
 }
 
 export default function NewsPage() {
@@ -1545,25 +1555,41 @@ export default function NewsPage() {
               </div>
             </div>
             <div className="map-widget-container" style={{ width: '100%', height: 200, borderRadius: 12, overflow: 'hidden' }}>
-              <MapContainer
-                center={[mapCenter.lat, mapCenter.lng]}
-                zoom={markerReports.length > 0 ? 11 : 8}
-                style={{ width: '100%', height: '100%' }}
-                zoomControl={false}
-                attributionControl={false}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                {markerReports.map((report) => (
-                  <CircleMarker
-                    key={report.id}
-                    center={[report.location.lat, report.location.lng]}
-                    radius={7}
-                    pathOptions={{ color: '#fff', weight: 2, fillColor: getMarkerColor(report.severity), fillOpacity: 1 }}
+              {(() => {
+                const mapZoom = geoState.status === 'ready' ? 13 : markerReports.length > 0 ? 11 : 8
+                const mapCenterArr = [mapCenter.lat, mapCenter.lng]
+                return (
+                  <MapContainer
+                    center={mapCenterArr}
+                    zoom={mapZoom}
+                    style={{ width: '100%', height: '100%' }}
+                    zoomControl={false}
+                    attributionControl={false}
                   >
-                    <Popup>{report.title || report.type}</Popup>
-                  </CircleMarker>
-                ))}
-              </MapContainer>
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <MapCenterUpdater center={mapCenterArr} zoom={mapZoom} />
+                    {geoState.status === 'ready' && geoState.coords && (
+                      <CircleMarker
+                        center={[geoState.coords.lat, geoState.coords.lng]}
+                        radius={9}
+                        pathOptions={{ color: '#fff', weight: 2.5, fillColor: '#6366f1', fillOpacity: 1 }}
+                      >
+                        <Popup>Your location</Popup>
+                      </CircleMarker>
+                    )}
+                    {markerReports.map((report) => (
+                      <CircleMarker
+                        key={report.id}
+                        center={[report.location.lat, report.location.lng]}
+                        radius={7}
+                        pathOptions={{ color: '#fff', weight: 2, fillColor: getMarkerColor(report.severity), fillOpacity: 1 }}
+                      >
+                        <Popup>{report.title || report.type}</Popup>
+                      </CircleMarker>
+                    ))}
+                  </MapContainer>
+                )
+              })()}
             </div>
             <p className="map-widget-status">
               {markerReports.length > 0

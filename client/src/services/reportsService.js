@@ -352,3 +352,30 @@ export async function listReports(params = {}) {
     throw normalizeApiError(error, 'Failed to load reports feed')
   }
 }
+
+export async function getReportSuggestions(payload = {}) {
+  try {
+    const response = await publicRequest.post('/reports/suggestions', payload)
+    return response.data || null
+  } catch (error) {
+    throw normalizeApiError(error, 'Could not fetch suggestions')
+  }
+}
+
+export async function getReportThread(reportId) {
+  try {
+    const response = await publicRequest.get(`/reports/${reportId}/thread`)
+    return response.data || null
+  } catch (error) {
+    throw normalizeApiError(error, 'Could not load related reports')
+  }
+}
+
+export async function linkReportsAsThread(payload) {
+  try {
+    const response = await userRequest.post('/reports/threads', payload)
+    return response.data || null
+  } catch (error) {
+    throw normalizeApiError(error, 'Could not link reports')
+  }
+}

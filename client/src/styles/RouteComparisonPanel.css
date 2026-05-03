@@ -1,0 +1,70 @@
+.siara-route-card__risk-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.siara-route-card__risk-pill.risk-low {
+  background: #ECFDF5;
+  color: #047857;
+}
+
+.siara-route-card__risk-pill.risk-moderate {
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+.siara-route-card__risk-pill.risk-high {
+  background: #FFEDD5;
+  color: #C2410C;
+}
+
+.siara-route-card__risk-pill.risk-extreme {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+.siara-route-card__factors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #475569;
+}
+
+.siara-route-card__factor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.siara-route-card__factor-icon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.siara-route-card__factor-value {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.siara-route-card__factor.is-warning .siara-route-card__factor-value {
+  color: #B91C1C;
+}
+
+.siara-route-comparison-empty {
+  font-size: 12px;
+  color: #64748B;
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 10px;
+}

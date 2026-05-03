@@ -32,11 +32,14 @@ import PoliceNearbyIncidentsPage from "../pages/police/PoliceNearbyIncidentsPage
 import PoliceOperationHistoryPage from "../pages/police/PoliceOperationHistoryPage";
 import PoliceVerificationQueuePage from "../pages/police/PoliceVerificationQueuePage";
 import PoliceWorkZoneSetupPage from "../pages/police/PoliceWorkZoneSetupPage";
+import PolicePriorityQueuePage from "../pages/police/PolicePriorityQueuePage";
 import ProfilePage from "../pages/user/ProfilePage";
 import ReportIncidentPage from "../pages/user/ReportIncidentPage";
 import ReportsPage from "../pages/user/ReportsPage";
 import SettingsPage from "../pages/user/SettingsPage";
 import UserDashboardPage from "../pages/user/UserDashboardPage";
+import DangerSubscriptionsPage from "../pages/user/DangerSubscriptionsPage";
+import RoadProfilePage from "../pages/user/RoadProfilePage";
 import AboutPage from "../pages/shared/AboutPage";
 import DescriptionPage from "../pages/shared/DescriptionPage";
 import ForgotPasswordPage from "../pages/shared/ForgotPasswordPage";
@@ -48,6 +51,7 @@ import NonAdminOnlyRoute from "./NonAdminOnlyRoute";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicOnlyRoute from "./PublicOnlyRoute";
 import PoliceAccessGate from "../components/police/PoliceAccessGate";
+import RouteExplanationPreviewPage from "../pages/preview/RouteExplanationPreviewPage";
 
 export default function AppRouter() {
   return (
@@ -61,6 +65,8 @@ export default function AppRouter() {
       </Route>
 
       <Route path="verify-email" element={<VerifyEmailPage />} />
+
+      <Route path="preview/route-explanation" element={<RouteExplanationPreviewPage />} />
 
       <Route element={<NonAdminOnlyRoute />}>
         <Route path="home" element={<HomePage />} />
@@ -86,6 +92,7 @@ export default function AppRouter() {
               <Route path="police/nearby" element={<PoliceNearbyIncidentsPage />} />
               <Route path="police/history" element={<PoliceOperationHistoryPage />} />
               <Route path="police/verification" element={<PoliceVerificationQueuePage />} />
+              <Route path="police/priority-queue" element={<PolicePriorityQueuePage />} />
               <Route path="police/incident/:id" element={<PoliceIncidentDetailPage />} />
             </Route>
           </Route>
@@ -95,6 +102,8 @@ export default function AppRouter() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="dashboard" element={<UserDashboardPage />} />
+          <Route path="alerts/subscriptions" element={<DangerSubscriptionsPage />} />
+          <Route path="zone-profile" element={<RoadProfilePage />} />
         </Route>
       </Route>
 

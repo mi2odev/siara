@@ -9,7 +9,14 @@ import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
-import { deleteReport, getReport, updateReport } from '../../services/reportsService'
+import { Link } from 'react-router-dom'
+import {
+  deleteReport,
+  getReport,
+  getReportThread,
+  updateReport,
+} from '../../services/reportsService'
+import ReportCredibilityBadge from '../../components/reports/ReportCredibilityBadge'
 import '../../styles/IncidentDetailPage.css'
 import '../../styles/NewsPage.css'
 import '../../styles/AlertsPage.css'
@@ -320,6 +327,7 @@ export default function IncidentDetailPage() {
   const [showFullDescription, setShowFullDescription] = useState(false)
   const [report, setReport] = useState(null)
   const [isLoadingReport, setIsLoadingReport] = useState(false)
+  const [thread, setThread] = useState(null)
   const [reportError, setReportError] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState(null)
@@ -377,6 +385,29 @@ export default function IncidentDetailPage() {
 
     return () => {
       isMounted = false
+    }
+  }, [id, isRealReport])
+
+  useEffect(() => {
+    if (!isRealReport) {
+      setThread(null)
+      return undefined
+    }
+    let cancelled = false
+    getReportThread(id)
+      .then((data) => {
+        if (cancelled) return
+        if (data && data.threadId && Array.isArray(data.members) && data.members.length > 1) {
+          setThread(data)
+        } else {
+          setThread(null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setThread(null)
+      })
+    return () => {
+      cancelled = true
     }
   }, [id, isRealReport])
 
@@ -715,6 +746,7 @@ export default function IncidentDetailPage() {
                   <span className={`meta-verified ${incident.status === 'verified' || incident.status === 'resolved' ? 'verified' : 'pending'}`}>
                     {statusMeta.label}
                   </span>
+                  <ReportCredibilityBadge report={incident} />
                 </div>
                 <h1 className="incident-title">{incident.title}</h1>
                 <div className="incident-meta-row">
@@ -749,6 +781,49 @@ export default function IncidentDetailPage() {
                   <span className="idp-strip-item">Updated <strong>{formatTimeAgo(incident.updatedAt)}</strong></span>
                 </div>
               </div>
+
+              {thread && Array.isArray(thread.members) && thread.members.length > 1 ? (
+                <div className="incident-description" style={{ marginBottom: 12 }}>
+                  <h2 className="section-title">
+                    {thread.members.length} users reported this
+                  </h2>
+                  <p style={{ fontSize: 13, color: '#475569', margin: '4px 0 8px' }}>
+                    Multiple reports were grouped into one incident thread by SIARA.
+                  </p>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {thread.members
+                      .filter((m) => m.reportId !== id)
+                      .slice(0, 6)
+                      .map((m) => (
+                        <li key={`thread-${m.reportId}`}>
+                          <Link
+                            to={`/incident/${m.reportId}`}
+                            style={{
+                              display: 'flex',
+                              gap: 8,
+                              padding: '6px 10px',
+                              border: '1px solid #E2E8F0',
+                              borderRadius: 8,
+                              textDecoration: 'none',
+                              color: '#0F172A',
+                              fontSize: 12,
+                            }}
+                          >
+                            <span style={{ fontWeight: 700 }}>
+                              {m.title || `Report #${String(m.reportId).slice(0, 8)}`}
+                            </span>
+                            {m.locationLabel ? (
+                              <span style={{ color: '#64748B' }}>· {m.locationLabel}</span>
+                            ) : null}
+                            {m.verifiedByPolice ? (
+                              <span style={{ color: '#1E40AF' }}>· verified</span>
+                            ) : null}
+                          </Link>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ) : null}
 
               <div className="incident-description">
                 <h2 className="section-title">Description</h2>

@@ -1,0 +1,114 @@
+.siara-route-replay {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 4px 14px -8px rgba(15, 23, 42, 0.18);
+}
+
+.siara-route-replay__map {
+  height: 360px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #E2E8F0;
+}
+
+.siara-route-replay__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.siara-route-replay__btn-group {
+  display: flex;
+  gap: 6px;
+}
+
+.siara-route-replay__btn {
+  border: 1px solid #CBD5E1;
+  background: #F8FAFC;
+  color: #0F172A;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.siara-route-replay__btn:hover:not(:disabled) {
+  background: #E2E8F0;
+}
+
+.siara-route-replay__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.siara-route-replay__btn--primary {
+  background: #007BFF;
+  color: #FFFFFF;
+  border-color: #007BFF;
+}
+
+.siara-route-replay__btn--primary:hover:not(:disabled) {
+  background: #0056D6;
+  border-color: #0056D6;
+}
+
+.siara-route-replay__progress {
+  width: 100%;
+  height: 6px;
+  background: #E2E8F0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.siara-route-replay__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #16A34A, #F59E0B, #EA580C);
+  transition: width 0.15s ease;
+}
+
+.siara-route-replay__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.siara-route-replay__meta strong {
+  color: #0F172A;
+  font-weight: 700;
+}
+
+.siara-route-replay__empty {
+  font-size: 12px;
+  color: #64748B;
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.siara-route-replay__speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #475569;
+}
+
+.siara-route-replay__speed select {
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+}

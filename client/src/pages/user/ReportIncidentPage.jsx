@@ -26,6 +26,7 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { createReport, uploadReportMedia } from '../../services/reportsService'
+import ReportSuggestionCard from '../../components/reports/ReportSuggestionCard'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/ReportIncidentPage.css'
 import '../../styles/DashboardPage.css'
@@ -984,6 +985,35 @@ export default function ReportIncidentPage() {
                     </ul>
                   </div>
                 </div>
+
+                <ReportSuggestionCard
+                  title={reportData.title}
+                  description={reportData.description}
+                  lat={reportData.locationCoords?.lat}
+                  lng={reportData.locationCoords?.lng}
+                  currentType={reportData.type}
+                  currentSeverity={
+                    reportData.severity === 'high'
+                      ? 'high'
+                      : reportData.severity === 'low'
+                        ? 'low'
+                        : 'medium'
+                  }
+                  onApplyType={(suggestedType) => {
+                    if (incidentTypes.some((t) => t.id === suggestedType)) {
+                      setReportData((prev) => ({ ...prev, type: suggestedType }))
+                    }
+                  }}
+                  onApplySeverity={(suggestedSeverity) => {
+                    const mapped =
+                      suggestedSeverity === 'high'
+                        ? 'high'
+                        : suggestedSeverity === 'low'
+                          ? 'low'
+                          : 'medium'
+                    setReportData((prev) => ({ ...prev, severity: mapped }))
+                  }}
+                />
 
                 <div className="form-group">
                   <label>Severity level</label>

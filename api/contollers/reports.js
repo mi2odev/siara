@@ -13,6 +13,11 @@ const {
   queueReportSpamAnalysis,
   reclassifyStuckReports,
 } = require("../services/reportSpamDetectionService");
+const { suggestReportFields } = require("../services/reportSuggestionsService");
+const {
+  getThreadByReportId,
+  linkReportsAsThread,
+} = require("../services/incidentThreadsService");
 const {
   hasRole: tokenHasRole,
   resolveOptionalAuthenticatedUser,
@@ -1178,6 +1183,53 @@ router.get("/", async (req, res, next) => {
       .status(200)
       .json(await listReports(req.query || {}, pool, { viewerUserId }));
   } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/suggestions", async (req, res, next) => {
+  try {
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const result = await suggestReportFields({
+      title: typeof body.title === "string" ? body.title : "",
+      description: typeof body.description === "string" ? body.description : "",
+      lat: body.lat,
+      lng: body.lng ?? body.lon,
+      imageMetadata: body.imageMetadata || null,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/threads", verifyToken, async (req, res, next) => {
+  try {
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const result = await linkReportsAsThread({
+      primaryReportId: body.primaryReportId,
+      relatedReportIds: Array.isArray(body.relatedReportIds)
+        ? body.relatedReportIds
+        : [],
+      createdBy: req.user?.userId || req.user?.id || null,
+    });
+    return res.status(201).json(result);
+  } catch (error) {
+    if (error?.status && Number.isInteger(error.status)) {
+      return next(createError(error.status, error.message));
+    }
+    return next(error);
+  }
+});
+
+router.get("/:id/thread", async (req, res, next) => {
+  try {
+    const result = await getThreadByReportId(req.params.id);
+    return res.status(200).json(result || { thread: null, members: [] });
+  } catch (error) {
+    if (error?.status && Number.isInteger(error.status)) {
+      return next(createError(error.status, error.message));
+    }
     return next(error);
   }
 });

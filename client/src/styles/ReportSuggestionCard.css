@@ -1,0 +1,138 @@
+.siara-suggest {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 6px 20px -10px rgba(15, 23, 42, 0.18);
+}
+
+.siara-suggest__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.siara-suggest__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.siara-suggest__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  flex: 1;
+}
+
+.siara-suggest__hint {
+  font-size: 11px;
+  color: #94A3B8;
+}
+
+.siara-suggest__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.siara-suggest__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #EFF6FF;
+  color: #1E3A8A;
+  border: 1px solid #BFDBFE;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.siara-suggest__chip:hover:not(:disabled) {
+  background: #DBEAFE;
+}
+
+.siara-suggest__chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.siara-suggest__warnings {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.siara-suggest__warning {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  font-size: 12px;
+  color: #92400E;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.siara-suggest__warning.is-duplicate {
+  color: #B45309;
+  background: #FEF3C7;
+  border-color: #FDE68A;
+}
+
+.siara-suggest__duplicates {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.siara-suggest__duplicates-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+}
+
+.siara-suggest__duplicate {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.siara-suggest__duplicate:hover {
+  background: #FDE68A;
+}
+
+.siara-suggest__duplicate-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400E;
+}
+
+.siara-suggest__duplicate-meta {
+  font-size: 11px;
+  color: #78350F;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.siara-suggest__loading {
+  font-size: 12px;
+  color: #64748B;
+}

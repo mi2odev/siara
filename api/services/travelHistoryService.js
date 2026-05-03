@@ -344,9 +344,183 @@ async function updateTravelHistoryRating(userId, id, { rating, feedbackText }) {
   };
 }
 
+function computeSafetyScore({
+  tripCount,
+  avgRiskPercent,
+  highRiskTripCount,
+  safestRouteUsageCount,
+  avgRating,
+}) {
+  if (!tripCount) return null;
+
+  let score = 100;
+
+  if (avgRiskPercent != null) {
+    score -= Math.min(50, avgRiskPercent * 0.6);
+  }
+
+  const highRiskRatio = highRiskTripCount / Math.max(1, tripCount);
+  score -= Math.min(25, highRiskRatio * 50);
+
+  const safestRatio = safestRouteUsageCount / Math.max(1, tripCount);
+  score += Math.min(10, safestRatio * 20);
+
+  if (avgRating != null) {
+    score += Math.min(5, (avgRating - 3) * 2);
+  }
+
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function buildSafetyTips({
+  tripCount,
+  avgRiskPercent,
+  highRiskTripCount,
+  safestRouteUsageCount,
+}) {
+  const tips = [];
+  if (!tripCount) {
+    tips.push({
+      id: "no-trips",
+      text: "Complete your first SIARA-guided trip to start tracking your safety score.",
+    });
+    return tips;
+  }
+  if (avgRiskPercent != null && avgRiskPercent >= 50) {
+    tips.push({
+      id: "high-avg-risk",
+      text: "Your average trip risk is high — try the Safest or Balanced route instead of Fastest when traffic is heavy.",
+    });
+  }
+  if (highRiskTripCount / Math.max(1, tripCount) >= 0.4) {
+    tips.push({
+      id: "high-risk-trips",
+      text: "Many recent trips were tagged high-risk. Consider leaving outside rush hour windows.",
+    });
+  }
+  if (safestRouteUsageCount === 0) {
+    tips.push({
+      id: "try-safest",
+      text: "Try the Safest route at least once a week — even when it adds a few minutes — to build a safer driving record.",
+    });
+  }
+  if (tips.length === 0) {
+    tips.push({
+      id: "keep-going",
+      text: "Great work! Your trips have been consistently low risk. Keep choosing safer routes.",
+    });
+  }
+  return tips;
+}
+
+async function getMySafetySummary(userId) {
+  if (!userId) {
+    const error = new Error("Authentication required");
+    error.status = 401;
+    throw error;
+  }
+
+  const overallSql = `
+    SELECT
+      COUNT(*)::int AS trip_count,
+      COALESCE(SUM(distance_km), 0)::float AS total_distance_km,
+      AVG(overall_risk_percent)::float AS avg_risk_percent,
+      COUNT(*) FILTER (
+        WHERE LOWER(COALESCE(overall_risk_level, '')) IN ('high', 'extreme', 'critical')
+      )::int AS high_risk_trip_count,
+      AVG(rating)::float AS avg_rating,
+      COUNT(*) FILTER (WHERE route_type = 'safest')::int AS safest_route_usage_count
+    FROM app.travel_histories
+    WHERE user_id = $1
+  `;
+
+  const trendSql = `
+    WITH weeks AS (
+      SELECT generate_series(0, 3) AS week_offset
+    )
+    SELECT
+      week_offset,
+      (
+        SELECT COUNT(*)::int
+        FROM app.travel_histories th
+        WHERE th.user_id = $1
+          AND th.created_at >= (date_trunc('week', NOW()) - (week_offset || ' week')::interval)
+          AND th.created_at < (date_trunc('week', NOW()) - ((week_offset - 1) || ' week')::interval)
+      ) AS trip_count,
+      (
+        SELECT AVG(overall_risk_percent)::float
+        FROM app.travel_histories th
+        WHERE th.user_id = $1
+          AND th.created_at >= (date_trunc('week', NOW()) - (week_offset || ' week')::interval)
+          AND th.created_at < (date_trunc('week', NOW()) - ((week_offset - 1) || ' week')::interval)
+      ) AS avg_risk_percent
+    FROM weeks
+    ORDER BY week_offset DESC
+  `;
+
+  const [overallResult, trendResult] = await Promise.all([
+    pool.query(overallSql, [userId]),
+    pool.query(trendSql, [userId]),
+  ]);
+
+  const overall = overallResult.rows[0] || {};
+  const tripCount = Number(overall.trip_count) || 0;
+  const totalDistanceKm = Number(overall.total_distance_km) || 0;
+  const avgRiskPercent =
+    overall.avg_risk_percent != null ? Number(overall.avg_risk_percent) : null;
+  const highRiskTripCount = Number(overall.high_risk_trip_count) || 0;
+  const avgRating =
+    overall.avg_rating != null ? Number(overall.avg_rating) : null;
+  const safestRouteUsageCount = Number(overall.safest_route_usage_count) || 0;
+
+  const safetyScore = computeSafetyScore({
+    tripCount,
+    avgRiskPercent,
+    highRiskTripCount,
+    safestRouteUsageCount,
+    avgRating,
+  });
+
+  const weeklyTrend = (trendResult.rows || []).map((row, index) => ({
+    weekOffset: Number(row.week_offset),
+    weekLabel:
+      Number(row.week_offset) === 0
+        ? "This week"
+        : Number(row.week_offset) === 1
+          ? "Last week"
+          : `${Number(row.week_offset)} weeks ago`,
+    tripCount: Number(row.trip_count) || 0,
+    avgRiskPercent:
+      row.avg_risk_percent != null ? Number(row.avg_risk_percent) : null,
+    order: index,
+  }));
+
+  const tips = buildSafetyTips({
+    tripCount,
+    avgRiskPercent,
+    highRiskTripCount,
+    safestRouteUsageCount,
+  });
+
+  return {
+    safetyScore,
+    tripCount,
+    totalDistanceKm: Math.round(totalDistanceKm * 100) / 100,
+    avgRiskPercent:
+      avgRiskPercent != null ? Math.round(avgRiskPercent * 10) / 10 : null,
+    highRiskTripCount,
+    avgRating: avgRating != null ? Math.round(avgRating * 10) / 10 : null,
+    safestRouteUsageCount,
+    weeklyTrend,
+    riskAvoidedPercent: null,
+    tips,
+  };
+}
+
 module.exports = {
   listMyTravelHistory,
   getTravelHistoryDetail,
   completeTravelHistory,
   updateTravelHistoryRating,
+  getMySafetySummary,
 };

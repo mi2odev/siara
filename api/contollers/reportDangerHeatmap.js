@@ -3,6 +3,7 @@ const createError = require("http-errors");
 
 const {
   getDangerHeatClusters,
+  getClusterDetailByLocation,
   parseHoursFromRequest,
 } = require("../services/reportDangerHeatmapService");
 
@@ -54,6 +55,32 @@ router.get("/report-danger-heatmap", async (req, res, next) => {
     const result = await getDangerHeatClusters({ hours, bounds, zoom, minReports });
     return res.status(200).json(result);
   } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/report-danger-heatmap/cluster-detail", async (req, res, next) => {
+  try {
+    const lat = Number(req.query?.lat);
+    const lng = Number(req.query?.lng ?? req.query?.lon);
+    const radiusMeters = Number(req.query?.radiusMeters) || 250;
+    const limit = Number(req.query?.limit) || 30;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      throw createError(400, "lat and lng query parameters are required");
+    }
+    const hours = parseHoursFromRequest(req.query?.hours ?? req.query?.range);
+    const result = await getClusterDetailByLocation({
+      lat,
+      lng,
+      radiusMeters,
+      hours,
+      limit,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    if (error?.status && Number.isInteger(error.status)) {
+      return next(createError(error.status, error.message));
+    }
     return next(error);
   }
 });

@@ -29,6 +29,7 @@ const {
   verifyTokenAndPolice,
   verifyToken,
 } = require("./verifytoken");
+const { getPriorityQueue } = require("../services/policePriorityQueueService");
 
 async function requirePoliceSupervisor(req, res, next) {
   try {
@@ -222,6 +223,16 @@ router.post("/supervisor/alerts", verifyTokenAndPolice, requirePoliceSupervisor,
 router.post("/supervisor/incidents/:id/assign", verifyTokenAndPolice, requirePoliceSupervisor, async (req, res, next) => {
   try {
     return res.status(200).json(await assignIncidentBySupervisor(req.user, req.params.id, req.body || {}));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/priority-queue", verifyTokenAndPolice, async (req, res, next) => {
+  try {
+    const limit = req.query?.limit ? Number(req.query.limit) : 25;
+    const result = await getPriorityQueue({ limit });
+    return res.status(200).json(result);
   } catch (error) {
     return next(error);
   }

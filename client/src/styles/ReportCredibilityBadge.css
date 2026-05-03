@@ -1,0 +1,125 @@
+.siara-credibility {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: help;
+  border: 1px solid transparent;
+  vertical-align: middle;
+}
+
+.siara-credibility.level-high {
+  background: #ECFDF5;
+  color: #047857;
+  border-color: #A7F3D0;
+}
+
+.siara-credibility.level-medium {
+  background: #FEF3C7;
+  color: #B45309;
+  border-color: #FDE68A;
+}
+
+.siara-credibility.level-low {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border-color: #FECACA;
+}
+
+.siara-credibility.level-unknown {
+  background: #F1F5F9;
+  color: #64748B;
+  border-color: #CBD5E1;
+}
+
+.siara-credibility__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.siara-credibility.level-high .siara-credibility__dot { background: #047857; }
+.siara-credibility.level-medium .siara-credibility__dot { background: #B45309; }
+.siara-credibility.level-low .siara-credibility__dot { background: #B91C1C; }
+.siara-credibility.level-unknown .siara-credibility__dot { background: #64748B; }
+
+.siara-credibility__spam {
+  margin-left: 6px;
+  background: #B91C1C;
+  color: #FFFFFF;
+  border-radius: 999px;
+  padding: 2px 6px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.siara-credibility-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  background: #0F172A;
+  color: #F8FAFC;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  width: max(220px, 100%);
+  max-width: 300px;
+  box-shadow: 0 10px 24px -8px rgba(15, 23, 42, 0.4);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.siara-credibility:hover .siara-credibility-tooltip,
+.siara-credibility:focus .siara-credibility-tooltip,
+.siara-credibility.is-open .siara-credibility-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.siara-credibility-tooltip__title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.siara-credibility-tooltip__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.siara-credibility-tooltip__item {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.siara-credibility-tooltip__item-glyph {
+  flex: 0 0 auto;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.siara-credibility-tooltip__item.kind-positive .siara-credibility-tooltip__item-glyph {
+  color: #34D399;
+}
+
+.siara-credibility-tooltip__item.kind-negative .siara-credibility-tooltip__item-glyph {
+  color: #FCA5A5;
+}

@@ -78,16 +78,19 @@ const DIGEST_INTERVALS = ['hourly', 'daily', 'weekly']
 const DELIVERY_OPTIONS = [
   {
     key: 'deliveryApp',
+    icon: '🔔',
     label: 'In-app notifications',
     desc: 'Appear inside your SIARA notification center.',
   },
   {
     key: 'deliveryEmail',
+    icon: '✉️',
     label: 'Email',
     desc: 'Send matching alerts to your account email.',
   },
   {
     key: 'deliverySms',
+    icon: '💬',
     label: 'SMS',
     desc: 'Text message delivery when your account supports it.',
   },
@@ -934,8 +937,9 @@ export default function CreateAlertPage() {
                 </div>
               )}
 
+              <p className="delivery-section-label">Notify via</p>
               <div className="delivery-grid">
-                {DELIVERY_OPTIONS.map(({ key, label, desc }) => (
+                {DELIVERY_OPTIONS.map(({ key, icon, label, desc }) => (
                   <label
                     key={key}
                     className={`delivery-card ${alertData[key] ? 'selected' : ''}`}
@@ -950,11 +954,12 @@ export default function CreateAlertPage() {
                         }))
                       }
                     />
+                    <span className="delivery-card-icon" aria-hidden="true">{icon}</span>
                     <div className="delivery-info">
                       <span className="delivery-label">{label}</span>
                       <span className="delivery-desc">{desc}</span>
                     </div>
-                    <span className="delivery-check">{alertData[key] ? '✓' : ''}</span>
+                    <span className="delivery-check" aria-hidden="true">{alertData[key] ? '✓' : ''}</span>
                   </label>
                 ))}
               </div>
@@ -965,53 +970,81 @@ export default function CreateAlertPage() {
             <div className="step-panel">
               <div className="step-header">
                 <h1>Confirmation</h1>
-                <p>Review before saving.</p>
+                <p>Review your alert settings before saving.</p>
               </div>
 
-              <input
-                className="alert-name-input"
-                value={alertData.name}
-                onChange={(event) => {
-                  setNameDirty(true)
-                  setAlertData((prev) => ({ ...prev, name: event.target.value }))
-                }}
-                placeholder="Alert name"
-              />
+              {/* Editable alert name */}
+              <div className="conf-name-card">
+                <span className="conf-name-icon" aria-hidden="true">
+                  {ALERT_TYPES.find((t) => t.id === alertData.types[0])?.icon || '🔔'}
+                </span>
+                <input
+                  className="conf-name-input"
+                  value={alertData.name}
+                  onChange={(event) => {
+                    setNameDirty(true)
+                    setAlertData((prev) => ({ ...prev, name: event.target.value }))
+                  }}
+                  placeholder="Alert name"
+                />
+                <span className="conf-name-edit-hint" aria-hidden="true">✏</span>
+              </div>
 
-              <div className="confirm-summary">
-                <div className="summary-row">
-                  <span className="summary-label">Types</span>
-                  <span className="summary-value">
+              {/* Summary rows */}
+              <div className="conf-summary">
+                <div className="conf-row">
+                  <span className="conf-row-icon" aria-hidden="true">📋</span>
+                  <span className="conf-row-label">Types</span>
+                  <span className="conf-row-value">
                     {alertData.types
                       .map((type) => ALERT_TYPES.find((item) => item.id === type)?.label || type)
                       .join(', ')}
                   </span>
                 </div>
 
-                <div className="summary-row">
-                  <span className="summary-label">Zone</span>
-                  <span className="summary-value">{zoneLabel}</span>
+                <div className="conf-row">
+                  <span className="conf-row-icon" aria-hidden="true">📍</span>
+                  <span className="conf-row-label">Zone</span>
+                  <span className="conf-row-value">{zoneLabel}</span>
                 </div>
 
-                <div className="summary-row">
-                  <span className="summary-label">Severity</span>
-                  <span className="summary-value">{alertData.severities.join(', ')}</span>
+                <div className="conf-row">
+                  <span className="conf-row-icon" aria-hidden="true">⚠️</span>
+                  <span className="conf-row-label">Severity</span>
+                  <span className="conf-row-value conf-row-badges">
+                    {alertData.severities.map((sev) => (
+                      <span key={sev} className={`conf-sev-badge conf-sev-badge--${sev}`}>
+                        {SEVERITY_OPTIONS.find((s) => s.id === sev)?.label || sev}
+                      </span>
+                    ))}
+                  </span>
                 </div>
 
-                <div className="summary-row">
-                  <span className="summary-label">Frequency</span>
-                  <span className="summary-value">{alertData.frequency}</span>
+                <div className="conf-row">
+                  <span className="conf-row-icon" aria-hidden="true">🔁</span>
+                  <span className="conf-row-label">Frequency</span>
+                  <span className="conf-row-value">
+                    {FREQUENCY_OPTIONS.find((f) => f.id === alertData.frequency)?.label || alertData.frequency}
+                  </span>
                 </div>
 
-                <div className="summary-row">
-                  <span className="summary-label">Time range</span>
-                  <span className="summary-value">{formatTimeRangeLabel(alertData)}</span>
+                <div className="conf-row">
+                  <span className="conf-row-icon" aria-hidden="true">🕐</span>
+                  <span className="conf-row-label">Time range</span>
+                  <span className="conf-row-value">{formatTimeRangeLabel(alertData)}</span>
                 </div>
 
-                <div className="summary-row">
-                  <span className="summary-label">Delivery</span>
-                  <span className="summary-value">{formatDeliveryLabelList(alertData)}</span>
+                <div className="conf-row">
+                  <span className="conf-row-icon" aria-hidden="true">📲</span>
+                  <span className="conf-row-label">Delivery</span>
+                  <span className="conf-row-value">{formatDeliveryLabelList(alertData)}</span>
                 </div>
+              </div>
+
+              {/* Ready banner */}
+              <div className="conf-ready-banner">
+                <span className="conf-ready-icon" aria-hidden="true">✓</span>
+                <p>Your alert is ready. Click <strong>{isEditMode ? 'Save Changes' : 'Create Alert'}</strong> to activate it.</p>
               </div>
             </div>
           )}
