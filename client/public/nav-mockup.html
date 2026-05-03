@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SIARA navigation panels — design preview</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1E293B; }
+    body { background: #f8fafc; }
+
+    /* Fake map background — pastel grid that looks roughly like an OSM tile */
+    .stage {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 60% 40%, #FEF3C7 0, transparent 36%),
+        radial-gradient(circle at 30% 70%, #DCFCE7 0, transparent 30%),
+        linear-gradient(135deg, #F1F5F9 0, #E2E8F0 100%);
+    }
+    .stage::before {
+      content: "";
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(0deg, rgba(15,23,42,.06) 0 1px, transparent 1px 80px),
+        repeating-linear-gradient(90deg, rgba(15,23,42,.06) 0 1px, transparent 1px 80px);
+      pointer-events: none;
+    }
+    /* Fake selected route line */
+    .route {
+      position: absolute;
+      left: 8%; top: 55%;
+      width: 60%; height: 8px;
+      background: #DC2626;
+      border-radius: 999px;
+      transform: rotate(-12deg);
+      box-shadow: 0 0 0 4px rgba(220,38,38,.18);
+    }
+    .you {
+      position: absolute;
+      left: 38%; top: 50%;
+      width: 22px; height: 22px;
+      background: #2563EB;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 0 6px rgba(37,99,235,.25);
+    }
+
+    /* Top navigation banner (existing in the app — shown for context) */
+    .nav-banner {
+      position: absolute;
+      top: 12px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 1100;
+      width: min(560px, calc(100% - 24px));
+      background: #0F172A;
+      color: #F8FAFC;
+      border-radius: 14px;
+      box-shadow: 0 20px 50px -16px rgba(2,6,23,.55);
+      padding: 12px 14px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .nav-banner__icon {
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(96,165,250,.18);
+      border-radius: 12px;
+      font-size: 28px;
+    }
+    .nav-banner__primary { font-weight: 700; }
+    .nav-banner__primary span { color: #BFDBFE; margin-right: 8px; }
+    .nav-banner__secondary { font-size: 12px; color: #94A3B8; }
+
+    /* Bottom summary card (existing) */
+    .summary {
+      position: absolute;
+      left: 12px; right: 12px; bottom: 12px;
+      max-width: 640px; margin: 0 auto;
+      background: #fff;
+      border: 1px solid #E2E8F0;
+      border-radius: 14px;
+      box-shadow: 0 18px 40px -16px rgba(15,23,42,.4);
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr) auto;
+      align-items: center;
+      gap: 14px;
+    }
+    .summary__cell { display: flex; flex-direction: column; }
+    .summary__cell strong { font-size: 22px; color: #0F172A; }
+    .summary__cell span { font-size: 11px; color: #64748B; letter-spacing: .04em; text-transform: uppercase; }
+    .summary__exit {
+      background: #B91C1C; color: #fff;
+      border: 0; border-radius: 10px;
+      padding: 10px 16px; font-weight: 700; cursor: pointer;
+    }
+
+    /* === RIGHT PANEL — RouteOverviewCard === */
+    .route-overview {
+      position: absolute;
+      top: 88px; right: 12px;
+      width: min(300px, calc(100% - 24px));
+      max-height: calc(100vh - 220px);
+      overflow-y: auto;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 14px;
+      box-shadow: 0 18px 40px -16px rgba(15,23,42,.45);
+      padding: 12px 14px;
+      font-size: 12px;
+      z-index: 1000;
+    }
+    .ro__header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .ro__icon { font-size: 16px; }
+    .ro__title { font-size: 13px; font-weight: 700; color: #0F172A; flex: 1; margin: 0; }
+    .ro__type-badge {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 999px;
+      background: #DBEAFE; color: #1D4ED8;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .ro__row { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-top: 1px solid #F1F5F9; }
+    .ro__row:first-of-type { border-top: 0; }
+    .ro__label { font-size: 11px; color: #64748B; }
+    .ro__value { font-size: 13px; font-weight: 600; color: #0F172A; }
+
+    .ro__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px 0; border-top: 1px solid #F1F5F9; }
+    .ro__stat { background: #F8FAFC; border-radius: 10px; padding: 8px; text-align: center; }
+    .ro__stat strong { display: block; font-size: 14px; color: #0F172A; }
+    .ro__stat span { font-size: 10px; color: #64748B; text-transform: uppercase; letter-spacing: .04em; }
+    .ro__stat--risk-high strong { color: #C2410C; }
+
+    .ro__why-title {
+      margin: 8px 0 4px;
+      font-size: 12px; font-weight: 700; color: #0F172A;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ro__why-text { margin: 0 0 6px; font-size: 12px; line-height: 1.5; color: #1E293B; }
+    .ro__why-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    .ro__why-item {
+      display: flex; align-items: flex-start; gap: 6px;
+      font-size: 11px; color: #475569;
+    }
+    .ro__why-item::before { content: "•"; color: #94A3B8; }
+
+    .ro__alts { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; border-top: 1px solid #F1F5F9; margin-top: 8px; }
+    .ro__alt-btn {
+      flex: 1 1 calc(50% - 6px);
+      background: #F1F5F9;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 6px 8px;
+      font-size: 11px; font-weight: 600;
+      color: #0F172A; cursor: pointer;
+      text-align: left;
+    }
+    .ro__alt-btn:hover { background: #E2E8F0; }
+    .ro__alt-btn small { display: block; font-weight: 500; color: #64748B; font-size: 10px; }
+
+    .ro__ai-button {
+      margin-top: 10px;
+      width: 100%;
+      background: linear-gradient(135deg, #1E293B, #334155);
+      color: #F8FAFC;
+      border: 0;
+      border-radius: 10px;
+      padding: 9px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .ro__ai-button:hover { background: linear-gradient(135deg, #0F172A, #1E293B); }
+    .ro__ai-chip {
+      margin-top: 8px;
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; padding: 3px 8px; border-radius: 999px;
+      background: #EDE9FE; color: #6D28D9; font-weight: 600;
+    }
+
+    /* === LEFT PANEL — CurrentSegmentCard === */
+    .segment {
+      position: absolute;
+      left: 12px;
+      bottom: 110px;
+      width: min(280px, calc(100% - 24px));
+      background: rgba(255,255,255,.97);
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      box-shadow: 0 14px 30px -16px rgba(15,23,42,.45);
+      padding: 8px 10px;
+      font-size: 12px;
+      z-index: 1000;
+    }
+    .seg__header {
+      display: flex; align-items: center; gap: 8px;
+      background: transparent; border: 0; padding: 0;
+      width: 100%; text-align: left; cursor: pointer; color: inherit; font: inherit;
+    }
+    .seg__icon { font-size: 14px; }
+    .seg__title { margin: 0; font-size: 12px; font-weight: 700; color: #0F172A; flex: 1; }
+    .seg__badge {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 6px; border-radius: 999px;
+      background: #FFEDD5; color: #9A3412;
+      text-transform: uppercase; letter-spacing: .02em;
+    }
+    .seg__chevron { font-size: 10px; color: #64748B; transition: transform 160ms ease; }
+    .seg__chevron--open { transform: rotate(180deg); }
+    .seg__brief { margin: 4px 0 0; font-size: 11px; color: #475569; }
+
+    .seg__body { display: none; flex-direction: column; gap: 4px; margin-top: 6px; }
+    .segment.is-open .seg__body { display: flex; }
+    .segment.is-open .seg__brief { display: none; }
+    .seg__row { display: flex; justify-content: space-between; font-size: 11px; }
+    .seg__row span:first-child { color: #64748B; }
+    .seg__row span:last-child { font-weight: 600; color: #0F172A; }
+    .seg__explanation { margin: 4px 0 0; font-size: 11px; line-height: 1.4; color: #1E293B; }
+    .seg__factors { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+    .seg__factor {
+      background: #F1F5F9; border: 1px solid #E2E8F0;
+      border-radius: 999px; font-size: 10px; padding: 2px 8px;
+    }
+
+    /* Mode toggle — only for the mockup, not in the real app */
+    .mode-toggle {
+      position: absolute;
+      top: 12px; left: 12px;
+      z-index: 2000;
+      display: flex; gap: 4px;
+      background: #fff; border: 1px solid #E2E8F0; border-radius: 999px;
+      padding: 2px; font-size: 11px; box-shadow: 0 4px 10px -4px rgba(15,23,42,.3);
+    }
+    .mode-toggle button {
+      background: transparent; border: 0; padding: 5px 12px;
+      border-radius: 999px; cursor: pointer; font-weight: 600; color: #475569;
+    }
+    .mode-toggle button.is-active { background: #0F172A; color: #fff; }
+
+    /* When in "leaflet" mode, hide both panels */
+    body.mode-leaflet .route-overview,
+    body.mode-leaflet .segment,
+    body.mode-leaflet .nav-banner,
+    body.mode-leaflet .summary { display: none; }
+    body.mode-leaflet .leaflet-note {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+      padding: 18px 24px; box-shadow: 0 18px 40px -16px rgba(15,23,42,.45);
+      font-size: 13px; color: #475569;
+    }
+    .leaflet-note { display: none; }
+    body.mode-leaflet .leaflet-note { display: block; }
+
+    @media (max-width: 720px) {
+      .route-overview { width: min(240px, calc(100% - 16px)); top: 76px; right: 8px; }
+      .segment { left: 8px; right: 8px; width: auto; bottom: 130px; }
+    }
+  </style>
+</head>
+<body class="mode-navigation">
+  <div class="stage">
+    <!-- Mode toggle (preview only) -->
+    <div class="mode-toggle" role="tablist">
+      <button id="mode-nav" class="is-active">MapLibre nav mode</button>
+      <button id="mode-leaf">Leaflet normal mode</button>
+    </div>
+
+    <!-- Fake map -->
+    <div class="route" aria-hidden="true"></div>
+    <div class="you" aria-hidden="true" title="You"></div>
+
+    <!-- Existing navigation banner -->
+    <div class="nav-banner">
+      <div class="nav-banner__icon">➡</div>
+      <div>
+        <div class="nav-banner__primary"><span>IN 350 M</span>Turn right (northwest)</div>
+        <div class="nav-banner__secondary">Then bear right</div>
+      </div>
+    </div>
+
+    <!-- RIGHT panel: Selected route overview -->
+    <aside class="route-overview" aria-label="Selected route overview">
+      <div class="ro__header">
+        <span class="ro__icon" aria-hidden="true">🧭</span>
+        <h4 class="ro__title">Selected route</h4>
+        <span class="ro__type-badge">Fastest</span>
+      </div>
+
+      <div class="ro__row">
+        <span class="ro__label">Destination</span>
+        <span class="ro__value">Constantine, Algeria</span>
+      </div>
+
+      <div class="ro__stats">
+        <div class="ro__stat"><strong>4 min</strong><span>ETA</span></div>
+        <div class="ro__stat"><strong>2.1 km</strong><span>Left</span></div>
+        <div class="ro__stat ro__stat--risk-high"><strong>54%</strong><span>High</span></div>
+      </div>
+
+      <p class="ro__why-title">Why this route?</p>
+      <p class="ro__why-text">
+        SIARA picked the fastest route — predicted risk drops by 4% versus the safest
+        alternative while saving 2 minutes of travel time.
+      </p>
+      <ul class="ro__why-list">
+        <li class="ro__why-item">1 high-risk segment skipped vs the alternative</li>
+        <li class="ro__why-item">3 recent reports near route — 1 police-verified</li>
+        <li class="ro__why-item">Departure within rush-hour window</li>
+      </ul>
+
+      <div class="ro__alts">
+        <button type="button" class="ro__alt-btn">🛡️ Safest<small>+2 min · 49% risk</small></button>
+        <button type="button" class="ro__alt-btn">⚖️ Balanced<small>+1 min · 51% risk</small></button>
+      </div>
+
+      <button type="button" class="ro__ai-button" id="ai-btn">
+        <span aria-hidden="true">✨</span>
+        Generate AI explanation
+      </button>
+      <div id="ai-chip" class="ro__ai-chip" style="display:none">✨ AI explanation</div>
+    </aside>
+
+    <!-- LEFT panel: Current road segment (collapsed by default) -->
+    <aside class="segment" id="segment-card" aria-label="Current road segment">
+      <button type="button" class="seg__header" id="seg-header" aria-expanded="false">
+        <span class="seg__icon" aria-hidden="true">🛣️</span>
+        <h4 class="seg__title">Current segment</h4>
+        <span class="seg__badge">High</span>
+        <span class="seg__chevron" id="seg-chevron" aria-hidden="true">▾</span>
+      </button>
+      <p class="seg__brief">Segment 1 of 11 · 54%</p>
+      <div class="seg__body">
+        <div class="seg__row"><span>Segment</span><span>Segment 1 of 11</span></div>
+        <div class="seg__row"><span>Risk</span><span>54%</span></div>
+        <div class="seg__row"><span>Length</span><span>320 m</span></div>
+        <div class="seg__row"><span>Risk time</span><span>03:10 PM</span></div>
+        <p class="seg__explanation">
+          Segment 1 of 11 is high risk — the model returned a 54% risk score for
+          this stretch of your route. Top factors: rush hour, verified incident.
+        </p>
+        <ul class="seg__factors">
+          <li class="seg__factor">rush hour</li>
+          <li class="seg__factor">verified incident</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Existing summary card -->
+    <div class="summary">
+      <div class="summary__cell"><strong>4 min</strong><span>arrive 03:10 PM</span></div>
+      <div class="summary__cell"><strong>2.1 km</strong><span>remaining</span></div>
+      <div class="summary__cell" style="color:#C2410C"><strong>54%</strong><span>HIGH</span></div>
+      <button type="button" class="summary__exit">Exit</button>
+    </div>
+
+    <div class="leaflet-note">
+      In Leaflet (normal) map mode the road-detail panels are hidden.<br />
+      Switch back to “MapLibre nav mode” above to preview the new design.
+    </div>
+  </div>
+
+  <script>
+    // Segment card expand/collapse
+    const card = document.getElementById('segment-card');
+    const header = document.getElementById('seg-header');
+    const chevron = document.getElementById('seg-chevron');
+    header.addEventListener('click', () => {
+      const open = card.classList.toggle('is-open');
+      header.setAttribute('aria-expanded', String(open));
+      chevron.classList.toggle('seg__chevron--open', open);
+    });
+
+    // AI button → shows the “AI explanation” chip after a fake call
+    const aiBtn = document.getElementById('ai-btn');
+    const aiChip = document.getElementById('ai-chip');
+    aiBtn.addEventListener('click', () => {
+      aiBtn.disabled = true;
+      aiBtn.textContent = 'Calling Ollama…';
+      setTimeout(() => {
+        aiBtn.style.display = 'none';
+        aiChip.style.display = 'inline-flex';
+      }, 900);
+    });
+
+    // Mode toggle
+    const navBtn = document.getElementById('mode-nav');
+    const leafBtn = document.getElementById('mode-leaf');
+    navBtn.addEventListener('click', () => {
+      document.body.classList.remove('mode-leaflet');
+      document.body.classList.add('mode-navigation');
+      navBtn.classList.add('is-active');
+      leafBtn.classList.remove('is-active');
+    });
+    leafBtn.addEventListener('click', () => {
+      document.body.classList.add('mode-leaflet');
+      document.body.classList.remove('mode-navigation');
+      leafBtn.classList.add('is-active');
+      navBtn.classList.remove('is-active');
+    });
+  </script>
+</body>
+</html>

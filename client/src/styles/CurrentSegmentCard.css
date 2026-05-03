@@ -1,0 +1,186 @@
+/* Compact "Current road segment" card, anchored top-right under the
+ * navigation banner. Collapsed by default to a single line so it does not
+ * fight with the bottom NavigationSummaryCard for space. Tapping the
+ * header expands it to show the full template explanation, length and
+ * top factors. The auto-detection logic in MapLibreNavigationView still
+ * updates which segment is shown — the layout change here is purely
+ * visual. */
+
+.siara-current-segment {
+  position: absolute;
+  left: 12px;
+  bottom: 168px;
+  z-index: 1000;
+  width: min(280px, calc(100% - 24px));
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 14px 30px -16px rgba(15, 23, 42, 0.45);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: auto;
+  font-size: 12px;
+  color: #1E293B;
+  transition: box-shadow 160ms ease;
+}
+
+.siara-current-segment--expanded {
+  box-shadow: 0 22px 44px -18px rgba(15, 23, 42, 0.5);
+}
+
+.siara-current-segment__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.siara-current-segment__header:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.siara-current-segment__icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.siara-current-segment__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0F172A;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.siara-current-segment__badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.siara-current-segment__chevron {
+  font-size: 10px;
+  color: #64748B;
+  transition: transform 160ms ease;
+}
+
+.siara-current-segment__chevron--open {
+  transform: rotate(180deg);
+}
+
+.siara-current-segment__badge.risk-low {
+  background: #DCFCE7;
+  color: #166534;
+}
+.siara-current-segment__badge.risk-moderate {
+  background: #FEF3C7;
+  color: #92400E;
+}
+.siara-current-segment__badge.risk-high {
+  background: #FFEDD5;
+  color: #9A3412;
+}
+.siara-current-segment__badge.risk-extreme {
+  background: #FEE2E2;
+  color: #7F1D1D;
+}
+
+/* Collapsed one-liner line under the header. Truncates with ellipsis so
+ * the card never stretches vertically when collapsed. */
+.siara-current-segment__brief {
+  margin: 0;
+  font-size: 11px;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.siara-current-segment__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.siara-current-segment__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+}
+
+.siara-current-segment__label {
+  color: #64748B;
+}
+
+.siara-current-segment__value {
+  font-weight: 600;
+  color: #0F172A;
+  text-align: right;
+  max-width: 70%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.siara-current-segment__explanation {
+  margin: 4px 0 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #1E293B;
+}
+
+.siara-current-segment__hint {
+  margin: 0;
+  font-size: 11px;
+  color: #64748B;
+  font-style: italic;
+}
+
+.siara-current-segment__factors {
+  list-style: none;
+  margin: 4px 0 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.siara-current-segment__factor {
+  background: #F1F5F9;
+  color: #1E293B;
+  border: 1px solid #E2E8F0;
+  border-radius: 999px;
+  font-size: 10px;
+  padding: 2px 8px;
+}
+
+@media (max-width: 720px) {
+  .siara-current-segment {
+    left: 8px;
+    right: 8px;
+    bottom: 184px;
+    width: auto;
+    padding: 6px 8px;
+  }
+}

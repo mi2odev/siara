@@ -5,7 +5,9 @@ export async function explainRiskPrediction(payload) {
   return response.data || null;
 }
 
-export async function explainRoute(payload) {
-  const response = await publicRequest.post("/risk/route/explain", payload);
+export async function explainRoute(payload, { signal } = {}) {
+  const response = await publicRequest.post("/risk/route/explain", payload, {
+    signal,
+  });
   return response.data || null;
 }

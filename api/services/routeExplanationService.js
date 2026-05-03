@@ -2,7 +2,11 @@ const axios = require("axios");
 
 const DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434";
 const DEFAULT_OLLAMA_MODEL = "gemma3:4b";
-const DEFAULT_TIMEOUT_MS = 60000;
+// Keep the timeout short so the API stays responsive even when Ollama is
+// unavailable or slow. If it doesn't answer in time, the deterministic
+// template summary takes over via the fallback path. Override with
+// OLLAMA_EXPLAIN_TIMEOUT_MS if you want to give the model more time.
+const DEFAULT_TIMEOUT_MS = 8000;
 
 const SYSTEM_PROMPT = [
   "You are SIARA, a road safety assistant.",

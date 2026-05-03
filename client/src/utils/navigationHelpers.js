@@ -340,3 +340,85 @@ export function computeRouteProgress(userPosition, route) {
 
 export const NAVIGATION_TURN_LABELS = TURN_LABELS;
 export const NAVIGATION_TURN_ICONS = TURN_ICONS;
+
+// ---------------------------------------------------------------------------
+// Current-segment detection helpers
+//
+// In MapLibre navigation mode we want SIARA to figure out, on its own, which
+// piece of the *selected* route the user is currently driving on so the
+// segment risk card can update without a click. These helpers do that purely
+// in geometry (no backend), so they work on every position update without
+// network noise.
+// ---------------------------------------------------------------------------
+
+// Distance from `point` to the line segment (a, b), in meters. Uses a small
+// equirectangular projection so the math is fast and good enough at city
+// scale (the same trick `nearestPointOnPath` uses).
+export function getDistancePointToSegmentMeters(point, segmentStart, segmentEnd) {
+  const p = asLatLng(point);
+  const a = asLatLng(segmentStart);
+  const b = asLatLng(segmentEnd);
+  if (!p || !a || !b) return Infinity;
+  const ax = a.lng;
+  const ay = a.lat;
+  const bx = b.lng;
+  const by = b.lat;
+  const px = p.lng;
+  const py = p.lat;
+  const dx = bx - ax;
+  const dy = by - ay;
+  const denom = dx * dx + dy * dy;
+  let t = denom > 0 ? ((px - ax) * dx + (py - ay) * dy) / denom : 0;
+  if (t < 0) t = 0;
+  if (t > 1) t = 1;
+  const projection = { lat: ay + t * dy, lng: ax + t * dx };
+  return haversineDistanceMeters(p, projection);
+}
+
+// Closest distance from `point` to a polyline (any number of vertices).
+export function getDistancePointToPolylineMeters(point, path) {
+  const points = normalizePath(path);
+  if (points.length === 0) return Infinity;
+  if (points.length === 1) return haversineDistanceMeters(point, points[0]);
+  let best = Infinity;
+  for (let i = 1; i < points.length; i += 1) {
+    const distance = getDistancePointToSegmentMeters(point, points[i - 1], points[i]);
+    if (distance < best) best = distance;
+  }
+  return best;
+}
+
+// Find the closest segment in selectedRoute.segments to the user. We treat
+// each entry of `segments` as a polyline (segment.path) — the route splits
+// itself into per-risk slices, so each segment is the natural unit the UI
+// already renders. Returns { segment, segmentIndex, distanceM } or null.
+export function findClosestRouteSegment(userLocation, segments) {
+  const user = asLatLng(userLocation);
+  if (!user || !Array.isArray(segments) || segments.length === 0) return null;
+  let best = null;
+  for (let i = 0; i < segments.length; i += 1) {
+    const segment = segments[i];
+    const path = Array.isArray(segment?.path) ? segment.path : [];
+    if (path.length < 2) continue;
+    const distance = getDistancePointToPolylineMeters(user, path);
+    if (best == null || distance < best.distanceM) {
+      best = { segment, segmentIndex: i, distanceM: distance };
+    }
+  }
+  return best;
+}
+
+// Decide whether the user is "on" a segment of the selected route. If the
+// closest segment is within `thresholdMeters`, return it; otherwise null.
+// This is the public entry point the UI consumes.
+export function getCurrentSegmentForUser(userLocation, selectedRoute, thresholdMeters = 80) {
+  if (!selectedRoute) return null;
+  const segments = Array.isArray(selectedRoute.segments) ? selectedRoute.segments : [];
+  const closest = findClosestRouteSegment(userLocation, segments);
+  if (!closest) return null;
+  const limit = Number.isFinite(Number(thresholdMeters))
+    ? Number(thresholdMeters)
+    : 80;
+  if (closest.distanceM > limit) return null;
+  return closest;
+}

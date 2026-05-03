@@ -5,13 +5,19 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import NavigationBanner from './NavigationBanner'
 import NavigationSummaryCard from './NavigationSummaryCard'
 import NavigationDangerAlert from './NavigationDangerAlert'
+import CurrentSegmentCard from './CurrentSegmentCard'
+import RouteOverviewCard from './RouteOverviewCard'
 import { fetchRouteAlerts } from '../../services/routeAlertsService'
 import {
   bearingDegrees,
   computeRouteProgress,
   deriveStepsFromPath,
   findCurrentStepIndex,
+  getCurrentSegmentForUser,
 } from '../../utils/navigationHelpers'
+import '../../styles/CurrentSegmentCard.css'
+
+const CURRENT_SEGMENT_THRESHOLD_M = 100
 
 const ROUTE_ALERTS_POLL_MS = 30 * 1000
 const ROUTE_ALERTS_LOOKAHEAD_KM = 5
@@ -174,6 +180,12 @@ export default function MapLibreNavigationView({
   startedAt,
   onExitNavigation,
   onChangeRouteType,
+  routeExplanation = null,
+  routeExplanationLoading = false,
+  routeExplanationError = '',
+  onGenerateAiExplanation,
+  aiExplanationGenerating = false,
+  onSelectDepartureTimestamp,
 }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -189,6 +201,14 @@ export default function MapLibreNavigationView({
   const [dismissedAlertIds, setDismissedAlertIds] = useState(() => new Set())
   const [rerouting, setRerouting] = useState(false)
   const lastAlertSinceRef = useRef(null)
+  // Identity of the segment we last set into state, so we can ignore
+  // userLocation updates that don't actually change which segment the user
+  // is on. Without this guard every geolocation tick would re-render the
+  // segment card.
+  const lastSegmentKeyRef = useRef(null)
+  const [currentNavigationSegment, setCurrentNavigationSegment] = useState(null)
+  const [currentNavigationSegmentIndex, setCurrentNavigationSegmentIndex] = useState(null)
+  const [searchingSegment, setSearchingSegment] = useState(false)
 
   // Derive nav steps once per route so banner instructions don't churn.
   const navigationSteps = useMemo(
@@ -289,6 +309,58 @@ export default function MapLibreNavigationView({
     if (!routeProgress) return 0
     return Math.max(0, findCurrentStepIndex(navigationSteps, routeProgress.distanceFromStartM))
   }, [navigationSteps, routeProgress])
+
+  // Reset cached segment identity when the route itself changes, so the
+  // next userLocation update is forced to recompute against the new path.
+  useEffect(() => {
+    lastSegmentKeyRef.current = null
+    setCurrentNavigationSegment(null)
+    setCurrentNavigationSegmentIndex(null)
+    setSearchingSegment(false)
+  }, [selectedRoute?.route_id, selectedRoute?.route_type])
+
+  // Auto-detect the current segment. Pure geometry — no backend call. Runs
+  // on every userLocation change but only triggers a re-render when the
+  // segment id/index actually changes.
+  useEffect(() => {
+    if (!selectedRoute || !hasValidUserLocation) return
+    const segments = Array.isArray(selectedRoute?.segments) ? selectedRoute.segments : []
+    if (segments.length === 0) return
+
+    const match = getCurrentSegmentForUser(
+      { lat: userLat, lng: userLng },
+      selectedRoute,
+      CURRENT_SEGMENT_THRESHOLD_M,
+    )
+
+    if (!match) {
+      // User drove off the selected route or hasn't reached it yet. Keep
+      // the previously displayed segment briefly (so the card doesn't
+      // flicker) and surface a subtle "searching" hint only when nothing
+      // has been displayed yet.
+      if (!lastSegmentKeyRef.current) {
+        if (!searchingSegment) setSearchingSegment(true)
+      }
+      return
+    }
+
+    const key = String(
+      match.segment?.segment_id != null
+        ? match.segment.segment_id
+        : `idx:${match.segmentIndex}`,
+    )
+    if (key === lastSegmentKeyRef.current) return
+    lastSegmentKeyRef.current = key
+    setCurrentNavigationSegment(match.segment)
+    setCurrentNavigationSegmentIndex(match.segmentIndex)
+    if (searchingSegment) setSearchingSegment(false)
+  }, [
+    selectedRoute,
+    hasValidUserLocation,
+    userLat,
+    userLng,
+    searchingSegment,
+  ])
 
   // Initialize MapLibre once.
   useEffect(() => {
@@ -720,6 +792,43 @@ export default function MapLibreNavigationView({
           ))}
         </div>
       ) : null}
+
+      <CurrentSegmentCard
+        segment={currentNavigationSegment}
+        segmentIndex={currentNavigationSegmentIndex}
+        totalSegments={
+          Array.isArray(selectedRoute?.segments) ? selectedRoute.segments.length : 0
+        }
+        searching={searchingSegment && !currentNavigationSegment}
+      />
+
+      <RouteOverviewCard
+        selectedRoute={selectedRoute}
+        alternatives={routes}
+        destinationName={destination?.name || selectedRoute?.destination?.name || ''}
+        explanation={routeExplanation}
+        explanationLoading={routeExplanationLoading}
+        explanationError={routeExplanationError}
+        onChangeRouteType={onChangeRouteType}
+        onGenerateAiExplanation={onGenerateAiExplanation}
+        aiGenerating={aiExplanationGenerating}
+        origin={
+          hasValidUserLocation
+            ? { lat: userLat, lng: userLng }
+            : null
+        }
+        destination={
+          destination && Number.isFinite(Number(destination.lat))
+            && Number.isFinite(Number(destination.lng))
+            ? {
+                lat: Number(destination.lat),
+                lng: Number(destination.lng),
+                name: destination.name || null,
+              }
+            : null
+        }
+        onSelectDepartureTimestamp={onSelectDepartureTimestamp}
+      />
 
       <NavigationSummaryCard
         open

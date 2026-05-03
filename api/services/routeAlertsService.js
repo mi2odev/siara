@@ -126,13 +126,25 @@ const fetchRecentReports = async ({ since, boundingBox }) => {
   if (Number.isNaN(sinceParam.getTime())) {
     sinceParam.setTime(Date.now() - 60 * 60 * 1000);
   }
+  // accident_reports has no lat/lng columns; coordinates live in
+  // incident_location (geography Point, SRID 4326). We extract them via
+  // ST_Y/ST_X as aliases so the JS-side proximity logic below stays
+  // unchanged. Bounding-box pre-filter uses PostGIS envelope intersection
+  // instead of a numeric BETWEEN clause.
   const params = [sinceParam.toISOString()];
   let bboxClause = "";
   if (boundingBox) {
-    params.push(boundingBox.minLat, boundingBox.maxLat, boundingBox.minLng, boundingBox.maxLng);
+    params.push(
+      boundingBox.minLng,
+      boundingBox.minLat,
+      boundingBox.maxLng,
+      boundingBox.maxLat,
+    );
+    const offset = params.length;
     bboxClause = `
-        AND ar.lat BETWEEN $${params.length - 3} AND $${params.length - 2}
-        AND ar.lng BETWEEN $${params.length - 1} AND $${params.length}
+        AND ar.incident_location && ST_MakeEnvelope(
+          $${offset - 3}, $${offset - 2}, $${offset - 1}, $${offset}, 4326
+        )::geography
     `;
   }
 
@@ -143,17 +155,18 @@ const fetchRecentReports = async ({ since, boundingBox }) => {
       ar.description,
       ar.incident_type,
       ar.severity_hint,
-      ar.lat,
-      ar.lng,
+      ST_Y(ar.incident_location::geometry) AS lat,
+      ST_X(ar.incident_location::geometry) AS lng,
       ar.created_at,
       ar.review_verdict,
       ar.latest_predicted_label,
       ar.latest_spam_score
     FROM app.accident_reports ar
     WHERE ar.created_at >= $1
-      AND ar.lat IS NOT NULL
-      AND ar.lng IS NOT NULL
-      AND COALESCE(ar.latest_predicted_label, 'real') <> 'spam'
+      AND ar.incident_location IS NOT NULL
+      AND LOWER(COALESCE(ar.incident_type, '')) = 'accident'
+      AND COALESCE(ar.latest_predicted_label, 'real')
+          NOT IN ('spam', 'out_of_context', 'invalid_location')
       ${bboxClause}
     ORDER BY ar.created_at DESC
     LIMIT 200

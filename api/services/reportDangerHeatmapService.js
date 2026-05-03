@@ -408,7 +408,7 @@ async function getClusterDetailByLocation({ lat, lng, radiusMeters, hours, limit
   const safeRadius = Math.max(50, Math.min(2000, Number(radiusMeters) || 250));
   const safeLimit = Math.max(1, Math.min(100, Number(limit) || 30));
 
-  const params = [safeLng, safeLat, safeRadius];
+  const params = [safeLng, safeLat, safeRadius, ACCIDENT_INCIDENT_TYPE];
   let timeClause = "";
   if (Number.isFinite(Number(hours)) && Number(hours) > 0) {
     const safeHours = Math.min(MAX_HOURS, Math.max(MIN_HOURS, Math.round(Number(hours))));
@@ -427,8 +427,8 @@ async function getClusterDetailByLocation({ lat, lng, radiusMeters, hours, limit
         ar.created_at,
         ar.verified_by_officer_id,
         ar.review_verdict,
-        ar.lat,
-        ar.lng,
+        ST_Y(ar.incident_location::geometry) AS lat,
+        ST_X(ar.incident_location::geometry) AS lng,
         EXTRACT(HOUR FROM ar.created_at AT TIME ZONE 'UTC')::int AS hour_utc,
         CASE
           WHEN COALESCE(ar.severity_hint, 0) >= 5 THEN 'critical'
@@ -439,10 +439,9 @@ async function getClusterDetailByLocation({ lat, lng, radiusMeters, hours, limit
           ELSE 'low'
         END AS severity_bucket
       FROM app.accident_reports ar
-      WHERE ar.incident_type = '${ACCIDENT_INCIDENT_TYPE}'
-        AND ar.lat IS NOT NULL
-        AND ar.lng IS NOT NULL
-        AND ar.incident_location IS NOT NULL
+      WHERE ar.incident_location IS NOT NULL
+        AND LOWER(COALESCE(ar.incident_type, '')) = $4
+        AND COALESCE(ar.latest_predicted_label, 'real') NOT IN ('spam', 'out_of_context', 'invalid_location')
         AND ST_DWithin(
           ar.incident_location::geography,
           ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,

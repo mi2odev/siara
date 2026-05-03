@@ -1,0 +1,383 @@
+/* "Selected route" overview panel rendered on the right edge of the
+ * MapLibre navigation canvas. Read-only — pulls data from the already-
+ * loaded selectedRoute / routes payload, never triggers /api/risk/route
+ * by itself. The optional "Generate AI explanation" button is the only
+ * path that initiates an Ollama call from this card, and only when the
+ * user clicks it. */
+
+.siara-route-overview {
+  position: absolute;
+  top: 88px;
+  right: 12px;
+  width: min(300px, calc(100% - 24px));
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -16px rgba(15, 23, 42, 0.45);
+  padding: 12px 14px;
+  font-size: 12px;
+  color: #1E293B;
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.siara-route-overview__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.siara-route-overview__icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.siara-route-overview__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F172A;
+  flex: 1;
+}
+
+.siara-route-overview__type-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #DBEAFE;
+  color: #1D4ED8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.siara-route-overview__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  border-top: 1px solid #F1F5F9;
+}
+.siara-route-overview__row:first-of-type {
+  border-top: 0;
+}
+
+.siara-route-overview__label {
+  font-size: 11px;
+  color: #64748B;
+}
+
+.siara-route-overview__value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
+  word-break: break-word;
+}
+
+.siara-route-overview__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid #F1F5F9;
+}
+
+.siara-route-overview__stat {
+  background: #F8FAFC;
+  border-radius: 10px;
+  padding: 8px 6px;
+  text-align: center;
+}
+.siara-route-overview__stat strong {
+  display: block;
+  font-size: 14px;
+  color: #0F172A;
+  white-space: nowrap;
+}
+.siara-route-overview__stat span {
+  font-size: 10px;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.siara-route-overview__stat.risk-low strong { color: #166534; }
+.siara-route-overview__stat.risk-moderate strong { color: #92400E; }
+.siara-route-overview__stat.risk-high strong { color: #9A3412; }
+.siara-route-overview__stat.risk-extreme strong { color: #7F1D1D; }
+
+.siara-route-overview__why {
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.siara-route-overview__why-title {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.siara-route-overview__why-text {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #1E293B;
+}
+.siara-route-overview__why-text--muted {
+  color: #64748B;
+  font-style: italic;
+}
+
+.siara-route-overview__why-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.siara-route-overview__why-item {
+  font-size: 11px;
+  color: #475569;
+  padding-left: 12px;
+  position: relative;
+  line-height: 1.4;
+}
+.siara-route-overview__why-item::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #94A3B8;
+}
+
+.siara-route-overview__alts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.siara-route-overview__alt-btn {
+  flex: 1 1 calc(50% - 6px);
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0F172A;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.siara-route-overview__alt-btn:hover,
+.siara-route-overview__alt-btn:focus-visible {
+  background: #E2E8F0;
+  border-color: #CBD5E1;
+}
+
+.siara-route-overview__alt-btn small {
+  font-weight: 500;
+  color: #64748B;
+  font-size: 10px;
+}
+
+.siara-route-overview__alt-icon {
+  font-size: 13px;
+}
+
+.siara-route-overview__ai-button {
+  margin-top: 10px;
+  width: 100%;
+  background: linear-gradient(135deg, #1E293B, #334155);
+  color: #F8FAFC;
+  border: 0;
+  border-radius: 10px;
+  padding: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  transition: filter 120ms ease;
+}
+.siara-route-overview__ai-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.siara-route-overview__ai-button:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.siara-route-overview__ai-chip {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #EDE9FE;
+  color: #6D28D9;
+  font-weight: 600;
+}
+
+/* Best-time-to-leave (compact) — embedded inside RouteOverviewCard. */
+.siara-best-time-compact {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.siara-best-time-compact__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.siara-best-time-compact__icon {
+  font-size: 14px;
+}
+
+.siara-best-time-compact__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0F172A;
+  flex: 1;
+}
+
+.siara-best-time-compact__chevron {
+  font-size: 10px;
+  color: #64748B;
+  transition: transform 160ms ease;
+}
+.siara-best-time-compact__chevron--open { transform: rotate(180deg); }
+
+.siara-best-time-compact__teaser {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #475569;
+  text-transform: capitalize;
+}
+
+.siara-best-time-compact__body {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.siara-best-time-compact__hint,
+.siara-best-time-compact__error {
+  margin: 0;
+  font-size: 11px;
+  color: #64748B;
+}
+.siara-best-time-compact__error { color: #B91C1C; }
+
+.siara-best-time-compact__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.siara-best-time-compact__row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+.siara-best-time-compact__row.is-best {
+  border-color: #16A34A;
+  background: #F0FDF4;
+}
+.siara-best-time-compact__row.is-failed { opacity: 0.55; }
+
+.siara-best-time-compact__row-info {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #1E293B;
+}
+
+.siara-best-time-compact__row-label {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.siara-best-time-compact__row-time { color: #475569; }
+
+.siara-best-time-compact__row-risk {
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 10px;
+}
+.siara-best-time-compact__row-risk.risk-low { background: #DCFCE7; color: #166534; }
+.siara-best-time-compact__row-risk.risk-moderate { background: #FEF3C7; color: #92400E; }
+.siara-best-time-compact__row-risk.risk-high { background: #FFEDD5; color: #9A3412; }
+.siara-best-time-compact__row-risk.risk-extreme { background: #FEE2E2; color: #7F1D1D; }
+.siara-best-time-compact__row-risk.risk-unknown { background: #F1F5F9; color: #475569; }
+
+.siara-best-time-compact__use-btn {
+  align-self: flex-start;
+  background: #1E293B;
+  color: #F8FAFC;
+  border: 0;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.siara-best-time-compact__use-btn:hover:not(:disabled) {
+  background: #0F172A;
+}
+.siara-best-time-compact__use-btn:disabled {
+  background: #94A3B8;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .siara-route-overview {
+    width: min(240px, calc(100% - 16px));
+    top: 76px;
+    right: 8px;
+    padding: 10px 12px;
+  }
+}

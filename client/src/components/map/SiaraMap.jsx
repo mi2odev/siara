@@ -46,7 +46,8 @@ const ROUTE_SAMPLE_COUNT = 12;
 const UI_CLOCK_REFRESH_MS = 1000;
 const PREDICTION_REFRESH_MS = 30 * 1000;
 const NEARBY_REFRESH_MS = 60 * 1000;
-const GUIDANCE_REFRESH_MS = 30 * 1000;
+// (Previous GUIDANCE_REFRESH_MS removed — guided route is no longer
+// re-fetched on a timer. Route updates are user-initiated only.)
 const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
@@ -92,18 +93,20 @@ const INACTIVE_GUIDED_ROUTE_COLOR = "#9ca3af";
 const BALANCED_DURATION_WEIGHT = 0.55;
 const BALANCED_DANGER_WEIGHT = 0.45;
 
-const postJson = async (url, body) => {
+const postJson = async (url, body, options = {}) => {
   const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
   const response = await fetch(fullUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: options.signal,
   });
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const message = data?.error || `Request failed (${response.status})`;
-    throw new Error(message);
+    const error = new Error(data?.error || `Request failed (${response.status})`);
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
@@ -1297,6 +1300,7 @@ const SiaraMap = ({
   const [routeExplanation, setRouteExplanation] = useState(null);
   const [routeExplanationLoading, setRouteExplanationLoading] = useState(false);
   const [routeExplanationError, setRouteExplanationError] = useState("");
+  const [routeExplanationAiGenerating, setRouteExplanationAiGenerating] = useState(false);
   const [selectedHeatCluster, setSelectedHeatCluster] = useState(null);
   const [heatClusterPanelOpen, setHeatClusterPanelOpen] = useState(false);
   const [guidanceActive, setGuidanceActive] = useState(false);
@@ -1332,6 +1336,26 @@ const SiaraMap = ({
   // trip, exits navigation, or clicks a new destination while a previous
   // route request is still resolving.
   const routeRequestIdRef = useRef(0);
+  // Guards for /api/risk/route to stop the request flood that was causing
+  // 429 / timeout errors. The earlier code refetched the route on every
+  // userLocation tick + on a periodic refresh interval — both removed.
+  // routeFetchInflightRef:    map cacheKey → pending promise (dedupe)
+  // routeFetchCacheRef:       map cacheKey → { result, expiresAt }
+  // routeFetchCooldownUntilRef: epoch-ms; while now < cooldown, all calls
+  //                             reject immediately with a friendly message
+  //                             instead of hammering a struggling backend.
+  const routeFetchInflightRef = useRef(new Map());
+  const routeFetchCacheRef = useRef(new Map());
+  const routeFetchCooldownUntilRef = useRef(0);
+  // Per-render request id and in-memory cache for the "Why this route?"
+  // explanation. The cache key is route_identity + timestamp + risk percent
+  // so the same selected route doesn't re-call Ollama on every cluster
+  // refresh. The id ref invalidates stale responses (e.g. user picks a new
+  // route while the previous request is still in flight). Cache also dedupes
+  // an in-flight promise so concurrent triggers share one request.
+  const routeExplanationRequestIdRef = useRef(0);
+  const routeExplanationCacheRef = useRef(new Map());
+  const routeExplanationInflightRef = useRef(new Map());
   const [helpOpen, setHelpOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
   const [explanationOpen, setExplanationOpen] = useState(false);
@@ -1355,7 +1379,9 @@ const SiaraMap = ({
   const [uiClockTick, setUiClockTick] = useState(0);
   const [predictionRefreshTick, setPredictionRefreshTick] = useState(0);
   const [nearbyRefreshTick, setNearbyRefreshTick] = useState(0);
-  const [guidanceRefreshTick, setGuidanceRefreshTick] = useState(0);
+  // Guided-route auto-refresh state was removed: the route is fetched on
+  // user action (Start travel / change destination / change time), not on
+  // a periodic timer. See the guarded fetchGuidedRoute / cooldown logic.
   const [nearbyFitVersion, setNearbyFitVersion] = useState(0);
   const [guidedRouteFitVersion, setGuidedRouteFitVersion] = useState(0);
   const [reportTooltipVisible, setReportTooltipVisible] = useState(false);
@@ -1494,61 +1520,146 @@ const SiaraMap = ({
       })
       .slice(0, 10);
 
-    let cancelled = false;
+    // Cache key + dedupe key. We include the recommended risk percent so a
+    // re-prediction (same path, new model output) still refreshes the
+    // explanation, but identical re-renders do not.
+    const cacheKey = [
+      guidedRoute?.route_identity || guidedRoute?.route_id || "route",
+      guidedRoute?.route_type || "type",
+      guidedRoute?.destination?.lat != null
+        ? `${Number(guidedRoute.destination.lat).toFixed(4)},${Number(guidedRoute.destination.lng).toFixed(4)}`
+        : "no-dest",
+      selectedTimestampIso || "no-ts",
+      Number.isFinite(Number(guidedRoute?.summary?.danger_percent))
+        ? Math.round(Number(guidedRoute.summary.danger_percent))
+        : "na",
+    ].join("|");
+
+    const cached = routeExplanationCacheRef.current.get(cacheKey);
+    if (cached) {
+      setRouteExplanation(cached);
+      setRouteExplanationLoading(false);
+      setRouteExplanationError("");
+      return undefined;
+    }
+
+    const requestId = ++routeExplanationRequestIdRef.current;
     setRouteExplanationLoading(true);
     setRouteExplanationError("");
 
-    (async () => {
-      try {
-        const payload = {
-          selectedRoute: {
-            route_type: guidedRoute.route_type,
-            route_id: guidedRoute.route_id,
-            summary: guidedRoute.summary,
-            duration_min: guidedRoute.duration_min,
-            eta_min: guidedRoute.eta_min,
-            distance_km: guidedRoute.distance_km,
-            segments: guidedRoute.segments,
-            is_recommended: guidedRoute.is_recommended,
-          },
-          alternatives: (Array.isArray(guidedRoutes) ? guidedRoutes : []).map((route) => ({
-            route_type: route.route_type,
-            route_id: route.route_id,
-            summary: route.summary,
-            duration_min: route.duration_min,
-            eta_min: route.eta_min,
-            distance_km: route.distance_km,
-            segments: route.segments,
-            is_recommended: route.is_recommended,
-          })),
-          destination: guidedRoute.destination || selectedDestination || null,
-          timestamp: selectedTimestampIso,
-          heatmapClustersNearRoute: clustersNearRoute,
-        };
-        const response = await explainRoute(payload);
-        if (cancelled) return;
+    // Frontend hard cap so the card never gets stuck on "Analysing risk
+    // factors…". If the backend hasn't returned in time we surface a
+    // template-style fallback locally and stop the spinner. Backend already
+    // has its own short Ollama timeout, but a stalled connection or
+    // network hiccup must not pin the UI.
+    const FRONTEND_MAX_WAIT_MS = 10000;
+    const controller = new AbortController();
+    let cancelled = false;
+    let watchdog = null;
+
+    const buildLocalFallback = () => {
+      const recommendedType = guidedRoute?.route_type || "balanced";
+      const label = recommendedType.charAt(0).toUpperCase() + recommendedType.slice(1);
+      const risk = Number(guidedRoute?.summary?.danger_percent);
+      const riskText = Number.isFinite(risk)
+        ? ` Predicted risk along this route is about ${Math.round(risk)}%.`
+        : "";
+      return {
+        ok: true,
+        summary: `SIARA selected this ${label.toLowerCase()} route based on the available route risk, distance, ETA, and segment danger data.${riskText} AI explanation is temporarily unavailable.`,
+        reasons: [],
+        comparison: null,
+        recommendedRouteType: recommendedType,
+        recommendedRiskLevel: guidedRoute?.summary?.danger_level || null,
+        recommendedRiskPercent: Number.isFinite(risk) ? Math.round(risk) : null,
+        source: "fallback",
+      };
+    };
+
+    const finishWithFallback = () => {
+      if (cancelled || requestId !== routeExplanationRequestIdRef.current) return;
+      const fallback = buildLocalFallback();
+      routeExplanationCacheRef.current.set(cacheKey, fallback);
+      setRouteExplanation(fallback);
+      setRouteExplanationError("");
+      setRouteExplanationLoading(false);
+    };
+
+    watchdog = window.setTimeout(() => {
+      if (cancelled || requestId !== routeExplanationRequestIdRef.current) return;
+      try { controller.abort(); } catch { /* ignore */ }
+      finishWithFallback();
+    }, FRONTEND_MAX_WAIT_MS);
+
+    // Dedupe: if an identical request is already in flight, await its
+    // promise instead of issuing a second network call.
+    const existing = routeExplanationInflightRef.current.get(cacheKey);
+
+    const payload = {
+      selectedRoute: {
+        route_type: guidedRoute.route_type,
+        route_id: guidedRoute.route_id,
+        summary: guidedRoute.summary,
+        duration_min: guidedRoute.duration_min,
+        eta_min: guidedRoute.eta_min,
+        distance_km: guidedRoute.distance_km,
+        segments: guidedRoute.segments,
+        is_recommended: guidedRoute.is_recommended,
+      },
+      alternatives: (Array.isArray(guidedRoutes) ? guidedRoutes : []).map((route) => ({
+        route_type: route.route_type,
+        route_id: route.route_id,
+        summary: route.summary,
+        duration_min: route.duration_min,
+        eta_min: route.eta_min,
+        distance_km: route.distance_km,
+        segments: route.segments,
+        is_recommended: route.is_recommended,
+      })),
+      destination: guidedRoute.destination || selectedDestination || null,
+      timestamp: selectedTimestampIso,
+      heatmapClustersNearRoute: clustersNearRoute,
+    };
+
+    const promise = existing || explainRoute(payload, { signal: controller.signal });
+    if (!existing) routeExplanationInflightRef.current.set(cacheKey, promise);
+
+    promise
+      .then((response) => {
+        if (cancelled || requestId !== routeExplanationRequestIdRef.current) return;
         if (response && response.ok !== false) {
+          routeExplanationCacheRef.current.set(cacheKey, response);
           setRouteExplanation(response);
           setRouteExplanationError("");
         } else {
-          setRouteExplanationError(
-            (response && response.error) ||
-              "SIARA could not explain this route right now.",
-          );
+          finishWithFallback();
+          return;
         }
-      } catch (error) {
-        if (cancelled) return;
+        setRouteExplanationLoading(false);
+      })
+      .catch((error) => {
+        if (cancelled || requestId !== routeExplanationRequestIdRef.current) return;
         if (import.meta.env.DEV) {
           console.warn("[explain-route] frontend fetch failed", error?.message);
         }
-        setRouteExplanationError("SIARA could not explain this route right now.");
-      } finally {
-        if (!cancelled) setRouteExplanationLoading(false);
-      }
-    })();
+        // Network/abort/timeout — never leave the UI in "loading" forever.
+        finishWithFallback();
+      })
+      .finally(() => {
+        if (watchdog) {
+          window.clearTimeout(watchdog);
+          watchdog = null;
+        }
+        routeExplanationInflightRef.current.delete(cacheKey);
+      });
 
     return () => {
       cancelled = true;
+      if (watchdog) {
+        window.clearTimeout(watchdog);
+        watchdog = null;
+      }
+      try { controller.abort(); } catch { /* ignore */ }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guidedRoute?.route_identity, selectedTimestampIso]);
@@ -1608,20 +1719,6 @@ const SiaraMap = ({
       return undefined;
     }
 
-    const intervalId = window.setInterval(() => {
-      setGuidanceRefreshTick((value) => value + 1);
-    }, GUIDANCE_REFRESH_MS);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [liveTimeEnabled]);
-
-  useEffect(() => {
-    if (!liveTimeEnabled) {
-      return undefined;
-    }
-
     const forceRefresh = () => {
       if (document.visibilityState && document.visibilityState !== "visible") {
         return;
@@ -1629,7 +1726,6 @@ const SiaraMap = ({
       setUiClockTick((value) => value + 1);
       setPredictionRefreshTick((value) => value + 1);
       setNearbyRefreshTick((value) => value + 1);
-      setGuidanceRefreshTick((value) => value + 1);
     };
 
     const handleVisibilityChange = () => {
@@ -2112,6 +2208,104 @@ const SiaraMap = ({
     clearRouteExplanationSelection();
   };
 
+  // Manual "Generate AI explanation" trigger from the RouteOverviewCard.
+  // Bypasses the per-route cache for a single call so the user can opt
+  // into Ollama on demand. Background segment updates and automatic
+  // re-fetches stay template-only.
+  const handleGenerateAiRouteExplanation = async () => {
+    if (routeExplanationAiGenerating) return;
+    if (!guidedRoute || !Array.isArray(guidedRoute?.path) || guidedRoute.path.length < 2) {
+      return;
+    }
+
+    const path = guidedRoute.path;
+    const clustersNearRoute = (Array.isArray(heatClusters) ? heatClusters : [])
+      .filter((cluster) => {
+        const clat = Number(cluster?.lat ?? cluster?.latitude);
+        const clng = Number(cluster?.lng ?? cluster?.longitude);
+        if (!Number.isFinite(clat) || !Number.isFinite(clng)) return false;
+        for (let i = 0; i < path.length; i += 1) {
+          const point = path[i];
+          const plat = Array.isArray(point) ? Number(point[0]) : Number(point?.lat);
+          const plng = Array.isArray(point) ? Number(point[1]) : Number(point?.lng);
+          if (!Number.isFinite(plat) || !Number.isFinite(plng)) continue;
+          if (haversineDistanceKm([plat, plng], [clat, clng]) <= 1.5) return true;
+        }
+        return false;
+      })
+      .slice(0, 10);
+
+    const payload = {
+      selectedRoute: {
+        route_type: guidedRoute.route_type,
+        route_id: guidedRoute.route_id,
+        summary: guidedRoute.summary,
+        duration_min: guidedRoute.duration_min,
+        eta_min: guidedRoute.eta_min,
+        distance_km: guidedRoute.distance_km,
+        segments: guidedRoute.segments,
+        is_recommended: guidedRoute.is_recommended,
+      },
+      alternatives: (Array.isArray(guidedRoutes) ? guidedRoutes : []).map((route) => ({
+        route_type: route.route_type,
+        route_id: route.route_id,
+        summary: route.summary,
+        duration_min: route.duration_min,
+        eta_min: route.eta_min,
+        distance_km: route.distance_km,
+        segments: route.segments,
+        is_recommended: route.is_recommended,
+      })),
+      destination: guidedRoute.destination || selectedDestination || null,
+      timestamp: selectedTimestampIso,
+      heatmapClustersNearRoute: clustersNearRoute,
+    };
+
+    setRouteExplanationAiGenerating(true);
+    try {
+      const response = await explainRoute(payload);
+      if (response && response.ok !== false) {
+        // Persist into the cache so the AI version sticks for the
+        // current route identity and is reused by other consumers.
+        const cacheKey = [
+          guidedRoute?.route_identity || guidedRoute?.route_id || "route",
+          guidedRoute?.route_type || "type",
+          guidedRoute?.destination?.lat != null
+            ? `${Number(guidedRoute.destination.lat).toFixed(4)},${Number(guidedRoute.destination.lng).toFixed(4)}`
+            : "no-dest",
+          selectedTimestampIso || "no-ts",
+          Number.isFinite(Number(guidedRoute?.summary?.danger_percent))
+            ? Math.round(Number(guidedRoute.summary.danger_percent))
+            : "na",
+        ].join("|");
+        routeExplanationCacheRef.current.set(cacheKey, response);
+        setRouteExplanation(response);
+        setRouteExplanationError("");
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn("[explain-route] manual AI fetch failed", error?.message);
+      }
+    } finally {
+      setRouteExplanationAiGenerating(false);
+    }
+  };
+
+  // When the user picks a departure window from the in-navigation
+  // BestTimeToLeaveCompact, prompt them before silently restarting the
+  // route. Outside navigation we just apply (matches Leaflet behaviour).
+  const handleNavSelectDepartureTimestamp = (timestampIso) => {
+    if (!timestampIso) return;
+    if (guidanceActive) {
+      const proceed = window.confirm(
+        "Use this departure time and recalculate route?",
+      );
+      if (!proceed) return;
+    }
+    setTimePresetMs("custom");
+    setCustomTimestampLocal(toDateTimeLocalValue(new Date(timestampIso)));
+  };
+
   const exitNavigation = () => {
     // Invalidate any in-flight route response so it can't toggle guidance
     // back on or surface an error after the user has left navigation.
@@ -2150,6 +2344,36 @@ const SiaraMap = ({
       throw new Error("Select a destination before starting guidance.");
     }
 
+    // Cooldown after a 429/timeout: refuse new calls for a window so we
+    // don't keep hammering the backend. UI surfaces a friendly fallback.
+    const now = Date.now();
+    if (now < routeFetchCooldownUntilRef.current) {
+      const remaining = Math.ceil((routeFetchCooldownUntilRef.current - now) / 1000);
+      throw new Error(
+        `SIARA route service is busy. Try again in ${remaining}s.`,
+      );
+    }
+
+    // Bucket origin/destination/timestamp so two near-identical requests
+    // collapse onto the same cache + dedupe key.
+    const TIMESTAMP_BUCKET_MS = 5 * 60 * 1000; // 5-minute bucket
+    const bucketCoord = (n) => Number(n).toFixed(4); // ~11 m precision
+    const tsMs = Date.parse(timestampIso || "");
+    const tsBucket = Number.isFinite(tsMs)
+      ? Math.floor(tsMs / TIMESTAMP_BUCKET_MS)
+      : "now";
+    const cacheKey = [
+      bucketCoord(origin[0]),
+      bucketCoord(origin[1]),
+      bucketCoord(destination.lat),
+      bucketCoord(destination.lng),
+      tsBucket,
+      ROUTE_SAMPLE_COUNT,
+    ].join("|");
+
+    // Fine-grained "exact same request" key, used so the existing
+    // guidanceRequestKeyRef short-circuit still works for re-renders that
+    // pass the exact same args.
     const requestKey = [
       origin[0].toFixed(6),
       origin[1].toFixed(6),
@@ -2159,6 +2383,24 @@ const SiaraMap = ({
     ].join("|");
     if (!forceRefresh && requestKey === guidanceRequestKeyRef.current) {
       return guidedRoute;
+    }
+
+    // Cache hit: reuse a recent successful response instead of recomputing.
+    if (!forceRefresh) {
+      const cached = routeFetchCacheRef.current.get(cacheKey);
+      if (cached && cached.expiresAt > now) {
+        applyGuidedRouteResult(cached.result, {
+          requestKey,
+          preserveSelection,
+        });
+        return cached.result.nextSelectedRoute;
+      }
+    }
+
+    // In-flight dedupe: if an identical request is mid-flight, await it.
+    const existingInflight = routeFetchInflightRef.current.get(cacheKey);
+    if (existingInflight) {
+      return existingInflight;
     }
 
     setGuidedRouteState(guidedRoute ? "refreshing" : "loading");
@@ -2179,24 +2421,68 @@ const SiaraMap = ({
       max_alternatives: 3,
     };
 
-    const data = await postJson("/api/risk/route", body);
-    const nextRoutes = normalizeGuidedRoutePayload(data);
-    if (nextRoutes.length === 0) {
-      throw new Error("No valid route alternatives were returned");
+    const promise = (async () => {
+      const data = await postJson("/api/risk/route", body);
+      const nextRoutes = normalizeGuidedRoutePayload(data);
+      if (nextRoutes.length === 0) {
+        throw new Error("No valid route alternatives were returned");
+      }
+
+      const nextSelectedRouteType =
+        (preserveSelection &&
+          nextRoutes.some((route) => route.route_type === selectedGuidedRouteType) &&
+          selectedGuidedRouteType) ||
+        nextRoutes.find((route) => route.is_recommended)?.route_type ||
+        nextRoutes[0]?.route_type ||
+        null;
+      const nextSelectedRoute =
+        nextRoutes.find((route) => route.route_type === nextSelectedRouteType) ||
+        nextRoutes[0] ||
+        null;
+
+      const result = { nextRoutes, nextSelectedRouteType, nextSelectedRoute };
+
+      // Cache for 5 minutes. Same origin/destination/timestamp-bucket
+      // re-renders reuse this without a network call.
+      routeFetchCacheRef.current.set(cacheKey, {
+        result,
+        expiresAt: Date.now() + TIMESTAMP_BUCKET_MS,
+      });
+
+      applyGuidedRouteResult(result, { requestKey, preserveSelection });
+      return nextSelectedRoute;
+    })();
+
+    routeFetchInflightRef.current.set(cacheKey, promise);
+
+    try {
+      return await promise;
+    } catch (error) {
+      // Trip a 30 s cooldown on overload signals so the next user action
+      // does not immediately retry and re-fail.
+      const status = Number(error?.status);
+      const message = String(error?.message || "");
+      const isOverloaded =
+        status === 429 ||
+        status === 503 ||
+        /timeout/i.test(message) ||
+        /failed to fetch/i.test(message) ||
+        /networkerror/i.test(message);
+      if (isOverloaded) {
+        routeFetchCooldownUntilRef.current = Date.now() + 30 * 1000;
+      }
+      throw error;
+    } finally {
+      routeFetchInflightRef.current.delete(cacheKey);
     }
+  };
 
-    const nextSelectedRouteType =
-      (preserveSelection &&
-        nextRoutes.some((route) => route.route_type === selectedGuidedRouteType) &&
-        selectedGuidedRouteType) ||
-      nextRoutes.find((route) => route.is_recommended)?.route_type ||
-      nextRoutes[0]?.route_type ||
-      null;
-    const nextSelectedRoute =
-      nextRoutes.find((route) => route.route_type === nextSelectedRouteType) ||
-      nextRoutes[0] ||
-      null;
-
+  // Helper used by both the cache-hit and the network-success branches of
+  // fetchGuidedRoute so state updates stay identical.
+  const applyGuidedRouteResult = (
+    { nextRoutes, nextSelectedRouteType, nextSelectedRoute },
+    { requestKey, preserveSelection },
+  ) => {
     guidanceRequestKeyRef.current = requestKey;
     setGuidedRoutes(nextRoutes);
     setSelectedGuidedRouteType(nextSelectedRouteType);
@@ -2207,7 +2493,6 @@ const SiaraMap = ({
     });
     setGuidedRouteState("success");
     setRoutesUpdatedAt(Date.now());
-    return nextSelectedRoute;
   };
 
   const startGuidance = async () => {
@@ -2372,6 +2657,16 @@ const SiaraMap = ({
     }
   };
 
+  // Re-fetch the guided route ONLY on user-driven changes:
+  //   • guidance turning on (Start travel)
+  //   • destination changing (different lat/lng)
+  //   • departure timestamp changing intentionally (custom time)
+  // Geolocation ticks and the periodic guidanceRefreshTick used to be in
+  // this dep list — that caused /api/risk/route to be hit constantly,
+  // producing 429s and 8/15s timeouts. We deliberately do NOT depend on
+  // userLocationKey or guidanceRefreshTick anymore. The route cache /
+  // dedupe / cooldown in fetchGuidedRoute also catches accidental
+  // duplicate calls.
   useEffect(() => {
     if (!guidanceActive) {
       return;
@@ -2387,12 +2682,13 @@ const SiaraMap = ({
       destination: selectedDestination,
       timestampIso: selectedTimestampIso,
       preserveSelection: true,
-      forceRefresh: true,
+      forceRefresh: false,
     }).catch((error) => {
       setGuidedRouteState(guidedRoute ? "success" : "error");
       setGuidedRouteError(error.message || "Failed to refresh guidance route");
     });
-  }, [guidanceActive, guidanceRefreshTick, selectedDestination, selectedTimestampIso, userLocationKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guidanceActive, selectedDestination?.lat, selectedDestination?.lng, selectedTimestampIso]);
 
   const handleGuidedSegmentClick = async (segment) => {
     if (!segment?.segment_id) {
@@ -2826,6 +3122,12 @@ const SiaraMap = ({
           onChangeRouteType={(routeType) => {
             if (routeType) setSelectedGuidedRouteType(routeType);
           }}
+          routeExplanation={routeExplanation}
+          routeExplanationLoading={routeExplanationLoading}
+          routeExplanationError={routeExplanationError}
+          aiExplanationGenerating={routeExplanationAiGenerating}
+          onGenerateAiExplanation={handleGenerateAiRouteExplanation}
+          onSelectDepartureTimestamp={handleNavSelectDepartureTimestamp}
         />
       ) : hasValidUserLocation ? (
         <MapContainer
