@@ -6,12 +6,14 @@ import {
 
 function riskTone(level, percent) {
   const text = String(level || '').trim().toLowerCase()
+  if (text === 'unknown' || text === 'unavailable') return 'unknown'
   if (text === 'extreme' || text === 'critical') return 'extreme'
   if (text === 'high') return 'high'
   if (text === 'moderate' || text === 'medium') return 'moderate'
   if (text === 'low') return 'low'
+  if (percent === null || percent === undefined || percent === '') return 'unknown'
   const numeric = Number(percent)
-  if (!Number.isFinite(numeric)) return 'low'
+  if (!Number.isFinite(numeric)) return 'unknown'
   if (numeric >= 75) return 'extreme'
   if (numeric >= 50) return 'high'
   if (numeric >= 25) return 'moderate'
@@ -38,7 +40,12 @@ export default function NavigationSummaryCard({
     : null
   const arrivalText = arriveAt ? formatClockTime(arriveAt) : '—'
   const riskTier = riskTone(routeRiskLevel, routeRiskPercent)
-  const riskPercentLabel = Number.isFinite(Number(routeRiskPercent))
+  const hasRiskPercent =
+    routeRiskPercent !== null &&
+    routeRiskPercent !== undefined &&
+    routeRiskPercent !== '' &&
+    Number.isFinite(Number(routeRiskPercent))
+  const riskPercentLabel = hasRiskPercent
     ? `${Math.round(Number(routeRiskPercent))}%`
     : '—'
   const riskLevelText = routeRiskLevel || '—'

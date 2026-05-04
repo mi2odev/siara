@@ -176,6 +176,7 @@ const normalizeAlertZoneCenter = (alertZone) => {
 };
 
 const getDangerColor = (level) => {
+  if (level === "unknown") return "#64748b";
   if (level === "extreme") return "#b91c1c";
   if (level === "high") return "#ef4444";
   if (level === "moderate") return "#f59e0b";
@@ -188,6 +189,7 @@ const getContrastTextColor = (bgColor) => {
 
 const normalizeDangerLevel = (level, dangerPercent = null) => {
   const text = String(level || "").trim().toLowerCase();
+  if (text === "unknown" || text === "unavailable") return "unknown";
   if (text === "extreme" || text === "high" || text === "moderate" || text === "low") {
     return text;
   }
@@ -258,6 +260,15 @@ const calculatePathDistanceKm = (path) => {
 };
 
 const calculateWeightedDangerScore = (route) => {
+  if (
+    route?.riskAvailable === false ||
+    route?.risk_available === false ||
+    route?.summary?.riskAvailable === false ||
+    route?.summary?.risk_available === false
+  ) {
+    return 100;
+  }
+
   const segments = Array.isArray(route?.segments) ? route.segments : [];
   let weightedDangerSum = 0;
   let totalLengthKm = 0;
@@ -317,12 +328,21 @@ const normalizeGuidanceRoute = (route, fallbackDestination, index) => {
     .map((segment, segmentIndex) => {
       const segmentPath = getSegmentPath({ path: segment?.path });
       if (!segmentPath) return null;
-      const dangerPercent = Number(segment?.danger_percent);
+      const rawDangerPercent = segment?.danger_percent;
+      const dangerPercent = Number(rawDangerPercent);
+      const hasDangerPercent =
+        rawDangerPercent !== null &&
+        rawDangerPercent !== undefined &&
+        rawDangerPercent !== "" &&
+        Number.isFinite(dangerPercent);
       return {
         segment_id: String(segment?.segment_id || `${route?.route_id || `route_${index + 1}`}:segment_${segmentIndex}`),
         path: segmentPath,
-        danger_percent: Number.isFinite(dangerPercent) ? dangerPercent : null,
-        danger_level: normalizeDangerLevel(segment?.danger_level, dangerPercent),
+        danger_percent: hasDangerPercent ? dangerPercent : null,
+        danger_level: normalizeDangerLevel(
+          segment?.danger_level,
+          hasDangerPercent ? dangerPercent : null,
+        ),
         sample_from: Number.isFinite(Number(segment?.sample_from))
           ? Number(segment.sample_from)
           : segmentIndex,
@@ -334,16 +354,33 @@ const normalizeGuidanceRoute = (route, fallbackDestination, index) => {
     .filter(Boolean);
 
   const summaryDangerPercent = Number(route?.summary?.danger_percent);
+  const riskAvailable =
+    route?.riskAvailable ??
+    route?.risk_available ??
+    route?.summary?.riskAvailable ??
+    route?.summary?.risk_available;
+  const riskUnavailable = riskAvailable === false;
   const summary = {
     ...(route?.summary && typeof route.summary === "object" ? route.summary : {}),
-    danger_percent: Number.isFinite(summaryDangerPercent) ? summaryDangerPercent : 0,
-    danger_level: normalizeDangerLevel(route?.summary?.danger_level, summaryDangerPercent),
+    danger_percent: Number.isFinite(summaryDangerPercent)
+      ? summaryDangerPercent
+      : riskUnavailable
+        ? null
+        : 0,
+    danger_level: riskUnavailable && !Number.isFinite(summaryDangerPercent)
+      ? "unknown"
+      : normalizeDangerLevel(route?.summary?.danger_level, summaryDangerPercent),
+    riskAvailable: !riskUnavailable,
+    risk_available: !riskUnavailable,
   };
   const distanceKm = Number(route?.distance_km);
   const durationMin = Number(route?.duration_min ?? route?.eta_min);
 
   return {
     ...route,
+    riskAvailable: !riskUnavailable,
+    risk_available: !riskUnavailable,
+    riskMessage: route?.riskMessage || route?.message || route?.summary?.message || null,
     route_id: String(route?.route_id || `route_${index + 1}`),
     destination: route?.destination || fallbackDestination,
     path,
@@ -590,17 +627,34 @@ const buildRouteComparisonRows = (routes) => {
     return [];
   }
 
+  const getAvailableRiskPercent = (route) => {
+    if (
+      route?.riskAvailable === false ||
+      route?.risk_available === false ||
+      route?.summary?.riskAvailable === false ||
+      route?.summary?.risk_available === false
+    ) {
+      return null;
+    }
+    const rawPercent = route?.summary?.danger_percent;
+    if (rawPercent === null || rawPercent === undefined || rawPercent === "") {
+      return null;
+    }
+    const percent = Number(rawPercent);
+    return Number.isFinite(percent) ? percent : null;
+  };
+
   const fastestRoute = routes.find((route) => route.route_type === "fastest") || routes[0];
   const fastestDuration = Number(fastestRoute?.duration_min);
-  const fastestRisk = Number(fastestRoute?.summary?.danger_percent);
+  const fastestRisk = getAvailableRiskPercent(fastestRoute);
 
   return routes.map((route) => {
     const duration = Number(route?.duration_min);
-    const danger = Number(route?.summary?.danger_percent);
+    const danger = getAvailableRiskPercent(route);
     const durationDelta =
       Number.isFinite(duration) && Number.isFinite(fastestDuration) ? duration - fastestDuration : 0;
     const riskDelta =
-      Number.isFinite(danger) && Number.isFinite(fastestRisk) ? danger - fastestRisk : 0;
+      danger != null && fastestRisk != null ? danger - fastestRisk : null;
 
     return {
       ...route,
@@ -609,7 +663,9 @@ const buildRouteComparisonRows = (routes) => {
       comparisonText:
         route.route_type === "fastest"
           ? "Baseline fastest route"
-          : `${formatSignedRiskDelta(riskDelta)}, ${formatSignedMinutesDelta(durationDelta)}`,
+          : riskDelta == null
+            ? `Risk unavailable, ${formatSignedMinutesDelta(durationDelta)}`
+            : `${formatSignedRiskDelta(riskDelta)}, ${formatSignedMinutesDelta(durationDelta)}`,
       recommendedReason: route.is_recommended ? getRecommendedRouteReason(route.route_type) : null,
     };
   });
@@ -737,6 +793,7 @@ const buildTimeImpactPreview = ({ baselinePercent, selectedPercent, selectedTime
 };
 
 const formatPercent = (value) => {
+  if (value === null || value === undefined || value === "") return null;
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
   return Math.round(n);
@@ -869,7 +926,12 @@ const toDateTimeLocalValue = (dateInput) => {
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
-const FlyToUser = ({ userPosition, mapLayer, locationRequestVersion = 0 }) => {
+const FlyToUser = ({
+  userPosition,
+  mapLayer,
+  locationRequestVersion = 0,
+  followUser = true,
+}) => {
   const map = useMap();
   const hasCenteredRef = useRef(false);
   const lastRequestVersionRef = useRef(locationRequestVersion);
@@ -878,8 +940,9 @@ const FlyToUser = ({ userPosition, mapLayer, locationRequestVersion = 0 }) => {
     const target = normalizePosition(userPosition);
     if (!target) return;
 
+    const requestChanged = locationRequestVersion !== lastRequestVersionRef.current;
     const shouldRecenter =
-      !hasCenteredRef.current || locationRequestVersion !== lastRequestVersionRef.current;
+      followUser || !hasCenteredRef.current || requestChanged;
     lastRequestVersionRef.current = locationRequestVersion;
     if (!shouldRecenter) {
       return;
@@ -891,9 +954,21 @@ const FlyToUser = ({ userPosition, mapLayer, locationRequestVersion = 0 }) => {
       return;
     }
     map.flyTo(target, USER_ZOOM, { animate: true, duration: 0.8 });
-  }, [locationRequestVersion, map, mapLayer, userPosition]);
+  }, [followUser, locationRequestVersion, map, mapLayer, userPosition]);
   return null;
 }
+
+const LeafletFollowGestureHandler = ({ onUserGesture }) => {
+  useMapEvents({
+    dragstart: (event) => {
+      if (event?.originalEvent) onUserGesture?.();
+    },
+    zoomstart: (event) => {
+      if (event?.originalEvent) onUserGesture?.();
+    },
+  });
+  return null;
+};
 
 const FitNearbyRoutesOnDemand = ({ mapLayer, nearbyRoutes, fitVersion }) => {
   const map = useMap();
@@ -936,11 +1011,11 @@ const FitNearbyRoutesOnDemand = ({ mapLayer, nearbyRoutes, fitVersion }) => {
   return null;
 }
 
-const FitGuidedRoute = ({ routes, fitVersion }) => {
+const FitGuidedRoute = ({ routes, fitVersion, enabled = true }) => {
   const map = useMap();
 
   useEffect(() => {
-    if (!fitVersion) {
+    if (!enabled || !fitVersion) {
       return;
     }
 
@@ -962,7 +1037,7 @@ const FitGuidedRoute = ({ routes, fitVersion }) => {
     }
 
     map.fitBounds(bounds, { padding: [40, 40] });
-  }, [fitVersion, map, routes]);
+  }, [enabled, fitVersion, map, routes]);
 
   return null;
 }
@@ -1254,6 +1329,9 @@ const SiaraMap = ({
   locationWarning = "",
   locationRequestVersion = 0,
   requestLocation,
+  liveLocationStatus = "idle",
+  liveLocationUpdatedAt = null,
+  liveLocationLastError = null,
   onSelectedTimestampChange,
   weatherData = null,
   placeName = "",
@@ -1311,10 +1389,13 @@ const SiaraMap = ({
   const [pendingTravelStarting, setPendingTravelStarting] = useState(false);
   const [pendingTravelError, setPendingTravelError] = useState("");
   const [mapMode, setMapMode] = useState("normal");
+  const [normalFollowUser, setNormalFollowUser] = useState(true);
   const [activeNavigationRoute, setActiveNavigationRoute] = useState(null);
   const [activeNavigationRoutes, setActiveNavigationRoutes] = useState([]);
   const [activeNavigationDestination, setActiveNavigationDestination] = useState(null);
   const [activeNavigationStartedAt, setActiveNavigationStartedAt] = useState(null);
+  const [routeScoringTimestampIso, setRouteScoringTimestampIso] = useState(null);
+  const [routeScoringOrigin, setRouteScoringOrigin] = useState(null);
   // navigationError is reserved for surfacing future MapLibre runtime errors
   // (e.g. style/tile load failures); MapLibreNavigationView currently
   // self-handles these.
@@ -1347,6 +1428,7 @@ const SiaraMap = ({
   const routeFetchInflightRef = useRef(new Map());
   const routeFetchCacheRef = useRef(new Map());
   const routeFetchCooldownUntilRef = useRef(0);
+  const routeFetchAbortRef = useRef(null);
   // Per-render request id and in-memory cache for the "Why this route?"
   // explanation. The cache key is route_identity + timestamp + risk percent
   // so the same selected route doesn't re-call Ollama on every cluster
@@ -1445,6 +1527,14 @@ const SiaraMap = ({
     }
     return dt.toLocaleString();
   }, [customTimestampLocal, previewAnchorMs, timePresetMs]);
+  const routeAnalysisTimestampIso = routeScoringTimestampIso || selectedTimestampIso;
+
+  useEffect(() => {
+    if (locationRequestVersion > 0) {
+      setNormalFollowUser(true);
+    }
+  }, [locationRequestVersion]);
+
   const guidedRoute = useMemo(() => {
     if (!Array.isArray(guidedRoutes) || guidedRoutes.length === 0) {
       return null;
@@ -1529,7 +1619,7 @@ const SiaraMap = ({
       guidedRoute?.destination?.lat != null
         ? `${Number(guidedRoute.destination.lat).toFixed(4)},${Number(guidedRoute.destination.lng).toFixed(4)}`
         : "no-dest",
-      selectedTimestampIso || "no-ts",
+      routeAnalysisTimestampIso || "no-ts",
       Number.isFinite(Number(guidedRoute?.summary?.danger_percent))
         ? Math.round(Number(guidedRoute.summary.danger_percent))
         : "na",
@@ -1617,7 +1707,7 @@ const SiaraMap = ({
         is_recommended: route.is_recommended,
       })),
       destination: guidedRoute.destination || selectedDestination || null,
-      timestamp: selectedTimestampIso,
+      timestamp: routeAnalysisTimestampIso,
       heatmapClustersNearRoute: clustersNearRoute,
     };
 
@@ -1662,7 +1752,7 @@ const SiaraMap = ({
       try { controller.abort(); } catch { /* ignore */ }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guidedRoute?.route_identity, selectedTimestampIso]);
+  }, [guidedRoute?.route_identity, routeAnalysisTimestampIso]);
 
   useEffect(() => {
     if (typeof onSelectedTimestampChange === "function") {
@@ -2205,6 +2295,8 @@ const SiaraMap = ({
     setSelectedGuidedRouteType(null);
     setGuidedRouteState("idle");
     setGuidedRouteError("");
+    setRouteScoringTimestampIso(null);
+    setRouteScoringOrigin(null);
     clearRouteExplanationSelection();
   };
 
@@ -2257,7 +2349,7 @@ const SiaraMap = ({
         is_recommended: route.is_recommended,
       })),
       destination: guidedRoute.destination || selectedDestination || null,
-      timestamp: selectedTimestampIso,
+      timestamp: routeAnalysisTimestampIso,
       heatmapClustersNearRoute: clustersNearRoute,
     };
 
@@ -2273,7 +2365,7 @@ const SiaraMap = ({
           guidedRoute?.destination?.lat != null
             ? `${Number(guidedRoute.destination.lat).toFixed(4)},${Number(guidedRoute.destination.lng).toFixed(4)}`
             : "no-dest",
-          selectedTimestampIso || "no-ts",
+          routeAnalysisTimestampIso || "no-ts",
           Number.isFinite(Number(guidedRoute?.summary?.danger_percent))
             ? Math.round(Number(guidedRoute.summary.danger_percent))
             : "na",
@@ -2302,19 +2394,43 @@ const SiaraMap = ({
       );
       if (!proceed) return;
     }
+    const origin = normalizePosition(userPosition);
+    if (origin) {
+      setRouteScoringOrigin({ lat: origin[0], lng: origin[1] });
+    }
+    setRouteScoringTimestampIso(timestampIso);
     setTimePresetMs("custom");
     setCustomTimestampLocal(toDateTimeLocalValue(new Date(timestampIso)));
   };
+
+  const abortGuidedRouteRequest = () => {
+    if (routeFetchAbortRef.current) {
+      routeFetchAbortRef.current.abort();
+      routeFetchAbortRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (routeFetchAbortRef.current) {
+        routeFetchAbortRef.current.abort();
+        routeFetchAbortRef.current = null;
+      }
+    };
+  }, []);
 
   const exitNavigation = () => {
     // Invalidate any in-flight route response so it can't toggle guidance
     // back on or surface an error after the user has left navigation.
     routeRequestIdRef.current += 1;
+    abortGuidedRouteRequest();
     setMapMode("normal");
     setActiveNavigationRoute(null);
     setActiveNavigationRoutes([]);
     setActiveNavigationDestination(null);
     setActiveNavigationStartedAt(null);
+    setRouteScoringTimestampIso(null);
+    setRouteScoringOrigin(null);
     setPendingTravelStarting(false);
     setPendingTravelError("");
     setPendingDestinationError("");
@@ -2336,6 +2452,7 @@ const SiaraMap = ({
     timestampIso = selectedTimestampIso,
     preserveSelection = false,
     forceRefresh = false,
+    requestId = routeRequestIdRef.current,
   } = {}) => {
     if (!origin) {
       throw new Error("Location is required. Use the locate button first.");
@@ -2385,23 +2502,38 @@ const SiaraMap = ({
       return guidedRoute;
     }
 
-    // Cache hit: reuse a recent successful response instead of recomputing.
-    if (!forceRefresh) {
-      const cached = routeFetchCacheRef.current.get(cacheKey);
-      if (cached && cached.expiresAt > now) {
+    // Cache hit: reuse a recent route-risk response instead of recomputing.
+    // Even forced starts can use the same geometry/timestamp bucket because
+    // live GPS ticks must not repeatedly score an unchanged route.
+    const cached = routeFetchCacheRef.current.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      if (requestId === routeRequestIdRef.current) {
         applyGuidedRouteResult(cached.result, {
           requestKey,
           preserveSelection,
         });
-        return cached.result.nextSelectedRoute;
       }
+      return cached.result.nextSelectedRoute;
     }
 
     // In-flight dedupe: if an identical request is mid-flight, await it.
     const existingInflight = routeFetchInflightRef.current.get(cacheKey);
     if (existingInflight) {
-      return existingInflight;
+      const result = await existingInflight;
+      if (requestId === routeRequestIdRef.current) {
+        applyGuidedRouteResult(result, {
+          requestKey,
+          preserveSelection,
+        });
+      }
+      return result.nextSelectedRoute;
     }
+
+    // A different route/timestamp supersedes the older risk request. Cancel
+    // it at the network layer so slow scoring cannot keep piling up.
+    abortGuidedRouteRequest();
+    const controller = new AbortController();
+    routeFetchAbortRef.current = controller;
 
     setGuidedRouteState(guidedRoute ? "refreshing" : "loading");
     setGuidedRouteError("");
@@ -2422,7 +2554,9 @@ const SiaraMap = ({
     };
 
     const promise = (async () => {
-      const data = await postJson("/api/risk/route", body);
+      const data = await postJson("/api/risk/route", body, {
+        signal: controller.signal,
+      });
       const nextRoutes = normalizeGuidedRoutePayload(data);
       if (nextRoutes.length === 0) {
         throw new Error("No valid route alternatives were returned");
@@ -2440,7 +2574,13 @@ const SiaraMap = ({
         nextRoutes[0] ||
         null;
 
-      const result = { nextRoutes, nextSelectedRouteType, nextSelectedRoute };
+      const result = {
+        nextRoutes,
+        nextSelectedRouteType,
+        nextSelectedRoute,
+        riskMessage: data?.message || null,
+        riskAvailable: data?.riskAvailable !== false && data?.risk_available !== false,
+      };
 
       // Cache for 5 minutes. Same origin/destination/timestamp-bucket
       // re-renders reuse this without a network call.
@@ -2449,17 +2589,23 @@ const SiaraMap = ({
         expiresAt: Date.now() + TIMESTAMP_BUCKET_MS,
       });
 
-      applyGuidedRouteResult(result, { requestKey, preserveSelection });
-      return nextSelectedRoute;
+      return result;
     })();
 
     routeFetchInflightRef.current.set(cacheKey, promise);
 
     try {
-      return await promise;
+      const result = await promise;
+      if (requestId === routeRequestIdRef.current && !controller.signal.aborted) {
+        applyGuidedRouteResult(result, { requestKey, preserveSelection });
+      }
+      return result.nextSelectedRoute;
     } catch (error) {
       // Trip a 30 s cooldown on overload signals so the next user action
       // does not immediately retry and re-fail.
+      if (error?.name === "AbortError") {
+        throw error;
+      }
       const status = Number(error?.status);
       const message = String(error?.message || "");
       const isOverloaded =
@@ -2474,13 +2620,16 @@ const SiaraMap = ({
       throw error;
     } finally {
       routeFetchInflightRef.current.delete(cacheKey);
+      if (routeFetchAbortRef.current === controller) {
+        routeFetchAbortRef.current = null;
+      }
     }
   };
 
   // Helper used by both the cache-hit and the network-success branches of
   // fetchGuidedRoute so state updates stay identical.
   const applyGuidedRouteResult = (
-    { nextRoutes, nextSelectedRouteType, nextSelectedRoute },
+    { nextRoutes, nextSelectedRouteType, nextSelectedRoute, riskAvailable = true, riskMessage = "" },
     { requestKey, preserveSelection },
   ) => {
     guidanceRequestKeyRef.current = requestKey;
@@ -2492,6 +2641,11 @@ const SiaraMap = ({
       preserveSelection,
     });
     setGuidedRouteState("success");
+    setGuidedRouteError(
+      riskAvailable === false
+        ? riskMessage || "Route loaded, but risk scoring is unavailable."
+        : "",
+    );
     setRoutesUpdatedAt(Date.now());
   };
 
@@ -2515,16 +2669,31 @@ const SiaraMap = ({
       return;
     }
 
+    const scoringTimestampIso = selectedTimestampIso;
+    const myRequestId = ++routeRequestIdRef.current;
+    setRouteScoringTimestampIso(scoringTimestampIso);
+    setRouteScoringOrigin({ lat: origin[0], lng: origin[1] });
+
     try {
       await fetchGuidedRoute({
         origin,
         destination: selectedDestination,
-        timestampIso: selectedTimestampIso,
+        timestampIso: scoringTimestampIso,
         preserveSelection: false,
+        requestId: myRequestId,
       });
+      if (myRequestId !== routeRequestIdRef.current) {
+        return;
+      }
       setGuidedRouteFitVersion((value) => value + 1);
       setGuidanceActive(true);
     } catch (error) {
+      if (error?.name === "AbortError") {
+        return;
+      }
+      if (myRequestId !== routeRequestIdRef.current) {
+        return;
+      }
       setGuidanceActive(false);
       setGuidedRouteState("error");
       setGuidedRouteError(error.message || "Failed to compute guidance route");
@@ -2551,6 +2720,7 @@ const SiaraMap = ({
     // Bump the request id so any in-flight route calculation will be
     // discarded silently (no error toast, no guidance switch).
     routeRequestIdRef.current += 1;
+    abortGuidedRouteRequest();
     setPendingMapDestination(null);
     setPendingMapDestinationName("");
     setPendingDestinationLoading(false);
@@ -2569,6 +2739,7 @@ const SiaraMap = ({
 
     // Picking a new destination invalidates any previous in-flight request.
     routeRequestIdRef.current += 1;
+    abortGuidedRouteRequest();
     setPendingMapDestination({ lat, lng });
     setPendingMapDestinationName("");
     setPendingDestinationError("");
@@ -2622,6 +2793,8 @@ const SiaraMap = ({
     // Always use a fresh "now" timestamp so a stale selectedTimestampIso
     // from a previous navigation session can't poison the request.
     const freshTimestampIso = new Date().toISOString();
+    setRouteScoringTimestampIso(freshTimestampIso);
+    setRouteScoringOrigin({ lat: origin[0], lng: origin[1] });
 
     try {
       await fetchGuidedRoute({
@@ -2630,6 +2803,7 @@ const SiaraMap = ({
         timestampIso: freshTimestampIso,
         preserveSelection: false,
         forceRefresh: true,
+        requestId: myRequestId,
       });
       if (myRequestId !== routeRequestIdRef.current) {
         // Superseded — silently drop the result.
@@ -2642,6 +2816,9 @@ const SiaraMap = ({
       setPendingDestinationError("");
       setPendingTravelError("");
     } catch (error) {
+      if (error?.name === "AbortError") {
+        return;
+      }
       if (myRequestId !== routeRequestIdRef.current) {
         // Aborted by the user or replaced by a newer request — don't surface
         // the error.
@@ -2672,23 +2849,41 @@ const SiaraMap = ({
       return;
     }
 
-    const origin = normalizePosition(userPosition);
+    const origin = routeScoringOrigin
+      ? [Number(routeScoringOrigin.lat), Number(routeScoringOrigin.lng)]
+      : normalizePosition(userPosition);
     if (!origin || !selectedDestination) {
       return;
     }
 
+    const timestampIso = routeScoringTimestampIso || selectedTimestampIso;
+    const myRequestId = ++routeRequestIdRef.current;
     void fetchGuidedRoute({
       origin,
       destination: selectedDestination,
-      timestampIso: selectedTimestampIso,
+      timestampIso,
       preserveSelection: true,
       forceRefresh: false,
+      requestId: myRequestId,
     }).catch((error) => {
+      if (error?.name === "AbortError") {
+        return;
+      }
+      if (myRequestId !== routeRequestIdRef.current) {
+        return;
+      }
       setGuidedRouteState(guidedRoute ? "success" : "error");
       setGuidedRouteError(error.message || "Failed to refresh guidance route");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guidanceActive, selectedDestination?.lat, selectedDestination?.lng, selectedTimestampIso]);
+  }, [
+    guidanceActive,
+    routeScoringOrigin?.lat,
+    routeScoringOrigin?.lng,
+    routeScoringTimestampIso,
+    selectedDestination?.lat,
+    selectedDestination?.lng,
+  ]);
 
   const handleGuidedSegmentClick = async (segment) => {
     if (!segment?.segment_id) {
@@ -2944,10 +3139,16 @@ const SiaraMap = ({
     weatherData,
   ]);
 
-  const routeSummaryPercent = Number(guidedRoute?.summary?.danger_percent);
+  const routeSummaryRawPercent = guidedRoute?.summary?.danger_percent;
+  const routeSummaryPercent = Number(routeSummaryRawPercent);
+  const routeSummaryHasPercent =
+    routeSummaryRawPercent !== null &&
+    routeSummaryRawPercent !== undefined &&
+    routeSummaryRawPercent !== "" &&
+    Number.isFinite(routeSummaryPercent);
   const routeSummaryLevel = normalizeDangerLevel(
     guidedRoute?.summary?.danger_level,
-    routeSummaryPercent,
+    routeSummaryHasPercent ? routeSummaryPercent : null,
   );
   const routeComparisonRows = useMemo(() => buildRouteComparisonRows(guidedRoutes), [guidedRoutes]);
   const clustersNearbyByRouteType = useMemo(() => {
@@ -2983,8 +3184,8 @@ const SiaraMap = ({
     return result;
   }, [guidedRoutes, heatClusters]);
   const selectedRouteHazards = useMemo(
-    () => buildAheadRouteHazards(guidedRoute, selectedTimestampIso),
-    [guidedRoute, selectedTimestampIso],
+    () => buildAheadRouteHazards(guidedRoute, routeAnalysisTimestampIso),
+    [guidedRoute, routeAnalysisTimestampIso],
   );
   const selectedRouteRiskProfile = useMemo(() => buildRouteRiskProfile(guidedRoute), [guidedRoute]);
   const currentRiskTimePreview = useMemo(
@@ -3111,6 +3312,7 @@ const SiaraMap = ({
                   accuracy: Number.isFinite(Number(userPosition.accuracy))
                     ? Number(userPosition.accuracy)
                     : null,
+                  headingSource: userPosition.headingSource || "fallback",
                 }
               : null
           }
@@ -3128,6 +3330,10 @@ const SiaraMap = ({
           aiExplanationGenerating={routeExplanationAiGenerating}
           onGenerateAiExplanation={handleGenerateAiRouteExplanation}
           onSelectDepartureTimestamp={handleNavSelectDepartureTimestamp}
+          geolocationStatus={liveLocationStatus || locationStatus}
+          lastLocationUpdatedAt={liveLocationUpdatedAt || locationUpdatedAt || null}
+          lastLocationError={liveLocationLastError || null}
+          routeOrigin={routeScoringOrigin}
         />
       ) : hasValidUserLocation ? (
         <MapContainer
@@ -3160,7 +3366,9 @@ const SiaraMap = ({
             userPosition={userPosition}
             mapLayer={mapLayer}
             locationRequestVersion={locationRequestVersion}
+            followUser={normalFollowUser}
           />
+          <LeafletFollowGestureHandler onUserGesture={() => setNormalFollowUser(false)} />
           <MapClickHandler
             enabled={!guidanceActive}
             onMapClick={handleMapDestinationClick}
@@ -3197,7 +3405,13 @@ const SiaraMap = ({
               fitVersion={nearbyFitVersion}
             />
           )}
-          {guidedRoute && <FitGuidedRoute routes={guidedRoutes} fitVersion={guidedRouteFitVersion} />}
+          {guidedRoute && !guidanceActive && mapMode !== "navigation" ? (
+            <FitGuidedRoute
+              routes={guidedRoutes}
+              fitVersion={guidedRouteFitVersion}
+              enabled={!guidanceActive && mapMode !== "navigation"}
+            />
+          ) : null}
 
           {mapLayer === "heatmap" && (
             <>
@@ -3910,7 +4124,9 @@ const SiaraMap = ({
               <p>
                 {guidedRoute.route_label} risk:{" "}
                 <strong style={{ color: guidedRoute.route_color || getDangerColor(routeSummaryLevel) }}>
-                  {formatPercent(routeSummaryPercent) ?? 0}% ({routeSummaryLevel})
+                  {routeSummaryHasPercent
+                    ? `${formatPercent(routeSummaryPercent)}% (${routeSummaryLevel})`
+                    : "risk unavailable"}
                 </strong>
               </p>
               {Number.isFinite(Number(guidedRoute?.distance_km)) && (

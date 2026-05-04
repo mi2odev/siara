@@ -30,6 +30,7 @@ import DangerForecastChart from "../../components/map/DangerForecastChart";
 import SiaraMap from "../../components/map/SiaraMap";
 import DrivingQuiz from "../../components/ui/DrivingQuiz";
 import useReportMapReports from "../../hooks/useReportMapReports";
+import useLiveLocation from "../../hooks/useLiveLocation";
 import { fetchAlerts } from "../../services/alertService";
 
 /* ── MUI Icons ── */
@@ -40,16 +41,7 @@ import FullscreenExitTwoToneIcon from "@mui/icons-material/FullscreenExitTwoTone
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const WEATHER_DEBOUNCE_MS = 700;
 const WEATHER_REFRESH_MS = 5 * 60 * 1000;
-const LOCATION_REQUEST_TIMEOUT_MS = 12000;
-const LOCATION_WATCH_WINDOW_MS = 10000;
-const LOCATION_FAST_ACCEPT_MS = 2500;
-const LOCATION_GOOD_ACCURACY_M = 50;
 const LOCATION_POOR_ACCURACY_M = 250;
-const LOCATION_IMPROVEMENT_DELTA_M = 25;
-const LOCATION_STALE_READING_MS = 30000;
-const GEOLOCATION_PERMISSION_DENIED = 1;
-const GEOLOCATION_POSITION_UNAVAILABLE = 2;
-const GEOLOCATION_TIMEOUT = 3;
 const SEVERITY_SCORES = {
   low: 1,
   medium: 2,
@@ -89,68 +81,12 @@ function normalizePoint(point) {
   return { lat, lng };
 }
 
-function normalizeLocationReading(position) {
-  if (!position?.coords) {
-    return null;
-  }
-
-  const lat = toFiniteNumber(position.coords.latitude);
-  const lng = toFiniteNumber(position.coords.longitude);
-  if (lat == null || lng == null) {
-    return null;
-  }
-
-  return {
-    lat,
-    lng,
-    accuracy: toFiniteNumber(position.coords.accuracy),
-    altitude: toFiniteNumber(position.coords.altitude),
-    altitudeAccuracy: toFiniteNumber(position.coords.altitudeAccuracy),
-    heading: toFiniteNumber(position.coords.heading),
-    speed: toFiniteNumber(position.coords.speed),
-    timestamp: Number.isFinite(position.timestamp) ? position.timestamp : Date.now(),
-  };
-}
-
 function formatAccuracyLabel(accuracy) {
   const value = toFiniteNumber(accuracy);
   if (value == null) {
     return "n/a";
   }
   return `${Math.round(value)} m`;
-}
-
-function logLocation(event, details = {}) {
-  console.info("[location]", event, details);
-}
-
-function isBetterLocation(candidate, currentBest) {
-  if (!candidate) {
-    return false;
-  }
-  if (!currentBest) {
-    return true;
-  }
-
-  const candidateAccuracy = toFiniteNumber(candidate.accuracy);
-  const currentAccuracy = toFiniteNumber(currentBest.accuracy);
-
-  if (candidateAccuracy == null && currentAccuracy == null) {
-    return candidate.timestamp > currentBest.timestamp;
-  }
-  if (candidateAccuracy != null && currentAccuracy == null) {
-    return true;
-  }
-  if (candidateAccuracy == null) {
-    return false;
-  }
-  if (candidateAccuracy + LOCATION_IMPROVEMENT_DELTA_M < currentAccuracy) {
-    return true;
-  }
-  if (Math.abs(candidateAccuracy - currentAccuracy) <= 5) {
-    return candidate.timestamp > currentBest.timestamp;
-  }
-  return false;
 }
 
 function buildLocationWarning(reading) {
@@ -164,17 +100,25 @@ function buildLocationWarning(reading) {
   return "";
 }
 
-function mapGeolocationError(err) {
-  if (!err) {
-    return "Unable to get your position.";
+function mapLiveLocationError(err, status) {
+  if (status === "unsupported") {
+    return "Geolocation is not supported by this browser.";
   }
-  if (err.code === GEOLOCATION_PERMISSION_DENIED) {
+  if (status === "insecure") {
+    return "Location requires HTTPS in production. Localhost is allowed for testing.";
+  }
+  if (!err) {
+    if (status === "timeout") return "Location request timed out.";
+    if (status === "unavailable") return "Location is unavailable on this device/browser right now.";
+    return "";
+  }
+  if (err.code === 1) {
     return "Location permission denied.";
   }
-  if (err.code === GEOLOCATION_TIMEOUT) {
-    return "Location request timed out before a precise reading arrived.";
+  if (err.code === 3 || status === "timeout") {
+    return "Location request timed out.";
   }
-  if (err.code === GEOLOCATION_POSITION_UNAVAILABLE) {
+  if (err.code === 2 || status === "unavailable") {
     return "Location is unavailable on this device/browser right now.";
   }
   return err.message || "Unable to get your position.";
@@ -418,6 +362,19 @@ export default function MapPage() {
   const [locationWarning, setLocationWarning] = useState("");
   const [locationRequestVersion, setLocationRequestVersion] = useState(0);
   const [selectedTimestampIso, setSelectedTimestampIso] = useState(() => new Date().toISOString());
+  const {
+    location: liveLocation,
+    error: liveLocationError,
+    lastError: liveLocationLastError,
+    status: liveLocationStatus,
+    lastUpdatedAt: liveLocationUpdatedAt,
+    startTracking: startLiveLocationTracking,
+  } = useLiveLocation({
+    autoStart: false,
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 15000,
+  });
 
   // Whether the map is displayed in fullscreen mode
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -464,13 +421,6 @@ export default function MapPage() {
   });
 
   const userPositionRef = useRef(userPosition);
-  const watchIdRef = useRef(null);
-  const watchWindowTimerRef = useRef(null);
-  const fastAcceptTimerRef = useRef(null);
-  const bestReadingRef = useRef(null);
-  const acceptedReadingRef = useRef(null);
-  const requestSequenceRef = useRef(0);
-  const lastErrorRef = useRef(null);
   const autoLocateAttemptedRef = useRef(false);
   const placeCacheRef = useRef(new Map());
 
@@ -488,249 +438,51 @@ export default function MapPage() {
     }
   }, [location.state]);
 
-  const clearLocationAttempt = useCallback(() => {
-    if (watchIdRef.current != null && navigator?.geolocation?.clearWatch) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-    if (watchWindowTimerRef.current != null) {
-      window.clearTimeout(watchWindowTimerRef.current);
-      watchWindowTimerRef.current = null;
-    }
-    if (fastAcceptTimerRef.current != null) {
-      window.clearTimeout(fastAcceptTimerRef.current);
-      fastAcceptTimerRef.current = null;
-    }
-  }, []);
-
   const requestLocation = useCallback(() => {
-    if (!navigator?.geolocation) {
-      setUserPosition(null);
-      setLocationStatus("error");
-      setLocationError("Geolocation is not supported by this browser.");
-      setLocationWarning("");
-      return;
-    }
-
-    if (!window.isSecureContext && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-      setUserPosition(null);
-      setLocationStatus("error");
-      setLocationError("Location requires a secure context (HTTPS).");
-      setLocationWarning("");
-      logLocation("unsupported_context", {
-        isSecureContext: window.isSecureContext,
-        hostname: window.location.hostname,
-      });
-      return;
-    }
-
-    clearLocationAttempt();
-
-    const requestId = requestSequenceRef.current + 1;
-    requestSequenceRef.current = requestId;
     autoLocateAttemptedRef.current = true;
-    bestReadingRef.current = null;
-    acceptedReadingRef.current = null;
-    lastErrorRef.current = null;
-
     setLocationRequestVersion((value) => value + 1);
     setLocationError("");
     setLocationWarning("");
     setLocationStatus(normalizePoint(userPositionRef.current) ? "granted" : "locating");
+    startLiveLocationTracking();
+  }, [startLiveLocationTracking]);
 
-    logLocation("request_started", {
-      requestId,
-      strategy: "getCurrentPosition+watchPosition",
-      enableHighAccuracy: true,
-      maximumAge: 0,
-      timeout: LOCATION_REQUEST_TIMEOUT_MS,
-    });
+  useEffect(() => {
+    if (!liveLocation) return;
+    setUserPosition(liveLocation);
+    setLocationStatus("granted");
+    setLocationError("");
+    setLocationWarning(buildLocationWarning(liveLocation));
+  }, [liveLocation]);
 
-    const finalizeRequest = (reason) => {
-      if (requestSequenceRef.current !== requestId) {
-        return;
-      }
+  useEffect(() => {
+    if (liveLocationStatus === "requesting") {
+      setLocationStatus(normalizePoint(userPositionRef.current) ? "granted" : "locating");
+      setLocationError("");
+      return;
+    }
 
-      clearLocationAttempt();
-
-      const bestReading = bestReadingRef.current;
-      const acceptedReading = acceptedReadingRef.current;
-      const chosenReading = acceptedReading || bestReading;
-
-      if (chosenReading) {
-        setUserPosition(chosenReading);
+    if (liveLocationStatus === "watching") {
+      if (normalizePoint(userPositionRef.current)) {
         setLocationStatus("granted");
-        setLocationError("");
-        setLocationWarning(buildLocationWarning(chosenReading));
-        acceptedReadingRef.current = chosenReading;
-        logLocation("request_finalized", {
-          requestId,
-          reason,
-          lat: chosenReading.lat,
-          lng: chosenReading.lng,
-          accuracy: chosenReading.accuracy,
-          timestamp: chosenReading.timestamp,
-          accepted: true,
-        });
-        return;
       }
+      return;
+    }
 
-      const mappedError = mapGeolocationError(lastErrorRef.current);
+    if (liveLocationStatus === "denied") {
       setUserPosition(null);
-      setLocationStatus(lastErrorRef.current?.code === GEOLOCATION_PERMISSION_DENIED ? "denied" : "error");
-      setLocationError(mappedError);
+      setLocationStatus("denied");
+      setLocationError("Location permission is blocked. Enable it in browser settings.");
       setLocationWarning("");
-      logLocation("request_failed", {
-        requestId,
-        reason,
-        error: mappedError,
-        code: lastErrorRef.current?.code || null,
-      });
-    };
+      return;
+    }
 
-    const maybeAcceptReading = (reading, source) => {
-      const ageMs = Math.max(0, Date.now() - reading.timestamp);
-      const isStale = ageMs > LOCATION_STALE_READING_MS;
-
-      if (isStale) {
-        logLocation("reading_rejected", {
-          requestId,
-          source,
-          reason: "stale",
-          lat: reading.lat,
-          lng: reading.lng,
-          accuracy: reading.accuracy,
-          timestamp: reading.timestamp,
-          ageMs,
-        });
-        if (!bestReadingRef.current) {
-          bestReadingRef.current = reading;
-        }
-        return;
-      }
-
-      if (isBetterLocation(reading, bestReadingRef.current)) {
-        bestReadingRef.current = reading;
-      }
-
-      const currentAccepted = acceptedReadingRef.current;
-      const shouldAccept =
-        !currentAccepted ||
-        (toFiniteNumber(reading.accuracy) != null &&
-          toFiniteNumber(reading.accuracy) <= LOCATION_GOOD_ACCURACY_M) ||
-        isBetterLocation(reading, currentAccepted);
-
-      logLocation(shouldAccept ? "reading_accepted" : "reading_buffered", {
-        requestId,
-        source,
-        lat: reading.lat,
-        lng: reading.lng,
-        accuracy: reading.accuracy,
-        timestamp: reading.timestamp,
-        ageMs,
-      });
-
-      if (!shouldAccept) {
-        return;
-      }
-
-      acceptedReadingRef.current = reading;
-      setUserPosition((prev) => {
-        if (
-          prev &&
-          Math.abs(prev.lat - reading.lat) < 0.00001 &&
-          Math.abs(prev.lng - reading.lng) < 0.00001 &&
-          Math.abs((prev.accuracy ?? Infinity) - (reading.accuracy ?? Infinity)) < 5
-        ) {
-          return prev;
-        }
-        return reading;
-      });
-      setLocationStatus("granted");
-      setLocationError("");
-      setLocationWarning(buildLocationWarning(reading));
-
-      if (toFiniteNumber(reading.accuracy) != null && reading.accuracy <= LOCATION_GOOD_ACCURACY_M) {
-        finalizeRequest("good_accuracy_fix");
-      }
-    };
-
-    const handleSuccess = (position, source) => {
-      if (requestSequenceRef.current !== requestId) {
-        return;
-      }
-
-      const reading = normalizeLocationReading(position);
-      if (!reading) {
-        logLocation("reading_rejected", {
-          requestId,
-          source,
-          reason: "invalid_payload",
-        });
-        return;
-      }
-
-      maybeAcceptReading(reading, source);
-    };
-
-    const handleError = (err, source) => {
-      if (requestSequenceRef.current !== requestId) {
-        return;
-      }
-
-      lastErrorRef.current = err;
-      logLocation("error", {
-        requestId,
-        source,
-        code: err?.code || null,
-        message: err?.message || "unknown_error",
-      });
-
-      if (err?.code === GEOLOCATION_PERMISSION_DENIED) {
-        finalizeRequest("permission_denied");
-      }
-    };
-
-    fastAcceptTimerRef.current = window.setTimeout(() => {
-      if (requestSequenceRef.current !== requestId || acceptedReadingRef.current || !bestReadingRef.current) {
-        return;
-      }
-      acceptedReadingRef.current = bestReadingRef.current;
-      setUserPosition(bestReadingRef.current);
-      setLocationStatus("granted");
-      setLocationError("");
-      setLocationWarning(buildLocationWarning(bestReadingRef.current));
-      logLocation("fast_accept_best", {
-        requestId,
-        lat: bestReadingRef.current.lat,
-        lng: bestReadingRef.current.lng,
-        accuracy: bestReadingRef.current.accuracy,
-        timestamp: bestReadingRef.current.timestamp,
-      });
-    }, LOCATION_FAST_ACCEPT_MS);
-
-    watchWindowTimerRef.current = window.setTimeout(() => {
-      finalizeRequest("watch_window_complete");
-    }, LOCATION_WATCH_WINDOW_MS);
-
-    const options = {
-      enableHighAccuracy: true,
-      timeout: LOCATION_REQUEST_TIMEOUT_MS,
-      maximumAge: 0,
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => handleSuccess(position, "getCurrentPosition"),
-      (err) => handleError(err, "getCurrentPosition"),
-      options,
-    );
-
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => handleSuccess(position, "watchPosition"),
-      (err) => handleError(err, "watchPosition"),
-      options,
-    );
-  }, [clearLocationAttempt]);
+    if (["unsupported", "insecure", "unavailable", "timeout", "error"].includes(liveLocationStatus)) {
+      setLocationStatus("error");
+      setLocationError(mapLiveLocationError(liveLocationError, liveLocationStatus));
+      setLocationWarning("");
+    }
+  }, [liveLocationError, liveLocationStatus]);
 
   useEffect(() => {
     if (!navigator?.geolocation) {
@@ -751,7 +503,6 @@ export default function MapPage() {
     let permissionStatus = null;
     const applyPermissionState = (state) => {
       if (cancelled) return;
-      logLocation("permission_state", { state });
       if (state === "granted") {
         if (normalizePoint(userPositionRef.current)) {
           setLocationStatus("granted");
@@ -797,12 +548,11 @@ export default function MapPage() {
 
     return () => {
       cancelled = true;
-      clearLocationAttempt();
       if (permissionStatus) {
         permissionStatus.onchange = null;
       }
     };
-  }, [clearLocationAttempt, requestLocation]);
+  }, [requestLocation]);
 
   useEffect(() => {
     const forceWeatherRefresh = () => {
@@ -1616,6 +1366,9 @@ export default function MapPage() {
                 locationWarning={locationWarning}
                 locationRequestVersion={locationRequestVersion}
                 requestLocation={requestLocation}
+                liveLocationStatus={liveLocationStatus}
+                liveLocationUpdatedAt={liveLocationUpdatedAt}
+                liveLocationLastError={liveLocationLastError}
                 onSelectedTimestampChange={setSelectedTimestampIso}
                 weatherData={weatherData}
                 placeName={resolvedPlaceName}

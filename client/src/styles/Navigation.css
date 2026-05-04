@@ -119,6 +119,7 @@
 .siara-nav-summary__progress-fill.risk-moderate { background: #F59E0B; }
 .siara-nav-summary__progress-fill.risk-high { background: #EA580C; }
 .siara-nav-summary__progress-fill.risk-extreme { background: #B91C1C; }
+.siara-nav-summary__progress-fill.risk-unknown { background: #64748B; }
 
 .siara-nav-summary__body {
   padding: 14px 16px;
@@ -160,6 +161,7 @@
 .siara-nav-summary__risk.risk-moderate .siara-nav-summary__risk-value { color: #B45309; }
 .siara-nav-summary__risk.risk-high .siara-nav-summary__risk-value { color: #C2410C; }
 .siara-nav-summary__risk.risk-extreme .siara-nav-summary__risk-value { color: #B91C1C; }
+.siara-nav-summary__risk.risk-unknown .siara-nav-summary__risk-value { color: #475569; }
 
 .siara-nav-summary__meta {
   display: flex;
@@ -401,4 +403,582 @@
 
 .siara-mlb-alt-routes__btn:hover {
   background: #FFFFFF;
+}
+
+.siara-mlb-debug {
+  position: absolute;
+  right: calc(var(--siara-mlb-panel-width, 360px) + 34px);
+  bottom: 116px;
+  z-index: 1110;
+  display: grid;
+  gap: 2px;
+  max-width: min(300px, calc(100% - var(--siara-mlb-panel-width, 360px) - 58px));
+  max-height: calc(100% - 260px);
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.82);
+  color: #E2E8F0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.siara-mlb-shell {
+  --siara-mlb-panel-width: 360px;
+  --siara-mlb-panel-gap: 18px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.siara-mlb-shell .maplibregl-ctrl-top-right {
+  top: 84px;
+  right: calc(var(--siara-mlb-panel-width) + 34px);
+}
+
+.siara-mlb-tabs,
+.siara-mlb-controls,
+.siara-mlb-legend {
+  position: absolute;
+  z-index: 1100;
+  box-shadow: 0 20px 48px -24px rgba(15, 23, 42, 0.48);
+}
+
+.siara-mlb-tabs {
+  top: 18px;
+  left: 18px;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.siara-mlb-tabs button,
+.siara-mlb-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.siara-mlb-tabs button {
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: transparent;
+  color: #475569;
+}
+
+.siara-mlb-tabs button.is-active {
+  background: #111827;
+  color: #FFFFFF;
+}
+
+.siara-mlb-tabs svg,
+.siara-mlb-controls svg {
+  width: 18px;
+  height: 18px;
+}
+
+.siara-mlb-controls {
+  top: 18px;
+  right: calc(var(--siara-mlb-panel-width) + 34px);
+  display: flex;
+  gap: 8px;
+}
+
+.siara-mlb-controls button {
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #111827;
+  box-shadow: 0 16px 34px -22px rgba(15, 23, 42, 0.55);
+}
+
+.siara-mlb-controls button[aria-pressed="true"] {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+
+.siara-mlb-controls__locate {
+  min-width: 138px;
+}
+
+.siara-nav-banner {
+  top: 18px;
+  left: 238px;
+  right: calc(var(--siara-mlb-panel-width) + 42px);
+  width: auto;
+  max-width: 640px;
+  margin: 0 auto;
+  transform: none;
+  background: rgba(255, 255, 255, 0.98);
+  color: #111827;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.siara-nav-banner__icon {
+  width: 48px;
+  height: 48px;
+  background: #DBEAFE;
+  color: #1D4ED8;
+  border-radius: 12px;
+}
+
+.siara-nav-banner__distance {
+  color: #2563EB;
+}
+
+.siara-nav-banner__instruction {
+  color: #111827;
+  font-size: 20px;
+}
+
+.siara-nav-banner__next {
+  color: #475569;
+}
+
+.siara-nav-banner__warning {
+  color: #C2410C;
+}
+
+.siara-nav-summary {
+  left: 238px;
+  right: calc(var(--siara-mlb-panel-width) + 42px);
+  bottom: 18px;
+  width: auto;
+  max-width: 720px;
+  margin: 0 auto;
+  transform: none;
+  border-radius: 16px;
+}
+
+.siara-mlb-legend {
+  left: 18px;
+  bottom: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: min(360px, calc(100% - var(--siara-mlb-panel-width) - 58px));
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.siara-mlb-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.siara-mlb-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.siara-mlb-legend .risk-low { background: #16A34A; }
+.siara-mlb-legend .risk-moderate { background: #F59E0B; }
+.siara-mlb-legend .risk-high { background: #EA580C; }
+.siara-mlb-legend .risk-unknown { background: #64748B; }
+
+@media (max-width: 1180px) {
+  .siara-mlb-shell {
+    --siara-mlb-panel-width: 320px;
+  }
+
+  .siara-nav-banner,
+  .siara-nav-summary {
+    left: 188px;
+  }
+}
+
+@media (max-width: 960px) {
+  .siara-mlb-shell {
+    --siara-mlb-panel-width: 0px;
+  }
+
+  .siara-mlb-shell .maplibregl-ctrl-top-right {
+    top: 76px;
+    right: 12px;
+  }
+
+  .siara-mlb-tabs {
+    top: 12px;
+    left: 12px;
+  }
+
+  .siara-mlb-tabs button {
+    min-width: 36px;
+    padding: 7px;
+  }
+
+  .siara-mlb-tabs button:not(.is-active) {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .siara-mlb-controls {
+    top: 12px;
+    right: 12px;
+  }
+
+  .siara-mlb-controls__locate span {
+    display: none;
+  }
+
+  .siara-nav-banner {
+    top: 66px;
+    left: 12px;
+    right: 12px;
+    max-width: none;
+    padding: 12px;
+  }
+
+  .siara-nav-banner__icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .siara-nav-banner__instruction {
+    font-size: 17px;
+  }
+
+  .siara-mlb-legend {
+    top: 236px;
+    left: 12px;
+    bottom: auto;
+    max-width: calc(100% - 24px);
+  }
+
+  .siara-nav-summary {
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    max-width: none;
+  }
+
+  .siara-mlb-debug {
+    left: 12px;
+    right: 12px;
+    bottom: 198px;
+    max-width: none;
+  }
+}
+
+/* Structured MapLibre overlay shell.
+ * These rules intentionally come last: older absolute positions above are
+ * retained for reference but the live navigation view now uses named zones.
+ */
+.siara-mlb-shell {
+  --siara-mlb-panel-width: 360px;
+  --siara-mlb-edge: 18px;
+  --siara-mlb-gap: 12px;
+  --siara-mlb-summary-height: 168px;
+  --siara-mlb-left-utility-width: 300px;
+  --siara-mlb-z-map: 0;
+  --siara-mlb-z-map-controls: 25;
+  --siara-mlb-z-overlays: 40;
+  --siara-mlb-z-panel: 50;
+  --siara-mlb-z-debug: 60;
+  position: relative;
+  overflow: hidden;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.siara-mlb-canvas {
+  z-index: var(--siara-mlb-z-map);
+}
+
+.siara-mlb-shell .maplibregl-ctrl-top-right {
+  top: calc(var(--siara-mlb-edge) + 54px);
+  right: calc(var(--siara-mlb-panel-width) + var(--siara-mlb-edge));
+  z-index: var(--siara-mlb-z-map-controls);
+}
+
+.siara-mlb-top-zone {
+  position: absolute;
+  top: var(--siara-mlb-edge);
+  left: var(--siara-mlb-edge);
+  right: calc(var(--siara-mlb-panel-width) + var(--siara-mlb-edge) + var(--siara-mlb-gap));
+  z-index: var(--siara-mlb-z-overlays);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--siara-mlb-gap);
+  pointer-events: none;
+}
+
+.siara-mlb-tabs,
+.siara-mlb-controls {
+  position: static;
+  z-index: auto;
+  pointer-events: auto;
+}
+
+.siara-mlb-tabs,
+.siara-mlb-controls button,
+.siara-mlb-legend,
+.siara-nav-banner,
+.siara-nav-alert,
+.siara-nav-summary {
+  box-shadow: 0 18px 44px -24px rgba(15, 23, 42, 0.52);
+}
+
+.siara-mlb-tabs {
+  flex: 0 0 auto;
+}
+
+.siara-mlb-controls {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.siara-mlb-instruction-zone {
+  position: absolute;
+  top: calc(var(--siara-mlb-edge) + 62px);
+  left: calc(var(--siara-mlb-edge) + var(--siara-mlb-left-utility-width) + var(--siara-mlb-gap));
+  right: calc(var(--siara-mlb-panel-width) + var(--siara-mlb-edge) + var(--siara-mlb-gap));
+  z-index: var(--siara-mlb-z-overlays);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.siara-mlb-instruction-zone > * {
+  pointer-events: auto;
+}
+
+.siara-mlb-location-warning,
+.siara-mlb-instruction-zone .siara-nav-alert,
+.siara-mlb-instruction-zone .siara-nav-banner {
+  position: static;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  transform: none;
+  width: min(640px, 100%);
+  max-width: 100%;
+  margin: 0;
+}
+
+.siara-mlb-instruction-zone .siara-nav-alert {
+  width: min(460px, 100%);
+}
+
+.siara-mlb-location-warning {
+  display: inline-flex;
+  justify-content: center;
+  width: auto;
+  max-width: min(520px, 100%);
+  border-radius: 999px;
+  box-shadow: 0 14px 30px -20px rgba(15, 23, 42, 0.5);
+}
+
+.siara-mlb-left-utility-zone {
+  position: absolute;
+  left: var(--siara-mlb-edge);
+  bottom: calc(var(--siara-mlb-summary-height) + var(--siara-mlb-edge) + var(--siara-mlb-gap));
+  z-index: var(--siara-mlb-z-overlays);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--siara-mlb-gap);
+  width: min(var(--siara-mlb-left-utility-width), calc(100% - var(--siara-mlb-panel-width) - (var(--siara-mlb-edge) * 2)));
+  max-height: calc(100% - var(--siara-mlb-summary-height) - 150px);
+  pointer-events: none;
+}
+
+.siara-mlb-left-utility-zone > * {
+  pointer-events: auto;
+}
+
+.siara-mlb-left-utility-zone .siara-current-segment,
+.siara-mlb-left-utility-zone .siara-mlb-legend {
+  position: static;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  width: 100%;
+  max-width: 100%;
+}
+
+.siara-mlb-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.siara-mlb-bottom-zone {
+  position: absolute;
+  left: calc(var(--siara-mlb-edge) + var(--siara-mlb-left-utility-width) + var(--siara-mlb-gap));
+  right: calc(var(--siara-mlb-panel-width) + var(--siara-mlb-edge) + var(--siara-mlb-gap));
+  bottom: var(--siara-mlb-edge);
+  z-index: var(--siara-mlb-z-overlays);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.siara-mlb-bottom-zone .siara-nav-summary {
+  position: static;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  transform: none;
+  width: min(720px, 100%);
+  max-width: 100%;
+  margin: 0;
+  pointer-events: auto;
+}
+
+.siara-mlb-debug {
+  right: calc(var(--siara-mlb-panel-width) + var(--siara-mlb-edge) + var(--siara-mlb-gap));
+  bottom: calc(var(--siara-mlb-summary-height) + var(--siara-mlb-edge) + var(--siara-mlb-gap));
+  z-index: var(--siara-mlb-z-debug);
+  max-width: min(320px, calc(100% - var(--siara-mlb-panel-width) - 64px));
+  max-height: min(240px, calc(100% - 260px));
+}
+
+@media (max-width: 1180px) and (min-width: 961px) {
+  .siara-mlb-shell {
+    --siara-mlb-panel-width: 320px;
+    --siara-mlb-left-utility-width: 250px;
+  }
+}
+
+@media (max-width: 960px) {
+  .siara-mlb-shell {
+    --siara-mlb-panel-width: 0px;
+    --siara-mlb-edge: 12px;
+    --siara-mlb-summary-height: 158px;
+    --siara-mlb-left-utility-width: 100%;
+  }
+
+  .siara-mlb-shell .maplibregl-ctrl-top-right {
+    top: calc(var(--siara-mlb-edge) + 58px);
+    right: var(--siara-mlb-edge);
+  }
+
+  .siara-mlb-top-zone {
+    left: var(--siara-mlb-edge);
+    right: var(--siara-mlb-edge);
+  }
+
+  .siara-mlb-tabs {
+    max-width: calc(100% - 120px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .siara-mlb-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .siara-mlb-tabs button:not(.is-active) {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .siara-mlb-controls__locate {
+    min-width: 42px;
+  }
+
+  .siara-mlb-controls__locate span {
+    display: none;
+  }
+
+  .siara-mlb-instruction-zone {
+    top: 72px;
+    left: var(--siara-mlb-edge);
+    right: var(--siara-mlb-edge);
+  }
+
+  .siara-mlb-instruction-zone .siara-nav-banner {
+    padding: 11px 12px;
+  }
+
+  .siara-nav-banner__icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .siara-nav-banner__instruction {
+    font-size: 16px;
+  }
+
+  .siara-mlb-left-utility-zone {
+    left: var(--siara-mlb-edge);
+    right: var(--siara-mlb-edge);
+    bottom: calc(var(--siara-mlb-summary-height) + 72px);
+    width: auto;
+    max-height: 34vh;
+  }
+
+  .siara-mlb-bottom-zone {
+    left: var(--siara-mlb-edge);
+    right: var(--siara-mlb-edge);
+    bottom: var(--siara-mlb-edge);
+  }
+
+  .siara-mlb-bottom-zone .siara-nav-summary {
+    width: 100%;
+  }
+
+  .siara-mlb-debug {
+    left: var(--siara-mlb-edge);
+    right: var(--siara-mlb-edge);
+    bottom: calc(var(--siara-mlb-summary-height) + var(--siara-mlb-edge));
+    max-width: none;
+    max-height: 28vh;
+  }
+}
+
+@media (max-width: 520px) {
+  .siara-mlb-shell {
+    --siara-mlb-summary-height: 184px;
+  }
+
+  .siara-mlb-controls {
+    gap: 6px;
+  }
+
+  .siara-mlb-controls button {
+    min-width: 38px;
+    min-height: 38px;
+    padding: 0 9px;
+  }
+
+  .siara-mlb-left-utility-zone {
+    bottom: calc(var(--siara-mlb-summary-height) + 64px);
+    max-height: 30vh;
+  }
+
+  .siara-nav-summary__body {
+    padding: 12px;
+  }
+
+  .siara-nav-summary__main {
+    gap: 8px;
+  }
 }

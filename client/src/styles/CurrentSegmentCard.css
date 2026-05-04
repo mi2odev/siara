@@ -7,9 +7,7 @@
  * visual. */
 
 .siara-current-segment {
-  position: absolute;
-  left: 12px;
-  bottom: 168px;
+  position: static;
   z-index: 1000;
   width: min(280px, calc(100% - 24px));
   background: rgba(255, 255, 255, 0.97);
@@ -102,6 +100,10 @@
   background: #FEE2E2;
   color: #7F1D1D;
 }
+.siara-current-segment__badge.risk-unknown {
+  background: #E2E8F0;
+  color: #475569;
+}
 
 /* Collapsed one-liner line under the header. Truncates with ellipsis so
  * the card never stretches vertically when collapsed. */
@@ -182,5 +184,15 @@
     bottom: 184px;
     width: auto;
     padding: 6px 8px;
+  }
+}
+
+@media (max-width: 960px) {
+  .siara-current-segment {
+    top: 158px;
+    left: 12px;
+    right: auto;
+    bottom: auto;
+    width: min(330px, calc(100% - 24px));
   }
 }

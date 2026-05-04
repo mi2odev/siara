@@ -9,15 +9,30 @@ function normalizeError(error, fallback) {
   )
 }
 
-export async function fetchDepartureOptions({ origin, destination, timestamps }) {
+export async function fetchDepartureOptions({
+  origin,
+  destination,
+  timestamps,
+  signal,
+  maxAlternatives,
+}) {
   try {
-    const response = await publicRequest.post('/risk/route/departure-options', {
+    const payload = {
       origin,
       destination,
       timestamps,
+    }
+    if (Number.isFinite(Number(maxAlternatives))) {
+      payload.max_alternatives = Number(maxAlternatives)
+    }
+    const response = await publicRequest.post('/risk/route/departure-options', payload, {
+      signal,
     })
     return response.data || null
   } catch (error) {
+    if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED') {
+      throw error
+    }
     throw normalizeError(error, 'Could not check safer departure times')
   }
 }

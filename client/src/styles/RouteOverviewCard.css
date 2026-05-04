@@ -108,6 +108,7 @@
 .siara-route-overview__stat.risk-moderate strong { color: #92400E; }
 .siara-route-overview__stat.risk-high strong { color: #9A3412; }
 .siara-route-overview__stat.risk-extreme strong { color: #7F1D1D; }
+.siara-route-overview__stat.risk-unknown strong { color: #475569; }
 
 .siara-route-overview__why {
   padding-top: 8px;
@@ -235,6 +236,43 @@
   font-weight: 600;
 }
 
+.siara-route-overview__segments {
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px solid #F1F5F9;
+  display: grid;
+  gap: 7px;
+}
+
+.siara-route-overview__segment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  background: #F8FAFC;
+}
+
+.siara-route-overview__segment-row span {
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.siara-route-overview__segment-row strong {
+  color: #0F172A;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.siara-route-overview__segment-row strong.risk-low { color: #166534; }
+.siara-route-overview__segment-row strong.risk-moderate { color: #92400E; }
+.siara-route-overview__segment-row strong.risk-high { color: #9A3412; }
+.siara-route-overview__segment-row strong.risk-extreme { color: #7F1D1D; }
+.siara-route-overview__segment-row strong.risk-unknown { color: #475569; }
+
 /* Best-time-to-leave (compact) — embedded inside RouteOverviewCard. */
 .siara-best-time-compact {
   margin-top: 10px;
@@ -259,7 +297,10 @@
 }
 
 .siara-best-time-compact__icon {
-  font-size: 14px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #2563EB;
+  text-transform: uppercase;
 }
 
 .siara-best-time-compact__title {
@@ -288,6 +329,25 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.siara-best-time-compact__refresh {
+  align-self: flex-start;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.siara-best-time-compact__refresh:hover:not(:disabled) {
+  background: #DBEAFE;
+}
+.siara-best-time-compact__refresh:disabled {
+  opacity: 0.65;
+  cursor: progress;
 }
 
 .siara-best-time-compact__hint,
@@ -379,5 +439,43 @@
     top: 76px;
     right: 8px;
     padding: 10px 12px;
+  }
+}
+
+@media (min-width: 961px) {
+  .siara-route-overview {
+    top: var(--siara-mlb-edge, 18px);
+    right: var(--siara-mlb-edge, 18px);
+    bottom: var(--siara-mlb-edge, 18px);
+    width: var(--siara-mlb-panel-width, 360px);
+    max-height: none;
+    border-radius: 18px;
+    padding: 16px;
+    z-index: var(--siara-mlb-z-panel, 50);
+    transition: transform 180ms ease;
+  }
+
+  .siara-mlb-shell:not(.is-route-panel-open) .siara-route-overview {
+    transform: translateX(calc(100% + 28px));
+  }
+}
+
+@media (max-width: 960px) {
+  .siara-route-overview {
+    top: auto;
+    left: var(--siara-mlb-edge, 12px);
+    right: var(--siara-mlb-edge, 12px);
+    bottom: calc(var(--siara-mlb-summary-height, 158px) + var(--siara-mlb-edge, 12px) + var(--siara-mlb-gap, 12px));
+    width: auto;
+    max-height: min(42vh, calc(100% - var(--siara-mlb-summary-height, 158px) - 170px));
+    padding: 14px;
+    border-radius: 18px;
+    transform: translateY(calc(100% - 58px));
+    z-index: var(--siara-mlb-z-panel, 50);
+    transition: transform 180ms ease;
+  }
+
+  .siara-mlb-shell.is-route-panel-open .siara-route-overview {
+    transform: translateY(0);
   }
 }

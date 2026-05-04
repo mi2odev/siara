@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchDepartureOptions } from '../../services/departureOptionsService'
 
-// Compact 4-window "Best time to leave" surface used inside the
-// RouteOverviewCard in MapLibre navigation mode. Collapsed by default
-// (one-line teaser); expands into a list with an explicit
-// "Use this departure" button per row.
-//
-// This is intentionally a separate component from BestTimeToLeavePanel so
-// the Leaflet planning surface stays exactly as it was.
-
-const OFFSETS_MIN = [0, 30, 60, 120] // 4 windows
+const OFFSETS_MIN = [0, 30, 60, 120]
 
 function tierFromLevel(level, percent) {
   const text = String(level || '').trim().toLowerCase()
@@ -27,7 +19,7 @@ function tierFromLevel(level, percent) {
 
 function formatRiskPercent(value) {
   const n = Number(value)
-  return Number.isFinite(n) ? `${Math.round(n)}%` : '—'
+  return Number.isFinite(n) ? `${Math.round(n)}%` : '--'
 }
 
 function formatClock(timestamp) {
@@ -41,12 +33,12 @@ function buildTimestamps(baseMs) {
   return OFFSETS_MIN.map((min) => new Date(baseMs + min * 60 * 1000).toISOString())
 }
 
-function buildCacheKey(origin, destination, baseMs) {
+function buildCacheKey(origin, destination, baseMs, routeIdentity) {
   if (!origin || !destination) return null
   const round = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(4) : 'na')
-  // 5-minute bucket on the base time so the same minute doesn't requery.
   const bucket = Math.floor(baseMs / (5 * 60 * 1000))
   return [
+    routeIdentity || 'route',
     round(origin.lat),
     round(origin.lng),
     round(destination.lat),
@@ -60,6 +52,7 @@ export default function BestTimeToLeaveCompact({
   destination,
   enabled = true,
   onSelectTimestamp,
+  routeIdentity = '',
 }) {
   const [state, setState] = useState('idle')
   const [error, setError] = useState('')
@@ -68,24 +61,26 @@ export default function BestTimeToLeaveCompact({
   const [expanded, setExpanded] = useState(false)
   const cacheRef = useRef(new Map())
   const lastCacheKeyRef = useRef(null)
+  const requestIdRef = useRef(0)
+  const abortRef = useRef(null)
 
   const baseMs = useMemo(
     () => Date.now(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [origin?.lat, origin?.lng, destination?.lat, destination?.lng],
+    [origin?.lat, origin?.lng, destination?.lat, destination?.lng, routeIdentity],
   )
 
   const requestKey = useMemo(
-    () => buildCacheKey(origin, destination, baseMs),
-    [origin, destination, baseMs],
+    () => buildCacheKey(origin, destination, baseMs, routeIdentity),
+    [origin, destination, baseMs, routeIdentity],
   )
 
-  const runQuery = useCallback(async () => {
+  const runQuery = useCallback(async ({ force = false } = {}) => {
     if (!enabled || !origin || !destination) return
-    const cacheKey = buildCacheKey(origin, destination, baseMs)
+    const cacheKey = buildCacheKey(origin, destination, baseMs, routeIdentity)
     if (!cacheKey) return
 
-    if (cacheRef.current.has(cacheKey)) {
+    if (!force && cacheRef.current.has(cacheKey)) {
       const cached = cacheRef.current.get(cacheKey)
       setOptions(cached.options || [])
       setBestOption(cached.bestOption || null)
@@ -95,11 +90,25 @@ export default function BestTimeToLeaveCompact({
       return
     }
 
-    const timestamps = buildTimestamps(baseMs)
+    const requestId = ++requestIdRef.current
+    if (abortRef.current) {
+      abortRef.current.abort()
+      abortRef.current = null
+    }
+    const controller = new AbortController()
+    abortRef.current = controller
+
     setState('loading')
     setError('')
     try {
-      const data = await fetchDepartureOptions({ origin, destination, timestamps })
+      const data = await fetchDepartureOptions({
+        origin,
+        destination,
+        timestamps: buildTimestamps(baseMs),
+        signal: controller.signal,
+        maxAlternatives: 1,
+      })
+      if (requestId !== requestIdRef.current || controller.signal.aborted) return
       const opts = Array.isArray(data?.options) ? data.options : []
       const best = data?.bestOption || null
       cacheRef.current.set(cacheKey, { options: opts, bestOption: best })
@@ -108,25 +117,48 @@ export default function BestTimeToLeaveCompact({
       setBestOption(best)
       setState('success')
     } catch (err) {
+      if (
+        requestId !== requestIdRef.current ||
+        controller.signal.aborted ||
+        err?.name === 'CanceledError' ||
+        err?.code === 'ERR_CANCELED'
+      ) {
+        return
+      }
       setError(err?.message || 'Could not check departure times.')
       setState('error')
+    } finally {
+      if (abortRef.current === controller) {
+        abortRef.current = null
+      }
     }
-  }, [enabled, origin, destination, baseMs])
+  }, [enabled, origin, destination, baseMs, routeIdentity])
 
   useEffect(() => {
     if (!enabled || !requestKey) {
+      if (abortRef.current) {
+        abortRef.current.abort()
+        abortRef.current = null
+      }
       setState('idle')
       setOptions([])
       setBestOption(null)
       setError('')
       return undefined
     }
-    if (lastCacheKeyRef.current === requestKey) return undefined
+    if (!expanded || lastCacheKeyRef.current === requestKey) return undefined
     const handle = setTimeout(() => {
       runQuery()
     }, 300)
     return () => clearTimeout(handle)
-  }, [enabled, requestKey, runQuery])
+  }, [enabled, expanded, requestKey, runQuery])
+
+  useEffect(() => () => {
+    if (abortRef.current) {
+      abortRef.current.abort()
+      abortRef.current = null
+    }
+  }, [])
 
   if (!enabled) return null
 
@@ -135,11 +167,12 @@ export default function BestTimeToLeaveCompact({
     ? tierFromLevel(nowOption.riskLevel, nowOption.riskPercent)
     : 'unknown'
   const teaser = (() => {
-    if (state === 'loading') return 'Checking departure times…'
+    if (!expanded && state === 'idle') return 'Expand to compare departure times.'
+    if (state === 'loading') return 'Checking departure times...'
     if (state === 'error') return error || 'Could not check departure times.'
     if (!nowOption) return 'No departure data yet.'
     if (bestOption && bestOption.timestamp !== nowOption.timestamp) {
-      return `Now: ${nowTier} · Best at ${formatClock(bestOption.timestamp)}`
+      return `Now: ${nowTier} | Best at ${formatClock(bestOption.timestamp)}`
     }
     return `Now: ${nowTier} (${formatRiskPercent(nowOption.riskPercent)})`
   })()
@@ -152,7 +185,7 @@ export default function BestTimeToLeaveCompact({
         onClick={() => setExpanded((prev) => !prev)}
         aria-expanded={expanded}
       >
-        <span className="siara-best-time-compact__icon" aria-hidden="true">⏰</span>
+        <span className="siara-best-time-compact__icon" aria-hidden="true">Time</span>
         <span className="siara-best-time-compact__title">Best time to leave</span>
         <span
           className={`siara-best-time-compact__chevron${
@@ -160,7 +193,7 @@ export default function BestTimeToLeaveCompact({
           }`}
           aria-hidden="true"
         >
-          ▾
+          v
         </span>
       </button>
 
@@ -168,8 +201,16 @@ export default function BestTimeToLeaveCompact({
         <p className="siara-best-time-compact__teaser">{teaser}</p>
       ) : (
         <div className="siara-best-time-compact__body">
+          <button
+            type="button"
+            className="siara-best-time-compact__refresh"
+            onClick={() => runQuery({ force: true })}
+            disabled={state === 'loading' || !origin || !destination}
+          >
+            {state === 'loading' ? 'Checking...' : 'Refresh'}
+          </button>
           {state === 'loading' ? (
-            <p className="siara-best-time-compact__hint">Checking safer departure times…</p>
+            <p className="siara-best-time-compact__hint">Checking safer departure times...</p>
           ) : state === 'error' ? (
             <p className="siara-best-time-compact__error" role="alert">{error}</p>
           ) : options.length === 0 ? (
@@ -193,7 +234,7 @@ export default function BestTimeToLeaveCompact({
                         {formatClock(opt.timestamp)}
                       </span>
                       <span className={`siara-best-time-compact__row-risk risk-${tier}`}>
-                        {failed ? '—' : formatRiskPercent(opt.riskPercent)}
+                        {failed ? '--' : formatRiskPercent(opt.riskPercent)}
                       </span>
                     </div>
                     <button

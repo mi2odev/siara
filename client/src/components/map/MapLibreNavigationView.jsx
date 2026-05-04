@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import AltRouteIcon from '@mui/icons-material/AltRoute'
+import BugReportIcon from '@mui/icons-material/BugReport'
+import GpsFixedIcon from '@mui/icons-material/GpsFixed'
+import LayersIcon from '@mui/icons-material/Layers'
+import NavigationIcon from '@mui/icons-material/Navigation'
+import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 
 import NavigationBanner from './NavigationBanner'
 import NavigationSummaryCard from './NavigationSummaryCard'
@@ -54,10 +60,11 @@ const NAV_STYLE = {
 }
 
 const NAV_ZOOM = 17
-const NAV_PITCH = 55
+const NAV_PITCH = 60
 const NAV_USER_OFFSET_RATIO = 0.7
 
 const RISK_COLORS = {
+  unknown: '#64748B',
   low: '#16A34A',
   moderate: '#F59E0B',
   medium: '#F59E0B',
@@ -68,7 +75,9 @@ const RISK_COLORS = {
 
 function riskColor(level, percent) {
   const text = String(level || '').trim().toLowerCase()
+  if (text === 'unknown' || text === 'unavailable') return RISK_COLORS.unknown
   if (RISK_COLORS[text]) return RISK_COLORS[text]
+  if (percent === null || percent === undefined || percent === '') return RISK_COLORS.unknown
   const numeric = Number(percent)
   if (!Number.isFinite(numeric)) return RISK_COLORS.low
   if (numeric >= 75) return RISK_COLORS.extreme
@@ -94,6 +103,27 @@ function pathToLngLat(path) {
       return null
     })
     .filter(Boolean)
+}
+
+function pathBearing(path) {
+  if (!Array.isArray(path) || path.length < 2) return null
+  const points = path
+    .map((point) => {
+      if (Array.isArray(point) && point.length >= 2) {
+        const lat = Number(point[0])
+        const lng = Number(point[1])
+        return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null
+      }
+      if (point && typeof point === 'object') {
+        const lat = Number(point.lat)
+        const lng = Number(point.lng)
+        return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null
+      }
+      return null
+    })
+    .filter(Boolean)
+  if (points.length < 2) return null
+  return bearingDegrees(points[0], points[1])
 }
 
 function buildRouteGeoJson(route) {
@@ -186,6 +216,10 @@ export default function MapLibreNavigationView({
   onGenerateAiExplanation,
   aiExplanationGenerating = false,
   onSelectDepartureTimestamp,
+  geolocationStatus = 'unknown',
+  lastLocationUpdatedAt = null,
+  lastLocationError = null,
+  routeOrigin = null,
 }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -193,13 +227,19 @@ export default function MapLibreNavigationView({
   const destinationMarkerRef = useRef(null)
   const previousUserPosRef = useRef(null)
   const hasAppliedInitialCameraRef = useRef(false)
-  const userInteractionRef = useRef(false)
+  const cameraBearingRef = useRef(0)
   const [mapReady, setMapReady] = useState(false)
   const [followUser, setFollowUser] = useState(true)
   const [derivedHeading, setDerivedHeading] = useState(null)
+  const [lastCameraUpdateAt, setLastCameraUpdateAt] = useState(null)
+  const [showDebug, setShowDebug] = useState(false)
+  const [routePanelOpen, setRoutePanelOpen] = useState(true)
   const [routeAlerts, setRouteAlerts] = useState([])
   const [dismissedAlertIds, setDismissedAlertIds] = useState(() => new Set())
   const [rerouting, setRerouting] = useState(false)
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window === 'undefined' ? 1200 : window.innerWidth,
+  )
   const lastAlertSinceRef = useRef(null)
   // Identity of the segment we last set into state, so we can ignore
   // userLocation updates that don't actually change which segment the user
@@ -216,89 +256,87 @@ export default function MapLibreNavigationView({
     [selectedRoute?.path],
   )
 
-  // Stable camera helper. Always applied AFTER any fitBounds/preview so the
-  // GPS-style tilted view is the final state. `force` re-engages follow mode
-  // even if the user had panned earlier (used by the recenter button).
-  const applyNavigationCamera = useCallback(
-    ({ force = false } = {}) => {
-      const map = mapRef.current
-      if (!map) return
-      if (force) {
-        userInteractionRef.current = false
-        setFollowUser(true)
-      }
+  // ---------------------------------------------------------------------
+  // Camera-follow logic (rewritten clean).
+  //
+  // Design rules (matches the spec):
+  //   1. We never set the camera through React's <Map initialViewState>;
+  //      everything goes through map.easeTo() / map.jumpTo() on the
+  //      MapLibre instance held in mapRef.
+  //   2. Live location flows in via the `userLocation` prop (the parent
+  //      runs navigator.geolocation.watchPosition with
+  //      enableHighAccuracy: true, maximumAge: 0, timeout: 15000).
+  //   3. A single dedicated effect — the "follow effect" below — listens
+  //      to userLat/userLng/bearing/followUser/mapReady and, when
+  //      followUser is true, calls map.easeTo() with the new center,
+  //      NAV_ZOOM, NAV_PITCH, and the latest bearing. Nothing else moves
+  //      the camera in response to position updates.
+  //   4. A separate one-shot effect locks the GPS-style camera once the
+  //      map is ready and a first fix exists. It does NOT re-fire when
+  //      the route changes — that was overriding live tracking before.
+  //   5. `handleRecenter` (the "My Location" button) re-engages follow
+  //      and snaps the camera to the latest fix in one easeTo call.
+  // ---------------------------------------------------------------------
 
-      const userLatNum = Number(userLocation?.lat)
-      const userLngNum = Number(userLocation?.lng)
-      const hasUser =
-        Number.isFinite(userLatNum) && Number.isFinite(userLngNum)
+  // Compute the bearing the camera should use: prefer GPS heading, fall
+  // back to a heading derived from successive fixes (set in the marker
+  // effect below), else `null` (= keep the map's current bearing).
+  const upstreamHeadingSource = userLocation?.headingSource || null
+  const hasUsableUpstreamHeading =
+    Number.isFinite(Number(userLocation?.heading)) &&
+    upstreamHeadingSource !== 'fallback' &&
+    upstreamHeadingSource !== 'route-bearing'
+  const sensorBearing = hasUsableUpstreamHeading
+    ? Number(userLocation.heading)
+    : Number.isFinite(Number(derivedHeading))
+      ? Number(derivedHeading)
+      : null
 
-      // Pick a center: live location, else first route point, else current.
-      let center = null
-      if (hasUser) {
-        center = [userLngNum, userLatNum]
-      } else {
-        const routePath = pathToLngLat(selectedRoute?.path)
-        if (routePath.length > 0) center = routePath[0]
-      }
-      if (!center) return
+  // Imperative "snap to user" used for the My Location button and the
+  // initial lock-in. Reads the latest props each call, no closure traps.
+  const snapCameraToUser = useCallback(({ animate = true } = {}) => {
+    const map = mapRef.current
+    if (!map) return false
+    const lat = Number(userLocation?.lat)
+    const lng = Number(userLocation?.lng)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false
 
-      const headingValue = Number.isFinite(Number(userLocation?.heading))
-        ? Number(userLocation.heading)
-        : Number.isFinite(Number(derivedHeading))
-          ? Number(derivedHeading)
-          : null
+    const bearing = Number.isFinite(Number(cameraBearingRef.current))
+      ? Number(cameraBearingRef.current)
+      : map.getBearing() || 0
+    const containerHeight = map.getContainer().clientHeight || 0
+    const offsetY = containerHeight
+      ? -(NAV_USER_OFFSET_RATIO - 0.5) * containerHeight
+      : 0
 
-      const cameraBearing =
-        headingValue != null ? headingValue : map.getBearing() || 0
-
-      const containerHeight = map.getContainer().clientHeight || 0
-      const offsetY = containerHeight
-        ? -(NAV_USER_OFFSET_RATIO - 0.5) * containerHeight
-        : 0
-
-      // jumpTo on the very first apply guarantees the GPS view sticks even
-      // if a previous animation is mid-flight; subsequent calls smooth via
-      // easeTo for a less jumpy follow experience.
-      if (!hasAppliedInitialCameraRef.current) {
-        map.jumpTo({
-          center,
-          zoom: NAV_ZOOM,
-          pitch: NAV_PITCH,
-          bearing: cameraBearing,
-        })
-        // After jumpTo we still apply the offset via panBy in screen space
-        // so the user marker sits low on the screen.
-        if (offsetY !== 0) {
-          map.panBy([0, offsetY], { animate: false })
-        }
-        hasAppliedInitialCameraRef.current = true
-      } else {
-        map.easeTo({
-          center,
-          zoom: NAV_ZOOM,
-          pitch: NAV_PITCH,
-          bearing: cameraBearing,
-          duration: 600,
-          offset: [0, offsetY],
-        })
-      }
-    },
-    [
-      userLocation?.lat,
-      userLocation?.lng,
-      userLocation?.heading,
-      derivedHeading,
-      selectedRoute?.path,
-    ],
-  )
+    if (animate) {
+      map.easeTo({
+        center: [lng, lat],
+        zoom: NAV_ZOOM,
+        pitch: NAV_PITCH,
+        bearing,
+        duration: 600,
+        offset: [0, offsetY],
+      })
+    } else {
+      map.jumpTo({ center: [lng, lat], zoom: NAV_ZOOM, pitch: NAV_PITCH, bearing })
+      if (offsetY !== 0) map.panBy([0, offsetY], { animate: false })
+    }
+    setLastCameraUpdateAt(Date.now())
+    return true
+  }, [userLocation?.lat, userLocation?.lng])
 
   const userLat = Number(userLocation?.lat)
   const userLng = Number(userLocation?.lng)
   const hasValidUserLocation = Number.isFinite(userLat) && Number.isFinite(userLng)
-  const heading = Number.isFinite(Number(userLocation?.heading))
-    ? Number(userLocation.heading)
-    : derivedHeading
+  const routeOriginForScoring = useMemo(() => {
+    const lat = Number(routeOrigin?.lat)
+    const lng = Number(routeOrigin?.lng)
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng }
+    }
+    return hasValidUserLocation ? { lat: userLat, lng: userLng } : null
+  }, [hasValidUserLocation, routeOrigin?.lat, routeOrigin?.lng, userLat, userLng])
 
   const routeProgress = useMemo(() => {
     if (!hasValidUserLocation || !selectedRoute) return null
@@ -309,6 +347,82 @@ export default function MapLibreNavigationView({
     if (!routeProgress) return 0
     return Math.max(0, findCurrentStepIndex(navigationSteps, routeProgress.distanceFromStartM))
   }, [navigationSteps, routeProgress])
+
+  const routeBearing = useMemo(() => {
+    const stepBearing = Number(navigationSteps[currentStepIndex]?.bearing)
+    if (Number.isFinite(stepBearing)) return stepBearing
+
+    const segmentBearing = pathBearing(currentNavigationSegment?.path)
+    if (Number.isFinite(Number(segmentBearing))) return segmentBearing
+
+    const routePath = Array.isArray(selectedRoute?.path) ? selectedRoute.path : []
+    const routeIndex = Math.max(
+      0,
+      Math.min(routePath.length - 2, Number(routeProgress?.closestSegmentIndex) || 0),
+    )
+    return pathBearing(routePath.slice(routeIndex, routeIndex + 2))
+  }, [
+    currentNavigationSegment?.path,
+    currentStepIndex,
+    navigationSteps,
+    routeProgress?.closestSegmentIndex,
+    selectedRoute?.path,
+  ])
+
+  const resolvedHeading = Number.isFinite(Number(sensorBearing))
+    ? Number(sensorBearing)
+    : Number.isFinite(Number(routeBearing))
+      ? Number(routeBearing)
+      : Number.isFinite(Number(mapRef.current?.getBearing?.()))
+        ? Number(mapRef.current.getBearing())
+        : 0
+
+  const resolvedHeadingSource = hasUsableUpstreamHeading
+    ? upstreamHeadingSource || 'gps'
+    : Number.isFinite(Number(derivedHeading))
+      ? 'movement-bearing'
+      : Number.isFinite(Number(routeBearing))
+        ? 'route-bearing'
+        : 'fallback'
+
+  const heading = resolvedHeading
+
+  useEffect(() => {
+    cameraBearingRef.current = resolvedHeading
+  }, [resolvedHeading])
+
+  const mapOverlayPadding = useMemo(() => {
+    if (viewportWidth <= 960) {
+      return {
+        top: 190,
+        right: 16,
+        bottom: routePanelOpen ? 340 : 220,
+        left: 16,
+      }
+    }
+
+    return {
+      top: 150,
+      right: routePanelOpen ? 410 : 32,
+      bottom: 190,
+      left: 340,
+    }
+  }, [routePanelOpen, viewportWidth])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const handleResize = () => setViewportWidth(window.innerWidth)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    if (typeof map.setPadding === 'function') {
+      map.setPadding(mapOverlayPadding)
+    }
+  }, [mapOverlayPadding, mapReady])
 
   // Reset cached segment identity when the route itself changes, so the
   // next userLocation update is forced to recompute against the new path.
@@ -440,18 +554,16 @@ export default function MapLibreNavigationView({
         filter: ['==', ['get', 'kind'], 'segment'],
       })
 
-      // Allow the user to break "follow" by dragging — and only by dragging.
-      // We track real user interactions (mouse/touch) so programmatic
-      // easeTo/fitBounds calls (which also emit movestart) don't disengage
-      // follow mode and leave the map flat.
-      map.on('mousedown', () => { userInteractionRef.current = true })
-      map.on('touchstart', () => { userInteractionRef.current = true })
-      map.on('dragend', () => { userInteractionRef.current = false })
-      map.on('dragstart', () => {
-        if (userInteractionRef.current) {
-          setFollowUser(false)
-        }
-      })
+      // Disengage follow only on real user gestures. MapLibre sets
+      // `e.originalEvent` only when the move was triggered by a pointer/
+      // wheel/keyboard event — programmatic easeTo/flyTo/jumpTo calls leave
+      // it null. Listening on `dragstart` and `wheel` (zoom-by-scroll) is
+      // enough; `rotate`/`pitch` gestures all emit `dragstart` first.
+      const handleUserGesture = (e) => {
+        if (e && e.originalEvent) setFollowUser(false)
+      }
+      map.on('dragstart', handleUserGesture)
+      map.on('wheel', handleUserGesture)
 
       setMapReady(true)
     })
@@ -466,7 +578,6 @@ export default function MapLibreNavigationView({
       userMarkerRef.current = null
       destinationMarkerRef.current = null
       hasAppliedInitialCameraRef.current = false
-      userInteractionRef.current = false
       setMapReady(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -519,7 +630,8 @@ export default function MapLibreNavigationView({
     }
   }, [mapReady, destination?.lat, destination?.lng, destination?.name])
 
-  // Place / update user marker + camera follow.
+  // -- (1) MARKER effect: position + rotation only. No camera. ----------
+  // Re-runs on every fresh fix because userLat/userLng come from props.
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
@@ -553,44 +665,67 @@ export default function MapLibreNavigationView({
         (userLng - previous.lng) * 111320 * Math.cos((userLat * Math.PI) / 180)
       const dy = (userLat - previous.lat) * 111320
       const distance = Math.hypot(dx, dy)
-      if (distance >= 5 && !Number.isFinite(Number(userLocation?.heading))) {
+      if (distance >= 5 && !hasUsableUpstreamHeading) {
         const bearing = bearingDegrees(previous, { lat: userLat, lng: userLng })
         setDerivedHeading(bearing)
       }
     }
     previousUserPosRef.current = { lat: userLat, lng: userLng }
-
-    if (followUser) {
-      applyNavigationCamera()
-    }
   }, [
     mapReady,
     hasValidUserLocation,
     userLat,
     userLng,
     heading,
-    followUser,
-    userLocation?.heading,
-    applyNavigationCamera,
+    hasUsableUpstreamHeading,
   ])
 
-  // After map load + route layers populated, lock in the GPS-style camera.
-  // We deliberately do NOT use fitBounds here because that flattens pitch
-  // back to 0 and produces the "brief tilt then flat" bug. Instead we go
-  // straight to the navigation camera; the route is still visible because
-  // its line layers are already on the map at navigation zoom.
+  // -- (2) CAMERA-FOLLOW effect: the only thing that moves the camera in
+  // response to live position updates. Re-runs every time the user moves
+  // (userLat/userLng change) or the bearing changes. Does nothing unless
+  // followUser is true.
   useEffect(() => {
-    if (!mapReady) return
-    const path = pathToLngLat(selectedRoute?.path)
-    if (path.length < 2) return
-    // Apply now and again on the next frame to override any in-flight
-    // animation triggered by source updates.
-    applyNavigationCamera({ force: true })
-    const raf = window.requestAnimationFrame(() => {
-      applyNavigationCamera({ force: true })
+    if (!mapReady || !followUser || !hasValidUserLocation) return
+    const map = mapRef.current
+    if (!map) return
+
+    const bearing = Number.isFinite(Number(resolvedHeading))
+      ? Number(resolvedHeading)
+      : map.getBearing() || 0
+    const containerHeight = map.getContainer().clientHeight || 0
+    const offsetY = containerHeight
+      ? -(NAV_USER_OFFSET_RATIO - 0.5) * containerHeight
+      : 0
+
+    map.easeTo({
+      center: [userLng, userLat],
+      zoom: NAV_ZOOM,
+      pitch: NAV_PITCH,
+      bearing,
+      duration: 600,
+      offset: [0, offsetY],
     })
-    return () => window.cancelAnimationFrame(raf)
-  }, [mapReady, selectedRoute, applyNavigationCamera])
+    setLastCameraUpdateAt(Date.now())
+  }, [
+    mapReady,
+    followUser,
+    hasValidUserLocation,
+    userLat,
+    userLng,
+    resolvedHeading,
+  ])
+
+  // -- (3) ONE-SHOT initial camera lock. Runs the moment the map is ready
+  // AND we have a first fix. Uses jumpTo (no animation) so the GPS-tilted
+  // view is in place before the first easeTo from effect (2) runs.
+  // Crucially, this effect is keyed on a flag — not on selectedRoute or
+  // userLocation — so it never re-fires later and never fights the user.
+  useEffect(() => {
+    if (!mapReady || hasAppliedInitialCameraRef.current) return
+    if (!hasValidUserLocation) return
+    snapCameraToUser({ animate: false })
+    hasAppliedInitialCameraRef.current = true
+  }, [mapReady, hasValidUserLocation, snapCameraToUser])
 
   const distanceToCurrentStepM =
     routeProgress && navigationSteps[currentStepIndex]
@@ -615,18 +750,12 @@ export default function MapLibreNavigationView({
         ? Number(selectedRoute.duration_min) * 60
         : null
 
-  const handleRecenter = () => {
-    applyNavigationCamera({ force: true })
-  }
-
-  const alternativeOptions = Array.isArray(routes)
-    ? routes.filter(
-        (route) =>
-          route &&
-          route.route_type &&
-          route.route_type !== selectedRoute?.route_type,
-      )
-    : []
+  // "My Location" button: re-engage follow and snap to the current fix
+  // immediately (effect (2) will continue tracking from the next tick).
+  const handleRecenter = useCallback(() => {
+    setFollowUser(true)
+    snapCameraToUser({ animate: true })
+  }, [snapCameraToUser])
 
   // Reset dismissed alerts when the active route identity changes (new
   // route = fresh evaluation).
@@ -635,6 +764,9 @@ export default function MapLibreNavigationView({
     setRouteAlerts([])
     lastAlertSinceRef.current = null
   }, [selectedRoute?.route_id, selectedRoute?.route_type])
+
+  const routeAlertLatKey = Math.round(Number(userLocation?.lat) * 1000)
+  const routeAlertLngKey = Math.round(Number(userLocation?.lng) * 1000)
 
   // Poll for new danger alerts ahead on the active route. Polling is the
   // first-version transport; we can later swap to socket-pushed alerts.
@@ -705,12 +837,43 @@ export default function MapLibreNavigationView({
   }, [
     selectedRoute?.route_id,
     selectedRoute?.route_type,
-    Math.round(Number(userLocation?.lat) * 1000),
-    Math.round(Number(userLocation?.lng) * 1000),
+    routeAlertLatKey,
+    routeAlertLngKey,
   ])
 
   const visibleRouteAlerts = routeAlerts.filter((a) => a && !dismissedAlertIds.has(a.id))
   const topAlert = visibleRouteAlerts[0] || null
+  const debugLocation = useMemo(() => ({
+    latitude: hasValidUserLocation ? userLat : null,
+    longitude: hasValidUserLocation ? userLng : null,
+    accuracy: Number.isFinite(Number(userLocation?.accuracy)) ? Number(userLocation.accuracy) : null,
+    heading: resolvedHeading,
+    headingSource: resolvedHeadingSource,
+    followUser,
+    navigationActive: true,
+    cameraFollowEnabled: followUser && hasValidUserLocation,
+    geolocationStatus,
+    lastLocationUpdatedAt,
+    lastLocationError: lastLocationError?.message || '',
+    lastCameraUpdateAt,
+  }), [
+    followUser,
+    geolocationStatus,
+    hasValidUserLocation,
+    lastCameraUpdateAt,
+    lastLocationError,
+    lastLocationUpdatedAt,
+    resolvedHeading,
+    resolvedHeadingSource,
+    userLat,
+    userLng,
+    userLocation?.accuracy,
+  ])
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || !hasValidUserLocation) return
+    console.debug('[navigation/location]', debugLocation)
+  }, [debugLocation, hasValidUserLocation])
 
   const handleDismissAlert = useCallback(
     (alert) => {
@@ -736,71 +899,105 @@ export default function MapLibreNavigationView({
   }, [onChangeRouteType, selectedRoute?.route_type])
 
   return (
-    <div className="siara-mlb-shell">
+    <div className={`siara-mlb-shell${routePanelOpen ? ' is-route-panel-open' : ''}`}>
       <div ref={containerRef} className="siara-mlb-canvas" />
 
-      {!hasValidUserLocation ? (
-        <div className="siara-mlb-location-warning" role="status">
-          Enable location to use live navigation. Showing route preview only.
-        </div>
-      ) : null}
+      <div className="siara-mlb-top-zone">
+        <nav className="siara-mlb-tabs" aria-label="Navigation modes">
+          <button type="button" className="is-active">
+            <NavigationIcon />
+            Drive
+          </button>
+          <button type="button">
+            <AltRouteIcon />
+            Routes
+          </button>
+          <button type="button">
+            <WarningAmberIcon />
+            Risk
+          </button>
+        </nav>
 
-      {topAlert ? (
-        <NavigationDangerAlert
-          alert={topAlert}
-          totalAlerts={visibleRouteAlerts.length}
-          onDismiss={handleDismissAlert}
-          onFindSaferRoute={
-            selectedRoute?.route_type !== 'safest' && typeof onChangeRouteType === 'function'
-              ? handleFindSaferRoute
-              : null
-          }
-          rerouting={rerouting}
-        />
-      ) : null}
-
-      <NavigationBanner
-        open
-        currentStep={navigationSteps[currentStepIndex] || null}
-        nextStep={navigationSteps[currentStepIndex + 1] || null}
-        distanceToCurrentStepM={distanceToCurrentStepM}
-        routeWarning={selectedRoute?.route_warning || null}
-      />
-
-      {!followUser && hasValidUserLocation ? (
-        <button
-          type="button"
-          className="siara-mlb-recenter"
-          onClick={handleRecenter}
-          aria-label="Recenter on you"
-        >
-          Recenter
-        </button>
-      ) : null}
-
-      {alternativeOptions.length > 0 && typeof onChangeRouteType === 'function' ? (
-        <div className="siara-mlb-alt-routes" role="group" aria-label="Route alternatives">
-          {alternativeOptions.map((route) => (
+        <div className="siara-mlb-controls" aria-label="Navigation map controls">
+          <button
+            type="button"
+            onClick={() => setRoutePanelOpen((open) => !open)}
+            aria-pressed={routePanelOpen}
+            aria-label="Toggle selected route panel"
+          >
+            <LayersIcon />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDebug((open) => !open)}
+            aria-pressed={showDebug}
+            aria-label="Toggle navigation debug"
+          >
+            <BugReportIcon />
+          </button>
+          {hasValidUserLocation ? (
             <button
-              key={route.route_type}
               type="button"
-              className="siara-mlb-alt-routes__btn"
-              onClick={() => onChangeRouteType(route.route_type)}
+              className="siara-mlb-controls__locate"
+              onClick={handleRecenter}
+              aria-label="Center on my location"
+              aria-pressed={followUser}
+              data-following={followUser ? 'true' : 'false'}
             >
-              {route.route_label || route.route_type}
+              <GpsFixedIcon />
+              <span>My Location</span>
             </button>
-          ))}
+          ) : null}
         </div>
-      ) : null}
+      </div>
 
-      <CurrentSegmentCard
-        segment={currentNavigationSegment}
-        segmentIndex={currentNavigationSegmentIndex}
-        totalSegments={
-          Array.isArray(selectedRoute?.segments) ? selectedRoute.segments.length : 0
-        }
-        searching={searchingSegment && !currentNavigationSegment}
-      />
+      <div className="siara-mlb-instruction-zone">
+        {!hasValidUserLocation ? (
+          <div className="siara-mlb-location-warning" role="status">
+            Enable location to use live navigation. Showing route preview only.
+          </div>
+        ) : null}
+
+        {topAlert ? (
+          <NavigationDangerAlert
+            alert={topAlert}
+            totalAlerts={visibleRouteAlerts.length}
+            onDismiss={handleDismissAlert}
+            onFindSaferRoute={
+              selectedRoute?.route_type !== 'safest' && typeof onChangeRouteType === 'function'
+                ? handleFindSaferRoute
+                : null
+            }
+            rerouting={rerouting}
+          />
+        ) : null}
+
+        <NavigationBanner
+          open
+          currentStep={navigationSteps[currentStepIndex] || null}
+          nextStep={navigationSteps[currentStepIndex + 1] || null}
+          distanceToCurrentStepM={distanceToCurrentStepM}
+          routeWarning={selectedRoute?.route_warning || null}
+        />
+      </div>
+
+      <div className="siara-mlb-left-utility-zone">
+        <CurrentSegmentCard
+          segment={currentNavigationSegment}
+          segmentIndex={currentNavigationSegmentIndex}
+          totalSegments={
+            Array.isArray(selectedRoute?.segments) ? selectedRoute.segments.length : 0
+          }
+          searching={searchingSegment && !currentNavigationSegment}
+        />
+
+        <div className="siara-mlb-legend" aria-label="Route risk legend">
+          <span><i className="risk-low" /> Low</span>
+          <span><i className="risk-moderate" /> Moderate</span>
+          <span><i className="risk-high" /> High</span>
+          <span><i className="risk-unknown" /> Unknown</span>
+        </div>
+      </div>
 
       <RouteOverviewCard
         selectedRoute={selectedRoute}
@@ -812,11 +1009,7 @@ export default function MapLibreNavigationView({
         onChangeRouteType={onChangeRouteType}
         onGenerateAiExplanation={onGenerateAiExplanation}
         aiGenerating={aiExplanationGenerating}
-        origin={
-          hasValidUserLocation
-            ? { lat: userLat, lng: userLng }
-            : null
-        }
+        origin={routeOriginForScoring}
         destination={
           destination && Number.isFinite(Number(destination.lat))
             && Number.isFinite(Number(destination.lng))
@@ -830,17 +1023,44 @@ export default function MapLibreNavigationView({
         onSelectDepartureTimestamp={onSelectDepartureTimestamp}
       />
 
-      <NavigationSummaryCard
-        open
-        destinationName={destination?.name || selectedRoute?.destination?.name || null}
-        routeType={selectedRoute?.route_label || selectedRoute?.route_type || null}
-        distanceRemainingM={distanceRemainingM}
-        etaSeconds={etaSeconds}
-        routeRiskPercent={Number(selectedRoute?.summary?.danger_percent)}
-        routeRiskLevel={selectedRoute?.summary?.danger_level || null}
-        progressFraction={routeProgress?.fraction ?? 0}
-        onExit={onExitNavigation}
-      />
+      <div className="siara-mlb-bottom-zone">
+        <NavigationSummaryCard
+          open
+          destinationName={destination?.name || selectedRoute?.destination?.name || null}
+          routeType={selectedRoute?.route_label || selectedRoute?.route_type || null}
+          distanceRemainingM={distanceRemainingM}
+          etaSeconds={etaSeconds}
+          routeRiskPercent={selectedRoute?.summary?.danger_percent}
+          routeRiskLevel={selectedRoute?.summary?.danger_level || null}
+          progressFraction={routeProgress?.fraction ?? 0}
+          onExit={onExitNavigation}
+        />
+      </div>
+
+      {showDebug ? (
+        <div className="siara-mlb-debug" aria-label="Live location debug">
+          <span>lat {debugLocation.latitude != null ? debugLocation.latitude.toFixed(6) : 'n/a'}</span>
+          <span>lng {debugLocation.longitude != null ? debugLocation.longitude.toFixed(6) : 'n/a'}</span>
+          <span>accuracy {debugLocation.accuracy != null ? `${Math.round(debugLocation.accuracy)}m` : 'n/a'}</span>
+          <span>heading {Number.isFinite(debugLocation.heading) ? `${Math.round(debugLocation.heading)}deg` : 'n/a'}</span>
+          <span>source {debugLocation.headingSource}</span>
+          <span>follow {debugLocation.followUser ? 'true' : 'false'}</span>
+          <span>nav {debugLocation.navigationActive ? 'true' : 'false'}</span>
+          <span>camera {debugLocation.cameraFollowEnabled ? 'follow' : 'free'}</span>
+          <span>geo {debugLocation.geolocationStatus}</span>
+          <span>
+            fix {debugLocation.lastLocationUpdatedAt
+              ? new Date(debugLocation.lastLocationUpdatedAt).toLocaleTimeString()
+              : 'n/a'}
+          </span>
+          <span>
+            camera at {debugLocation.lastCameraUpdateAt
+              ? new Date(debugLocation.lastCameraUpdateAt).toLocaleTimeString()
+              : 'n/a'}
+          </span>
+          {debugLocation.lastLocationError ? <span>last error {debugLocation.lastLocationError}</span> : null}
+        </div>
+      ) : null}
 
       {/* startedAt is exposed for analytics/debug purposes; kept hidden in UI */}
       <span style={{ display: 'none' }} data-started-at={startedAt || ''} />

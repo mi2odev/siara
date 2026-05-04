@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react'
 // NavigationSummaryCard.
 
 const TIER_LABELS = {
+  unknown: 'Unknown',
   low: 'Low',
   moderate: 'Moderate',
   medium: 'Moderate',
@@ -22,6 +23,7 @@ const TIER_LABELS = {
 }
 
 const TIER_CLASSES = {
+  unknown: 'risk-unknown',
   low: 'risk-low',
   moderate: 'risk-moderate',
   medium: 'risk-moderate',
@@ -32,11 +34,13 @@ const TIER_CLASSES = {
 
 function tierFromLevel(level, percent) {
   const text = String(level || '').trim().toLowerCase()
+  if (text === 'unknown' || text === 'unavailable') return 'unknown'
   if (text === 'medium') return 'moderate'
   if (text === 'critical') return 'extreme'
   if (TIER_LABELS[text]) return text
+  if (percent === null || percent === undefined || percent === '') return 'unknown'
   const numeric = Number(percent)
-  if (!Number.isFinite(numeric)) return 'low'
+  if (!Number.isFinite(numeric)) return 'unknown'
   if (numeric >= 75) return 'extreme'
   if (numeric >= 50) return 'high'
   if (numeric >= 25) return 'moderate'
@@ -44,6 +48,7 @@ function tierFromLevel(level, percent) {
 }
 
 function formatPercent(value) {
+  if (value === null || value === undefined || value === '') return 'â€”'
   const n = Number(value)
   return Number.isFinite(n) ? `${Math.round(n)}%` : '—'
 }
@@ -113,8 +118,14 @@ export default function CurrentSegmentCard({
 
   const data = useMemo(() => {
     if (!segment) return null
-    const dangerPercent = Number(segment.danger_percent)
-    const tier = tierFromLevel(segment.danger_level, dangerPercent)
+    const rawDangerPercent = segment.danger_percent
+    const dangerPercent = Number(rawDangerPercent)
+    const hasDangerPercent =
+      rawDangerPercent !== null &&
+      rawDangerPercent !== undefined &&
+      rawDangerPercent !== '' &&
+      Number.isFinite(dangerPercent)
+    const tier = tierFromLevel(segment.danger_level, hasDangerPercent ? dangerPercent : null)
     const segLabel = segment.segment_label
       || segment.name
       || (segmentIndex != null
@@ -125,7 +136,7 @@ export default function CurrentSegmentCard({
       tier,
       tierClass: TIER_CLASSES[tier] || 'risk-low',
       tierLabel: TIER_LABELS[tier] || 'Unknown',
-      dangerPercent: Number.isFinite(dangerPercent) ? dangerPercent : null,
+      dangerPercent: hasDangerPercent ? dangerPercent : null,
       distanceLabel: formatDistanceKm(segment.distance_km),
       predictedAt: formatTimestamp(segment.predicted_enter_at)
         || formatTimestamp(segment.risk_timestamp_used),
@@ -134,7 +145,7 @@ export default function CurrentSegmentCard({
       factors,
       explanation: buildExplanation({
         tier,
-        dangerPercent,
+        dangerPercent: hasDangerPercent ? dangerPercent : null,
         segmentLabel: segLabel,
         factors,
       }),

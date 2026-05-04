@@ -39,6 +39,16 @@ const DEFAULT_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT |
 const MAX_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT_CAP || 40);
 const DEFAULT_GUIDE_ALTERNATIVE_ROUTES = Number(process.env.ROUTE_GUIDE_ALTERNATIVES || 3);
 const MAX_GUIDE_ALTERNATIVE_ROUTES = Number(process.env.ROUTE_GUIDE_ALTERNATIVES_CAP || 5);
+const ROUTE_GUIDE_CACHE_MAX = Number(process.env.ROUTE_GUIDE_CACHE_MAX || 200);
+const ROUTE_GUIDE_CACHE_TTL_MS = Number(process.env.ROUTE_GUIDE_CACHE_TTL_MS || 5 * 60 * 1000);
+const ROUTE_GUIDE_FALLBACK_CACHE_TTL_MS = Number(
+  process.env.ROUTE_GUIDE_FALLBACK_CACHE_TTL_MS || 30 * 1000,
+);
+const ROUTE_GUIDE_TIME_BUCKET_MS = Number(
+  process.env.ROUTE_GUIDE_TIME_BUCKET_MS || 5 * 60 * 1000,
+);
+const ROUTE_GUIDE_MAX_SCORING_ROUTES = Number(process.env.ROUTE_GUIDE_MAX_SCORING_ROUTES || 1);
+const ROUTE_GUIDE_MAX_PATH_POINTS = Number(process.env.ROUTE_GUIDE_MAX_PATH_POINTS || 500);
 const DEBUG_WEATHER_UNITS = String(process.env.DEBUG_WEATHER_UNITS || "0") === "1";
 const DEBUG_OSM_FLAGS = String(process.env.DEBUG_OSM_FLAGS || "0") === "1";
 const DEBUG_FORECAST = String(process.env.DEBUG_FORECAST || "0") === "1";
@@ -83,6 +93,7 @@ const forecastWeatherCache = new Map();
 const weatherSnapshotCache = new Map();
 const riskForecastCache = new Map();
 const osrmRouteCache = new Map();
+const routeGuideCache = new Map();
 const twilightCache = new Map();
 const roadCache = new Map();
 const segmentRowCache = new Map();
@@ -246,6 +257,9 @@ function destinationFromBearing(originLat, originLng, bearingDeg, distanceKm) {
 
 function normalizeDangerLevel(level, dangerPercent = null) {
   const text = String(level || "").trim().toLowerCase();
+  if (text === "unknown" || text === "unavailable") {
+    return "unknown";
+  }
   if (text === "extreme" || text === "high" || text === "moderate" || text === "low") {
     return text;
   }
@@ -469,6 +483,150 @@ function setCacheEntryWithTtl(cacheMap, key, value, maxSizeRaw, ttlMsRaw) {
       __cacheExpiresAt: Date.now() + ttlMs,
     },
     maxSizeRaw,
+  );
+}
+
+function cloneJsonSafe(value) {
+  if (value == null) {
+    return value;
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (error) {
+    return value;
+  }
+}
+
+function routeGuideTimestampBucket(timestampIso) {
+  const parsedMs = Date.parse(timestampIso || "");
+  const sourceMs = Number.isNaN(parsedMs) ? Date.now() : parsedMs;
+  const bucketMs = Math.max(60 * 1000, safeNumber(ROUTE_GUIDE_TIME_BUCKET_MS) || 5 * 60 * 1000);
+  return new Date(floorToBucketMs(sourceMs, bucketMs)).toISOString();
+}
+
+function hashRouteGuideInput(input) {
+  return crypto
+    .createHash("sha1")
+    .update(JSON.stringify(input))
+    .digest("hex")
+    .slice(0, 24);
+}
+
+function buildRouteGuideRequestCacheKey({
+  origin,
+  destination,
+  timestampIso,
+  sampleCount,
+  maxAlternatives,
+}) {
+  return hashRouteGuideInput({
+    version: 2,
+    origin: {
+      lat: roundNumber(origin?.lat, 5),
+      lng: roundNumber(origin?.lng, 5),
+    },
+    destination: {
+      lat: roundNumber(destination?.lat, 5),
+      lng: roundNumber(destination?.lng, 5),
+      name: destination?.name ? String(destination.name).trim().slice(0, 80) : "",
+    },
+    timestamp_bucket: routeGuideTimestampBucket(timestampIso),
+    sample_count: sampleCount,
+    max_alternatives: maxAlternatives,
+  });
+}
+
+function limitRoutePathPoints(path, maxPointsRaw = ROUTE_GUIDE_MAX_PATH_POINTS) {
+  const normalizedPath = dedupePathPoints(path);
+  const maxPoints = Math.max(2, Math.round(safeNumber(maxPointsRaw) || 2));
+  if (normalizedPath.length <= maxPoints) {
+    return normalizedPath;
+  }
+
+  const limited = [];
+  const seen = new Set();
+  for (let i = 0; i < maxPoints; i += 1) {
+    const index = Math.round((i * (normalizedPath.length - 1)) / (maxPoints - 1));
+    const point = normalizedPath[index];
+    if (!point) {
+      continue;
+    }
+    const key = `${point[0].toFixed(6)}:${point[1].toFixed(6)}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    limited.push(point);
+  }
+
+  return limited.length >= 2 ? limited : normalizedPath.slice(0, 2);
+}
+
+function buildRouteGuideGeometryHash(routes) {
+  const payload = (Array.isArray(routes) ? routes : []).map((route) => ({
+    route_id: route?.route_id || null,
+    routing_source: route?.routing_source || null,
+    distance_km: route?.distance_km == null ? null : roundNumber(route.distance_km, 3),
+    duration_min: route?.duration_min == null ? null : roundNumber(route.duration_min, 3),
+    path: limitRoutePathPoints(route?.path).map((point) => [
+      roundNumber(point[0], 5),
+      roundNumber(point[1], 5),
+    ]),
+  }));
+
+  return hashRouteGuideInput(payload);
+}
+
+function getRouteGuideCache(key) {
+  const cached = getCacheEntry(routeGuideCache, key);
+  return cached ? cloneJsonSafe(cached) : null;
+}
+
+function setRouteGuideCache(key, payload, ttlMs = ROUTE_GUIDE_CACHE_TTL_MS) {
+  if (!key || !payload) {
+    return;
+  }
+  setCacheEntryWithTtl(
+    routeGuideCache,
+    key,
+    cloneJsonSafe(payload),
+    ROUTE_GUIDE_CACHE_MAX,
+    ttlMs,
+  );
+}
+
+function createRouteRiskTimer(requestId) {
+  const startedAt = Date.now();
+  let lastMarkAt = startedAt;
+  const timings = {};
+
+  const mark = (stage) => {
+    const now = Date.now();
+    timings[stage] = now - lastMarkAt;
+    timings[`${stage}_total_ms`] = now - startedAt;
+    lastMarkAt = now;
+    console.log(
+      `[Node][route-risk] request=${requestId} stage=${stage} ms=${timings[stage]} total_ms=${timings[`${stage}_total_ms`]}`,
+    );
+  };
+
+  const finish = (status, extra = {}) => {
+    console.log(
+      `[Node][route-risk] request=${requestId} status=${status} total_ms=${Date.now() - startedAt} timings=${JSON.stringify(timings)} extra=${JSON.stringify(extra)}`,
+    );
+  };
+
+  return { timings, mark, finish };
+}
+
+function isTimeoutLikeError(error) {
+  const message = String(error?.message || "");
+  return (
+    error?.code === "ECONNABORTED" ||
+    error?.code === "ETIMEDOUT" ||
+    /timeout/i.test(message) ||
+    /timed out/i.test(message)
   );
 }
 
@@ -2358,6 +2516,177 @@ function buildRouteGuideSegments({
   return segments;
 }
 
+function buildRiskUnavailableSummary(message) {
+  return {
+    danger_percent: null,
+    danger_level: "unknown",
+    riskAvailable: false,
+    risk_available: false,
+    message,
+  };
+}
+
+function buildRiskUnavailableSamples({ routeHash, routeId, fullPath, sampleIndices }) {
+  const sampledPoints = buildSamplePointsFromIndices(fullPath, sampleIndices);
+  return sampledPoints.map(([lat, lng], sampleIndex) => ({
+    segment_id: `route_${routeHash}_${routeId}_s${sampleIndex}`,
+    sample_id: `route_${routeHash}_${routeId}_s${sampleIndex}`,
+    lat,
+    lng,
+    danger_percent: null,
+    danger_level: "unknown",
+    confidence: null,
+    quality: "risk_unavailable",
+    riskAvailable: false,
+    risk_available: false,
+  }));
+}
+
+function buildRiskUnavailableSegments({ routeHash, routeId, fullPath, sampleIndices, samples }) {
+  if (
+    !Array.isArray(fullPath) ||
+    fullPath.length < 2 ||
+    !Array.isArray(sampleIndices) ||
+    sampleIndices.length < 2 ||
+    !Array.isArray(samples) ||
+    samples.length < 2
+  ) {
+    return [];
+  }
+
+  const segments = [];
+  for (let i = 0; i < samples.length - 1 && i < sampleIndices.length - 1; i += 1) {
+    const start = samples[i];
+    const end = samples[i + 1];
+    if (!start || !end) {
+      continue;
+    }
+
+    const i0 = Math.max(0, Number(sampleIndices[i]));
+    const i1 = Math.max(i0, Number(sampleIndices[i + 1]));
+    let segmentPath = dedupePathPoints(fullPath.slice(i0, i1 + 1));
+    if (!Array.isArray(segmentPath) || segmentPath.length < 2) {
+      segmentPath = [
+        [start.lat, start.lng],
+        [end.lat, end.lng],
+      ];
+    }
+
+    segments.push({
+      segment_id: `route_${routeHash}_${routeId}_seg${i}`,
+      path: segmentPath,
+      danger_percent: null,
+      danger_level: "unknown",
+      sample_from: i,
+      sample_to: i + 1,
+      riskAvailable: false,
+      risk_available: false,
+    });
+  }
+
+  return segments;
+}
+
+function buildRouteGuideResponsePayload({
+  origin,
+  destinationPoint,
+  destinationName,
+  routedRoutes,
+  routeHash,
+  routeRiskDataByRouteId,
+  sampleCount = DEFAULT_GUIDE_SAMPLE_COUNT,
+  message = null,
+  riskAvailable = true,
+  timings = null,
+  cache = null,
+  geometryHash = null,
+}) {
+  const routes = (Array.isArray(routedRoutes) ? routedRoutes : [])
+    .map((route, routeIndex) => {
+      const routeId = route?.route_id || `route_${routeIndex + 1}`;
+      const fullPath = limitRoutePathPoints(route?.path);
+      const sampleIndices = sampleRouteIndices(fullPath.length, sampleCount);
+      const scoredData = routeRiskDataByRouteId?.get(routeId) || null;
+      const routeRiskAvailable = riskAvailable && Boolean(scoredData) && scoredData?.riskAvailable !== false;
+      const summary = routeRiskAvailable
+        ? scoredData?.summary || aggregateRouteSummary(scoredData?.samples || [])
+        : buildRiskUnavailableSummary(message || "Route loaded, but risk scoring is unavailable.");
+      const samples = routeRiskAvailable
+        ? scoredData?.samples || []
+        : buildRiskUnavailableSamples({
+            routeHash,
+            routeId,
+            fullPath,
+            sampleIndices,
+          });
+      const segments = routeRiskAvailable
+        ? scoredData?.segments || []
+        : buildRiskUnavailableSegments({
+            routeHash,
+            routeId,
+            fullPath,
+            sampleIndices,
+            samples,
+          });
+
+      return {
+        route_id: routeId,
+        destination: {
+          name: destinationName || "Destination",
+          lat: destinationPoint.lat,
+          lng: destinationPoint.lng,
+        },
+        routing_source: route?.routing_source,
+        route_warning: route?.route_warning || null,
+        path: fullPath,
+        sample_indices: routeRiskAvailable ? scoredData?.sampleIndices || sampleIndices : sampleIndices,
+        samples,
+        segments,
+        summary: {
+          ...summary,
+          riskAvailable: routeRiskAvailable,
+          risk_available: routeRiskAvailable,
+        },
+        distance_km: route?.distance_km,
+        eta_min: route?.duration_min,
+        duration_min: route?.duration_min,
+        riskAvailable: routeRiskAvailable,
+        risk_available: routeRiskAvailable,
+        riskMessage: routeRiskAvailable ? null : message,
+      };
+    })
+    .filter((route) => Array.isArray(route.path) && route.path.length >= 2);
+
+  const primaryRoute = routes[0] || null;
+  return {
+    origin,
+    destination: {
+      name: destinationName || "Destination",
+      lat: destinationPoint.lat,
+      lng: destinationPoint.lng,
+    },
+    routing_source: primaryRoute?.routing_source || null,
+    path: primaryRoute?.path || [],
+    sample_indices: primaryRoute?.sample_indices || [],
+    samples: primaryRoute?.samples || [],
+    segments: primaryRoute?.segments || [],
+    summary:
+      primaryRoute?.summary ||
+      buildRiskUnavailableSummary(message || "Route loaded, but risk scoring is unavailable."),
+    distance_km: primaryRoute?.distance_km ?? null,
+    eta_min: primaryRoute?.duration_min ?? null,
+    duration_min: primaryRoute?.duration_min ?? null,
+    route_warning: primaryRoute?.route_warning || null,
+    routes,
+    riskAvailable,
+    risk_available: riskAvailable,
+    message,
+    cache,
+    geometry_hash: geometryHash,
+    timings,
+  };
+}
+
 function buildRouteSegmentsFromSamples(samples, fallbackSummary) {
   if (!Array.isArray(samples) || samples.length < 2) {
     return [];
@@ -2938,37 +3267,76 @@ exports.predictRiskOverlay = async (req, res) => {
 };
 
 exports.predictRouteGuide = async (req, res) => {
-  const origin = validateLatLngStrict(req.body?.origin);
-  const destinationPoint = validateLatLngStrict(req.body?.destination);
-  if (!origin || !destinationPoint) {
-    return res.status(400).json({
-      error: "origin and destination with valid lat/lng are required",
-    });
-  }
+  const requestId = crypto.randomBytes(4).toString("hex");
+  const timer = createRouteRiskTimer(requestId);
+  const timeoutMessage = "Route loaded, but risk scoring timed out.";
+  let origin = null;
+  let destinationPoint = null;
+  let destinationName = "Destination";
+  let timestampIso = null;
+  let sampleCount = DEFAULT_GUIDE_SAMPLE_COUNT;
+  let maxAlternatives = DEFAULT_GUIDE_ALTERNATIVE_ROUTES;
+  let routeHash = null;
+  let requestCacheKey = null;
+  let geometryCacheKey = null;
+  let geometryHash = null;
+  let routedRoutes = [];
 
-  const timestampIso = toIsoTimestamp(req.body?.timestamp);
-  const sampleCount = parseBoundedNumber(
-    req.body?.sample_count,
-    DEFAULT_GUIDE_SAMPLE_COUNT,
-    {
+  try {
+    origin = validateLatLngStrict(req.body?.origin);
+    destinationPoint = validateLatLngStrict(req.body?.destination);
+    if (!origin || !destinationPoint) {
+      timer.mark("request_parse");
+      timer.finish("bad_request");
+      return res.status(400).json({
+        error: "origin and destination with valid lat/lng are required",
+      });
+    }
+
+    destinationName = req.body?.destination?.name || "Destination";
+    timestampIso = toIsoTimestamp(req.body?.timestamp);
+    sampleCount = parseBoundedNumber(req.body?.sample_count, DEFAULT_GUIDE_SAMPLE_COUNT, {
       min: 5,
       max: MAX_GUIDE_SAMPLE_COUNT,
       integer: true,
-    },
-  );
-  const maxAlternatives = parseBoundedNumber(
-    req.body?.max_alternatives,
-    DEFAULT_GUIDE_ALTERNATIVE_ROUTES,
-    {
-      min: 1,
-      max: MAX_GUIDE_ALTERNATIVE_ROUTES,
-      integer: true,
-    },
-  );
-  const routeHash = buildRouteGuideHash(origin, destinationPoint, timestampIso);
+    });
+    maxAlternatives = parseBoundedNumber(
+      req.body?.max_alternatives,
+      DEFAULT_GUIDE_ALTERNATIVE_ROUTES,
+      {
+        min: 1,
+        max: MAX_GUIDE_ALTERNATIVE_ROUTES,
+        integer: true,
+      },
+    );
+    routeHash = buildRouteGuideHash(
+      origin,
+      destinationPoint,
+      routeGuideTimestampBucket(timestampIso),
+    );
+    requestCacheKey = buildRouteGuideRequestCacheKey({
+      origin,
+      destination: {
+        ...destinationPoint,
+        name: destinationName,
+      },
+      timestampIso,
+      sampleCount,
+      maxAlternatives,
+    });
+    timer.mark("request_parse");
 
-  try {
-    let routedRoutes = [];
+    const requestCached = getRouteGuideCache(requestCacheKey);
+    if (requestCached) {
+      timer.mark("cache_lookup");
+      timer.finish("cache_hit", { cache_key: requestCacheKey, source: "request" });
+      return res.json({
+        ...requestCached,
+        cache: { hit: true, key: requestCacheKey, source: "route-guide-request" },
+        timings: timer.timings,
+      });
+    }
+    timer.mark("cache_lookup");
 
     try {
       routedRoutes = await getOsrmRouteAlternatives(origin, destinationPoint, maxAlternatives);
@@ -2995,12 +3363,65 @@ exports.predictRouteGuide = async (req, res) => {
       ];
     }
 
+    routedRoutes = routedRoutes
+      .map((route, index) => ({
+        ...route,
+        route_id: route?.route_id || `route_${index + 1}`,
+        path: limitRoutePathPoints(route?.path),
+      }))
+      .filter((route) => Array.isArray(route.path) && route.path.length >= 2);
+
+    if (!routedRoutes.length) {
+      timer.mark("route_geometry_processing");
+      timer.finish("error", { reason: "empty_route_geometry" });
+      return res.status(500).json({ error: "Failed to build route geometry" });
+    }
+
+    geometryHash = buildRouteGuideGeometryHash(routedRoutes);
+    geometryCacheKey = hashRouteGuideInput({
+      version: 2,
+      geometry_hash: geometryHash,
+      origin: {
+        lat: roundNumber(origin.lat, 5),
+        lng: roundNumber(origin.lng, 5),
+      },
+      destination: {
+        lat: roundNumber(destinationPoint.lat, 5),
+        lng: roundNumber(destinationPoint.lng, 5),
+      },
+      timestamp_bucket: routeGuideTimestampBucket(timestampIso),
+      sample_count: sampleCount,
+    });
+    timer.mark("route_geometry_processing");
+
+    const geometryCached = getRouteGuideCache(geometryCacheKey);
+    if (geometryCached) {
+      setRouteGuideCache(requestCacheKey, geometryCached);
+      timer.finish("cache_hit", { cache_key: geometryCacheKey, source: "geometry" });
+      return res.json({
+        ...geometryCached,
+        cache: { hit: true, key: geometryCacheKey, source: "route-guide-geometry" },
+        timings: timer.timings,
+      });
+    }
+
+    const maxScoringRoutes = parseBoundedNumber(
+      ROUTE_GUIDE_MAX_SCORING_ROUTES,
+      1,
+      {
+        min: 1,
+        max: MAX_GUIDE_ALTERNATIVE_ROUTES,
+        integer: true,
+      },
+    );
+    const scoringRoutes = routedRoutes.slice(0, maxScoringRoutes);
     const sampleJobs = [];
     const routeSamplesByRouteId = new Map();
     const routeSampleMetaByRouteId = new Map();
+    const seenSampleKeys = new Map();
 
-    for (const route of routedRoutes) {
-      const fullPath = dedupePathPoints(route?.path);
+    for (const route of scoringRoutes) {
+      const fullPath = limitRoutePathPoints(route?.path);
       const sampleIndices = sampleRouteIndices(fullPath.length, sampleCount);
       const sampledPoints = buildSamplePointsFromIndices(fullPath, sampleIndices);
 
@@ -3014,14 +3435,19 @@ exports.predictRouteGuide = async (req, res) => {
       }
 
       const routeSamples = sampledPoints.map(([lat, lng], sampleIndex) => {
-        const sampleId = `route_${routeHash}_${route.route_id}_s${sampleIndex}`;
-        sampleJobs.push({
-          sample_id: sampleId,
-          route_id: route.route_id,
-          sample_index: sampleIndex,
-          lat,
-          lng,
-        });
+        const sampleKey = `${roundNumber(lat, 5)}:${roundNumber(lng, 5)}`;
+        const sampleId =
+          seenSampleKeys.get(sampleKey) || `route_${routeHash}_${route.route_id}_s${sampleIndex}`;
+        if (!seenSampleKeys.has(sampleKey)) {
+          seenSampleKeys.set(sampleKey, sampleId);
+          sampleJobs.push({
+            sample_id: sampleId,
+            route_id: route.route_id,
+            sample_index: sampleIndex,
+            lat,
+            lng,
+          });
+        }
         return {
           sample_id: sampleId,
           lat,
@@ -3035,36 +3461,69 @@ exports.predictRouteGuide = async (req, res) => {
         sampleIndices,
       });
     }
+    timer.mark("segment_matching");
 
     if (sampleJobs.length === 0) {
-      return res.status(500).json({ error: "Failed to sample enough route points" });
+      const fallbackPayload = buildRouteGuideResponsePayload({
+        origin,
+        destinationPoint,
+        destinationName,
+        routedRoutes,
+        routeHash,
+        routeRiskDataByRouteId: new Map(),
+        sampleCount,
+        message: "Route loaded, but risk scoring could not sample enough points.",
+        riskAvailable: false,
+        timings: timer.timings,
+        cache: { hit: false, key: requestCacheKey, source: "route-guide-request" },
+        geometryHash,
+      });
+      setRouteGuideCache(requestCacheKey, fallbackPayload, ROUTE_GUIDE_FALLBACK_CACHE_TTL_MS);
+      timer.mark("response_formatting");
+      timer.finish("fallback", { reason: "no_sample_jobs" });
+      return res.status(200).json(fallbackPayload);
     }
 
-    const scoredRows = await Promise.all(
-      sampleJobs.map(async (job) => {
-        const row = await buildDangerRow({
-          lat: job.lat,
-          lng: job.lng,
-          timestamp: timestampIso,
-          roadFlags: ENABLE_OSM_FLAGS_FOR_ROUTES ? null : ROAD_FLAG_ZEROES,
-        });
+    let scoredRows = [];
+    try {
+      scoredRows = await Promise.all(
+        sampleJobs.map(async (job) => {
+          const row = await buildDangerRow({
+            lat: job.lat,
+            lng: job.lng,
+            timestamp: timestampIso,
+            roadFlags: ENABLE_OSM_FLAGS_FOR_ROUTES ? null : ROAD_FLAG_ZEROES,
+          });
 
-        setCachedSegmentRow(job.sample_id, row);
+          setCachedSegmentRow(job.sample_id, row);
 
-        return {
-          ...job,
-          row,
-          model_row: {
-            segment_id: job.sample_id,
-            ...row,
-          },
-        };
-      }),
-    );
+          return {
+            ...job,
+            row,
+            model_row: {
+              segment_id: job.sample_id,
+              ...row,
+            },
+          };
+        }),
+      );
+      timer.mark("database_postgis_query");
+    } catch (error) {
+      timer.mark("database_postgis_query");
+      throw error;
+    }
 
-    const overlayResponse = await postToFlask("/risk/overlay", {
-      rows: scoredRows.map((item) => item.model_row),
-    });
+    let overlayResponse = null;
+    try {
+      overlayResponse = await postToFlask("/risk/overlay", {
+        rows: scoredRows.map((item) => item.model_row),
+      });
+      timer.mark("ml_risk_service_call");
+    } catch (error) {
+      timer.mark("ml_risk_service_call");
+      throw error;
+    }
+
     const overlayResults = Array.isArray(overlayResponse?.data?.results)
       ? overlayResponse.data.results
       : [];
@@ -3084,125 +3543,152 @@ exports.predictRouteGuide = async (req, res) => {
       sampleRowById.set(item.sample_id, item.row);
     }
 
-    const routes = routedRoutes
-      .map((route, routeIndex) => {
-        const routeMeta = routeSampleMetaByRouteId.get(route.route_id) || {
-          fullPath: dedupePathPoints(route?.path),
-          sampleIndices: [],
-        };
-        const sampled = routeSamplesByRouteId.get(route.route_id) || [];
-        const samples = sampled.map((sample) => {
-          const prediction =
-            predictionBySampleId.get(sample.sample_id) || {
-              danger_percent: 0,
-              danger_level: "low",
-              confidence: null,
-              quality: null,
-            };
-
-          return {
-            segment_id: sample.sample_id,
-            sample_id: sample.sample_id,
-            lat: sample.lat,
-            lng: sample.lng,
-            danger_percent: prediction.danger_percent,
-            danger_level: prediction.danger_level,
-            confidence: prediction.confidence,
-            quality: prediction.quality,
+    const routeRiskDataByRouteId = new Map();
+    for (const route of scoringRoutes) {
+      const routeMeta = routeSampleMetaByRouteId.get(route.route_id) || {
+        fullPath: limitRoutePathPoints(route?.path),
+        sampleIndices: [],
+      };
+      const sampled = routeSamplesByRouteId.get(route.route_id) || [];
+      const samples = sampled.map((sample) => {
+        const prediction =
+          predictionBySampleId.get(sample.sample_id) || {
+            danger_percent: 0,
+            danger_level: "low",
+            confidence: null,
+            quality: null,
           };
-        });
-
-        const summary = aggregateRouteSummary(samples);
-        const routeGuideHash = `${routeHash}_${route.route_id || routeIndex + 1}`;
-        const segments = buildRouteGuideSegments({
-          fullPath: routeMeta.fullPath,
-          sampleIndices: routeMeta.sampleIndices,
-          samples,
-          fallbackSummary: summary,
-          routeHash: routeGuideHash,
-          sampleRowById,
-          useStraightSegments: route.routing_source === "straight_line",
-        });
 
         return {
-          route_id: route.route_id || `route_${routeIndex + 1}`,
-          destination: {
-            name: req.body?.destination?.name || "Destination",
-            lat: destinationPoint.lat,
-            lng: destinationPoint.lng,
-          },
-          routing_source: route.routing_source,
-          route_warning: route.route_warning || null,
-          path: routeMeta.fullPath,
-          sample_indices: routeMeta.sampleIndices,
-          samples,
-          segments,
-          summary,
-          distance_km: route.distance_km,
-          eta_min: route.duration_min,
-          duration_min: route.duration_min,
+          segment_id: sample.sample_id,
+          sample_id: sample.sample_id,
+          lat: sample.lat,
+          lng: sample.lng,
+          danger_percent: prediction.danger_percent,
+          danger_level: prediction.danger_level,
+          confidence: prediction.confidence,
+          quality: prediction.quality,
+          riskAvailable: true,
+          risk_available: true,
         };
-      })
-      .filter((route) => Array.isArray(route.path) && route.path.length >= 2);
+      });
 
-    if (!routes.length) {
-      return res.status(500).json({ error: "Failed to build route alternatives" });
+      const summary = aggregateRouteSummary(samples);
+      const routeGuideHash = `${routeHash}_${route.route_id}`;
+      const segments = buildRouteGuideSegments({
+        fullPath: routeMeta.fullPath,
+        sampleIndices: routeMeta.sampleIndices,
+        samples,
+        fallbackSummary: summary,
+        routeHash: routeGuideHash,
+        sampleRowById,
+        useStraightSegments: route.routing_source === "straight_line",
+      });
+
+      routeRiskDataByRouteId.set(route.route_id, {
+        riskAvailable: true,
+        sampleIndices: routeMeta.sampleIndices,
+        samples,
+        segments,
+        summary,
+      });
     }
 
-    const primaryRoute = routes[0];
-
-    const responsePayload = {
+    const responsePayload = buildRouteGuideResponsePayload({
       origin,
-      destination: {
-        name: req.body?.destination?.name || "Destination",
-        lat: destinationPoint.lat,
-        lng: destinationPoint.lng,
-      },
-      routing_source: primaryRoute.routing_source,
-      path: primaryRoute.path,
-      sample_indices: primaryRoute.sample_indices,
-      samples: primaryRoute.samples,
-      segments: primaryRoute.segments,
-      summary: primaryRoute.summary,
-      distance_km: primaryRoute.distance_km,
-      eta_min: primaryRoute.duration_min,
-      duration_min: primaryRoute.duration_min,
-      route_warning: primaryRoute.route_warning || null,
-      routes,
-    };
+      destinationPoint,
+      destinationName,
+      routedRoutes,
+      routeHash,
+      routeRiskDataByRouteId,
+      sampleCount,
+      riskAvailable: true,
+      timings: timer.timings,
+      cache: { hit: false, key: requestCacheKey, source: "route-guide-request" },
+      geometryHash,
+    });
+    timer.mark("response_formatting");
 
-    try {
-      const persistItems = routes.flatMap((route) =>
-        (Array.isArray(route?.segments) ? route.segments : [])
-          .filter((segment) => parseNumericRoadSegmentId(segment?.segment_id))
-          .map((segment) => {
-            const segmentPath = Array.isArray(segment?.path) ? segment.path : [];
-            const lastPoint = Array.isArray(segmentPath[segmentPath.length - 1])
-              ? segmentPath[segmentPath.length - 1]
-              : null;
-            return {
-              prediction: segment,
-              timestamp: timestampIso,
-              roadSegmentId: segment.segment_id,
-              lat: lastPoint?.[0],
-              lng: lastPoint?.[1],
-              allowNearestSegmentLookup: false,
-              context: "route",
-            };
-          }),
-      );
+    const persistItems = responsePayload.routes.flatMap((route) =>
+      (Array.isArray(route?.segments) ? route.segments : [])
+        .filter((segment) => parseNumericRoadSegmentId(segment?.segment_id))
+        .map((segment) => {
+          const segmentPath = Array.isArray(segment?.path) ? segment.path : [];
+          const lastPoint = Array.isArray(segmentPath[segmentPath.length - 1])
+            ? segmentPath[segmentPath.length - 1]
+            : null;
+          return {
+            prediction: segment,
+            timestamp: timestampIso,
+            roadSegmentId: segment.segment_id,
+            lat: lastPoint?.[0],
+            lng: lastPoint?.[1],
+            allowNearestSegmentLookup: false,
+            context: "route",
+          };
+        }),
+    );
 
-      if (persistItems.length > 0) {
-        await persistPredictions(persistItems);
-      }
-    } catch (persistError) {
-      console.error("[Node] /api/risk/route persistence error:", persistError.message);
+    if (persistItems.length > 0) {
+      void persistPredictions(persistItems).catch((persistError) => {
+        console.error("[Node] /api/risk/route persistence error:", persistError.message);
+      });
     }
 
+    setRouteGuideCache(requestCacheKey, responsePayload);
+    setRouteGuideCache(geometryCacheKey, responsePayload);
+    timer.finish("success", {
+      cache_key: requestCacheKey,
+      geometry_key: geometryCacheKey,
+      routes: routedRoutes.length,
+      routes_scored: scoringRoutes.length,
+      samples_scored: scoredRows.length,
+    });
     return res.json(responsePayload);
   } catch (err) {
+    const timeoutLike = isTimeoutLikeError(err);
+    const routeIsUsable = Array.isArray(routedRoutes) && routedRoutes.length > 0;
     console.error("[Node] /api/risk/route scoring error:", err.message);
-    return res.status(500).json({ error: "Route danger scoring failed" });
+
+    if (timeoutLike && routeIsUsable && origin && destinationPoint) {
+      const fallbackPayload = buildRouteGuideResponsePayload({
+        origin,
+        destinationPoint,
+        destinationName,
+        routedRoutes,
+        routeHash: routeHash || buildRouteGuideHash(origin, destinationPoint, timestampIso),
+        routeRiskDataByRouteId: new Map(),
+        sampleCount,
+        message: timeoutMessage,
+        riskAvailable: false,
+        timings: timer.timings,
+        cache: { hit: false, key: requestCacheKey, source: "route-guide-timeout-fallback" },
+        geometryHash,
+      });
+      if (requestCacheKey) {
+        setRouteGuideCache(requestCacheKey, fallbackPayload, ROUTE_GUIDE_FALLBACK_CACHE_TTL_MS);
+      }
+      if (geometryCacheKey) {
+        setRouteGuideCache(geometryCacheKey, fallbackPayload, ROUTE_GUIDE_FALLBACK_CACHE_TTL_MS);
+      }
+      timer.mark("response_formatting");
+      timer.finish("timeout_fallback", {
+        message: err.message,
+        routes: routedRoutes.length,
+      });
+      return res.status(200).json(fallbackPayload);
+    }
+
+    timer.finish("error", {
+      message: err.message,
+      timeout: timeoutLike,
+      route_usable: routeIsUsable,
+    });
+    return res.status(500).json({
+      error: "Route danger scoring failed",
+      riskAvailable: false,
+      risk_available: false,
+    });
   }
 };
 

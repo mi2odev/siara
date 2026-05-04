@@ -17,6 +17,7 @@ import '../../styles/RouteOverviewCard.css'
 // never triggers /api/risk/route on its own.
 
 const TIER_CLASSES = {
+  unknown: 'risk-unknown',
   low: 'risk-low',
   moderate: 'risk-moderate',
   medium: 'risk-moderate',
@@ -26,6 +27,7 @@ const TIER_CLASSES = {
 }
 
 const TIER_LABELS = {
+  unknown: 'Unknown',
   low: 'Low',
   moderate: 'Moderate',
   medium: 'Moderate',
@@ -42,11 +44,13 @@ const ALT_ICONS = {
 
 function tierFromLevel(level, percent) {
   const text = String(level || '').trim().toLowerCase()
+  if (text === 'unknown' || text === 'unavailable') return 'unknown'
   if (text === 'medium') return 'moderate'
   if (text === 'critical') return 'extreme'
   if (TIER_CLASSES[text]) return text
+  if (percent === null || percent === undefined || percent === '') return 'unknown'
   const numeric = Number(percent)
-  if (!Number.isFinite(numeric)) return 'low'
+  if (!Number.isFinite(numeric)) return 'unknown'
   if (numeric >= 75) return 'extreme'
   if (numeric >= 50) return 'high'
   if (numeric >= 25) return 'moderate'
@@ -54,6 +58,7 @@ function tierFromLevel(level, percent) {
 }
 
 function formatPercent(value) {
+  if (value === null || value === undefined || value === '') return 'â€”'
   const n = Number(value)
   return Number.isFinite(n) ? `${Math.round(n)}%` : '—'
 }
@@ -100,13 +105,24 @@ export default function RouteOverviewCard({
     if (!selectedRoute) return null
     const summary = selectedRoute.summary || {}
     const dangerPercent = Number(summary.danger_percent)
+    const riskAvailable =
+      selectedRoute.riskAvailable !== false &&
+      selectedRoute.risk_available !== false &&
+      summary.riskAvailable !== false &&
+      summary.risk_available !== false
     const tier = tierFromLevel(summary.danger_level, dangerPercent)
     return {
       routeType: selectedRoute.route_type || null,
       routeLabel: selectedRoute.route_label || titleCase(selectedRoute.route_type),
       distanceKm: Number(selectedRoute.distance_km),
       durationMin: Number(selectedRoute.duration_min ?? selectedRoute.eta_min),
-      dangerPercent: Number.isFinite(dangerPercent) ? dangerPercent : null,
+      dangerPercent: riskAvailable && Number.isFinite(dangerPercent) ? dangerPercent : null,
+      riskAvailable,
+      riskMessage:
+        selectedRoute.riskMessage ||
+        selectedRoute.message ||
+        summary.message ||
+        'Route loaded, but risk scoring is unavailable.',
       tier,
       tierClass: TIER_CLASSES[tier] || 'risk-low',
       tierLabel: TIER_LABELS[tier] || 'Unknown',
@@ -118,6 +134,9 @@ export default function RouteOverviewCard({
   const summary = explanation?.summary || ''
   const reasons = Array.isArray(explanation?.reasons) ? explanation.reasons : []
   const source = explanation?.source || null
+  const segmentSummary = Array.isArray(selectedRoute?.segments)
+    ? selectedRoute.segments.slice(0, 5)
+    : []
 
   // Filter alternatives to other route types only.
   const altChips = (Array.isArray(alternatives) ? alternatives : [])
@@ -162,7 +181,11 @@ export default function RouteOverviewCard({
 
       <div className="siara-route-overview__why">
         <p className="siara-route-overview__why-title">Why this route?</p>
-        {explanationLoading && !summary ? (
+        {!data.riskAvailable ? (
+          <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
+            {data.riskMessage}
+          </p>
+        ) : explanationLoading && !summary ? (
           <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
             Analysing risk factors…
           </p>
@@ -192,10 +215,43 @@ export default function RouteOverviewCard({
         ) : null}
       </div>
 
+      {segmentSummary.length > 0 ? (
+        <div className="siara-route-overview__segments">
+          <p className="siara-route-overview__why-title">Segment risk summary</p>
+          {segmentSummary.map((segment, index) => {
+            const rawPercent = segment?.danger_percent
+            const percent = Number(rawPercent)
+            const hasPercent =
+              rawPercent !== null &&
+              rawPercent !== undefined &&
+              rawPercent !== '' &&
+              Number.isFinite(percent)
+            const tier = tierFromLevel(segment?.danger_level, hasPercent ? percent : null)
+            return (
+              <div
+                key={segment?.segment_id || `segment-${index}`}
+                className="siara-route-overview__segment-row"
+              >
+                <span>Segment {index + 1}</span>
+                <strong className={TIER_CLASSES[tier] || 'risk-low'}>
+                  {formatPercent(hasPercent ? percent : null)} {TIER_LABELS[tier] || ''}
+                </strong>
+              </div>
+            )
+          })}
+        </div>
+      ) : null}
+
       {altChips.length > 0 && typeof onChangeRouteType === 'function' ? (
         <div className="siara-route-overview__alts" role="group" aria-label="Route alternatives">
           {altChips.map((route) => {
-            const altPercent = Number(route?.summary?.danger_percent)
+            const rawAltPercent = route?.summary?.danger_percent
+            const altPercent = Number(rawAltPercent)
+            const altHasPercent =
+              rawAltPercent !== null &&
+              rawAltPercent !== undefined &&
+              rawAltPercent !== '' &&
+              Number.isFinite(altPercent)
             return (
               <button
                 key={route.route_type}
@@ -208,7 +264,7 @@ export default function RouteOverviewCard({
                 </span>
                 {route.route_label || titleCase(route.route_type)}
                 <small>
-                  {Number.isFinite(altPercent) ? `${Math.round(altPercent)}% risk` : 'view'}
+                  {altHasPercent ? `${Math.round(altPercent)}% risk` : 'unknown risk'}
                 </small>
               </button>
             )
@@ -220,6 +276,7 @@ export default function RouteOverviewCard({
         origin={origin}
         destination={destination}
         enabled={Boolean(origin && destination)}
+        routeIdentity={selectedRoute?.route_identity || selectedRoute?.route_id || data.routeType || ''}
         onSelectTimestamp={onSelectDepartureTimestamp}
       />
 

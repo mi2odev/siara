@@ -51,6 +51,7 @@ import NonAdminOnlyRoute from "./NonAdminOnlyRoute";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicOnlyRoute from "./PublicOnlyRoute";
 import PoliceAccessGate from "../components/police/PoliceAccessGate";
+import NavigationPreviewPage from "../pages/preview/NavigationPreviewPage";
 import RouteExplanationPreviewPage from "../pages/preview/RouteExplanationPreviewPage";
 
 export default function AppRouter() {
@@ -67,6 +68,8 @@ export default function AppRouter() {
       <Route path="verify-email" element={<VerifyEmailPage />} />
 
       <Route path="preview/route-explanation" element={<RouteExplanationPreviewPage />} />
+      <Route path="navigation-preview" element={<NavigationPreviewPage />} />
+      <Route path="map-preview" element={<NavigationPreviewPage />} />
 
       <Route element={<NonAdminOnlyRoute />}>
         <Route path="home" element={<HomePage />} />
