@@ -8,6 +8,13 @@ const {
   persistPredictionWithExplanation,
   persistPredictions,
 } = require("../../services/riskPersistence");
+const {
+  axiosTimeoutFor,
+  flaskTimeoutFor,
+  isDeadlineExpired,
+  makeDeadlineError,
+  makeQueueTimeoutError,
+} = require("../../services/riskTimeouts");
 
 const LEGACY_ML_SERVICE_URL = process.env.ML_SERVICE_URL;
 const ML_SERVICE_BASE_URL =
@@ -59,6 +66,11 @@ const OVERPASS_URL = process.env.OVERPASS_URL || "https://overpass-api.de/api/in
 const OVERPASS_TIMEOUT_MS = Number(process.env.OVERPASS_TIMEOUT_MS || 7000);
 const OVERPASS_GRID_DECIMALS = Number(process.env.OVERPASS_GRID_DECIMALS || 3);
 const OVERPASS_SLEEP_MS = Number(process.env.OVERPASS_SLEEP_MS || 150);
+const OVERPASS_QUEUE_TIMEOUT_MS = Number(process.env.OVERPASS_QUEUE_TIMEOUT_MS || 2500);
+const OSRM_QUEUE_TIMEOUT_MS = Number(process.env.OSRM_QUEUE_TIMEOUT_MS || 2500);
+const NOMINATIM_TIMEOUT_MS = Number(process.env.NOMINATIM_TIMEOUT_MS || 8000);
+const WEATHER_PARAM_FAILURE_TTL_MS = Number(process.env.WEATHER_PARAM_FAILURE_TTL_MS || 60 * 60 * 1000);
+const DEBUG_DANGER_ROW = String(process.env.DEBUG_DANGER_ROW || "0") === "1";
 const ROAD_CACHE_MAX = Number(process.env.ROAD_CACHE_MAX || 5000);
 const ENABLE_OSM_FLAGS = String(process.env.ENABLE_OSM_FLAGS || "1") === "1";
 const ENABLE_OSM_FLAGS_FOR_ROUTES =
@@ -1170,70 +1182,95 @@ function buildModelWeatherRowFromSnapshot(snapshot, sourceLabel = "unknown") {
   };
 }
 
-async function fetchCurrentWeatherPayload(lat, lng) {
-  const fields = getBaseWeatherFieldList();
-  const seriesFields = fields.join(",");
-  const buildParams = (currentFields) => ({
-    latitude: lat,
-    longitude: lng,
-    current: currentFields,
-    hourly: seriesFields,
-    minutely_15: seriesFields,
-    forecast_days: 7,
-    temperature_unit: "celsius",
-    wind_speed_unit: "kmh",
-    precipitation_unit: "mm",
-    timezone: "auto",
-    timeformat: "unixtime",
-  });
+const weatherUnsupported = {
+  visibilityCurrentExpiresAt: 0,
+  minutelyExpiresAt: 0,
+};
 
-  try {
-    const response = await axios.get(OPEN_METEO_URL, {
-      params: buildParams(seriesFields),
-      timeout: WEATHER_TIMEOUT_MS,
-    });
-    return response.data;
-  } catch (error) {
-    if (error?.response?.status !== 400) {
-      throw error;
-    }
+function isWeatherFlagActive(field) {
+  const expiresAt =
+    field === "visibility"
+      ? weatherUnsupported.visibilityCurrentExpiresAt
+      : weatherUnsupported.minutelyExpiresAt;
+  return expiresAt > Date.now();
+}
 
-    const noCurrentVisibilityParams = buildParams(
-      fields.filter((field) => field !== "visibility").join(","),
-    );
-
-    try {
-      const fallbackResponse = await axios.get(OPEN_METEO_URL, {
-        params: noCurrentVisibilityParams,
-        timeout: WEATHER_TIMEOUT_MS,
-      });
-      return fallbackResponse.data;
-    } catch (fallbackError) {
-      if (fallbackError?.response?.status !== 400) {
-        throw fallbackError;
-      }
-
-      const noMinutelyParams = {
-        ...noCurrentVisibilityParams,
-      };
-      delete noMinutelyParams.minutely_15;
-      const finalResponse = await axios.get(OPEN_METEO_URL, {
-        params: noMinutelyParams,
-        timeout: WEATHER_TIMEOUT_MS,
-      });
-      return finalResponse.data;
-    }
+function markWeatherFlag(field) {
+  const expiresAt = Date.now() + WEATHER_PARAM_FAILURE_TTL_MS;
+  if (field === "visibility") {
+    weatherUnsupported.visibilityCurrentExpiresAt = expiresAt;
+  } else if (field === "minutely_15") {
+    weatherUnsupported.minutelyExpiresAt = expiresAt;
   }
 }
 
-async function resolveWeatherSnapshot(lat, lng, timestampIso = null) {
+async function fetchCurrentWeatherPayload(lat, lng, deadline) {
+  const fields = getBaseWeatherFieldList();
+  const seriesFields = fields.join(",");
+  const buildParams = ({ skipVisibilityInCurrent = false, skipMinutely = false } = {}) => {
+    const params = {
+      latitude: lat,
+      longitude: lng,
+      current: skipVisibilityInCurrent
+        ? fields.filter((field) => field !== "visibility").join(",")
+        : seriesFields,
+      hourly: seriesFields,
+      forecast_days: 7,
+      temperature_unit: "celsius",
+      wind_speed_unit: "kmh",
+      precipitation_unit: "mm",
+      timezone: "auto",
+      timeformat: "unixtime",
+    };
+    if (!skipMinutely) {
+      params.minutely_15 = seriesFields;
+    }
+    return params;
+  };
+
+  let skipVisibilityInCurrent = isWeatherFlagActive("visibility");
+  let skipMinutely = isWeatherFlagActive("minutely_15");
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (isDeadlineExpired(deadline)) {
+      throw makeDeadlineError("open_meteo");
+    }
+    const timeout = axiosTimeoutFor(deadline, WEATHER_TIMEOUT_MS, { ceil: WEATHER_TIMEOUT_MS });
+    try {
+      const response = await axios.get(OPEN_METEO_URL, {
+        params: buildParams({ skipVisibilityInCurrent, skipMinutely }),
+        timeout,
+      });
+      return response.data;
+    } catch (error) {
+      if (error?.response?.status !== 400) {
+        throw error;
+      }
+      if (!skipVisibilityInCurrent) {
+        skipVisibilityInCurrent = true;
+        markWeatherFlag("visibility");
+        continue;
+      }
+      if (!skipMinutely) {
+        skipMinutely = true;
+        markWeatherFlag("minutely_15");
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("open_meteo_unrecoverable_400");
+}
+
+async function resolveWeatherSnapshot(lat, lng, timestampIso = null, deadline = null) {
   const cacheKey = currentWeatherCacheKey(lat, lng, timestampIso);
   const cached = getCacheEntry(weatherSnapshotCache, cacheKey);
   if (cached) {
     return cached;
   }
 
-  const payload = await fetchCurrentWeatherPayload(lat, lng);
+  const payload = await fetchCurrentWeatherPayload(lat, lng, deadline);
   if (DEBUG_WEATHER_UNITS && !weatherUnitsLogged) {
     weatherUnitsLogged = true;
     console.log("[Node][weather-units]", {
@@ -1303,7 +1340,7 @@ function buildCurrentWeatherUiFromSnapshot(snapshot, weatherSource, targetSecond
   };
 }
 
-async function getCurrentWeatherUi(lat, lng, timestampIso = null) {
+async function getCurrentWeatherUi(lat, lng, timestampIso = null, deadline = null) {
   const cacheKey = currentWeatherCacheKey(lat, lng, timestampIso);
   const cached = getCacheEntry(currentWeatherCache, cacheKey);
   if (cached) {
@@ -1314,6 +1351,7 @@ async function getCurrentWeatherUi(lat, lng, timestampIso = null) {
     lat,
     lng,
     timestampIso,
+    deadline,
   );
   const weather = buildCurrentWeatherUiFromSnapshot(snapshot, weatherSource, targetSeconds);
 
@@ -1327,11 +1365,15 @@ async function getCurrentWeatherUi(lat, lng, timestampIso = null) {
   return weather;
 }
 
-async function getForecastWeatherSeries(lat, lng, startIso) {
+async function getForecastWeatherSeries(lat, lng, startIso, deadline = null) {
   const cacheKey = forecastWeatherCacheKey(lat, lng, startIso);
   const cached = getCacheEntry(forecastWeatherCache, cacheKey);
   if (cached) {
     return cached;
+  }
+
+  if (isDeadlineExpired(deadline)) {
+    throw makeDeadlineError("open_meteo_forecast");
   }
 
   const seriesFields = getBaseWeatherFieldList().join(",");
@@ -1347,7 +1389,7 @@ async function getForecastWeatherSeries(lat, lng, startIso) {
       timezone: "GMT",
       timeformat: "unixtime",
     },
-    timeout: WEATHER_TIMEOUT_MS,
+    timeout: axiosTimeoutFor(deadline, WEATHER_TIMEOUT_MS, { ceil: WEATHER_TIMEOUT_MS }),
   });
 
   const payload = response.data;
@@ -1361,7 +1403,7 @@ async function getForecastWeatherSeries(lat, lng, startIso) {
   return payload;
 }
 
-async function getWeatherFeatures(lat, lng, timestampIso) {
+async function getWeatherFeatures(lat, lng, timestampIso, deadline = null) {
   const key = weatherCacheKey(lat, lng, timestampIso);
   const cached = getCacheEntry(weatherCache, key);
   if (cached) {
@@ -1374,16 +1416,18 @@ async function getWeatherFeatures(lat, lng, timestampIso) {
     snapshotTimeIso,
     selectedUnits,
     targetSeconds,
-  } = await resolveWeatherSnapshot(lat, lng, timestampIso);
-  console.log("[Node][raw-weather-before-normalize]", {
-    source: weatherSource,
-    selected_units: selectedUnits,
-    visibility_raw: safeNumber(snapshot?.visibility),
-    temperature_raw: safeNumber(snapshot?.temperature_2m),
-    wind_raw: safeNumber(snapshot?.wind_speed_10m),
-    pressure_raw: safeNumber(snapshot?.pressure_msl),
-    precipitation_raw: safeNumber(snapshot?.precipitation),
-  });
+  } = await resolveWeatherSnapshot(lat, lng, timestampIso, deadline);
+  if (DEBUG_WEATHER_UNITS) {
+    console.log("[Node][raw-weather-before-normalize]", {
+      source: weatherSource,
+      selected_units: selectedUnits,
+      visibility_raw: safeNumber(snapshot?.visibility),
+      temperature_raw: safeNumber(snapshot?.temperature_2m),
+      wind_raw: safeNumber(snapshot?.wind_speed_10m),
+      pressure_raw: safeNumber(snapshot?.pressure_msl),
+      precipitation_raw: safeNumber(snapshot?.precipitation),
+    });
+  }
   const normalizedSnapshot = normalizeSnapshotForModelUnits(
     snapshot,
     selectedUnits,
@@ -1489,7 +1533,7 @@ function twilightFromSunData(sunResult, timestampIso) {
   };
 }
 
-async function getTwilightFields(lat, lng, timestampIso) {
+async function getTwilightFields(lat, lng, timestampIso, deadline = null) {
   const key = twilightCacheKey(lat, lng, timestampIso);
   if (twilightCache.has(key)) {
     return twilightFromSunData(twilightCache.get(key), timestampIso);
@@ -1497,6 +1541,10 @@ async function getTwilightFields(lat, lng, timestampIso) {
 
   const now = Date.parse(timestampIso);
   if (Number.isNaN(now)) {
+    return buildTwilightFallback(timestampIso);
+  }
+
+  if (isDeadlineExpired(deadline)) {
     return buildTwilightFallback(timestampIso);
   }
 
@@ -1511,7 +1559,7 @@ async function getTwilightFields(lat, lng, timestampIso) {
         formatted: 0,
         tzid: RISK_TIMEZONE,
       },
-      timeout: SUN_TIMEOUT_MS,
+      timeout: axiosTimeoutFor(deadline, SUN_TIMEOUT_MS, { ceil: SUN_TIMEOUT_MS }),
     });
 
     if (!data || data.status !== "OK" || !data.results) {
@@ -1701,24 +1749,67 @@ function sleepMs(ms) {
   return new Promise((resolve) => setTimeout(resolve, Math.round(delay)));
 }
 
-async function runWithOverpassLimiter(task) {
+function waitInLimiterQueue(queue, queueTimeoutMs, deadline, label) {
+  const remaining = deadline ? deadline.remaining() : Infinity;
+  const waitMs = Math.max(
+    0,
+    Math.min(
+      Number.isFinite(queueTimeoutMs) && queueTimeoutMs > 0 ? queueTimeoutMs : 0,
+      Number.isFinite(remaining) ? remaining : queueTimeoutMs,
+    ),
+  );
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const entry = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve();
+    };
+    queue.push(entry);
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      const idx = queue.indexOf(entry);
+      if (idx >= 0) queue.splice(idx, 1);
+      reject(makeQueueTimeoutError(label));
+    }, waitMs);
+  });
+}
+
+async function runWithOverpassLimiter(task, { deadline = null } = {}) {
   if (overpassActiveRequests >= 2) {
-    await new Promise((resolve) => overpassWaitQueue.push(resolve));
+    await waitInLimiterQueue(
+      overpassWaitQueue,
+      OVERPASS_QUEUE_TIMEOUT_MS,
+      deadline,
+      "overpass_queue",
+    );
   }
 
   overpassActiveRequests += 1;
-  try {
-    return await task();
-  } finally {
+  let releaseNext = null;
+  const releaseSlot = () => {
+    if (releaseNext) return;
+    releaseNext = true;
     overpassActiveRequests = Math.max(0, overpassActiveRequests - 1);
     const next = overpassWaitQueue.shift();
     if (typeof next === "function") {
       next();
     }
+  };
+  try {
+    return await task();
+  } finally {
+    if (OVERPASS_SLEEP_MS > 0) {
+      setTimeout(releaseSlot, OVERPASS_SLEEP_MS).unref?.();
+    } else {
+      releaseSlot();
+    }
   }
 }
 
-async function getRoadFlagsAsync(lat, lng, providedRoadFlags) {
+async function getRoadFlagsAsync(lat, lng, providedRoadFlags, deadline = null) {
   if (providedRoadFlags && typeof providedRoadFlags === "object") {
     const flags = toRoadFlags(providedRoadFlags);
     if (DEBUG_OSM_FLAGS) {
@@ -1753,6 +1844,13 @@ async function getRoadFlagsAsync(lat, lng, providedRoadFlags) {
     return roadCache.get(key);
   }
 
+  if (isDeadlineExpired(deadline)) {
+    if (DEBUG_OSM_FLAGS) {
+      console.log(`[Node][osm-flags] source=fallback_zeroes key=${key} reason=deadline_expired`);
+    }
+    return toRoadFlags(ROAD_FLAG_ZEROES);
+  }
+
   roadCacheMisses += 1;
   if (DEBUG_OSM_FLAGS) {
     console.log(
@@ -1765,16 +1863,18 @@ async function getRoadFlagsAsync(lat, lng, providedRoadFlags) {
   let sourceError = "";
   try {
     const query = buildOverpassRoadFlagsQuery(point.lat, point.lng);
-    const { data } = await runWithOverpassLimiter(() =>
-      axios.post(OVERPASS_URL, query, {
-        headers: { "Content-Type": "text/plain" },
-        timeout: OVERPASS_TIMEOUT_MS,
-      }),
+    const { data } = await runWithOverpassLimiter(
+      () =>
+        axios.post(OVERPASS_URL, query, {
+          headers: { "Content-Type": "text/plain" },
+          timeout: axiosTimeoutFor(deadline, OVERPASS_TIMEOUT_MS, { ceil: OVERPASS_TIMEOUT_MS }),
+        }),
+      { deadline },
     );
 
     flags = parseOverpassRoadFlags(data?.elements);
   } catch (error) {
-    source = "fallback_zeroes";
+    source = error?.code === "QUEUE_TIMEOUT" ? "fallback_queue_timeout" : "fallback_zeroes";
     sourceError = error?.message || "unknown_overpass_error";
     flags = toRoadFlags(ROAD_FLAG_ZEROES);
   }
@@ -1785,12 +1885,11 @@ async function getRoadFlagsAsync(lat, lng, providedRoadFlags) {
       console.log(`[Node][osm-flags] source=overpass key=${key} flags=${JSON.stringify(flags)}`);
     } else {
       console.log(
-        `[Node][osm-flags] source=fallback_zeroes key=${key} error=${sourceError} flags=${JSON.stringify(flags)}`,
+        `[Node][osm-flags] source=${source} key=${key} error=${sourceError} flags=${JSON.stringify(flags)}`,
       );
     }
   }
 
-  await sleepMs(OVERPASS_SLEEP_MS);
   return flags;
 }
 
@@ -1804,15 +1903,30 @@ function safeRowCategory(value, fallback = "Unknown") {
   return text || fallback;
 }
 
-async function buildDangerRow({ lat, lng, timestamp, roadFlags }) {
+async function buildDangerRow({ lat, lng, timestamp, roadFlags, deadline = null }) {
   const timestampIso = toIsoTimestamp(timestamp);
   const rowLat = safeNumber(lat);
   const rowLng = safeNumber(lng);
-  const [weather, twilight, resolvedRoadFlags] = await Promise.all([
-    getWeatherFeatures(lat, lng, timestampIso),
-    getTwilightFields(lat, lng, timestampIso),
-    getRoadFlagsAsync(lat, lng, roadFlags),
+  const [weatherResult, twilightResult, roadResult] = await Promise.allSettled([
+    getWeatherFeatures(lat, lng, timestampIso, deadline),
+    getTwilightFields(lat, lng, timestampIso, deadline),
+    getRoadFlagsAsync(lat, lng, roadFlags, deadline),
   ]);
+
+  const weather = weatherResult.status === "fulfilled" ? weatherResult.value : null;
+  const twilight =
+    twilightResult.status === "fulfilled"
+      ? twilightResult.value
+      : buildTwilightFallback(timestampIso);
+  const resolvedRoadFlags =
+    roadResult.status === "fulfilled" ? roadResult.value : toRoadFlags(ROAD_FLAG_ZEROES);
+
+  if (weatherResult.status === "rejected") {
+    console.warn(
+      "[Node][danger-row] weather_fallback_zero",
+      weatherResult.reason?.code || weatherResult.reason?.message || "unknown",
+    );
+  }
 
   const finalRow = {
     Start_Lat: rowLat,
@@ -1850,7 +1964,9 @@ async function buildDangerRow({ lat, lng, timestamp, roadFlags }) {
     });
   }
 
-  console.log("\n[DANGER ROW][FINAL INPUT TO FLASK]:", finalRow);
+  if (DEBUG_DANGER_ROW) {
+    console.log("\n[DANGER ROW][FINAL INPUT TO FLASK]:", finalRow);
+  }
   return finalRow;
 }
 
@@ -2167,10 +2283,10 @@ function setCachedOsrmRoutes(key, routes) {
   pruneOsrmRouteCacheIfNeeded();
 }
 
-async function runWithOsrmLimiter(task) {
+async function runWithOsrmLimiter(task, { deadline = null } = {}) {
   const maxConcurrency = Math.max(1, Math.round(safeNumber(MAX_OSRM_CONCURRENCY) || 1));
   if (osrmActiveRequests >= maxConcurrency) {
-    await new Promise((resolve) => osrmWaitQueue.push(resolve));
+    await waitInLimiterQueue(osrmWaitQueue, OSRM_QUEUE_TIMEOUT_MS, deadline, "osrm_queue");
   }
 
   osrmActiveRequests += 1;
@@ -2236,7 +2352,28 @@ function normalizeOsrmRoutes(routes) {
   return normalizedRoutes;
 }
 
-async function fetchOsrmRoutes(origin, destination) {
+function isOsrmRetryableError(error) {
+  if (!error) return false;
+  if (error.code === "QUEUE_TIMEOUT" || error.code === "DEADLINE_EXCEEDED") {
+    return false;
+  }
+  if (
+    error.code === "ECONNABORTED" ||
+    error.code === "ETIMEDOUT" ||
+    error.code === "ECONNREFUSED" ||
+    error.code === "ECONNRESET" ||
+    error.code === "ENOTFOUND"
+  ) {
+    return true;
+  }
+  if (!error.response) {
+    return true;
+  }
+  const status = error.response.status;
+  return status >= 500 && status < 600;
+}
+
+async function fetchOsrmRoutes(origin, destination, deadline = null) {
   const cacheKey = osrmRouteCacheKey(origin, destination, true);
   if (osrmRouteCache.has(cacheKey)) {
     if (DEBUG_OSRM) {
@@ -2249,17 +2386,23 @@ async function fetchOsrmRoutes(origin, destination) {
   let lastError = null;
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
+    if (isDeadlineExpired(deadline)) {
+      lastError = lastError || makeDeadlineError("osrm");
+      break;
+    }
     try {
-      const { data } = await runWithOsrmLimiter(() =>
-        axios.get(url, {
-          params: {
-            overview: "full",
-            geometries: "geojson",
-            steps: false,
-            alternatives: true,
-          },
-          timeout: OSRM_TIMEOUT_MS + (attempt - 1) * 2000,
-        }),
+      const { data } = await runWithOsrmLimiter(
+        () =>
+          axios.get(url, {
+            params: {
+              overview: "full",
+              geometries: "geojson",
+              steps: false,
+              alternatives: true,
+            },
+            timeout: axiosTimeoutFor(deadline, OSRM_TIMEOUT_MS, { ceil: OSRM_TIMEOUT_MS }),
+          }),
+        { deadline },
       );
 
       if (data?.code && data.code !== "Ok") {
@@ -2283,9 +2426,10 @@ async function fetchOsrmRoutes(origin, destination) {
           `[Node][osrm] source=error key=${cacheKey} attempt=${attempt} message=${error.message}`,
         );
       }
-      if (attempt < 2) {
-        await sleepMs(120);
-      }
+      if (attempt >= 2) break;
+      if (!isOsrmRetryableError(error)) break;
+      if (isDeadlineExpired(deadline)) break;
+      await sleepMs(120);
     }
   }
 
@@ -2294,8 +2438,8 @@ async function fetchOsrmRoutes(origin, destination) {
   throw wrapped;
 }
 
-async function fetchOsrmRoute(origin, destination) {
-  const routes = await fetchOsrmRoutes(origin, destination);
+async function fetchOsrmRoute(origin, destination, deadline = null) {
+  const routes = await fetchOsrmRoutes(origin, destination, deadline);
   const primaryRoute = routes[0] || null;
   if (!primaryRoute) {
     const wrapped = new Error("OSRM route lookup failed: route not found");
@@ -2305,9 +2449,14 @@ async function fetchOsrmRoute(origin, destination) {
   return cloneOsrmRoute(primaryRoute);
 }
 
-async function getOsrmRouteAlternatives(origin, destination, maxRoutes = DEFAULT_GUIDE_ALTERNATIVE_ROUTES) {
+async function getOsrmRouteAlternatives(
+  origin,
+  destination,
+  maxRoutes = DEFAULT_GUIDE_ALTERNATIVE_ROUTES,
+  deadline = null,
+) {
   try {
-    const routes = await fetchOsrmRoutes(origin, destination);
+    const routes = await fetchOsrmRoutes(origin, destination, deadline);
     const limitedCount = parseBoundedNumber(maxRoutes, DEFAULT_GUIDE_ALTERNATIVE_ROUTES, {
       min: 1,
       max: MAX_GUIDE_ALTERNATIVE_ROUTES,
@@ -2324,9 +2473,9 @@ async function getOsrmRouteAlternatives(origin, destination, maxRoutes = DEFAULT
   }
 }
 
-async function getOsrmRoutePath(origin, destination) {
+async function getOsrmRoutePath(origin, destination, deadline = null) {
   try {
-    return await fetchOsrmRoute(origin, destination);
+    return await fetchOsrmRoute(origin, destination, deadline);
   } catch (error) {
     const wrapped = new Error(`OSRM route lookup failed: ${error.message}`);
     wrapped.isOsrmError = true;
@@ -2334,7 +2483,7 @@ async function getOsrmRoutePath(origin, destination) {
   }
 }
 
-async function getRoutePathWithFallback(origin, destination) {
+async function getRoutePathWithFallback(origin, destination, deadline = null) {
   const straightDistanceKm = haversineDistanceKm(
     origin.lat,
     origin.lng,
@@ -2343,7 +2492,7 @@ async function getRoutePathWithFallback(origin, destination) {
   );
 
   try {
-    const routed = await fetchOsrmRoute(origin, destination);
+    const routed = await fetchOsrmRoute(origin, destination, deadline);
     return {
       path: routed.path,
       distance_km: roundNumber(
@@ -2807,9 +2956,9 @@ function setCachedSegmentRow(segmentId, row) {
   pruneSegmentCacheIfNeeded();
 }
 
-async function postToFlask(path, body) {
+async function postToFlask(path, body, deadline = null) {
   return axios.post(`${ML_SERVICE_BASE_URL}${path}`, body, {
-    timeout: TIMEOUT_MS,
+    timeout: flaskTimeoutFor(deadline, TIMEOUT_MS),
   });
 }
 
@@ -2938,7 +3087,7 @@ exports.getCurrentWeather = async (req, res) => {
 
   try {
     const timestampIso = req.query?.timestamp ? toIsoTimestamp(req.query.timestamp) : null;
-    const weather = await getCurrentWeatherUi(point.lat, point.lng, timestampIso);
+    const weather = await getCurrentWeatherUi(point.lat, point.lng, timestampIso, req.deadline);
     return res.json(weather);
   } catch (err) {
     const status = err.response?.status || 500;
@@ -2964,7 +3113,7 @@ exports.getReversePlace = async (req, res) => {
         addressdetails: 1,
         namedetails: 1,
       },
-      timeout: TIMEOUT_MS,
+      timeout: NOMINATIM_TIMEOUT_MS,
       headers: {
         Accept: "application/json",
         "User-Agent": "SIARA/1.0 (map reverse geocoding)",
@@ -2997,20 +3146,28 @@ exports.getRiskForecast24h = async (req, res) => {
   const forecastAnchorIso = new Date(forecastAnchorMs).toISOString();
   const cacheKey = riskForecastCacheKey(point.lat, point.lng, forecastAnchorIso);
 
+  const deadline = req.deadline;
+
   try {
-    const nowRoadFlags = await getRoadFlagsAsync(point.lat, point.lng, null);
+    const nowRoadFlags = await getRoadFlagsAsync(point.lat, point.lng, null, deadline);
     const nowRow = await buildDangerRow({
       lat: point.lat,
       lng: point.lng,
       timestamp: timestampIso,
       roadFlags: nowRoadFlags,
+      deadline,
     });
 
     let cachedHourly = getCacheEntry(riskForecastCache, cacheKey) || null;
     let nowPredictionRaw = null;
 
     if (!cachedHourly) {
-      const weatherSeries = await getForecastWeatherSeries(point.lat, point.lng, forecastAnchorIso);
+      const weatherSeries = await getForecastWeatherSeries(
+        point.lat,
+        point.lng,
+        forecastAnchorIso,
+        deadline,
+      );
       const hourlyIsoPoints = buildHourlyIsoPoints(forecastAnchorIso, 24);
       const forecastRoadFlags = ENABLE_OSM_FLAGS_FOR_ROUTES
         ? nowRoadFlags
@@ -3023,6 +3180,12 @@ exports.getRiskForecast24h = async (req, res) => {
         },
       ];
 
+      const twilightSettled = await Promise.allSettled(
+        hourlyIsoPoints.map((timeIso) =>
+          getTwilightFields(point.lat, point.lng, timeIso, deadline),
+        ),
+      );
+
       for (let i = 0; i < hourlyIsoPoints.length; i += 1) {
         const timeIso = hourlyIsoPoints[i];
         const targetSeconds = Math.floor(Date.parse(timeIso) / 1000);
@@ -3033,7 +3196,11 @@ exports.getRiskForecast24h = async (req, res) => {
           "hourly",
         );
         const weatherRow = buildModelWeatherRowFromSnapshot(normalizedSnapshot, "hourly");
-        const twilightFields = await getTwilightFields(point.lat, point.lng, timeIso);
+        const twilightOutcome = twilightSettled[i];
+        const twilightFields =
+          twilightOutcome && twilightOutcome.status === "fulfilled"
+            ? twilightOutcome.value
+            : buildTwilightFallback(timeIso);
 
         const row = {
           Start_Time: timeIso,
@@ -3075,7 +3242,7 @@ exports.getRiskForecast24h = async (req, res) => {
         }
       }
 
-      const overlayResponse = await postToFlask("/risk/overlay", { rows: modelRows });
+      const overlayResponse = await postToFlask("/risk/overlay", { rows: modelRows }, deadline);
       const overlayResults = Array.isArray(overlayResponse?.data?.results)
         ? overlayResponse.data.results
         : [];
@@ -3120,9 +3287,11 @@ exports.getRiskForecast24h = async (req, res) => {
         console.log("[Node][forecast24] row_preview:", rowPreview);
       }
     } else {
-      const overlayNowResponse = await postToFlask("/risk/overlay", {
-        rows: [{ segment_id: "__now__", ...nowRow }],
-      });
+      const overlayNowResponse = await postToFlask(
+        "/risk/overlay",
+        { rows: [{ segment_id: "__now__", ...nowRow }] },
+        deadline,
+      );
       nowPredictionRaw = Array.isArray(overlayNowResponse?.data?.results)
         ? overlayNowResponse.data.results[0] || null
         : null;
@@ -3163,15 +3332,18 @@ exports.predictCurrentRisk = async (req, res) => {
     return res.status(400).json({ error: "lat and lng are required" });
   }
 
+  const deadline = req.deadline;
+
   try {
     const row = await buildDangerRow({
       lat: point.lat,
       lng: point.lng,
       timestamp: req.body?.timestamp,
       roadFlags: req.body?.roadFlags,
+      deadline,
     });
 
-    const response = await postToFlask("/risk/current", row);
+    const response = await postToFlask("/risk/current", row, deadline);
     const responseData =
       response?.data && typeof response.data === "object" ? { ...response.data } : {};
 
@@ -3215,6 +3387,8 @@ exports.predictRiskOverlay = async (req, res) => {
     return res.status(400).json({ error: "each row needs lat/lng", invalid_indices: invalid });
   }
 
+  const deadline = req.deadline;
+
   try {
     const modelRows = await Promise.all(
       rows.map(async (row, index) => {
@@ -3224,6 +3398,7 @@ exports.predictRiskOverlay = async (req, res) => {
           lng: point.lng,
           timestamp: row?.timestamp || req.body?.timestamp,
           roadFlags: row?.roadFlags ?? (ENABLE_OSM_FLAGS_FOR_ROUTES ? null : ROAD_FLAG_ZEROES),
+          deadline,
         });
 
         const segmentId = row.segment_id ?? row.segmentId ?? index;
@@ -3236,7 +3411,7 @@ exports.predictRiskOverlay = async (req, res) => {
       }),
     );
 
-    const response = await postToFlask("/risk/overlay", { rows: modelRows });
+    const response = await postToFlask("/risk/overlay", { rows: modelRows }, deadline);
     const responseData = response?.data || { count: 0, results: [] };
 
     try {
@@ -3339,7 +3514,12 @@ exports.predictRouteGuide = async (req, res) => {
     timer.mark("cache_lookup");
 
     try {
-      routedRoutes = await getOsrmRouteAlternatives(origin, destinationPoint, maxAlternatives);
+      routedRoutes = await getOsrmRouteAlternatives(
+        origin,
+        destinationPoint,
+        maxAlternatives,
+        req.deadline,
+      );
     } catch (osrmError) {
       const straightDistanceKm = haversineDistanceKm(
         origin.lat,
@@ -3493,6 +3673,7 @@ exports.predictRouteGuide = async (req, res) => {
             lng: job.lng,
             timestamp: timestampIso,
             roadFlags: ENABLE_OSM_FLAGS_FOR_ROUTES ? null : ROAD_FLAG_ZEROES,
+            deadline: req.deadline,
           });
 
           setCachedSegmentRow(job.sample_id, row);
@@ -3515,9 +3696,11 @@ exports.predictRouteGuide = async (req, res) => {
 
     let overlayResponse = null;
     try {
-      overlayResponse = await postToFlask("/risk/overlay", {
-        rows: scoredRows.map((item) => item.model_row),
-      });
+      overlayResponse = await postToFlask(
+        "/risk/overlay",
+        { rows: scoredRows.map((item) => item.model_row) },
+        req.deadline,
+      );
       timer.mark("ml_risk_service_call");
     } catch (error) {
       timer.mark("ml_risk_service_call");
@@ -3730,7 +3913,7 @@ exports.predictNearbyZones = async (req, res) => {
 
     const routedRoutes = await Promise.all(
       destinations.map(async (destination, index) => {
-        const routed = await getRoutePathWithFallback(origin, destination);
+        const routed = await getRoutePathWithFallback(origin, destination, req.deadline);
         return {
           route_id: `r${index + 1}`,
           destination: {
@@ -3803,6 +3986,7 @@ exports.predictNearbyZones = async (req, res) => {
           lng: job.lng,
           timestamp: timestampIso,
           roadFlags: ENABLE_OSM_FLAGS_FOR_ROUTES ? null : ROAD_FLAG_ZEROES,
+          deadline: req.deadline,
         });
         return {
           segment_id: job.sample_id,
@@ -3811,7 +3995,7 @@ exports.predictNearbyZones = async (req, res) => {
       }),
     );
 
-    const overlayResponse = await postToFlask("/risk/overlay", { rows: modelRows });
+    const overlayResponse = await postToFlask("/risk/overlay", { rows: modelRows }, req.deadline);
     const overlayResults = Array.isArray(overlayResponse?.data?.results)
       ? overlayResponse.data.results
       : [];
@@ -3930,6 +4114,7 @@ exports.predictRiskExplain = async (req, res) => {
         lng: point.lng,
         timestamp: req.body?.timestamp,
         roadFlags: req.body?.roadFlags,
+        deadline: req.deadline,
       });
       if (segmentId != null) {
         setCachedSegmentRow(segmentId, row);
@@ -3941,10 +4126,14 @@ exports.predictRiskExplain = async (req, res) => {
   }
 
   try {
-    const response = await postToFlask("/risk/explain", {
-      row,
-      top_k: req.body?.top_k,
-    });
+    const response = await postToFlask(
+      "/risk/explain",
+      {
+        row,
+        top_k: req.body?.top_k,
+      },
+      req.deadline,
+    );
     const responseData =
       response?.data && typeof response.data === "object" ? { ...response.data } : {};
 

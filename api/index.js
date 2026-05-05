@@ -50,6 +50,7 @@ const { generateRiskExplanation } = require("./services/riskExplanationService")
 const { generateRouteExplanation } = require("./services/routeExplanationService");
 const { findRouteAlerts } = require("./services/routeAlertsService");
 const { getZoneProfile } = require("./services/zoneProfileService");
+const { withRiskDeadline } = require("./services/riskTimeouts");
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -153,12 +154,12 @@ app.post("/api/model/predict", predictDriverRisk);
 app.post("/api/model/predict/stream", predictDriverRiskStream);
 app.get("/api/model/quiz/explanation/test", testQuizExplanation);
 app.post("/api/model/quiz/explanation/test", testQuizExplanation);
-app.get("/api/weather/current", getCurrentWeather);
+app.get("/api/weather/current", withRiskDeadline(getCurrentWeather));
 app.get("/api/location/reverse", getReversePlace);
-app.post("/api/risk/current", predictCurrentRisk);
-app.get("/api/risk/forecast24h", getRiskForecast24h);
-app.post("/api/risk/overlay", predictRiskOverlay);
-app.post("/api/risk/explain", predictRiskExplain);
+app.post("/api/risk/current", withRiskDeadline(predictCurrentRisk));
+app.get("/api/risk/forecast24h", withRiskDeadline(getRiskForecast24h));
+app.post("/api/risk/overlay", withRiskDeadline(predictRiskOverlay));
+app.post("/api/risk/explain", withRiskDeadline(predictRiskExplain));
 app.post("/api/predictions/explain-risk", async (req, res) => {
   const body = req.body && typeof req.body === "object" ? req.body : {};
   const risk = body.risk && typeof body.risk === "object" ? body.risk : null;
@@ -197,8 +198,8 @@ app.post("/api/predictions/explain-risk", async (req, res) => {
     });
   }
 });
-app.post("/api/risk/nearby-zones", predictNearbyZones);
-app.post("/api/risk/route", predictRouteGuide);
+app.post("/api/risk/nearby-zones", withRiskDeadline(predictNearbyZones));
+app.post("/api/risk/route", withRiskDeadline(predictRouteGuide));
 
 const runRouteGuideOnce = async ({ origin, destination, timestamp, maxAlternatives = 3 }) => {
   let captured = { statusCode: null, data: null };
@@ -427,14 +428,14 @@ app.post("/api/risk/route/explain", async (req, res) => {
 });
 
 // Compatibility aliases
-app.get("/api/model/weather/current", getCurrentWeather);
+app.get("/api/model/weather/current", withRiskDeadline(getCurrentWeather));
 app.get("/api/model/location/reverse", getReversePlace);
-app.post("/api/model/risk/current", predictCurrentRisk);
-app.get("/api/model/risk/forecast24h", getRiskForecast24h);
-app.post("/api/model/risk/overlay", predictRiskOverlay);
-app.post("/api/model/risk/explain", predictRiskExplain);
-app.post("/api/model/risk/nearby-zones", predictNearbyZones);
-app.post("/api/model/risk/route", predictRouteGuide);
+app.post("/api/model/risk/current", withRiskDeadline(predictCurrentRisk));
+app.get("/api/model/risk/forecast24h", withRiskDeadline(getRiskForecast24h));
+app.post("/api/model/risk/overlay", withRiskDeadline(predictRiskOverlay));
+app.post("/api/model/risk/explain", withRiskDeadline(predictRiskExplain));
+app.post("/api/model/risk/nearby-zones", withRiskDeadline(predictNearbyZones));
+app.post("/api/model/risk/route", withRiskDeadline(predictRouteGuide));
 
 
 async function runStartupChecks() {

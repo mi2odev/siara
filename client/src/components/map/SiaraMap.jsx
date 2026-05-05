@@ -4371,43 +4371,7 @@ const SiaraMap = ({
       )}
       </aside>
 
-      <div className={`siara-map-legend ${legendOpen ? "is-open" : "is-collapsed"}`}>
-        <button
-          type="button"
-          className="siara-map-legend__toggle"
-          onClick={() => setLegendOpen((value) => !value)}
-        >
-          {legendOpen ? "Hide legend" : "Legend"}
-        </button>
-        {legendOpen && (
-          <div className="siara-map-legend__content">
-            <div className="siara-map-legend__row">
-              <span className="siara-map-legend__swatch" style={{ background: "#2563eb" }} />
-              <span>Blue = Fastest</span>
-            </div>
-            <div className="siara-map-legend__row">
-              <span className="siara-map-legend__swatch" style={{ background: "#16a34a" }} />
-              <span>Green = Safest</span>
-            </div>
-            <div className="siara-map-legend__row">
-              <span className="siara-map-legend__swatch" style={{ background: "#f97316" }} />
-              <span>Orange = Balanced</span>
-            </div>
-            <div className="siara-map-legend__row">
-              <span className="siara-map-legend__swatch" style={{ background: "#9ca3af" }} />
-              <span>Gray = Alternative not selected</span>
-            </div>
-            <div className="siara-map-legend__row">
-              <span className="siara-map-legend__swatch siara-map-legend__swatch--gradient" />
-              <span>Green / Orange / Red = segment danger</span>
-            </div>
-            <div className="siara-map-legend__row">
-              <span className="siara-map-legend__swatch" style={{ background: "#7c3aed" }} />
-              <span>Purple marker = current location</span>
-            </div>
-          </div>
-        )}
-      </div>
+     
 
       
 
