@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
-import { changePassword, getUserSettings, updateUserSettings, uploadUserAvatar } from '../../services/authService'
+import { changePassword, exportMyData, getUserSettings, updateUserSettings, uploadUserAvatar } from '../../services/authService'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/DashboardPage.css'
 import '../../styles/SettingsPage.css'
@@ -134,6 +134,22 @@ export default function SettingsPage() {
   const [editing, setEditing] = useState(null)
   const [saved, setSaved] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isExportingData, setIsExportingData] = useState(false)
+  const [exportError, setExportError] = useState('')
+
+  const handleExportData = useCallback(async () => {
+    if (isExportingData) return
+    setIsExportingData(true)
+    setExportError('')
+    try {
+      await exportMyData()
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || 'Export failed'
+      setExportError(message)
+    } finally {
+      setIsExportingData(false)
+    }
+  }, [isExportingData])
 
   const [isLoadingSettings, setIsLoadingSettings] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -1006,8 +1022,16 @@ export default function SettingsPage() {
 
               <div className="settings-row">
                 <span className="settings-label">Export My Data</span>
-                <span className="settings-value settings-muted">Download all your data as JSON</span>
-                <button className="settings-action">Export</button>
+                <span className="settings-value settings-muted">
+                  {exportError ? exportError : 'Download all your data as JSON'}
+                </span>
+                <button
+                  className="settings-action"
+                  onClick={handleExportData}
+                  disabled={isExportingData}
+                >
+                  {isExportingData ? 'Exporting…' : 'Export'}
+                </button>
               </div>
 
               <div className="settings-row">

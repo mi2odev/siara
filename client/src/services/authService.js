@@ -147,3 +147,34 @@ export async function updateEmailPreferences(payload) {
   const response = await userRequest.patch('/auth/email-preferences', payload)
   return response.data?.preferences || null
 }
+
+function extractFilenameFromContentDisposition(disposition) {
+  if (typeof disposition !== 'string') return null
+  const match = disposition.match(/filename\s*=\s*"?([^";]+)"?/i)
+  return match ? match[1].trim() : null
+}
+
+export async function exportMyData() {
+  const response = await userRequest.get('/account/export', {
+    responseType: 'blob',
+  })
+
+  const fallbackName = `siara-user-data-${new Date().toISOString().slice(0, 10)}.json`
+  const filename =
+    extractFilenameFromContentDisposition(response.headers?.['content-disposition']) || fallbackName
+
+  const blob = response.data instanceof Blob
+    ? response.data
+    : new Blob([response.data], { type: 'application/json' })
+
+  const objectUrl = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(objectUrl)
+
+  return { filename, size: blob.size }
+}
