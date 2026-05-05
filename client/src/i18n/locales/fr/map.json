@@ -1,0 +1,30 @@
+{
+  "title": "Carte des risques",
+  "loading": "Chargement de la carte…",
+  "weather": {
+    "current": "Météo actuelle",
+    "forecast": "Prévision 24h",
+    "temperature": "Température",
+    "wind": "Vent",
+    "humidity": "Humidité",
+    "visibility": "Visibilité",
+    "precipitation": "Précipitations"
+  },
+  "risk": {
+    "low": "Faible",
+    "moderate": "Modéré",
+    "high": "Élevé",
+    "extreme": "Extrême",
+    "unknown": "Inconnu"
+  },
+  "controls": {
+    "myLocation": "Ma position",
+    "search": "Rechercher un lieu",
+    "report": "Signaler un incident"
+  },
+  "destinations": {
+    "set": "Définir la destination",
+    "clear": "Effacer la destination",
+    "compute": "Calculer l'itinéraire"
+  }
+}

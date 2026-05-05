@@ -1,0 +1,15 @@
+{
+  "title": "Alerts",
+  "create": "Create alert",
+  "empty": "You have no alerts yet.",
+  "name": "Alert name",
+  "incidentTypes": "Incident types",
+  "severityLevels": "Severity levels",
+  "zone": "Zone",
+  "active": "Active",
+  "paused": "Paused",
+  "save": "Save alert",
+  "delete": "Delete alert",
+  "count_one": "{{count}} alert",
+  "count_other": "{{count}} alerts"
+}

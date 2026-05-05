@@ -1,0 +1,30 @@
+{
+  "title": "خريطة المخاطر",
+  "loading": "جارٍ تحميل الخريطة…",
+  "weather": {
+    "current": "الطقس الحالي",
+    "forecast": "توقعات 24 ساعة",
+    "temperature": "درجة الحرارة",
+    "wind": "الرياح",
+    "humidity": "الرطوبة",
+    "visibility": "الرؤية",
+    "precipitation": "الأمطار"
+  },
+  "risk": {
+    "low": "منخفض",
+    "moderate": "متوسط",
+    "high": "مرتفع",
+    "extreme": "شديد",
+    "unknown": "غير معروف"
+  },
+  "controls": {
+    "myLocation": "موقعي",
+    "search": "ابحث عن مكان",
+    "report": "الإبلاغ عن حادث"
+  },
+  "destinations": {
+    "set": "تحديد الوجهة",
+    "clear": "مسح الوجهة",
+    "compute": "حساب المسار"
+  }
+}

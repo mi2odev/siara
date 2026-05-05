@@ -1,0 +1,31 @@
+{
+  "title": "الإعدادات",
+  "sections": {
+    "profile": "الملف الشخصي",
+    "account": "الحساب",
+    "security": "الأمان",
+    "notifications": "الإشعارات",
+    "privacy": "الخصوصية",
+    "data": "البيانات"
+  },
+  "data": {
+    "exportTitle": "تصدير بياناتي",
+    "exportHint": "تنزيل جميع بياناتك بصيغة JSON",
+    "exportButton": "تصدير",
+    "exporting": "جارٍ التصدير…",
+    "clearTitle": "مسح السجل",
+    "clearHint": "إزالة كل سجل البحث والتصفح",
+    "clearButton": "مسح",
+    "deleteTitle": "حذف الحساب",
+    "deleteHint": "هذا الإجراء نهائي ولا يمكن التراجع عنه.",
+    "deleteButton": "حذف الحساب",
+    "confirmPrompt": "هل أنت متأكد؟ اكتب {{keyword}} للتأكيد.",
+    "confirmDelete": "تأكيد الحذف"
+  },
+  "account": {
+    "email": "البريد الإلكتروني",
+    "phone": "الهاتف",
+    "language": "اللغة"
+  },
+  "saved": "تم الحفظ"
+}

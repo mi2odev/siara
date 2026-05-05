@@ -1,0 +1,40 @@
+{
+  "appName": "SIARA",
+  "actions": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "close": "إغلاق",
+    "loading": "جارٍ التحميل…",
+    "retry": "إعادة المحاولة",
+    "search": "بحث"
+  },
+  "language": {
+    "label": "اللغة",
+    "en": "English",
+    "fr": "Français",
+    "ar": "العربية",
+    "select": "اختر اللغة"
+  },
+  "errors": {
+    "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "network": "خطأ في الشبكة. تحقّق من اتصالك.",
+    "unauthorized": "يرجى تسجيل الدخول للمتابعة."
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "map": "الخريطة",
+    "reports": "البلاغات",
+    "alerts": "التنبيهات",
+    "predictions": "التوقعات",
+    "notifications": "الإشعارات",
+    "profile": "الملف الشخصي",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج",
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب"
+  }
+}

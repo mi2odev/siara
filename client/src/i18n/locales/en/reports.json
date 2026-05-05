@@ -1,0 +1,19 @@
+{
+  "title": "Reports",
+  "create": "Report incident",
+  "empty": "No reports yet.",
+  "incidentType": "Incident type",
+  "description": "Description",
+  "severity": "Severity",
+  "location": "Location",
+  "submit": "Submit report",
+  "submitting": "Submitting…",
+  "status": {
+    "pending": "Pending",
+    "verified": "Verified",
+    "rejected": "Rejected",
+    "resolved": "Resolved"
+  },
+  "count_one": "{{count}} report",
+  "count_other": "{{count}} reports"
+}

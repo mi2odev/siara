@@ -1,0 +1,40 @@
+{
+  "appName": "SIARA",
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "back": "Back",
+    "close": "Close",
+    "loading": "Loading…",
+    "retry": "Retry",
+    "search": "Search"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "fr": "Français",
+    "ar": "العربية",
+    "select": "Select language"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Check your connection.",
+    "unauthorized": "Please sign in to continue."
+  },
+  "nav": {
+    "home": "Home",
+    "map": "Map",
+    "reports": "Reports",
+    "alerts": "Alerts",
+    "predictions": "Predictions",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Sign out",
+    "login": "Sign in",
+    "register": "Sign up"
+  }
+}

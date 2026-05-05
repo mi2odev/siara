@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton'
+import LanguageSelect from '../../components/layout/LanguageSelect'
 import { AuthContext } from '../../contexts/AuthContext'
 import { getAuthenticatedRedirect } from '../../routes/routeAccess'
 import logo from '../../assets/logos/siara-logo.png'
@@ -100,6 +101,7 @@ export default function RegisterPage() {
 
   return (
     <div className="siara-login-root">
+      <LanguageSelect floating size="compact" />
       <div className="siara-login-grid">
         <aside className="siara-hero">
           <img src={logo} alt="SIARA" className="logo" />

@@ -1,0 +1,19 @@
+{
+  "title": "Signalements",
+  "create": "Signaler un incident",
+  "empty": "Aucun signalement pour l'instant.",
+  "incidentType": "Type d'incident",
+  "description": "Description",
+  "severity": "Gravité",
+  "location": "Lieu",
+  "submit": "Soumettre le signalement",
+  "submitting": "Envoi…",
+  "status": {
+    "pending": "En attente",
+    "verified": "Vérifié",
+    "rejected": "Rejeté",
+    "resolved": "Résolu"
+  },
+  "count_one": "{{count}} signalement",
+  "count_other": "{{count}} signalements"
+}
