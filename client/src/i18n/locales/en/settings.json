@@ -1,0 +1,31 @@
+{
+  "title": "Settings",
+  "sections": {
+    "profile": "Profile",
+    "account": "Account",
+    "security": "Security",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "data": "Data"
+  },
+  "data": {
+    "exportTitle": "Export My Data",
+    "exportHint": "Download all your data as JSON",
+    "exportButton": "Export",
+    "exporting": "Exporting…",
+    "clearTitle": "Clear History",
+    "clearHint": "Remove all search & browsing history",
+    "clearButton": "Clear",
+    "deleteTitle": "Delete Account",
+    "deleteHint": "This action is permanent and cannot be recovered.",
+    "deleteButton": "Delete Account",
+    "confirmPrompt": "Are you sure? Type {{keyword}} to confirm.",
+    "confirmDelete": "Confirm Delete"
+  },
+  "account": {
+    "email": "Email",
+    "phone": "Phone",
+    "language": "Language"
+  },
+  "saved": "Saved"
+}

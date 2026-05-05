@@ -1,0 +1,23 @@
+{
+  "title": "البلاغات",
+  "create": "الإبلاغ عن حادث",
+  "empty": "لا توجد بلاغات بعد.",
+  "incidentType": "نوع الحادث",
+  "description": "الوصف",
+  "severity": "الخطورة",
+  "location": "الموقع",
+  "submit": "إرسال البلاغ",
+  "submitting": "جارٍ الإرسال…",
+  "status": {
+    "pending": "قيد المراجعة",
+    "verified": "مؤكَّد",
+    "rejected": "مرفوض",
+    "resolved": "تم الحل"
+  },
+  "count_zero": "لا توجد بلاغات",
+  "count_one": "بلاغ واحد",
+  "count_two": "بلاغان",
+  "count_few": "{{count}} بلاغات",
+  "count_many": "{{count}} بلاغًا",
+  "count_other": "{{count}} بلاغ"
+}

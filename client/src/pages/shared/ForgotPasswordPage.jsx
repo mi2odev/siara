@@ -6,6 +6,7 @@ import {
   resetPassword,
   verifyPasswordResetCode,
 } from '../../services/authService'
+import LanguageSelect from '../../components/layout/LanguageSelect'
 import logo from '../../assets/logos/siara-logo.png'
 import '../../styles/LoginPage.css'
 import '../../styles/AuthFlowPage.css'
@@ -122,6 +123,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="siara-login-root">
+      <LanguageSelect floating size="compact" />
       <div className="siara-auth-flow-shell">
         <div className="siara-auth-flow-card">
           <div className="siara-brand">

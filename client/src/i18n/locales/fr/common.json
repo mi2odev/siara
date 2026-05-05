@@ -1,0 +1,40 @@
+{
+  "appName": "SIARA",
+  "actions": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "close": "Fermer",
+    "loading": "Chargement…",
+    "retry": "Réessayer",
+    "search": "Rechercher"
+  },
+  "language": {
+    "label": "Langue",
+    "en": "English",
+    "fr": "Français",
+    "ar": "العربية",
+    "select": "Choisir la langue"
+  },
+  "errors": {
+    "generic": "Une erreur est survenue. Veuillez réessayer.",
+    "network": "Erreur réseau. Vérifiez votre connexion.",
+    "unauthorized": "Veuillez vous connecter pour continuer."
+  },
+  "nav": {
+    "home": "Accueil",
+    "map": "Carte",
+    "reports": "Signalements",
+    "alerts": "Alertes",
+    "predictions": "Prévisions",
+    "notifications": "Notifications",
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "logout": "Se déconnecter",
+    "login": "Se connecter",
+    "register": "S'inscrire"
+  }
+}

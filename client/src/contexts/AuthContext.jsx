@@ -1,5 +1,7 @@
 import React, { createContext, useEffect, useMemo, useRef } from 'react'
 import { useAuthStore } from '../stores/authStore'
+import i18n, { normalizeLanguage } from '../i18n'
+import { getMyPreferences } from '../services/preferencesService'
 
 export const AuthContext = createContext(null)
 
@@ -28,6 +30,26 @@ export function AuthProvider({ children }) {
     hasRestoredRef.current = true
     restoreSession()
   }, [restoreSession])
+
+  useEffect(() => {
+    if (!isAuthenticated) return undefined
+    let cancelled = false
+    getMyPreferences()
+      .then((prefs) => {
+        if (cancelled || !prefs?.language) return
+        const next = normalizeLanguage(prefs.language)
+        if (next !== normalizeLanguage(i18n.language)) {
+          i18n.changeLanguage(next).catch(() => {})
+        }
+      })
+      .catch(() => {
+        // Preferences endpoint may be unavailable; the locally persisted
+        // language still applies.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated])
 
   const value = useMemo(() => ({
     user,

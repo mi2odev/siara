@@ -1,9 +1,11 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
+import LanguageSelect from '../../components/layout/LanguageSelect'
 import { changePassword, exportMyData, getUserSettings, updateUserSettings, uploadUserAvatar } from '../../services/authService'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/DashboardPage.css'
@@ -136,6 +138,7 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isExportingData, setIsExportingData] = useState(false)
   const [exportError, setExportError] = useState('')
+  const { t } = useTranslation(['settings', 'common'])
 
   const handleExportData = useCallback(async () => {
     if (isExportingData) return
@@ -817,9 +820,8 @@ export default function SettingsPage() {
               <h3 className="settings-section-title">Account</h3>
 
               {[
-                { key: 'email', label: 'Email' },
-                { key: 'phone', label: 'Phone' },
-                { key: 'language', label: 'Language' },
+                { key: 'email', label: t('settings:account.email', { defaultValue: 'Email' }) },
+                { key: 'phone', label: t('settings:account.phone', { defaultValue: 'Phone' }) },
               ].map(({ key, label }) => (
                 <div className="settings-row" key={key}>
                   <span className="settings-label">{label}</span>
@@ -835,12 +837,19 @@ export default function SettingsPage() {
                     <span className="settings-value">{profileData[key]}</span>
                   )}
                   {saved === key ? (
-                    <span className="settings-saved">Saved</span>
+                    <span className="settings-saved">{t('settings:saved', { defaultValue: 'Saved' })}</span>
                   ) : editing !== key ? (
-                    <button className="settings-action" onClick={() => handleEdit(key)}>Edit</button>
+                    <button className="settings-action" onClick={() => handleEdit(key)}>{t('common:actions.edit', { defaultValue: 'Edit' })}</button>
                   ) : null}
                 </div>
               ))}
+
+              <div className="settings-row" key="language">
+                <span className="settings-label">{t('settings:account.language', { defaultValue: 'Language' })}</span>
+                <span className="settings-value">
+                  <LanguageSelect ariaLabel={t('common:language.select', { defaultValue: 'Select language' })} />
+                </span>
+              </div>
 
               <div className="settings-row">
                 <span className="settings-label">Member since</span>
@@ -1018,40 +1027,42 @@ export default function SettingsPage() {
 
           {activeSection === 'data' && (
             <section className="settings-section">
-              <h3 className="settings-section-title">Data</h3>
+              <h3 className="settings-section-title">{t('settings:sections.data', { defaultValue: 'Data' })}</h3>
 
               <div className="settings-row">
-                <span className="settings-label">Export My Data</span>
+                <span className="settings-label">{t('settings:data.exportTitle', { defaultValue: 'Export My Data' })}</span>
                 <span className="settings-value settings-muted">
-                  {exportError ? exportError : 'Download all your data as JSON'}
+                  {exportError ? exportError : t('settings:data.exportHint', { defaultValue: 'Download all your data as JSON' })}
                 </span>
                 <button
                   className="settings-action"
                   onClick={handleExportData}
                   disabled={isExportingData}
                 >
-                  {isExportingData ? 'Exporting…' : 'Export'}
+                  {isExportingData
+                    ? t('settings:data.exporting', { defaultValue: 'Exporting…' })
+                    : t('settings:data.exportButton', { defaultValue: 'Export' })}
                 </button>
               </div>
 
               <div className="settings-row">
-                <span className="settings-label">Clear History</span>
-                <span className="settings-value settings-muted">Remove all search & browsing history</span>
-                <button className="settings-action settings-action-warn">Clear</button>
+                <span className="settings-label">{t('settings:data.clearTitle', { defaultValue: 'Clear History' })}</span>
+                <span className="settings-value settings-muted">{t('settings:data.clearHint', { defaultValue: 'Remove all search & browsing history' })}</span>
+                <button className="settings-action settings-action-warn">{t('settings:data.clearButton', { defaultValue: 'Clear' })}</button>
               </div>
 
               <div className="settings-danger-zone">
-                <h4 className="settings-danger-title">Delete Account</h4>
-                <p className="settings-danger-text">This action is permanent and cannot be recovered.</p>
+                <h4 className="settings-danger-title">{t('settings:data.deleteTitle', { defaultValue: 'Delete Account' })}</h4>
+                <p className="settings-danger-text">{t('settings:data.deleteHint', { defaultValue: 'This action is permanent and cannot be recovered.' })}</p>
                 {!showDeleteConfirm ? (
-                  <button className="settings-btn-danger" onClick={() => setShowDeleteConfirm(true)}>Delete Account</button>
+                  <button className="settings-btn-danger" onClick={() => setShowDeleteConfirm(true)}>{t('settings:data.deleteButton', { defaultValue: 'Delete Account' })}</button>
                 ) : (
                   <div className="settings-confirm-block">
-                    <p className="settings-confirm-text">Are you sure? Type <strong>DELETE</strong> to confirm.</p>
+                    <p className="settings-confirm-text">{t('settings:data.confirmPrompt', { keyword: 'DELETE', defaultValue: 'Are you sure? Type DELETE to confirm.' })}</p>
                     <div className="settings-confirm-actions">
-                      <input className="settings-confirm-input" placeholder="Type DELETE" />
-                      <button className="settings-btn-danger">Confirm Delete</button>
-                      <button className="settings-btn-cancel" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+                      <input className="settings-confirm-input" placeholder="DELETE" />
+                      <button className="settings-btn-danger">{t('settings:data.confirmDelete', { defaultValue: 'Confirm Delete' })}</button>
+                      <button className="settings-btn-cancel" onClick={() => setShowDeleteConfirm(false)}>{t('common:actions.cancel', { defaultValue: 'Cancel' })}</button>
                     </div>
                   </div>
                 )}

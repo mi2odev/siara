@@ -1,0 +1,30 @@
+{
+  "title": "Risk map",
+  "loading": "Loading map…",
+  "weather": {
+    "current": "Current weather",
+    "forecast": "24h forecast",
+    "temperature": "Temperature",
+    "wind": "Wind",
+    "humidity": "Humidity",
+    "visibility": "Visibility",
+    "precipitation": "Precipitation"
+  },
+  "risk": {
+    "low": "Low",
+    "moderate": "Moderate",
+    "high": "High",
+    "extreme": "Extreme",
+    "unknown": "Unknown"
+  },
+  "controls": {
+    "myLocation": "My location",
+    "search": "Search a place",
+    "report": "Report incident"
+  },
+  "destinations": {
+    "set": "Set destination",
+    "clear": "Clear destination",
+    "compute": "Compute route"
+  }
+}

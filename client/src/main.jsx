@@ -3,13 +3,17 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import './styles/global.css'
 import './styles/responsive.css'
+import './i18n'
 import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext'
+import { DirectionProvider } from './i18n/DirectionProvider'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <DirectionProvider>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </DirectionProvider>
   </StrictMode>,
 )

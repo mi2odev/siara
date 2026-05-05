@@ -30,6 +30,7 @@ const reportDangerHeatmapRoutes = require("./contollers/reportDangerHeatmap");
 const travelHistoryRoutes = require("./contollers/travelHistory");
 const dangerSubscriptionRoutes = require("./contollers/dangerSubscriptions");
 const accountRoutes = require("./contollers/account");
+const userPreferencesRoutes = require("./contollers/userPreferences");
 const { startNotificationListener } = require("./services/notificationListener");
 const { initializeNotificationSocketServer } = require("./services/notificationSocket");
 const { startWeeklySummaryScheduler } = require("./services/weeklySummaryScheduler");
@@ -112,6 +113,7 @@ app.use("/api/map", reportDangerHeatmapRoutes);
 app.use("/api/travel-history", travelHistoryRoutes);
 app.use("/api/danger-subscriptions", dangerSubscriptionRoutes);
 app.use("/api/account", accountRoutes);
+app.use("/api/users/me/preferences", userPreferencesRoutes);
 
 app.get("/api/zone-profiles", async (req, res, next) => {
   try {

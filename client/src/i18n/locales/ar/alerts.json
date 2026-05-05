@@ -1,0 +1,19 @@
+{
+  "title": "التنبيهات",
+  "create": "إنشاء تنبيه",
+  "empty": "ليس لديك تنبيهات بعد.",
+  "name": "اسم التنبيه",
+  "incidentTypes": "أنواع الحوادث",
+  "severityLevels": "مستويات الخطورة",
+  "zone": "المنطقة",
+  "active": "نشط",
+  "paused": "متوقف مؤقتًا",
+  "save": "حفظ التنبيه",
+  "delete": "حذف التنبيه",
+  "count_zero": "لا توجد تنبيهات",
+  "count_one": "تنبيه واحد",
+  "count_two": "تنبيهان",
+  "count_few": "{{count}} تنبيهات",
+  "count_many": "{{count}} تنبيهًا",
+  "count_other": "{{count}} تنبيه"
+}

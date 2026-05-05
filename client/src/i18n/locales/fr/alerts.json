@@ -1,0 +1,15 @@
+{
+  "title": "Alertes",
+  "create": "Créer une alerte",
+  "empty": "Vous n'avez pas encore d'alertes.",
+  "name": "Nom de l'alerte",
+  "incidentTypes": "Types d'incidents",
+  "severityLevels": "Niveaux de gravité",
+  "zone": "Zone",
+  "active": "Active",
+  "paused": "En pause",
+  "save": "Enregistrer l'alerte",
+  "delete": "Supprimer l'alerte",
+  "count_one": "{{count}} alerte",
+  "count_other": "{{count}} alertes"
+}

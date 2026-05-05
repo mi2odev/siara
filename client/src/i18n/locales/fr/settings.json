@@ -1,0 +1,31 @@
+{
+  "title": "Paramètres",
+  "sections": {
+    "profile": "Profil",
+    "account": "Compte",
+    "security": "Sécurité",
+    "notifications": "Notifications",
+    "privacy": "Confidentialité",
+    "data": "Données"
+  },
+  "data": {
+    "exportTitle": "Exporter mes données",
+    "exportHint": "Téléchargez toutes vos données au format JSON",
+    "exportButton": "Exporter",
+    "exporting": "Export en cours…",
+    "clearTitle": "Effacer l'historique",
+    "clearHint": "Supprimer tout l'historique de recherche et de navigation",
+    "clearButton": "Effacer",
+    "deleteTitle": "Supprimer le compte",
+    "deleteHint": "Cette action est définitive et irréversible.",
+    "deleteButton": "Supprimer le compte",
+    "confirmPrompt": "Êtes-vous sûr ? Tapez {{keyword}} pour confirmer.",
+    "confirmDelete": "Confirmer la suppression"
+  },
+  "account": {
+    "email": "E-mail",
+    "phone": "Téléphone",
+    "language": "Langue"
+  },
+  "saved": "Enregistré"
+}

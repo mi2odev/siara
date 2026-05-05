@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { AuthContext } from '../../contexts/AuthContext'
+import LanguageSelect from '../../components/layout/LanguageSelect'
 import { getAuthenticatedRedirect } from '../../routes/routeAccess'
 import { sendVerificationCode } from '../../services/authService'
 import logo from '../../assets/logos/siara-logo.png'
@@ -110,6 +111,7 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="siara-login-root">
+      <LanguageSelect floating size="compact" />
       <div className="siara-auth-flow-shell">
         <div className="siara-auth-flow-card">
           <div className="siara-brand">
