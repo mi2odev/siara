@@ -61,10 +61,7 @@
 }
 
 .siara-credibility-tooltip {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 0;
-  z-index: 60;
+  z-index: 9999;
   background: #0F172A;
   color: #F8FAFC;
   border-radius: 8px;
@@ -73,21 +70,22 @@
   font-weight: 500;
   text-transform: none;
   letter-spacing: normal;
-  width: max(220px, 100%);
+  width: 240px;
   max-width: 300px;
-  box-shadow: 0 10px 24px -8px rgba(15, 23, 42, 0.4);
+  box-shadow: 0 10px 24px -8px rgba(15, 23, 42, 0.45);
   pointer-events: none;
-  opacity: 0;
-  transform: translateY(4px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-.siara-credibility:hover .siara-credibility-tooltip,
-.siara-credibility:focus .siara-credibility-tooltip,
-.siara-credibility.is-open .siara-credibility-tooltip {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
+/* Portal variant — rendered at document.body, positioned via JS */
+.siara-credibility-tooltip--portal {
+  position: fixed;
+  transform: translateY(-100%);
+  animation: cred-tip-in 0.12s ease both;
+}
+
+@keyframes cred-tip-in {
+  from { opacity: 0; transform: translateY(calc(-100% + 4px)); }
+  to   { opacity: 1; transform: translateY(-100%); }
 }
 
 .siara-credibility-tooltip__title {

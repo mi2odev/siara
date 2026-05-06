@@ -2,8 +2,14 @@ import React, { useMemo, useState } from 'react'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet'
 import { useNavigate } from 'react-router-dom'
 
+import LaunchOutlinedIcon from '@mui/icons-material/LaunchOutlined'
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined'
+import StraightenOutlinedIcon from '@mui/icons-material/StraightenOutlined'
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
+
 import PoliceShell from '../../components/layout/PoliceShell'
 import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import IncidentCard from '../../components/police/IncidentCard'
 import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import {
   listPoliceIncidents,
@@ -186,57 +192,38 @@ export default function PoliceNearbyIncidentsPage() {
         <div className="police-nearby-layout police-nearby-page-layout">
           <div className="police-nearby-list police-nearby-page-list">
             {nearbyIncidents.map((incident) => (
-              <article
+              <IncidentCard
                 key={incident.id}
-                className={`police-nearby-item police-nearby-page-item ${selectedIncident?.id === incident.id ? 'active' : ''}`}
-                data-severity={incident.severity}
+                incident={incident}
+                active={selectedIncident?.id === incident.id}
                 onClick={() => setSelectedIncidentId(incident.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    setSelectedIncidentId(incident.id)
-                  }
-                }}
-              >
-                <div className="police-nearby-item-top police-nearby-page-item-top">
-                  <div className="police-nearby-page-id-wrap">
-                    <strong>{incident.displayId}</strong>
-                    <span className={`police-badge ${incident.severity}`}>{displayLabel(incident.severity)}</span>
-                  </div>
-                  <span className="police-nearby-page-distance">{incident.distanceLabel || 'Nearby'}</span>
-                </div>
-                <h3 className="police-nearby-page-title">{incident.title || 'Untitled incident'}</h3>
-                <p className="police-nearby-page-location">{incident.locationText}</p>
-                <div className="police-nearby-item-meta police-nearby-page-meta">
-                  <span className="police-nearby-page-chip">Status: {displayLabel(incident.status)}</span>
-                  {incident.reportedBy?.name ? <span className="police-nearby-page-chip">Reporter: {incident.reportedBy.name}</span> : null}
-                  <span className="police-nearby-page-chip">Notes: {incident.fieldNoteCount}</span>
-                </div>
-                <div className="police-nearby-item-actions police-nearby-page-actions">
-                  <button
-                    type="button"
-                    className="police-action police-nearby-page-btn police-nearby-page-btn-view"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      navigate(`/police/incident/${incident.id}`)
-                    }}
-                  >
-                    Open Case
-                  </button>
-                  <button
-                    type="button"
-                    className="police-action police-nearby-page-btn police-nearby-page-btn-handle"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      navigate('/police/verification', { state: { incidentId: incident.id } })
-                    }}
-                  >
-                    Continue
-                  </button>
-                </div>
-              </article>
+                topRight={(
+                  <>
+                    <StraightenOutlinedIcon fontSize="inherit" />
+                    {incident.distanceLabel || 'Nearby'}
+                  </>
+                )}
+                metaExtras={incident.fieldNoteCount > 0 ? [{
+                  icon: <DescriptionOutlinedIcon fontSize="inherit" />,
+                  label: `${incident.fieldNoteCount} note${incident.fieldNoteCount !== 1 ? 's' : ''}`,
+                }] : []}
+                actions={[
+                  {
+                    label: 'Open Case',
+                    icon: <LaunchOutlinedIcon fontSize="inherit" />,
+                    variant: 'primary',
+                    ariaLabel: `Open case ${incident.displayId}`,
+                    onClick: () => navigate(`/police/incident/${incident.id}`),
+                  },
+                  {
+                    label: 'Continue',
+                    icon: <FactCheckOutlinedIcon fontSize="inherit" />,
+                    variant: 'secondary',
+                    ariaLabel: `Continue ${incident.displayId} in verification`,
+                    onClick: () => navigate('/police/verification', { state: { incidentId: incident.id } }),
+                  },
+                ]}
+              />
             ))}
 
             {!isLoading && nearbyIncidents.length === 0 ? (

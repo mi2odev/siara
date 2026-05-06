@@ -9,7 +9,7 @@ function createDeadline(totalMs) {
     startedAt,
     expiresAt,
     totalMs: total,
-    remaining() {
+    remaining() { 
       return Math.max(0, expiresAt - Date.now());
     },
     expired() {

@@ -378,6 +378,7 @@ export default function MapPage() {
 
   // Whether the map is displayed in fullscreen mode
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [riskPanelHost, setRiskPanelHost] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherRefreshing, setWeatherRefreshing] = useState(false);
   const [weatherError, setWeatherError] = useState("");
@@ -1372,6 +1373,7 @@ export default function MapPage() {
                 onSelectedTimestampChange={setSelectedTimestampIso}
                 weatherData={weatherData}
                 placeName={resolvedPlaceName}
+                riskPanelTarget={isFullscreen ? null : riskPanelHost}
               />
             </div>
 
@@ -1426,6 +1428,9 @@ export default function MapPage() {
             )}
             {weatherUpdating && <p className="cw-updating">Refreshing…</p>}
           </div>
+
+          {/* CURRENT RISK panel — portaled here from SiaraMap when not in full-map mode */}
+          <div ref={setRiskPanelHost} className="context-risk-slot" />
 
           <div className="context-section danger-forecast-section">
             <h4 className="section-title">Danger - next 24h</h4>

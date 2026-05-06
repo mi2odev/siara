@@ -405,7 +405,7 @@ export default function PoliceIncidentDetailPage() {
         <div className="pid-layout">
 
           {/* ── Header ── */}
-          <header className="pid-header">
+          <header className="pid-header" data-severity={incident?.severity || 'low'}>
             <div className="pid-header-row">
               <button type="button" className="pid-back-btn" onClick={() => navigate(-1)}>
                 <ArrowBackRoundedIcon sx={{ fontSize: 14 }} />

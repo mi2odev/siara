@@ -695,6 +695,21 @@
   overflow: hidden;
 }
 
+/* During navigation mode the MapLibre overlay has its own Drive/Routes/Risk
+   tabs (top-left) and its own map controls (top-right), so the Leaflet-era
+   layer-switcher and Full-Map / My-Location bar become redundant noise.
+   Hide them while .siara-mlb-shell is mounted. */
+.map-container:has(.siara-mlb-shell) .map-controls-top,
+.map-container:has(.siara-mlb-shell) .map-controls-right {
+  display: none;
+}
+
+/* Push the route-overview panel down below the nav-view's own top controls
+   (Drive/Routes/Risk tabs + map control buttons sit at top ~18px + ~50px). */
+.map-canvas .siara-mlb-shell .siara-route-overview {
+  top: 76px;
+}
+
 .map-controls-top {
   position: absolute;
   top: 14px;
@@ -1257,6 +1272,31 @@
 .siara-map-aside.siara-overlay-dimmed {
   opacity: 0.14;
   pointer-events: none;
+}
+
+/* Docked variant — when CURRENT RISK is portaled into the right sidebar
+   (not floating over the map). Strip absolute positioning and let it
+   flow naturally under the weather widget. */
+.siara-map-aside--docked {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  z-index: auto !important;
+  overflow-y: visible !important;
+}
+.siara-map-aside--docked .siara-risk-debug {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Slot in .map-sidebar-right where CURRENT RISK is portaled */
+.context-risk-slot {
+  display: contents;
 }
 
 @media (max-width: 1200px) {

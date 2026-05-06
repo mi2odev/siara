@@ -80,6 +80,9 @@ export default function ReportIncidentPage() {
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
 
+  /* Scroll to top on mount — prevents the page from opening mid-scroll */
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+
   /* ═══ UI STATE ═══ */
   const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
@@ -119,6 +122,12 @@ export default function ReportIncidentPage() {
     { id: 4, label: 'Media', icon: '📷' },
     { id: 5, label: 'Verification', icon: '✅' }
   ]
+
+  /* Reset center panel scroll to top on every step change */
+  const centerPanelRef = React.useRef(null)
+  useEffect(() => {
+    if (centerPanelRef.current) centerPanelRef.current.scrollTop = 0
+  }, [currentStep])
 
   /* ═══ STATIC DATA — incident types & severity levels ═══ */
   const incidentTypes = [
@@ -605,7 +614,7 @@ export default function ReportIncidentPage() {
                 <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
                 <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
                 <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-                <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
+                <button className="dash-tab dash-tab-active" onClick={() => navigate('/report')}>Report</button>
                 <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
                 <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
                 <PoliceModeTab user={user} />
@@ -646,12 +655,29 @@ export default function ReportIncidentPage() {
           </div>
         </header>
 
+        <div className="success-scroll-nav">
+          <button className="success-scroll-btn" aria-label="Scroll up" onClick={() => window.scrollBy({ top: -260, behavior: 'smooth' })}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
+          </button>
+          <button className="success-scroll-btn" aria-label="Scroll down" onClick={() => window.scrollBy({ top: 260, behavior: 'smooth' })}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        </div>
+
         <div className="success-container">
           <div className="success-card">
-            <div className="success-icon">✅</div>
-            <h1>Report submitted!</h1>
+            <div className="success-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <h1 className="success-title">Report submitted!</h1>
             <p className="success-id">Reference: <strong>{submittedId}</strong></p>
-            
+
             <div className="success-status">
               <div className="status-badge pending">
                 <span className="status-dot"></span>
@@ -659,9 +685,7 @@ export default function ReportIncidentPage() {
               </div>
             </div>
 
-            {submitWarning && (
-              <p className="step-hint">{submitWarning}</p>
-            )}
+            {submitWarning && <p className="step-hint">{submitWarning}</p>}
 
             <div className="success-next">
               <h3>What happens next?</h3>
@@ -670,17 +694,15 @@ export default function ReportIncidentPage() {
                   <span className="step-num">1</span>
                   <div className="step-info">
                     <span className="step-title">Automatic review</span>
-                    <span className="step-desc">Our AI analyzes your report</span>
+                    <span className="step-desc">AI analyzes your report for accuracy</span>
                   </div>
-                  <span className="step-icon">🤖</span>
                 </div>
                 <div className="next-step">
                   <span className="step-num">2</span>
                   <div className="step-info">
                     <span className="step-title">Community confirmation</span>
-                    <span className="step-desc">Other users can confirm</span>
+                    <span className="step-desc">Other users can confirm the incident</span>
                   </div>
-                  <span className="step-icon">👥</span>
                 </div>
                 <div className="next-step">
                   <span className="step-num">3</span>
@@ -688,25 +710,24 @@ export default function ReportIncidentPage() {
                     <span className="step-title">Official validation</span>
                     <span className="step-desc">Verification by authorities if needed</span>
                   </div>
-                  <span className="step-icon">🏛️</span>
                 </div>
               </div>
             </div>
 
             <div className="success-actions">
               <button className="action-btn primary" onClick={() => navigate(`/incident/${submittedId}`)}>
-                👁️ View my report
+                View my report
               </button>
-              <button className="action-btn secondary" onClick={() => navigate('/alerts/create', { state: { fromIncident: reportData } })}>
-                🔔 Create an alert for this incident
+              <button className="action-btn secondary" onClick={() => { window.location.href = '/report' }}>
+                Report another incident
               </button>
-              <button className="action-btn tertiary" onClick={() => navigate('/report', { state: { newReport: reportData.title || getPreviewTitle() } })}>
-                ← Back to my reports
+              <button className="action-btn back" onClick={() => navigate('/news')}>
+                ← Back to feed
               </button>
             </div>
 
             <div className="success-trust">
-              <p>🔒 Your personal data is protected. Reports are moderated to ensure quality.</p>
+              <p>Your personal data is protected. Reports are moderated to ensure quality.</p>
             </div>
           </div>
         </div>
@@ -811,7 +832,7 @@ export default function ReportIncidentPage() {
         </aside>
 
         {/* ═══ CENTER COLUMN — STEP FORM PANELS ═══ */}
-        <main className="report-center">
+        <main className="report-center" ref={centerPanelRef}>
           {/* STEP 1 — Incident Type Selection (single-select cards) */}
           {currentStep === 1 && (
             <div className="step-panel">
@@ -1147,17 +1168,17 @@ export default function ReportIncidentPage() {
                     <span className="review-value">
                       {getTypeInfo()?.icon} {getTypeInfo()?.label}
                     </span>
-                    <button className="review-edit" onClick={() => setCurrentStep(1)}>✏️</button>
+                    <button className="review-edit" onClick={() => setCurrentStep(1)}>Edit</button>
                   </div>
                   <div className="review-row">
                     <span className="review-label">Location</span>
                     <span className="review-value">📍 {reportData.locationAddress}</span>
-                    <button className="review-edit" onClick={() => setCurrentStep(2)}>✏️</button>
+                    <button className="review-edit" onClick={() => setCurrentStep(2)}>Edit</button>
                   </div>
                   <div className="review-row">
                     <span className="review-label">Title</span>
                     <span className="review-value">{reportData.title}</span>
-                    <button className="review-edit" onClick={() => setCurrentStep(3)}>✏️</button>
+                    <button className="review-edit" onClick={() => setCurrentStep(3)}>Edit</button>
                   </div>
                   {reportData.description && (
                     <div className="review-row">
@@ -1185,7 +1206,7 @@ export default function ReportIncidentPage() {
                         ? `📷 ${reportData.media.length} image(s)` 
                         : 'No media'}
                     </span>
-                    <button className="review-edit" onClick={() => setCurrentStep(4)}>✏️</button>
+                    <button className="review-edit" onClick={() => setCurrentStep(4)}>Edit</button>
                   </div>
                 </div>
 
@@ -1231,7 +1252,11 @@ export default function ReportIncidentPage() {
               </button>
             ) : (
               <button className="nav-btn submit" onClick={submitReport} disabled={isSubmitting || !user}>
-                {isSubmitting ? '⏳ Submitting...' : '📤 Submit report'}
+                {isSubmitting ? (
+                  <><span className="nav-btn-spinner" />Submitting…</>
+                ) : (
+                  'Submit report'
+                )}
               </button>
             )}
           </div>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Circle,
   CircleMarker,
@@ -1335,6 +1336,7 @@ const SiaraMap = ({
   onSelectedTimestampChange,
   weatherData = null,
   placeName = "",
+  riskPanelTarget = null,
 }) => {
   const markers = useMemo(() => {
     if (Array.isArray(reportMarkers)) {
@@ -3937,7 +3939,9 @@ const SiaraMap = ({
         </div>
       )}
 
-      <aside className={`siara-map-aside${reportTooltipVisible ? " siara-overlay-dimmed" : ""}`}>
+      {(() => {
+      const riskAside = (
+      <aside className={`siara-map-aside${riskPanelTarget ? " siara-map-aside--docked" : ""}${reportTooltipVisible ? " siara-overlay-dimmed" : ""}`}>
         <div className="siara-risk-debug">
           <div className="srd-header">
             <div className="srd-title-row">
@@ -4370,10 +4374,9 @@ const SiaraMap = ({
         </div>
       )}
       </aside>
-
-     
-
-      
+      );
+      return riskPanelTarget ? createPortal(riskAside, riskPanelTarget) : riskAside;
+      })()}
 
       {selectedRouteExplanation && (
         <div className="siara-segment-panel">

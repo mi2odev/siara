@@ -6,7 +6,6 @@ import siaraLogo from '../../assets/logos/siara-logo.png'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const NAV_ITEMS = [
-  { key: 'home', label: 'Home', icon: '🏠', path: '/home' },
   { key: 'feed', label: 'News Feed', icon: '📰', path: '/news' },
   { key: 'map', label: 'Incident Map', icon: '🗺️', path: '/map' },
   { key: 'alerts', label: 'Alerts', icon: '🚨', path: '/alerts' },
