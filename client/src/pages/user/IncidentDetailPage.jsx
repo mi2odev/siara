@@ -627,7 +627,7 @@ export default function IncidentDetailPage() {
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
-            <div className="dash-logo-block" onClick={() => navigate('/home')} style={{ cursor: 'pointer' }}>
+            <div className="dash-logo-block">
               <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">

@@ -7,7 +7,7 @@ import useReportMapReports from '../../hooks/useReportMapReports'
 
 const FALLBACK_CENTER = [28.5, 2.5]
 
-export default function MapPreview({ reports: reportsProp }) {
+export default function MapPreview({ reports: reportsProp, showTooltip = true }) {
   const {
     mapReadyReports,
   } = useReportMapReports({
@@ -43,7 +43,7 @@ export default function MapPreview({ reports: reportsProp }) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       {(reports || []).map((report) => (
-        <ReportMapMarker key={report.id} report={report} />
+        <ReportMapMarker key={report.id} report={report} showTooltip={showTooltip} />
       ))}
     </MapContainer>
   )

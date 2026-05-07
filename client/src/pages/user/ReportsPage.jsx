@@ -20,6 +20,33 @@ function toTitleCase(value) {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1)
 }
 
+function PinIcon() {
+  return (
+    <svg className="info-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2C8.68 2 6 4.68 6 8c0 5.25 6 12 6 12s6-6.75 6-12c0-3.32-2.68-6-6-6Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
+      <circle cx="12" cy="8" r="2.2" stroke="currentColor" strokeWidth="1.5"/>
+    </svg>
+  )
+}
+
+function ClockIcon() {
+  return (
+    <svg className="info-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6"/>
+      <path d="M12 7.5v4.5l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
+function TagIcon() {
+  return (
+    <svg className="info-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
+      <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+    </svg>
+  )
+}
+
 function formatReportTime(value) {
   if (!value) return 'Unknown time'
 
@@ -241,7 +268,7 @@ export default function ReportsPage() {
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
-            <div className="dash-logo-block" onClick={() => navigate('/home')} style={{ cursor: 'pointer' }}>
+            <div className="dash-logo-block">
               <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">
@@ -268,7 +295,6 @@ export default function ReportsPage() {
             <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
               <span className="notification-badge"></span>
             </button>
-            <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {userAvatarUrl ? (
@@ -366,30 +392,39 @@ export default function ReportsPage() {
               </div>
             ) : (
               filteredReports.map((report) => (
-                <div key={report.id} className={`al-card ${selectedReportId === report.id ? 'selected' : ''}`} onClick={() => setSelectedReportId(report.id)}>
+                <div key={report.id} className={`al-card sev-${report.severity || 'unknown'} ${selectedReportId === report.id ? 'selected' : ''}`} onClick={() => setSelectedReportId(report.id)}>
                   <div className="card-head">
                     <h3 className="card-name">{getReportTitle(report)}</h3>
                     <span className={`card-status ${getStatusClass(getStatusValue(report))}`}>{toTitleCase(getStatusValue(report))}</span>
-                    <span className="card-sev" style={{ background: `${getSeverityColor(report.severity)}18`, color: getSeverityColor(report.severity) }}>
+                    <span className="card-sev" style={{ background: `${getSeverityColor(report.severity)}15`, color: getSeverityColor(report.severity) }}>
                       <span className="sev-dot" style={{ background: getSeverityColor(report.severity) }}></span>
                       {toTitleCase(report.severity || 'unknown')}
                     </span>
                   </div>
                   <div className="card-body">
                     <div className="body-line">
-                      <span className="info">📍 {getReportLocation(report)}</span>
-                      <span className="info">🕐 {formatReportTime(report.occurredAt || report.createdAt)}</span>
+                      <span className="info truncate">
+                        <PinIcon />
+                        {getReportLocation(report)}
+                      </span>
                     </div>
                     <div className="body-line">
-                      <span className="types">🏷️ {toTitleCase(getReportType(report))}</span>
+                      <span className="info">
+                        <ClockIcon />
+                        {formatReportTime(report.occurredAt || report.createdAt)}
+                      </span>
+                      <span className="info" style={{ marginLeft: 'auto' }}>
+                        <TagIcon />
+                        <span className="type-badge">{toTitleCase(getReportType(report))}</span>
+                      </span>
                     </div>
                   </div>
                   <div className="card-foot">
                     <button className="act-btn act-edit" onClick={(event) => { event.stopPropagation(); navigate(`/incident/${report.id}`) }}>
-                      <span>View</span>
+                      View
                     </button>
                     <button className="act-btn act-delete" onClick={(event) => handleDelete(event, report.id)}>
-                      <span>Delete</span>
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -430,7 +465,12 @@ export default function ReportsPage() {
 
             {!selectedReport ? (
               <div className="al-no-sel">
-                <span className="no-sel-icon">📝</span>
+                <span className="no-sel-icon">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8L14 2Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
+                    <path d="M14 2v6h6M9 13h6M9 17h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  </svg>
+                </span>
                 <h4>No Report Selected</h4>
                 <p>Select a report from the list to view complete details here.</p>
               </div>
@@ -445,7 +485,7 @@ export default function ReportsPage() {
                   <span
                     className="card-sev"
                     style={{
-                      background: `${getSeverityColor(selectedReport.severity)}18`,
+                      background: `${getSeverityColor(selectedReport.severity)}15`,
                       color: getSeverityColor(selectedReport.severity),
                     }}
                   >
@@ -454,13 +494,27 @@ export default function ReportsPage() {
                   </span>
                 </div>
 
-                <p className="reports-detail-desc">{selectedReport.description || 'No description provided.'}</p>
+                {selectedReport.description && (
+                  <p className="reports-detail-desc">{selectedReport.description}</p>
+                )}
 
                 <div className="reports-detail-list">
-                  <div className="reports-detail-row"><span>Type</span><strong>{toTitleCase(getReportType(selectedReport))}</strong></div>
-                  <div className="reports-detail-row"><span>Location</span><strong>{getReportLocation(selectedReport)}</strong></div>
-                  <div className="reports-detail-row"><span>Occurred</span><strong>{formatReportTime(selectedReport.occurredAt || selectedReport.createdAt)}</strong></div>
-                  <div className="reports-detail-row"><span>Reference</span><strong>{selectedReport.id}</strong></div>
+                  <div className="reports-detail-row">
+                    <span>Type</span>
+                    <strong>{toTitleCase(getReportType(selectedReport))}</strong>
+                  </div>
+                  <div className="reports-detail-row">
+                    <span>Location</span>
+                    <strong>{getReportLocation(selectedReport)}</strong>
+                  </div>
+                  <div className="reports-detail-row">
+                    <span>Occurred</span>
+                    <strong>{formatReportTime(selectedReport.occurredAt || selectedReport.createdAt)}</strong>
+                  </div>
+                  <div className="reports-detail-row">
+                    <span>Reference</span>
+                    <strong className="ref-id">{selectedReport.id}</strong>
+                  </div>
                 </div>
 
                 <div className="reports-detail-actions">

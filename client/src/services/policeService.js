@@ -749,3 +749,64 @@ export async function getPolicePriorityQueue(params = {}) {
     throw normalizeApiError(error, 'Failed to load priority queue')
   }
 }
+
+// ─── Supervisor API ───────────────────────────────────────────────────────────
+
+export async function getSupervisorDashboard() {
+  try {
+    const response = await userRequest.get('/police/supervisor/dashboard')
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to load supervisor dashboard')
+  }
+}
+
+export async function getSupervisorAnalytics(params = {}) {
+  try {
+    const response = await userRequest.get('/police/supervisor/analytics', { params })
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to load supervisor analytics')
+  }
+}
+
+export async function getSupervisorGlobalMap() {
+  try {
+    const response = await userRequest.get('/police/supervisor/global-map')
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to load global operations map')
+  }
+}
+
+export async function listSupervisorOfficers(params = {}) {
+  try {
+    const response = await userRequest.get('/police/supervisor/officers', { params })
+    return {
+      items: Array.isArray(response.data?.items) ? response.data.items : [],
+    }
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to load supervised officers')
+  }
+}
+
+export async function createSupervisorAlertApi(payload = {}) {
+  try {
+    const response = await userRequest.post('/police/supervisor/alerts', payload)
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to create supervisor alert')
+  }
+}
+
+export async function assignIncidentToOfficer(incidentId, payload = {}) {
+  try {
+    const response = await userRequest.post(
+      `/police/supervisor/incidents/${incidentId}/assign`,
+      payload,
+    )
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to assign incident')
+  }
+}

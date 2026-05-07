@@ -2076,10 +2076,17 @@
 }
 
 .police-verification-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   width: 100%;
+}
+
+.pvq-primary-row,
+.pvq-secondary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
 }
 
 .police-verification-actions .police-action {
@@ -3849,7 +3856,12 @@
   }
 
   .police-verification-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex-direction: column;
+  }
+
+  .pvq-primary-row,
+  .pvq-secondary-row {
+    grid-template-columns: 1fr 1fr;
   }
 
   .police-verification-actions .police-verification-btn {
@@ -5242,40 +5254,96 @@
 }
 
 .police-root .police-verification-actions {
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
-.police-root .police-verification-actions .police-action {
-  min-height: 34px;
-  padding: 6px 11px;
-  font-size: 11.5px;
+.police-root .pvq-primary-row,
+.police-root .pvq-secondary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.police-root .pvq-primary-row .police-action {
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.police-root .pvq-secondary-row .police-action {
+  min-height: 29px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  opacity: 0.85;
+}
+
+.police-root .pvq-secondary-row .police-action:hover {
+  opacity: 1;
 }
 
 .police-root .police-verification-btn-verify {
   border: 1px solid #047857;
-  background: linear-gradient(180deg, #059669, #047857);
+  background: linear-gradient(150deg, #10b981, #047857);
   color: #ffffff;
-  box-shadow: 0 6px 14px -6px rgba(5, 150, 105, 0.55);
+  box-shadow: 0 4px 12px -4px rgba(5, 150, 105, 0.5);
+  border-radius: 10px;
+}
+
+.police-root .police-verification-btn-verify:hover {
+  background: linear-gradient(150deg, #059669, #065f46);
+  box-shadow: 0 6px 16px -4px rgba(5, 150, 105, 0.6);
+  transform: translateY(-1px);
 }
 
 .police-root .police-verification-btn-reject {
   border: 1px solid #b91c1c;
-  background: linear-gradient(180deg, #dc2626, #b91c1c);
+  background: linear-gradient(150deg, #ef4444, #b91c1c);
   color: #ffffff;
-  box-shadow: 0 6px 14px -6px rgba(220, 38, 38, 0.55);
+  box-shadow: 0 4px 12px -4px rgba(220, 38, 38, 0.5);
+  border-radius: 10px;
 }
 
-.police-root .police-verification-btn-assign,
+.police-root .police-verification-btn-reject:hover {
+  background: linear-gradient(150deg, #dc2626, #991b1b);
+  box-shadow: 0 6px 16px -4px rgba(220, 38, 38, 0.6);
+  transform: translateY(-1px);
+}
+
+.police-root .police-verification-btn-assign {
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, 0.07);
+  color: #4f46e5;
+  border-radius: 8px;
+}
+
+.police-root .police-verification-btn-assign:hover {
+  background: rgba(99, 102, 241, 0.13);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
 .police-root .police-verification-btn-open {
-  border-color: #d6dfee;
-  background: #ffffff;
-  color: #1f2c45;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(248, 250, 252, 0.8);
+  color: #475569;
+  border-radius: 8px;
 }
 
-.police-root .police-verification-btn-assign:hover,
 .police-root .police-verification-btn-open:hover {
-  background: #f7faff;
-  border-color: #b8cdee;
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #1e293b;
 }
 
 /* --- Alert Center page -------------------------------------------------- */

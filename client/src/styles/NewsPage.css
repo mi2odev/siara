@@ -173,8 +173,8 @@
 }
 
 .header-tab:hover {
-  background: rgba(241, 245, 249, 0.6);
-  color: #1E293B;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
 }
 
 .header-tab:hover::after {

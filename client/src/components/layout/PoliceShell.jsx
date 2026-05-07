@@ -24,6 +24,9 @@ export default function PoliceShell({
 }) {
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
+  const isSupervisor = Array.isArray(user?.roles)
+    ? user.roles.map((r) => String(r || '').trim().toLowerCase().replace(/[\s_-]+/g, '')).includes('policesupervisor')
+    : false
   const [showDropdown, setShowDropdown] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
@@ -32,7 +35,14 @@ export default function PoliceShell({
   const [contactErrors, setContactErrors] = useState({})
   const [contactSuccess, setContactSuccess] = useState('')
 
-  const menuGroups = useMemo(() => [
+  const SUPERVISOR_KEYS = useMemo(() => new Set([
+    'supervisor-dashboard', 'incident-coordination', 'officer-monitoring',
+    'supervisor-alerts', 'operational-analytics', 'global-map',
+  ]), [])
+
+  const isInSupervisorMode = SUPERVISOR_KEYS.has(activeKey)
+
+  const officerMenuGroups = useMemo(() => [
     {
       title: 'OPERATIONS',
       items: [
@@ -67,6 +77,27 @@ export default function PoliceShell({
       ],
     },
   ], [verificationPendingCount])
+
+  const supervisorMenuGroups = useMemo(() => [
+    {
+      title: 'SUPERVISOR',
+      items: [
+        { key: 'supervisor-dashboard', label: 'Command Center', icon: '🏛️', path: '/police/supervisor' },
+        { key: 'incident-coordination', label: 'Incident Coordination', icon: '🎯', path: '/police/supervisor/coordination' },
+        { key: 'officer-monitoring', label: 'Officer Monitoring', icon: '👥', path: '/police/supervisor/officers' },
+        { key: 'supervisor-alerts', label: 'Supervisor Alerts', icon: '📢', path: '/police/supervisor/alerts' },
+        { key: 'operational-analytics', label: 'Analytics', icon: '📊', path: '/police/supervisor/analytics' },
+        { key: 'global-map', label: 'Global Map', icon: '🗺️', path: '/police/supervisor/map' },
+      ],
+    },
+    officerMenuGroups[officerMenuGroups.length - 1], // INFO
+  ], [officerMenuGroups])
+
+  const menuGroups = useMemo(() => {
+    if (!isSupervisor) return officerMenuGroups
+    // Show only the relevant set based on current mode
+    return isInSupervisorMode ? supervisorMenuGroups : officerMenuGroups
+  }, [isSupervisor, isInSupervisorMode, officerMenuGroups, supervisorMenuGroups])
 
   const visibleMenuGroups = useMemo(
     () => menuGroups.filter((group) => Array.isArray(group.items) && group.items.length > 0),
@@ -164,8 +195,11 @@ export default function PoliceShell({
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
-            <div className="dash-logo-block" onClick={() => navigate('/police')} role="button" tabIndex={0}>
+            <div className="dash-logo-block" onClick={() => navigate(isSupervisor ? '/police/supervisor' : '/police')} role="button" tabIndex={0}>
               <img src={siaraLogo} alt="SIARA" className="dash-logo" />
+              {isSupervisor && (
+                <span className="supervisor-mode-badge">SUPERVISOR</span>
+              )}
             </div>
             <nav className="dash-header-tabs police-switch-anchor" aria-label="Police mode switch">
               <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Feed</button>
@@ -244,9 +278,28 @@ export default function PoliceShell({
           </button>
         </div>
 
+        {isSupervisor && (
+          <div className="police-mode-switcher" style={{ margin: '0 0 8px' }}>
+            <button
+              className={`police-mode-pill ${!isInSupervisorMode ? 'active' : ''}`}
+              onClick={() => { setShowMobileMenu(false); navigate('/police') }}
+            >
+              👮 Officer
+            </button>
+            <button
+              className={`police-mode-pill ${isInSupervisorMode ? 'active' : ''}`}
+              onClick={() => { setShowMobileMenu(false); navigate('/police/supervisor') }}
+            >
+              🏛️ Supervisor
+            </button>
+          </div>
+        )}
         <nav className="police-menu">
           {visibleMenuGroups.map((group) => (
-            <section key={`mobile-${group.title}`} className="police-menu-group">
+            <section
+              key={`mobile-${group.title}`}
+              className="police-menu-group"
+            >
               <h3 className="police-menu-group-title">{group.title}</h3>
               <div className="police-menu-group-items">
                 {group.items.map((item) => (
@@ -268,9 +321,28 @@ export default function PoliceShell({
 
       <div className={`police-layout ${rightPanelCollapsed ? 'police-layout-collapsed' : ''}`}>
         <aside className="police-sidebar">
+          {isSupervisor && (
+            <div className="police-mode-switcher">
+              <button
+                className={`police-mode-pill ${!isInSupervisorMode ? 'active' : ''}`}
+                onClick={() => navigate('/police')}
+              >
+                👮 Officer
+              </button>
+              <button
+                className={`police-mode-pill ${isInSupervisorMode ? 'active' : ''}`}
+                onClick={() => navigate('/police/supervisor')}
+              >
+                🏛️ Supervisor
+              </button>
+            </div>
+          )}
           <nav className="police-menu">
             {visibleMenuGroups.map((group) => (
-              <section key={group.title} className="police-menu-group">
+              <section
+                key={group.title}
+                className="police-menu-group"
+              >
                 <h3 className="police-menu-group-title">{group.title}</h3>
                 <div className="police-menu-group-items">
                   {group.items.map((item) => (
