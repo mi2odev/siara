@@ -2,7 +2,7 @@ import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 
-import { isPoliceOfficerUser } from '../../utils/roleUtils'
+import { isAnyPoliceUser } from '../../utils/roleUtils'
 
 export default function PoliceModeTab({
   user,
@@ -35,7 +35,7 @@ export default function PoliceModeTab({
     whiteSpace: 'nowrap',
   }
 
-  if (!isPoliceOfficerUser(user)) {
+  if (!isAnyPoliceUser(user)) {
     return null
   }
 

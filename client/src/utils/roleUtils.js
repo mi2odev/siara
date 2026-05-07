@@ -10,6 +10,8 @@ const ROLE_ID_MAP = {
   2: 'police',
   3: 'plumber',
   4: 'citizen',
+  5: 'police_supervisor',
+  6: 'emergency_service',
 }
 
 function toKnownRoleFromId(value) {
@@ -52,4 +54,18 @@ export function getUserRoles(user) {
 export function isPoliceOfficerUser(user) {
   const normalizedRoles = getUserRoles(user)
   return normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
+}
+
+export function isPoliceSupervisorUser(user) {
+  const normalizedRoles = getUserRoles(user)
+  return normalizedRoles.includes('policesupervisor')
+}
+
+export function isAnyPoliceUser(user) {
+  return isPoliceOfficerUser(user) || isPoliceSupervisorUser(user)
+}
+
+export function isEmergencyServiceUser(user) {
+  const normalizedRoles = getUserRoles(user)
+  return normalizedRoles.includes('emergencyservice') || normalizedRoles.includes('emergency')
 }

@@ -1,0 +1,338 @@
+import React, { useCallback, useContext, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+import PoliceShell from '../../components/layout/PoliceShell'
+import { AuthContext } from '../../contexts/AuthContext'
+import { getSupervisorDashboard } from '../../services/policeService'
+import '../../styles/SupervisorMode.css'
+
+const AUTO_REFRESH_MS = 30_000
+
+function formatRelative(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  const diff = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000))
+  if (diff < 1) return 'Just now'
+  if (diff < 60) return `${diff} min ago`
+  const h = Math.floor(diff / 60)
+  if (h < 24) return `${h} h ago`
+  return `${Math.floor(h / 24)} d ago`
+}
+
+function formatDuration(ms) {
+  if (!ms || !Number.isFinite(ms) || ms < 0) return '—'
+  const minutes = Math.round(ms / 60000)
+  if (minutes < 1) return '<1 m'
+  if (minutes < 60) return `${minutes} m`
+  const hours = Math.round((minutes / 60) * 10) / 10
+  return `${hours} h`
+}
+
+function severityClass(sev) {
+  if (sev === 'critical' || sev >= 4) return 'sev-critical'
+  if (sev === 'high' || sev >= 3) return 'sev-high'
+  if (sev === 'medium' || sev >= 2) return 'sev-medium'
+  return 'sev-low'
+}
+
+function severityLabel(hint) {
+  if (hint >= 4) return 'Critical'
+  if (hint >= 3) return 'High'
+  if (hint >= 2) return 'Medium'
+  return 'Low'
+}
+
+function activityLabel(actionType, officerName, reportTitle) {
+  const officer = officerName || 'An officer'
+  const report = reportTitle ? `"${reportTitle}"` : 'an incident'
+
+  switch (actionType) {
+    case 'verify_incident': return `${officer} verified ${report}`
+    case 'reject_incident': return `${officer} rejected ${report}`
+    case 'assign_self': return `${officer} assigned themselves to ${report}`
+    case 'request_backup': return `${officer} requested backup for ${report}`
+    case 'update_status': return `${officer} updated status on ${report}`
+    case 'field_note': return `${officer} added a field note on ${report}`
+    case 'mark_alert_read': return `${officer} acknowledged an alert`
+    case 'manual_log_entry': return `${officer} logged a manual entry`
+    case 'assign_officer': return `Supervisor assigned an officer to ${report}`
+    default: return `${officer} performed an action`
+  }
+}
+
+export default function SupervisorDashboardPage() {
+  const navigate = useNavigate()
+  const { user } = useContext(AuthContext)
+
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [lastRefreshed, setLastRefreshed] = useState(null)
+
+  const load = useCallback(async () => {
+    try {
+      const result = await getSupervisorDashboard()
+      setData(result)
+      setLastRefreshed(new Date())
+      setError(null)
+    } catch (err) {
+      setError(err.message || 'Failed to load dashboard')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+    const interval = setInterval(load, AUTO_REFRESH_MS)
+    return () => clearInterval(interval)
+  }, [load])
+
+  const stats = data?.stats || {}
+  const officerStatus = data?.officerStatus || {}
+  const criticalIncidents = data?.criticalIncidents || []
+  const recentActivity = data?.recentActivity || []
+
+  return (
+    <PoliceShell activeKey="supervisor-dashboard" rightPanelCollapsed>
+      <div className="supervisor-page">
+        <div className="sv-page-header">
+          <div className="sv-page-title-block">
+            <span className="sv-page-eyebrow">Command Overview</span>
+            <h1 className="sv-page-title">Supervisor Dashboard</h1>
+            <p className="sv-page-subtitle">
+              Real-time operational status &middot;{' '}
+              {lastRefreshed ? `Updated ${formatRelative(lastRefreshed)}` : 'Loading...'}
+            </p>
+          </div>
+          <div className="sv-page-actions">
+            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading}>
+              ↻ Refresh
+            </button>
+          </div>
+        </div>
+
+        {error && <div className="sv-error" style={{ marginBottom: 20 }}>{error}</div>}
+
+        {/* KPI Bar */}
+        <div className="sv-kpi-bar">
+          <div className="sv-kpi-card kpi-primary">
+            <div className="sv-kpi-label">Active Incidents</div>
+            <div className="sv-kpi-value">{loading ? '—' : stats.activeIncidents ?? 0}</div>
+            <div className="sv-kpi-sub">Unresolved in system</div>
+          </div>
+          <div className="sv-kpi-card kpi-critical">
+            <div className="sv-kpi-label">Critical</div>
+            <div className="sv-kpi-value">{loading ? '—' : stats.criticalIncidents ?? 0}</div>
+            <div className="sv-kpi-sub">Severity high+</div>
+          </div>
+          <div className="sv-kpi-card kpi-warning">
+            <div className="sv-kpi-label">Pending Verification</div>
+            <div className="sv-kpi-value">{loading ? '—' : stats.pendingVerification ?? 0}</div>
+            <div className="sv-kpi-sub">Awaiting officer action</div>
+          </div>
+          <div className="sv-kpi-card kpi-good">
+            <div className="sv-kpi-label">Active Officers</div>
+            <div className="sv-kpi-value">{loading ? '—' : stats.activeOfficers ?? 0}</div>
+            <div className="sv-kpi-sub">Currently on duty</div>
+          </div>
+          <div className="sv-kpi-card kpi-accent">
+            <div className="sv-kpi-label">Avg Response</div>
+            <div className="sv-kpi-value" style={{ fontSize: 22 }}>
+              {loading ? '—' : formatDuration(stats.avgResponseTimeMs)}
+            </div>
+            <div className="sv-kpi-sub">Report → verified (30d)</div>
+          </div>
+        </div>
+
+        <div className="sv-grid-2">
+          {/* Critical Incidents */}
+          <div className="sv-section">
+            <div className="sv-section-head">
+              <h2 className="sv-section-title">
+                <span className="sv-section-title-icon">🔴</span>
+                Critical Incidents
+              </h2>
+              <button
+                className="sv-btn sv-btn-ghost"
+                style={{ fontSize: 12, padding: '4px 10px' }}
+                onClick={() => navigate('/police/supervisor/coordination')}
+              >
+                Coordinate →
+              </button>
+            </div>
+            <div className="sv-section-body">
+              {loading ? (
+                <div className="sv-loading"><div className="sv-loading-spinner" /></div>
+              ) : criticalIncidents.length === 0 ? (
+                <div className="sv-empty">
+                  <span className="sv-empty-icon">✅</span>
+                  No critical incidents
+                </div>
+              ) : (
+                <div className="sv-incident-list">
+                  {criticalIncidents.map((inc) => (
+                    <div
+                      key={inc.id}
+                      className="sv-incident-row"
+                      onClick={() => navigate(`/police/incident/${inc.id}`)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <div className={`sv-incident-severity-dot ${severityClass(inc.severityHint)}`} />
+                      <div className="sv-incident-main">
+                        <div className="sv-incident-title">{inc.title || inc.id?.slice(0, 8)}</div>
+                        <div className="sv-incident-meta">
+                          {inc.locationLabel || 'Unknown location'}
+                          {inc.assignedOfficerName && ` · ${inc.assignedOfficerName}`}
+                        </div>
+                      </div>
+                      <div className="sv-incident-right">
+                        <span className={`sv-badge sv-badge-${inc.severityHint >= 4 ? 'critical' : 'high'}`}>
+                          {severityLabel(inc.severityHint)}
+                        </span>
+                        <span style={{ fontSize: 11, color: 'var(--sv-text-muted)' }}>
+                          {formatRelative(inc.occurredAt || inc.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Officer Status + Quick Actions */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div className="sv-section">
+              <div className="sv-section-head">
+                <h2 className="sv-section-title">
+                  <span className="sv-section-title-icon">👥</span>
+                  Officer Status
+                </h2>
+                <button
+                  className="sv-btn sv-btn-ghost"
+                  style={{ fontSize: 12, padding: '4px 10px' }}
+                  onClick={() => navigate('/police/supervisor/officers')}
+                >
+                  Monitor →
+                </button>
+              </div>
+              <div className="sv-section-body">
+                {loading ? (
+                  <div className="sv-loading"><div className="sv-loading-spinner" /></div>
+                ) : (
+                  <div className="sv-status-summary">
+                    <div className="sv-status-item">
+                      <div className="sv-status-dot on-duty" />
+                      <div>
+                        <div className="sv-status-count">{officerStatus.onDuty ?? 0}</div>
+                        <div className="sv-status-label">On Duty</div>
+                      </div>
+                    </div>
+                    <div className="sv-status-item">
+                      <div className="sv-status-dot off-duty" />
+                      <div>
+                        <div className="sv-status-count">{officerStatus.offDuty ?? 0}</div>
+                        <div className="sv-status-label">Off Duty</div>
+                      </div>
+                    </div>
+                    <div className="sv-status-item">
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sv-primary)', flexShrink: 0 }} />
+                      <div>
+                        <div className="sv-status-count">{officerStatus.total ?? 0}</div>
+                        <div className="sv-status-label">Total Officers</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="sv-section">
+              <div className="sv-section-head">
+                <h2 className="sv-section-title">
+                  <span className="sv-section-title-icon">⚡</span>
+                  Quick Actions
+                </h2>
+              </div>
+              <div className="sv-section-body">
+                <div className="sv-quick-actions">
+                  <button className="sv-quick-action-btn" onClick={() => navigate('/police/supervisor/coordination')}>
+                    <span className="sv-quick-action-icon">🎯</span>
+                    Incident Coordination
+                  </button>
+                  <button className="sv-quick-action-btn" onClick={() => navigate('/police/supervisor/officers')}>
+                    <span className="sv-quick-action-icon">👥</span>
+                    Monitor Officers
+                  </button>
+                  <button className="sv-quick-action-btn" onClick={() => navigate('/police/supervisor/alerts')}>
+                    <span className="sv-quick-action-icon">📢</span>
+                    Send Alert
+                  </button>
+                  <button className="sv-quick-action-btn" onClick={() => navigate('/police/supervisor/map')}>
+                    <span className="sv-quick-action-icon">🗺️</span>
+                    Operations Map
+                  </button>
+                  <button className="sv-quick-action-btn" onClick={() => navigate('/police/supervisor/analytics')}>
+                    <span className="sv-quick-action-icon">📊</span>
+                    Analytics
+                  </button>
+                  <button className="sv-quick-action-btn" onClick={() => navigate('/police/verification')}>
+                    <span className="sv-quick-action-icon">🟡</span>
+                    Verification Queue
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Activity Feed */}
+        <div className="sv-section" style={{ marginTop: 20 }}>
+          <div className="sv-section-head">
+            <h2 className="sv-section-title">
+              <span className="sv-section-title-icon">📡</span>
+              Live Activity Feed
+            </h2>
+            <button
+              className="sv-btn sv-btn-ghost"
+              style={{ fontSize: 12, padding: '4px 10px' }}
+              onClick={() => navigate('/police/history')}
+            >
+              Full History →
+            </button>
+          </div>
+          <div className="sv-section-body">
+            {loading ? (
+              <div className="sv-loading"><div className="sv-loading-spinner" /></div>
+            ) : recentActivity.length === 0 ? (
+              <div className="sv-empty">
+                <span className="sv-empty-icon">📋</span>
+                No recent activity
+              </div>
+            ) : (
+              <div className="sv-activity-feed">
+                {recentActivity.map((item, idx) => (
+                  <div key={idx} className="sv-activity-item">
+                    <div className="sv-activity-dot" />
+                    <div className="sv-activity-content">
+                      <div className="sv-activity-text">
+                        {activityLabel(item.actionType, item.officerName, item.reportTitle)}
+                        {item.note && (
+                          <span style={{ color: 'var(--sv-text-muted)' }}> — {item.note.slice(0, 60)}{item.note.length > 60 ? '...' : ''}</span>
+                        )}
+                      </div>
+                      <div className="sv-activity-time">{formatRelative(item.createdAt)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </PoliceShell>
+  )
+}

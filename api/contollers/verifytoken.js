@@ -240,9 +240,24 @@ function verifyTokenAndRoles(roleNames = []) {
 }
 
 const POLICE_ROLE_NAMES = ["police", "police_officer", "police officer"];
+const POLICE_SUPERVISOR_ROLE_NAMES = ["police_supervisor", "police supervisor"];
+const ALL_POLICE_ROLE_NAMES = [...POLICE_ROLE_NAMES, ...POLICE_SUPERVISOR_ROLE_NAMES];
 
 function verifyTokenAndPolice(req, res, next) {
-  return verifyTokenAndRoles(POLICE_ROLE_NAMES)(req, res, next);
+  return verifyTokenAndRoles(ALL_POLICE_ROLE_NAMES)(req, res, next);
+}
+
+function verifyTokenAndPoliceSupervisor(req, res, next) {
+  return verifyToken(req, res, () => {
+    const isSupervisor =
+      hasAnyRole(req.user, POLICE_SUPERVISOR_ROLE_NAMES) || hasRole(req.user, "admin");
+
+    if (!isSupervisor) {
+      return res.status(403).json({ error: "Police supervisor access is required" });
+    }
+
+    return next();
+  });
 }
 
 function verifyTokenAndClient(req, res, next) {
@@ -261,12 +276,15 @@ module.exports = {
   hasAnyRole,
   hasRole,
   normalizeRoleName,
+  ALL_POLICE_ROLE_NAMES,
   POLICE_ROLE_NAMES,
+  POLICE_SUPERVISOR_ROLE_NAMES,
   resolveAuthenticatedUser,
   resolveOptionalAuthenticatedUser,
   verifyToken,
   verifyTokenAndAdmin,
   verifyTokenAndClient,
   verifyTokenAndPolice,
+  verifyTokenAndPoliceSupervisor,
   verifyTokenAndRoles,
 };

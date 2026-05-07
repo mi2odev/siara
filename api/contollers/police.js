@@ -28,15 +28,26 @@ const {
 const {
   verifyTokenAndPolice,
   verifyToken,
+  hasAnyRole,
+  hasRole,
+  POLICE_SUPERVISOR_ROLE_NAMES,
 } = require("./verifytoken");
 const { getPriorityQueue } = require("../services/policePriorityQueueService");
+const {
+  getSupervisorDashboard,
+  getSupervisorAnalytics,
+  getSupervisorGlobalMap,
+} = require("../services/supervisorService");
 
-async function requirePoliceSupervisor(req, res, next) {
-  try {
-    return next();
-  } catch (error) {
-    return next(error);
+function requirePoliceSupervisor(req, res, next) {
+  const isSupervisor =
+    hasAnyRole(req.user, POLICE_SUPERVISOR_ROLE_NAMES) || hasRole(req.user, "admin");
+
+  if (!isSupervisor) {
+    return res.status(403).json({ error: "Police supervisor access is required" });
   }
+
+  return next();
 }
 
 router.get("/me", verifyTokenAndPolice, async (req, res, next) => {
@@ -223,6 +234,30 @@ router.post("/supervisor/alerts", verifyTokenAndPolice, requirePoliceSupervisor,
 router.post("/supervisor/incidents/:id/assign", verifyTokenAndPolice, requirePoliceSupervisor, async (req, res, next) => {
   try {
     return res.status(200).json(await assignIncidentBySupervisor(req.user, req.params.id, req.body || {}));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/supervisor/dashboard", verifyTokenAndPolice, requirePoliceSupervisor, async (req, res, next) => {
+  try {
+    return res.status(200).json(await getSupervisorDashboard(req.user, req.query || {}));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/supervisor/analytics", verifyTokenAndPolice, requirePoliceSupervisor, async (req, res, next) => {
+  try {
+    return res.status(200).json(await getSupervisorAnalytics(req.user, req.query || {}));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/supervisor/global-map", verifyTokenAndPolice, requirePoliceSupervisor, async (req, res, next) => {
+  try {
+    return res.status(200).json(await getSupervisorGlobalMap(req.user));
   } catch (error) {
     return next(error);
   }

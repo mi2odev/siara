@@ -122,10 +122,26 @@ export default function PoliceVerificationQueuePage() {
                   <span className="police-meta">{displayLabel(incident.status)}</span>
                 </div>
                 <div className="police-verification-actions">
-                  <button className="police-action police-verification-btn police-verification-btn-verify" onClick={() => handleAction(incident.id, 'verify')}>Approve</button>
-                  <button className="police-action police-verification-btn police-verification-btn-reject" onClick={() => handleAction(incident.id, 'reject')}>Decline</button>
-                  <button className="police-action police-verification-btn police-verification-btn-assign" onClick={() => handleAction(incident.id, 'assign')}>Take Case</button>
-                  <button className="police-action police-verification-btn police-verification-btn-open" onClick={() => navigate(`/police/incident/${incident.id}`)}>Details</button>
+                  <div className="pvq-primary-row">
+                    <button className="police-action police-verification-btn police-verification-btn-verify" onClick={() => handleAction(incident.id, 'verify')}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Approve
+                    </button>
+                    <button className="police-action police-verification-btn police-verification-btn-reject" onClick={() => handleAction(incident.id, 'reject')}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
+                      Decline
+                    </button>
+                  </div>
+                  <div className="pvq-secondary-row">
+                    <button className="police-action police-verification-btn police-verification-btn-assign" onClick={() => handleAction(incident.id, 'assign')}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      Take Case
+                    </button>
+                    <button className="police-action police-verification-btn police-verification-btn-open" onClick={() => navigate(`/police/incident/${incident.id}`)}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.4 12C4.3 8.6 7.8 6.5 12 6.5s7.7 2.1 9.6 5.5c-1.9 3.4-5.4 5.5-9.6 5.5S4.3 15.4 2.4 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
+                      Details
+                    </button>
+                  </div>
                 </div>
               </div>
             </article>

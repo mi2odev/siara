@@ -53,9 +53,25 @@ function renderSidebarIcon(type) {
   if (type === 'quiz') return '🚗'
   if (type === 'map') return '🗺️'
   if (type === 'report') return '📝'
-  if (type === 'pin') return '📍'
-  if (type === 'time') return '🕐'
   return '🧭'
+}
+
+function PinIcon() {
+  return (
+    <svg className="info-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2C8.68 2 6 4.68 6 8c0 5.25 6 12 6 12s6-6.75 6-12c0-3.32-2.68-6-6-6Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
+      <circle cx="12" cy="8" r="2.2" stroke="currentColor" strokeWidth="1.5"/>
+    </svg>
+  )
+}
+
+function ClockIcon() {
+  return (
+    <svg className="info-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6"/>
+      <path d="M12 7.5v4.5l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
 }
 
 function color(severity) {
@@ -475,7 +491,7 @@ export default function AlertsPage() {
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
-            <div className="dash-logo-block" onClick={() => navigate('/home')} style={{ cursor: 'pointer' }}>
+            <div className="dash-logo-block">
               <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">
@@ -502,7 +518,6 @@ export default function AlertsPage() {
             <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
               <span className="notification-badge"></span>
             </button>
-            <button className="dash-icon-btn dash-icon-btn-messages" aria-label="Messages"></button>
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {userAvatarUrl ? (
@@ -590,39 +605,44 @@ export default function AlertsPage() {
               </div>
             ) : (
               filteredAlerts.map((alert) => (
-                <div key={alert.id} className={`al-card ${selectedAlertId === alert.id ? 'selected' : ''}`} onClick={() => setSelectedAlertId(alert.id)}>
+                <div key={alert.id} className={`al-card sev-${alert.severity || 'unknown'} ${selectedAlertId === alert.id ? 'selected' : ''}`} onClick={() => setSelectedAlertId(alert.id)}>
                   <div className="card-head">
                     <h3 className="card-name">{alert.name}</h3>
                     <span className={`card-status ${alert.status}`}>{toTitleCase(alert.status)}</span>
-                    <span className="card-sev" style={{ background: `${color(alert.severity)}18`, color: color(alert.severity) }}>
+                    <span className="card-sev" style={{ background: `${color(alert.severity)}15`, color: color(alert.severity) }}>
                       <span className="sev-dot" style={{ background: color(alert.severity) }}></span>
                       {toTitleCase(alert.severity)}
                     </span>
                   </div>
                   <div className="card-body">
                     <div className="body-line">
-                      <span className="info">{renderSidebarIcon('pin')} {alert.area?.name || alert.zone?.displayName}</span>
-                      <span className="info">{renderSidebarIcon('time')} {alert.timeWindow}</span>
+                      <span className="info truncate">
+                        <PinIcon />
+                        {alert.area?.name || alert.zone?.displayName}
+                      </span>
+                      <span className="info" style={{ flexShrink: 0 }}>
+                        <ClockIcon />
+                        {alert.timeWindow}
+                      </span>
                     </div>
                     <div className="body-line">
                       <span className="types">
                         {alert.incidentTypes.length > 0
-                          ? alert.incidentTypes.map((type) => <span key={type}>{icon(type)}</span>)
-                          : <span>—</span>}
+                          ? alert.incidentTypes.map((type) => <span key={type} className="type-badge">{toTitleCase(type)}</span>)
+                          : null}
                       </span>
-                      <span className="meta">Last: {alert.lastTriggered}</span>
-                      <span className="meta">{alert.triggerCount} trigger{alert.triggerCount === 1 ? '' : 's'}</span>
+                      <span className="meta" style={{ marginLeft: 'auto' }}>Last: {alert.lastTriggered} · {alert.triggerCount} trigger{alert.triggerCount === 1 ? '' : 's'}</span>
                     </div>
                   </div>
                   <div className="card-foot">
                     <button className={`act-btn act-toggle ${alert.status === 'active' ? 'on' : 'off'}`} onClick={(event) => handleToggleStatus(event, alert)}>
-                      <span>{alert.status === 'active' ? 'Pause' : 'Activate'}</span>
+                      {alert.status === 'active' ? 'Pause' : 'Activate'}
                     </button>
                     <button className="act-btn act-edit" onClick={(event) => { event.stopPropagation(); navigate('/alerts/create', { state: { editAlert: alert } }) }}>
-                      <span>Edit</span>
+                      Edit
                     </button>
                     <button className="act-btn act-delete" onClick={(event) => handleDelete(event, alert.id)}>
-                      <span>Delete</span>
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -635,10 +655,13 @@ export default function AlertsPage() {
           <div className="al-panel al-push-panel">
             <div className="panel-head al-push-head">
               <div>
-                <span className="panel-label" style={{ marginBottom: 6 }}>System Alerts</span>
-                <span className={`al-push-chip ${pushEnabled ? 'enabled' : 'disabled'}`}>
-                  {pushEnabled ? 'On' : 'Off'}
-                </span>
+                <span className="panel-label" style={{ marginBottom: 4 }}>System Alerts</span>
+                <div className="al-push-panel-status">
+                  <span className={`al-push-status-dot ${pushEnabled ? 'on' : 'off'}`} />
+                  <span className={`al-push-chip ${pushEnabled ? 'enabled' : 'disabled'}`}>
+                    {pushEnabled ? 'On' : 'Off'}
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
@@ -646,7 +669,7 @@ export default function AlertsPage() {
                 onClick={() => { void handlePushModeChange('important_only') }}
                 disabled={!pushSupported || pushBusyAction !== '' || pushSettingsLoading || pushEnabled}
               >
-                {pushEnabled ? 'System alerts enabled' : 'Enable system alerts'}
+                {pushEnabled ? 'Alerts enabled' : 'Enable alerts'}
               </button>
             </div>
 
@@ -655,7 +678,7 @@ export default function AlertsPage() {
             <div className="al-push-status-grid">
               <div className="al-push-status-item">
                 <span className="al-push-status-label">Browser</span>
-                <strong>{pushSupported ? 'Supported' : 'Unavailable'}</strong>
+                <strong>{pushSupported ? 'Supp...' : 'Unavail.'}</strong>
               </div>
               <div className="al-push-status-item">
                 <span className="al-push-status-label">Permission</span>
@@ -684,7 +707,15 @@ export default function AlertsPage() {
                 onClick={() => { void handlePushModeChange('important_only') }}
                 disabled={!pushSupported || pushBusyAction !== '' || pushSettingsLoading}
               >
-                <span className="al-push-option-title">High-risk alerts only</span>
+                <div className="al-push-option-head">
+                  <span className="al-push-option-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M12 2L4 7v10c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4V7L12 2Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+                      <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                  <span className="al-push-option-title">High-risk alerts only</span>
+                </div>
                 <span className="al-push-option-copy">Recommended for critical watched-zone incidents.</span>
               </button>
 
@@ -694,7 +725,15 @@ export default function AlertsPage() {
                 onClick={() => { void handlePushModeChange('all') }}
                 disabled={!pushSupported || pushBusyAction !== '' || pushSettingsLoading}
               >
-                <span className="al-push-option-title">All watched-zone alerts</span>
+                <div className="al-push-option-head">
+                  <span className="al-push-option-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                  </span>
+                  <span className="al-push-option-title">All watched-zone alerts</span>
+                </div>
                 <span className="al-push-option-copy">Includes medium and high-risk watched-zone incidents.</span>
               </button>
 
@@ -704,7 +743,16 @@ export default function AlertsPage() {
                 onClick={() => { void handleDisableSystemAlerts() }}
                 disabled={pushBusyAction !== '' || pushSettingsLoading}
               >
-                <span className="al-push-option-title">Turn off system alerts</span>
+                <div className="al-push-option-head">
+                  <span className="al-push-option-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                      <path d="M4 4l16 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                  </span>
+                  <span className="al-push-option-title">Turn off system alerts</span>
+                </div>
                 <span className="al-push-option-copy">Keep in-app notifications only.</span>
               </button>
             </div>
@@ -724,10 +772,13 @@ export default function AlertsPage() {
           <div className="al-panel al-email-panel">
             <div className="panel-head al-push-head">
               <div>
-                <span className="panel-label" style={{ marginBottom: 6 }}>Email Preferences</span>
-                <span className={`al-push-chip ${(emailPreferences?.weekly_summary_enabled || emailPreferences?.product_updates_enabled || emailPreferences?.marketing_enabled) ? 'enabled' : 'disabled'}`}>
-                  {(emailPreferences?.weekly_summary_enabled || emailPreferences?.product_updates_enabled || emailPreferences?.marketing_enabled) ? 'On' : 'Off'}
-                </span>
+                <span className="panel-label" style={{ marginBottom: 4 }}>Email Preferences</span>
+                <div className="al-push-panel-status">
+                  <span className={`al-push-status-dot ${(emailPreferences?.weekly_summary_enabled || emailPreferences?.product_updates_enabled || emailPreferences?.marketing_enabled) ? 'on' : 'off'}`} />
+                  <span className={`al-push-chip ${(emailPreferences?.weekly_summary_enabled || emailPreferences?.product_updates_enabled || emailPreferences?.marketing_enabled) ? 'enabled' : 'disabled'}`}>
+                    {(emailPreferences?.weekly_summary_enabled || emailPreferences?.product_updates_enabled || emailPreferences?.marketing_enabled) ? 'On' : 'Off'}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -750,7 +801,15 @@ export default function AlertsPage() {
                 onClick={() => { void handleEmailPreferenceToggle('weekly_summary_enabled', !emailPreferences?.weekly_summary_enabled) }}
                 disabled={emailPreferencesLoading || emailPreferencesBusyKey !== ''}
               >
-                <span className="al-push-option-title">Weekly summary email</span>
+                <div className="al-push-option-head">
+                  <span className="al-push-option-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" strokeWidth="1.7"/>
+                      <path d="M3 9h18M8 2v4M16 2v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+                    </svg>
+                  </span>
+                  <span className="al-push-option-title">Weekly summary email</span>
+                </div>
                 <span className="al-push-option-copy">Sunday evening recap of incidents and trigger activity in your watched zones.</span>
               </button>
 
@@ -760,7 +819,14 @@ export default function AlertsPage() {
                 onClick={() => { void handleEmailPreferenceToggle('product_updates_enabled', !emailPreferences?.product_updates_enabled) }}
                 disabled={emailPreferencesLoading || emailPreferencesBusyKey !== ''}
               >
-                <span className="al-push-option-title">Product updates</span>
+                <div className="al-push-option-head">
+                  <span className="al-push-option-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M12 2l2.4 6.4H21l-5.6 4 2.2 6.6L12 15l-5.6 4 2.2-6.6L3 8.4h6.6L12 2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                  <span className="al-push-option-title">Product updates</span>
+                </div>
                 <span className="al-push-option-copy">Occasional SIARA improvements, release notes, and feature updates.</span>
               </button>
 
@@ -770,7 +836,15 @@ export default function AlertsPage() {
                 onClick={() => { void handleEmailPreferenceToggle('marketing_enabled', !emailPreferences?.marketing_enabled) }}
                 disabled={emailPreferencesLoading || emailPreferencesBusyKey !== ''}
               >
-                <span className="al-push-option-title">Marketing updates</span>
+                <div className="al-push-option-head">
+                  <span className="al-push-option-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M20 12H4m0 0 6-6m-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M22 5v14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                  </span>
+                  <span className="al-push-option-title">Marketing updates</span>
+                </div>
                 <span className="al-push-option-copy">Optional announcements about SIARA campaigns and outreach.</span>
               </button>
             </div>

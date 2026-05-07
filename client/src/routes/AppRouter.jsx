@@ -33,6 +33,12 @@ import PoliceOperationHistoryPage from "../pages/police/PoliceOperationHistoryPa
 import PoliceVerificationQueuePage from "../pages/police/PoliceVerificationQueuePage";
 import PoliceWorkZoneSetupPage from "../pages/police/PoliceWorkZoneSetupPage";
 import PolicePriorityQueuePage from "../pages/police/PolicePriorityQueuePage";
+import SupervisorDashboardPage from "../pages/supervisor/SupervisorDashboardPage";
+import SupervisorIncidentCoordinationPage from "../pages/supervisor/SupervisorIncidentCoordinationPage";
+import SupervisorOfficerMonitoringPage from "../pages/supervisor/SupervisorOfficerMonitoringPage";
+import SupervisorAlertCenterPage from "../pages/supervisor/SupervisorAlertCenterPage";
+import SupervisorAnalyticsPage from "../pages/supervisor/SupervisorAnalyticsPage";
+import SupervisorOperationsMapPage from "../pages/supervisor/SupervisorOperationsMapPage";
 import ProfilePage from "../pages/user/ProfilePage";
 import ReportIncidentPage from "../pages/user/ReportIncidentPage";
 import ReportsPage from "../pages/user/ReportsPage";
@@ -53,6 +59,11 @@ import PublicOnlyRoute from "./PublicOnlyRoute";
 import PoliceAccessGate from "../components/police/PoliceAccessGate";
 import NavigationPreviewPage from "../pages/preview/NavigationPreviewPage";
 import RouteExplanationPreviewPage from "../pages/preview/RouteExplanationPreviewPage";
+import EmergencyDashboardPage from "../pages/emergency/EmergencyDashboardPage";
+import EmergencyAssignedPage from "../pages/emergency/EmergencyAssignedPage";
+import EmergencyMapPage from "../pages/emergency/EmergencyMapPage";
+import EmergencyResponsePage from "../pages/emergency/EmergencyResponsePage";
+import EmergencyAlertsPage from "../pages/emergency/EmergencyAlertsPage";
 
 export default function AppRouter() {
   return (
@@ -68,6 +79,11 @@ export default function AppRouter() {
       <Route path="verify-email" element={<VerifyEmailPage />} />
 
       <Route path="preview/route-explanation" element={<RouteExplanationPreviewPage />} />
+      <Route path="preview/emergency" element={<EmergencyDashboardPage />} />
+      <Route path="preview/emergency/assigned" element={<EmergencyAssignedPage />} />
+      <Route path="preview/emergency/map" element={<EmergencyMapPage />} />
+      <Route path="preview/emergency/response" element={<EmergencyResponsePage />} />
+      <Route path="preview/emergency/alerts" element={<EmergencyAlertsPage />} />
       <Route path="navigation-preview" element={<NavigationPreviewPage />} />
       <Route path="map-preview" element={<NavigationPreviewPage />} />
 
@@ -84,8 +100,18 @@ export default function AppRouter() {
           <Route path="alerts" element={<AlertsPage />} />
           <Route path="alerts/create" element={<CreateAlertPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
-          <Route element={<ProtectedRoute roles={["police", "police_officer", "police officer"]} />}>
+          <Route element={<ProtectedRoute roles={["emergency_service", "emergency"]} />}>
+            <Route path="emergency" element={<EmergencyDashboardPage />} />
+            <Route path="emergency/assigned" element={<EmergencyAssignedPage />} />
+            <Route path="emergency/map" element={<EmergencyMapPage />} />
+            <Route path="emergency/response" element={<EmergencyResponsePage />} />
+            <Route path="emergency/response/:id" element={<EmergencyResponsePage />} />
+            <Route path="emergency/alerts" element={<EmergencyAlertsPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={["police", "police_officer", "police officer", "police_supervisor", "police supervisor"]} />}>
             <Route element={<PoliceAccessGate />}>
+              {/* Officer pages */}
               <Route path="police" element={<PolicePage />} />
               <Route path="police/setup-zone" element={<PoliceWorkZoneSetupPage />} />
               <Route path="police/alerts" element={<PoliceAlertCenterPage />} />
@@ -97,6 +123,13 @@ export default function AppRouter() {
               <Route path="police/verification" element={<PoliceVerificationQueuePage />} />
               <Route path="police/priority-queue" element={<PolicePriorityQueuePage />} />
               <Route path="police/incident/:id" element={<PoliceIncidentDetailPage />} />
+              {/* Supervisor-only pages — same gate, supervisors have police profiles too */}
+              <Route path="police/supervisor" element={<SupervisorDashboardPage />} />
+              <Route path="police/supervisor/coordination" element={<SupervisorIncidentCoordinationPage />} />
+              <Route path="police/supervisor/officers" element={<SupervisorOfficerMonitoringPage />} />
+              <Route path="police/supervisor/alerts" element={<SupervisorAlertCenterPage />} />
+              <Route path="police/supervisor/analytics" element={<SupervisorAnalyticsPage />} />
+              <Route path="police/supervisor/map" element={<SupervisorOperationsMapPage />} />
             </Route>
           </Route>
           <Route path="report" element={<ReportsPage />} />

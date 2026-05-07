@@ -209,7 +209,7 @@ function ReportHoverCard({ report }) {
   )
 }
 
-function ReportMapMarker({ report, onClick, tooltipPane, onTooltipVisibilityChange }) {
+function ReportMapMarker({ report, onClick, tooltipPane, onTooltipVisibilityChange, showTooltip = true }) {
   const position = useMemo(() => getReportMarkerPosition(report), [report])
   const icon = useMemo(() => {
     if (!position) {
@@ -251,9 +251,11 @@ function ReportMapMarker({ report, onClick, tooltipPane, onTooltipVisibilityChan
         tooltipclose: () => onTooltipVisibilityChange?.(false),
       }}
     >
-      <Tooltip {...tooltipProps}>
-        <ReportHoverCard report={report} />
-      </Tooltip>
+      {showTooltip && (
+        <Tooltip {...tooltipProps}>
+          <ReportHoverCard report={report} />
+        </Tooltip>
+      )}
     </Marker>
   )
 }

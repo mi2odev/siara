@@ -1113,7 +1113,7 @@ export default function MapPage() {
 
           {/* ── Left: Logo + Tab navigation ── */}
           <div className="dash-header-left">
-            <div className="dash-logo-block" onClick={() => navigate("/home")} style={{ cursor: 'pointer' }}>
+            <div className="dash-logo-block">
               <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
 
@@ -1150,7 +1150,6 @@ export default function MapPage() {
               {renderHeaderIcon("notification")}<span className="notification-badge"></span>
             </button>
 
-            <button className="dash-icon-btn" aria-label="Messages">{renderHeaderIcon("message")}</button>
 
             {/* Avatar with dropdown menu */}
             <div className="dash-avatar-wrapper">
