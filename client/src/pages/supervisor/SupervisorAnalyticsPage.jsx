@@ -1,4 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
+import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined'
+import GpsFixedOutlinedIcon from '@mui/icons-material/GpsFixedOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
+import LocalPoliceOutlinedIcon from '@mui/icons-material/LocalPoliceOutlined'
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
+import ArrowRightAltRoundedIcon from '@mui/icons-material/ArrowRightAltRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import { getSupervisorAnalytics } from '../../services/policeService'
@@ -36,7 +45,7 @@ function BarChart({ data, colorClass = '' }) {
 
 function TrendChart({ trend }) {
   if (!trend || trend.length === 0) {
-    return <div className="sv-empty" style={{ padding: 24 }}><span className="sv-empty-icon">📈</span>No trend data</div>
+    return <div className="sv-empty" style={{ padding: 24 }}><span className="sv-empty-icon"><TrendingUpOutlinedIcon fontSize="inherit" /></span>No trend data</div>
   }
   const max = Math.max(...trend.map((d) => d.count), 1)
   return (
@@ -137,7 +146,7 @@ export default function SupervisorAnalyticsPage() {
                 {d}d
               </button>
             ))}
-            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading}>↻</button>
+            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading} aria-label="Refresh"><RefreshRoundedIcon fontSize="small" /></button>
           </div>
         </div>
 
@@ -162,14 +171,14 @@ export default function SupervisorAnalyticsPage() {
             <div className="sv-kpi-value" style={{ fontSize: 22 }}>
               {loading ? '—' : formatDuration(metrics.avgResponseTimeMs)}
             </div>
-            <div className="sv-kpi-sub">Report → verified</div>
+            <div className="sv-kpi-sub" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Report <ArrowRightAltRoundedIcon fontSize="inherit" /> verified</div>
           </div>
           <div className="sv-kpi-card kpi-warning">
             <div className="sv-kpi-label">Avg Resolution</div>
             <div className="sv-kpi-value" style={{ fontSize: 22 }}>
               {loading ? '—' : formatDuration(metrics.avgResolutionTimeMs)}
             </div>
-            <div className="sv-kpi-sub">Report → resolved</div>
+            <div className="sv-kpi-sub" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Report <ArrowRightAltRoundedIcon fontSize="inherit" /> resolved</div>
           </div>
         </div>
 
@@ -185,7 +194,7 @@ export default function SupervisorAnalyticsPage() {
               <div className="sv-section">
                 <div className="sv-section-head">
                   <h2 className="sv-section-title">
-                    <span className="sv-section-title-icon">📈</span>
+                    <span className="sv-section-title-icon"><TrendingUpOutlinedIcon fontSize="inherit" /></span>
                     Daily Trend — Last {days} Days
                   </h2>
                 </div>
@@ -197,13 +206,13 @@ export default function SupervisorAnalyticsPage() {
               <div className="sv-section">
                 <div className="sv-section-head">
                   <h2 className="sv-section-title">
-                    <span className="sv-section-title-icon">📊</span>
+                    <span className="sv-section-title-icon"><BarChartOutlinedIcon fontSize="inherit" /></span>
                     Incidents by Status
                   </h2>
                 </div>
                 <div className="sv-section-body">
                   {statusData.length === 0
-                    ? <div className="sv-empty"><span className="sv-empty-icon">📋</span>No data</div>
+                    ? <div className="sv-empty"><span className="sv-empty-icon"><AssignmentOutlinedIcon fontSize="inherit" /></span>No data</div>
                     : <BarChart data={statusData} />}
                 </div>
               </div>
@@ -213,13 +222,13 @@ export default function SupervisorAnalyticsPage() {
               <div className="sv-section">
                 <div className="sv-section-head">
                   <h2 className="sv-section-title">
-                    <span className="sv-section-title-icon">🎯</span>
+                    <span className="sv-section-title-icon"><GpsFixedOutlinedIcon fontSize="inherit" /></span>
                     Incidents by Severity
                   </h2>
                 </div>
                 <div className="sv-section-body">
                   {severityData.length === 0
-                    ? <div className="sv-empty"><span className="sv-empty-icon">📋</span>No data</div>
+                    ? <div className="sv-empty"><span className="sv-empty-icon"><AssignmentOutlinedIcon fontSize="inherit" /></span>No data</div>
                     : <BarChart data={severityData} />}
                 </div>
               </div>
@@ -227,13 +236,13 @@ export default function SupervisorAnalyticsPage() {
               <div className="sv-section">
                 <div className="sv-section-head">
                   <h2 className="sv-section-title">
-                    <span className="sv-section-title-icon">📍</span>
+                    <span className="sv-section-title-icon"><LocationOnOutlinedIcon fontSize="inherit" /></span>
                     Busiest Zones
                   </h2>
                 </div>
                 <div className="sv-section-body">
                   {zones.length === 0 ? (
-                    <div className="sv-empty"><span className="sv-empty-icon">🗺️</span>No zone data</div>
+                    <div className="sv-empty"><span className="sv-empty-icon"><MapOutlinedIcon fontSize="inherit" /></span>No zone data</div>
                   ) : (
                     <div className="sv-bar-chart">
                       {zones.map((zone, idx) => {
@@ -261,13 +270,13 @@ export default function SupervisorAnalyticsPage() {
             <div className="sv-section">
               <div className="sv-section-head">
                 <h2 className="sv-section-title">
-                  <span className="sv-section-title-icon">👮</span>
+                  <span className="sv-section-title-icon"><LocalPoliceOutlinedIcon fontSize="inherit" /></span>
                   Officer Workload Distribution
                 </h2>
               </div>
               <div className="sv-section-body">
                 {workload.length === 0 ? (
-                  <div className="sv-empty"><span className="sv-empty-icon">👮</span>No workload data</div>
+                  <div className="sv-empty"><span className="sv-empty-icon"><LocalPoliceOutlinedIcon fontSize="inherit" /></span>No workload data</div>
                 ) : (
                   <div className="sv-table-wrap">
                     <table className="sv-table">

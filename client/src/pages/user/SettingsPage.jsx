@@ -1,6 +1,12 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
+import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
@@ -13,12 +19,12 @@ import '../../styles/SettingsPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
 const sections = [
-  { key: 'profile', label: 'Profile', icon: '👤', hint: 'Identity and personal info' },
-  { key: 'account', label: 'Account', icon: '🪪', hint: 'Email, phone, language' },
-  { key: 'security', label: 'Security', icon: '🛡️', hint: 'Password and 2FA' },
-  { key: 'notifications', label: 'Notifications', icon: '🔔', hint: 'Email and push alerts' },
-  { key: 'privacy', label: 'Privacy', icon: '🔒', hint: 'Visibility and sharing' },
-  { key: 'data', label: 'Data', icon: '📦', hint: 'Export and account deletion' },
+  { key: 'profile', label: 'Profile', icon: <PersonOutlinedIcon fontSize="inherit" />, hint: 'Identity and personal info' },
+  { key: 'account', label: 'Account', icon: <BadgeOutlinedIcon fontSize="inherit" />, hint: 'Email, phone, language' },
+  { key: 'security', label: 'Security', icon: <ShieldOutlinedIcon fontSize="inherit" className="icon-security" />, hint: 'Password and 2FA' },
+  { key: 'notifications', label: 'Notifications', icon: <NotificationsOutlinedIcon fontSize="inherit" />, hint: 'Email and push alerts' },
+  { key: 'privacy', label: 'Privacy', icon: <LockOutlinedIcon fontSize="inherit" className="icon-security" />, hint: 'Visibility and sharing' },
+  { key: 'data', label: 'Data', icon: <Inventory2OutlinedIcon fontSize="inherit" />, hint: 'Export and account deletion' },
 ]
 
 const DEFAULT_PROFILE = {

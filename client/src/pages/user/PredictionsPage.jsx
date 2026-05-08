@@ -17,6 +17,39 @@
  */
 import React, { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
+import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined'
+import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
+import PsychologyOutlinedIcon from '@mui/icons-material/PsychologyOutlined'
+import SatelliteAltOutlinedIcon from '@mui/icons-material/SatelliteAltOutlined'
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
+import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
+import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined'
+import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined'
+import IosShareOutlinedIcon from '@mui/icons-material/IosShareOutlined'
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
+import EnhancedEncryptionOutlinedIcon from '@mui/icons-material/EnhancedEncryptionOutlined'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import LocationCityOutlinedIcon from '@mui/icons-material/LocationCityOutlined'
+import TipsAndUpdatesOutlinedIcon from '@mui/icons-material/TipsAndUpdatesOutlined'
+import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined'
+import CodeOutlinedIcon from '@mui/icons-material/CodeOutlined'
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
+import ScatterPlotOutlinedIcon from '@mui/icons-material/ScatterPlotOutlined'
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
+import RocketLaunchOutlinedIcon from '@mui/icons-material/RocketLaunchOutlined'
+import RadioButtonCheckedOutlinedIcon from '@mui/icons-material/RadioButtonCheckedOutlined'
+import RadioButtonUncheckedOutlinedIcon from '@mui/icons-material/RadioButtonUncheckedOutlined'
+import PieChartOutlineOutlinedIcon from '@mui/icons-material/PieChartOutlineOutlined'
+import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded'
+import TrendingDownRoundedIcon from '@mui/icons-material/TrendingDownRounded'
+import HubOutlinedIcon from '@mui/icons-material/HubOutlined'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
@@ -41,19 +74,19 @@ const riskZones = [
 
 /* Mock real-time activity log entries */
 const activityFeed = [
-  { id: 1, icon: '🔴', text: 'Risk peak detected – RN5 Algiers', time: '2 min ago', type: 'critical' },
-  { id: 2, icon: '🟡', text: 'Model recalibrated – Bab Ezzouar area', time: '15 min ago', type: 'warning' },
-  { id: 3, icon: '🟢', text: 'Risk reduced – Hydra after roadwork', time: '32 min ago', type: 'success' },
-  { id: 4, icon: '🔵', text: 'New weather dataset integrated', time: '1h ago', type: 'info' },
-  { id: 5, icon: '🟡', text: 'School alert – Bir Mourad Raïs 08h', time: '1h 20 min ago', type: 'warning' },
+  { id: 1, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-critical" />, text: 'Risk peak detected – RN5 Algiers', time: '2 min ago', type: 'critical' },
+  { id: 2, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-moderate" />, text: 'Model recalibrated – Bab Ezzouar area', time: '15 min ago', type: 'warning' },
+  { id: 3, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-low" />, text: 'Risk reduced – Hydra after roadwork', time: '32 min ago', type: 'success' },
+  { id: 4, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-info" />, text: 'New weather dataset integrated', time: '1h ago', type: 'info' },
+  { id: 5, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-moderate" />, text: 'School alert – Bir Mourad Raïs 08h', time: '1h 20 min ago', type: 'warning' },
 ]
 
 /* Data sources feeding the ML model */
 const dataSources = [
-  { name: 'Citizen reports', count: '12,847', status: 'live', icon: '👥' },
-  { name: 'Weather sensors (ONM)',  count: '48 stations', status: 'live', icon: '🌤️' },
-  { name: 'DGRSDT traffic flow',    count: '340 sensors', status: 'live', icon: '🚦' },
-  { name: 'DGSN historical data',   count: '5 years', status: 'synced', icon: '📋' },
+  { name: 'Citizen reports', count: '12,847', status: 'live', icon: <GroupsOutlinedIcon fontSize="inherit" /> },
+  { name: 'Weather sensors (ONM)',  count: '48 stations', status: 'live', icon: <CloudOutlinedIcon fontSize="inherit" /> },
+  { name: 'DGRSDT traffic flow',    count: '340 sensors', status: 'live', icon: <TrafficOutlinedIcon fontSize="inherit" /> },
+  { name: 'DGSN historical data',   count: '5 years', status: 'synced', icon: <AssignmentOutlinedIcon fontSize="inherit" /> },
 ]
 
 export default function PredictionsPage() {
@@ -185,19 +218,19 @@ export default function PredictionsPage() {
 
           {/* Model Summary Widget */}
           <div className="card pred-model-sidebar">
-            <h3 className="card-title">🧠 AI Model</h3>
+            <h3 className="card-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><PsychologyOutlinedIcon fontSize="inherit" /> AI Model</h3>
             <div className="pred-model-rows">
               <div className="pred-model-row"><span>Version</span><span className="pred-model-val">v1.2</span></div>
               <div className="pred-model-row"><span>Algorithm</span><span className="pred-model-val">LightGBM + CatBoost</span></div>
               <div className="pred-model-row"><span>Last Update</span><span className="pred-model-val">Today</span></div>
-              <div className="pred-model-row"><span>Status</span><span className="pred-model-val green">● Active</span></div>
+              <div className="pred-model-row"><span>Status</span><span className="pred-model-val green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><FiberManualRecordIcon fontSize="inherit" /> Active</span></div>
               <div className="pred-model-row"><span>Accuracy</span><span className="pred-model-val blue">89.2%</span></div>
             </div>
           </div>
 
           {/* Data Sources */}
           <div className="card pred-sources-sidebar">
-            <h3 className="card-title">📡 Data Sources</h3>
+            <h3 className="card-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><SatelliteAltOutlinedIcon fontSize="inherit" /> Data Sources</h3>
             <div className="pred-sources-list">
               {dataSources.map((s, i) => (
                 <div key={i} className="pred-source-item">
@@ -223,7 +256,7 @@ export default function PredictionsPage() {
                 <span className="pulse-dot"></span>
                 AI Model Active
               </div>
-              <span className="pred-hero-clock">🕐 {fmtTime(liveTime)}</span>
+              <span className="pred-hero-clock" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><AccessTimeOutlinedIcon fontSize="inherit" /> {fmtTime(liveTime)}</span>
             </div>
             <h1>Advanced <span>Predictions</span></h1>
             <p className="pred-hero-subtitle">
@@ -258,40 +291,40 @@ export default function PredictionsPage() {
           <div className="pred-features-grid">
             <div className="pred-feature-card">
               <div className="pred-feature-top-row">
-                <div className="pred-feature-icon heatmap">🗺️</div>
-                <span className="pred-feature-status ready">● Ready</span>
+                <div className="pred-feature-icon heatmap"><MapOutlinedIcon fontSize="inherit" /></div>
+                <span className="pred-feature-status ready" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><RadioButtonCheckedOutlinedIcon fontSize="inherit" /> Ready</span>
               </div>
               <h3>Heat Maps</h3>
               <p>Visualization of accident density zones with dynamic risk layer overlay across 48 provinces.</p>
               <div className="pred-feature-meta">
-                <span>🔄 Update: 5 min</span>
-                <span>📍 48 provinces</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><RefreshOutlinedIcon fontSize="inherit" /> Update: 5 min</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LocationOnOutlinedIcon fontSize="inherit" /> 48 provinces</span>
               </div>
             </div>
 
             <div className="pred-feature-card">
               <div className="pred-feature-top-row">
-                <div className="pred-feature-icon timeseries">📈</div>
-                <span className="pred-feature-status beta">◐ Beta</span>
+                <div className="pred-feature-icon timeseries"><TrendingUpOutlinedIcon fontSize="inherit" /></div>
+                <span className="pred-feature-status beta" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><PieChartOutlineOutlinedIcon fontSize="inherit" /> Beta</span>
               </div>
               <h3>Time Series</h3>
               <p>Predictive analysis by time slot and seasonality with LSTM and LightGBM models trained on 5 years of data.</p>
               <div className="pred-feature-meta">
-                <span>⏱️ Horizon: 24h</span>
-                <span>📊 RMSE : 0.12</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TimerOutlinedIcon fontSize="inherit" /> Horizon: 24h</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><BarChartOutlinedIcon fontSize="inherit" /> RMSE : 0.12</span>
               </div>
             </div>
 
             <div className="pred-feature-card">
               <div className="pred-feature-top-row">
-                <div className="pred-feature-icon export">📤</div>
-                <span className="pred-feature-status coming">○ Coming Soon</span>
+                <div className="pred-feature-icon export"><IosShareOutlinedIcon fontSize="inherit" /></div>
+                <span className="pred-feature-status coming" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><RadioButtonUncheckedOutlinedIcon fontSize="inherit" /> Coming Soon</span>
               </div>
               <h3>Export &amp; Reports</h3>
               <p>Automatic generation of PDF reports and CSV/GeoJSON export for authorities and researchers.</p>
               <div className="pred-feature-meta">
-                <span>📄 PDF, CSV, GeoJSON</span>
-                <span>🔐 Certified</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><DescriptionOutlinedIcon fontSize="inherit" /> PDF, CSV, GeoJSON</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><EnhancedEncryptionOutlinedIcon fontSize="inherit" className="icon-security" /> Certified</span>
               </div>
             </div>
           </div>
@@ -299,7 +332,7 @@ export default function PredictionsPage() {
           {/* C. Mock Visualization — tabbed bar chart with lock overlay */}
           <div className="pred-viz-card">
             <div className="pred-viz-header">
-              <h3>📊 Predictive Overview — Risk Distribution by Zone</h3>
+              <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><BarChartOutlinedIcon fontSize="inherit" /> Predictive Overview — Risk Distribution by Zone</h3>
               <div className="pred-viz-tabs">
                 <button className={`pred-viz-tab ${vizTab === 'heatmap' ? 'active' : ''}`} onClick={() => setVizTab('heatmap')}>Heatmap</button>
                 <button className={`pred-viz-tab ${vizTab === 'timeline' ? 'active' : ''}`} onClick={() => setVizTab('timeline')}>Timeline</button>
@@ -318,7 +351,7 @@ export default function PredictionsPage() {
                 ))}
               </div>
               <div className="pred-viz-overlay">
-                <span className="pred-viz-overlay-icon">🔒</span>
+                <span className="pred-viz-overlay-icon"><LockOutlinedIcon fontSize="inherit" className="icon-security" /></span>
                 <span className="pred-viz-overlay-text">Full visualization coming soon</span>
                 <span className="pred-viz-overlay-sub">The model is being calibrated on your regional data</span>
               </div>
@@ -328,7 +361,7 @@ export default function PredictionsPage() {
           {/* D. Top Risk Zones Table — ranked by AI score */}
           <div className="pred-zones-card">
             <div className="pred-zones-header">
-              <h3>🏙️ Risk Zone Ranking</h3>
+              <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><LocationCityOutlinedIcon fontSize="inherit" /> Risk Zone Ranking</h3>
               <span className="pred-zones-updated">Updated: {fmtTime(liveTime)}</span>
             </div>
             <table className="pred-zones-table">
@@ -356,7 +389,7 @@ export default function PredictionsPage() {
                         <span className="pred-zone-score-num">{z.score}</span>
                       </div>
                     </td>
-                    <td className={`pred-zone-trend ${z.trend.startsWith('+') ? 'up' : 'down'}`}>{z.trend.startsWith('+') ? '↑' : '↓'} {z.trend}</td>
+                    <td className={`pred-zone-trend ${z.trend.startsWith('+') ? 'up' : 'down'}`}>{z.trend.startsWith('+') ? <TrendingUpRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle' }} /> : <TrendingDownRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle' }} />} {z.trend}</td>
                     <td><span className={`pred-severity-badge ${z.severity}`}>{z.severity === 'high' ? 'High' : z.severity === 'medium' ? 'Moderate' : 'Low'}</span></td>
                   </tr>
                 ))}
@@ -366,7 +399,7 @@ export default function PredictionsPage() {
 
           {/* E. How it Works — 4-step pipeline explainer */}
           <div className="pred-how-card">
-            <h3>💡 How Does It Work?</h3>
+            <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><TipsAndUpdatesOutlinedIcon fontSize="inherit" className="icon-info" /> How Does It Work?</h3>
             <div className="pred-how-steps">
               <div className="pred-how-step">
                 <div className="pred-how-num">1</div>
@@ -404,16 +437,16 @@ export default function PredictionsPage() {
 
           {/* F. Tech Stack Banner — icons for Python, LightGBM, CatBoost, etc. */}
           <div className="pred-tech-card">
-            <h3>🛠️ Technology Stack</h3>
+            <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><BuildOutlinedIcon fontSize="inherit" /> Technology Stack</h3>
             <div className="pred-tech-grid">
-              <div className="pred-tech-item"><span className="pred-tech-logo">🐍</span><span>Python</span></div>
-              <div className="pred-tech-item"><span className="pred-tech-logo">⚡</span><span>LightGBM</span></div>
-              <div className="pred-tech-item"><span className="pred-tech-logo">🐱</span><span>CatBoost</span></div>
-              <div className="pred-tech-item"><span className="pred-tech-logo">🧠</span><span>Scikit-learn</span></div>
-              <div className="pred-tech-item"><span className="pred-tech-logo">📊</span><span>Pandas</span></div>
-              <div className="pred-tech-item"><span className="pred-tech-logo">⚛️</span><span>React</span></div>
-              <div className="pred-tech-item"><span className="pred-tech-logo">🗺️</span><span>Leaflet</span></div>
-              <div className="pred-tech-item"><span className="pred-tech-logo">🟢</span><span>Node.js</span></div>
+              <div className="pred-tech-item"><span className="pred-tech-logo"><CodeOutlinedIcon fontSize="inherit" /></span><span>Python</span></div>
+              <div className="pred-tech-item"><span className="pred-tech-logo"><BoltOutlinedIcon fontSize="inherit" /></span><span>LightGBM</span></div>
+              <div className="pred-tech-item"><span className="pred-tech-logo"><ScatterPlotOutlinedIcon fontSize="inherit" /></span><span>CatBoost</span></div>
+              <div className="pred-tech-item"><span className="pred-tech-logo"><PsychologyOutlinedIcon fontSize="inherit" /></span><span>Scikit-learn</span></div>
+              <div className="pred-tech-item"><span className="pred-tech-logo"><BarChartOutlinedIcon fontSize="inherit" /></span><span>Pandas</span></div>
+              <div className="pred-tech-item"><span className="pred-tech-logo"><HubOutlinedIcon fontSize="inherit" /></span><span>React</span></div>
+              <div className="pred-tech-item"><span className="pred-tech-logo"><MapOutlinedIcon fontSize="inherit" /></span><span>Leaflet</span></div>
+              <div className="pred-tech-item"><span className="pred-tech-logo"><CodeOutlinedIcon fontSize="inherit" /></span><span>Node.js</span></div>
             </div>
           </div>
 
@@ -424,7 +457,7 @@ export default function PredictionsPage() {
 
           {/* A. Prediction Status — model version, algo, confidence + metric trio */}
           <div className="pred-status-card">
-            <h3>⚡ Model Status</h3>
+            <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><BoltOutlinedIcon fontSize="inherit" /> Model Status</h3>
             <div className="pred-status-row">
               <span className="pred-status-label">Version</span>
               <span className="pred-status-value">SIARA v1.2</span>
@@ -453,7 +486,7 @@ export default function PredictionsPage() {
 
           {/* B. Forecast Snapshot — risk level bars at 6h / 12h / 18h / 24h / 48h */}
           <div className="pred-forecast-card">
-            <h3>📅 Risk Forecast</h3>
+            <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><CalendarMonthOutlinedIcon fontSize="inherit" /> Risk Forecast</h3>
             <div className="pred-forecast-items">
               <div className="pred-forecast-row">
                 <span className="pred-forecast-time">6h</span>
@@ -485,7 +518,7 @@ export default function PredictionsPage() {
 
           {/* C. Model Transparency — feature importance horizontal bars */}
           <div className="pred-transparency-card">
-            <h3>🔍 Feature Importance</h3>
+            <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><SearchOutlinedIcon fontSize="inherit" /> Feature Importance</h3>
             <div className="pred-factor">
               <span className="pred-factor-name">Weather</span>
               <div className="pred-factor-bar-bg"><div className="pred-factor-bar-fill" style={{ width: '78%' }}></div></div>
@@ -520,7 +553,7 @@ export default function PredictionsPage() {
 
           {/* D. Live Activity Feed — real-time model events */}
           <div className="pred-activity-card">
-            <h3>📡 Live Activity</h3>
+            <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><SatelliteAltOutlinedIcon fontSize="inherit" /> Live Activity</h3>
             <div className="pred-activity-list">
               {activityFeed.map((a) => (
                 <div key={a.id} className={`pred-activity-item ${a.type}`}>
@@ -536,7 +569,7 @@ export default function PredictionsPage() {
 
           {/* E. CTA — early access call-to-action */}
           <div className="pred-cta-card">
-            <h4>🚀 Early Access</h4>
+            <h4 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><RocketLaunchOutlinedIcon fontSize="inherit" className="icon-accent" /> Early Access</h4>
             <p>Be among the first to test real-time predictions on your daily route.</p>
             <button className="pred-cta-btn" onClick={() => navigate('/map')}>View on Map</button>
           </div>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
+import LibraryBooksOutlinedIcon from '@mui/icons-material/LibraryBooksOutlined'
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded'
 import SyncAltRoundedIcon from '@mui/icons-material/SyncAltRounded'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
@@ -321,7 +322,7 @@ export default function PoliceOperationHistoryPage() {
 
           {!isLoading && filteredItems.length === 0 ? (
             <div className="police-empty-state" role="status" aria-live="polite">
-              <div className="police-empty-icon" aria-hidden="true">📚</div>
+              <div className="police-empty-icon" aria-hidden="true"><LibraryBooksOutlinedIcon fontSize="inherit" /></div>
               <h3>No actions found</h3>
               <p>Location updates are hidden here so the timeline stays focused on meaningful police actions.</p>
             </div>

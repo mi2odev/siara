@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
 
 import '../../styles/LeftQuickInfoLinks.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
@@ -7,9 +10,9 @@ import siaraLogo from '../../assets/logos/siara-logo.png'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const INFO_LINKS = [
-  { key: 'contact', label: 'Contact', icon: '📞', path: '/contact' },
-  { key: 'about', label: 'About', icon: 'ℹ️', path: '/about' },
-  { key: 'description', label: 'Description', icon: '📘', path: '/description' },
+  { key: 'contact', label: 'Contact', icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
+  { key: 'about', label: 'About', icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
+  { key: 'description', label: 'Description', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/description' },
 ]
 
 export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = '' }) {

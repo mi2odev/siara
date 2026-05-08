@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded'
+import ArrowDropUpRoundedIcon from '@mui/icons-material/ArrowDropUpRounded'
 
 import {
   fetchAdminIncidents,
@@ -298,8 +300,8 @@ export default function AdminIncidentsPage() {
     }
 
     return (
-      <span style={{ marginLeft: 3, fontSize: 9 }}>
-        {sortDir === 'desc' ? '▼' : '▲'}
+      <span style={{ marginLeft: 3, display: 'inline-flex', alignItems: 'center' }}>
+        {sortDir === 'desc' ? <ArrowDropDownRoundedIcon fontSize="small" /> : <ArrowDropUpRoundedIcon fontSize="small" />}
       </span>
     )
   }

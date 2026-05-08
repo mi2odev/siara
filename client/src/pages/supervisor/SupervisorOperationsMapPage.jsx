@@ -3,6 +3,11 @@ import 'leaflet/dist/leaflet.css'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
 import { useNavigate } from 'react-router-dom'
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import LocalPoliceOutlinedIcon from '@mui/icons-material/LocalPoliceOutlined'
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import { getSupervisorGlobalMap } from '../../services/policeService'
@@ -29,10 +34,10 @@ function makeDivIcon(color, label, size = 32) {
 }
 
 const SEVERITY_CONFIG = {
-  critical: { color: '#dc2626', emoji: '🔴', label: 'Critical' },
-  high:     { color: '#ea580c', emoji: '🟠', label: 'High' },
-  medium:   { color: '#ca8a04', emoji: '🟡', label: 'Medium' },
-  low:      { color: '#16a34a', emoji: '🟢', label: 'Low' },
+  critical: { color: '#dc2626', marker: 'C', label: 'Critical' },
+  high:     { color: '#ea580c', marker: 'H', label: 'High' },
+  medium:   { color: '#ca8a04', marker: 'M', label: 'Medium' },
+  low:      { color: '#16a34a', marker: 'L', label: 'Low' },
 }
 
 function sevKey(hint) {
@@ -121,7 +126,7 @@ export default function SupervisorOperationsMapPage() {
             </p>
           </div>
           <div className="sv-page-actions">
-            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading}>↻ Refresh</button>
+            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading}><RefreshRoundedIcon fontSize="inherit" /> Refresh</button>
           </div>
         </div>
 
@@ -134,13 +139,13 @@ export default function SupervisorOperationsMapPage() {
               className={`sv-filter-btn ${showIncidents ? 'active' : ''}`}
               onClick={() => setShowIncidents((v) => !v)}
             >
-              🔴 Incidents ({data.incidents?.length ?? 0})
+              <FiberManualRecordIcon fontSize="inherit" className="icon-severity-critical" /> Incidents ({data.incidents?.length ?? 0})
             </button>
             <button
               className={`sv-filter-btn ${showOfficers ? 'active' : ''}`}
               onClick={() => setShowOfficers((v) => !v)}
             >
-              🔵 Officers ({data.officers?.length ?? 0})
+              <FiberManualRecordIcon fontSize="inherit" className="icon-severity-info" /> Officers ({data.officers?.length ?? 0})
             </button>
           </div>
 
@@ -190,7 +195,7 @@ export default function SupervisorOperationsMapPage() {
               {visibleIncidents.map((inc) => {
                 const sk = sevKey(inc.severityHint)
                 const cfg = SEVERITY_CONFIG[sk]
-                const icon = makeDivIcon(cfg.color, cfg.emoji, 34)
+                const icon = makeDivIcon(cfg.color, cfg.marker, 34)
                 return (
                   <Marker key={`inc-${inc.id}`} position={[inc.lat, inc.lng]} icon={icon}>
                     <Popup minWidth={220}>
@@ -209,10 +214,10 @@ export default function SupervisorOperationsMapPage() {
                           }}>{statusLabel(inc.status)}</span>
                         </div>
                         {inc.locationLabel && (
-                          <div style={{ color: '#64748b', marginBottom: 2 }}>📍 {inc.locationLabel}</div>
+                          <div style={{ color: '#64748b', marginBottom: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}><LocationOnOutlinedIcon fontSize="inherit" /> {inc.locationLabel}</div>
                         )}
                         {inc.assignedOfficerName && (
-                          <div style={{ color: '#64748b', marginBottom: 2 }}>👮 {inc.assignedOfficerName}</div>
+                          <div style={{ color: '#64748b', marginBottom: 2, display: 'inline-flex', alignItems: 'center', gap: 4 }}><LocalPoliceOutlinedIcon fontSize="inherit" /> {inc.assignedOfficerName}</div>
                         )}
                         <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 8 }}>
                           {formatRelative(inc.occurredAt || inc.createdAt)}
@@ -225,7 +230,7 @@ export default function SupervisorOperationsMapPage() {
                             border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600,
                           }}
                         >
-                          View Details →
+                          View Details <ArrowForwardRoundedIcon fontSize="inherit" />
                         </button>
                       </div>
                     </Popup>
@@ -236,7 +241,7 @@ export default function SupervisorOperationsMapPage() {
               {/* Officer markers */}
               {visibleOfficers.map((off) => {
                 const color = off.isOnDuty ? '#2563eb' : '#64748b'
-                const icon = makeDivIcon(color, '👮', 30)
+                const icon = makeDivIcon(color, 'P', 30)
                 return (
                   <Marker key={`off-${off.id}`} position={[off.lat, off.lng]} icon={icon}>
                     <Popup minWidth={200}>
@@ -256,8 +261,8 @@ export default function SupervisorOperationsMapPage() {
                           </span>
                         </div>
                         {(off.communeName || off.wilayaName) && (
-                          <div style={{ color: '#64748b', marginTop: 4, fontSize: 12 }}>
-                            📍 {[off.communeName, off.wilayaName].filter(Boolean).join(', ')}
+                          <div style={{ color: '#64748b', marginTop: 4, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <LocationOnOutlinedIcon fontSize="inherit" /> {[off.communeName, off.wilayaName].filter(Boolean).join(', ')}
                           </div>
                         )}
                         {off.locationCapturedAt && (

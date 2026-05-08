@@ -4,6 +4,17 @@
  */
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import EditRoundedIcon from '@mui/icons-material/EditRounded'
+import MergeRoundedIcon from '@mui/icons-material/MergeRounded'
+import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded'
+import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
+import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined'
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 
 import {
   fetchAdminIncident,
@@ -276,7 +287,7 @@ export default function AdminIncidentReviewPage() {
     <div className="admin-review-split">
       <div className="admin-review-left">
         <button className="admin-btn admin-btn-ghost" onClick={() => navigate('/admin/incidents')} style={{ marginBottom: 10, fontSize: 11 }}>
-          ← Back to Queue
+          <ArrowBackRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle' }} /> Back to Queue
         </button>
 
         {error && (
@@ -529,7 +540,7 @@ export default function AdminIncidentReviewPage() {
           <h3 className="admin-card-title">Incident Location</h3>
           <div style={{ background: 'var(--admin-surface-alt)', borderRadius: 8, height: 260, marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--admin-text-muted)', fontSize: 12, position: 'relative' }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 28, marginBottom: 6 }}>📍</div>
+              <div style={{ fontSize: 28, marginBottom: 6, lineHeight: 1 }}><LocationOnOutlinedIcon fontSize="inherit" /></div>
               <div>{incident.location}</div>
               <div style={{ fontSize: 10, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
                 {incident.coordinates.lat != null && incident.coordinates.lng != null
@@ -576,7 +587,8 @@ export default function AdminIncidentReviewPage() {
           {incident.nearbyReports.length >= 2 && (
             <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: 6, border: '1px solid rgba(245, 158, 11, 0.2)' }}>
               <span style={{ fontSize: 10.5, color: 'var(--admin-warning)', fontWeight: 600 }}>
-                ⚠ Cluster detected · {incident.nearbyReports.length + 1} incidents within 5 km
+                <WarningAmberRoundedIcon fontSize="inherit" className="icon-warning" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                Cluster detected · {incident.nearbyReports.length + 1} incidents within 5 km
               </span>
             </div>
           )}
@@ -592,10 +604,10 @@ export default function AdminIncidentReviewPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <button className={`admin-btn admin-btn-full ${decision === 'approve' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('approve')}>
-              ✓ Approve & Publish
+              <CheckRoundedIcon fontSize="inherit" className="icon-success" /> Approve & Publish
             </button>
             <button className={`admin-btn admin-btn-full ${decision === 'change' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('change')}>
-              ✎ Change Severity
+              <EditRoundedIcon fontSize="inherit" /> Change Severity
             </button>
             {decision === 'change' && (
               <select className="admin-select" value={newSeverity} onChange={(event) => setNewSeverity(event.target.value)} style={{ marginLeft: 8 }}>
@@ -605,7 +617,7 @@ export default function AdminIncidentReviewPage() {
               </select>
             )}
             <button className={`admin-btn admin-btn-full ${decision === 'merge' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('merge')}>
-              ⊕ Merge with Cluster
+              <MergeRoundedIcon fontSize="inherit" /> Merge with Cluster
             </button>
             {decision === 'merge' && (
               <input
@@ -618,16 +630,16 @@ export default function AdminIncidentReviewPage() {
               />
             )}
             <button className={`admin-btn admin-btn-full ${decision === 'info' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('info')}>
-              ? Request More Info
+              <HelpOutlineRoundedIcon fontSize="inherit" className="icon-info" /> Request More Info
             </button>
             <button className={`admin-btn admin-btn-full ${decision === 'flag' ? 'admin-btn-warning' : 'admin-btn-ghost'}`} onClick={() => setDecision('flag')}>
-              ⚑ Flag for Review
+              <FlagOutlinedIcon fontSize="inherit" className="icon-warning" /> Flag for Review
             </button>
             <button className={`admin-btn admin-btn-full ${decision === 'archive' ? 'admin-btn-warning' : 'admin-btn-ghost'}`} onClick={() => setDecision('archive')}>
-              ▪ Archive
+              <ArchiveOutlinedIcon fontSize="inherit" /> Archive
             </button>
             <button className={`admin-btn admin-btn-full ${decision === 'reject' ? 'admin-btn-danger' : 'admin-btn-ghost'}`} onClick={() => setDecision('reject')}>
-              ✕ Reject
+              <CloseRoundedIcon fontSize="inherit" className="icon-danger" /> Reject
             </button>
           </div>
 
@@ -651,7 +663,7 @@ export default function AdminIncidentReviewPage() {
                 onClick={handleDecisionSubmit}
                 disabled={isSubmitting || (decision === 'merge' && !mergeTargetReportId)}
               >
-                {isSubmitting ? 'Submitting...' : 'Confirm Decision →'}
+                {isSubmitting ? 'Submitting...' : <>Confirm Decision <ArrowForwardRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle' }} /></>}
               </button>
             </div>
           )}

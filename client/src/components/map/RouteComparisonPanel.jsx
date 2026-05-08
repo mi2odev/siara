@@ -1,4 +1,7 @@
 import { useMemo } from 'react'
+import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
+import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
 import '../../styles/RouteComparisonPanel.css'
 
 function normaliseLevel(level, percent) {
@@ -138,7 +141,7 @@ export default function RouteComparisonPanel({
                 title="High-risk road segments on this route"
               >
                 <span className="siara-route-card__factor-icon" aria-hidden="true">
-                  🛣️
+                  <RouteOutlinedIcon fontSize="inherit" />
                 </span>
                 <span className="siara-route-card__factor-value">
                   {route.highRiskSegmentCount}
@@ -150,7 +153,7 @@ export default function RouteComparisonPanel({
                 title="Accident heat clusters within 1.5 km of this route"
               >
                 <span className="siara-route-card__factor-icon" aria-hidden="true">
-                  🔥
+                  <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" />
                 </span>
                 <span className="siara-route-card__factor-value">
                   {route.clustersNearby}
@@ -163,7 +166,7 @@ export default function RouteComparisonPanel({
                   title="Recent reports near this route"
                 >
                   <span className="siara-route-card__factor-icon" aria-hidden="true">
-                    📍
+                    <LocationOnOutlinedIcon fontSize="inherit" />
                   </span>
                   <span className="siara-route-card__factor-value">
                     {route.reportsNearby}

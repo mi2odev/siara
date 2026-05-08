@@ -1,5 +1,8 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
+import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded'
+import TrendingDownRoundedIcon from '@mui/icons-material/TrendingDownRounded'
 import '../../styles/RoadSafetyProfile.css'
 
 function severityClass(bucket) {
@@ -14,11 +17,25 @@ function trendClass(trend) {
   return `trend-${trend || 'flat'}`
 }
 
-function trendLabel(profile) {
-  if (!profile) return ''
-  if (profile.trend === 'increasing') return `↑ ${profile.trendChangePercent}% vs prev 30d`
-  if (profile.trend === 'decreasing') return `↓ ${Math.abs(profile.trendChangePercent)}% vs prev 30d`
-  return 'stable vs prev 30d'
+function TrendLabel({ profile }) {
+  if (!profile) return null
+  if (profile.trend === 'increasing') {
+    return (
+      <>
+        <TrendingUpRoundedIcon fontSize="inherit" className="icon-warning" sx={{ verticalAlign: 'middle', mr: 0.25 }} />
+        {profile.trendChangePercent}% vs prev 30d
+      </>
+    )
+  }
+  if (profile.trend === 'decreasing') {
+    return (
+      <>
+        <TrendingDownRoundedIcon fontSize="inherit" className="icon-success" sx={{ verticalAlign: 'middle', mr: 0.25 }} />
+        {Math.abs(profile.trendChangePercent)}% vs prev 30d
+      </>
+    )
+  }
+  return <>stable vs prev 30d</>
 }
 
 function formatHourRange(range) {
@@ -36,7 +53,9 @@ export default function RoadSafetyProfileCard({ profile, title = 'Road / zone sa
     return (
       <div className="siara-zp">
         <div className="siara-zp__header">
-          <span className="siara-zp__icon" aria-hidden="true">🛣️</span>
+          <span className="siara-zp__icon" aria-hidden="true">
+            <RouteOutlinedIcon fontSize="inherit" />
+          </span>
           <h3 className="siara-zp__title">{title}</h3>
         </div>
         <div className="siara-zp__empty">No profile data available.</div>
@@ -47,13 +66,15 @@ export default function RoadSafetyProfileCard({ profile, title = 'Road / zone sa
   return (
     <section className="siara-zp">
       <div className="siara-zp__header">
-        <span className="siara-zp__icon" aria-hidden="true">🛣️</span>
+        <span className="siara-zp__icon" aria-hidden="true">
+          <RouteOutlinedIcon fontSize="inherit" />
+        </span>
         <h3 className="siara-zp__title">{title}</h3>
         <span className={`siara-zp__pill ${severityClass(profile.dominantSeverity)}`}>
           {profile.dominantSeverity || 'low'}
         </span>
         <span className={`siara-zp__pill ${trendClass(profile.trend)}`}>
-          {trendLabel(profile)}
+          <TrendLabel profile={profile} />
         </span>
       </div>
 

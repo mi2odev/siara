@@ -3,6 +3,17 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { MapContainer, Marker, TileLayer } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import DirectionsCarOutlinedIcon from '@mui/icons-material/DirectionsCarOutlined'
+import CarCrashOutlinedIcon from '@mui/icons-material/CarCrashOutlined'
+import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined'
+import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
+import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
+import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 
 const leafletIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -46,14 +57,21 @@ const STATUS_TABS = [
 const DEFAULT_CENTER = { lat: 36.753, lng: 3.0588 }
 
 function icon(type) {
-  return { accident: '🚗', traffic: '🚦', danger: '⚠️', roadworks: '🚧', ai_prediction: '🤖' }[type] || '🔔'
+  switch (type) {
+    case 'accident': return <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" />
+    case 'traffic': return <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" />
+    case 'danger': return <WarningAmberOutlinedIcon fontSize="inherit" className="icon-fire" />
+    case 'roadworks': return <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" />
+    case 'ai_prediction': return <SmartToyOutlinedIcon fontSize="inherit" className="icon-security" />
+    default: return <NotificationsOutlinedIcon fontSize="inherit" className="icon-muted" />
+  }
 }
 
 function renderSidebarIcon(type) {
-  if (type === 'quiz') return '🚗'
-  if (type === 'map') return '🗺️'
-  if (type === 'report') return '📝'
-  return '🧭'
+  if (type === 'quiz') return <DirectionsCarOutlinedIcon fontSize="inherit" />
+  if (type === 'map') return <MapOutlinedIcon fontSize="inherit" />
+  if (type === 'report') return <EditNoteOutlinedIcon fontSize="inherit" />
+  return <ExploreOutlinedIcon fontSize="inherit" />
 }
 
 function PinIcon() {
@@ -545,7 +563,7 @@ export default function AlertsPage() {
           <div className="card profile-summary">
             <div className="profile-avatar-container">
               <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
-              <span className="verified-badge">✓</span>
+              <span className="verified-badge"><CheckRoundedIcon fontSize="inherit" /></span>
             </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>

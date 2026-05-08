@@ -19,6 +19,13 @@
  */
 import React, { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded'
+import BedtimeOutlinedIcon from '@mui/icons-material/BedtimeOutlined'
+import WbTwilightOutlinedIcon from '@mui/icons-material/WbTwilightOutlined'
+import WbSunnyOutlinedIcon from '@mui/icons-material/WbSunnyOutlined'
+import NightsStayOutlinedIcon from '@mui/icons-material/NightsStayOutlined'
+import SquareRoundedIcon from '@mui/icons-material/SquareRounded'
+import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded'
 
 /* ═══════════════════════════════════════════════════════════
    MOCK ANALYTICS DATA
@@ -135,8 +142,8 @@ export default function AdminAnalyticsPage() {
       {/* Summary KPIs */}
       <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 14 }}>
         {[
-          { label: 'Total Incidents', value: '296', trend: '↑ 12% vs prev.', cls: 'up' },
-          { label: 'Avg. per Day', value: '9.9', trend: '↑ 0.8', cls: 'up' },
+          { label: 'Total Incidents', value: '296', trend: <><TrendingUpRoundedIcon fontSize="inherit" className="icon-inline" sx={{ verticalAlign: 'middle' }} /> 12% vs prev.</>, cls: 'up' },
+          { label: 'Avg. per Day', value: '9.9', trend: <><TrendingUpRoundedIcon fontSize="inherit" className="icon-inline" sx={{ verticalAlign: 'middle' }} /> 0.8</>, cls: 'up' },
           { label: 'Peak Hour', value: '08:00–09:00', trend: '22 incidents', cls: 'stable' },
           { label: 'Most Dangerous', value: 'E-W Highway', trend: '34 incidents', cls: 'up' },
         ].map(k => (
@@ -347,10 +354,10 @@ export default function AdminAnalyticsPage() {
             <h3 className="admin-card-title">Incidents by Time of Day</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 14 }}>
               {[
-                { period: 'Night (00-06)', incidents: 18, pct: 6, icon: '🌙' },
-                { period: 'Morning (06-12)', incidents: 108, pct: 36, icon: '🌅' },
-                { period: 'Afternoon (12-18)', incidents: 98, pct: 33, icon: '☀️' },
-                { period: 'Evening (18-24)', incidents: 72, pct: 24, icon: '🌆' },
+                { period: 'Night (00-06)', incidents: 18, pct: 6, icon: <BedtimeOutlinedIcon fontSize="inherit" /> },
+                { period: 'Morning (06-12)', incidents: 108, pct: 36, icon: <WbTwilightOutlinedIcon fontSize="inherit" /> },
+                { period: 'Afternoon (12-18)', incidents: 98, pct: 33, icon: <WbSunnyOutlinedIcon fontSize="inherit" /> },
+                { period: 'Evening (18-24)', incidents: 72, pct: 24, icon: <NightsStayOutlinedIcon fontSize="inherit" /> },
               ].map(t => (
                 <div key={t.period} style={{ padding: '14px 12px', background: 'var(--admin-surface-alt)', borderRadius: 8, border: '1px solid var(--admin-border)', textAlign: 'center' }}>
                   <div style={{ fontSize: 24, marginBottom: 6 }}>{t.icon}</div>
@@ -393,8 +400,14 @@ export default function AdminAnalyticsPage() {
             })}
           </div>
           <div style={{ display: 'flex', gap: 16, marginTop: 14, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
-            <span>■ Actual (last 7 days)</span>
-            <span>┅ Predicted (next 7 days)</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <SquareRoundedIcon fontSize="inherit" sx={{ color: 'var(--admin-primary)' }} />
+              Actual (last 7 days)
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <RemoveRoundedIcon fontSize="inherit" sx={{ color: 'var(--admin-primary)', borderTop: '2px dashed currentColor', height: 0 }} />
+              Predicted (next 7 days)
+            </span>
           </div>
           <div style={{ marginTop: 16, padding: '12px 14px', background: 'rgba(59, 130, 246, 0.08)', borderRadius: 8, border: '1px solid rgba(59, 130, 246, 0.15)' }}>
             <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--admin-primary)', marginBottom: 4 }}>AI Prediction Summary</div>

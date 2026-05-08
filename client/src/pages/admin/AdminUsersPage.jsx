@@ -11,6 +11,11 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import ArrowUpwardRoundedIcon from '@mui/icons-material/ArrowUpwardRounded'
+import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded'
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 
 import {
   fetchAdminUserDetails,
@@ -32,9 +37,9 @@ const FILTER_TABS = [
 ]
 
 const SORT_OPTIONS = [
-  { value: 'trust_asc', label: 'Trust ↑ (riskiest first)' },
-  { value: 'trust_desc', label: 'Trust ↓ (most trusted first)' },
-  { value: 'reports_desc', label: 'Reports ↓' },
+  { value: 'trust_asc', label: 'Trust ascending (riskiest first)' },
+  { value: 'trust_desc', label: 'Trust descending (most trusted first)' },
+  { value: 'reports_desc', label: 'Most reports first' },
   { value: 'created_desc', label: 'Newest accounts' },
   { value: 'last_active_desc', label: 'Recently active' },
 ]
@@ -408,7 +413,7 @@ export default function AdminUsersPage() {
                         {user.primaryRole !== 'trusted' && trustScore != null && trustScore >= 80 && (
                           <button className="admin-btn admin-btn-sm admin-btn-primary" onClick={() => promoteToTrusted(user)} disabled={isBusy}>Promote</button>
                         )}
-                        <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => recalcTrust(user)} disabled={isBusy}>↻ Trust</button>
+                        <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => recalcTrust(user)} disabled={isBusy}><RefreshRoundedIcon fontSize="inherit" /> Trust</button>
                         <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => openDetails(user)}>Details</button>
                       </div>
                     </td>
@@ -436,14 +441,14 @@ export default function AdminUsersPage() {
               onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
               disabled={offset === 0 || loading}
             >
-              ← Prev
+              <ArrowBackRoundedIcon fontSize="inherit" /> Prev
             </button>
             <button
               className="admin-btn admin-btn-sm admin-btn-ghost"
               onClick={() => setOffset(offset + PAGE_SIZE)}
               disabled={!pagination.hasMore || loading}
             >
-              Next →
+              Next <ArrowForwardRoundedIcon fontSize="inherit" />
             </button>
           </div>
         </div>

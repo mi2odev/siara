@@ -1,3 +1,5 @@
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+
 function formatCoordinate(value) {
   const num = Number(value)
   return Number.isFinite(num) ? num.toFixed(4) : "—"
@@ -30,7 +32,9 @@ export default function MapDestinationConfirmCard({
       aria-label="Confirm destination"
     >
       <div className="siara-map-destination-card__header">
-        <span className="siara-map-destination-card__pin" aria-hidden="true">📍</span>
+        <span className="siara-map-destination-card__pin" aria-hidden="true">
+          <LocationOnOutlinedIcon fontSize="inherit" />
+        </span>
         <h4 className="siara-map-destination-card__title">Start your travel with SIARA?</h4>
       </div>
       <p className="siara-map-destination-card__label" title={label}>

@@ -19,6 +19,8 @@
  */
 import React, { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import ArrowRightAltRoundedIcon from '@mui/icons-material/ArrowRightAltRounded'
+import SquareRoundedIcon from '@mui/icons-material/SquareRounded'
 
 /* ═══════════════════════════════════════════════════════════════
    MOCK DATA — AI model metrics & analysis artifacts
@@ -77,17 +79,29 @@ const overrideLogs = [
 
 /** Common false-positive patterns — AI over-predicted severity */
 const falsePositives = [
-  { type: 'Construction → Collision', count: 12, pct: 1.8 },
-  { type: 'Heavy Traffic → Accident', count: 8, pct: 1.2 },
-  { type: 'Parked Vehicles → Roadblock', count: 5, pct: 0.7 },
+  { from: 'Construction', to: 'Collision', count: 12, pct: 1.8 },
+  { from: 'Heavy Traffic', to: 'Accident', count: 8, pct: 1.2 },
+  { from: 'Parked Vehicles', to: 'Roadblock', count: 5, pct: 0.7 },
 ]
 
 /** Common false-negative patterns — AI under-predicted severity */
 const falseNegatives = [
-  { type: 'Multi-vehicle → Minor', count: 6, pct: 0.9 },
-  { type: 'Pedestrian Incident → Low', count: 4, pct: 0.6 },
-  { type: 'Night-time underestimation', count: 3, pct: 0.4 },
+  { from: 'Multi-vehicle', to: 'Minor', count: 6, pct: 0.9 },
+  { from: 'Pedestrian Incident', to: 'Low', count: 4, pct: 0.6 },
+  { from: 'Night-time underestimation', to: null, count: 3, pct: 0.4 },
 ]
+
+const PatternLabel = ({ from, to }) => (
+  <span style={{ fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+    <span>{from}</span>
+    {to ? (
+      <>
+        <ArrowRightAltRoundedIcon fontSize="inherit" sx={{ color: 'var(--admin-text-muted)' }} />
+        <span>{to}</span>
+      </>
+    ) : null}
+  </span>
+)
 
 /** Tab definitions for the 4 monitoring views */
 const tabs = [
@@ -169,7 +183,7 @@ export default function AdminAIMonitoringPage() {
               <div style={{ marginTop: 10 }}>
                 {falsePositives.map((fp, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--admin-border)' }}>
-                    <span style={{ fontSize: 11.5 }}>{fp.type}</span>
+                    <PatternLabel from={fp.from} to={fp.to} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 11, fontWeight: 600 }}>{fp.count} cases</span>
                       <span style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>{fp.pct}%</span>
@@ -184,7 +198,7 @@ export default function AdminAIMonitoringPage() {
               <div style={{ marginTop: 10 }}>
                 {falseNegatives.map((fn, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--admin-border)' }}>
-                    <span style={{ fontSize: 11.5 }}>{fn.type}</span>
+                    <PatternLabel from={fn.from} to={fn.to} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 11, fontWeight: 600 }}>{fn.count} cases</span>
                       <span style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>{fn.pct}%</span>
@@ -224,7 +238,7 @@ export default function AdminAIMonitoringPage() {
             <table className="admin-matrix">
               <thead>
                 <tr>
-                  <th style={{ width: 80 }}>Actual ↓ / Predicted →</th>
+                  <th style={{ width: 80 }}>Actual / Predicted</th>
                   {matrixLabels.map(l => <th key={l}>{l}</th>)}
                 </tr>
               </thead>
@@ -256,8 +270,14 @@ export default function AdminAIMonitoringPage() {
             </table>
           </div>
           <div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
-            <span>🟩 Diagonal = correct predictions</span>
-            <span>🟥 Off-diagonal = misclassifications (highlighted when &gt; 10)</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <SquareRoundedIcon fontSize="inherit" className="icon-success icon-soft" />
+              Diagonal = correct predictions
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <SquareRoundedIcon fontSize="inherit" className="icon-danger icon-soft" />
+              Off-diagonal = misclassifications (highlighted when &gt; 10)
+            </span>
           </div>
         </div>
       )}
@@ -318,7 +338,7 @@ export default function AdminAIMonitoringPage() {
                 <tr>
                   <th>Incident</th>
                   <th>Admin</th>
-                  <th>Original → New</th>
+                  <th>Original / New</th>
                   <th>Reason</th>
                   <th>Timestamp</th>
                 </tr>
@@ -330,7 +350,7 @@ export default function AdminAIMonitoringPage() {
                     <td style={{ fontSize: 11 }}>{log.admin}</td>
                     <td>
                       <span className={`admin-pill ${log.from}`}>{log.from}</span>
-                      <span style={{ margin: '0 4px', color: 'var(--admin-text-muted)' }}>→</span>
+                      <ArrowRightAltRoundedIcon fontSize="small" sx={{ mx: 0.5, color: 'var(--admin-text-muted)' }} />
                       <span className={`admin-pill ${log.to}`}>{log.to}</span>
                     </td>
                     <td style={{ fontSize: 11, maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.reason}</td>

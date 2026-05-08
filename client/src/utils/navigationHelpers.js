@@ -7,6 +7,16 @@
 // or Mapbox GL — the consumer code in SiaraMap is structured so the camera /
 // banner / summary modules can be swapped in place when that happens.
 
+import StraightOutlinedIcon from '@mui/icons-material/StraightOutlined';
+import TurnSlightLeftOutlinedIcon from '@mui/icons-material/TurnSlightLeftOutlined';
+import TurnSlightRightOutlinedIcon from '@mui/icons-material/TurnSlightRightOutlined';
+import TurnLeftOutlinedIcon from '@mui/icons-material/TurnLeftOutlined';
+import TurnRightOutlinedIcon from '@mui/icons-material/TurnRightOutlined';
+import TurnSharpLeftOutlinedIcon from '@mui/icons-material/TurnSharpLeftOutlined';
+import TurnSharpRightOutlinedIcon from '@mui/icons-material/TurnSharpRightOutlined';
+import UTurnLeftOutlinedIcon from '@mui/icons-material/UTurnLeftOutlined';
+import SportsScoreOutlinedIcon from '@mui/icons-material/SportsScoreOutlined';
+
 const EARTH_RADIUS_M = 6371000;
 
 const toRad = (degrees) => (Number(degrees) * Math.PI) / 180;
@@ -92,14 +102,14 @@ const TURN_LABELS = {
 };
 
 const TURN_ICONS = {
-  continue: '⬆',
-  slightLeft: '↖',
-  slightRight: '↗',
-  left: '⬅',
-  right: '➡',
-  sharpLeft: '↰',
-  sharpRight: '↱',
-  uTurn: '⤴',
+  continue: StraightOutlinedIcon,
+  slightLeft: TurnSlightLeftOutlinedIcon,
+  slightRight: TurnSlightRightOutlinedIcon,
+  left: TurnLeftOutlinedIcon,
+  right: TurnRightOutlinedIcon,
+  sharpLeft: TurnSharpLeftOutlinedIcon,
+  sharpRight: TurnSharpRightOutlinedIcon,
+  uTurn: UTurnLeftOutlinedIcon,
 };
 
 function normalizePath(rawPath) {
@@ -252,7 +262,7 @@ export function deriveStepsFromPath(rawPath, { thresholdDeg = 25 } = {}) {
     direction: compassDirectionFromBearing(lastBearing),
     turnType: 'arrive',
     instruction: 'Arrive at destination',
-    icon: '🏁',
+    icon: SportsScoreOutlinedIcon,
   });
 
   return steps;

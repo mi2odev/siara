@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import {
   Circle,
   CircleMarker,
@@ -3977,7 +3978,7 @@ const SiaraMap = ({
               {locationError && <p className="risk-debug-error">{locationError}</p>}
             </>
           )}
-          {hasValidUserLocation && locationAccuracyText && <p className="srd-accuracy">📍 accuracy: {locationAccuracyText}</p>}
+          {hasValidUserLocation && locationAccuracyText && <p className="srd-accuracy"><LocationOnOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />accuracy: {locationAccuracyText}</p>}
           {hasValidUserLocation && locationWarning && <p className="risk-debug-error">{locationWarning}</p>}
           {hasValidUserLocation && currentRiskState === "idle" && <p>Loading current risk...</p>}
           {hasValidUserLocation && currentRiskState === "loading" && <p>Loading current risk...</p>}

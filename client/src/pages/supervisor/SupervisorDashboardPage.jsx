@@ -1,5 +1,19 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
+import ArrowRightAltRoundedIcon from '@mui/icons-material/ArrowRightAltRounded'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded'
+import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
+import GpsFixedOutlinedIcon from '@mui/icons-material/GpsFixedOutlined'
+import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
+import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
+import PendingActionsOutlinedIcon from '@mui/icons-material/PendingActionsOutlined'
+import RssFeedOutlinedIcon from '@mui/icons-material/RssFeedOutlined'
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import { AuthContext } from '../../contexts/AuthContext'
@@ -108,7 +122,7 @@ export default function SupervisorDashboardPage() {
           </div>
           <div className="sv-page-actions">
             <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading}>
-              ↻ Refresh
+              <RefreshRoundedIcon fontSize="inherit" /> Refresh
             </button>
           </div>
         </div>
@@ -142,7 +156,7 @@ export default function SupervisorDashboardPage() {
             <div className="sv-kpi-value" style={{ fontSize: 22 }}>
               {loading ? '—' : formatDuration(stats.avgResponseTimeMs)}
             </div>
-            <div className="sv-kpi-sub">Report → verified (30d)</div>
+            <div className="sv-kpi-sub" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Report <ArrowRightAltRoundedIcon fontSize="inherit" /> verified (30d)</div>
           </div>
         </div>
 
@@ -151,7 +165,7 @@ export default function SupervisorDashboardPage() {
           <div className="sv-section">
             <div className="sv-section-head">
               <h2 className="sv-section-title">
-                <span className="sv-section-title-icon">🔴</span>
+                <span className="sv-section-title-icon"><FiberManualRecordIcon fontSize="inherit" className="icon-severity-critical" /></span>
                 Critical Incidents
               </h2>
               <button
@@ -159,7 +173,7 @@ export default function SupervisorDashboardPage() {
                 style={{ fontSize: 12, padding: '4px 10px' }}
                 onClick={() => navigate('/police/supervisor/coordination')}
               >
-                Coordinate →
+                Coordinate <ArrowForwardRoundedIcon fontSize="inherit" />
               </button>
             </div>
             <div className="sv-section-body">
@@ -167,7 +181,7 @@ export default function SupervisorDashboardPage() {
                 <div className="sv-loading"><div className="sv-loading-spinner" /></div>
               ) : criticalIncidents.length === 0 ? (
                 <div className="sv-empty">
-                  <span className="sv-empty-icon">✅</span>
+                  <span className="sv-empty-icon"><CheckCircleOutlineRoundedIcon fontSize="inherit" className="icon-success" /></span>
                   No critical incidents
                 </div>
               ) : (
@@ -208,7 +222,7 @@ export default function SupervisorDashboardPage() {
             <div className="sv-section">
               <div className="sv-section-head">
                 <h2 className="sv-section-title">
-                  <span className="sv-section-title-icon">👥</span>
+                  <span className="sv-section-title-icon"><GroupsOutlinedIcon fontSize="inherit" /></span>
                   Officer Status
                 </h2>
                 <button
@@ -216,7 +230,7 @@ export default function SupervisorDashboardPage() {
                   style={{ fontSize: 12, padding: '4px 10px' }}
                   onClick={() => navigate('/police/supervisor/officers')}
                 >
-                  Monitor →
+                  Monitor <ArrowForwardRoundedIcon fontSize="inherit" />
                 </button>
               </div>
               <div className="sv-section-body">
@@ -253,34 +267,34 @@ export default function SupervisorDashboardPage() {
             <div className="sv-section">
               <div className="sv-section-head">
                 <h2 className="sv-section-title">
-                  <span className="sv-section-title-icon">⚡</span>
+                  <span className="sv-section-title-icon"><BoltOutlinedIcon fontSize="inherit" /></span>
                   Quick Actions
                 </h2>
               </div>
               <div className="sv-section-body">
                 <div className="sv-quick-actions">
                   <button className="sv-quick-action-btn" onClick={() => navigate('/police/supervisor/coordination')}>
-                    <span className="sv-quick-action-icon">🎯</span>
+                    <span className="sv-quick-action-icon"><GpsFixedOutlinedIcon fontSize="inherit" /></span>
                     Incident Coordination
                   </button>
                   <button className="sv-quick-action-btn" onClick={() => navigate('/police/supervisor/officers')}>
-                    <span className="sv-quick-action-icon">👥</span>
+                    <span className="sv-quick-action-icon"><GroupsOutlinedIcon fontSize="inherit" /></span>
                     Monitor Officers
                   </button>
                   <button className="sv-quick-action-btn" onClick={() => navigate('/police/supervisor/alerts')}>
-                    <span className="sv-quick-action-icon">📢</span>
+                    <span className="sv-quick-action-icon"><CampaignOutlinedIcon fontSize="inherit" /></span>
                     Send Alert
                   </button>
                   <button className="sv-quick-action-btn" onClick={() => navigate('/police/supervisor/map')}>
-                    <span className="sv-quick-action-icon">🗺️</span>
+                    <span className="sv-quick-action-icon"><MapOutlinedIcon fontSize="inherit" /></span>
                     Operations Map
                   </button>
                   <button className="sv-quick-action-btn" onClick={() => navigate('/police/supervisor/analytics')}>
-                    <span className="sv-quick-action-icon">📊</span>
+                    <span className="sv-quick-action-icon"><InsightsOutlinedIcon fontSize="inherit" /></span>
                     Analytics
                   </button>
                   <button className="sv-quick-action-btn" onClick={() => navigate('/police/verification')}>
-                    <span className="sv-quick-action-icon">🟡</span>
+                    <span className="sv-quick-action-icon"><PendingActionsOutlinedIcon fontSize="inherit" /></span>
                     Verification Queue
                   </button>
                 </div>
@@ -293,7 +307,7 @@ export default function SupervisorDashboardPage() {
         <div className="sv-section" style={{ marginTop: 20 }}>
           <div className="sv-section-head">
             <h2 className="sv-section-title">
-              <span className="sv-section-title-icon">📡</span>
+              <span className="sv-section-title-icon"><RssFeedOutlinedIcon fontSize="inherit" /></span>
               Live Activity Feed
             </h2>
             <button
@@ -301,7 +315,7 @@ export default function SupervisorDashboardPage() {
               style={{ fontSize: 12, padding: '4px 10px' }}
               onClick={() => navigate('/police/history')}
             >
-              Full History →
+              Full History <ArrowForwardRoundedIcon fontSize="inherit" />
             </button>
           </div>
           <div className="sv-section-body">
@@ -309,7 +323,7 @@ export default function SupervisorDashboardPage() {
               <div className="sv-loading"><div className="sv-loading-spinner" /></div>
             ) : recentActivity.length === 0 ? (
               <div className="sv-empty">
-                <span className="sv-empty-icon">📋</span>
+                <span className="sv-empty-icon"><AssignmentOutlinedIcon fontSize="inherit" /></span>
                 No recent activity
               </div>
             ) : (

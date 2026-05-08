@@ -3,6 +3,17 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { createPortal } from 'react-dom'
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
+import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
+import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
@@ -104,15 +115,15 @@ const QUALITY_BADGE_FALLBACKS = {
 }
 
 const QUALITY_BADGE_ICONS = {
-  shield_check: '🛡️',
-  check_circle: '✅',
-  alert_triangle: '⚠️',
-  alert_octagon: '🚫',
-  info: 'ℹ️',
-  map_pin_alert: '📍',
-  loader: '⏳',
-  clock: '🕒',
-  help: '❓',
+  shield_check: <ShieldOutlinedIcon fontSize="inherit" className="icon-security" />,
+  check_circle: <CheckCircleOutlineRoundedIcon fontSize="inherit" className="icon-success" />,
+  alert_triangle: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" />,
+  alert_octagon: <BlockOutlinedIcon fontSize="inherit" className="icon-danger" />,
+  info: <InfoOutlinedIcon fontSize="inherit" className="icon-info" />,
+  map_pin_alert: <LocationOnOutlinedIcon fontSize="inherit" className="icon-warning" />,
+  loader: <HourglassEmptyOutlinedIcon fontSize="inherit" className="icon-muted" />,
+  clock: <AccessTimeOutlinedIcon fontSize="inherit" className="icon-muted" />,
+  help: <HelpOutlineOutlinedIcon fontSize="inherit" className="icon-muted" />,
 }
 
 function deriveQualityBadge(report) {
@@ -1337,7 +1348,7 @@ export default function NewsPage() {
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              🔔
+              <NotificationsOutlinedIcon fontSize="small" />
               <span className="notification-badge"></span>
             </button>
             <div className="dash-avatar-wrapper">
@@ -1463,7 +1474,7 @@ export default function NewsPage() {
                   aria-label="Sort reports"
                 >
                   <span>{selectedSortOption.label}</span>
-                  <span className="feed-sort-chevron" aria-hidden="true">▾</span>
+                  <span className="feed-sort-chevron" aria-hidden="true"><KeyboardArrowDownRoundedIcon fontSize="inherit" /></span>
                 </button>
 
                 {isSortMenuOpen ? (

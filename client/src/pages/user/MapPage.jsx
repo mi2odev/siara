@@ -10,6 +10,30 @@
 
 import React, { useEffect, useMemo, useState, useContext, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import ThunderstormOutlinedIcon from '@mui/icons-material/ThunderstormOutlined';
+import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined';
+import AcUnitOutlinedIcon from '@mui/icons-material/AcUnitOutlined';
+import FilterDramaOutlinedIcon from '@mui/icons-material/FilterDramaOutlined';
+import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined';
+import CloudQueueOutlinedIcon from '@mui/icons-material/CloudQueueOutlined';
+import WbSunnyOutlinedIcon from '@mui/icons-material/WbSunnyOutlined';
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
+import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
+import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined';
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
+import DirectionsCarOutlinedIcon from '@mui/icons-material/DirectionsCarOutlined';
+import CarCrashOutlinedIcon from '@mui/icons-material/CarCrashOutlined';
+import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import { AuthContext } from '../../contexts/AuthContext';
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
@@ -133,30 +157,30 @@ function toPointKey(point) {
 
 function weatherIconFromCondition(condition) {
   const text = String(condition || "").toLowerCase();
-  if (text.includes("orage")) return "⛈️";
-  if (text.includes("pluie") || text.includes("bruine")) return "🌧️";
-  if (text.includes("neige")) return "🌨️";
-  if (text.includes("brouillard")) return "🌫️";
-  if (text.includes("couvert")) return "☁️";
-  if (text.includes("nuage")) return "⛅";
-  return "☀️";
+  if (text.includes("orage")) return <ThunderstormOutlinedIcon fontSize="inherit" />;
+  if (text.includes("pluie") || text.includes("bruine")) return <WaterDropOutlinedIcon fontSize="inherit" />;
+  if (text.includes("neige")) return <AcUnitOutlinedIcon fontSize="inherit" />;
+  if (text.includes("brouillard")) return <FilterDramaOutlinedIcon fontSize="inherit" />;
+  if (text.includes("couvert")) return <CloudOutlinedIcon fontSize="inherit" />;
+  if (text.includes("nuage")) return <CloudQueueOutlinedIcon fontSize="inherit" />;
+  return <WbSunnyOutlinedIcon fontSize="inherit" />;
 }
 
 function renderHeaderIcon(type) {
-  if (type === "notification") return "🔔";
-  return "💬";
+  if (type === "notification") return <NotificationsOutlinedIcon fontSize="inherit" />;
+  return <ChatBubbleOutlineOutlinedIcon fontSize="inherit" />;
 }
 
 function renderNavIcon(type) {
-  if (type === "home") return "🏠";
-  if (type === "feed") return "📰";
-  if (type === "report") return "📝";
-  if (type === "map") return "🗺️";
-  if (type === "quiz") return "🚗";
-  if (type === "stats") return "📊";
-  if (type === "alerts") return "🚨";
-  if (type === "settings") return "⚙️";
-  return "📍";
+  if (type === "home") return <HomeOutlinedIcon fontSize="inherit" />;
+  if (type === "feed") return <ArticleOutlinedIcon fontSize="inherit" />;
+  if (type === "report") return <EditNoteOutlinedIcon fontSize="inherit" />;
+  if (type === "map") return <MapOutlinedIcon fontSize="inherit" />;
+  if (type === "quiz") return <DirectionsCarOutlinedIcon fontSize="inherit" />;
+  if (type === "stats") return <InsightsOutlinedIcon fontSize="inherit" />;
+  if (type === "alerts") return <NotificationsActiveOutlinedIcon fontSize="inherit" />;
+  if (type === "settings") return <SettingsOutlinedIcon fontSize="inherit" />;
+  return <LocationOnOutlinedIcon fontSize="inherit" />;
 }
 
 function resolveContextPoint(selectedIncident, userPosition) {
@@ -767,11 +791,11 @@ export default function MapPage() {
 
   // Incident categories shown as filter chips
   const incidentTypes = [
-    { id: "accident", label: "Accident", icon: "🚗" },
-    { id: "traffic", label: "Traffic", icon: "🚦" },
-    { id: "danger", label: "Danger", icon: "⚠️" },
-    { id: "weather", label: "Weather", icon: "🌧️" },
-    { id: "roadworks", label: "Roadworks", icon: "🚧" },
+    { id: "accident", label: "Accident", icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" /> },
+    { id: "traffic", label: "Traffic", icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" /> },
+    { id: "danger", label: "Danger", icon: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-fire" /> },
+    { id: "weather", label: "Weather", icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" /> },
+    { id: "roadworks", label: "Roadworks", icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" /> },
   ];
 
   // List of wilayas available in the zone dropdown
@@ -1299,7 +1323,7 @@ export default function MapPage() {
           {/* Report-incident CTA pinned at sidebar bottom */}
           <div className="sidebar-action">
             <button className="btn-signal" onClick={() => navigate("/report")}>
-              <span>➕</span> Report an Incident
+              <AddRoundedIcon fontSize="inherit" /> Report an Incident
             </button>
           </div>
         </aside>
@@ -1400,7 +1424,7 @@ export default function MapPage() {
               <span className="cw-time">{currentHourText}</span>
             </div>
             <p className="cw-place">
-              <span className="cw-place-dot">📍</span>
+              <span className="cw-place-dot"><LocationOnOutlinedIcon fontSize="inherit" /></span>
               <span className="cw-place-text">{weatherPlaceText}</span>
             </p>
             {hasGrantedLocation && contextPoint ? (
@@ -1644,7 +1668,7 @@ export default function MapPage() {
                     </span>
                   </div>
                   <span className={`zone-badge severity-${zone.severity}`}>
-                    {zone.severity === "high" ? "🔴" : zone.severity === "medium" ? "🟡" : "🟢"}
+                    <FiberManualRecordIcon fontSize="inherit" className={`icon-severity-${zone.severity === "high" ? "critical" : zone.severity === "medium" ? "moderate" : "low"}`} />
                   </span>
                 </div>
               ))}
@@ -1660,7 +1684,7 @@ export default function MapPage() {
               )}
               {activeAlerts.map((alert) => (
                 <div key={alert.id} className="map-alert-item">
-                  <span className="map-alert-icon">🚨</span>
+                  <span className="map-alert-icon"><NotificationsActiveOutlinedIcon fontSize="inherit" /></span>
                   <div className="map-alert-info">
                     <span className="map-alert-title">{alert.title}</span>
                     <span className="map-alert-time">{alert.time}</span>

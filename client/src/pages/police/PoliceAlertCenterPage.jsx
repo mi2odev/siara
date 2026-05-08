@@ -1,4 +1,5 @@
 import React from 'react'
+import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
@@ -231,7 +232,7 @@ export default function PoliceAlertCenterPage() {
 
           {!isLoading && !error && alerts.length === 0 ? (
             <div className="police-empty-state" role="status" aria-live="polite">
-              <div className="police-empty-icon" aria-hidden="true">✅</div>
+              <div className="police-empty-icon" aria-hidden="true"><CheckCircleOutlineRoundedIcon fontSize="inherit" className="icon-success" /></div>
               <h3>No important alerts</h3>
               <p>No supervisor-targeted alerts are waiting right now.</p>
             </div>

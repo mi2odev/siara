@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 import LaunchOutlinedIcon from '@mui/icons-material/LaunchOutlined'
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
 import StraightenOutlinedIcon from '@mui/icons-material/StraightenOutlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 
@@ -228,7 +229,7 @@ export default function PoliceNearbyIncidentsPage() {
 
             {!isLoading && nearbyIncidents.length === 0 ? (
               <div className="police-empty-state" role="status" aria-live="polite">
-                <div className="police-empty-icon" aria-hidden="true">📍</div>
+                <div className="police-empty-icon" aria-hidden="true"><LocationOnOutlinedIcon fontSize="inherit" /></div>
                 <h3>{locationRequired ? 'Location unavailable' : 'No nearby incidents'}</h3>
                 <p>
                   {locationRequired

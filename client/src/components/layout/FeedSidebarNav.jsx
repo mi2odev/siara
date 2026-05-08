@@ -1,29 +1,42 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
+import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
+import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
+import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
+import AutoGraphOutlinedIcon from '@mui/icons-material/AutoGraphOutlined'
+import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import DirectionsCarOutlinedIcon from '@mui/icons-material/DirectionsCarOutlined'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const NAV_ITEMS = [
-  { key: 'feed', label: 'News Feed', icon: '📰', path: '/news' },
-  { key: 'map', label: 'Incident Map', icon: '🗺️', path: '/map' },
-  { key: 'alerts', label: 'Alerts', icon: '🚨', path: '/alerts' },
-  { key: 'reports', label: 'My Reports', icon: '📝', path: '/report' },
-  { key: 'dashboard', label: 'Dashboard', icon: '📊', path: '/dashboard' },
-  { key: 'predictions', label: 'Predictions', icon: '🔮', path: '/predictions' },
+  { key: 'feed', label: 'News Feed', icon: <ArticleOutlinedIcon fontSize="inherit" />, path: '/news' },
+  { key: 'map', label: 'Incident Map', icon: <MapOutlinedIcon fontSize="inherit" />, path: '/map' },
+  { key: 'alerts', label: 'Alerts', icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />, path: '/alerts' },
+  { key: 'reports', label: 'My Reports', icon: <EditNoteOutlinedIcon fontSize="inherit" />, path: '/report' },
+  { key: 'dashboard', label: 'Dashboard', icon: <InsightsOutlinedIcon fontSize="inherit" />, path: '/dashboard' },
+  { key: 'predictions', label: 'Predictions', icon: <AutoGraphOutlinedIcon fontSize="inherit" />, path: '/predictions' },
 ]
 
 const INFO_ITEMS = [
-  { key: 'contact', label: 'Contact', icon: '📞', path: '/contact' },
-  { key: 'about', label: 'About', icon: 'ℹ️', path: '/about' },
-  { key: 'description', label: 'Description', icon: '📘', path: '/description' },
+  { key: 'contact', label: 'Contact', icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
+  { key: 'about', label: 'About', icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
+  { key: 'description', label: 'Description', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/description' },
 ]
 
 const ACCOUNT_ITEMS = [
-  { key: 'notifications', label: 'Notifications', icon: '🔔', path: '/notifications' },
-  { key: 'profile', label: 'Profile', icon: '👤', path: '/profile' },
-  { key: 'settings', label: 'Settings', icon: '⚙️', path: '/settings' },
+  { key: 'notifications', label: 'Notifications', icon: <NotificationsOutlinedIcon fontSize="inherit" />, path: '/notifications' },
+  { key: 'profile', label: 'Profile', icon: <PersonOutlinedIcon fontSize="inherit" />, path: '/profile' },
+  { key: 'settings', label: 'Settings', icon: <SettingsOutlinedIcon fontSize="inherit" />, path: '/settings' },
 ]
 
 export default function FeedSidebarNav({ activeKey, onOpenQuiz }) {
@@ -102,7 +115,7 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz }) {
         {NAV_ITEMS.map((item) => renderItem(item))}
 
         <div className="nav-section-label">TOOLS</div>
-        {onOpenQuiz ? renderItem({ key: 'quiz', label: 'Driver Quiz', icon: '🚗' }, onOpenQuiz) : null}
+        {onOpenQuiz ? renderItem({ key: 'quiz', label: 'Driver Quiz', icon: <DirectionsCarOutlinedIcon fontSize="inherit" /> }, onOpenQuiz) : null}
 
         <div className="nav-section-label nav-section-label-info">INFO</div>
         <div className="nav-info-group">

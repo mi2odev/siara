@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined'
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import { getHeatmapClusterDetail } from '../../services/heatmapClusterService'
 import '../../styles/HeatmapClusterDetailPanel.css'
 
@@ -104,7 +106,9 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
     >
       <div className="siara-cluster-panel">
         <div className="siara-cluster-panel__header">
-          <span className="siara-cluster-panel__icon" aria-hidden="true">🔥</span>
+          <span className="siara-cluster-panel__icon" aria-hidden="true">
+            <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" />
+          </span>
           <h3 className="siara-cluster-panel__title">Why is this place dangerous?</h3>
           <button
             type="button"
@@ -216,7 +220,7 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
                 textDecoration: 'none',
               }}
             >
-              View full zone safety profile →
+              View full zone safety profile <ArrowForwardRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', ml: 0.25 }} />
             </Link>
 
             <h4 className="siara-cluster-panel__reports-title">
