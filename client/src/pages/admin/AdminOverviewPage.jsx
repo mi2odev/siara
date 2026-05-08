@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
+import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
+import PsychologyAltOutlinedIcon from '@mui/icons-material/PsychologyAltOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
+import RssFeedOutlinedIcon from '@mui/icons-material/RssFeedOutlined'
+import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
+import HourglassBottomOutlinedIcon from '@mui/icons-material/HourglassBottomOutlined'
 
 import {
   fetchAdminOverview,
@@ -11,12 +19,12 @@ import { fetchAdminIncidentCounts } from '../../services/adminIncidentsService'
 const EMPTY_OVERVIEW = normalizeOverviewResponse()
 const EMPTY_TEXT = '\u2014'
 const KPI_ICONS = {
-  incidents: '\u26A1',
-  pendingReview: '\u25F7',
-  aiConfidence: '\u25C7',
-  highRiskZones: '\u25C8',
-  activeAlerts: '\u25B2',
-  reportsPerMin: '\u25EB',
+  incidents: <BoltOutlinedIcon fontSize="inherit" className="icon-danger" />,
+  pendingReview: <HourglassEmptyOutlinedIcon fontSize="inherit" className="icon-warning" />,
+  aiConfidence: <PsychologyAltOutlinedIcon fontSize="inherit" className="icon-info" />,
+  highRiskZones: <LocationOnOutlinedIcon fontSize="inherit" className="icon-danger" />,
+  activeAlerts: <NotificationsActiveOutlinedIcon fontSize="inherit" className="icon-success" />,
+  reportsPerMin: <RssFeedOutlinedIcon fontSize="inherit" className="icon-info" />,
 }
 const RANGE_TITLE_SUFFIX = {
   '1h': 'Last hour',
@@ -344,7 +352,7 @@ export default function AdminOverviewPage() {
 
           <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 14 }}>
             <div className="admin-kpi">
-              <div className="admin-kpi-icon warning">⚑</div>
+              <div className="admin-kpi-icon warning"><FlagOutlinedIcon fontSize="inherit" className="icon-warning" /></div>
               <div className="admin-kpi-body">
                 <span className="admin-kpi-label">Suspected Spam Reports</span>
                 <span className="admin-kpi-value">{incidentCounts.suspicious}</span>
@@ -352,7 +360,7 @@ export default function AdminOverviewPage() {
               </div>
             </div>
             <div className="admin-kpi">
-              <div className="admin-kpi-icon warning">⌛</div>
+              <div className="admin-kpi-icon warning"><HourglassBottomOutlinedIcon fontSize="inherit" className="icon-warning" /></div>
               <div className="admin-kpi-body">
                 <span className="admin-kpi-label">Pending Manual Review</span>
                 <span className="admin-kpi-value">{incidentCounts['pending-review']}</span>

@@ -1,5 +1,30 @@
 import React, { useState, useContext, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined'
+import AirOutlinedIcon from '@mui/icons-material/AirOutlined'
+import FilterDramaOutlinedIcon from '@mui/icons-material/FilterDramaOutlined'
+import DeviceThermostatOutlinedIcon from '@mui/icons-material/DeviceThermostatOutlined'
+import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined'
+import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined'
+import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
+import DirectionsWalkOutlinedIcon from '@mui/icons-material/DirectionsWalkOutlined'
+import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
+import DirectionsCarOutlinedIcon from '@mui/icons-material/DirectionsCarOutlined'
+import CarCrashOutlinedIcon from '@mui/icons-material/CarCrashOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import StarRoundedIcon from '@mui/icons-material/StarRounded'
+import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded'
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
+import ArrowUpwardRoundedIcon from '@mui/icons-material/ArrowUpwardRounded'
+import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded'
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
+import PsychologyOutlinedIcon from '@mui/icons-material/PsychologyOutlined'
+import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined'
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
+import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
@@ -41,20 +66,20 @@ const EMPTY_DASHBOARD = {
 }
 
 const FACTOR_ICONS = {
-  'Weather condition': '🌦️',
-  'Wind speed': '💨',
-  Visibility: '🌫️',
-  Temperature: '🌡️',
-  Humidity: '💧',
-  Pressure: '🧭',
-  'Signalized intersections': '🚦',
-  'Pedestrian crossings': '🚶',
-  'Road junctions': '🛣️',
-  accident: '🚗',
-  traffic: '🚦',
-  danger: '⚠️',
-  weather: '🌧️',
-  roadworks: '🚧',
+  'Weather condition': <CloudOutlinedIcon fontSize="inherit" className="icon-info" />,
+  'Wind speed': <AirOutlinedIcon fontSize="inherit" className="icon-info" />,
+  Visibility: <FilterDramaOutlinedIcon fontSize="inherit" className="icon-info" />,
+  Temperature: <DeviceThermostatOutlinedIcon fontSize="inherit" className="icon-warning" />,
+  Humidity: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" />,
+  Pressure: <ExploreOutlinedIcon fontSize="inherit" className="icon-muted" />,
+  'Signalized intersections': <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" />,
+  'Pedestrian crossings': <DirectionsWalkOutlinedIcon fontSize="inherit" className="icon-muted" />,
+  'Road junctions': <RouteOutlinedIcon fontSize="inherit" className="icon-muted" />,
+  accident: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" />,
+  traffic: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" />,
+  danger: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-fire" />,
+  weather: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" />,
+  roadworks: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" />,
 }
 
 const signedPct = (value) => `${Number(value || 0) >= 0 ? '+' : '-'}${Math.abs(Math.round(Number(value || 0)))}%`
@@ -294,7 +319,7 @@ export default function UserDashboardPage() {
           <div className="card profile-summary">
             <div className="profile-avatar-container">
               <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
-              <span className="verified-badge">✓</span>
+              <span className="verified-badge"><CheckRoundedIcon fontSize="inherit" /></span>
             </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
@@ -319,7 +344,7 @@ export default function UserDashboardPage() {
                   <span className="ud-risk-label-text">{dashboard.currentRiskOverview?.label || 'Unavailable'}</span>
                 </div>
                 <div className="ud-risk-meta">
-                  <span className={`ud-trend ${trendTone(dashboard.currentRiskOverview?.changeVsYesterday)}`}>{Number(dashboard.currentRiskOverview?.changeVsYesterday || 0) >= 0 ? '↑' : '↓'} {signedPct(dashboard.currentRiskOverview?.changeVsYesterday)} vs yesterday</span>
+                  <span className={`ud-trend ${trendTone(dashboard.currentRiskOverview?.changeVsYesterday)}`}>{Number(dashboard.currentRiskOverview?.changeVsYesterday || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(dashboard.currentRiskOverview?.changeVsYesterday)} vs yesterday</span>
                   <span className="ud-confidence">AI Confidence: <strong>{metric(dashboard.currentRiskOverview?.aiConfidence, '%')}</strong></span>
                 </div>
               </div>
@@ -330,7 +355,7 @@ export default function UserDashboardPage() {
           <div className="ud-grid-2up">
             <section className="card ud-section ud-volatility">
               <h3 className="ud-mini-title">Risk Volatility Index</h3>
-              <div className="ud-vol-row"><div className="ud-vol-score-block"><span className="ud-vol-score">{dashboard.riskVolatilityIndex?.score ?? 0}</span><span className="ud-vol-of">/100</span></div><div className="ud-vol-meta"><span className={`ud-vol-change ${trendTone(dashboard.riskVolatilityIndex?.change24h)}`}>{Number(dashboard.riskVolatilityIndex?.change24h || 0) >= 0 ? '↑' : '↓'} {signedPct(dashboard.riskVolatilityIndex?.change24h)} <span className="ud-vol-period">24h</span></span><span className={`ud-vol-level ${String(dashboard.riskVolatilityIndex?.label || '').toLowerCase().includes('high') ? 'high' : String(dashboard.riskVolatilityIndex?.label || '').toLowerCase().includes('medium') ? 'medium' : 'low'}`}>{dashboard.riskVolatilityIndex?.label || 'Unavailable'}</span></div></div>
+              <div className="ud-vol-row"><div className="ud-vol-score-block"><span className="ud-vol-score">{dashboard.riskVolatilityIndex?.score ?? 0}</span><span className="ud-vol-of">/100</span></div><div className="ud-vol-meta"><span className={`ud-vol-change ${trendTone(dashboard.riskVolatilityIndex?.change24h)}`}>{Number(dashboard.riskVolatilityIndex?.change24h || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(dashboard.riskVolatilityIndex?.change24h)} <span className="ud-vol-period">24h</span></span><span className={`ud-vol-level ${String(dashboard.riskVolatilityIndex?.label || '').toLowerCase().includes('high') ? 'high' : String(dashboard.riskVolatilityIndex?.label || '').toLowerCase().includes('medium') ? 'medium' : 'low'}`}>{dashboard.riskVolatilityIndex?.label || 'Unavailable'}</span></div></div>
               <Sparkline data={dashboard.riskVolatilityIndex?.trend7d || []} w={320} h={40} gid="volSpk" />
               <div className="ud-sparkline-days ud-sparkline-days--sm">{weekLabels.map((day) => <span key={day}>{day}</span>)}</div>
             </section>
@@ -338,7 +363,7 @@ export default function UserDashboardPage() {
             <section className="card ud-section ud-severity-pressure">
               <h3 className="ud-mini-title">Severity Pressure</h3>
               <div className="ud-sev-bar-track">{sevPressure.map((item) => <div key={item.key} className={`ud-sev-seg ${item.key}`} style={{ width: `${item.pct}%` }}></div>)}</div>
-              <div className="ud-sev-legend">{sevPressure.map((item) => <div key={item.key} className="ud-sev-item"><span className={`ud-sev-dot ${item.key}`}></span><span className="ud-sev-key">{item.label}</span><span className="ud-sev-pct">{item.pct}%</span><span className={`ud-sev-arrow ${trendTone(item.change)}`}>{Number(item.change) >= 0 ? '↑' : '↓'} {Math.abs(item.change)}%</span></div>)}</div>
+              <div className="ud-sev-legend">{sevPressure.map((item) => <div key={item.key} className="ud-sev-item"><span className={`ud-sev-dot ${item.key}`}></span><span className="ud-sev-key">{item.label}</span><span className="ud-sev-pct">{item.pct}%</span><span className={`ud-sev-arrow ${trendTone(item.change)}`}>{Number(item.change) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {Math.abs(item.change)}%</span></div>)}</div>
               <p className="ud-sev-caption">Change vs last week</p>
             </section>
           </div>
@@ -370,7 +395,7 @@ export default function UserDashboardPage() {
 
           <section className="card ud-section ud-roads">
             <div className="ud-section-header"><h3 className="ud-mini-title" style={{ marginBottom: 0 }}>High-Risk Road Ranking</h3></div>
-            <div className="ud-table-wrapper"><table className="ud-table"><thead><tr><th>#</th><th>Road</th><th>Risk Score</th><th>Change</th><th></th></tr></thead><tbody>{topRoads.length === 0 ? <tr><td colSpan="5" className="ud-cell-muted">No road risk data available yet.</td></tr> : topRoads.map((road) => <tr key={road.rank}><td className="ud-road-rank">{road.rank}</td><td className="ud-cell-primary">{road.road}</td><td><div className="ud-score-cell"><span className={`ud-score-value ${riskTone(road.riskScore)}`}>{road.riskScore}</span><RiskBar score={road.riskScore} /></div></td><td><span className={`ud-trend ${trendTone(road.change)}`}>{Number(road.change || 0) >= 0 ? '↑' : '↓'} {signedPct(road.change)}</span></td><td><button className="ud-map-btn" onClick={() => navigate('/map')}>Map →</button></td></tr>)}</tbody></table></div>
+            <div className="ud-table-wrapper"><table className="ud-table"><thead><tr><th>#</th><th>Road</th><th>Risk Score</th><th>Change</th><th></th></tr></thead><tbody>{topRoads.length === 0 ? <tr><td colSpan="5" className="ud-cell-muted">No road risk data available yet.</td></tr> : topRoads.map((road) => <tr key={road.rank}><td className="ud-road-rank">{road.rank}</td><td className="ud-cell-primary">{road.road}</td><td><div className="ud-score-cell"><span className={`ud-score-value ${riskTone(road.riskScore)}`}>{road.riskScore}</span><RiskBar score={road.riskScore} /></div></td><td><span className={`ud-trend ${trendTone(road.change)}`}>{Number(road.change || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(road.change)}</span></td><td><button className="ud-map-btn" onClick={() => navigate('/map')}>Map <ArrowForwardRoundedIcon fontSize="inherit" /></button></td></tr>)}</tbody></table></div>
           </section>
 
           <section className="ud-section" style={{ marginTop: 16 }}>
@@ -460,10 +485,10 @@ export default function UserDashboardPage() {
                         <div className={`ud-travel-stars ${stars === 0 ? 'is-empty' : ''}`}>
                           {stars === 0
                             ? 'Not rated yet'
-                            : '★'.repeat(stars) + '☆'.repeat(5 - stars)}
+                            : <>{Array.from({ length: stars }).map((_, i) => <StarRoundedIcon key={`f${i}`} fontSize="inherit" className="icon-rating" />)}{Array.from({ length: 5 - stars }).map((_, i) => <StarBorderRoundedIcon key={`e${i}`} fontSize="inherit" className="icon-rating-empty" />)}</>}
                         </div>
                         <button className="ud-link-btn" onClick={() => setSelectedTripId(trip.id)}>
-                          View details →
+                          View details <ArrowForwardRoundedIcon fontSize="inherit" />
                         </button>
                       </div>
                     </article>
@@ -481,7 +506,7 @@ export default function UserDashboardPage() {
           />
 
           <section className="card ud-section ud-alerts-section">
-            <div className="ud-section-header"><h2 className="ud-section-title">Active Alerts</h2><button className="ud-link-btn" onClick={() => navigate('/alerts')}>View all →</button></div>
+            <div className="ud-section-header"><h2 className="ud-section-title">Active Alerts</h2><button className="ud-link-btn" onClick={() => navigate('/alerts')}>View all <ArrowForwardRoundedIcon fontSize="inherit" /></button></div>
             <div className="ud-efficiency-strip"><div className="ud-eff-kpi"><span className="ud-eff-value">{dashboard.activeAlerts?.triggeredThisWeek ?? 0}</span><span className="ud-eff-label">Triggered this week</span></div><div className="ud-eff-kpi"><span className="ud-eff-value">{dashboard.activeAlerts?.matchedHighSeverityPct == null ? '--' : `${dashboard.activeAlerts.matchedHighSeverityPct}%`}</span><span className="ud-eff-label">Matched high severity</span></div><div className="ud-eff-kpi"><span className="ud-eff-value">{dashboard.activeAlerts?.falseAlertRatio == null ? '--' : `${dashboard.activeAlerts.falseAlertRatio}%`}</span><span className="ud-eff-label">False alert ratio</span></div></div>
             <div className="ud-table-wrapper"><table className="ud-table"><thead><tr><th>Alert</th><th>Area</th><th>Severity</th><th>Last Trigger</th><th>Status</th></tr></thead><tbody>{activeAlerts.length === 0 ? <tr><td colSpan="5" className="ud-cell-muted">No active alerts yet.</td></tr> : activeAlerts.map((alert) => <tr key={alert.id}><td className="ud-cell-primary">{alert.title}</td><td>{alert.area}</td><td><SeverityPill level={alert.severity} /></td><td className="ud-cell-muted">{alert.lastTrigger}</td><td><span className={`ud-status-dot ${alert.status}`}></span>{alert.status === 'active' ? 'Active' : 'Scheduled'}</td></tr>)}</tbody></table></div>
           </section>
@@ -489,20 +514,20 @@ export default function UserDashboardPage() {
 
         <aside className="sidebar-right ud-sidebar-right">
           <div className="card ud-context-card">
-            <h3 className="ud-context-title"><span className="ud-context-icon">🔎</span>Most Volatile Zone Today</h3>
-            {dashboard.mostVolatileZoneToday ? <><div className="ud-volatile-zone"><span className="ud-zone-name">{dashboard.mostVolatileZoneToday.name}</span><span className="ud-zone-score">Risk: <strong>{dashboard.mostVolatileZoneToday.risk}</strong></span><span className={`ud-zone-change ${trendTone(dashboard.mostVolatileZoneToday.change)}`}>{Number(dashboard.mostVolatileZoneToday.change || 0) >= 0 ? '↑' : '↓'} {signedPct(dashboard.mostVolatileZoneToday.change)} risk change</span></div><button className="ud-context-btn" onClick={openMostVolatileZone}>View on Map →</button></> : <p className="ud-factor-caption" style={{ marginBottom: 0 }}>No zone volatility detected yet.</p>}
+            <h3 className="ud-context-title"><span className="ud-context-icon"><SearchOutlinedIcon fontSize="inherit" /></span>Most Volatile Zone Today</h3>
+            {dashboard.mostVolatileZoneToday ? <><div className="ud-volatile-zone"><span className="ud-zone-name">{dashboard.mostVolatileZoneToday.name}</span><span className="ud-zone-score">Risk: <strong>{dashboard.mostVolatileZoneToday.risk}</strong></span><span className={`ud-zone-change ${trendTone(dashboard.mostVolatileZoneToday.change)}`}>{Number(dashboard.mostVolatileZoneToday.change || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(dashboard.mostVolatileZoneToday.change)} risk change</span></div><button className="ud-context-btn" onClick={openMostVolatileZone}>View on Map <ArrowForwardRoundedIcon fontSize="inherit" /></button></> : <p className="ud-factor-caption" style={{ marginBottom: 0 }}>No zone volatility detected yet.</p>}
           </div>
           <div className="card ud-context-card ud-insight-card">
-            <h3 className="ud-context-title"><span className="ud-context-icon">🧠</span>{dashboard.aiInsightOfWeek?.title || 'AI Insight of the Week'}</h3>
+            <h3 className="ud-context-title"><span className="ud-context-icon"><PsychologyOutlinedIcon fontSize="inherit" /></span>{dashboard.aiInsightOfWeek?.title || 'AI Insight of the Week'}</h3>
             {insightItems.length === 0 ? <p className="ud-factor-caption" style={{ marginBottom: 0 }}>Insights will appear as soon as SIARA has enough recent activity.</p> : <ul className="ud-insight-list">{insightItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>}
           </div>
           <div className="card ud-context-card">
-            <h3 className="ud-context-title"><span className="ud-context-icon">📊</span>System Overview</h3>
+            <h3 className="ud-context-title"><span className="ud-context-icon"><BarChartOutlinedIcon fontSize="inherit" /></span>System Overview</h3>
             <div className="ud-sys-kpis"><div className="ud-sys-kpi"><span className="ud-sys-value">{dashboard.systemOverview?.totalIncidents ?? 0}</span><span className="ud-sys-label">Total incidents</span></div><div className="ud-sys-kpi"><span className="ud-sys-value">{metric(dashboard.systemOverview?.aiConfidence, '%')}</span><span className="ud-sys-label">AI confidence</span></div><div className="ud-sys-kpi"><span className={`ud-sys-value ud-trend ${trendTone(dashboard.systemOverview?.changeVsLastWeek)}`}>{signedPct(dashboard.systemOverview?.changeVsLastWeek)}</span><span className="ud-sys-label">vs last week</span></div></div>
           </div>
           <div className="card ud-context-card">
-            <h3 className="ud-context-title"><span className="ud-context-icon">⚡</span>Quick Actions</h3>
-            <div className="ud-quick-actions"><button className="ud-action-link" onClick={() => navigate('/report')}>📝 Report Incident</button><button className="ud-action-link" onClick={() => navigate('/alerts/create')}>🔔 Create Alert</button><button className="ud-action-link" onClick={() => setShowQuiz(true)}>🚗 Driving Quiz</button></div>
+            <h3 className="ud-context-title"><span className="ud-context-icon"><BoltOutlinedIcon fontSize="inherit" /></span>Quick Actions</h3>
+            <div className="ud-quick-actions"><button className="ud-action-link" onClick={() => navigate('/report')}><EditNoteOutlinedIcon fontSize="inherit" /> Report Incident</button><button className="ud-action-link" onClick={() => navigate('/alerts/create')}><NotificationsOutlinedIcon fontSize="inherit" /> Create Alert</button><button className="ud-action-link" onClick={() => setShowQuiz(true)}><DirectionsCarOutlinedIcon fontSize="inherit" /> Driving Quiz</button></div>
           </div>
         </aside>
       </div>

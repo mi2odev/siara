@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
 import { fetchDepartureOptions } from '../../services/departureOptionsService'
 import '../../styles/BestTimeToLeavePanel.css'
 
@@ -145,7 +146,9 @@ export default function BestTimeToLeavePanel({
       aria-label="Best time to leave"
     >
       <div className="siara-best-time__header">
-        <span className="siara-best-time__icon" aria-hidden="true">🕒</span>
+        <span className="siara-best-time__icon" aria-hidden="true">
+          <AccessTimeOutlinedIcon fontSize="inherit" />
+        </span>
         <h4 className="siara-best-time__title">Best time to leave</h4>
         <button
           type="button"

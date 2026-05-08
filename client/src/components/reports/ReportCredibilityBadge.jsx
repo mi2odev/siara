@@ -1,5 +1,7 @@
 import { useMemo, useState, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import PriorityHighRoundedIcon from '@mui/icons-material/PriorityHighRounded'
 import { computeReportCredibility } from '../../utils/reportCredibility'
 import '../../styles/ReportCredibilityBadge.css'
 
@@ -68,7 +70,9 @@ export default function ReportCredibilityBadge({
                   className={`siara-credibility-tooltip__item kind-${reason.kind}`}
                 >
                   <span className="siara-credibility-tooltip__item-glyph" aria-hidden="true">
-                    {reason.kind === 'positive' ? '✓' : '!'}
+                    {reason.kind === 'positive'
+                      ? <CheckRoundedIcon fontSize="inherit" className="icon-success" />
+                      : <PriorityHighRoundedIcon fontSize="inherit" className="icon-warning" />}
                   </span>
                   <span>{reason.text}</span>
                 </li>

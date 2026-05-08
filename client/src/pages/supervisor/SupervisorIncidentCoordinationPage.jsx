@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import {
@@ -122,7 +124,7 @@ export default function SupervisorIncidentCoordinationPage() {
             <p className="sv-page-subtitle">Assign and coordinate officer responses to active incidents</p>
           </div>
           <div className="sv-page-actions">
-            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading}>↻ Refresh</button>
+            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading}><RefreshRoundedIcon fontSize="inherit" /> Refresh</button>
           </div>
         </div>
 
@@ -166,7 +168,7 @@ export default function SupervisorIncidentCoordinationPage() {
         ) : filteredIncidents.length === 0 ? (
           <div className="sv-section">
             <div className="sv-empty">
-              <span className="sv-empty-icon">📋</span>
+              <span className="sv-empty-icon"><AssignmentOutlinedIcon fontSize="inherit" /></span>
               No incidents match the current filters
             </div>
           </div>

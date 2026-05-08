@@ -3,6 +3,17 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { CircleMarker, MapContainer, TileLayer } from 'react-leaflet'
 import { createPortal } from 'react-dom'
 import 'leaflet/dist/leaflet.css'
+import CarCrashOutlinedIcon from '@mui/icons-material/CarCrashOutlined'
+import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined'
+import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
+import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
@@ -28,12 +39,12 @@ const REPORT_ID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const INCIDENT_TYPE_META = {
-  accident: { label: 'Accident', icon: '🚗' },
-  traffic: { label: 'Traffic', icon: '🚦' },
-  danger: { label: 'Danger', icon: '⚠️' },
-  weather: { label: 'Weather', icon: '🌧️' },
-  roadworks: { label: 'Roadworks', icon: '🚧' },
-  other: { label: 'Other', icon: '📍' },
+  accident: { label: 'Accident', icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" /> },
+  traffic: { label: 'Traffic', icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" /> },
+  danger: { label: 'Danger', icon: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-fire" /> },
+  weather: { label: 'Weather', icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" /> },
+  roadworks: { label: 'Roadworks', icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" /> },
+  other: { label: 'Other', icon: <LocationOnOutlinedIcon fontSize="inherit" className="icon-muted" /> },
 }
 
 const STATUS_META = {
@@ -155,14 +166,14 @@ function renderHeaderIcon(type) {
 }
 
 function renderNavIcon(type) {
-  if (type === 'feed') return '📰'
-  if (type === 'map') return '🗺️'
-  if (type === 'alerts') return '🚨'
-  return '👤'
+  if (type === 'feed') return <ArticleOutlinedIcon fontSize="inherit" />
+  if (type === 'map') return <MapOutlinedIcon fontSize="inherit" />
+  if (type === 'alerts') return <NotificationsActiveOutlinedIcon fontSize="inherit" />
+  return <PersonOutlinedIcon fontSize="inherit" />
 }
 
 function getIncidentTypeMeta(type) {
-  return INCIDENT_TYPE_META[type] || { label: 'Incident', icon: '📍' }
+  return INCIDENT_TYPE_META[type] || { label: 'Incident', icon: <LocationOnOutlinedIcon fontSize="inherit" /> }
 }
 
 function formatTimeAgo(value) {
@@ -680,7 +691,7 @@ export default function IncidentDetailPage() {
           <div className="card profile-summary">
             <div className="profile-avatar-container">
               <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
-              <span className="verified-badge">✓</span>
+              <span className="verified-badge"><CheckRoundedIcon fontSize="inherit" /></span>
             </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>

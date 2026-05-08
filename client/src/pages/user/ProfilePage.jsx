@@ -1,3 +1,13 @@
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
+import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined'
+import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined'
+import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined'
+import ThumbUpOutlinedIcon from '@mui/icons-material/ThumbUpOutlined'
+import DirectionsCarOutlinedIcon from '@mui/icons-material/DirectionsCarOutlined'
+import EditRoundedIcon from '@mui/icons-material/EditRounded'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import PriorityHighRoundedIcon from '@mui/icons-material/PriorityHighRounded'
 /**
  * @file ProfilePage.jsx
  * @description User profile page with a 3-column layout.
@@ -374,10 +384,10 @@ export default function ProfilePage(){
   )
 
   const tabLabels = {
-    alerts: '🔔 Alerts',
-    reports: '🚨 Reports',
-    history: '📊 History',
-    timeline: '⏱️ Timeline',
+    alerts: <><NotificationsOutlinedIcon fontSize="inherit" /> Alerts</>,
+    reports: <><NotificationsActiveOutlinedIcon fontSize="inherit" /> Reports</>,
+    history: <><BarChartOutlinedIcon fontSize="inherit" /> History</>,
+    timeline: <><TimerOutlinedIcon fontSize="inherit" /> Timeline</>,
   }
 
   const reportMetrics = useMemo(() => {
@@ -732,7 +742,7 @@ export default function ProfilePage(){
                 className="btn-edit-profile"
                 onClick={() => navigate('/settings', { state: { openSection: 'profile' } })}
               >
-                ✏️ Edit Profile
+                <EditRoundedIcon fontSize="inherit" /> Edit Profile
               </button>
             )}
           </div>
@@ -1011,13 +1021,13 @@ export default function ProfilePage(){
               {activeTab === 'timeline' && (
                 <div className="pm-timeline">
                   {[
-                    { icon: '🚨', title: 'New report created', description: 'Multi-vehicle collision on East-West Highway', time: '2 hours ago', color: '#EF4444' },
-                    { icon: '🤖', title: 'AI Validation',       description: 'Your report has been verified and confirmed by AI', time: '3 hours ago', color: '#10B981' },
-                    { icon: '🔔', title: 'Alert Triggered',     description: '2,340 users were notified of your report', time: '1 day ago', color: '#8B5CF6' },
-                    { icon: '👍', title: 'Reaction Received',   description: '15 users found your report helpful', time: '2 days ago', color: '#3B82F6' },
-                    { icon: '🚗', title: 'Report Submitted',    description: 'Slowdown on Rue Didouche Mourad', time: '3 days ago', color: '#EF4444' },
-                    { icon: '✏️', title: 'Profile Updated',     description: 'Profile photo and bio updated', time: '5 days ago', color: '#64748B' },
-                    { icon: '✓',  title: 'Report Verified',     description: 'Accuracy rate: 95%', time: '1 week ago', color: '#10B981' },
+                    { icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />, title: 'New report created', description: 'Multi-vehicle collision on East-West Highway', time: '2 hours ago', color: '#EF4444' },
+                    { icon: <SmartToyOutlinedIcon fontSize="inherit" />, title: 'AI Validation',       description: 'Your report has been verified and confirmed by AI', time: '3 hours ago', color: '#10B981' },
+                    { icon: <NotificationsOutlinedIcon fontSize="inherit" />, title: 'Alert Triggered',     description: '2,340 users were notified of your report', time: '1 day ago', color: '#8B5CF6' },
+                    { icon: <ThumbUpOutlinedIcon fontSize="inherit" />, title: 'Reaction Received',   description: '15 users found your report helpful', time: '2 days ago', color: '#3B82F6' },
+                    { icon: <DirectionsCarOutlinedIcon fontSize="inherit" />, title: 'Report Submitted',    description: 'Slowdown on Rue Didouche Mourad', time: '3 days ago', color: '#EF4444' },
+                    { icon: <EditRoundedIcon fontSize="inherit" />, title: 'Profile Updated',     description: 'Profile photo and bio updated', time: '5 days ago', color: '#64748B' },
+                    { icon: <CheckRoundedIcon fontSize="inherit" />,  title: 'Report Verified',     description: 'Accuracy rate: 95%', time: '1 week ago', color: '#10B981' },
                   ].map((event, i) => (
                     <div key={i} className="pm-timeline-event">
                       <div className="pm-timeline-dot" style={{ background: event.color }}>
@@ -1119,7 +1129,9 @@ export default function ProfilePage(){
                 { ok: profileVisibility !== 'private', label: `Visibility: ${profileVisibility}` },
               ].map(({ ok, label }) => (
                 <li key={label} className={`prf-health-item${ok ? '' : ' prf-health-item--warn'}`}>
-                  <span className="prf-health-icon">{ok ? '✓' : '!'}</span>
+                  <span className="prf-health-icon">{ok
+                    ? <CheckRoundedIcon fontSize="inherit" className="icon-success" />
+                    : <PriorityHighRoundedIcon fontSize="inherit" className="icon-warning" />}</span>
                   <span>{label}</span>
                 </li>
               ))}

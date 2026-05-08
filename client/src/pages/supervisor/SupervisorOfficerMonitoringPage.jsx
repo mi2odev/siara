@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
+import LocalPoliceOutlinedIcon from '@mui/icons-material/LocalPoliceOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import { listSupervisorOfficers } from '../../services/policeService'
@@ -137,7 +141,7 @@ export default function SupervisorOfficerMonitoringPage() {
             </p>
           </div>
           <div className="sv-page-actions">
-            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading}>↻ Refresh</button>
+            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading}><RefreshRoundedIcon fontSize="inherit" /> Refresh</button>
           </div>
         </div>
 
@@ -184,7 +188,7 @@ export default function SupervisorOfficerMonitoringPage() {
         ) : filtered.length === 0 ? (
           <div className="sv-section">
             <div className="sv-empty">
-              <span className="sv-empty-icon">👮</span>
+              <span className="sv-empty-icon"><LocalPoliceOutlinedIcon fontSize="inherit" /></span>
               No officers match the current filters
             </div>
           </div>
@@ -222,11 +226,11 @@ export default function SupervisorOfficerMonitoringPage() {
                 </div>
 
                 <div style={{ fontSize: 12, color: 'var(--sv-text-muted)', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <div>
-                    📍 {[off.workZone?.commune?.name, off.workZone?.wilaya?.name].filter(Boolean).join(', ') || 'No zone'}
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <LocationOnOutlinedIcon fontSize="inherit" /> {[off.workZone?.commune?.name, off.workZone?.wilaya?.name].filter(Boolean).join(', ') || 'No zone'}
                   </div>
-                  <div>
-                    🕒 Last seen: {off.latestLocation ? formatRelative(off.latestLocation.capturedAt) : 'Unknown'}
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <AccessTimeOutlinedIcon fontSize="inherit" /> Last seen: {off.latestLocation ? formatRelative(off.latestLocation.capturedAt) : 'Unknown'}
                   </div>
                 </div>
               </div>

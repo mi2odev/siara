@@ -11,13 +11,38 @@ const SEVERITY_HINT_TO_LEVEL = {
   4: 'critical',
 }
 
+// Inline Material Symbols SVG paths so the same icon set renders both inside
+// Leaflet's HTML divIcon (raw string) and JSX. Each path is drawn at 24x24.
+const ICON_SVG = {
+  accident:
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M11.5 2.2 12.6 5.3l3.1-1.1-1.7 2.8 2.8 1.7-3.2.5-.4 3.2-1.7-2.8-2.9 1.1 1.1-2.9-2.8-1.7 3.2-.5z"/><path d="M2.5 19.5h13.1c.3 0 .5-.2.5-.5v-2.6l-1-2.7-1.6-1.1H7l-1.5 1.1L4 16.4v2.6c0 .3.2.5.5.5zm2.4-3.1a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2zm9 0a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2z"/><path d="M19.5 13.6c.3 0 .5-.2.5-.5l-.5-2.7-1.1-1.6h-3.2l-1 1.1.6.5 1.6.5L19.5 13.6zm-1.7-1.3a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6z"/></svg>',
+  traffic:
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M12 2a3 3 0 013 3v0a3 3 0 11-6 0v0a3 3 0 013-3zm0 7a3 3 0 013 3v0a3 3 0 11-6 0v0a3 3 0 013-3zm0 7a3 3 0 013 3v0a3 3 0 11-6 0v0a3 3 0 013-3z"/></svg>',
+  danger:
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zM11 10v5h2v-5h-2zm0 6v2h2v-2h-2z"/></svg>',
+  weather:
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M19.36 10.04A7.49 7.49 0 005 9.5 5.5 5.5 0 006 20h13a4.5 4.5 0 00.36-9.96zM7 17a3 3 0 010-6 5.5 5.5 0 0110.5 1.5h.5a2.5 2.5 0 010 5H7z"/></svg>',
+  roadworks:
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M14.13 7.6L12 2 9.87 7.6l4.26 0zM7.5 8.93L4.21 15h6.58L7.5 8.93zm9 0L13.21 15h6.58L16.5 8.93zM3 17v3h18v-3H3z"/></svg>',
+  other:
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-5h2v2h-2v-2zm.5-9a3.5 3.5 0 013.5 3.5c0 1.4-.9 2.2-1.6 2.7-.7.5-1.4.9-1.4 1.8h-2c0-1.5.7-2.2 1.4-2.7.5-.4 1-.7 1-1.3a1.5 1.5 0 00-3 0H8.5a3.5 3.5 0 013-3.5z"/></svg>',
+}
+
+const TypeIcon = ({ type }) => (
+  <span
+    className="siara-report-type-icon"
+    aria-hidden="true"
+    dangerouslySetInnerHTML={{ __html: ICON_SVG[type] || ICON_SVG.other }}
+  />
+)
+
 const TYPE_META = {
-  accident: { icon: '🚗', label: 'Accident' },
-  traffic: { icon: '🚦', label: 'Traffic' },
-  danger: { icon: '⚠️', label: 'Danger' },
-  weather: { icon: '🌧️', label: 'Weather' },
-  roadworks: { icon: '🚧', label: 'Roadworks' },
-  other: { icon: '❓', label: 'Other' },
+  accident: { svg: ICON_SVG.accident, label: 'Accident' },
+  traffic: { svg: ICON_SVG.traffic, label: 'Traffic' },
+  danger: { svg: ICON_SVG.danger, label: 'Danger' },
+  weather: { svg: ICON_SVG.weather, label: 'Weather' },
+  roadworks: { svg: ICON_SVG.roadworks, label: 'Roadworks' },
+  other: { svg: ICON_SVG.other, label: 'Other' },
 }
 
 const SEVERITY_COLORS = {
@@ -140,7 +165,7 @@ function buildMarkerHtml({ report }) {
         />
       </svg>
       <div class="siara-report-pin__slot"${imageStyle}>
-        <span class="siara-report-pin__fallback" aria-hidden="true">${escapeHtml(typeMeta.icon)}</span>
+        <span class="siara-report-pin__fallback" aria-hidden="true">${typeMeta.svg}</span>
       </div>
     </div>
   `
@@ -166,7 +191,7 @@ function ReportHoverCard({ report }) {
           {media.map((mediaItem) => (
             <div className="siara-report-tooltip__media-frame" key={mediaItem.id || mediaItem.url}>
               <span className="siara-report-tooltip__media-fallback" aria-hidden="true">
-                {typeMeta.icon}
+                <TypeIcon type={reportType} />
               </span>
               <img
                 src={mediaItem.url}
@@ -182,7 +207,7 @@ function ReportHoverCard({ report }) {
         </div>
       ) : (
         <div className="siara-report-tooltip__hero-fallback" aria-hidden="true">
-          {typeMeta.icon}
+          <TypeIcon type={reportType} />
         </div>
       )}
 

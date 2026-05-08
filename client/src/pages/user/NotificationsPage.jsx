@@ -1,5 +1,17 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
+import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded'
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import { useNotifications } from '../../contexts/NotificationContext'
@@ -346,7 +358,7 @@ export default function NotificationsPage() {
                 loading="lazy"
                 onError={(e) => { if (e.currentTarget.src !== profileAvatar) e.currentTarget.src = profileAvatar }}
               />
-              <span className="verified-badge">✓</span>
+              <span className="verified-badge"><CheckRoundedIcon fontSize="inherit" /></span>
             </div>
             <div className="profile-info">
               <p className="profile-name">{displayName}</p>
@@ -471,13 +483,13 @@ export default function NotificationsPage() {
           <div className="notif-list">
             {isLoading ? (
               <div className="notif-empty-state">
-                <div className="notif-empty-icon">⏳</div>
+                <div className="notif-empty-icon"><HourglassEmptyOutlinedIcon fontSize="inherit" /></div>
                 <h3>Loading…</h3>
                 <p>Your latest alerts are on the way.</p>
               </div>
             ) : filteredNotifications.length === 0 ? (
               <div className="notif-empty-state">
-                <div className="notif-empty-icon">🔔</div>
+                <div className="notif-empty-icon"><NotificationsOutlinedIcon fontSize="inherit" /></div>
                 <h3>No notifications</h3>
                 <p>Create an alert to start receiving live incident updates.</p>
                 <div className="notif-empty-actions">
@@ -528,25 +540,25 @@ export default function NotificationsPage() {
                 <div className="card nd-header-card">
                   <div className="nd-priority-row">
                     <span className={`nd-priority-badge nd-priority-badge--${priorityKey}`}>
-                      {priorityKey === 'high' ? '🔴' : priorityKey === 'medium' ? '🟡' : '🔵'}
+                      <FiberManualRecordIcon fontSize="inherit" className={`icon-severity-${priorityKey === 'high' ? 'critical' : priorityKey === 'medium' ? 'moderate' : 'info'}`} />
                       {' '}{getPriorityLabel(selectedNotification.priority)} Priority
                     </span>
                     {!selectedNotification.readAt ? (
-                      <span className="nd-unread-tag">● Unread</span>
+                      <span className="nd-unread-tag"><FiberManualRecordIcon fontSize="inherit" /> Unread</span>
                     ) : (
-                      <span className="nd-read-tag">✓ Read</span>
+                      <span className="nd-read-tag"><CheckRoundedIcon fontSize="inherit" /> Read</span>
                     )}
                   </div>
                   <h2 className="nd-title">{selectedNotification.title}</h2>
-                  <p className="nd-timestamp">
-                    🕐 {formatDateTime(selectedNotification.createdAt)}
+                  <p className="nd-timestamp" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <AccessTimeOutlinedIcon fontSize="inherit" /> {formatDateTime(selectedNotification.createdAt)}
                   </p>
                   <p className="nd-body">{selectedNotification.body}</p>
                 </div>
 
                 {/* ── Card 2: Incident details ── */}
                 <div className="card nd-details-card">
-                  <h3 className="widget-title">📋 Incident Details</h3>
+                  <h3 className="widget-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><AssignmentOutlinedIcon fontSize="inherit" /> Incident Details</h3>
 
                   {(sev || selectedNotification.data?.incidentType) ? (
                     <div className="nd-detail-highlights">
@@ -557,8 +569,8 @@ export default function NotificationsPage() {
                         </div>
                       ) : null}
                       {selectedNotification.data?.incidentType ? (
-                        <div className="nd-type-chip">
-                          🚦 {selectedNotification.data.incidentType.charAt(0).toUpperCase() + selectedNotification.data.incidentType.slice(1)}
+                        <div className="nd-type-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <TrafficOutlinedIcon fontSize="inherit" /> {selectedNotification.data.incidentType.charAt(0).toUpperCase() + selectedNotification.data.incidentType.slice(1)}
                         </div>
                       ) : null}
                     </div>
@@ -574,7 +586,7 @@ export default function NotificationsPage() {
                     {selectedNotification.data?.zoneName ? (
                       <div className="nd-info-row">
                         <span className="nd-info-key">Zone</span>
-                        <span className="nd-info-val">📍 {selectedNotification.data.zoneName}</span>
+                        <span className="nd-info-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LocationOnOutlinedIcon fontSize="inherit" /> {selectedNotification.data.zoneName}</span>
                       </div>
                     ) : null}
                     {selectedNotification.data?.locationLabel ? (
@@ -588,7 +600,7 @@ export default function NotificationsPage() {
                   {dangerScore != null ? (
                     <div className="nd-danger-section">
                       <div className="nd-danger-header">
-                        <span className="nd-danger-label">⚠️ Danger Score</span>
+                        <span className="nd-danger-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" /> Danger Score</span>
                         <span className="nd-danger-value" style={{ color: dangerScore >= 70 ? '#dc2626' : dangerScore >= 40 ? '#d97706' : '#16a34a' }}>
                           {dangerScore}%
                         </span>
@@ -615,20 +627,20 @@ export default function NotificationsPage() {
 
                 {/* ── Card 3: Actions ── */}
                 <div className="card nd-actions-card">
-                  <h3 className="widget-title">⚡ Quick Actions</h3>
+                  <h3 className="widget-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><BoltOutlinedIcon fontSize="inherit" /> Quick Actions</h3>
                   <button
                     type="button"
                     className="nd-btn-primary"
                     onClick={() => navigate(getNotificationTarget(selectedNotification))}
                   >
-                    🔍 Open Related Incident
+                    <OpenInNewRoundedIcon fontSize="inherit" /> Open Related Incident
                   </button>
                   <button
                     type="button"
                     className="nd-btn-outline"
                     onClick={() => navigate('/map')}
                   >
-                    🗺️ View on Map
+                    <MapOutlinedIcon fontSize="inherit" /> View on Map
                   </button>
                   {!selectedNotification.readAt ? (
                     <button
@@ -636,14 +648,14 @@ export default function NotificationsPage() {
                       className="nd-btn-ghost"
                       onClick={() => { void handleMarkSingleRead(selectedNotification.id) }}
                     >
-                      ✓ Mark as Read
+                      <CheckRoundedIcon fontSize="inherit" className="icon-success" /> Mark as Read
                     </button>
                   ) : null}
                 </div>
 
                 {/* ── Card 4: All recent notifications summary ── */}
                 <div className="card nd-recent-card">
-                  <h3 className="widget-title">🔔 Recent Alerts</h3>
+                  <h3 className="widget-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><NotificationsOutlinedIcon fontSize="inherit" /> Recent Alerts</h3>
                   <div className="nd-recent-list">
                     {filteredNotifications.slice(0, 5).map((n) => (
                       <div
@@ -671,7 +683,7 @@ export default function NotificationsPage() {
             )
           })() : (
             <div className="card nd-empty-card">
-              <div className="nd-empty-icon">🔔</div>
+              <div className="nd-empty-icon"><NotificationsOutlinedIcon fontSize="inherit" /></div>
               <h3 className="nd-empty-title">No notification selected</h3>
               <p className="nd-empty-body">Click any notification in the list to see its full details here.</p>
               <div className="nd-empty-stats">

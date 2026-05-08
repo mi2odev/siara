@@ -1,0 +1,163 @@
+/* =============================================================================
+   SIARA — Icon Color System
+   -----------------------------------------------------------------------------
+   A single source of truth for icon coloring across the project.
+
+   Design rules:
+   1. Most icons inherit `currentColor` from their parent — they are decorative
+      or navigational and should not introduce extra accent colors.
+   2. Only icons that carry semantic meaning (status, severity, outcome) get a
+      semantic class. This keeps the UI premium and avoids a "rainbow" look.
+   3. All semantic colors come from CSS custom properties so light/dark themes
+      and the existing siara/admin/supervisor theme tokens stay in control.
+   4. Tokens are defined for both `prefers-color-scheme: dark` and an explicit
+      `[data-theme="dark"]` / `.theme-dark` opt-in so manual dark theming works.
+
+   Usage:
+     <CheckRoundedIcon className="icon-success" />
+     <WarningAmberOutlinedIcon className="icon-warning" />
+     <FiberManualRecordIcon className="icon-severity-critical" />
+     <StarRoundedIcon className="icon-rating" />
+
+   Severity vocabulary mirrors the project's existing tier classes
+   (.risk-low/.risk-moderate/.risk-high/.risk-extreme,
+    .severity-low/.severity-medium/.severity-high/.severity-critical).
+   ============================================================================= */
+
+:root {
+  /* -----------------------------------------------------------------------
+     Base icon tokens (light mode) — sourced from the SIARA brand palette
+     defined in global.css. We pin to siara variables wherever the brand
+     already has an opinion (primary violet, secondary blue, accent green,
+     warning amber, error red), and only fall back to literal hex for
+     supporting roles (slate neutrals, hotspot orange).
+     ----------------------------------------------------------------------- */
+  --icon-color-default: currentColor;                          /* Inherit from parent text */
+  --icon-color-muted:   #6B7280;                                /* siara-subtext echo */
+  --icon-color-strong:  var(--siara-text-dark, #353535);
+
+  /* Semantic — brand-aligned */
+  --icon-color-success:  var(--siara-accent, #0FA958);          /* SIARA accent green */
+  --icon-color-warning:  var(--siara-warning, #F4A261);         /* SIARA warning amber (peachy) */
+  --icon-color-danger:   var(--siara-error, #DC2626);           /* SIARA error red */
+  --icon-color-info:     var(--siara-secondary, #1D4ED8);       /* SIARA secondary blue */
+  --icon-color-security: var(--siara-primary, #7A3DF0);         /* SIARA primary violet — protection */
+  --icon-color-fire:     #EA580C;                                /* hotspot orange — between warning and danger */
+  --icon-color-accent:   var(--siara-primary, #7A3DF0);
+
+  /* Rating stars — keep amber (universally legible for ratings) */
+  --icon-color-rating:        var(--siara-warning, #F4A261);
+  --icon-color-rating-empty:  #CBD5E1;
+
+  /* Severity dots — match the SIARA tier scale.
+     Low ramps from siara-accent (green), moderate uses siara-warning
+     (peachy amber), high steps to a dedicated orange, critical uses the
+     SIARA error red. */
+  --icon-severity-critical: var(--siara-error, #DC2626);
+  --icon-severity-high:     #EA580C;
+  --icon-severity-moderate: var(--siara-warning, #F4A261);
+  --icon-severity-low:      var(--siara-accent, #0FA958);
+  --icon-severity-info:     var(--siara-secondary, #1D4ED8);
+  --icon-severity-neutral:  #6B7280;
+}
+
+/* Dark mode — lift each siara hue one notch for legibility on dark surfaces.
+   Siara brand hues (violet/blue/green/amber/red) are preserved as the
+   driving identity; only luminosity is adjusted. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --icon-color-muted:   #94A3B8;
+    --icon-color-strong:  #F1F5F9;
+
+    --icon-color-success:  #22C55E;            /* lifted siara-accent */
+    --icon-color-warning:  #F4A261;            /* siara-warning already balanced */
+    --icon-color-danger:   #EF4444;            /* lifted siara-error */
+    --icon-color-info:     #3B82F6;            /* lifted siara-secondary */
+    --icon-color-security: #8B5CF6;            /* lifted siara-primary violet */
+    --icon-color-fire:     #F97316;
+
+    --icon-color-rating:        #F4A261;
+    --icon-color-rating-empty:  #475569;
+
+    --icon-severity-critical: #EF4444;
+    --icon-severity-high:     #F97316;
+    --icon-severity-moderate: #F4A261;
+    --icon-severity-low:      #22C55E;
+    --icon-severity-info:     #3B82F6;
+    --icon-severity-neutral:  #94A3B8;
+  }
+}
+
+/* Explicit dark-theme opt-in — overrides OS preference when the project
+   sets a manual theme (e.g. <body data-theme="dark"> or .theme-dark on root). */
+[data-theme="dark"],
+.theme-dark {
+  --icon-color-muted:   #94A3B8;
+  --icon-color-strong:  #F1F5F9;
+  --icon-color-success:  #22C55E;
+  --icon-color-warning:  #F4A261;
+  --icon-color-danger:   #EF4444;
+  --icon-color-info:     #3B82F6;
+  --icon-color-security: #8B5CF6;
+  --icon-color-fire:     #F97316;
+  --icon-color-rating:   #F4A261;
+  --icon-color-rating-empty: #475569;
+  --icon-severity-critical: #EF4444;
+  --icon-severity-high:     #F97316;
+  --icon-severity-moderate: #F4A261;
+  --icon-severity-low:      #22C55E;
+  --icon-severity-info:     #3B82F6;
+  --icon-severity-neutral:  #94A3B8;
+}
+
+/* -----------------------------------------------------------------------------
+   Utility classes
+   ----------------------------------------------------------------------------- */
+
+.icon-default   { color: var(--icon-color-default); }
+.icon-muted     { color: var(--icon-color-muted); }
+.icon-strong    { color: var(--icon-color-strong); }
+
+.icon-success   { color: var(--icon-color-success); }
+.icon-warning   { color: var(--icon-color-warning); }
+.icon-danger    { color: var(--icon-color-danger); }
+.icon-info      { color: var(--icon-color-info); }
+.icon-security  { color: var(--icon-color-security); }
+.icon-fire      { color: var(--icon-color-fire); }
+.icon-accent    { color: var(--icon-color-accent); }
+
+.icon-rating        { color: var(--icon-color-rating); }
+.icon-rating-empty  { color: var(--icon-color-rating-empty); }
+
+.icon-severity-critical,
+.icon-severity-extreme { color: var(--icon-severity-critical); }
+.icon-severity-high    { color: var(--icon-severity-high); }
+.icon-severity-moderate,
+.icon-severity-medium  { color: var(--icon-severity-moderate); }
+.icon-severity-low     { color: var(--icon-severity-low); }
+.icon-severity-info    { color: var(--icon-severity-info); }
+.icon-severity-neutral { color: var(--icon-severity-neutral); }
+
+/* State helpers — apply alongside any color class */
+.icon-disabled { opacity: 0.45; }
+.icon-soft     { opacity: 0.78; }            /* For backgrounded glyphs */
+
+/* Reduce icon visual weight slightly when used as a leading-glyph in dense
+   inline lists (keeps text the visual lead). */
+.icon-inline {
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   Hover / focus / active behavior
+   -----------------------------------------------------------------------------
+   Buttons and interactive parents already drive their own hover state via
+   `color`. Because every utility class above resolves through CSS variables,
+   icons that should follow their parent's hover color simply use
+   `.icon-default` (or no class) and inherit. No further work needed for
+   hover states — the existing button/link CSS continues to govern.
+
+   For semantic icons (.icon-warning etc.) the color is intentionally
+   absolute; if a button hover changes the icon color, callers should add
+   `.icon-default` instead. */

@@ -1,10 +1,13 @@
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import '../../styles/NavigationDangerAlert.css'
 
 const SEVERITY_ICON = {
-  extreme: '🚨',
-  high: '⚠️',
-  moderate: '⚠️',
-  low: 'ℹ️',
+  extreme: { Icon: NotificationsActiveOutlinedIcon, color: 'icon-danger' },
+  high:    { Icon: WarningAmberOutlinedIcon,       color: 'icon-warning' },
+  moderate:{ Icon: WarningAmberOutlinedIcon,       color: 'icon-warning' },
+  low:     { Icon: InfoOutlinedIcon,                color: 'icon-info' },
 }
 
 function severityClass(severity) {
@@ -41,7 +44,8 @@ export default function NavigationDangerAlert({
   if (!alert) return null
 
   const sevClass = severityClass(alert.severity)
-  const icon = SEVERITY_ICON[String(alert.severity || '').toLowerCase()] || '⚠️'
+  const sevConfig = SEVERITY_ICON[String(alert.severity || '').toLowerCase()] || { Icon: WarningAmberOutlinedIcon, color: 'icon-warning' }
+  const { Icon, color: iconColor } = sevConfig
   const distanceLabel = formatDistance(alert.distanceAheadMeters)
 
   return (
@@ -51,7 +55,7 @@ export default function NavigationDangerAlert({
       aria-live="assertive"
     >
       <div className="siara-nav-alert__top">
-        <span className="siara-nav-alert__icon" aria-hidden="true">{icon}</span>
+        <span className="siara-nav-alert__icon" aria-hidden="true"><Icon fontSize="inherit" className={iconColor} /></span>
         <h5 className="siara-nav-alert__title">
           {alert.title || 'New incident reported ahead'}
         </h5>

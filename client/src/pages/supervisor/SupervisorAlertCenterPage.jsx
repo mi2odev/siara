@@ -1,4 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
+import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import TipsAndUpdatesOutlinedIcon from '@mui/icons-material/TipsAndUpdatesOutlined'
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import RecordVoiceOverOutlinedIcon from '@mui/icons-material/RecordVoiceOverOutlined'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import {
@@ -143,7 +151,7 @@ export default function SupervisorAlertCenterPage() {
           <div className="sv-section">
             <div className="sv-section-head">
               <h2 className="sv-section-title">
-                <span className="sv-section-title-icon">📢</span>
+                <span className="sv-section-title-icon"><CampaignOutlinedIcon fontSize="inherit" /></span>
                 Create Alert
               </h2>
             </div>
@@ -266,7 +274,7 @@ export default function SupervisorAlertCenterPage() {
                     disabled={submitting}
                     style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
                   >
-                    {submitting ? 'Sending...' : '📢 Broadcast Alert to Officers'}
+                    {submitting ? 'Sending...' : <><CampaignOutlinedIcon fontSize="inherit" /> Broadcast Alert to Officers</>}
                   </button>
                 </div>
               </form>
@@ -277,7 +285,7 @@ export default function SupervisorAlertCenterPage() {
           <div className="sv-section">
             <div className="sv-section-head">
               <h2 className="sv-section-title">
-                <span className="sv-section-title-icon">📋</span>
+                <span className="sv-section-title-icon"><AssignmentOutlinedIcon fontSize="inherit" /></span>
                 Recent Alerts Received
               </h2>
             </div>
@@ -286,7 +294,7 @@ export default function SupervisorAlertCenterPage() {
                 <div className="sv-loading"><div className="sv-loading-spinner" /></div>
               ) : pastAlerts.length === 0 ? (
                 <div className="sv-empty">
-                  <span className="sv-empty-icon">🔕</span>
+                  <span className="sv-empty-icon"><NotificationsOffOutlinedIcon fontSize="inherit" /></span>
                   No recent alerts
                 </div>
               ) : (
@@ -308,7 +316,7 @@ export default function SupervisorAlertCenterPage() {
                           {formatRelative(alert.createdAt)}
                         </span>
                         {alert.read && (
-                          <span style={{ fontSize: 10, color: 'var(--sv-low)' }}>✓ Read</span>
+                          <span style={{ fontSize: 10, color: 'var(--sv-low)', display: 'inline-flex', alignItems: 'center', gap: 2 }}><CheckRoundedIcon fontSize="inherit" /> Read</span>
                         )}
                       </div>
                     </div>
@@ -323,16 +331,16 @@ export default function SupervisorAlertCenterPage() {
         <div className="sv-section" style={{ marginTop: 20 }}>
           <div className="sv-section-head">
             <h2 className="sv-section-title">
-              <span className="sv-section-title-icon">💡</span>
+              <span className="sv-section-title-icon"><TipsAndUpdatesOutlinedIcon fontSize="inherit" className="icon-info" /></span>
               Alert Guidelines
             </h2>
           </div>
           <div className="sv-section-body">
             <div className="sv-grid-3">
               {[
-                { icon: '🚨', label: 'Critical', desc: 'Immediate threat, major accident, danger zone active. Requires urgent response.' },
-                { icon: '⚠️', label: 'High', desc: 'Significant risk, high accident probability near a specific route.' },
-                { icon: '📣', label: 'Advisory', desc: 'General guidance, zone updates, traffic congestion, roadwork.' },
+                { icon: <NotificationsActiveOutlinedIcon fontSize="inherit" className="icon-danger" />, label: 'Critical', desc: 'Immediate threat, major accident, danger zone active. Requires urgent response.' },
+                { icon: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'High', desc: 'Significant risk, high accident probability near a specific route.' },
+                { icon: <RecordVoiceOverOutlinedIcon fontSize="inherit" className="icon-info" />, label: 'Advisory', desc: 'General guidance, zone updates, traffic congestion, roadwork.' },
               ].map((g) => (
                 <div key={g.label} style={{
                   padding: '16px',

@@ -1,6 +1,29 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
+import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import PendingActionsOutlinedIcon from '@mui/icons-material/PendingActionsOutlined'
+import LocalPoliceOutlinedIcon from '@mui/icons-material/LocalPoliceOutlined'
+import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'
+import PsychologyOutlinedIcon from '@mui/icons-material/PsychologyOutlined'
+import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
+import GpsFixedOutlinedIcon from '@mui/icons-material/GpsFixedOutlined'
+import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
+import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
+import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
+import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
+import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from './PoliceModeTab'
@@ -46,34 +69,34 @@ export default function PoliceShell({
     {
       title: 'OPERATIONS',
       items: [
-        { key: 'dashboard', label: 'Dashboard', icon: '🏛️', path: '/police' },
-        { key: 'active-incidents', label: 'Active Incidents', icon: '🔴', path: '/police?view=active' },
-        { key: 'nearby-incidents', label: 'Nearby Incidents', icon: '📍', path: '/police/nearby' },
+        { key: 'dashboard', label: 'Dashboard', icon: <AccountBalanceOutlinedIcon fontSize="inherit" />, path: '/police' },
+        { key: 'active-incidents', label: 'Active Incidents', icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-critical" />, path: '/police?view=active' },
+        { key: 'nearby-incidents', label: 'Nearby Incidents', icon: <LocationOnOutlinedIcon fontSize="inherit" />, path: '/police/nearby' },
         {
           key: 'verification-queue',
           label: 'Verification Queue',
-          icon: '🟡',
+          icon: <PendingActionsOutlinedIcon fontSize="inherit" />,
           path: '/police/verification',
           badge: verificationPendingCount,
         },
-        { key: 'my-incidents', label: 'My Incidents', icon: '👮', path: '/police/my-incidents' },
-        { key: 'field-reports', label: 'Field Reports', icon: '📝', path: '/police/field-reports' },
-        { key: 'alert-center', label: 'Alert Center', icon: '🚨', path: '/police/alerts' },
-        { key: 'operation-history', label: 'Operation History', icon: '🕘', path: '/police/history' },
+        { key: 'my-incidents', label: 'My Incidents', icon: <LocalPoliceOutlinedIcon fontSize="inherit" />, path: '/police/my-incidents' },
+        { key: 'field-reports', label: 'Field Reports', icon: <EditNoteOutlinedIcon fontSize="inherit" />, path: '/police/field-reports' },
+        { key: 'alert-center', label: 'Alert Center', icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />, path: '/police/alerts' },
+        { key: 'operation-history', label: 'Operation History', icon: <HistoryOutlinedIcon fontSize="inherit" />, path: '/police/history' },
       ],
     },
     {
       title: 'ANALYTICS',
       items: [
-        { key: 'analytics', label: 'AI Insights', icon: '🧠', path: '/police/insights' },
+        { key: 'analytics', label: 'AI Insights', icon: <PsychologyOutlinedIcon fontSize="inherit" />, path: '/police/insights' },
       ],
     },
     {
       title: 'INFO',
       items: [
-        { key: 'contact', label: 'Contact', icon: '📞', path: '/contact' },
-        { key: 'about', label: 'About', icon: 'ℹ️', path: '/about' },
-        { key: 'description', label: 'Description', icon: '📘', path: '/description' },
+        { key: 'contact', label: 'Contact', icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
+        { key: 'about', label: 'About', icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
+        { key: 'description', label: 'Description', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/description' },
       ],
     },
   ], [verificationPendingCount])
@@ -82,12 +105,12 @@ export default function PoliceShell({
     {
       title: 'SUPERVISOR',
       items: [
-        { key: 'supervisor-dashboard', label: 'Command Center', icon: '🏛️', path: '/police/supervisor' },
-        { key: 'incident-coordination', label: 'Incident Coordination', icon: '🎯', path: '/police/supervisor/coordination' },
-        { key: 'officer-monitoring', label: 'Officer Monitoring', icon: '👥', path: '/police/supervisor/officers' },
-        { key: 'supervisor-alerts', label: 'Supervisor Alerts', icon: '📢', path: '/police/supervisor/alerts' },
-        { key: 'operational-analytics', label: 'Analytics', icon: '📊', path: '/police/supervisor/analytics' },
-        { key: 'global-map', label: 'Global Map', icon: '🗺️', path: '/police/supervisor/map' },
+        { key: 'supervisor-dashboard', label: 'Command Center', icon: <AccountBalanceOutlinedIcon fontSize="inherit" />, path: '/police/supervisor' },
+        { key: 'incident-coordination', label: 'Incident Coordination', icon: <GpsFixedOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/coordination' },
+        { key: 'officer-monitoring', label: 'Officer Monitoring', icon: <GroupsOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/officers' },
+        { key: 'supervisor-alerts', label: 'Supervisor Alerts', icon: <CampaignOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/alerts' },
+        { key: 'operational-analytics', label: 'Analytics', icon: <InsightsOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/analytics' },
+        { key: 'global-map', label: 'Global Map', icon: <MapOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/map' },
       ],
     },
     officerMenuGroups[officerMenuGroups.length - 1], // INFO
@@ -224,9 +247,9 @@ export default function PoliceShell({
           </div>
 
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Messages">💬</button>
+            <button className="dash-icon-btn" aria-label="Messages"><ChatBubbleOutlineOutlinedIcon fontSize="small" /></button>
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              🔔
+              <NotificationsOutlinedIcon fontSize="small" />
               {notificationCount > 0 ? <span className="notification-badge"></span> : null}
             </button>
             <div className="dash-avatar-wrapper">
@@ -237,11 +260,11 @@ export default function PoliceShell({
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>👤 My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>⚙️ Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>🔔 Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}><PersonOutlinedIcon fontSize="small" /> My Profile</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}><SettingsOutlinedIcon fontSize="small" /> Settings</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}><NotificationsOutlinedIcon fontSize="small" /> Notifications</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>🚪 Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}><LogoutOutlinedIcon fontSize="small" className="icon-danger" /> Log Out</button>
                 </div>
               )}
             </div>
@@ -252,7 +275,7 @@ export default function PoliceShell({
               aria-expanded={showMobileMenu}
               onClick={() => setShowMobileMenu((prev) => !prev)}
             >
-              ☰
+              <MenuOutlinedIcon fontSize="small" />
             </button>
           </div>
         </div>
@@ -284,13 +307,13 @@ export default function PoliceShell({
               className={`police-mode-pill ${!isInSupervisorMode ? 'active' : ''}`}
               onClick={() => { setShowMobileMenu(false); navigate('/police') }}
             >
-              👮 Officer
+              <LocalPoliceOutlinedIcon fontSize="inherit" /> Officer
             </button>
             <button
               className={`police-mode-pill ${isInSupervisorMode ? 'active' : ''}`}
               onClick={() => { setShowMobileMenu(false); navigate('/police/supervisor') }}
             >
-              🏛️ Supervisor
+              <AccountBalanceOutlinedIcon fontSize="inherit" /> Supervisor
             </button>
           </div>
         )}
@@ -327,13 +350,13 @@ export default function PoliceShell({
                 className={`police-mode-pill ${!isInSupervisorMode ? 'active' : ''}`}
                 onClick={() => navigate('/police')}
               >
-                👮 Officer
+                <LocalPoliceOutlinedIcon fontSize="inherit" /> Officer
               </button>
               <button
                 className={`police-mode-pill ${isInSupervisorMode ? 'active' : ''}`}
                 onClick={() => navigate('/police/supervisor')}
               >
-                🏛️ Supervisor
+                <AccountBalanceOutlinedIcon fontSize="inherit" /> Supervisor
               </button>
             </div>
           )}

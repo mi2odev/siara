@@ -1,5 +1,7 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
@@ -322,7 +324,7 @@ export default function ReportsPage() {
           <div className="card profile-summary">
             <div className="profile-avatar-container">
               <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
-              <span className="verified-badge">✓</span>
+              <span className="verified-badge"><CheckRoundedIcon fontSize="inherit" /></span>
             </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
@@ -385,7 +387,7 @@ export default function ReportsPage() {
               <div className="al-empty"><h3>Loading reports...</h3></div>
             ) : filteredReports.length === 0 ? (
               <div className="al-empty">
-                <span className="empty-icon">📝</span>
+                <span className="empty-icon"><EditNoteOutlinedIcon fontSize="inherit" /></span>
                 <h3>No Reports</h3>
                 <p>Create your first report to share road incidents.</p>
                 <button className="empty-btn" onClick={() => navigate('/report/create')}>Create a Report</button>

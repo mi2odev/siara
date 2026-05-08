@@ -1,4 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import PsychologyOutlinedIcon from '@mui/icons-material/PsychologyOutlined'
+import SentimentVeryDissatisfiedOutlinedIcon from '@mui/icons-material/SentimentVeryDissatisfiedOutlined'
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
+import MoodBadOutlinedIcon from '@mui/icons-material/MoodBadOutlined'
+import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined'
+import SelfImprovementOutlinedIcon from '@mui/icons-material/SelfImprovementOutlined'
+import SentimentSatisfiedOutlinedIcon from '@mui/icons-material/SentimentSatisfiedOutlined'
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
+import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined'
+import DirectionsCarOutlinedIcon from '@mui/icons-material/DirectionsCarOutlined'
+import SentimentVerySatisfiedOutlinedIcon from '@mui/icons-material/SentimentVerySatisfiedOutlined'
+import SentimentNeutralOutlinedIcon from '@mui/icons-material/SentimentNeutralOutlined'
+import SentimentDissatisfiedOutlinedIcon from '@mui/icons-material/SentimentDissatisfiedOutlined'
+import ArrowUpwardRoundedIcon from '@mui/icons-material/ArrowUpwardRounded'
+import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded'
+import ArrowRightAltRoundedIcon from '@mui/icons-material/ArrowRightAltRounded'
 import QuizExplanationResult from './QuizExplanationResult'
 import {
   completeDriverQuiz,
@@ -11,7 +29,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'attention',
     title: 'Attention & Focus',
-    icon: '🧠',
+    icon: <PsychologyOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 1, text: "How often do you find your mind wandering away from driving while you're behind the wheel?", reversed: false },
       { id: 2, text: "How often do you realize you missed something on the road because you weren't fully paying attention?", reversed: false },
@@ -20,7 +38,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'anxiety',
     title: 'Driving Anxiety',
-    icon: '😰',
+    icon: <SentimentVeryDissatisfiedOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 3, text: "How often do you feel nervous or tense when driving, even in normal traffic?", reversed: false },
       { id: 4, text: "How often do you worry about getting into a crash while you're driving?", reversed: false },
@@ -29,7 +47,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'risk-taking',
     title: 'Risk Taking',
-    icon: '⚡',
+    icon: <BoltOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 5, text: "How often do you take chances while driving, like overtaking when it's a bit risky?", reversed: false },
       { id: 6, text: "How often do you feel comfortable driving faster than others when the road is clear?", reversed: false },
@@ -39,7 +57,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'anger',
     title: 'Anger & Aggression',
-    icon: '😤',
+    icon: <MoodBadOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 8, text: "How often do you feel angry or furious at other drivers when they annoy you?", reversed: false },
       { id: 9, text: "How often do you get frustrated and drive more aggressively after being cut off?", reversed: false },
@@ -49,7 +67,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'sensation',
     title: 'Sensation Seeking',
-    icon: '🏎️',
+    icon: <SpeedOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 11, text: "How often do you drive much faster than the speed limit for the thrill of it?", reversed: false },
       { id: 12, text: "How often do you feel excited when driving at very high speeds on open roads?", reversed: false },
@@ -58,7 +76,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'stress-relief',
     title: 'Stress Relief',
-    icon: '🧘',
+    icon: <SelfImprovementOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 13, text: "How often do you drive to relax or reduce stress?", reversed: true },
       { id: 14, text: "How often do you take a drive just to clear your mind or calm down?", reversed: true },
@@ -68,7 +86,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'patience',
     title: 'Patience & Calmness',
-    icon: '😌',
+    icon: <SentimentSatisfiedOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 16, text: "How often do you stay calm and patient even when you're stuck in a traffic jam?", reversed: true },
       { id: 17, text: "How often do you keep your cool when other drivers are slow or make mistakes?", reversed: true },
@@ -77,7 +95,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'safety',
     title: 'Safety Consciousness',
-    icon: '🛡️',
+    icon: <ShieldOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 18, text: "How often do you drive carefully to avoid accidents?", reversed: true },
       { id: 19, text: "How often do you follow all traffic rules (speed limits, signals, etc.) because safety is important to you?", reversed: true },
@@ -87,7 +105,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'violations',
     title: 'Traffic Violations',
-    icon: '🚦',
+    icon: <TrafficOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 21, text: "How often do you exceed the speed limit when driving?", reversed: false },
       { id: 22, text: "How often do you tailgate (follow too closely) the vehicle in front of you?", reversed: false },
@@ -100,7 +118,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'errors',
     title: 'Driving Errors',
-    icon: '⚠️',
+    icon: <WarningAmberOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 27, text: "How often do you misjudge the distance or speed of another vehicle when overtaking or merging?", reversed: false },
       { id: 28, text: "How often do you accidentally press the gas pedal when you meant to hit the brake (or vice versa)?", reversed: false },
@@ -112,7 +130,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'lapses',
     title: 'Memory Lapses',
-    icon: '💭',
+    icon: <ChatBubbleOutlineOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 32, text: "How often do you find yourself driving on \"autopilot,\" arriving at your destination without remembering parts of the trip?", reversed: false },
       { id: 33, text: "How often do you miss your exit or turn because you were distracted or daydreaming?", reversed: false },
@@ -123,7 +141,7 @@ const QUIZ_SECTIONS = [
   {
     id: 'habits',
     title: 'Driving Habits',
-    icon: '🚗',
+    icon: <DirectionsCarOutlinedIcon fontSize="inherit" />,
     questions: [
       { id: 36, text: "How often do you forget to signal when changing lanes or turning?", reversed: false },
       { id: 37, text: "How often do you forget to check your mirrors or blind spots before changing lanes?", reversed: false },
@@ -288,17 +306,17 @@ export default function DrivingQuiz({ onComplete, forceShow = false }) {
 
 function getRiskLevel(value) {
   if (value < 17) {
-    return { label: 'Very Low', color: '#22c55e', emoji: '😄' };
+    return { label: 'Very Low', color: '#22c55e', Icon: SentimentVerySatisfiedOutlinedIcon };
   } else if (value < 34) {
-    return { label: 'Low', color: '#84cc16', emoji: '🙂' };
+    return { label: 'Low', color: '#84cc16', Icon: SentimentSatisfiedOutlinedIcon };
   } else if (value < 51) {
-    return { label: 'Moderate', color: '#eab308', emoji: '😐' };
+    return { label: 'Moderate', color: '#eab308', Icon: SentimentNeutralOutlinedIcon };
   } else if (value < 67) {
-    return { label: 'Elevated', color: '#f97316', emoji: '😟' };
+    return { label: 'Elevated', color: '#f97316', Icon: SentimentDissatisfiedOutlinedIcon };
   } else if (value < 84) {
-    return { label: 'High', color: '#f94f16', emoji: '😨' };
+    return { label: 'High', color: '#f94f16', Icon: SentimentVeryDissatisfiedOutlinedIcon };
   } else {
-    return { label: 'Extreme', color: '#ef4444', emoji: '😱' };
+    return { label: 'Extreme', color: '#ef4444', Icon: MoodBadOutlinedIcon };
   }
 }
 
@@ -348,7 +366,11 @@ function getImpact(xai, feature) {
     direction,
 
     // Arrow semantics (MODEL REASONING, not morality)
-    arrow: v > 0 ? '↑' : v < 0 ? '↓' : '→',
+    arrow: v > 0
+      ? <ArrowUpwardRoundedIcon fontSize="inherit" />
+      : v < 0
+        ? <ArrowDownwardRoundedIcon fontSize="inherit" />
+        : <ArrowRightAltRoundedIcon fontSize="inherit" />,
 
     // Color semantics
     color: v > 0 ? '#ef4444' : v < 0 ? '#22c55e' : '#9ca3af',
@@ -651,7 +673,7 @@ const getDisplayText = (feature, impact) => {
       <div className="quiz-modal">
         <div className="quiz-header">
           <div className="quiz-header-left">
-            <span className="quiz-logo">🚗</span>
+            <span className="quiz-logo"><DirectionsCarOutlinedIcon fontSize="inherit" /></span>
             <div className="quiz-title-group">
               <h2 className="quiz-title">Driver Profile Assessment</h2>
               <p className="quiz-subtitle">Answer questions, then we send scores to model service</p>
@@ -741,7 +763,9 @@ const getDisplayText = (feature, impact) => {
               {Object.entries(featureScores).map(([key, value]) => (
                 <div key={key} className="results-section-item">
                   <div className="results-section-info">
-  <span className="results-section-icon">{getRiskLevel(scoreToPercent(value)).emoji}</span>
+  <span className="results-section-icon">
+    {(() => { const { Icon } = getRiskLevel(scoreToPercent(value)); return <Icon fontSize="inherit" />; })()}
+  </span>
 
   <span className="results-section-name">
     {key.replaceAll('_', ' ')}

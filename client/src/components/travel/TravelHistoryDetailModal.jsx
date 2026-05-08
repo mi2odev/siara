@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import StarRoundedIcon from '@mui/icons-material/StarRounded'
+import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded'
 import {
   getTravelHistoryDetail,
   updateTravelHistoryRating,
@@ -68,7 +70,9 @@ function StarRow({ value, onChange, disabled }) {
             aria-checked={Number(value) === star}
             role="radio"
           >
-            {filled ? '★' : '☆'}
+            {filled
+              ? <StarRoundedIcon fontSize="inherit" className="icon-rating" />
+              : <StarBorderRoundedIcon fontSize="inherit" className="icon-rating-empty" />}
           </button>
         )
       })}

@@ -1,4 +1,10 @@
 import { useMemo } from 'react'
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
+import BalanceOutlinedIcon from '@mui/icons-material/BalanceOutlined'
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
+import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
+import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined'
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined'
 import BestTimeToLeaveCompact from './BestTimeToLeaveCompact'
 import '../../styles/RouteOverviewCard.css'
 
@@ -37,9 +43,9 @@ const TIER_LABELS = {
 }
 
 const ALT_ICONS = {
-  safest: '🛡️',
-  balanced: '⚖️',
-  fastest: '⚡',
+  safest: ShieldOutlinedIcon,
+  balanced: BalanceOutlinedIcon,
+  fastest: BoltOutlinedIcon,
 }
 
 function tierFromLevel(level, percent) {
@@ -150,7 +156,9 @@ export default function RouteOverviewCard({
       aria-label="Selected route overview"
     >
       <header className="siara-route-overview__header">
-        <span className="siara-route-overview__icon" aria-hidden="true">🧭</span>
+        <span className="siara-route-overview__icon" aria-hidden="true">
+          <ExploreOutlinedIcon fontSize="inherit" />
+        </span>
         <h4 className="siara-route-overview__title">Selected route</h4>
         {data.routeLabel ? (
           <span className="siara-route-overview__type-badge">{data.routeLabel}</span>
@@ -260,7 +268,11 @@ export default function RouteOverviewCard({
                 onClick={() => onChangeRouteType(route.route_type)}
               >
                 <span className="siara-route-overview__alt-icon" aria-hidden="true">
-                  {ALT_ICONS[route.route_type] || '🛣️'}
+                  {(() => {
+                    const Icon = ALT_ICONS[route.route_type] || RouteOutlinedIcon
+                    const altColor = route.route_type === 'safest' ? 'icon-security' : ''
+                    return <Icon fontSize="inherit" className={altColor} />
+                  })()}
                 </span>
                 {route.route_label || titleCase(route.route_type)}
                 <small>
@@ -287,14 +299,14 @@ export default function RouteOverviewCard({
           onClick={onGenerateAiExplanation}
           disabled={aiGenerating}
         >
-          <span aria-hidden="true">✨</span>
+          <AutoAwesomeOutlinedIcon fontSize="inherit" aria-hidden="true" />
           {aiGenerating ? 'Calling Ollama…' : 'Generate AI explanation'}
         </button>
       ) : null}
 
       {source === 'ollama' ? (
         <div className="siara-route-overview__ai-chip">
-          <span aria-hidden="true">✨</span>
+          <AutoAwesomeOutlinedIcon fontSize="inherit" aria-hidden="true" />
           AI explanation
         </div>
       ) : null}

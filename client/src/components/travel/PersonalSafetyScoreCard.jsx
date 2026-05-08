@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
 import { getMySafetySummary } from '../../services/travelHistoryService'
 import '../../styles/PersonalSafetyScoreCard.css'
 
@@ -57,7 +58,9 @@ export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
     return (
       <section className="siara-safety-score" aria-busy="true">
         <div className="siara-safety-score__header">
-          <span className="siara-safety-score__icon" aria-hidden="true">🛡️</span>
+          <span className="siara-safety-score__icon" aria-hidden="true">
+            <ShieldOutlinedIcon fontSize="inherit" className="icon-security" />
+          </span>
           <h3 className="siara-safety-score__title">Your SIARA safety score</h3>
         </div>
         <div className="siara-safety-score__skeleton" />
@@ -71,7 +74,9 @@ export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
     return (
       <section className="siara-safety-score" role="alert">
         <div className="siara-safety-score__header">
-          <span className="siara-safety-score__icon" aria-hidden="true">🛡️</span>
+          <span className="siara-safety-score__icon" aria-hidden="true">
+            <ShieldOutlinedIcon fontSize="inherit" className="icon-security" />
+          </span>
           <h3 className="siara-safety-score__title">Your SIARA safety score</h3>
         </div>
         <p className="siara-safety-score__error">{error}</p>
@@ -83,7 +88,9 @@ export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
     return (
       <section className="siara-safety-score">
         <div className="siara-safety-score__header">
-          <span className="siara-safety-score__icon" aria-hidden="true">🛡️</span>
+          <span className="siara-safety-score__icon" aria-hidden="true">
+            <ShieldOutlinedIcon fontSize="inherit" className="icon-security" />
+          </span>
           <h3 className="siara-safety-score__title">Your SIARA safety score</h3>
         </div>
         <p className="siara-safety-score__empty">
@@ -108,7 +115,9 @@ export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
   return (
     <section className="siara-safety-score">
       <div className="siara-safety-score__header">
-        <span className="siara-safety-score__icon" aria-hidden="true">🛡️</span>
+        <span className="siara-safety-score__icon" aria-hidden="true">
+          <ShieldOutlinedIcon fontSize="inherit" className="icon-security" />
+        </span>
         <h3 className="siara-safety-score__title">Your SIARA safety score</h3>
       </div>
 

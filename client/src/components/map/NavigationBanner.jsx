@@ -1,3 +1,4 @@
+import StraightOutlinedIcon from '@mui/icons-material/StraightOutlined'
 import {
   formatDistanceMeters,
   NAVIGATION_TURN_ICONS,
@@ -12,8 +13,8 @@ export default function NavigationBanner({
 }) {
   if (!open) return null
 
-  const icon =
-    currentStep?.icon || NAVIGATION_TURN_ICONS[currentStep?.turnType] || '⬆'
+  const Icon =
+    currentStep?.icon || NAVIGATION_TURN_ICONS[currentStep?.turnType] || StraightOutlinedIcon
   const instruction = currentStep?.instruction || 'Follow the route'
   const direction = currentStep?.direction
     ? ` (${currentStep.direction})`
@@ -29,7 +30,7 @@ export default function NavigationBanner({
 
   return (
     <div className="siara-nav-banner" role="status" aria-live="polite">
-      <div className="siara-nav-banner__icon" aria-hidden="true">{icon}</div>
+      <div className="siara-nav-banner__icon" aria-hidden="true"><Icon fontSize="inherit" /></div>
       <div className="siara-nav-banner__body">
         <div className="siara-nav-banner__primary">
           {distanceLabel ? (

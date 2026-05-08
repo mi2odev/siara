@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded'
 import { MapContainer, Pane, TileLayer, useMap } from 'react-leaflet'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -138,7 +139,7 @@ function ZoneSelect({ id, value, onChange, options, placeholder, disabled }) {
         <span className={selected ? 'zone-select-value' : 'zone-select-placeholder'}>
           {selected ? selected.name : placeholder}
         </span>
-        <span className="zone-select-arrow" aria-hidden="true">▾</span>
+        <span className="zone-select-arrow" aria-hidden="true"><KeyboardArrowDownRoundedIcon fontSize="inherit" /></span>
       </button>
       {open && (
         <ul className="zone-select-list" role="listbox">

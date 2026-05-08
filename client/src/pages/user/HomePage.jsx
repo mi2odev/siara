@@ -1,8 +1,10 @@
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import { Divider } from '@mui/material'
 import '../../styles/HomePage.css'
 import logo from '../../assets/logos/siara-logo.png'
 import MapPreview from '../../components/map/MapPreview'
 import Footer from '../../components/layout/Footer'
-import { Divider } from '@mui/material'
 
 export default function HomePage(){
   return (
@@ -19,7 +21,7 @@ export default function HomePage(){
             <h1 className="hero-h1">Make roads safer <span>with AI</span></h1>
             <p className="hero-sub">Analyze, predict and prevent accidents before they happen.</p>
             <div className="hero-buttons">
-              <a href="/login" className="btn hero-btn-primary">Get Started →</a>
+              <a href="/login" className="btn hero-btn-primary">Get Started <ArrowForwardRoundedIcon fontSize="inherit" /></a>
               <a href="#services" className="btn hero-btn-secondary">Discover our services</a>
             </div>
           </div>
@@ -111,7 +113,7 @@ export default function HomePage(){
             <span className="service-tag">Analytics</span>
             <h3>Analytics Dashboard</h3>
             <p>Aggregated visualizations, time trends and dynamic filters to understand risk evolution.</p>
-            <a href="/map" className="btn small">Learn more →</a>
+            <a href="/map" className="btn small">Learn more <ArrowForwardRoundedIcon fontSize="inherit" /></a>
           </div>
           {/* ── Analytics Dashboard mock ── */}
           <div className="service-art" aria-hidden="true">
@@ -191,7 +193,7 @@ export default function HomePage(){
             <span className="service-tag">Mapping</span>
             <h3>Prediction Map</h3>
             <p>Interactive map highlighting risk areas at the local level with real-time incident overlays.</p>
-            <a href="/predictions" className="btn small">Learn more →</a>
+            <a href="/predictions" className="btn small">Learn more <ArrowForwardRoundedIcon fontSize="inherit" /></a>
           </div>
         </div>
 
@@ -200,7 +202,7 @@ export default function HomePage(){
             <span className="service-tag">Mobile</span>
             <h3>SIARA Mobile App</h3>
             <p>On-board alerts, risk notifications and preventive guidance at your fingertips.</p>
-            <a href="/map" className="btn small">Learn more →</a>
+            <a href="/map" className="btn small">Learn more <ArrowForwardRoundedIcon fontSize="inherit" /></a>
           </div>
           {/* ── Mobile App mock ── */}
           <div className="service-art" aria-hidden="true">
@@ -209,7 +211,7 @@ export default function HomePage(){
               <div className="mp-screen">
                 <div className="mp-header">
                   <span className="mp-logo">SIARA</span>
-                  <span className="mp-bell">🔔</span>
+                  <span className="mp-bell"><NotificationsOutlinedIcon fontSize="inherit" /></span>
                 </div>
                 <div className="mp-hero-card">
                   <span className="mp-risk-label">Current Risk</span>
@@ -247,7 +249,7 @@ export default function HomePage(){
         <div className="join-inner">
           <h2>Join the Initiative</h2>
           <p>Collaborate to make Algerian roads safer through data and artificial intelligence.</p>
-          <a href="/register" className="btn join-btn">Create your account →</a>
+          <a href="/register" className="btn join-btn">Create your account <ArrowForwardRoundedIcon fontSize="inherit" /></a>
         </div>
       </section>
 

@@ -1,4 +1,13 @@
 import { useMemo, useState } from 'react'
+import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
+import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined'
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
+import BalanceOutlinedIcon from '@mui/icons-material/BalanceOutlined'
+import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import '../../styles/RouteExplanationCard.css'
 
 function riskTier(level, percent) {
@@ -22,30 +31,34 @@ function impactClass(impact) {
   return 'impact-neutral'
 }
 
-function reasonIcon(type) {
-  switch (String(type || '').toLowerCase()) {
-    case 'heatmap':
-    case 'cluster':
-      return '🔥'
-    case 'report':
-    case 'reports':
-      return '📍'
-    case 'segment':
-    case 'road':
-      return '🛣️'
-    case 'weather':
-      return '🌧️'
-    case 'time':
-    case 'departure':
-      return '🕒'
-    case 'police':
-    case 'verified':
-      return '🛡️'
-    case 'tradeoff':
-      return '⚖️'
-    default:
-      return '•'
-  }
+function ReasonIcon({ type }) {
+  const key = String(type || '').toLowerCase()
+  const { Cmp, color } = (() => {
+    switch (key) {
+      case 'heatmap':
+      case 'cluster':
+        return { Cmp: LocalFireDepartmentOutlinedIcon, color: 'icon-fire' }
+      case 'report':
+      case 'reports':
+        return { Cmp: LocationOnOutlinedIcon, color: '' }
+      case 'segment':
+      case 'road':
+        return { Cmp: RouteOutlinedIcon, color: '' }
+      case 'weather':
+        return { Cmp: WaterDropOutlinedIcon, color: 'icon-info' }
+      case 'time':
+      case 'departure':
+        return { Cmp: AccessTimeOutlinedIcon, color: '' }
+      case 'police':
+      case 'verified':
+        return { Cmp: ShieldOutlinedIcon, color: 'icon-security' }
+      case 'tradeoff':
+        return { Cmp: BalanceOutlinedIcon, color: '' }
+      default:
+        return { Cmp: FiberManualRecordIcon, color: 'icon-muted' }
+    }
+  })()
+  return <Cmp fontSize="inherit" className={color} />
 }
 
 function formatRiskPercent(value) {
@@ -96,7 +109,9 @@ export default function RouteExplanationCard({
         aria-label="Calculating route explanation"
       >
         <div className="siara-route-explanation__header">
-          <span className="siara-route-explanation__icon" aria-hidden="true">🧭</span>
+          <span className="siara-route-explanation__icon" aria-hidden="true">
+            <ExploreOutlinedIcon fontSize="inherit" />
+          </span>
           <h4 className="siara-route-explanation__title">Why this route?</h4>
         </div>
         <div className="siara-route-explanation__skeleton" />
@@ -115,7 +130,9 @@ export default function RouteExplanationCard({
         aria-label="Route explanation error"
       >
         <div className="siara-route-explanation__header">
-          <span className="siara-route-explanation__icon" aria-hidden="true">🧭</span>
+          <span className="siara-route-explanation__icon" aria-hidden="true">
+            <ExploreOutlinedIcon fontSize="inherit" />
+          </span>
           <h4 className="siara-route-explanation__title">Why this route?</h4>
         </div>
         <p className="siara-route-explanation__error">{error}</p>
@@ -144,7 +161,9 @@ export default function RouteExplanationCard({
     return (
       <div className="siara-route-explanation" aria-label="No route explanation">
         <div className="siara-route-explanation__header">
-          <span className="siara-route-explanation__icon" aria-hidden="true">🧭</span>
+          <span className="siara-route-explanation__icon" aria-hidden="true">
+            <ExploreOutlinedIcon fontSize="inherit" />
+          </span>
           <h4 className="siara-route-explanation__title">Why this route?</h4>
         </div>
         <p className="siara-route-explanation__hint">
@@ -161,7 +180,9 @@ export default function RouteExplanationCard({
       aria-label="Route recommendation explanation"
     >
       <div className="siara-route-explanation__header">
-        <span className="siara-route-explanation__icon" aria-hidden="true">🧭</span>
+        <span className="siara-route-explanation__icon" aria-hidden="true">
+          <ExploreOutlinedIcon fontSize="inherit" />
+        </span>
         <h4 className="siara-route-explanation__title">Why this route?</h4>
         <span className={`siara-route-explanation__badge risk-${tier}`}>
           {recommendedLabel}
@@ -224,7 +245,7 @@ export default function RouteExplanationCard({
                   className="siara-route-explanation__reason-icon"
                   aria-hidden="true"
                 >
-                  {reasonIcon(reason?.type)}
+                  <ReasonIcon type={reason?.type} />
                 </span>
                 <div className="siara-route-explanation__reason-body">
                   <span className="siara-route-explanation__reason-label">

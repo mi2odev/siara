@@ -18,6 +18,36 @@
  */
 import React, { useState, useContext, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import GpsFixedOutlinedIcon from '@mui/icons-material/GpsFixedOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
+import PhotoCameraOutlinedIcon from '@mui/icons-material/PhotoCameraOutlined'
+import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded'
+import CarCrashOutlinedIcon from '@mui/icons-material/CarCrashOutlined'
+import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
+import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined'
+import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined'
+import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined'
+import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
+import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
+import EditRoundedIcon from '@mui/icons-material/EditRounded'
+import TipsAndUpdatesOutlinedIcon from '@mui/icons-material/TipsAndUpdatesOutlined'
+import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined'
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import EnhancedEncryptionOutlinedIcon from '@mui/icons-material/EnhancedEncryptionOutlined'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
+import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
+import BalanceOutlinedIcon from '@mui/icons-material/BalanceOutlined'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
@@ -116,11 +146,11 @@ export default function ReportIncidentPage() {
 
   /* ═══ WIZARD STEP DEFINITIONS ═══ */
   const steps = [
-    { id: 1, label: 'Incident Type', icon: '🎯' },
-    { id: 2, label: 'Location', icon: '📍' },
-    { id: 3, label: 'Details', icon: '📝' },
-    { id: 4, label: 'Media', icon: '📷' },
-    { id: 5, label: 'Verification', icon: '✅' }
+    { id: 1, label: 'Incident Type', icon: <GpsFixedOutlinedIcon fontSize="inherit" /> },
+    { id: 2, label: 'Location', icon: <LocationOnOutlinedIcon fontSize="inherit" /> },
+    { id: 3, label: 'Details', icon: <EditNoteOutlinedIcon fontSize="inherit" /> },
+    { id: 4, label: 'Media', icon: <PhotoCameraOutlinedIcon fontSize="inherit" /> },
+    { id: 5, label: 'Verification', icon: <CheckCircleOutlineRoundedIcon fontSize="inherit" /> }
   ]
 
   /* Reset center panel scroll to top on every step change */
@@ -131,12 +161,12 @@ export default function ReportIncidentPage() {
 
   /* ═══ STATIC DATA — incident types & severity levels ═══ */
   const incidentTypes = [
-    { id: 'accident', icon: '🚗', label: 'Accident', desc: 'Collision, road accident' },
-    { id: 'traffic', icon: '🚦', label: 'Traffic', desc: 'Traffic jam, slowdown' },
-    { id: 'danger', icon: '🔥', label: 'Danger', desc: 'Obstacle, dangerous situation' },
-    { id: 'weather', icon: '🌧️', label: 'Weather', desc: 'Dangerous weather conditions' },
-    { id: 'roadworks', icon: '🚧', label: 'Roadworks', desc: 'Construction, lane closure' },
-    { id: 'other', icon: '❓', label: 'Other', desc: 'Other type of incident' }
+    { id: 'accident', icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" />, label: 'Accident', desc: 'Collision, road accident' },
+    { id: 'traffic', icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'Traffic', desc: 'Traffic jam, slowdown' },
+    { id: 'danger', icon: <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" />, label: 'Danger', desc: 'Obstacle, dangerous situation' },
+    { id: 'weather', icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" />, label: 'Weather', desc: 'Dangerous weather conditions' },
+    { id: 'roadworks', icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'Roadworks', desc: 'Construction, lane closure' },
+    { id: 'other', icon: <HelpOutlineOutlinedIcon fontSize="inherit" className="icon-muted" />, label: 'Other', desc: 'Other type of incident' }
   ]
 
   const severityLevels = [
@@ -632,7 +662,7 @@ export default function ReportIncidentPage() {
             </div>
             <div className="dash-header-right">
               <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-                🔔<span className="notification-badge"></span>
+                <NotificationsOutlinedIcon fontSize="small" /><span className="notification-badge"></span>
               </button>
               <div className="dash-avatar-wrapper">
                 <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
@@ -721,7 +751,7 @@ export default function ReportIncidentPage() {
                 Report another incident
               </button>
               <button className="action-btn back" onClick={() => navigate('/news')}>
-                ← Back to feed
+                <ArrowBackRoundedIcon fontSize="inherit" /> Back to feed
               </button>
             </div>
 
@@ -793,7 +823,7 @@ export default function ReportIncidentPage() {
         {/* ═══ LEFT COLUMN — VERTICAL STEPPER ═══ */}
         <aside className="report-left">
           <div className="stepper-header">
-            <span className="stepper-icon">📢</span>
+            <span className="stepper-icon"><CampaignOutlinedIcon fontSize="inherit" /></span>
             <h2>Report an incident</h2>
           </div>
           <div className="stepper">
@@ -804,7 +834,7 @@ export default function ReportIncidentPage() {
                 onClick={() => currentStep > step.id && setCurrentStep(step.id)}
               >
                 <div className="step-indicator">
-                  {currentStep > step.id ? '✓' : step.id}
+                  {currentStep > step.id ? <CheckRoundedIcon fontSize="inherit" /> : step.id}
                 </div>
                 <div className="step-content">
                   <span className="step-label">{step.label}</span>
@@ -815,7 +845,7 @@ export default function ReportIncidentPage() {
           </div>
 
           <div className="trust-notice">
-            <span className="trust-icon">🛡️</span>
+            <span className="trust-icon"><ShieldOutlinedIcon fontSize="inherit" className="icon-security" /></span>
             <div className="trust-text">
               <strong>Secure reporting</strong>
               <p>Your data is protected. False reports may be removed.</p>
@@ -825,7 +855,7 @@ export default function ReportIncidentPage() {
           <LeftQuickInfoLinks />
 
           <button className="cancel-btn" onClick={() => navigate('/report')}>
-            ✕ Cancel
+            <CloseRoundedIcon fontSize="inherit" className="icon-danger" /> Cancel
           </button>
         </aside>
 
@@ -845,7 +875,7 @@ export default function ReportIncidentPage() {
                     className={`type-card ${reportData.type === type.id ? 'selected' : ''}`}
                     onClick={() => setReportData(prev => ({ ...prev, type: type.id }))}
                   >
-                    <div className="type-check">{reportData.type === type.id ? '✓' : ''}</div>
+                    <div className="type-check">{reportData.type === type.id ? <CheckRoundedIcon fontSize="inherit" /> : ''}</div>
                     <span className="type-icon">{type.icon}</span>
                     <span className="type-label">{type.label}</span>
                     <span className="type-desc">{type.desc}</span>
@@ -853,7 +883,7 @@ export default function ReportIncidentPage() {
                 ))}
               </div>
               {reportData.type === '' && (
-                <p className="step-hint">⚠️ Select an incident type to continue.</p>
+                <p className="step-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" /> Select an incident type to continue.</p>
               )}
             </div>
           )}
@@ -871,12 +901,12 @@ export default function ReportIncidentPage() {
                   onClick={getCurrentLocation}
                   disabled={isResolvingCurrentLocation}
                 >
-                  <span className="loc-icon">📍</span>
+                  <span className="loc-icon"><LocationOnOutlinedIcon fontSize="inherit" /></span>
                   <div className="loc-info">
                     <span className="loc-label">{isResolvingCurrentLocation ? 'Detecting your location...' : 'Use my current location'}</span>
                     <span className="loc-desc">{isResolvingCurrentLocation ? 'Please wait a moment' : 'High-precision GPS'}</span>
                   </div>
-                  {reportData.locationType === 'gps' && <span className="loc-check">✓</span>}
+                  {reportData.locationType === 'gps' && <span className="loc-check"><CheckRoundedIcon fontSize="inherit" /></span>}
                 </button>
 
                 {locationActionError && (
@@ -886,7 +916,7 @@ export default function ReportIncidentPage() {
                 <div className="location-search">
                   <label>Or search for an address</label>
                   <div className="search-input-wrap">
-                    <span className="search-icon">🔍</span>
+                    <span className="search-icon"><SearchOutlinedIcon fontSize="inherit" /></span>
                     <input
                       type="text"
                       placeholder="E.g.: Rue Didouche Mourad, Algiers..."
@@ -929,7 +959,7 @@ export default function ReportIncidentPage() {
 
                 {reportData.locationCoords && (
                   <div className="location-confirm">
-                    <div className="confirm-icon">✅</div>
+                    <div className="confirm-icon"><CheckCircleOutlineRoundedIcon fontSize="inherit" className="icon-success" /></div>
                     <div className="confirm-info">
                       <span className="confirm-address">{reportData.locationAddress}</span>
                       <span className="confirm-accuracy">
@@ -948,7 +978,7 @@ export default function ReportIncidentPage() {
                       )}
                     </div>
                     <button className="confirm-edit" onClick={() => setReportData(prev => ({ ...prev, locationCoords: null, locationAddress: '', locationType: '', locationDetails: null }))}>
-                      ✏️
+                      <EditRoundedIcon fontSize="inherit" />
                     </button>
                   </div>
                 )}
@@ -996,7 +1026,7 @@ export default function ReportIncidentPage() {
                     <span className="char-count">{reportData.description.length}/500</span>
                   </div>
                   <div className="writing-tips">
-                    <span className="tips-title">💡 Tips</span>
+                    <span className="tips-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TipsAndUpdatesOutlinedIcon fontSize="inherit" className="icon-info" /> Tips</span>
                     <ul>
                       <li>Describe the facts, not your emotions</li>
                       <li>Mention the number of vehicles/people if relevant</li>
@@ -1061,14 +1091,14 @@ export default function ReportIncidentPage() {
                       className={`time-btn ${reportData.timeOption === 'now' ? 'selected' : ''}`}
                       onClick={() => setReportData(prev => ({ ...prev, timeOption: 'now' }))}
                     >
-                      <span className="time-icon">⏱️</span>
+                      <span className="time-icon"><TimerOutlinedIcon fontSize="inherit" /></span>
                       <span>Now</span>
                     </button>
                     <button
                       className={`time-btn ${reportData.timeOption === 'earlier' ? 'selected' : ''}`}
                       onClick={() => setReportData(prev => ({ ...prev, timeOption: 'earlier' }))}
                     >
-                      <span className="time-icon">🕐</span>
+                      <span className="time-icon"><AccessTimeRoundedIcon fontSize="inherit" /></span>
                       <span>Earlier</span>
                     </button>
                   </div>
@@ -1110,7 +1140,7 @@ export default function ReportIncidentPage() {
                     onDragOver={handleUploadZoneDragOver}
                     onDragLeave={handleUploadZoneDragLeave}
                   >
-                    <span className="upload-icon">📷</span>
+                    <span className="upload-icon"><PhotoCameraOutlinedIcon fontSize="inherit" /></span>
                     <span className="upload-title">Add photos</span>
                     <span className="upload-desc">
                       {isUploadDragActive
@@ -1130,14 +1160,14 @@ export default function ReportIncidentPage() {
                     {reportData.media.map((media, index) => (
                       <div key={index} className="media-preview-item">
                         <img src={media.preview} alt={`Preview ${index + 1}`} />
-                        <button className="remove-media" onClick={() => removeMedia(index)}>✕</button>
+                        <button className="remove-media" onClick={() => removeMedia(index)} aria-label="Remove"><CloseRoundedIcon fontSize="inherit" /></button>
                       </div>
                     ))}
                   </div>
                 )}
 
                   <div className="media-notice">
-                    <span className="notice-icon">🔒</span>
+                    <span className="notice-icon"><LockOutlinedIcon fontSize="inherit" className="icon-security" /></span>
                     <div className="notice-text">
                       <strong>Privacy</strong>
                       <p>Media is moderated before publication. Visible personal data (faces, license plates) may be blurred.</p>
@@ -1146,7 +1176,7 @@ export default function ReportIncidentPage() {
 
                 <div className="skip-media">
                   <p>No media to add?</p>
-                  <button className="skip-btn" onClick={nextStep}>Skip this step →</button>
+                  <button className="skip-btn" onClick={nextStep}>Skip this step <ArrowForwardRoundedIcon fontSize="inherit" /></button>
                 </div>
               </div>
             </div>
@@ -1170,7 +1200,7 @@ export default function ReportIncidentPage() {
                   </div>
                   <div className="review-row">
                     <span className="review-label">Location</span>
-                    <span className="review-value">📍 {reportData.locationAddress}</span>
+                    <span className="review-value" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LocationOnOutlinedIcon fontSize="inherit" /> {reportData.locationAddress}</span>
                     <button className="review-edit" onClick={() => setCurrentStep(2)}>Edit</button>
                   </div>
                   <div className="review-row">
@@ -1194,14 +1224,14 @@ export default function ReportIncidentPage() {
                   <div className="review-row">
                     <span className="review-label">Time</span>
                     <span className="review-value">
-                      {reportData.timeOption === 'now' ? '⏱️ Now' : `🕐 ${reportData.customTime}`}
+                      {reportData.timeOption === 'now' ? <><TimerOutlinedIcon fontSize="inherit" /> Now</> : <><AccessTimeRoundedIcon fontSize="inherit" /> {reportData.customTime}</>}
                     </span>
                   </div>
                   <div className="review-row">
                     <span className="review-label">Media</span>
                     <span className="review-value">
                       {reportData.media.length > 0 
-                        ? `📷 ${reportData.media.length} image(s)` 
+                        ? <><PhotoCameraOutlinedIcon fontSize="inherit" /> {reportData.media.length} image(s)</>
                         : 'No media'}
                     </span>
                     <button className="review-edit" onClick={() => setCurrentStep(4)}>Edit</button>
@@ -1216,13 +1246,13 @@ export default function ReportIncidentPage() {
                 </div>
 
                 <div className="review-notice">
-                  <span className="notice-icon">ℹ️</span>
+                  <span className="notice-icon"><InfoOutlinedIcon fontSize="inherit" className="icon-info" /></span>
                   <p>Your report will be verified by our automated system and then made visible to other users. False reports may result in account suspension.</p>
                 </div>
 
                 {!user && (
                   <div className="review-notice">
-                    <span className="notice-icon">🔐</span>
+                    <span className="notice-icon"><EnhancedEncryptionOutlinedIcon fontSize="inherit" className="icon-security" /></span>
                     <p>You need to be logged in to submit this report.</p>
                   </div>
                 )}
@@ -1233,20 +1263,20 @@ export default function ReportIncidentPage() {
           {/* ═══ BOTTOM NAVIGATION (Back / Continue / Submit) ═══ */}
           {submitError && (
             <div className="review-notice">
-              <span className="notice-icon">⚠️</span>
+              <span className="notice-icon"><WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" /></span>
               <p>{submitError}</p>
             </div>
           )}
           <div className="step-nav">
             {currentStep > 1 && (
               <button className="nav-btn secondary" onClick={prevStep}>
-                ← Back
+                <ArrowBackRoundedIcon fontSize="inherit" /> Back
               </button>
             )}
             <div className="nav-spacer"></div>
             {currentStep < 5 ? (
               <button className="nav-btn primary" onClick={nextStep} disabled={!canProceed()}>
-                Continue →
+                Continue <ArrowForwardRoundedIcon fontSize="inherit" />
               </button>
             ) : (
               <button className="nav-btn submit" onClick={submitReport} disabled={isSubmitting || !user}>
@@ -1263,7 +1293,7 @@ export default function ReportIncidentPage() {
         {/* ═══ RIGHT COLUMN — LIVE PREVIEW SIDEBAR ═══ */}
         <aside className="report-right">
           <div className="preview-header">
-            <span className="preview-icon">👁️</span>
+            <span className="preview-icon"><VisibilityOutlinedIcon fontSize="inherit" /></span>
             <h3>Report preview</h3>
           </div>
 
@@ -1273,7 +1303,7 @@ export default function ReportIncidentPage() {
             <div className="incident-preview-card">
               <div className="ipc-header">
                 <span className="ipc-icon" style={{ background: `${severityLevels.find(s => s.id === reportData.severity)?.color}20` }}>
-                  {getTypeInfo()?.icon || '📢'}
+                  {getTypeInfo()?.icon || <CampaignOutlinedIcon fontSize="inherit" />}
                 </span>
                 <div className="ipc-info">
                   <span className="ipc-title">{getPreviewTitle()}</span>
@@ -1295,7 +1325,7 @@ export default function ReportIncidentPage() {
                   {severityLevels.find(s => s.id === reportData.severity)?.label}
                 </span>
                 <span className="ipc-time">Just now</span>
-                <span className="ipc-status">⏳ Pending</span>
+                <span className="ipc-status" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><HourglassEmptyOutlinedIcon fontSize="inherit" /> Pending</span>
               </div>
             </div>
           </div>
@@ -1340,7 +1370,7 @@ export default function ReportIncidentPage() {
             <span className="preview-label">Verification status</span>
             <div className="verification-preview">
               <div className="verif-step">
-                <span className="verif-icon pending">⏳</span>
+                <span className="verif-icon pending"><HourglassEmptyOutlinedIcon fontSize="inherit" /></span>
                 <div className="verif-info">
                   <span className="verif-title">Pending</span>
                   <span className="verif-desc">Will be verified after submission</span>
@@ -1367,10 +1397,10 @@ export default function ReportIncidentPage() {
           <div className="preview-section trust-preview">
             <span className="preview-label">Trust & Safety</span>
             <ul className="trust-list">
-              <li>✅ Verified reports</li>
-              <li>🛡️ Protected data</li>
-              <li>👁️ Moderated media</li>
-              <li>⚖️ False reports removed</li>
+              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckCircleOutlineRoundedIcon fontSize="inherit" className="icon-success" /> Verified reports</li>
+              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ShieldOutlinedIcon fontSize="inherit" className="icon-security" /> Protected data</li>
+              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><VisibilityOutlinedIcon fontSize="inherit" /> Moderated media</li>
+              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><BalanceOutlinedIcon fontSize="inherit" /> False reports removed</li>
             </ul>
           </div>
         </aside>

@@ -1,6 +1,32 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Circle, GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
+import CarCrashOutlinedIcon from '@mui/icons-material/CarCrashOutlined'
+import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
+import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined'
+import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined'
+import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined'
+import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
+import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import MailOutlineOutlinedIcon from '@mui/icons-material/MailOutlineOutlined'
+import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import RepeatOutlinedIcon from '@mui/icons-material/RepeatOutlined'
+import LocationCityOutlinedIcon from '@mui/icons-material/LocationCityOutlined'
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
+import EditRoundedIcon from '@mui/icons-material/EditRounded'
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded'
+import PhoneIphoneOutlinedIcon from '@mui/icons-material/PhoneIphoneOutlined'
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
@@ -16,12 +42,12 @@ const ALGIERS = { lat: 36.753, lng: 3.0588 }
 const STEPS = ['Alert Type', 'Zone', 'Conditions', 'Frequency', 'Confirmation']
 
 const ALERT_TYPES = [
-  { id: 'accident', icon: '🚗', label: 'Accident', desc: 'Collision, road accident' },
-  { id: 'traffic', icon: '🚦', label: 'Traffic', desc: 'Traffic jam, slowdown' },
-  { id: 'danger', icon: '🔥', label: 'Danger', desc: 'Obstacle, dangerous situation' },
-  { id: 'weather', icon: '🌧️', label: 'Weather', desc: 'Dangerous weather conditions' },
-  { id: 'roadworks', icon: '🚧', label: 'Roadworks', desc: 'Construction, lane closure' },
-  { id: 'other', icon: '❓', label: 'Other', desc: 'Other type of incident' },
+  { id: 'accident', icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" />, label: 'Accident', desc: 'Collision, road accident' },
+  { id: 'traffic', icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'Traffic', desc: 'Traffic jam, slowdown' },
+  { id: 'danger', icon: <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" />, label: 'Danger', desc: 'Obstacle, dangerous situation' },
+  { id: 'weather', icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" />, label: 'Weather', desc: 'Dangerous weather conditions' },
+  { id: 'roadworks', icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'Roadworks', desc: 'Construction, lane closure' },
+  { id: 'other', icon: <HelpOutlineOutlinedIcon fontSize="inherit" className="icon-muted" />, label: 'Other', desc: 'Other type of incident' },
 ]
 
 const SEVERITY_OPTIONS = [
@@ -55,19 +81,19 @@ const TIME_RANGE_OPTIONS = [
 const FREQUENCY_OPTIONS = [
   {
     id: 'immediate',
-    icon: '⚡',
+    icon: <BoltOutlinedIcon fontSize="inherit" />,
     label: 'Immediate',
     desc: 'Receive a notification as soon as a matching incident is detected.',
   },
   {
     id: 'digest',
-    icon: '🗓️',
+    icon: <CalendarMonthOutlinedIcon fontSize="inherit" />,
     label: 'Digest',
     desc: 'Bundle incidents in a summary so you receive fewer notifications.',
   },
   {
     id: 'first',
-    icon: '🔕',
+    icon: <NotificationsOffOutlinedIcon fontSize="inherit" />,
     label: 'First only',
     desc: 'Notify on the first matching incident, then silence repeated updates.',
   },
@@ -78,19 +104,19 @@ const DIGEST_INTERVALS = ['hourly', 'daily', 'weekly']
 const DELIVERY_OPTIONS = [
   {
     key: 'deliveryApp',
-    icon: '🔔',
+    icon: <NotificationsOutlinedIcon fontSize="inherit" />,
     label: 'In-app notifications',
     desc: 'Appear inside your SIARA notification center.',
   },
   {
     key: 'deliveryEmail',
-    icon: '✉️',
+    icon: <MailOutlineOutlinedIcon fontSize="inherit" />,
     label: 'Email',
     desc: 'Send matching alerts to your account email.',
   },
   {
     key: 'deliverySms',
-    icon: '💬',
+    icon: <ChatBubbleOutlineOutlinedIcon fontSize="inherit" />,
     label: 'SMS',
     desc: 'Text message delivery when your account supports it.',
   },
@@ -135,7 +161,7 @@ function renderHeaderIcon(type) {
 }
 
 function renderTypeIcon(type) {
-  return ALERT_TYPES.find((item) => item.id === type)?.icon || '❓'
+  return ALERT_TYPES.find((item) => item.id === type)?.icon || <HelpOutlineOutlinedIcon fontSize="inherit" />
 }
 
 function getInitialState(editAlert) {
@@ -585,7 +611,7 @@ export default function CreateAlertPage() {
       <div className="create-grid">
         <aside className="create-left">
           <div className="stepper-header">
-            <span className="stepper-icon">🔔</span>
+            <span className="stepper-icon"><NotificationsOutlinedIcon fontSize="inherit" /></span>
             <h2>{isEditMode ? 'Edit alert' : 'Create an alert'}</h2>
           </div>
 
@@ -597,7 +623,7 @@ export default function CreateAlertPage() {
                 onClick={() => goToStep(index + 1)}
                 style={{ cursor: currentStep > index + 1 ? 'pointer' : 'default' }}
               >
-                <div className="step-indicator">{currentStep > index + 1 ? '✓' : index + 1}</div>
+                <div className="step-indicator">{currentStep > index + 1 ? <CheckRoundedIcon fontSize="inherit" /> : index + 1}</div>
                 <div className="step-content">
                   <span className="step-label">{label}</span>
                 </div>
@@ -607,7 +633,7 @@ export default function CreateAlertPage() {
           </div>
 
           <div className="trust-notice">
-            <span className="trust-icon">🛡️</span>
+            <span className="trust-icon"><ShieldOutlinedIcon fontSize="inherit" className="icon-security" /></span>
             <div className="trust-text">
               <strong>Secure alerts</strong>
               <p>Only incidents matching your selected filters and area trigger notifications.</p>
@@ -617,7 +643,7 @@ export default function CreateAlertPage() {
           <LeftQuickInfoLinks />
 
           <button className="cancel-btn" onClick={() => navigate('/alerts')}>
-            ✕ Cancel
+            <CloseRoundedIcon fontSize="inherit" className="icon-danger" /> Cancel
           </button>
         </aside>
 
@@ -642,7 +668,7 @@ export default function CreateAlertPage() {
                     className={`type-card ${alertData.types[0] === type.id ? 'selected' : ''}`}
                     onClick={() => setAlertData((prev) => ({ ...prev, types: [type.id] }))}
                   >
-                    <div className="type-check">{alertData.types[0] === type.id ? '✓' : ''}</div>
+                    <div className="type-check">{alertData.types[0] === type.id ? <CheckRoundedIcon fontSize="inherit" /> : ''}</div>
                     <span className="type-icon">{renderTypeIcon(type.id)}</span>
                     <span className="type-label">{type.label}</span>
                     <span className="type-desc">{type.desc}</span>
@@ -651,7 +677,7 @@ export default function CreateAlertPage() {
               </div>
 
               {alertData.types.length === 0 && (
-                <p className="step-hint">⚠️ Select an alert type to continue.</p>
+                <p className="step-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" /> Select an alert type to continue.</p>
               )}
             </div>
           )}
@@ -668,7 +694,7 @@ export default function CreateAlertPage() {
                   className={`zone-card ${alertData.zoneType === 'wilaya' ? 'selected' : ''}`}
                   onClick={() => setAlertData((prev) => ({ ...prev, zoneType: 'wilaya', zoneCommuneId: '' }))}
                 >
-                  <span className="zone-icon">🏙️</span>
+                  <span className="zone-icon"><LocationCityOutlinedIcon fontSize="inherit" /></span>
                   <div className="zone-info">
                     <span className="zone-label">Wilaya</span>
                   </div>
@@ -678,7 +704,7 @@ export default function CreateAlertPage() {
                   className={`zone-card ${alertData.zoneType === 'commune' ? 'selected' : ''}`}
                   onClick={() => setAlertData((prev) => ({ ...prev, zoneType: 'commune' }))}
                 >
-                  <span className="zone-icon">📌</span>
+                  <span className="zone-icon"><PushPinOutlinedIcon fontSize="inherit" /></span>
                   <div className="zone-info">
                     <span className="zone-label">Commune</span>
                   </div>
@@ -688,7 +714,7 @@ export default function CreateAlertPage() {
                   className={`zone-card ${alertData.zoneType === 'radius' ? 'selected' : ''}`}
                   onClick={() => setAlertData((prev) => ({ ...prev, zoneType: 'radius' }))}
                 >
-                  <span className="zone-icon">📍</span>
+                  <span className="zone-icon"><LocationOnOutlinedIcon fontSize="inherit" /></span>
                   <div className="zone-info">
                     <span className="zone-label">Radius</span>
                   </div>
@@ -828,13 +854,13 @@ export default function CreateAlertPage() {
                       <span className="sev-label">{severity.label}</span>
                       <span className="sev-desc">{severity.desc}</span>
                     </div>
-                    <div className="sev-check">{alertData.severities.includes(severity.id) ? '✓' : ''}</div>
+                    <div className="sev-check">{alertData.severities.includes(severity.id) ? <CheckRoundedIcon fontSize="inherit" /> : ''}</div>
                   </div>
                 ))}
               </div>
 
               {alertData.severities.length === 0 && (
-                <p className="step-hint">⚠️ Select at least one severity level.</p>
+                <p className="step-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><WarningAmberOutlinedIcon fontSize="inherit" /> Select at least one severity level.</p>
               )}
 
               <div className="digest-config" style={{ marginTop: 20 }}>
@@ -897,7 +923,7 @@ export default function CreateAlertPage() {
                       <span className="frequency-card-desc">{option.desc}</span>
                     </span>
                     <span className="frequency-card-check">
-                      {alertData.frequency === option.id ? '✓' : ''}
+                      {alertData.frequency === option.id ? <CheckRoundedIcon fontSize="inherit" /> : ''}
                     </span>
                   </button>
                 ))}
@@ -914,7 +940,7 @@ export default function CreateAlertPage() {
                   <label>Digest interval</label>
 
                   <div className="frequency-autodelivery-note">
-                    <span className="frequency-autodelivery-icon">🔔</span>
+                    <span className="frequency-autodelivery-icon"><NotificationsOutlinedIcon fontSize="inherit" /></span>
                     <p>Delivery channels are managed automatically by your account notification settings.</p>
                   </div>
 
@@ -955,7 +981,7 @@ export default function CreateAlertPage() {
                       <span className="delivery-label">{label}</span>
                       <span className="delivery-desc">{desc}</span>
                     </div>
-                    <span className="delivery-check" aria-hidden="true">{alertData[key] ? '✓' : ''}</span>
+                    <span className="delivery-check" aria-hidden="true">{alertData[key] ? <CheckRoundedIcon fontSize="inherit" /> : ''}</span>
                   </label>
                 ))}
               </div>
@@ -972,7 +998,7 @@ export default function CreateAlertPage() {
               {/* Editable alert name */}
               <div className="conf-name-card">
                 <span className="conf-name-icon" aria-hidden="true">
-                  {ALERT_TYPES.find((t) => t.id === alertData.types[0])?.icon || '🔔'}
+                  {ALERT_TYPES.find((t) => t.id === alertData.types[0])?.icon || <NotificationsOutlinedIcon fontSize="inherit" />}
                 </span>
                 <input
                   className="conf-name-input"
@@ -983,13 +1009,13 @@ export default function CreateAlertPage() {
                   }}
                   placeholder="Alert name"
                 />
-                <span className="conf-name-edit-hint" aria-hidden="true">✏</span>
+                <span className="conf-name-edit-hint" aria-hidden="true"><EditRoundedIcon fontSize="inherit" /></span>
               </div>
 
               {/* Summary rows */}
               <div className="conf-summary">
                 <div className="conf-row">
-                  <span className="conf-row-icon" aria-hidden="true">📋</span>
+                  <span className="conf-row-icon" aria-hidden="true"><AssignmentOutlinedIcon fontSize="inherit" /></span>
                   <span className="conf-row-label">Types</span>
                   <span className="conf-row-value">
                     {alertData.types
@@ -999,13 +1025,13 @@ export default function CreateAlertPage() {
                 </div>
 
                 <div className="conf-row">
-                  <span className="conf-row-icon" aria-hidden="true">📍</span>
+                  <span className="conf-row-icon" aria-hidden="true"><LocationOnOutlinedIcon fontSize="inherit" /></span>
                   <span className="conf-row-label">Zone</span>
                   <span className="conf-row-value">{zoneLabel}</span>
                 </div>
 
                 <div className="conf-row">
-                  <span className="conf-row-icon" aria-hidden="true">⚠️</span>
+                  <span className="conf-row-icon" aria-hidden="true"><WarningAmberOutlinedIcon fontSize="inherit" /></span>
                   <span className="conf-row-label">Severity</span>
                   <span className="conf-row-value conf-row-badges">
                     {alertData.severities.map((sev) => (
@@ -1017,7 +1043,7 @@ export default function CreateAlertPage() {
                 </div>
 
                 <div className="conf-row">
-                  <span className="conf-row-icon" aria-hidden="true">🔁</span>
+                  <span className="conf-row-icon" aria-hidden="true"><RepeatOutlinedIcon fontSize="inherit" /></span>
                   <span className="conf-row-label">Frequency</span>
                   <span className="conf-row-value">
                     {FREQUENCY_OPTIONS.find((f) => f.id === alertData.frequency)?.label || alertData.frequency}
@@ -1025,13 +1051,13 @@ export default function CreateAlertPage() {
                 </div>
 
                 <div className="conf-row">
-                  <span className="conf-row-icon" aria-hidden="true">🕐</span>
+                  <span className="conf-row-icon" aria-hidden="true"><AccessTimeRoundedIcon fontSize="inherit" /></span>
                   <span className="conf-row-label">Time range</span>
                   <span className="conf-row-value">{formatTimeRangeLabel(alertData)}</span>
                 </div>
 
                 <div className="conf-row">
-                  <span className="conf-row-icon" aria-hidden="true">📲</span>
+                  <span className="conf-row-icon" aria-hidden="true"><PhoneIphoneOutlinedIcon fontSize="inherit" /></span>
                   <span className="conf-row-label">Delivery</span>
                   <span className="conf-row-value">{formatDeliveryLabelList(alertData)}</span>
                 </div>
@@ -1039,7 +1065,7 @@ export default function CreateAlertPage() {
 
               {/* Ready banner */}
               <div className="conf-ready-banner">
-                <span className="conf-ready-icon" aria-hidden="true">✓</span>
+                <span className="conf-ready-icon" aria-hidden="true"><CheckRoundedIcon fontSize="inherit" className="icon-success" /></span>
                 <p>Your alert is ready. Click <strong>{isEditMode ? 'Save Changes' : 'Create Alert'}</strong> to activate it.</p>
               </div>
             </div>
@@ -1048,7 +1074,7 @@ export default function CreateAlertPage() {
           <div className="step-nav">
             {currentStep > 1 && (
               <button className="nav-btn back" onClick={() => setCurrentStep((prev) => prev - 1)}>
-                ← Back
+                <ArrowBackRoundedIcon fontSize="inherit" /> Back
               </button>
             )}
 
@@ -1059,7 +1085,7 @@ export default function CreateAlertPage() {
                 className={`nav-btn next ${shakeNav ? 'shake' : ''}`}
                 onClick={() => (isStepValid(currentStep) ? setCurrentStep((prev) => prev + 1) : bounce())}
               >
-                Continue →
+                Continue <ArrowForwardRoundedIcon fontSize="inherit" />
               </button>
             ) : (
               <button

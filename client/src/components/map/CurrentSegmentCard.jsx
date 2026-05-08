@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded'
 
 // Card surfaced automatically while the user is in MapLibre navigation mode.
 // It reads from the *selected* route's current segment (computed locally via
@@ -160,7 +162,9 @@ export default function CurrentSegmentCard({
         aria-live="polite"
       >
         <div className="siara-current-segment__header" aria-hidden="true">
-          <span className="siara-current-segment__icon">🛣️</span>
+          <span className="siara-current-segment__icon">
+            <RouteOutlinedIcon fontSize="inherit" />
+          </span>
           <h4 className="siara-current-segment__title">Current segment</h4>
         </div>
         <p className="siara-current-segment__hint">
@@ -186,7 +190,9 @@ export default function CurrentSegmentCard({
         onClick={() => setExpanded((prev) => !prev)}
         aria-expanded={expanded}
       >
-        <span className="siara-current-segment__icon" aria-hidden="true">🛣️</span>
+        <span className="siara-current-segment__icon" aria-hidden="true">
+          <RouteOutlinedIcon fontSize="inherit" />
+        </span>
         <h4 className="siara-current-segment__title">Current segment</h4>
         <span className={`siara-current-segment__badge ${data.tierClass}`}>
           {data.tierLabel}
@@ -197,7 +203,7 @@ export default function CurrentSegmentCard({
           }`}
           aria-hidden="true"
         >
-          ▾
+          <KeyboardArrowDownRoundedIcon fontSize="inherit" />
         </span>
       </button>
 

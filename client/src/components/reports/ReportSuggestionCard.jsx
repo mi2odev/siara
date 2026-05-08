@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import TipsAndUpdatesOutlinedIcon from '@mui/icons-material/TipsAndUpdatesOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import RepeatOutlinedIcon from '@mui/icons-material/RepeatOutlined'
 import { getReportSuggestions } from '../../services/reportsService'
 import '../../styles/ReportSuggestionCard.css'
 
@@ -83,7 +86,9 @@ export default function ReportSuggestionCard({
   return (
     <div className="siara-suggest" role="region" aria-label="SIARA suggestions">
       <div className="siara-suggest__header">
-        <span className="siara-suggest__icon" aria-hidden="true">💡</span>
+        <span className="siara-suggest__icon" aria-hidden="true">
+          <TipsAndUpdatesOutlinedIcon fontSize="inherit" className="icon-info" />
+        </span>
         <h4 className="siara-suggest__title">SIARA suggestions</h4>
         {loading ? <span className="siara-suggest__hint">Updating…</span> : null}
       </div>
@@ -119,7 +124,7 @@ export default function ReportSuggestionCard({
         <ul className="siara-suggest__warnings">
           {nonDuplicateWarnings.map((w, idx) => (
             <li key={`warn-${idx}`} className="siara-suggest__warning">
-              <span aria-hidden="true">⚠️</span>
+              <WarningAmberOutlinedIcon fontSize="inherit" aria-hidden="true" className="icon-warning" />
               <span>{w.message}</span>
             </li>
           ))}
@@ -128,7 +133,7 @@ export default function ReportSuggestionCard({
 
       {duplicateWarning ? (
         <p className="siara-suggest__warning is-duplicate">
-          <span aria-hidden="true">🔁</span>
+          <RepeatOutlinedIcon fontSize="inherit" aria-hidden="true" />
           <span>{duplicateWarning.message}</span>
         </p>
       ) : null}
