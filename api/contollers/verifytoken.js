@@ -239,8 +239,8 @@ function verifyTokenAndRoles(roleNames = []) {
   });
 }
 
-const POLICE_ROLE_NAMES = ["police", "police_officer", "police officer"];
-const POLICE_SUPERVISOR_ROLE_NAMES = ["police_supervisor", "police supervisor"];
+const POLICE_ROLE_NAMES = ["police", "police_officer", "police officer" , "POLICE_SUPERVISOR"];
+const POLICE_SUPERVISOR_ROLE_NAMES = ["police_supervisor", "police supervisor" , "POLICE_SUPERVISOR"];
 const ALL_POLICE_ROLE_NAMES = [...POLICE_ROLE_NAMES, ...POLICE_SUPERVISOR_ROLE_NAMES];
 
 function verifyTokenAndPolice(req, res, next) {

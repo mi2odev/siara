@@ -98,11 +98,15 @@ export default function SupervisorOfficerMonitoringPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedOfficer, setSelectedOfficer] = useState(null)
+  const [scopeCommuneName, setScopeCommuneName] = useState(null)
 
   const load = useCallback(async () => {
     try {
       const result = await listSupervisorOfficers()
       setOfficers(result.items || [])
+      const firstCommune = (result.items || []).find((o) => o.workZone?.commune?.name)?.workZone
+        ?.commune?.name
+      setScopeCommuneName(firstCommune || null)
       setError(null)
     } catch (err) {
       setError(err.message || 'Failed to load officer list')
@@ -137,7 +141,9 @@ export default function SupervisorOfficerMonitoringPage() {
             <span className="sv-page-eyebrow">Supervisor — Monitoring</span>
             <h1 className="sv-page-title">Officer Monitoring</h1>
             <p className="sv-page-subtitle">
-              Track officer availability, workload, and operational status
+              {scopeCommuneName
+                ? `Showing officers in your assigned commune${scopeCommuneName ? ` — ${scopeCommuneName}` : ''}`
+                : 'Track officer availability, workload, and operational status'}
             </p>
           </div>
           <div className="sv-page-actions">

@@ -2656,15 +2656,145 @@ async function canSupervisorManageOfficer(supervisorUserId, officerUserId, db = 
   return Boolean(row && row.supervisor_user_id === supervisorUserId);
 }
 
+// Returns the commune_id that bounds a supervisor's operational scope.
+// Resolution order: police_profiles.default_commune_id → active commune-level
+// work-zone assignment. Wilaya is intentionally NOT used as a fallback because
+// supervisor visibility is commune-bound by policy.
+async function getSupervisorCommuneId(supervisorUserId, db = pool) {
+  const profileResult = await db.query(
+    `
+      SELECT default_commune_id
+      FROM app.police_profiles
+      WHERE user_id = $1::uuid
+      LIMIT 1
+    `,
+    [supervisorUserId],
+  );
+
+  const defaultCommuneId = profileResult.rows[0]?.default_commune_id ?? null;
+  if (defaultCommuneId != null) {
+    return Number(defaultCommuneId);
+  }
+
+  const assignmentResult = await db.query(
+    `
+      SELECT admin_area_id
+      FROM app.police_work_zone_assignments
+      WHERE officer_user_id = $1::uuid
+        AND LOWER(zone_level) = 'commune'
+        AND is_active = TRUE
+        AND (expires_at IS NULL OR expires_at > NOW())
+      ORDER BY assigned_at DESC
+      LIMIT 1
+    `,
+    [supervisorUserId],
+  );
+
+  return assignmentResult.rows[0]?.admin_area_id != null
+    ? Number(assignmentResult.rows[0].admin_area_id)
+    : null;
+}
+
+// Returns true if the given officer is operating in the given commune,
+// either via their police_profiles.default_commune_id or via an active
+// commune-level work-zone assignment.
+async function isOfficerInCommune(officerUserId, communeId, db = pool) {
+  const result = await db.query(
+    `
+      SELECT 1
+      FROM app.police_profiles pp
+      WHERE pp.user_id = $1::uuid
+        AND (
+          pp.default_commune_id = $2::bigint
+          OR EXISTS (
+            SELECT 1
+            FROM app.police_work_zone_assignments pwa
+            WHERE pwa.officer_user_id = pp.user_id
+              AND pwa.admin_area_id = $2::bigint
+              AND LOWER(pwa.zone_level) = 'commune'
+              AND pwa.is_active = TRUE
+              AND (pwa.expires_at IS NULL OR pwa.expires_at > NOW())
+          )
+        )
+      LIMIT 1
+    `,
+    [officerUserId, communeId],
+  );
+
+  return result.rowCount > 0;
+}
+
+function formatDistanceLabel(distanceMeters) {
+  if (distanceMeters == null || !Number.isFinite(Number(distanceMeters))) {
+    return "Location unavailable";
+  }
+
+  const meters = Number(distanceMeters);
+  if (meters < 1000) {
+    return `${Math.round(meters)} m away`;
+  }
+
+  return `${(meters / 1000).toFixed(1)} km away`;
+}
+
+function mapOfficerListRow(row) {
+  return {
+    id: row.id,
+    name: row.full_name || row.email || "Officer",
+    email: row.email,
+    phone: row.phone || null,
+    avatarUrl: row.avatar_url || "",
+    badgeNumber: row.badge_number || null,
+    rank: row.rank || null,
+    isOnDuty: Boolean(row.is_on_duty),
+    workZone: {
+      wilaya: mapLocationSummary(
+        row.scope_wilaya_id != null ? Number(row.scope_wilaya_id) : null,
+        row.scope_wilaya_name,
+        row.scope_wilaya_id ? "wilaya" : null,
+      ),
+      commune: mapLocationSummary(
+        row.scope_commune_id != null ? Number(row.scope_commune_id) : null,
+        row.scope_commune_name,
+        row.scope_commune_id ? "commune" : null,
+      ),
+    },
+    latestLocation:
+      row.lat == null || row.lng == null
+        ? null
+        : {
+            lat: Number(row.lat),
+            lng: Number(row.lng),
+            accuracyM: row.accuracy_m == null ? null : Number(row.accuracy_m),
+            capturedAt: row.captured_at ? new Date(row.captured_at).toISOString() : null,
+          },
+  };
+}
+
 async function listSupervisorOfficers(supervisorUser, query = {}, db = pool) {
   const supervisorContext = await assertSupervisorAccess(supervisorUser, db);
   const isAdmin = supervisorContext.officer.roles.some((role) => normalizeRoleName(role) === "admin");
+  const includeAllAdmin =
+    isAdmin
+    && query.allCommunes != null
+    && String(query.allCommunes).trim().toLowerCase() === "true";
   const search = query.search ? String(query.search).trim().toLowerCase() : null;
-  const wilayaId = query.wilayaId ? normalizeInteger(query.wilayaId, "wilayaId") : null;
-  const communeId = query.communeId ? normalizeInteger(query.communeId, "communeId") : null;
   const onDuty = query.onDuty == null ? null : String(query.onDuty).trim().toLowerCase() === "true";
 
+  let supervisorCommuneId = null;
+  if (!includeAllAdmin) {
+    supervisorCommuneId = await getSupervisorCommuneId(supervisorUser.userId, db);
+
+    if (supervisorCommuneId == null) {
+      throw createError(
+        409,
+        "Supervisor commune is not configured. Set a default commune on the police profile or assign an active commune-level work zone.",
+      );
+    }
+  }
+
   const values = [];
+  // Police-role filter (covers police, police_officer, police_supervisor variants).
   const whereClauses = [
     `
       EXISTS (
@@ -2673,14 +2803,32 @@ async function listSupervisorOfficers(supervisorUser, query = {}, db = pool) {
         JOIN auth.roles officer_role_names
           ON officer_role_names.id = officer_roles.role_id
         WHERE officer_roles.user_id = u.id
-          AND LOWER(officer_role_names.name) = 'police'
+          AND regexp_replace(LOWER(officer_role_names.name), '[^a-z]', '', 'g')
+              IN ('police', 'policeofficer', 'policesupervisor')
       )
     `,
   ];
 
-  if (!isAdmin) {
-    values.push(supervisorUser.userId);
-    whereClauses.push(`pp.supervisor_user_id = $${values.length}::uuid`);
+  // Exclude the supervisor themselves.
+  values.push(supervisorUser.userId);
+  whereClauses.push(`u.id <> $${values.length}::uuid`);
+
+  if (!includeAllAdmin) {
+    values.push(supervisorCommuneId);
+    whereClauses.push(`
+      (
+        pp.default_commune_id = $${values.length}::bigint
+        OR EXISTS (
+          SELECT 1
+          FROM app.police_work_zone_assignments pwa
+          WHERE pwa.officer_user_id = u.id
+            AND pwa.admin_area_id = $${values.length}::bigint
+            AND LOWER(pwa.zone_level) = 'commune'
+            AND pwa.is_active = TRUE
+            AND (pwa.expires_at IS NULL OR pwa.expires_at > NOW())
+        )
+      )
+    `);
   }
 
   if (onDuty != null) {
@@ -2699,25 +2847,14 @@ async function listSupervisorOfficers(supervisorUser, query = {}, db = pool) {
     `);
   }
 
-  if (wilayaId) {
-    values.push(wilayaId);
-    whereClauses.push(`
-      (
-        active_wilaya.id = $${values.length}::bigint
-        OR (active_commune.parent_id IS NOT NULL AND active_commune.parent_id = $${values.length}::bigint)
-      )
-    `);
-  }
-
-  if (communeId) {
-    values.push(communeId);
-    whereClauses.push(`active_commune.id = $${values.length}::bigint`);
-  }
-
+  // Officer scope columns: prefer the active commune-level assignment, fall
+  // back to police_profiles.default_commune_id / default_wilaya_id.
   const result = await db.query(
     `
       SELECT
         u.id,
+        u.first_name,
+        u.last_name,
         CONCAT_WS(' ', u.first_name, u.last_name) AS full_name,
         u.email,
         u.phone,
@@ -2725,10 +2862,10 @@ async function listSupervisorOfficers(supervisorUser, query = {}, db = pool) {
         pp.badge_number,
         pp.rank,
         pp.is_on_duty,
-        active_wilaya.id AS active_wilaya_id,
-        active_wilaya.name AS active_wilaya_name,
-        active_commune.id AS active_commune_id,
-        active_commune.name AS active_commune_name,
+        COALESCE(active_commune.id, default_commune.id) AS scope_commune_id,
+        COALESCE(active_commune.name, default_commune.name) AS scope_commune_name,
+        COALESCE(active_wilaya.id, default_wilaya.id) AS scope_wilaya_id,
+        COALESCE(active_wilaya.name, default_wilaya.name) AS scope_wilaya_name,
         latest_location.captured_at,
         latest_location.accuracy_m,
         ST_Y(latest_location.location::geometry) AS lat,
@@ -2736,18 +2873,24 @@ async function listSupervisorOfficers(supervisorUser, query = {}, db = pool) {
       FROM app.police_profiles pp
       JOIN auth.users u
         ON u.id = pp.user_id
-      LEFT JOIN app.police_work_zone_assignments active_wilaya_assignment
-        ON active_wilaya_assignment.officer_user_id = u.id
-       AND active_wilaya_assignment.zone_level = 'wilaya'
-       AND active_wilaya_assignment.is_active = TRUE
-      LEFT JOIN gis.admin_areas active_wilaya
-        ON active_wilaya.id = active_wilaya_assignment.admin_area_id
+      LEFT JOIN gis.admin_areas default_commune
+        ON default_commune.id = pp.default_commune_id
+      LEFT JOIN gis.admin_areas default_wilaya
+        ON default_wilaya.id = pp.default_wilaya_id
       LEFT JOIN app.police_work_zone_assignments active_commune_assignment
         ON active_commune_assignment.officer_user_id = u.id
        AND active_commune_assignment.zone_level = 'commune'
        AND active_commune_assignment.is_active = TRUE
+       AND (active_commune_assignment.expires_at IS NULL OR active_commune_assignment.expires_at > NOW())
       LEFT JOIN gis.admin_areas active_commune
         ON active_commune.id = active_commune_assignment.admin_area_id
+      LEFT JOIN app.police_work_zone_assignments active_wilaya_assignment
+        ON active_wilaya_assignment.officer_user_id = u.id
+       AND active_wilaya_assignment.zone_level = 'wilaya'
+       AND active_wilaya_assignment.is_active = TRUE
+       AND (active_wilaya_assignment.expires_at IS NULL OR active_wilaya_assignment.expires_at > NOW())
+      LEFT JOIN gis.admin_areas active_wilaya
+        ON active_wilaya.id = active_wilaya_assignment.admin_area_id
       LEFT JOIN LATERAL (
         SELECT *
         FROM app.officer_location_updates location_updates
@@ -2762,37 +2905,166 @@ async function listSupervisorOfficers(supervisorUser, query = {}, db = pool) {
   );
 
   return {
-    items: result.rows.map((row) => ({
-      id: row.id,
-      name: row.full_name || row.email || "Officer",
-      email: row.email,
-      phone: row.phone || null,
-      avatarUrl: row.avatar_url || "",
-      badgeNumber: row.badge_number || null,
-      rank: row.rank || null,
-      isOnDuty: Boolean(row.is_on_duty),
-      workZone: {
-        wilaya: mapLocationSummary(
-          row.active_wilaya_id,
-          row.active_wilaya_name,
-          row.active_wilaya_id ? "wilaya" : null,
-        ),
-        commune: mapLocationSummary(
-          row.active_commune_id,
-          row.active_commune_name,
-          row.active_commune_id ? "commune" : null,
-        ),
-      },
-      latestLocation:
-        row.lat == null || row.lng == null
-          ? null
-          : {
-              lat: Number(row.lat),
-              lng: Number(row.lng),
-              accuracyM: row.accuracy_m == null ? null : Number(row.accuracy_m),
-              capturedAt: row.captured_at ? new Date(row.captured_at).toISOString() : null,
-            },
-    })),
+    items: result.rows.map(mapOfficerListRow),
+    scope: includeAllAdmin
+      ? { mode: "admin_all" }
+      : { mode: "commune", communeId: supervisorCommuneId },
+  };
+}
+
+// Returns the assignable officers for a given incident, restricted to the
+// supervisor's commune and sorted by distance from the incident location.
+async function listAssignableOfficersForIncident(
+  supervisorUser,
+  reportId,
+  query = {},
+  db = pool,
+) {
+  await assertSupervisorAccess(supervisorUser, db);
+  const normalizedReportId = normalizeUuid(reportId, "reportId", { required: true });
+
+  const supervisorCommuneId = await getSupervisorCommuneId(supervisorUser.userId, db);
+  if (supervisorCommuneId == null) {
+    throw createError(
+      409,
+      "Supervisor commune is not configured. Set a default commune on the police profile or assign an active commune-level work zone.",
+    );
+  }
+
+  const reportResult = await db.query(
+    `
+      SELECT id, incident_location, title
+      FROM app.accident_reports
+      WHERE id = $1::uuid
+      LIMIT 1
+    `,
+    [normalizedReportId],
+  );
+
+  const report = reportResult.rows[0] || null;
+  if (!report) {
+    throw createError(404, "Incident was not found");
+  }
+
+  const onDuty = query.onDuty == null ? null : String(query.onDuty).trim().toLowerCase() === "true";
+
+  const values = [supervisorUser.userId, supervisorCommuneId, normalizedReportId];
+  const filters = [];
+
+  if (onDuty != null) {
+    values.push(onDuty);
+    filters.push(`pp.is_on_duty = $${values.length}`);
+  }
+
+  const result = await db.query(
+    `
+      WITH incident AS (
+        SELECT id, incident_location
+        FROM app.accident_reports
+        WHERE id = $3::uuid
+      ),
+      latest_location AS (
+        SELECT DISTINCT ON (officer_user_id)
+          officer_user_id,
+          location,
+          accuracy_m,
+          captured_at
+        FROM app.officer_location_updates
+        ORDER BY officer_user_id, captured_at DESC, id DESC
+      )
+      SELECT
+        u.id,
+        u.first_name,
+        u.last_name,
+        CONCAT_WS(' ', u.first_name, u.last_name) AS full_name,
+        u.email,
+        u.avatar_url,
+        pp.badge_number,
+        pp.rank,
+        pp.is_on_duty,
+        COALESCE(active_commune.id, default_commune.id) AS scope_commune_id,
+        COALESCE(active_commune.name, default_commune.name) AS scope_commune_name,
+        COALESCE(active_wilaya.id, default_wilaya.id) AS scope_wilaya_id,
+        COALESCE(active_wilaya.name, default_wilaya.name) AS scope_wilaya_name,
+        ll.captured_at,
+        ll.accuracy_m,
+        ST_Y(ll.location::geometry) AS lat,
+        ST_X(ll.location::geometry) AS lng,
+        CASE
+          WHEN ll.location IS NULL OR i.incident_location IS NULL THEN NULL
+          ELSE ST_Distance(ll.location::geography, i.incident_location::geography)
+        END AS distance_meters
+      FROM app.police_profiles pp
+      JOIN auth.users u
+        ON u.id = pp.user_id
+      LEFT JOIN latest_location ll
+        ON ll.officer_user_id = u.id
+      LEFT JOIN gis.admin_areas default_commune
+        ON default_commune.id = pp.default_commune_id
+      LEFT JOIN gis.admin_areas default_wilaya
+        ON default_wilaya.id = pp.default_wilaya_id
+      LEFT JOIN app.police_work_zone_assignments active_commune_assignment
+        ON active_commune_assignment.officer_user_id = u.id
+       AND active_commune_assignment.zone_level = 'commune'
+       AND active_commune_assignment.is_active = TRUE
+       AND (active_commune_assignment.expires_at IS NULL OR active_commune_assignment.expires_at > NOW())
+      LEFT JOIN gis.admin_areas active_commune
+        ON active_commune.id = active_commune_assignment.admin_area_id
+      LEFT JOIN app.police_work_zone_assignments active_wilaya_assignment
+        ON active_wilaya_assignment.officer_user_id = u.id
+       AND active_wilaya_assignment.zone_level = 'wilaya'
+       AND active_wilaya_assignment.is_active = TRUE
+       AND (active_wilaya_assignment.expires_at IS NULL OR active_wilaya_assignment.expires_at > NOW())
+      LEFT JOIN gis.admin_areas active_wilaya
+        ON active_wilaya.id = active_wilaya_assignment.admin_area_id
+      CROSS JOIN incident i
+      WHERE u.id <> $1::uuid
+        AND EXISTS (
+          SELECT 1
+          FROM auth.user_roles ur
+          JOIN auth.roles r ON r.id = ur.role_id
+          WHERE ur.user_id = u.id
+            AND regexp_replace(LOWER(r.name), '[^a-z]', '', 'g')
+                IN ('police', 'policeofficer', 'policesupervisor')
+        )
+        AND (
+          pp.default_commune_id = $2::bigint
+          OR EXISTS (
+            SELECT 1
+            FROM app.police_work_zone_assignments pwa
+            WHERE pwa.officer_user_id = u.id
+              AND pwa.admin_area_id = $2::bigint
+              AND LOWER(pwa.zone_level) = 'commune'
+              AND pwa.is_active = TRUE
+              AND (pwa.expires_at IS NULL OR pwa.expires_at > NOW())
+          )
+        )
+        ${filters.length > 0 ? "AND " + filters.join(" AND ") : ""}
+      ORDER BY
+        CASE WHEN ll.location IS NULL THEN 1 ELSE 0 END ASC,
+        distance_meters ASC NULLS LAST,
+        pp.is_on_duty DESC,
+        full_name ASC,
+        u.id ASC
+    `,
+    values,
+  );
+
+  return {
+    items: result.rows.map((row) => {
+      const base = mapOfficerListRow(row);
+      const distanceMeters = row.distance_meters == null ? null : Number(row.distance_meters);
+      return {
+        ...base,
+        distanceMeters,
+        distanceLabel: formatDistanceLabel(distanceMeters),
+      };
+    }),
+    incident: {
+      id: report.id,
+      title: report.title || null,
+    },
+    scope: { mode: "commune", communeId: supervisorCommuneId },
   };
 }
 
@@ -3128,15 +3400,40 @@ async function assignIncidentBySupervisor(supervisorUser, reportId, payload = {}
   const supervisorContext = await assertSupervisorAccess(supervisorUser, db);
   const isAdmin = supervisorContext.officer.roles.some((role) => normalizeRoleName(role) === "admin");
 
-  if (!isAdmin && !(await canSupervisorManageOfficer(supervisorUser.userId, officerUserId, db))) {
-    throw createError(403, "You cannot assign incidents to this officer");
+  // Commune-scope eligibility: an officer must operate inside the supervisor's
+  // commune (default or active commune-level assignment) before assignment.
+  // Admins bypass the commune gate, matching the listing semantics.
+  if (!isAdmin) {
+    const supervisorCommuneId = await getSupervisorCommuneId(supervisorUser.userId, db);
+    if (supervisorCommuneId == null) {
+      throw createError(
+        409,
+        "Supervisor commune is not configured. Set a default commune on the police profile or assign an active commune-level work zone.",
+      );
+    }
+
+    const officerInScope = await isOfficerInCommune(officerUserId, supervisorCommuneId, db);
+    if (!officerInScope) {
+      throw createError(403, "Officer is outside your commune scope");
+    }
   }
 
   const client = await db.connect();
   let officerNotifications = [];
+  let newAssignmentId = null;
 
   try {
     await client.query("BEGIN");
+
+    // Lock the report row to serialize concurrent assignment writes.
+    const lockedReport = await client.query(
+      `SELECT id, status FROM app.accident_reports WHERE id = $1::uuid FOR UPDATE`,
+      [reportId],
+    );
+    if (lockedReport.rowCount === 0) {
+      throw createError(404, "Incident was not found");
+    }
+
     const currentRow = await requireIncidentRow(reportId, client);
 
     await client.query(
@@ -3151,7 +3448,7 @@ async function assignIncidentBySupervisor(supervisorUser, reportId, payload = {}
       [reportId],
     );
 
-    await client.query(
+    const insertedAssignment = await client.query(
       `
         INSERT INTO app.incident_assignments (
           report_id,
@@ -3164,9 +3461,11 @@ async function assignIncidentBySupervisor(supervisorUser, reportId, payload = {}
           assigned_at
         )
         VALUES ($1::uuid, $2::uuid, $3::uuid, $4::text, 'active', $5, $6, NOW())
+        RETURNING id
       `,
       [reportId, officerUserId, supervisorUser.userId, assignmentType, priorityOverride, note],
     );
+    newAssignmentId = insertedAssignment.rows[0]?.id ?? null;
 
     await client.query(
       `
@@ -3189,23 +3488,29 @@ async function assignIncidentBySupervisor(supervisorUser, reportId, payload = {}
       note,
       metadata: {
         assignedOfficerId: officerUserId,
+        assignmentId: newAssignmentId,
         priorityOverride,
       },
     });
 
+    // Single-target notification — only the assigned officer is notified.
     officerNotifications = await insertNotificationsForUsers(client, [
       {
         userId: officerUserId,
         reportId,
         operationalAlertId: null,
         priority: 1,
-        eventType: "POLICE_INCIDENT_ASSIGNED",
-        title: "Incident assigned",
+        eventType: "INCIDENT_ASSIGNED",
+        title: "New incident assigned",
         body: `A supervisor assigned ${currentRow.title || buildDisplayIncidentId(reportId)} to you.`,
         data: {
           reportId,
+          assignmentId: newAssignmentId,
           assignedBy: supervisorUser.userId,
           action: "assign_incident",
+          incidentTitle: currentRow.title || null,
+          locationLabel: currentRow.location_label || null,
+          severityHint: currentRow.severity_hint == null ? null : Number(currentRow.severity_hint),
         },
       },
     ]);
@@ -3218,6 +3523,8 @@ async function assignIncidentBySupervisor(supervisorUser, reportId, payload = {}
     client.release();
   }
 
+  // Fan-out happens after COMMIT so we never emit/push for a rolled-back row.
+  // Socket emit + web-push are both per-recipient — no broadcast.
   await Promise.allSettled(
     officerNotifications.map(async (notification) => {
       emitNotificationCreatedToUser(notification.userId, notification);
@@ -3239,6 +3546,9 @@ module.exports = {
   getPoliceDashboard,
   getPoliceMe,
   getPoliceWorkZoneOptions,
+  getSupervisorCommuneId,
+  isOfficerInCommune,
+  listAssignableOfficersForIncident,
   listPoliceAlerts,
   listPoliceIncidents,
   listPoliceOperationHistory,
