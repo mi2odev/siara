@@ -1,5 +1,6 @@
 const router = require("express").Router();
 
+const pool = require("../db");
 const {
   assignIncidentBySupervisor,
   assignSelfToIncident,
@@ -39,15 +40,38 @@ const {
   getSupervisorGlobalMap,
 } = require("../services/supervisorService");
 
-function requirePoliceSupervisor(req, res, next) {
-  const isSupervisor =
-    hasAnyRole(req.user, POLICE_SUPERVISOR_ROLE_NAMES) || hasRole(req.user, "admin");
+async function requirePoliceSupervisor(req, res, next) {
+  try {
+    const userId = req.user?.id || req.user?.userId;
 
-  if (!isSupervisor) {
-    return res.status(403).json({ error: "Police supervisor access is required" });
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    if (hasAnyRole(req.user, POLICE_SUPERVISOR_ROLE_NAMES) || hasRole(req.user, "admin")) {
+      return next();
+    }
+
+    // Fallback: a user can also act as supervisor if at least one police profile
+    // lists them as supervisor_user_id, even when role normalization differs.
+    const result = await pool.query(
+      `
+        SELECT 1
+        FROM app.police_profiles
+        WHERE supervisor_user_id = $1::uuid
+        LIMIT 1
+      `,
+      [userId],
+    );
+
+    if (result.rowCount > 0) {
+      return next();
+    }
+
+    return res.status(403).json({ error: "Police supervisor access required" });
+  } catch (error) {
+    return next(error);
   }
-
-  return next();
 }
 
 router.get("/me", verifyTokenAndPolice, async (req, res, next) => {

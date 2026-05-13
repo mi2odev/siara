@@ -3014,6 +3014,33 @@ async function createSupervisorAlert(supervisorUser, payload = {}, db = pool) {
       ],
     );
 
+    await client.query(
+      `
+        INSERT INTO app.operational_alert_events (
+          alert_id,
+          event_type,
+          actor_user_id,
+          from_status,
+          to_status,
+          note,
+          metadata
+        )
+        VALUES ($1::uuid, $2::text, $3::uuid, NULL, $4::text, NULL, $5::jsonb)
+      `,
+      [
+        alertRow.id,
+        derivedStatus === "active" ? "published" : "created",
+        supervisorUser.userId,
+        derivedStatus,
+        JSON.stringify({
+          source: "police_supervisor",
+          targetType,
+          recipientCount: recipients.length,
+          adminAreaId: adminArea.id,
+        }),
+      ],
+    );
+
     await recordOperationHistory(client, {
       officerUserId: supervisorUser.userId,
       alertId: alertRow.id,
