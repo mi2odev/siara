@@ -783,9 +783,32 @@ export async function listSupervisorOfficers(params = {}) {
     const response = await userRequest.get('/police/supervisor/officers', { params })
     return {
       items: Array.isArray(response.data?.items) ? response.data.items : [],
+      scope: response.data?.scope || null,
     }
   } catch (error) {
     throw normalizeApiError(error, 'Failed to load supervised officers')
+  }
+}
+
+export async function listAssignableOfficersForIncident(incidentId, params = {}) {
+  try {
+    const response = await userRequest.get(
+      `/police/supervisor/incidents/${incidentId}/assignable-officers`,
+      { params },
+    )
+    return {
+      items: Array.isArray(response.data?.items)
+        ? response.data.items.map((officer) => ({
+          ...officer,
+          distanceMeters:
+            officer.distanceMeters == null ? null : Number(officer.distanceMeters),
+        }))
+        : [],
+      incident: response.data?.incident || null,
+      scope: response.data?.scope || null,
+    }
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to load assignable officers')
   }
 }
 

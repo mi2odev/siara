@@ -9,6 +9,7 @@ const {
   getPoliceDashboard,
   getPoliceMe,
   getPoliceWorkZoneOptions,
+  listAssignableOfficersForIncident,
   listPoliceAlerts,
   listPoliceIncidents,
   listPoliceOperationHistory,
@@ -254,6 +255,21 @@ router.post("/supervisor/alerts", verifyTokenAndPolice, requirePoliceSupervisor,
     return next(error);
   }
 });
+
+router.get(
+  "/supervisor/incidents/:id/assignable-officers",
+  verifyTokenAndPolice,
+  requirePoliceSupervisor,
+  async (req, res, next) => {
+    try {
+      return res.status(200).json(
+        await listAssignableOfficersForIncident(req.user, req.params.id, req.query || {}),
+      );
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
 
 router.post("/supervisor/incidents/:id/assign", verifyTokenAndPolice, requirePoliceSupervisor, async (req, res, next) => {
   try {

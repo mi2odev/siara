@@ -6,8 +6,8 @@ import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
 import PoliceShell from '../../components/layout/PoliceShell'
 import {
   assignIncidentToOfficer,
+  listAssignableOfficersForIncident,
   listPoliceIncidents,
-  listSupervisorOfficers,
 } from '../../services/policeService'
 import '../../styles/SupervisorMode.css'
 
@@ -41,7 +41,9 @@ export default function SupervisorIncidentCoordinationPage() {
   const navigate = useNavigate()
 
   const [incidents, setIncidents] = useState([])
-  const [officers, setOfficers] = useState([])
+  const [officersByIncident, setOfficersByIncident] = useState({})
+  const [officersLoading, setOfficersLoading] = useState({})
+  const [officersError, setOfficersError] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -60,12 +62,8 @@ export default function SupervisorIncidentCoordinationPage() {
 
   const load = useCallback(async () => {
     try {
-      const [incResult, offResult] = await Promise.all([
-        listPoliceIncidents({ scope: 'all', pageSize: 50 }),
-        listSupervisorOfficers(),
-      ])
+      const incResult = await listPoliceIncidents({ scope: 'all', pageSize: 50 })
       setIncidents(incResult.items || [])
-      setOfficers(offResult.items || [])
       setError(null)
     } catch (err) {
       setError(err.message || 'Failed to load coordination data')
@@ -74,9 +72,36 @@ export default function SupervisorIncidentCoordinationPage() {
     }
   }, [])
 
+  const loadAssignableOfficers = useCallback(async (incidentId) => {
+    if (!incidentId) return
+    setOfficersLoading((prev) => ({ ...prev, [incidentId]: true }))
+    setOfficersError((prev) => ({ ...prev, [incidentId]: null }))
+    try {
+      const result = await listAssignableOfficersForIncident(incidentId)
+      setOfficersByIncident((prev) => ({ ...prev, [incidentId]: result.items || [] }))
+    } catch (err) {
+      setOfficersError((prev) => ({
+        ...prev,
+        [incidentId]: err.message || 'Failed to load officers',
+      }))
+      setOfficersByIncident((prev) => ({ ...prev, [incidentId]: [] }))
+    } finally {
+      setOfficersLoading((prev) => ({ ...prev, [incidentId]: false }))
+    }
+  }, [])
+
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    incidents.forEach((inc) => {
+      if (inc.id && officersByIncident[inc.id] == null && !officersLoading[inc.id]) {
+        loadAssignableOfficers(inc.id)
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incidents])
 
   const handleAssign = async (incidentId) => {
     const officerId = selectedOfficer[incidentId]
@@ -87,12 +112,26 @@ export default function SupervisorIncidentCoordinationPage() {
       await assignIncidentToOfficer(incidentId, { officerUserId: officerId })
       showToast('Officer assigned successfully')
       await load()
+      await loadAssignableOfficers(incidentId)
       setSelectedOfficer((prev) => ({ ...prev, [incidentId]: '' }))
     } catch (err) {
       showToast(err.message || 'Assignment failed', 'error')
     } finally {
       setAssigning((prev) => ({ ...prev, [incidentId]: false }))
     }
+  }
+
+  const renderOfficerOption = (off) => {
+    const distance =
+      off.distanceLabel
+      || (off.distanceMeters == null
+        ? 'Location unavailable'
+        : off.distanceMeters < 1000
+          ? `${Math.round(off.distanceMeters)} m away`
+          : `${(off.distanceMeters / 1000).toFixed(1)} km away`)
+    const badge = off.badgeNumber ? ` (${off.badgeNumber})` : ''
+    const dutyTag = off.isOnDuty ? '' : ' — Off duty'
+    return `${off.name}${badge} — ${distance}${dutyTag}`
   }
 
   const filteredIncidents = incidents.filter((inc) => {
@@ -230,19 +269,48 @@ export default function SupervisorIncidentCoordinationPage() {
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                            <select
-                              className="sv-assign-select"
-                              value={selectedOfficer[inc.id] || ''}
-                              onChange={(e) => setSelectedOfficer((prev) => ({ ...prev, [inc.id]: e.target.value }))}
-                            >
-                              <option value="">Select officer...</option>
-                              {officers.map((off) => (
-                                <option key={off.id} value={off.id}>
-                                  {off.name}{off.badgeNumber ? ` (${off.badgeNumber})` : ''}
-                                  {off.isOnDuty ? '' : ' — Off duty'}
-                                </option>
-                              ))}
-                            </select>
+                            {(() => {
+                              const list = officersByIncident[inc.id]
+                              const isOfficersLoading = officersLoading[inc.id]
+                              const officersErr = officersError[inc.id]
+                              if (officersErr) {
+                                return (
+                                  <span style={{ fontSize: 11, color: 'var(--sv-text-muted)' }}>
+                                    {officersErr}
+                                  </span>
+                                )
+                              }
+                              if (isOfficersLoading || list == null) {
+                                return (
+                                  <span style={{ fontSize: 11, color: 'var(--sv-text-muted)' }}>
+                                    Loading…
+                                  </span>
+                                )
+                              }
+                              if (list.length === 0) {
+                                return (
+                                  <span style={{ fontSize: 11, color: 'var(--sv-text-muted)' }}>
+                                    No officers in your commune
+                                  </span>
+                                )
+                              }
+                              return (
+                                <select
+                                  className="sv-assign-select"
+                                  value={selectedOfficer[inc.id] || ''}
+                                  onChange={(e) =>
+                                    setSelectedOfficer((prev) => ({ ...prev, [inc.id]: e.target.value }))
+                                  }
+                                >
+                                  <option value="">Select officer...</option>
+                                  {list.map((off) => (
+                                    <option key={off.id} value={off.id}>
+                                      {renderOfficerOption(off)}
+                                    </option>
+                                  ))}
+                                </select>
+                              )
+                            })()}
                             <button
                               className="sv-assign-btn"
                               onClick={() => handleAssign(inc.id)}
