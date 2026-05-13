@@ -41,6 +41,7 @@ import {
   getMyDriverQuizProfile,
 } from '../../services/driverQuizService'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
+import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import '../../styles/NewsPage.css'
 import '../../styles/ProfilePage.css'
 import '../../styles/DashboardPage.css'
@@ -178,6 +179,8 @@ export default function ProfilePage(){
   const [driverQuizHistory, setDriverQuizHistory] = useState([])
   const [driverQuizLoading, setDriverQuizLoading] = useState(false)
   const [driverQuizError, setDriverQuizError] = useState('')
+  const [showQuiz, setShowQuiz] = useState(false)
+  const [quizReloadKey, setQuizReloadKey] = useState(0)
   const [activeTab, setActiveTab] = useState('alerts')       // Currently selected activity tab
   const [showDropdown, setShowDropdown] = useState(false)   // Header avatar dropdown
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false)
@@ -220,7 +223,7 @@ export default function ProfilePage(){
         if (!cancelled) setDriverQuizLoading(false)
       })
     return () => { cancelled = true }
-  }, [authUser, isViewingOwnProfile])
+  }, [authUser, isViewingOwnProfile, quizReloadKey])
 
   useEffect(() => {
     if (!isAvatarPreviewOpen) {
@@ -400,7 +403,7 @@ export default function ProfilePage(){
     const pending = reports.filter((report) => String(report?.status || '').toLowerCase() === 'pending').length
     const highSeverity = reports.filter((report) => {
       const severity = String(report?.severity || '').toLowerCase()
-      return severity === 'high' || severity === 'critical'
+      return severity === 'high'
     }).length
     const aiValidated = reports.filter((report) => {
       const status = String(report?.spamAnalysis?.status || '').toLowerCase()
@@ -667,9 +670,17 @@ export default function ProfilePage(){
     }, 0)
   }
 
+  const handleQuizComplete = () => {
+    setShowQuiz(false)
+    setQuizReloadKey((prev) => prev + 1)
+  }
+
   /* ═══ RENDER ═══ */
   return (
     <div className="siara-profile-root">
+      {/* DRIVING QUIZ POPUP */}
+      <DrivingQuiz onComplete={handleQuizComplete} forceShow={showQuiz} />
+
       {/* ═══ FLOATING HEADER ═══ */}
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
@@ -698,7 +709,10 @@ export default function ProfilePage(){
             />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}><span className="notification-badge"></span></button>
+            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
+              <NotificationsOutlinedIcon fontSize="small" />
+              <span className="notification-badge"></span>
+            </button>
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${headerAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {headerAvatarUrl ? (
@@ -825,7 +839,7 @@ export default function ProfilePage(){
                 <button
                   type="button"
                   className="pm-btn-primary"
-                  onClick={() => navigate('/predictions')}
+                  onClick={() => setShowQuiz(true)}
                 >
                   {driverQuizProfile ? 'Retake quiz' : 'Take quiz'}
                 </button>

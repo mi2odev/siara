@@ -40,8 +40,7 @@ const MAP_BOUNDS_PADDING = [18, 18]
 const RISK_COLORS = {
   low: '#22C55E',
   medium: '#F59E0B',
-  high: '#EF4444',
-  critical: '#991B1B',
+  high: '#991B1B',
 }
 
 function formatScore(value, digits = 1, suffix = '') {
@@ -99,15 +98,11 @@ function getMetricTitle(metric) {
 }
 
 function getLevelFromScore(score) {
-  if (score >= 75) {
-    return 'critical'
-  }
-
-  if (score >= 50) {
+  if (score >= 67) {
     return 'high'
   }
 
-  if (score >= 25) {
+  if (score >= 34) {
     return 'medium'
   }
 
@@ -160,7 +155,7 @@ export default function AdminZonesPage() {
   const [mapPayload, setMapPayload] = useState({
     featureCollection: { type: 'FeatureCollection', features: [] },
     items: [],
-    stats: { zoneCount: 0, low: 0, medium: 0, high: 0, critical: 0 },
+    stats: { zoneCount: 0, low: 0, medium: 0, high: 0 },
     generatedAt: null,
     summaryRebuilt: false,
   })
@@ -217,8 +212,7 @@ export default function AdminZonesPage() {
       return
     }
 
-    const preferred = mapPayload.items.find((zone) => zone.riskLevel === 'critical')
-      || mapPayload.items.find((zone) => zone.riskLevel === 'high')
+    const preferred = mapPayload.items.find((zone) => zone.riskLevel === 'high')
       || mapPayload.items[0]
 
     setSelectedZoneId(preferred?.adminAreaId || null)
@@ -466,10 +460,6 @@ export default function AdminZonesPage() {
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <div className="admin-mini-stat">
-                <span className="admin-mini-stat-label">Critical</span>
-                <span className="admin-mini-stat-value">{mapPayload.stats.critical}</span>
-              </div>
-              <div className="admin-mini-stat">
                 <span className="admin-mini-stat-label">High</span>
                 <span className="admin-mini-stat-value">{mapPayload.stats.high}</span>
               </div>
@@ -519,7 +509,6 @@ export default function AdminZonesPage() {
                   <div className="admin-zone-legend">
                     <div className="admin-zone-legend-title">{getMetricTitle(metric)}</div>
                     {[
-                      { label: 'Critical', tone: 'critical' },
                       { label: 'High', tone: 'high' },
                       { label: 'Medium', tone: 'medium' },
                       { label: 'Low', tone: 'low' },
@@ -764,10 +753,9 @@ export default function AdminZonesPage() {
           <p className="admin-card-subtitle">Current V1 score bands and composite weighting used to color the zone map</p>
           <div className="admin-zone-threshold-grid">
             {[
-              { label: 'Low', value: '0 - 24.9', tone: 'low' },
-              { label: 'Medium', value: '25 - 49.9', tone: 'medium' },
-              { label: 'High', value: '50 - 74.9', tone: 'high' },
-              { label: 'Critical', value: '75 - 100', tone: 'critical' },
+              { label: 'Low', value: '0 - 33.9', tone: 'low' },
+              { label: 'Medium', value: '34 - 66.9', tone: 'medium' },
+              { label: 'High', value: '67 - 100', tone: 'high' },
             ].map((band) => (
               <div key={band.label} className="admin-mini-stat">
                 <span className="admin-mini-stat-label">{band.label} band</span>

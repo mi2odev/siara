@@ -534,6 +534,7 @@ export default function AlertsPage() {
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
+              <NotificationsOutlinedIcon fontSize="small" />
               <span className="notification-badge"></span>
             </button>
             <div className="dash-avatar-wrapper">
@@ -734,7 +735,7 @@ export default function AlertsPage() {
                   </span>
                   <span className="al-push-option-title">High-risk alerts only</span>
                 </div>
-                <span className="al-push-option-copy">Recommended for critical watched-zone incidents.</span>
+                <span className="al-push-option-copy">Recommended for high-severity watched-zone incidents.</span>
               </button>
 
               <button

@@ -154,7 +154,7 @@ function mapSeverityLabel(value) {
 
 function normalizeSeverityHint(value) {
   const normalized = String(value || "").trim().toLowerCase();
-  if (normalized === "critical" || normalized === "high") {
+  if (normalized === "high") {
     return 3;
   }
   if (normalized === "medium") {

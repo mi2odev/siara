@@ -76,7 +76,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 1300;
   display: flex;
   justify-content: center;
   padding: 8px 16px;
@@ -269,46 +269,18 @@
   transition: background 0.2s;
 }
 
-.dash-icon-btn[aria-label="Notifications"]:not(.dash-icon-btn-notification),
-.dash-icon-btn[aria-label="Messages"]:not(.dash-icon-btn-messages) {
-  font-size: 0;
-  color: transparent;
-}
-
-.dash-icon-btn[aria-label="Notifications"]:not(.dash-icon-btn-notification)::before,
-.dash-icon-btn[aria-label="Messages"]:not(.dash-icon-btn-messages)::before {
-  font-size: 16px;
-  line-height: 1;
-  color: #64748B;
-  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-}
-
-.dash-icon-btn[aria-label="Notifications"]:not(.dash-icon-btn-notification)::before {
-  content: "\1F514";
-}
-
-.dash-icon-btn[aria-label="Messages"]:not(.dash-icon-btn-messages)::before {
-  content: "\1F4AC";
-}
-
 .dash-icon-glyph {
   font-size: 16px;
   line-height: 1;
 }
 
-.dash-icon-btn-notification::before,
-.dash-icon-btn-messages::before {
-  font-size: 16px;
-  line-height: 1;
-  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-}
-
-.dash-icon-btn-notification::before {
-  content: "\1F514";
-}
-
-.dash-icon-btn-messages::before {
-  content: "\1F4AC";
+.dash-icon-btn[aria-label="Notifications"] svg,
+.dash-icon-btn[aria-label="Messages"] svg {
+  width: 20px;
+  height: 20px;
+  color: #64748B;
+  fill: currentColor;
+  stroke: none;
 }
 
 .dash-icon-btn svg {
@@ -331,6 +303,12 @@
 
 .dash-icon-btn:hover svg {
   stroke: #334155;
+}
+
+.dash-icon-btn[aria-label="Notifications"]:hover svg,
+.dash-icon-btn[aria-label="Messages"]:hover svg {
+  color: #334155;
+  stroke: none;
 }
 
 .notification-badge {

@@ -4,25 +4,22 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import '../../styles/NavigationDangerAlert.css'
 
 const SEVERITY_ICON = {
-  extreme: { Icon: NotificationsActiveOutlinedIcon, color: 'icon-danger' },
-  high:    { Icon: WarningAmberOutlinedIcon,       color: 'icon-warning' },
-  moderate:{ Icon: WarningAmberOutlinedIcon,       color: 'icon-warning' },
-  low:     { Icon: InfoOutlinedIcon,                color: 'icon-info' },
+  high:   { Icon: WarningAmberOutlinedIcon,       color: 'icon-warning' },
+  medium: { Icon: WarningAmberOutlinedIcon,       color: 'icon-warning' },
+  low:    { Icon: InfoOutlinedIcon,                color: 'icon-info' },
 }
 
 function severityClass(severity) {
   const text = String(severity || '').toLowerCase()
-  if (text === 'extreme' || text === 'critical') return 'severity-extreme'
   if (text === 'high') return 'severity-high'
-  if (text === 'moderate' || text === 'medium') return 'severity-moderate'
+  if (text === 'medium') return 'severity-medium'
   return 'severity-low'
 }
 
 function severityLabel(severity) {
   const text = String(severity || '').toLowerCase()
-  if (text === 'extreme' || text === 'critical') return 'Critical'
   if (text === 'high') return 'High'
-  if (text === 'moderate' || text === 'medium') return 'Moderate'
+  if (text === 'medium') return 'Medium'
   if (text === 'low') return 'Low'
   return 'Risk'
 }

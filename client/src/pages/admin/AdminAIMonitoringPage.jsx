@@ -10,7 +10,7 @@
  * Features:
  *   - Performance KPIs: accuracy, precision, recall, F1, drift
  *   - False-positive and false-negative breakdown cards
- *   - Color-coded 4×4 confusion matrix (Low / Medium / High / Critical)
+ *   - Color-coded 3×3 confusion matrix (Low / Medium / High)
  *   - Confidence histogram with dynamic bar heights and color bands
  *   - Manual override log table (who changed what severity and why)
  *
@@ -45,13 +45,12 @@ const modelInfo = {
  */
 const confusionMatrix = [
   /* predicted → */
-  /* actual ↓   Low   Med   High  Crit  */
-  [842, 23, 5, 0],
-  [18, 714, 31, 2],
-  [3, 28, 651, 14],
-  [0, 1, 11, 189],
+  /* actual ↓   Low   Med   High */
+  [842, 23, 5],
+  [18, 714, 33],
+  [3, 29, 865],
 ]
-const matrixLabels = ['Low', 'Medium', 'High', 'Critical']
+const matrixLabels = ['Low', 'Medium', 'High']
 
 /** 10-bucket histogram of prediction confidence scores (last 30 days) */
 const confidenceHistogram = [
@@ -136,9 +135,9 @@ export default function AdminAIMonitoringPage() {
 
       {/* ═══ MODEL DRIFT ALERT — shown only when drift exceeds 0.5% ═══ */}
       {modelInfo.drift > 0.5 && (
-        <div className="admin-critical-bar">
-          <span className="critical-dot"></span>
-          <span className="critical-text">Model drift detected: {modelInfo.drift}% — Consider re-training</span>
+        <div className="admin-high-bar">
+          <span className="high-dot"></span>
+          <span className="high-text">Model drift detected: {modelInfo.drift}% — Consider re-training</span>
         </div>
       )}
 

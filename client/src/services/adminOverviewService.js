@@ -90,7 +90,7 @@ function normalizeReviewQueueItem(item) {
   }
 }
 
-function normalizeCriticalAlert(item) {
+function normalizeHighSeverityAlert(item) {
   return {
     type: item?.type || 'queue',
     text: item?.text || '',
@@ -125,8 +125,8 @@ export function normalizeOverviewResponse(data) {
   )
 
   return {
-    criticalAlerts: Array.isArray(data?.criticalAlerts)
-      ? data.criticalAlerts.map(normalizeCriticalAlert).filter((alert) => alert.text)
+    highSeverityAlerts: Array.isArray(data?.highSeverityAlerts)
+      ? data.highSeverityAlerts.map(normalizeHighSeverityAlert).filter((alert) => alert.text)
       : [],
     kpis: {
       incidents: {

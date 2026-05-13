@@ -64,7 +64,7 @@ export default function PoliceAIInsightsPage() {
   const statusBreakdown = groupCount(incidents, (item) => item.status)
   const sourceBreakdown = groupCount(incidents, (item) => item.sourceChannel || 'citizen')
   const topZone = topCommunes[0]?.[0] || 'N/A'
-  const criticalCount = incidents.filter((item) => ['high', 'critical'].includes(item.severity)).length
+  const highSeverityCount = incidents.filter((item) => item.severity === 'high').length
 
   const rightPanel = (
     <PoliceOfficerPanel officer={policeMe?.officer} workZone={policeMe?.workZone}>
@@ -74,7 +74,7 @@ export default function PoliceAIInsightsPage() {
         </div>
         <div className="pop-extra-body">
           <div className="pop-stat-row"><span>Top commune</span><strong>{topZone}</strong></div>
-          <div className="pop-stat-row"><span>High priority</span><strong className={criticalCount > 0 ? 'pop-stat--danger' : ''}>{criticalCount}</strong></div>
+          <div className="pop-stat-row"><span>High priority</span><strong className={highSeverityCount > 0 ? 'pop-stat--danger' : ''}>{highSeverityCount}</strong></div>
           <div className="pop-stat-row"><span>Unread alerts</span><strong className={dashboard?.stats?.unreadAlertsCount > 0 ? 'pop-stat--warn' : ''}>{dashboard?.stats?.unreadAlertsCount || 0}</strong></div>
           <div className="pop-stat-row"><span>Pending verify</span><strong className={dashboard?.stats?.pendingVerificationCount > 0 ? 'pop-stat--accent' : ''}>{dashboard?.stats?.pendingVerificationCount || 0}</strong></div>
         </div>
@@ -88,7 +88,7 @@ export default function PoliceAIInsightsPage() {
       rightPanel={rightPanel}
       notificationCount={dashboard?.stats?.unreadAlertsCount || 0}
       verificationPendingCount={dashboard?.stats?.pendingVerificationCount || 0}
-      emergencyMode={criticalCount >= 3}
+      emergencyMode={highSeverityCount >= 3}
     >
       <section className="police-section">
         <div className="police-command-section-head">

@@ -74,15 +74,11 @@ function roundScore(value, digits = 2) {
 function deriveZoneRiskLevel(score) {
   const normalized = clampScore(score);
 
-  if (normalized >= 75) {
-    return "critical";
-  }
-
-  if (normalized >= 50) {
+  if (normalized >= 67) {
     return "high";
   }
 
-  if (normalized >= 25) {
+  if (normalized >= 34) {
     return "medium";
   }
 
@@ -395,8 +391,8 @@ async function fetchAlertSnapshotMetrics(
         count(*) FILTER (WHERE alert_zone_scope.effective_status = 'scheduled')::int AS scheduled_alert_count,
         count(*) FILTER (
           WHERE alert_zone_scope.effective_status = 'active'
-            AND alert_zone_scope.severity = 'critical'
-        )::int AS critical_alert_count,
+            AND alert_zone_scope.severity = 'high'
+        )::int AS high_severity_alert_count,
         round(
           least(
             100,
@@ -404,9 +400,8 @@ async function fetchAlertSnapshotMetrics(
               CASE
                 WHEN alert_zone_scope.effective_status = 'active' THEN
                   CASE alert_zone_scope.severity
-                    WHEN 'critical' THEN 50
-                    WHEN 'high' THEN 35
-                    WHEN 'medium' THEN 20
+                    WHEN 'high' THEN 50
+                    WHEN 'medium' THEN 25
                     ELSE 10
                   END
                 ELSE 0
@@ -432,7 +427,7 @@ async function fetchAlertSnapshotMetrics(
       {
         activeAlertCount: safeNumber(row.active_alert_count, 0),
         scheduledAlertCount: safeNumber(row.scheduled_alert_count, 0),
-        criticalAlertCount: safeNumber(row.critical_alert_count, 0),
+        highSeverityAlertCount: safeNumber(row.high_severity_alert_count, 0),
         alertScore: safeNullableNumber(row.alert_score),
       },
     ]),
@@ -535,7 +530,7 @@ async function buildZoneSummarySnapshot(period, windowStart, windowEnd, db = poo
       reportScore,
       activeAlertCount: safeNumber(alerts.activeAlertCount, 0),
       scheduledAlertCount: safeNumber(alerts.scheduledAlertCount, 0),
-      criticalAlertCount: safeNumber(alerts.criticalAlertCount, 0),
+      highSeverityAlertCount: safeNumber(alerts.highSeverityAlertCount, 0),
       alertScore,
       incidentEventCount: safeNumber(history.incidentEventCount, 0),
       incidentHistoryScore,
@@ -587,7 +582,7 @@ async function persistZoneSummarySnapshot(period, snapshotAt, summaries, db = po
         summary.reportScore,
         summary.activeAlertCount,
         summary.scheduledAlertCount,
-        summary.criticalAlertCount,
+        summary.highSeverityAlertCount,
         summary.alertScore,
         summary.incidentEventCount,
         summary.incidentHistoryScore,
@@ -607,7 +602,7 @@ async function persistZoneSummarySnapshot(period, snapshotAt, summaries, db = po
             centroid, geom, road_segment_count, predicted_road_count, model_avg_score,
             model_weighted_score, top_road_risk_score, recent_report_count,
             verified_report_count, pending_report_count, flagged_report_count, report_score,
-            active_alert_count, scheduled_alert_count, critical_alert_count, alert_score,
+            active_alert_count, scheduled_alert_count, high_severity_alert_count, alert_score,
             incident_event_count, incident_history_score, final_risk_score, risk_level,
             confidence_avg, trend_vs_previous, top_road_segment_id, top_road_name, metadata
           )
@@ -728,7 +723,7 @@ function mapZoneSummaryRow(row, metric) {
     reportScore: safeNullableNumber(row.report_score),
     activeAlertCount: safeNumber(row.active_alert_count, 0),
     scheduledAlertCount: safeNumber(row.scheduled_alert_count, 0),
-    criticalAlertCount: safeNumber(row.critical_alert_count, 0),
+    highSeverityAlertCount: safeNumber(row.high_severity_alert_count, 0),
     alertScore: safeNullableNumber(row.alert_score),
     confidenceAvg: safeNullableNumber(row.confidence_avg),
     trendVsPrevious: safeNullableNumber(row.trend_vs_previous),
@@ -769,7 +764,7 @@ function buildZoneMapFeature(summary) {
       reportScore: summary.reportScore,
       activeAlertCount: summary.activeAlertCount,
       scheduledAlertCount: summary.scheduledAlertCount,
-      criticalAlertCount: summary.criticalAlertCount,
+      highSeverityAlertCount: summary.highSeverityAlertCount,
       alertScore: summary.alertScore,
       confidenceAvg: summary.confidenceAvg,
       trendVsPrevious: summary.trendVsPrevious,
@@ -804,7 +799,7 @@ async function getZoneMap(period = DEFAULT_PERIOD, metric = DEFAULT_METRIC, db =
         zsc.report_score,
         zsc.active_alert_count,
         zsc.scheduled_alert_count,
-        zsc.critical_alert_count,
+        zsc.high_severity_alert_count,
         zsc.alert_score,
         zsc.confidence_avg,
         zsc.trend_vs_previous,
@@ -844,7 +839,6 @@ async function getZoneMap(period = DEFAULT_PERIOD, metric = DEFAULT_METRIC, db =
     items,
     stats: {
       zoneCount: items.length,
-      critical: items.filter((item) => item.riskLevel === "critical").length,
       high: items.filter((item) => item.riskLevel === "high").length,
       medium: items.filter((item) => item.riskLevel === "medium").length,
       low: items.filter((item) => item.riskLevel === "low").length,
@@ -1051,7 +1045,7 @@ async function getZoneDetails(adminAreaId, period = DEFAULT_PERIOD, db = pool) {
         zsc.report_score,
         zsc.active_alert_count,
         zsc.scheduled_alert_count,
-        zsc.critical_alert_count,
+        zsc.high_severity_alert_count,
         zsc.alert_score,
         zsc.confidence_avg,
         zsc.trend_vs_previous,
@@ -1101,7 +1095,7 @@ async function getZoneDetails(adminAreaId, period = DEFAULT_PERIOD, db = pool) {
     operationalAlertsSummary: {
       active: summary.activeAlertCount,
       scheduled: summary.scheduledAlertCount,
-      critical: summary.criticalAlertCount,
+      highSeverity: summary.highSeverityAlertCount,
       items: operationalAlerts,
     },
   };

@@ -44,19 +44,20 @@
 }
 
 .notif-header-button svg {
-  width: 20px;
-  height: 20px;
+  display: block !important;
+  width: 20px !important;
+  height: 20px !important;
+  color: #7c3aed !important;
+  fill: currentColor !important;
 }
 
-.notif-header-button::before {
-  content: "\1F514";
-  font-size: 18px;
-  line-height: 1;
-  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+.notif-header-button svg path {
+  fill: currentColor !important;
 }
 
-.notif-header-button svg {
-  display: none;
+.notif-header-button:hover svg,
+.notif-header-button.open svg {
+  color: #5b21b6 !important;
 }
 
 .notif-header-badge {

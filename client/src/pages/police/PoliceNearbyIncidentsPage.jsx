@@ -26,8 +26,7 @@ function displayLabel(value) {
 }
 
 function severityColor(severity) {
-  if (severity === 'critical') return '#991b1b'
-  if (severity === 'high') return '#dc2626'
+  if (severity === 'high') return '#991b1b'
   if (severity === 'medium') return '#f59e0b'
   return '#16a34a'
 }
@@ -146,7 +145,7 @@ export default function PoliceNearbyIncidentsPage() {
       ? [locationCoords.lat, locationCoords.lng]
       : [DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng]
 
-  const highSeverityCount = nearbyIncidents.filter((item) => ['high', 'critical'].includes(item.severity)).length
+  const highSeverityCount = nearbyIncidents.filter((item) => item.severity === 'high').length
 
   const rightPanel = (
     <PoliceOfficerPanel officer={policeMe?.officer} workZone={policeMe?.workZone}>

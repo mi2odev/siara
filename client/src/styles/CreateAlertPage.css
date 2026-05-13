@@ -1254,16 +1254,10 @@
   border: 1.5px solid transparent;
 }
 
-.conf-sev-badge--critical {
+.conf-sev-badge--high {
   background: rgba(153, 27, 27, 0.09);
   color: #991b1b;
   border-color: rgba(153, 27, 27, 0.2);
-}
-
-.conf-sev-badge--high {
-  background: rgba(220, 38, 38, 0.09);
-  color: #dc2626;
-  border-color: rgba(220, 38, 38, 0.2);
 }
 
 .conf-sev-badge--medium {

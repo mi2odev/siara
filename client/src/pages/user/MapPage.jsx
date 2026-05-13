@@ -1668,7 +1668,7 @@ export default function MapPage() {
                     </span>
                   </div>
                   <span className={`zone-badge severity-${zone.severity}`}>
-                    <FiberManualRecordIcon fontSize="inherit" className={`icon-severity-${zone.severity === "high" ? "critical" : zone.severity === "medium" ? "moderate" : "low"}`} />
+                    <FiberManualRecordIcon fontSize="inherit" className={`icon-severity-${zone.severity === "high" ? "high" : zone.severity === "medium" ? "medium" : "low"}`} />
                   </span>
                 </div>
               ))}

@@ -93,17 +93,12 @@
   color: #1D4ED8;
 }
 
-.accident-heat-popup__pill--moderate {
+.accident-heat-popup__pill--medium {
   background: #FEF3C7;
   color: #92400E;
 }
 
 .accident-heat-popup__pill--high {
-  background: #FFEDD5;
-  color: #C2410C;
-}
-
-.accident-heat-popup__pill--critical {
   background: #FEE2E2;
   color: #991B1B;
 }

@@ -12,15 +12,13 @@ import '../../styles/RouteExplanationCard.css'
 
 function riskTier(level, percent) {
   const text = String(level || '').trim().toLowerCase()
-  if (text === 'extreme' || text === 'critical') return 'extreme'
   if (text === 'high') return 'high'
-  if (text === 'moderate' || text === 'medium') return 'moderate'
+  if (text === 'medium') return 'medium'
   if (text === 'low') return 'low'
   const numeric = Number(percent)
   if (!Number.isFinite(numeric)) return 'low'
-  if (numeric >= 75) return 'extreme'
   if (numeric >= 50) return 'high'
-  if (numeric >= 25) return 'moderate'
+  if (numeric >= 25) return 'medium'
   return 'low'
 }
 

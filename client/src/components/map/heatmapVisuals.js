@@ -5,12 +5,11 @@ import L from 'leaflet'
 // the SiaraMap legend can share a single source of truth.
 export const HEATMAP_LEGEND_COLORS = {
   low: '#3B82F6',
-  moderate: '#FACC15',
-  high: '#F97316',
-  critical: '#DC2626',
+  medium: '#FACC15',
+  high: '#DC2626',
 }
 
-const SEVERITY_ORDER = ['critical', 'high', 'moderate', 'low']
+const SEVERITY_ORDER = ['high', 'medium', 'low']
 const FALLBACK_COLOR = HEATMAP_LEGEND_COLORS.low
 
 function clamp(value, min, max) {
@@ -31,10 +30,10 @@ function safeId(input) {
   return String(input || 'cluster').replace(/[^a-zA-Z0-9_-]/g, '_')
 }
 
-// Convert the backend's cumulative `colorStops` (critical → high → moderate
-// → low, each `stop` is the cumulative radius fraction from the center
-// outward) into a list of radial-gradient stops that produces a soft heat
-// cloud. The strategy:
+// Convert the backend's cumulative `colorStops` (high → medium → low, each
+// `stop` is the cumulative radius fraction from the center outward) into a
+// list of radial-gradient stops that produces a soft heat cloud. The
+// strategy:
 //   * For each present severity, place TWO stops in the gradient — a more
 //     opaque stop at the inner edge of the slice and a softer stop at the
 //     outer edge — so neighbouring severities blend into each other instead
@@ -48,12 +47,11 @@ function buildGradientStops(cluster) {
 
   const total =
     Number(cluster?.severityCounts?.low || 0) +
-    Number(cluster?.severityCounts?.moderate || 0) +
-    Number(cluster?.severityCounts?.high || 0) +
-    Number(cluster?.severityCounts?.critical || 0)
+    Number(cluster?.severityCounts?.medium || 0) +
+    Number(cluster?.severityCounts?.high || 0)
 
   // Center intensity scales with how dominant the strongest severity is —
-  // a cluster of pure-critical reports gets a denser core than a mixed bag.
+  // a cluster of pure-high-severity reports gets a denser core than a mixed bag.
   const dominantFraction = total > 0
     ? Math.max(...SEVERITY_ORDER.map((key) => Number(cluster?.severityCounts?.[key] || 0))) / total
     : 1

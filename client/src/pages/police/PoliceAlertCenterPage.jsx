@@ -109,7 +109,7 @@ export default function PoliceAlertCenterPage() {
 
   const counters = React.useMemo(() => ({
     total: alerts.length,
-    high: alerts.filter((item) => ['high', 'critical'].includes(item.severity)).length,
+    high: alerts.filter((item) => item.severity === 'high').length,
     unread: unreadCount,
   }), [alerts, unreadCount])
 

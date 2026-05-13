@@ -1,6 +1,7 @@
 const createError = require("http-errors");
 const router = require("express").Router();
 
+const pool = require("../db");
 const { verifyToken } = require("./verifytoken");
 const {
   deactivatePushSubscription,
@@ -12,6 +13,8 @@ const {
   upsertPushSubscription,
   updateUserNotificationPreferences,
 } = require("../services/pushService");
+const { mapNotificationRow, markNotificationAsSent } = require("../services/notificationsService");
+const { emitNotificationCreatedToUser } = require("../services/notificationSocket");
 
 router.get("/public-key", (req, res, next) => {
   try {
@@ -98,14 +101,41 @@ router.delete("/mobile/unregister", verifyToken, async (req, res, next) => {
 
 router.post("/test", verifyToken, async (req, res, next) => {
   try {
-    const testNotificationId = `test-${Date.now()}`;
+    const userId = req.user.userId;
+    const title = "SIARA system alerts enabled";
+    const body = "This is a test browser notification from SIARA.";
+    const eventType = "TEST_PUSH";
+    const priority = 2;
+
+    const insertResult = await pool.query(
+      `
+        INSERT INTO app.notifications (
+          user_id, report_id, operational_alert_id, channel, status,
+          priority, event_type, title, body, data
+        )
+        VALUES ($1::uuid, NULL, NULL, 'websocket', 'pending', $2::integer, $3::varchar, $4::text, $5::text, $6::jsonb)
+        RETURNING *
+      `,
+      [
+        userId,
+        priority,
+        eventType,
+        title,
+        body,
+        JSON.stringify({ test: true, url: "/notifications?pushTest=1" }),
+      ],
+    );
+
+    const notification = mapNotificationRow(insertResult.rows[0]);
+    const testNotificationId = notification?.id || `test-${Date.now()}`;
+
     const payload = {
       notificationId: testNotificationId,
-      eventType: "TEST_PUSH",
-      title: "SIARA system alerts enabled",
-      body: "This is a test browser notification from SIARA.",
+      eventType,
+      title,
+      body,
       url: "/notifications?pushTest=1",
-      priority: 2,
+      priority,
       zoneName: null,
       icon: "/siara-push-icon.svg",
       badge: "/siara-push-badge.svg",
@@ -115,13 +145,27 @@ router.post("/test", verifyToken, async (req, res, next) => {
       },
     };
 
-    const result = await sendPushToUser(req.user.userId, payload);
+    const result = await sendPushToUser(userId, payload);
+
+    if (notification) {
+      try {
+        const sent = await markNotificationAsSent(notification.id);
+        emitNotificationCreatedToUser(userId, sent || notification);
+      } catch (emitError) {
+        console.error("[push-test] live_emit_failed", {
+          message: emitError.message,
+          notificationId: notification.id,
+        });
+      }
+    }
+
     return res.status(200).json({
       ok: result.ok,
       sentCount: result.sentCount,
       deactivatedCount: result.deactivatedCount,
       failureCount: result.failureCount,
       reason: result.reason,
+      notificationId: testNotificationId,
     });
   } catch (error) {
     return next(error);

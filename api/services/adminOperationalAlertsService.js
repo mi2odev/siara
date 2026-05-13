@@ -28,7 +28,7 @@ const ALLOWED_ALERT_TYPES = new Set([
   "emergency",
   "advisory",
 ]);
-const ALLOWED_SEVERITIES = new Set(["low", "medium", "high", "critical"]);
+const ALLOWED_SEVERITIES = new Set(["low", "medium", "high"]);
 const ALLOWED_SOURCE_TYPES = new Set(["manual", "report", "weather", "system"]);
 const ALLOWED_AUDIENCE_SCOPES = new Set([
   "users_in_zone",
@@ -362,7 +362,6 @@ function formatTemplateDuration(minutes) {
 
 function mapOperationalAlertSeverityToPriority(severity) {
   switch (String(severity || "").trim().toLowerCase()) {
-    case "critical":
     case "high":
       return 1;
     case "medium":

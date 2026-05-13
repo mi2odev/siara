@@ -55,14 +55,12 @@ function flattenPath(routeSnapshot, segmentsSnapshot) {
 
 function dangerColor(level, percent) {
   const text = String(level || '').trim().toLowerCase()
-  if (text === 'extreme' || text === 'critical') return '#B91C1C'
-  if (text === 'high') return '#EA580C'
-  if (text === 'moderate' || text === 'medium') return '#F59E0B'
+  if (text === 'high') return '#B91C1C'
+  if (text === 'medium') return '#F59E0B'
   if (text === 'low') return '#16A34A'
   const numeric = Number(percent)
   if (!Number.isFinite(numeric)) return '#64748B'
-  if (numeric >= 75) return '#B91C1C'
-  if (numeric >= 50) return '#EA580C'
+  if (numeric >= 50) return '#B91C1C'
   if (numeric >= 25) return '#F59E0B'
   return '#16A34A'
 }

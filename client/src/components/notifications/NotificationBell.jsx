@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
 
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useNotificationStore } from '../../stores/notificationStore'
@@ -41,14 +42,7 @@ function getPriorityTone(priority) {
 }
 
 function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M12 3a4 4 0 0 0-4 4v1.1A6.99 6.99 0 0 1 5 14v2h14v-2a6.99 6.99 0 0 1-3-5.9V7a4 4 0 0 0-4-4Zm0 18a3 3 0 0 0 2.83-2H9.17A3 3 0 0 0 12 21Z"
-        fill="currentColor"
-      />
-    </svg>
-  )
+  return <NotificationsOutlinedIcon fontSize="medium" />
 }
 
 function useHeaderMountNode() {

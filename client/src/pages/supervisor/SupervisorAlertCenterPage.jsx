@@ -16,7 +16,7 @@ import {
 } from '../../services/policeService'
 import '../../styles/SupervisorMode.css'
 
-const SEVERITIES = ['low', 'medium', 'high', 'critical']
+const SEVERITIES = ['low', 'medium', 'high']
 const ALERT_TYPES = ['advisory', 'emergency', 'incident', 'weather', 'roadwork', 'closure']
 const TARGET_TYPES = [
   { value: 'zone', label: 'All Officers in Zone' },
@@ -338,8 +338,8 @@ export default function SupervisorAlertCenterPage() {
           <div className="sv-section-body">
             <div className="sv-grid-3">
               {[
-                { icon: <NotificationsActiveOutlinedIcon fontSize="inherit" className="icon-danger" />, label: 'Critical', desc: 'Immediate threat, major accident, danger zone active. Requires urgent response.' },
-                { icon: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'High', desc: 'Significant risk, high accident probability near a specific route.' },
+                { icon: <NotificationsActiveOutlinedIcon fontSize="inherit" className="icon-danger" />, label: 'High', desc: 'Immediate threat, major accident, danger zone active. Requires urgent response.' },
+                { icon: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'Medium', desc: 'Significant risk, accident probability near a specific route.' },
                 { icon: <RecordVoiceOverOutlinedIcon fontSize="inherit" className="icon-info" />, label: 'Advisory', desc: 'General guidance, zone updates, traffic congestion, roadwork.' },
               ].map((g) => (
                 <div key={g.label} style={{

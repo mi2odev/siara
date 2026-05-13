@@ -5,15 +5,13 @@ const OFFSETS_MIN = [0, 30, 60, 120]
 
 function tierFromLevel(level, percent) {
   const text = String(level || '').trim().toLowerCase()
-  if (text === 'extreme' || text === 'critical') return 'extreme'
   if (text === 'high') return 'high'
-  if (text === 'moderate' || text === 'medium') return 'moderate'
+  if (text === 'medium') return 'medium'
   if (text === 'low') return 'low'
   const n = Number(percent)
   if (!Number.isFinite(n)) return 'unknown'
-  if (n >= 75) return 'extreme'
   if (n >= 50) return 'high'
-  if (n >= 25) return 'moderate'
+  if (n >= 25) return 'medium'
   return 'low'
 }
 

@@ -8,7 +8,7 @@ const SEVERITY_HINT_TO_LEVEL = {
   1: 'low',
   2: 'medium',
   3: 'high',
-  4: 'critical',
+  4: 'high',
 }
 
 // Inline Material Symbols SVG paths so the same icon set renders both inside
@@ -17,7 +17,16 @@ const ICON_SVG = {
   accident:
     '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M11.5 2.2 12.6 5.3l3.1-1.1-1.7 2.8 2.8 1.7-3.2.5-.4 3.2-1.7-2.8-2.9 1.1 1.1-2.9-2.8-1.7 3.2-.5z"/><path d="M2.5 19.5h13.1c.3 0 .5-.2.5-.5v-2.6l-1-2.7-1.6-1.1H7l-1.5 1.1L4 16.4v2.6c0 .3.2.5.5.5zm2.4-3.1a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2zm9 0a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2z"/><path d="M19.5 13.6c.3 0 .5-.2.5-.5l-.5-2.7-1.1-1.6h-3.2l-1 1.1.6.5 1.6.5L19.5 13.6zm-1.7-1.3a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6z"/></svg>',
   traffic:
-    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M12 2a3 3 0 013 3v0a3 3 0 11-6 0v0a3 3 0 013-3zm0 7a3 3 0 013 3v0a3 3 0 11-6 0v0a3 3 0 013-3zm0 7a3 3 0 013 3v0a3 3 0 11-6 0v0a3 3 0 013-3z"/></svg>',
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true">' +
+      // Housing
+      '<path d="M16 2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H8V4h8v16z"/>' +
+      // Side brackets (mounting bars)
+      '<path d="M3 6h2v2H3zm0 5h2v2H3zm0 5h2v2H3zm16-10h2v2h-2zm0 5h2v2h-2zm0 5h2v2h-2z"/>' +
+      // Three lights
+      '<circle cx="12" cy="7.5" r="1.6"/>' +
+      '<circle cx="12" cy="12" r="1.6"/>' +
+      '<circle cx="12" cy="16.5" r="1.6"/>' +
+    '</svg>',
   danger:
     '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zM11 10v5h2v-5h-2zm0 6v2h2v-2h-2z"/></svg>',
   weather:
@@ -46,7 +55,6 @@ const TYPE_META = {
 }
 
 const SEVERITY_COLORS = {
-  critical: '#991b1b',
   high: '#ef4444',
   medium: '#f59e0b',
   low: '#10b981',
@@ -106,8 +114,7 @@ function formatRelativeTime(value) {
 function getReportSeverity(report) {
   const explicitSeverity = String(report?.severity || '').trim().toLowerCase()
   if (
-    explicitSeverity === 'critical'
-    || explicitSeverity === 'high'
+    explicitSeverity === 'high'
     || explicitSeverity === 'medium'
     || explicitSeverity === 'low'
   ) {

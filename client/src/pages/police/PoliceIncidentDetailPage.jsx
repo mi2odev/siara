@@ -36,8 +36,7 @@ function label(value) {
 }
 
 function severityColor(sev) {
-  if (sev === 'critical') return '#991b1b'
-  if (sev === 'high') return '#dc2626'
+  if (sev === 'high') return '#991b1b'
   if (sev === 'medium') return '#d97706'
   return '#16a34a'
 }
@@ -73,41 +72,62 @@ export default function PoliceIncidentDetailPage() {
   const [successMsg, setSuccessMsg] = React.useState('')
 
   // Lightbox
-  const [lightboxUrl, setLightboxUrl] = React.useState(null)
+  const [lightboxIndex, setLightboxIndex] = React.useState(null)
   const [lightboxScale, setLightboxScale] = React.useState(1)
   const [lightboxOffset, setLightboxOffset] = React.useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = React.useState(false)
   const dragStartRef = React.useRef(null)
   const stageRef = React.useRef(null)
 
+  const mediaList = Array.isArray(detail?.incident?.media) ? detail.incident.media : []
+  const lightboxUrl = lightboxIndex == null ? null : mediaList[lightboxIndex]?.url || null
+
   const closeLightbox = React.useCallback(() => {
-    setLightboxUrl(null)
+    setLightboxIndex(null)
     setLightboxScale(1)
     setLightboxOffset({ x: 0, y: 0 })
     setIsDragging(false)
   }, [])
 
-  const openLightbox = React.useCallback((url) => {
-    setLightboxUrl(url)
+  const openLightbox = React.useCallback((index) => {
+    setLightboxIndex(index)
     setLightboxScale(1)
     setLightboxOffset({ x: 0, y: 0 })
     setIsDragging(false)
   }, [])
+
+  const showPrevImage = React.useCallback(() => {
+    if (mediaList.length <= 1) return
+    setLightboxScale(1)
+    setLightboxOffset({ x: 0, y: 0 })
+    setLightboxIndex((prev) => (prev == null ? 0 : (prev - 1 + mediaList.length) % mediaList.length))
+  }, [mediaList.length])
+
+  const showNextImage = React.useCallback(() => {
+    if (mediaList.length <= 1) return
+    setLightboxScale(1)
+    setLightboxOffset({ x: 0, y: 0 })
+    setLightboxIndex((prev) => (prev == null ? 0 : (prev + 1) % mediaList.length))
+  }, [mediaList.length])
 
   React.useEffect(() => {
-    if (!lightboxUrl) return
-    const onKey = (e) => { if (e.key === 'Escape') closeLightbox() }
+    if (lightboxIndex == null) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeLightbox()
+      if (e.key === 'ArrowRight') showNextImage()
+      if (e.key === 'ArrowLeft') showPrevImage()
+    }
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
       window.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
     }
-  }, [lightboxUrl, closeLightbox])
+  }, [lightboxIndex, closeLightbox, showNextImage, showPrevImage])
 
   React.useEffect(() => {
     const stage = stageRef.current
-    if (!stage || !lightboxUrl) return
+    if (!stage || lightboxIndex == null) return
     const onWheel = (e) => {
       e.preventDefault()
       const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15
@@ -119,7 +139,7 @@ export default function PoliceIncidentDetailPage() {
     }
     stage.addEventListener('wheel', onWheel, { passive: false })
     return () => stage.removeEventListener('wheel', onWheel)
-  }, [lightboxUrl])
+  }, [lightboxIndex])
 
   const lbZoomIn = () => setLightboxScale((s) => Math.min(s * 1.5, 6))
   const lbZoomOut = () => setLightboxScale((s) => {
@@ -498,13 +518,13 @@ export default function PoliceIncidentDetailPage() {
                     <p className="pid-empty-msg">No media evidence attached to this report.</p>
                   ) : (
                     <div className="pid-evidence-grid">
-                      {incident.media.map((item) => (
+                      {incident.media.map((item, index) => (
                         <button
                           key={item.id}
                           type="button"
                           className="pid-evidence-tile"
                           title="View full size"
-                          onClick={() => openLightbox(item.url)}
+                          onClick={() => openLightbox(index)}
                         >
                           <div className="pid-evidence-thumb">
                             <img
@@ -695,6 +715,31 @@ export default function PoliceIncidentDetailPage() {
             <button className="police-media-zoom-btn reset" onClick={lbReset} title="Reset">1:1</button>
           </div>
           <button className="police-media-lightbox-close" onClick={closeLightbox} title="Close">×</button>
+
+          {mediaList.length > 1 ? (
+            <>
+              <button
+                type="button"
+                className="police-media-lightbox-nav police-media-lightbox-nav--prev"
+                onClick={(e) => { e.stopPropagation(); showPrevImage() }}
+                aria-label="Previous photo"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className="police-media-lightbox-nav police-media-lightbox-nav--next"
+                onClick={(e) => { e.stopPropagation(); showNextImage() }}
+                aria-label="Next photo"
+              >
+                ›
+              </button>
+              <span className="police-media-lightbox-counter">
+                {lightboxIndex + 1} / {mediaList.length}
+              </span>
+            </>
+          ) : null}
+
           <div className="police-media-lightbox-content" onClick={(e) => e.stopPropagation()}>
             <div
               ref={stageRef}

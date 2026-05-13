@@ -48,8 +48,7 @@ const maxHeatVal = 22 // ceiling used to normalise heatmap cell intensity
 /* ── Severity breakdown (4 levels) with absolute count + percentage ── */
 
 const severityDistribution = [
-  { label: 'Critical', count: 23, pct: 8, color: '#DC2626' },
-  { label: 'High', count: 89, pct: 30, color: '#EF4444' },
+  { label: 'High', count: 112, pct: 38, color: '#DC2626' },
   { label: 'Medium', count: 104, pct: 35, color: '#F59E0B' },
   { label: 'Low', count: 80, pct: 27, color: '#22C55E' },
 ]

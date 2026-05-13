@@ -28,6 +28,7 @@ import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined'
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined'
 import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined'
@@ -74,11 +75,11 @@ const riskZones = [
 
 /* Mock real-time activity log entries */
 const activityFeed = [
-  { id: 1, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-critical" />, text: 'Risk peak detected – RN5 Algiers', time: '2 min ago', type: 'critical' },
-  { id: 2, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-moderate" />, text: 'Model recalibrated – Bab Ezzouar area', time: '15 min ago', type: 'warning' },
+  { id: 1, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-high" />, text: 'Risk peak detected – RN5 Algiers', time: '2 min ago', type: 'high' },
+  { id: 2, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-medium" />, text: 'Model recalibrated – Bab Ezzouar area', time: '15 min ago', type: 'warning' },
   { id: 3, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-low" />, text: 'Risk reduced – Hydra after roadwork', time: '32 min ago', type: 'success' },
   { id: 4, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-info" />, text: 'New weather dataset integrated', time: '1h ago', type: 'info' },
-  { id: 5, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-moderate" />, text: 'School alert – Bir Mourad Raïs 08h', time: '1h 20 min ago', type: 'warning' },
+  { id: 5, icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-medium" />, text: 'School alert – Bir Mourad Raïs 08h', time: '1h 20 min ago', type: 'warning' },
 ]
 
 /* Data sources feeding the ML model */
@@ -173,7 +174,10 @@ export default function PredictionsPage() {
             />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}><span className="notification-badge"></span></button>
+            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
+              <NotificationsOutlinedIcon fontSize="small" />
+              <span className="notification-badge"></span>
+            </button>
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {userAvatarUrl ? (
@@ -390,7 +394,7 @@ export default function PredictionsPage() {
                       </div>
                     </td>
                     <td className={`pred-zone-trend ${z.trend.startsWith('+') ? 'up' : 'down'}`}>{z.trend.startsWith('+') ? <TrendingUpRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle' }} /> : <TrendingDownRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle' }} />} {z.trend}</td>
-                    <td><span className={`pred-severity-badge ${z.severity}`}>{z.severity === 'high' ? 'High' : z.severity === 'medium' ? 'Moderate' : 'Low'}</span></td>
+                    <td><span className={`pred-severity-badge ${z.severity}`}>{z.severity === 'high' ? 'High' : z.severity === 'medium' ? 'Medium' : 'Low'}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -496,7 +500,7 @@ export default function PredictionsPage() {
               <div className="pred-forecast-row">
                 <span className="pred-forecast-time">12h</span>
                 <div className="pred-forecast-level"><div className="pred-forecast-fill medium" style={{ width: '60%' }}></div></div>
-                <span className="pred-forecast-label medium">Moderate</span>
+                <span className="pred-forecast-label medium">Medium</span>
               </div>
               <div className="pred-forecast-row">
                 <span className="pred-forecast-time">18h</span>
@@ -506,7 +510,7 @@ export default function PredictionsPage() {
               <div className="pred-forecast-row">
                 <span className="pred-forecast-time">24h</span>
                 <div className="pred-forecast-level"><div className="pred-forecast-fill medium" style={{ width: '50%' }}></div></div>
-                <span className="pred-forecast-label medium">Moderate</span>
+                <span className="pred-forecast-label medium">Medium</span>
               </div>
               <div className="pred-forecast-row">
                 <span className="pred-forecast-time">48h</span>

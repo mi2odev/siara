@@ -18,7 +18,6 @@ import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
-import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined'
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
@@ -70,7 +69,7 @@ export default function PoliceShell({
       title: 'OPERATIONS',
       items: [
         { key: 'dashboard', label: 'Dashboard', icon: <AccountBalanceOutlinedIcon fontSize="inherit" />, path: '/police' },
-        { key: 'active-incidents', label: 'Active Incidents', icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-critical" />, path: '/police?view=active' },
+        { key: 'active-incidents', label: 'Active Incidents', icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-high" />, path: '/police?view=active' },
         { key: 'nearby-incidents', label: 'Nearby Incidents', icon: <LocationOnOutlinedIcon fontSize="inherit" />, path: '/police/nearby' },
         {
           key: 'verification-queue',
@@ -96,7 +95,7 @@ export default function PoliceShell({
       items: [
         { key: 'contact', label: 'Contact', icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
         { key: 'about', label: 'About', icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
-        { key: 'description', label: 'Description', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/description' },
+        { key: 'overview', label: 'Overview', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/overview' },
       ],
     },
   ], [verificationPendingCount])
@@ -134,7 +133,7 @@ export default function PoliceShell({
     setShowDropdown(false)
     setShowMobileMenu(false)
 
-    if (item.key === 'contact' || item.key === 'about' || item.key === 'description') {
+    if (item.key === 'contact' || item.key === 'about' || item.key === 'overview') {
       setOpenInfoPanel(item.key)
       return
     }
@@ -168,8 +167,12 @@ export default function PoliceShell({
       }
     }
 
+    document.body.classList.add('has-left-info-open')
     document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
+    return () => {
+      document.body.classList.remove('has-left-info-open')
+      document.removeEventListener('keydown', handleEscape)
+    }
   }, [openInfoPanel])
 
   useEffect(() => {
@@ -247,7 +250,6 @@ export default function PoliceShell({
           </div>
 
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Messages"><ChatBubbleOutlineOutlinedIcon fontSize="small" /></button>
             <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
               <NotificationsOutlinedIcon fontSize="small" />
               {notificationCount > 0 ? <span className="notification-badge"></span> : null}
@@ -538,14 +540,14 @@ export default function PoliceShell({
                   </>
                 ) : null}
 
-                {openInfoPanel === 'description' ? (
+                {openInfoPanel === 'overview' ? (
                   <>
                     <div className="contact-quick-head">
                       <div>
                         <span className="contact-quick-kicker">Service Flow</span>
                         <h3>SIARA Workflow Overview</h3>
                       </div>
-                      <button type="button" className="contact-quick-close" onClick={() => setOpenInfoPanel(null)} aria-label="Close description panel">×</button>
+                      <button type="button" className="contact-quick-close" onClick={() => setOpenInfoPanel(null)} aria-label="Close overview panel">×</button>
                     </div>
                     <div className="info-quick-block">
                       <p className="info-quick-lead">

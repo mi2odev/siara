@@ -38,7 +38,7 @@ rectangle "SIARA Smart Mobility Platform" {
   }
 
   package "Emergency Response" {
-    (View Critical Incidents) as UC15
+    (View High-Severity Incidents) as UC15
     (Respond to Incident) as UC16
   }
 

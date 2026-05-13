@@ -204,17 +204,12 @@
   color: #047857;
 }
 
-.siara-cluster-panel__report-pill.severity-moderate {
+.siara-cluster-panel__report-pill.severity-medium {
   background: #FEF3C7;
   color: #B45309;
 }
 
 .siara-cluster-panel__report-pill.severity-high {
-  background: #FFEDD5;
-  color: #C2410C;
-}
-
-.siara-cluster-panel__report-pill.severity-critical {
   background: #FEE2E2;
   color: #B91C1C;
 }

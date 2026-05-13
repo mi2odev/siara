@@ -5,7 +5,7 @@ import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
-import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
+import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined'
 import AutoGraphOutlinedIcon from '@mui/icons-material/AutoGraphOutlined'
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
@@ -23,14 +23,14 @@ const NAV_ITEMS = [
   { key: 'map', label: 'Incident Map', icon: <MapOutlinedIcon fontSize="inherit" />, path: '/map' },
   { key: 'alerts', label: 'Alerts', icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />, path: '/alerts' },
   { key: 'reports', label: 'My Reports', icon: <EditNoteOutlinedIcon fontSize="inherit" />, path: '/report' },
-  { key: 'dashboard', label: 'Dashboard', icon: <InsightsOutlinedIcon fontSize="inherit" />, path: '/dashboard' },
+  { key: 'dashboard', label: 'Dashboard', icon: <SpeedOutlinedIcon fontSize="inherit" />, path: '/dashboard' },
   { key: 'predictions', label: 'Predictions', icon: <AutoGraphOutlinedIcon fontSize="inherit" />, path: '/predictions' },
 ]
 
 const INFO_ITEMS = [
   { key: 'contact', label: 'Contact', icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
   { key: 'about', label: 'About', icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
-  { key: 'description', label: 'Description', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/description' },
+  { key: 'overview', label: 'Overview', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/overview' },
 ]
 
 const ACCOUNT_ITEMS = [
@@ -55,8 +55,12 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz }) {
       }
     }
 
+    document.body.classList.add('has-left-info-open')
     document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
+    return () => {
+      document.body.classList.remove('has-left-info-open')
+      document.removeEventListener('keydown', handleEscape)
+    }
   }, [openPanel])
 
   useEffect(() => {
@@ -95,7 +99,7 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz }) {
       key={item.key}
       className={`nav-item ${(activeKey === item.key || openPanel === item.key) ? 'nav-item-active' : ''} ${extraClassName}`.trim()}
       onClick={onClickOverride || (() => {
-        if (item.key === 'contact' || item.key === 'about' || item.key === 'description') {
+        if (item.key === 'contact' || item.key === 'about' || item.key === 'overview') {
           setOpenPanel(item.key)
           return
         }
@@ -268,14 +272,14 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz }) {
                   </>
                 ) : null}
 
-                {openPanel === 'description' ? (
+                {openPanel === 'overview' ? (
                   <>
                     <div className="contact-quick-head">
                       <div>
                         <span className="contact-quick-kicker">Service Flow</span>
                         <h3>SIARA Workflow Overview</h3>
                       </div>
-                      <button type="button" className="contact-quick-close" onClick={() => setOpenPanel(null)} aria-label="Close description panel">×</button>
+                      <button type="button" className="contact-quick-close" onClick={() => setOpenPanel(null)} aria-label="Close overview panel">×</button>
                     </div>
                     <div className="info-quick-block">
                       <p className="info-quick-lead">

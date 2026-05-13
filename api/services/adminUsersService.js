@@ -167,9 +167,6 @@ function buildRiskTier(falseRatio, driverRiskScore, trustScore) {
   const driver = safeNumber(driverRiskScore) ?? 0;
   const trust = safeNumber(trustScore) ?? 50;
 
-  if (ratio >= 70 || driver >= 80 || trust < 20) {
-    return { code: "critical", label: "Critical" };
-  }
   if (ratio >= 40 || driver >= 60 || trust < 40) {
     return { code: "high", label: "High" };
   }

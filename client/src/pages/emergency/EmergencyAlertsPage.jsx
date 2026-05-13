@@ -12,7 +12,7 @@ import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
 const ALERTS = [
   {
     id: 'WARN-08',
-    severity: 'critical',
+    severity: 'high',
     type: 'accident',
     title: 'Bus collision corridor RN1 — possible 12+ casualties',
     location: 'RN1 km 12, Larbaa',
@@ -59,9 +59,9 @@ const ALERTS = [
 
 const FILTERS = [
   { key: 'all',      label: 'All' },
-  { key: 'critical', label: 'Critical' },
   { key: 'high',     label: 'High' },
   { key: 'medium',   label: 'Medium' },
+  { key: 'low',      label: 'Low' },
 ]
 
 export default function EmergencyAlertsPage() {
@@ -76,7 +76,7 @@ export default function EmergencyAlertsPage() {
     <EmergencyShell unitId="AMB-A12" unitStatus="responding" activeMissions={2}>
       <header className="em-page-head">
         <div>
-          <span className="em-eyebrow">Critical Notices</span>
+          <span className="em-eyebrow">High-Severity Notices</span>
           <h1 className="em-page-title">Emergency Alerts</h1>
           <p className="em-page-subtitle">{visible.length} active alert{visible.length === 1 ? '' : 's'}</p>
         </div>

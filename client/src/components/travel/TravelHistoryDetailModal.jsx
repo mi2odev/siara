@@ -7,13 +7,12 @@ import {
 } from '../../services/travelHistoryService'
 import RouteReplayMap from './RouteReplayMap'
 
-const RISK_LEVELS = ['low', 'moderate', 'medium', 'high', 'extreme', 'critical']
+const RISK_LEVELS = ['low', 'medium', 'high']
 
 function riskTone(level, percent) {
   const text = String(level || '').trim().toLowerCase()
-  if (text === 'extreme' || text === 'critical') return 'high'
   if (text === 'high') return 'high'
-  if (text === 'moderate' || text === 'medium') return 'medium'
+  if (text === 'medium') return 'medium'
   if (text === 'low') return 'low'
   const numeric = Number(percent)
   if (!Number.isFinite(numeric)) return 'low'

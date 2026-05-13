@@ -6,17 +6,15 @@ const MAX_LIMIT = 100;
 const SEVERITY_BUCKET_FROM_HINT = (hint) => {
   const n = Number(hint);
   if (!Number.isFinite(n)) return "low";
-  if (n >= 5) return "critical";
-  if (n === 4) return "high";
-  if (n === 3 || n === 2) return "moderate";
+  if (n >= 4) return "high";
+  if (n === 3) return "medium";
   return "low";
 };
 
 const SEVERITY_BUCKET_RANK = {
   low: 0,
-  moderate: 30,
-  high: 60,
-  critical: 100,
+  medium: 30,
+  high: 100,
 };
 
 function safeNumber(value, fallback = 0) {
@@ -60,10 +58,10 @@ function nearbyClusterBoost(densityRow) {
 function buildReasons(report, scoring) {
   const reasons = [];
   const sevBucket = SEVERITY_BUCKET_FROM_HINT(report.severity_hint);
-  if (sevBucket === "critical" || sevBucket === "high") {
+  if (sevBucket === "high") {
     reasons.push({
       kind: "severity",
-      label: `${sevBucket === "critical" ? "Critical" : "High"} severity`,
+      label: "High severity",
     });
   }
   if (report.verified_by_officer_id) {

@@ -29,7 +29,7 @@ const INITIAL_OPS = [
   },
   {
     id: 'EMG-2031',
-    severity: 'critical',
+    severity: 'high',
     title: 'Multi-vehicle collision',
     location: 'A1 Highway km 47, Boudouaou',
     vehicle: 'AMB-A12',

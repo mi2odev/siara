@@ -1,6 +1,6 @@
 const pool = require("../db");
 
-const VALID_RISK_LEVELS = new Set(["low", "moderate", "medium", "high", "extreme", "critical"]);
+const VALID_RISK_LEVELS = new Set(["low", "medium", "high"]);
 
 function safeNumber(value, fallback = null) {
   if (value === null || value === undefined || value === "") return fallback;
@@ -426,7 +426,7 @@ async function getMySafetySummary(userId) {
       COALESCE(SUM(distance_km), 0)::float AS total_distance_km,
       AVG(overall_risk_percent)::float AS avg_risk_percent,
       COUNT(*) FILTER (
-        WHERE LOWER(COALESCE(overall_risk_level, '')) IN ('high', 'extreme', 'critical')
+        WHERE LOWER(COALESCE(overall_risk_level, '')) = 'high'
       )::int AS high_risk_trip_count,
       AVG(rating)::float AS avg_rating,
       COUNT(*) FILTER (WHERE route_type = 'safest')::int AS safest_route_usage_count

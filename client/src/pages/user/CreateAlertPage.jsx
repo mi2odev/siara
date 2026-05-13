@@ -1,6 +1,33 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Circle, GoogleMap, Marker, useLoadScript } from '@react-google-maps/api'
+import { Circle, MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+
+const leafletIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+})
+
+function RadiusMapClickHandler({ onPick }) {
+  useMapEvents({
+    click(event) {
+      onPick({ lat: event.latlng.lat, lng: event.latlng.lng })
+    },
+  })
+  return null
+}
+
+function RadiusMapView({ center, zoom }) {
+  const map = useMap()
+  useEffect(() => {
+    map.setView([center.lat, center.lng], zoom)
+  }, [map, center.lat, center.lng, zoom])
+  return null
+}
 import CarCrashOutlinedIcon from '@mui/icons-material/CarCrashOutlined'
 import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
 import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined'
@@ -240,9 +267,6 @@ export default function CreateAlertPage() {
   const editAlert = location.state?.editAlert || null
   const isEditMode = Boolean(editAlert)
   const initialState = useMemo(() => getInitialState(editAlert), [editAlert])
-  const { isLoaded: mapReady } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAP_KEY || '',
-  })
 
   const [showDropdown, setShowDropdown] = useState(false)
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
@@ -797,37 +821,40 @@ export default function CreateAlertPage() {
                     </div>
 
                     <div className="map-preview" style={{ height: 260 }}>
-                      {mapReady ? (
-                        <GoogleMap
-                          mapContainerStyle={{ width: '100%', height: '100%' }}
+                      <MapContainer
+                        style={{ width: '100%', height: '100%' }}
+                        center={[alertData.radiusCenter.lat, alertData.radiusCenter.lng]}
+                        zoom={Math.max(7, 12 - Math.floor(alertData.zoneRadius / 6))}
+                        scrollWheelZoom
+                      >
+                        <TileLayer
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        <RadiusMapView
                           center={alertData.radiusCenter}
                           zoom={Math.max(7, 12 - Math.floor(alertData.zoneRadius / 6))}
-                          onClick={(event) =>
-                            event?.latLng &&
-                            setAlertData((prev) => ({
-                              ...prev,
-                              radiusCenter: {
-                                lat: event.latLng.lat(),
-                                lng: event.latLng.lng(),
-                              },
-                            }))
+                        />
+                        <RadiusMapClickHandler
+                          onPick={(latlng) =>
+                            setAlertData((prev) => ({ ...prev, radiusCenter: latlng }))
                           }
-                        >
-                          <Marker position={alertData.radiusCenter} />
-                          <Circle
-                            center={alertData.radiusCenter}
-                            radius={alertData.zoneRadius * 1000}
-                            options={{
-                              fillColor: '#0f766e',
-                              fillOpacity: 0.16,
-                              strokeColor: '#0f766e',
-                              strokeWeight: 2,
-                            }}
-                          />
-                        </GoogleMap>
-                      ) : (
-                        <div className="mini-map-fallback">Loading map...</div>
-                      )}
+                        />
+                        <Marker
+                          position={[alertData.radiusCenter.lat, alertData.radiusCenter.lng]}
+                          icon={leafletIcon}
+                        />
+                        <Circle
+                          center={[alertData.radiusCenter.lat, alertData.radiusCenter.lng]}
+                          radius={alertData.zoneRadius * 1000}
+                          pathOptions={{
+                            fillColor: '#0f766e',
+                            fillOpacity: 0.16,
+                            color: '#0f766e',
+                            weight: 2,
+                          }}
+                        />
+                      </MapContainer>
                     </div>
                   </div>
                 )}

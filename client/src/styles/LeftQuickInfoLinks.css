@@ -24,24 +24,29 @@
 .left-quick-link-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 10px 11px;
-  border: 1px solid #d8d8ff;
+  padding: 10px 12px;
+  border: 1px solid #e5e7f5;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.78);
+  background: #ffffff;
   color: #1f1a3d;
   font-size: 0.9rem;
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .left-quick-link-btn:hover {
-  border-color: #a78bfa;
-  background: #ffffff;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(76, 29, 149, 0.12);
+  border-color: #c4b5fd;
+  color: #4c1d95;
+  box-shadow: 0 4px 10px rgba(76, 29, 149, 0.08);
+}
+
+.left-quick-link-btn:focus-visible {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
 }
 
 .left-quick-link-btn.active {
@@ -51,19 +56,30 @@
 }
 
 .left-quick-link-icon {
-  font-size: 0.98rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  font-size: 1rem;
+  color: #6d28d9;
 }
 
 .left-info-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.36);
-  backdrop-filter: blur(2px);
-  z-index: 1300;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(3px);
+  z-index: 1400;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
+}
+
+body.has-left-info-open .siara-dashboard-header,
+body.has-left-info-open .police-shell-header {
+  display: none !important;
 }
 
 .left-info-modal {
@@ -82,7 +98,7 @@
   padding: 24px;
 }
 
-.left-info-modal.left-info-panel-description {
+.left-info-modal.left-info-panel-overview {
   width: min(860px, 100%);
   padding: 24px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
@@ -455,7 +471,7 @@
   }
 
   .left-info-modal.left-info-panel-about,
-  .left-info-modal.left-info-panel-description,
+  .left-info-modal.left-info-panel-overview,
   .left-info-modal.left-info-panel-contact {
     padding: 16px;
   }

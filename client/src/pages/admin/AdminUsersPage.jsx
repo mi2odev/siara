@@ -336,7 +336,7 @@ export default function AdminUsersPage() {
                 const riskCode = user.riskTier?.code || 'low'
                 const isBusy = busyUserId === user.id
                 return (
-                  <tr key={user.id} className={riskCode === 'critical' ? 'row-highlight' : ''}>
+                  <tr key={user.id} className={riskCode === 'high' ? 'row-highlight' : ''}>
                     <td style={{ fontWeight: 600, fontSize: 11, fontVariantNumeric: 'tabular-nums' }} title={user.id}>
                       {shortId(user.id)}
                     </td>

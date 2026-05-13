@@ -37,9 +37,8 @@
 }
 
 .siara-zp__pill.dominant-low { background: #ECFDF5; color: #047857; }
-.siara-zp__pill.dominant-moderate { background: #FEF3C7; color: #B45309; }
-.siara-zp__pill.dominant-high { background: #FFEDD5; color: #C2410C; }
-.siara-zp__pill.dominant-critical { background: #FEE2E2; color: #B91C1C; }
+.siara-zp__pill.dominant-medium { background: #FEF3C7; color: #B45309; }
+.siara-zp__pill.dominant-high { background: #FEE2E2; color: #B91C1C; }
 
 .siara-zp__pill.trend-increasing { background: #FEE2E2; color: #B91C1C; }
 .siara-zp__pill.trend-decreasing { background: #ECFDF5; color: #047857; }
