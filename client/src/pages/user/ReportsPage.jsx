@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
@@ -295,6 +296,7 @@ export default function ReportsPage() {
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
+              <NotificationsOutlinedIcon fontSize="small" />
               <span className="notification-badge"></span>
             </button>
             <div className="dash-avatar-wrapper">

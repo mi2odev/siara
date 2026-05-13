@@ -20,7 +20,7 @@ import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsAc
 
 const KPIS = [
   { key: 'active',   tone: 'red',    label: 'Active Operations',  value: 7,      sub: 'Awaiting response',         icon: <AssignmentLateOutlinedIcon fontSize="inherit" />, alert: true },
-  { key: 'critical', tone: 'red',    label: 'Critical Incidents', value: 2,      sub: 'Highest severity',          icon: <WarningAmberRoundedIcon fontSize="inherit" />,    alert: true },
+  { key: 'high', tone: 'red',    label: 'High-Severity Incidents', value: 2,      sub: 'Highest severity',          icon: <WarningAmberRoundedIcon fontSize="inherit" />,    alert: true },
   { key: 'units',    tone: 'green',  label: 'Available Units',    value: 11,     sub: '5 ambulance · 4 fire · 2 civil', icon: <DirectionsCarFilledOutlinedIcon fontSize="inherit" /> },
   { key: 'eta',      tone: 'blue',   label: 'Avg Response Time',  value: '6m24', sub: 'Last 30 days',              icon: <TimerOutlinedIcon fontSize="inherit" /> },
 ]
@@ -29,7 +29,7 @@ const INCIDENTS = [
   {
     id: 'EMG-2041',
     type: 'Multi-vehicle accident',
-    severity: 'critical',
+    severity: 'high',
     title: 'Three-car collision blocking eastbound lanes',
     location: 'A1 Highway · km 47, Boudouaou',
     reportedAt: '2 min ago',
@@ -40,7 +40,7 @@ const INCIDENTS = [
   {
     id: 'EMG-2040',
     type: 'Building fire',
-    severity: 'critical',
+    severity: 'high',
     title: 'Residential fire — smoke on 3rd floor',
     location: 'Rue Didouche Mourad, Algiers',
     reportedAt: '5 min ago',
@@ -77,8 +77,8 @@ export default function EmergencyDashboardPage() {
   const location = useLocation()
   const basePath = location.pathname.startsWith('/preview/emergency') ? '/preview/emergency' : '/emergency'
 
-  const criticalCount = useMemo(
-    () => INCIDENTS.filter((i) => i.severity === 'critical').length,
+  const highSeverityCount = useMemo(
+    () => INCIDENTS.filter((i) => i.severity === 'high').length,
     [],
   )
 
@@ -92,7 +92,7 @@ export default function EmergencyDashboardPage() {
           </span>
           <h1 className="em-page-title">Emergency Dashboard</h1>
           <p className="em-page-subtitle">
-            {criticalCount} critical incident{criticalCount === 1 ? '' : 's'} requiring action
+            {highSeverityCount} high-severity incident{highSeverityCount === 1 ? '' : 's'} requiring action
           </p>
         </div>
       </header>

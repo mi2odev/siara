@@ -1031,7 +1031,7 @@
   background: #F1F5F9;
 }
 
-.pred-activity-item.critical { border-left-color: #EF4444; }
+.pred-activity-item.high { border-left-color: #EF4444; }
 .pred-activity-item.warning  { border-left-color: #F59E0B; }
 .pred-activity-item.success  { border-left-color: #10B981; }
 .pred-activity-item.info     { border-left-color: #3B82F6; }

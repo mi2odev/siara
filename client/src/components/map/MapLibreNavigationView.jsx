@@ -66,11 +66,8 @@ const NAV_USER_OFFSET_RATIO = 0.7
 const RISK_COLORS = {
   unknown: '#64748B',
   low: '#16A34A',
-  moderate: '#F59E0B',
   medium: '#F59E0B',
-  high: '#EA580C',
-  extreme: '#7F1D1D',
-  critical: '#7F1D1D',
+  high: '#7F1D1D',
 }
 
 function riskColor(level, percent) {
@@ -80,9 +77,8 @@ function riskColor(level, percent) {
   if (percent === null || percent === undefined || percent === '') return RISK_COLORS.unknown
   const numeric = Number(percent)
   if (!Number.isFinite(numeric)) return RISK_COLORS.low
-  if (numeric >= 75) return RISK_COLORS.extreme
   if (numeric >= 50) return RISK_COLORS.high
-  if (numeric >= 25) return RISK_COLORS.moderate
+  if (numeric >= 25) return RISK_COLORS.medium
   return RISK_COLORS.low
 }
 
@@ -993,7 +989,7 @@ export default function MapLibreNavigationView({
 
         <div className="siara-mlb-legend" aria-label="Route risk legend">
           <span><i className="risk-low" /> Low</span>
-          <span><i className="risk-moderate" /> Moderate</span>
+          <span><i className="risk-medium" /> Medium</span>
           <span><i className="risk-high" /> High</span>
           <span><i className="risk-unknown" /> Unknown</span>
         </div>

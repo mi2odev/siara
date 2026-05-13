@@ -8,9 +8,8 @@ import {
 } from './heatmapVisuals'
 
 const SEVERITY_ROWS = [
-  { key: 'critical', label: 'Critical' },
   { key: 'high', label: 'High' },
-  { key: 'moderate', label: 'Moderate' },
+  { key: 'medium', label: 'Medium' },
   { key: 'low', label: 'Low' },
 ]
 

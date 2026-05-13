@@ -24,7 +24,7 @@ function displayLabel(value) {
 
 function SeverityIcon({ severity }) {
   const p = { fontSize: 'inherit' }
-  if (severity === 'critical' || severity === 'high') return <PriorityHighRoundedIcon {...p} />
+  if (severity === 'high') return <PriorityHighRoundedIcon {...p} />
   if (severity === 'medium') return <ReportProblemOutlinedIcon {...p} />
   return <CheckCircleOutlinedIcon {...p} />
 }

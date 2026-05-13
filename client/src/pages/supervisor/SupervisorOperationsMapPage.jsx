@@ -34,16 +34,14 @@ function makeDivIcon(color, label, size = 32) {
 }
 
 const SEVERITY_CONFIG = {
-  critical: { color: '#dc2626', marker: 'C', label: 'Critical' },
-  high:     { color: '#ea580c', marker: 'H', label: 'High' },
+  high:     { color: '#dc2626', marker: 'H', label: 'High' },
   medium:   { color: '#ca8a04', marker: 'M', label: 'Medium' },
   low:      { color: '#16a34a', marker: 'L', label: 'Low' },
 }
 
 function sevKey(hint) {
-  if (hint >= 4) return 'critical'
-  if (hint >= 3) return 'high'
-  if (hint >= 2) return 'medium'
+  if (hint >= 4) return 'high'
+  if (hint === 3) return 'medium'
   return 'low'
 }
 
@@ -106,7 +104,7 @@ export default function SupervisorOperationsMapPage() {
   })
 
   const incidentCounts = Object.fromEntries(
-    ['critical', 'high', 'medium', 'low'].map((k) => [
+    ['high', 'medium', 'low'].map((k) => [
       k,
       (data.incidents || []).filter((i) => sevKey(i.severityHint) === k).length,
     ])
@@ -139,7 +137,7 @@ export default function SupervisorOperationsMapPage() {
               className={`sv-filter-btn ${showIncidents ? 'active' : ''}`}
               onClick={() => setShowIncidents((v) => !v)}
             >
-              <FiberManualRecordIcon fontSize="inherit" className="icon-severity-critical" /> Incidents ({data.incidents?.length ?? 0})
+              <FiberManualRecordIcon fontSize="inherit" className="icon-severity-high" /> Incidents ({data.incidents?.length ?? 0})
             </button>
             <button
               className={`sv-filter-btn ${showOfficers ? 'active' : ''}`}
@@ -151,7 +149,7 @@ export default function SupervisorOperationsMapPage() {
 
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: 'var(--sv-text-muted)', paddingRight: 2 }}>Severity:</span>
-            {['all', 'critical', 'high', 'medium', 'low'].map((s) => (
+            {['all', 'high', 'medium', 'low'].map((s) => (
               <button
                 key={s}
                 className={`sv-filter-btn ${severityFilter === s ? 'active' : ''}`}
@@ -288,7 +286,7 @@ export default function SupervisorOperationsMapPage() {
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sv-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Incidents
                 </div>
-                {['critical', 'high', 'medium', 'low'].map((sk) => {
+                {['high', 'medium', 'low'].map((sk) => {
                   const cfg = SEVERITY_CONFIG[sk]
                   return (
                     <div key={sk} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>

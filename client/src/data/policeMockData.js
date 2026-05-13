@@ -97,7 +97,7 @@ export const POLICE_ACTIVE_ALERTS = [
   'Congestion surge - RN5 corridor',
 ]
 
-const CRITICAL_ALERTS = [
+const HIGH_SEVERITY_ALERTS = [
   {
     id: 'ALT-901',
     title: 'Multi-vehicle crash pressure increasing',
@@ -227,8 +227,8 @@ export function updatePoliceIncidentStatus(incidentId, nextStatus) {
   }
 }
 
-export function getPoliceCriticalAlerts() {
-  return CRITICAL_ALERTS.map((item) => ({ ...item }))
+export function getPoliceHighSeverityAlerts() {
+  return HIGH_SEVERITY_ALERTS.map((item) => ({ ...item }))
 }
 
 export function getPoliceFieldReports() {

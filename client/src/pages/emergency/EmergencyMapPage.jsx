@@ -8,8 +8,8 @@ import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import LocalHospitalOutlinedIcon from '@mui/icons-material/LocalHospitalOutlined'
 
 const INCIDENTS = [
-  { id: 'EMG-2041', severity: 'critical', title: '3-car collision', location: 'A1 km 47, Boudouaou',     lat: 36.7271, lng: 3.4189 },
-  { id: 'EMG-2040', severity: 'critical', title: 'Building fire',   location: 'Rue Didouche, Algiers',  lat: 36.7717, lng: 3.0586 },
+  { id: 'EMG-2041', severity: 'high', title: '3-car collision', location: 'A1 km 47, Boudouaou',     lat: 36.7271, lng: 3.4189 },
+  { id: 'EMG-2040', severity: 'high', title: 'Building fire',   location: 'Rue Didouche, Algiers',  lat: 36.7717, lng: 3.0586 },
   { id: 'EMG-2038', severity: 'high',     title: 'Pedestrian struck', location: 'Bd Krim, Telemly',     lat: 36.7600, lng: 3.0490 },
   { id: 'EMG-2036', severity: 'medium',   title: 'Cargo spill',     location: 'RN5, Rouiba',            lat: 36.7400, lng: 3.2870 },
 ]
@@ -20,8 +20,7 @@ const HOSPITALS = [
 ]
 
 const SEVERITY_COLOR = {
-  critical: '#DC2626',
-  high:     '#EA580C',
+  high:     '#DC2626',
   medium:   '#F4A261',
   low:      '#0FA958',
 }

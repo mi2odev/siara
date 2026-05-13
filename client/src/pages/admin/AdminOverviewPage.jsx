@@ -240,12 +240,12 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
-      {overview.criticalAlerts.map((alert) => (
-        <div className="admin-critical-bar" key={`${alert.type}-${alert.route}`}>
-          <span className="critical-dot"></span>
-          <span className="critical-text">{alert.text}</span>
+      {overview.highSeverityAlerts.map((alert) => (
+        <div className="admin-high-bar" key={`${alert.type}-${alert.route}`}>
+          <span className="high-dot"></span>
+          <span className="high-text">{alert.text}</span>
           <button
-            className="critical-action"
+            className="high-action"
             onClick={() => navigate(alert.route)}
           >
             {alert.action} &rarr;
@@ -535,7 +535,7 @@ export default function AdminOverviewPage() {
               <h3 className="admin-card-title">Severity Distribution</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
                 {[
-                  { label: 'Critical / High', pct: overview.severityDistribution.high, cls: 'danger' },
+                  { label: 'High', pct: overview.severityDistribution.high, cls: 'danger' },
                   { label: 'Medium', pct: overview.severityDistribution.medium, cls: 'warning' },
                   { label: 'Low', pct: overview.severityDistribution.low, cls: 'success' },
                 ].map((segment) => (

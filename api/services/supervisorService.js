@@ -34,7 +34,7 @@ async function getSupervisorDashboard(supervisorUser, query = {}, db = pool) {
   const [
     statsResult,
     officerResult,
-    criticalResult,
+    highSeverityResult,
     activityResult,
     mapResult,
   ] = await Promise.all([
@@ -47,7 +47,7 @@ async function getSupervisorDashboard(supervisorUser, query = {}, db = pool) {
           COUNT(*) FILTER (
             WHERE ar.status NOT IN ('resolved', 'rejected')
               AND COALESCE(ar.severity_hint, 0) >= 3
-          )::int AS critical_count,
+          )::int AS high_severity_count,
           COUNT(*) FILTER (
             WHERE ar.status = 'pending'
           )::int AS pending_verification_count,
@@ -137,7 +137,7 @@ async function getSupervisorDashboard(supervisorUser, query = {}, db = pool) {
   return {
     stats: {
       activeIncidents: Number(stats.active_count || 0),
-      criticalIncidents: Number(stats.critical_count || 0),
+      highSeverityIncidents: Number(stats.high_severity_count || 0),
       pendingVerification: Number(stats.pending_verification_count || 0),
       activeOfficers: Number(officerStats.on_duty || 0),
       totalOfficers: Number(officerStats.total || 0),
@@ -148,11 +148,11 @@ async function getSupervisorDashboard(supervisorUser, query = {}, db = pool) {
       offDuty: Number(officerStats.off_duty || 0),
       total: Number(officerStats.total || 0),
     },
-    criticalIncidents: criticalResult.rows.map((row) => ({
+    highSeverityIncidents: highSeverityResult.rows.map((row) => ({
       id: row.id,
       title: row.title || "",
       status: row.status,
-      severity: row.severity_hint >= 4 ? "critical" : row.severity_hint >= 3 ? "high" : "medium",
+      severity: row.severity_hint >= 3 ? "high" : "medium",
       severityHint: Number(row.severity_hint || 0),
       locationLabel: row.location_label || "",
       assignedOfficerName: row.assigned_officer_name || null,
@@ -210,8 +210,7 @@ async function getSupervisorAnalytics(supervisorUser, query = {}, db = pool) {
       `
         SELECT
           CASE
-            WHEN COALESCE(severity_hint, 0) >= 4 THEN 'critical'
-            WHEN COALESCE(severity_hint, 0) = 3 THEN 'high'
+            WHEN COALESCE(severity_hint, 0) >= 3 THEN 'high'
             WHEN COALESCE(severity_hint, 0) = 2 THEN 'medium'
             ELSE 'low'
           END AS severity,
@@ -406,13 +405,11 @@ async function getSupervisorGlobalMap(supervisorUser, db = pool) {
       status: row.status,
       severityHint: Number(row.severity_hint || 0),
       severity:
-        row.severity_hint >= 4
-          ? "critical"
-          : row.severity_hint >= 3
-            ? "high"
-            : row.severity_hint >= 2
-              ? "medium"
-              : "low",
+        row.severity_hint >= 3
+          ? "high"
+          : row.severity_hint >= 2
+            ? "medium"
+            : "low",
       lat: row.lat == null ? null : Number(row.lat),
       lng: row.lng == null ? null : Number(row.lng),
       locationLabel: row.location_label || "",

@@ -293,7 +293,9 @@ export default function UserDashboardPage() {
             />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}></button>
+            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
+              <NotificationsOutlinedIcon fontSize="small" />
+            </button>
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {userAvatarUrl ? (
@@ -339,7 +341,7 @@ export default function UserDashboardPage() {
             <div className="ud-section-header"><h2 className="ud-section-title">Your Current Risk Overview</h2><div className="ud-freshness"><span className="ud-pulse-dot"></span>Updated {updatedAt}</div></div>
             <div className="ud-risk-hero">
               <div className="ud-risk-level-block">
-                <div className={`ud-risk-badge ${String(dashboard.currentRiskOverview?.label || '').toLowerCase() === 'high' ? 'high' : String(dashboard.currentRiskOverview?.label || '').toLowerCase() === 'moderate' ? 'moderate' : 'low'}`}>
+                <div className={`ud-risk-badge ${String(dashboard.currentRiskOverview?.label || '').toLowerCase() === 'high' ? 'high' : String(dashboard.currentRiskOverview?.label || '').toLowerCase() === 'medium' ? 'medium' : 'low'}`}>
                   <span className="ud-risk-score">{dashboard.currentRiskOverview?.score ?? '--'}</span>
                   <span className="ud-risk-label-text">{dashboard.currentRiskOverview?.label || 'Unavailable'}</span>
                 </div>
@@ -382,7 +384,7 @@ export default function UserDashboardPage() {
             </section>
             <section className="card ud-section ud-exposure">
               <h3 className="ud-mini-title">Your Exposure Index</h3>
-              <div className="ud-exp-level-row"><div className={`ud-exp-badge ${String(dashboard.exposureIndex?.label || '').toLowerCase() === 'high' ? 'high' : String(dashboard.exposureIndex?.label || '').toLowerCase() === 'moderate' ? 'moderate' : 'low'}`}>{dashboard.exposureIndex?.label || 'Unavailable'}</div></div>
+              <div className="ud-exp-level-row"><div className={`ud-exp-badge ${String(dashboard.exposureIndex?.label || '').toLowerCase() === 'high' ? 'high' : String(dashboard.exposureIndex?.label || '').toLowerCase() === 'medium' ? 'medium' : 'low'}`}>{dashboard.exposureIndex?.label || 'Unavailable'}</div></div>
               <div className="ud-exp-metrics"><div className="ud-exp-metric"><span className="ud-exp-value">{dashboard.exposureIndex?.monitoredZones ?? 0}</span><span className="ud-exp-label">Monitored zones</span></div><div className="ud-exp-metric"><span className="ud-exp-value">{dashboard.exposureIndex?.activeAlerts ?? 0}</span><span className="ud-exp-label">Active alerts</span></div><div className="ud-exp-metric"><span className="ud-exp-value">{dashboard.exposureIndex?.commutePattern || 'n/a'}</span><span className="ud-exp-label">Commute detected</span></div></div>
             </section>
           </div>
@@ -445,9 +447,9 @@ export default function UserDashboardPage() {
                   const riskPercentValue = Number(trip.overallRiskPercent)
                   const riskTextLevel = String(trip.overallRiskLevel || '').trim().toLowerCase()
                   const riskBadgeTone =
-                    riskTextLevel === 'high' || riskTextLevel === 'extreme' || riskTextLevel === 'critical'
+                    riskTextLevel === 'high'
                       ? 'high'
-                      : riskTextLevel === 'medium' || riskTextLevel === 'moderate' ||
+                      : riskTextLevel === 'medium' ||
                           (Number.isFinite(riskPercentValue) && riskPercentValue >= 50)
                         ? 'medium'
                         : 'low'

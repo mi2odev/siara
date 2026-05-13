@@ -44,16 +44,14 @@ function formatDuration(ms) {
 }
 
 function severityClass(sev) {
-  if (sev === 'critical' || sev >= 4) return 'sev-critical'
-  if (sev === 'high' || sev >= 3) return 'sev-high'
-  if (sev === 'medium' || sev >= 2) return 'sev-medium'
+  if (sev === 'high' || sev >= 4) return 'sev-high'
+  if (sev === 'medium' || sev === 3) return 'sev-medium'
   return 'sev-low'
 }
 
 function severityLabel(hint) {
-  if (hint >= 4) return 'Critical'
-  if (hint >= 3) return 'High'
-  if (hint >= 2) return 'Medium'
+  if (hint >= 4) return 'High'
+  if (hint === 3) return 'Medium'
   return 'Low'
 }
 
@@ -105,7 +103,7 @@ export default function SupervisorDashboardPage() {
 
   const stats = data?.stats || {}
   const officerStatus = data?.officerStatus || {}
-  const criticalIncidents = data?.criticalIncidents || []
+  const highSeverityIncidents = data?.highSeverityIncidents || []
   const recentActivity = data?.recentActivity || []
 
   return (
@@ -136,10 +134,10 @@ export default function SupervisorDashboardPage() {
             <div className="sv-kpi-value">{loading ? '—' : stats.activeIncidents ?? 0}</div>
             <div className="sv-kpi-sub">Unresolved in system</div>
           </div>
-          <div className="sv-kpi-card kpi-critical">
-            <div className="sv-kpi-label">Critical</div>
-            <div className="sv-kpi-value">{loading ? '—' : stats.criticalIncidents ?? 0}</div>
-            <div className="sv-kpi-sub">Severity high+</div>
+          <div className="sv-kpi-card kpi-high">
+            <div className="sv-kpi-label">High</div>
+            <div className="sv-kpi-value">{loading ? '—' : stats.highSeverityIncidents ?? 0}</div>
+            <div className="sv-kpi-sub">Severity high</div>
           </div>
           <div className="sv-kpi-card kpi-warning">
             <div className="sv-kpi-label">Pending Verification</div>
@@ -161,12 +159,12 @@ export default function SupervisorDashboardPage() {
         </div>
 
         <div className="sv-grid-2">
-          {/* Critical Incidents */}
+          {/* High-Severity Incidents */}
           <div className="sv-section">
             <div className="sv-section-head">
               <h2 className="sv-section-title">
-                <span className="sv-section-title-icon"><FiberManualRecordIcon fontSize="inherit" className="icon-severity-critical" /></span>
-                Critical Incidents
+                <span className="sv-section-title-icon"><FiberManualRecordIcon fontSize="inherit" className="icon-severity-high" /></span>
+                High-Severity Incidents
               </h2>
               <button
                 className="sv-btn sv-btn-ghost"
@@ -179,14 +177,14 @@ export default function SupervisorDashboardPage() {
             <div className="sv-section-body">
               {loading ? (
                 <div className="sv-loading"><div className="sv-loading-spinner" /></div>
-              ) : criticalIncidents.length === 0 ? (
+              ) : highSeverityIncidents.length === 0 ? (
                 <div className="sv-empty">
                   <span className="sv-empty-icon"><CheckCircleOutlineRoundedIcon fontSize="inherit" className="icon-success" /></span>
-                  No critical incidents
+                  No high-severity incidents
                 </div>
               ) : (
                 <div className="sv-incident-list">
-                  {criticalIncidents.map((inc) => (
+                  {highSeverityIncidents.map((inc) => (
                     <div
                       key={inc.id}
                       className="sv-incident-row"
@@ -203,7 +201,7 @@ export default function SupervisorDashboardPage() {
                         </div>
                       </div>
                       <div className="sv-incident-right">
-                        <span className={`sv-badge sv-badge-${inc.severityHint >= 4 ? 'critical' : 'high'}`}>
+                        <span className={`sv-badge sv-badge-${inc.severityHint >= 3 ? 'high' : 'medium'}`}>
                           {severityLabel(inc.severityHint)}
                         </span>
                         <span style={{ fontSize: 11, color: 'var(--sv-text-muted)' }}>

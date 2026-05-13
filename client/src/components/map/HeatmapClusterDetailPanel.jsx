@@ -7,9 +7,8 @@ import '../../styles/HeatmapClusterDetailPanel.css'
 
 const SEVERITY_COLORS = {
   low: '#3B82F6',
-  moderate: '#FACC15',
-  high: '#F97316',
-  critical: '#DC2626',
+  medium: '#FACC15',
+  high: '#DC2626',
 }
 
 function formatDateTime(value) {
@@ -23,9 +22,8 @@ function formatDateTime(value) {
 
 function severityClass(bucket) {
   const text = String(bucket || '').toLowerCase()
-  if (text === 'critical') return 'severity-critical'
   if (text === 'high') return 'severity-high'
-  if (text === 'moderate' || text === 'medium') return 'severity-moderate'
+  if (text === 'medium') return 'severity-medium'
   return 'severity-low'
 }
 
@@ -79,7 +77,7 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
 
   const severitySegments = useMemo(() => {
     if (!severityCounts || !totalReports) return []
-    return ['critical', 'high', 'moderate', 'low']
+    return ['high', 'medium', 'low']
       .map((key) => ({
         key,
         count: Number(severityCounts[key] || 0),

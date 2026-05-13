@@ -252,29 +252,29 @@
 }
 .admin-workspace.has-ctx { margin-right: var(--admin-ctx-w); }
 
-/* ================================================ CRITICAL BAR */
-.admin-critical-bar {
+/* ================================================ HIGH-SEVERITY BAR */
+.admin-high-bar {
   background: rgba(239,68,68,0.06);
   border: 1px solid rgba(239,68,68,0.12);
   border-radius: var(--admin-radius);
   padding: 8px 14px; display: flex; align-items: center; gap: 10px;
-  margin-bottom: 14px; animation: criticalPulse 3s ease-in-out infinite;
+  margin-bottom: 14px; animation: highPulse 3s ease-in-out infinite;
 }
-.admin-critical-bar .critical-dot {
+.admin-high-bar .high-dot {
   width: 7px; height: 7px; border-radius: 50%;
   background: var(--admin-danger); animation: adminPulse 1.5s ease-in-out infinite;
 }
-.admin-critical-bar .critical-text {
+.admin-high-bar .high-text {
   font-size: 11.5px; font-weight: 600; color: var(--admin-danger); flex: 1;
 }
-.admin-critical-bar .critical-action {
+.admin-high-bar .high-action {
   font-size: 10.5px; font-weight: 600; color: var(--admin-danger);
   background: none; border: 1px solid rgba(239,68,68,0.25);
   padding: 3px 10px; border-radius: 4px; cursor: pointer;
   transition: all var(--admin-transition);
 }
-.admin-critical-bar .critical-action:hover { background: rgba(239,68,68,0.10); }
-@keyframes criticalPulse {
+.admin-high-bar .high-action:hover { background: rgba(239,68,68,0.10); }
+@keyframes highPulse {
   0%, 100% { border-color: rgba(239,68,68,0.12); }
   50% { border-color: rgba(239,68,68,0.25); }
 }
@@ -382,7 +382,7 @@
   font-size: 10px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap;
 }
-.admin-pill.high, .admin-pill.critical, .admin-pill.danger {
+.admin-pill.high, .admin-pill.danger {
   background: var(--admin-danger-subtle); color: var(--admin-danger);
 }
 .admin-pill.medium, .admin-pill.warning {
@@ -755,8 +755,7 @@
 }
 .admin-zone-badge-low { background: rgba(34,197,94,0.95); }
 .admin-zone-badge-medium { background: rgba(245,158,11,0.95); }
-.admin-zone-badge-high { background: rgba(239,68,68,0.95); }
-.admin-zone-badge-critical { background: rgba(153,27,27,0.98); }
+.admin-zone-badge-high { background: rgba(153,27,27,0.98); }
 
 @media (max-width: 1200px) {
   .admin-zone-map-layout {

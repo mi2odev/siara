@@ -18,7 +18,7 @@ const INCIDENT_STATUS_VALUES = new Set([
   "rejected",
 ]);
 
-const ALERT_SEVERITY_VALUES = new Set(["low", "medium", "high", "critical"]);
+const ALERT_SEVERITY_VALUES = new Set(["low", "medium", "high"]);
 const ALERT_TYPE_VALUES = new Set([
   "incident",
   "weather",
@@ -401,7 +401,6 @@ function normalizeIncidentScope(value) {
 
 function severityLabelFromHint(value) {
   const numeric = Number(value);
-  if (numeric >= 4) return "critical";
   if (numeric >= 3) return "high";
   if (numeric >= 2) return "medium";
   return "low";
@@ -409,13 +408,12 @@ function severityLabelFromHint(value) {
 
 function notificationPriorityFromSeverity(severity) {
   switch (String(severity || "").trim().toLowerCase()) {
-    case "critical":
     case "high":
-      return 1;
+      return 3;
     case "medium":
       return 2;
     default:
-      return 3;
+      return 1;
   }
 }
 
@@ -1156,9 +1154,7 @@ function applyIncidentFilters({ whereClauses, values, filters = {} }) {
     } else if (severity === "medium") {
       whereClauses.push(`COALESCE(base.severity_hint, 0) = 2`);
     } else if (severity === "high") {
-      whereClauses.push(`COALESCE(base.severity_hint, 0) = 3`);
-    } else if (severity === "critical") {
-      whereClauses.push(`COALESCE(base.severity_hint, 0) >= 4`);
+      whereClauses.push(`COALESCE(base.severity_hint, 0) >= 3`);
     }
   }
 

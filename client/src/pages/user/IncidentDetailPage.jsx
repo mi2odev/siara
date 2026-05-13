@@ -431,10 +431,12 @@ export default function IncidentDetailPage() {
       }
 
       if (event.key === 'ArrowRight' && incident.media.length > 1) {
+        setZoomScale(1)
         setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev + 1) % incident.media.length))
       }
 
       if (event.key === 'ArrowLeft' && incident.media.length > 1) {
+        setZoomScale(1)
         setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev - 1 + incident.media.length) % incident.media.length))
       }
     }
@@ -1135,6 +1137,38 @@ export default function IncidentDetailPage() {
             <button type="button" className="media-lightbox-close" onClick={() => setSelectedMediaIndex(null)} aria-label="Close photo preview">
               ×
             </button>
+
+            {incident.media.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="media-lightbox-nav media-lightbox-nav--prev"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setZoomScale(1)
+                    setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev - 1 + incident.media.length) % incident.media.length))
+                  }}
+                  aria-label="Previous photo"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="media-lightbox-nav media-lightbox-nav--next"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setZoomScale(1)
+                    setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev + 1) % incident.media.length))
+                  }}
+                  aria-label="Next photo"
+                >
+                  ›
+                </button>
+                <span className="media-lightbox-counter">
+                  {selectedMediaIndex + 1} / {incident.media.length}
+                </span>
+              </>
+            )}
 
             <div
               className={`media-lightbox-stage ${zoomScale > 1 ? 'zoomed' : ''} ${isDragging ? 'dragging' : ''}`}

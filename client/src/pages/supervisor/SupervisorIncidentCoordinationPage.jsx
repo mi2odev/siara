@@ -12,16 +12,14 @@ import {
 import '../../styles/SupervisorMode.css'
 
 function severityLabel(hint) {
-  if (hint >= 4) return 'Critical'
-  if (hint >= 3) return 'High'
-  if (hint >= 2) return 'Medium'
+  if (hint >= 4) return 'High'
+  if (hint === 3) return 'Medium'
   return 'Low'
 }
 
 function severityClass(hint) {
-  if (hint >= 4) return 'critical'
-  if (hint >= 3) return 'high'
-  if (hint >= 2) return 'medium'
+  if (hint >= 4) return 'high'
+  if (hint === 3) return 'medium'
   return 'low'
 }
 
@@ -112,7 +110,7 @@ export default function SupervisorIncidentCoordinationPage() {
   })
 
   const statuses = ['all', 'pending', 'under_review', 'verified', 'dispatched']
-  const severities = ['all', 'critical', 'high', 'medium', 'low']
+  const severities = ['all', 'high', 'medium', 'low']
 
   return (
     <PoliceShell activeKey="incident-coordination" rightPanelCollapsed>

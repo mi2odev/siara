@@ -12,7 +12,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const INFO_LINKS = [
   { key: 'contact', label: 'Contact', icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
   { key: 'about', label: 'About', icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
-  { key: 'description', label: 'Description', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/description' },
+  { key: 'overview', label: 'Overview', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/overview' },
 ]
 
 export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = '' }) {
@@ -30,8 +30,12 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
       }
     }
 
+    document.body.classList.add('has-left-info-open')
     document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
+    return () => {
+      document.body.classList.remove('has-left-info-open')
+      document.removeEventListener('keydown', handleEscape)
+    }
   }, [openPanel])
 
   useEffect(() => {
@@ -236,14 +240,14 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
                   </>
                 ) : null}
 
-                {openPanel === 'description' ? (
+                {openPanel === 'overview' ? (
                   <>
                     <div className="left-info-head">
                       <div>
                         <span className="left-info-kicker">Service Flow</span>
                         <h3>SIARA Workflow Overview</h3>
                       </div>
-                      <button type="button" className="left-info-close" onClick={() => setOpenPanel(null)} aria-label="Close description panel">×</button>
+                      <button type="button" className="left-info-close" onClick={() => setOpenPanel(null)} aria-label="Close overview panel">×</button>
                     </div>
                     <div className="left-info-block">
                       <p className="left-info-lead">

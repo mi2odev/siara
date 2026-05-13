@@ -24,7 +24,7 @@ export default function PoliceVerificationQueuePage() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
 
-  const highPriorityCount = queue.filter((item) => ['high', 'critical'].includes(item.severity)).length
+  const highPriorityCount = queue.filter((item) => item.severity === 'high').length
   const assignedCount = queue.filter((item) => item.assignedOfficer?.id).length
 
   const loadQueue = React.useCallback(async () => {

@@ -6,15 +6,13 @@ import '../../styles/RouteComparisonPanel.css'
 
 function normaliseLevel(level, percent) {
   const text = String(level || '').trim().toLowerCase()
-  if (text === 'extreme' || text === 'critical') return 'extreme'
   if (text === 'high') return 'high'
-  if (text === 'moderate' || text === 'medium') return 'moderate'
+  if (text === 'medium') return 'medium'
   if (text === 'low') return 'low'
   const n = Number(percent)
   if (!Number.isFinite(n)) return 'low'
-  if (n >= 75) return 'extreme'
   if (n >= 50) return 'high'
-  if (n >= 25) return 'moderate'
+  if (n >= 25) return 'medium'
   return 'low'
 }
 
@@ -28,7 +26,7 @@ function countHighRiskSegments(route) {
   let count = 0
   for (const seg of segments) {
     const level = normaliseLevel(seg?.danger_level, seg?.danger_percent)
-    if (level === 'high' || level === 'extreme') count += 1
+    if (level === 'high') count += 1
   }
   return count
 }

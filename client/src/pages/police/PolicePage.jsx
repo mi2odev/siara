@@ -86,7 +86,7 @@ function computeAverageIncidentAge(incidents = []) {
 
 function SeverityBadgeIcon({ severity }) {
   const props = { fontSize: 'inherit' }
-  if (severity === 'critical' || severity === 'high') return <PriorityHighRoundedIcon {...props} />
+  if (severity === 'high') return <PriorityHighRoundedIcon {...props} />
   if (severity === 'medium') return <ReportProblemOutlinedIcon {...props} />
   return <CheckCircleOutlinedIcon {...props} />
 }
@@ -282,7 +282,7 @@ export default function PolicePage() {
     ? dashboard.mapMarkers.filter((item) => item?.lat != null && item?.lng != null)
     : []
 
-  const criticalCount = activeIncidents.filter((item) => item.severity === 'critical').length
+  const highSeverityCount = activeIncidents.filter((item) => item.severity === 'high').length
   const officerInitials = String(officer?.name || 'Officer')
     .split(' ')
     .filter(Boolean)
@@ -296,7 +296,7 @@ export default function PolicePage() {
 
   const priorityIncidents = React.useMemo(
     () => activeIncidents
-      .filter((item) => item.severity === 'critical' || item.severity === 'high')
+      .filter((item) => item.severity === 'high')
       .slice(0, 3),
     [activeIncidents],
   )
@@ -350,10 +350,10 @@ export default function PolicePage() {
       icon: <ReportRoundedIcon fontSize="inherit" />,
     },
     {
-      key: 'critical',
+      key: 'high',
       tone: 'red',
-      label: 'Critical Incidents',
-      value: criticalCount || stats.highPriorityCount || 0,
+      label: 'High-Severity Incidents',
+      value: highSeverityCount || stats.highPriorityCount || 0,
       hint: 'High severity now',
       icon: <LocalFireDepartmentRoundedIcon fontSize="inherit" />,
     },
@@ -708,7 +708,7 @@ export default function PolicePage() {
         <section className="police-cc-section police-cc-priority" aria-label="Priority incidents">
           <header className="police-cc-section-head">
             <div className="police-cc-section-title">
-              <PriorityHighRoundedIcon fontSize="inherit" className="police-cc-section-icon critical" />
+              <PriorityHighRoundedIcon fontSize="inherit" className="police-cc-section-icon high" />
               <h2>Priority Incidents</h2>
               <span className="police-cc-section-count">{priorityIncidents.length}</span>
             </div>
@@ -821,7 +821,6 @@ export default function PolicePage() {
 
               {mapMarkers.length > 0 ? (
                 <div className="police-cc-map-legend" aria-hidden="true">
-                  <span className="police-cc-map-pill critical"><span className="dot" /> Critical</span>
                   <span className="police-cc-map-pill high"><span className="dot" /> High</span>
                   <span className="police-cc-map-pill medium"><span className="dot" /> Medium</span>
                   <span className="police-cc-map-pill low"><span className="dot" /> Low</span>
@@ -1019,7 +1018,7 @@ export default function PolicePage() {
         <section className="police-cc-section police-cc-all-accidents" aria-label="All accidents">
           <header className="police-cc-section-head">
             <div className="police-cc-section-title">
-              <ReportRoundedIcon fontSize="inherit" className="police-cc-section-icon critical" />
+              <ReportRoundedIcon fontSize="inherit" className="police-cc-section-icon high" />
               <h2>All Accidents</h2>
               <span className="police-cc-section-count">{allAccidents.length}</span>
             </div>
@@ -1133,7 +1132,6 @@ export default function PolicePage() {
                 </div>
               </div>
               <div className="police-cc-fullmap-legend">
-                <span className="police-cc-map-pill critical"><span className="dot" /> Critical</span>
                 <span className="police-cc-map-pill high"><span className="dot" /> High</span>
                 <span className="police-cc-map-pill medium"><span className="dot" /> Medium</span>
                 <span className="police-cc-map-pill low"><span className="dot" /> Low</span>

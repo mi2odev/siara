@@ -69,7 +69,6 @@ const HINT_TO_SEVERITY = Object.freeze({
   1: "low",
   2: "medium",
   3: "high",
-  4: "critical",
 });
 const NOTIFICATION_DEBUG_ENABLED =
   process.env.NODE_ENV !== "production" || process.env.NOTIFICATION_DEBUG === "true";

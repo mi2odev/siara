@@ -56,7 +56,7 @@ function normalizeZoneItem(item, feature = null) {
     name: item?.name || feature?.properties?.name || 'Unknown zone',
     level: item?.level || feature?.properties?.level || 'wilaya',
     riskScore: ensureNumber(item?.riskScore || feature?.properties?.riskScore, 0),
-    riskLevel: ['low', 'medium', 'high', 'critical'].includes(item?.riskLevel || feature?.properties?.riskLevel)
+    riskLevel: ['low', 'medium', 'high'].includes(item?.riskLevel || feature?.properties?.riskLevel)
       ? (item?.riskLevel || feature?.properties?.riskLevel)
       : 'low',
     modelWeightedScore: ensureNullableNumber(item?.modelWeightedScore || feature?.properties?.modelWeightedScore),
@@ -69,7 +69,7 @@ function normalizeZoneItem(item, feature = null) {
     reportScore: ensureNullableNumber(item?.reportScore || feature?.properties?.reportScore),
     activeAlertCount: ensureNumber(item?.activeAlertCount || feature?.properties?.activeAlertCount, 0),
     scheduledAlertCount: ensureNumber(item?.scheduledAlertCount || feature?.properties?.scheduledAlertCount, 0),
-    criticalAlertCount: ensureNumber(item?.criticalAlertCount || feature?.properties?.criticalAlertCount, 0),
+    highSeverityAlertCount: ensureNumber(item?.highSeverityAlertCount || feature?.properties?.highSeverityAlertCount, 0),
     alertScore: ensureNullableNumber(item?.alertScore || feature?.properties?.alertScore),
     confidenceAvg: ensureNullableNumber(item?.confidenceAvg || feature?.properties?.confidenceAvg),
     trendVsPrevious: ensureNullableNumber(item?.trendVsPrevious || feature?.properties?.trendVsPrevious),
@@ -120,7 +120,7 @@ function normalizeOperationalAlert(item) {
   return {
     id: item?.id || '',
     title: item?.title || 'Operational alert',
-    severity: ['low', 'medium', 'high', 'critical'].includes(item?.severity) ? item.severity : 'low',
+    severity: ['low', 'medium', 'high'].includes(item?.severity) ? item.severity : 'low',
     status: ['active', 'scheduled', 'expired', 'cancelled'].includes(item?.status) ? item.status : 'expired',
     startsAt: item?.startsAt || null,
     endsAt: item?.endsAt || null,
@@ -168,7 +168,6 @@ export async function fetchAdminZoneMap(period = DEFAULT_PERIOD, metric = DEFAUL
         : featureCollection.features.map((feature) => feature.properties),
       stats: {
         zoneCount: ensureNumber(response.data?.stats?.zoneCount, featureCollection.features.length),
-        critical: ensureNumber(response.data?.stats?.critical, 0),
         high: ensureNumber(response.data?.stats?.high, 0),
         medium: ensureNumber(response.data?.stats?.medium, 0),
         low: ensureNumber(response.data?.stats?.low, 0),
@@ -205,7 +204,7 @@ export async function fetchAdminZoneDetails(adminAreaId, period = DEFAULT_PERIOD
       operationalAlertsSummary: {
         active: ensureNumber(response.data?.operationalAlertsSummary?.active, 0),
         scheduled: ensureNumber(response.data?.operationalAlertsSummary?.scheduled, 0),
-        critical: ensureNumber(response.data?.operationalAlertsSummary?.critical, 0),
+        high: ensureNumber(response.data?.operationalAlertsSummary?.high, 0),
         items: Array.isArray(response.data?.operationalAlertsSummary?.items)
           ? response.data.operationalAlertsSummary.items.map(normalizeOperationalAlert)
           : [],

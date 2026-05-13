@@ -7,9 +7,8 @@ import '../../styles/RoadSafetyProfile.css'
 
 function severityClass(bucket) {
   const text = String(bucket || '').toLowerCase()
-  if (text === 'critical') return 'dominant-critical'
   if (text === 'high') return 'dominant-high'
-  if (text === 'moderate' || text === 'medium') return 'dominant-moderate'
+  if (text === 'medium') return 'dominant-medium'
   return 'dominant-low'
 }
 

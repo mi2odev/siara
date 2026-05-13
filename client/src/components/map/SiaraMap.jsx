@@ -54,9 +54,8 @@ const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const occurrenceRiskColor = (level) => {
-  if (level === "extreme") return "#b91c1c";
-  if (level === "high") return "#ea580c";
-  if (level === "moderate") return "#d97706";
+  if (level === "high") return "#b91c1c";
+  if (level === "medium") return "#d97706";
   return "#15803d";
 };
 
@@ -179,9 +178,8 @@ const normalizeAlertZoneCenter = (alertZone) => {
 
 const getDangerColor = (level) => {
   if (level === "unknown") return "#64748b";
-  if (level === "extreme") return "#b91c1c";
-  if (level === "high") return "#ef4444";
-  if (level === "moderate") return "#f59e0b";
+  if (level === "high") return "#b91c1c";
+  if (level === "medium") return "#f59e0b";
   return "#22c55e";
 }
 
@@ -192,16 +190,15 @@ const getContrastTextColor = (bgColor) => {
 const normalizeDangerLevel = (level, dangerPercent = null) => {
   const text = String(level || "").trim().toLowerCase();
   if (text === "unknown" || text === "unavailable") return "unknown";
-  if (text === "extreme" || text === "high" || text === "moderate" || text === "low") {
+  if (text === "high" || text === "medium" || text === "low") {
     return text;
   }
 
   const percent = Number(dangerPercent);
   if (!Number.isFinite(percent)) return "low";
   if (percent < 25) return "low";
-  if (percent < 50) return "moderate";
-  if (percent < 75) return "high";
-  return "extreme";
+  if (percent < 50) return "medium";
+  return "high";
 }
 
 const getSegmentPath = (marker) => {
@@ -711,7 +708,7 @@ const buildAheadRouteHazards = (route, timestampIso) => {
 
   for (const segment of profile) {
     const level = normalizeDangerLevel(segment?.danger_level, segment?.danger_percent);
-    if ((level === "high" || level === "extreme") && firstHighRiskDistanceKm == null) {
+    if (level === "high" && firstHighRiskDistanceKm == null) {
       firstHighRiskDistanceKm = distanceBeforeCurrentKm;
       break;
     }
@@ -766,7 +763,7 @@ const buildAheadRouteHazards = (route, timestampIso) => {
     return segmentStartKm <= 5 && Number(segment?.danger_percent) >= 40;
   });
   if (dangerWithinFiveKm.length >= 2) {
-    notes.push("Moderate-risk cluster in the next 5 km");
+    notes.push("Medium-risk cluster in the next 5 km");
   }
 
   const hour = Number.isFinite(new Date(timestampIso).getTime()) ? new Date(timestampIso).getHours() : null;
@@ -3344,6 +3341,7 @@ const SiaraMap = ({
           zoom={USER_ZOOM}
           className="siara-leaflet-map"
           zoomControl={true}
+          worldCopyJump={true}
         >
             <MapResizeFix
               deps={[
@@ -3868,13 +3866,6 @@ const SiaraMap = ({
             <div className="accident-heat-legend__row">
               <span
                 className="accident-heat-legend__dot"
-                style={{ background: HEATMAP_LEGEND_COLORS.critical }}
-              />
-              <span>Critical</span>
-            </div>
-            <div className="accident-heat-legend__row">
-              <span
-                className="accident-heat-legend__dot"
                 style={{ background: HEATMAP_LEGEND_COLORS.high }}
               />
               <span>High</span>
@@ -3882,9 +3873,9 @@ const SiaraMap = ({
             <div className="accident-heat-legend__row">
               <span
                 className="accident-heat-legend__dot"
-                style={{ background: HEATMAP_LEGEND_COLORS.moderate }}
+                style={{ background: HEATMAP_LEGEND_COLORS.medium }}
               />
-              <span>Moderate</span>
+              <span>Medium</span>
             </div>
             <div className="accident-heat-legend__row">
               <span
@@ -4000,7 +3991,7 @@ const SiaraMap = ({
                 <div className="srd-gauge-thumb" style={{ left: `calc(${Math.min(100, Math.max(0, currentRisk.danger_percent))}% - 7px)`, borderColor: getDangerColor(currentRisk.danger_level) }} />
                 <div className="srd-gauge-labels">
                   <span>Low</span>
-                  <span>Moderate</span>
+                  <span>Medium</span>
                   <span>High</span>
                 </div>
               </div>

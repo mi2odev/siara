@@ -380,7 +380,7 @@
 .map-page .nav-icon {
   width: 18px;
   height: 18px;
-  color: #64748B;
+  color: var(--siara-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -394,7 +394,7 @@
 
 .map-page .nav-item:hover .nav-icon,
 .map-page .nav-item-active .nav-icon {
-  color: #1E293B;
+  color: var(--siara-btn-primary-hover);
 }
 
 .map-page .dropdown-divider {

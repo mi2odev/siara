@@ -280,7 +280,11 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   const [allComments, setAllComments] = useState(null)
   const [allCommentsLoading, setAllCommentsLoading] = useState(false)
   const [allCommentsError, setAllCommentsError] = useState('')
+  const [discussionMode, setDiscussionMode] = useState('closed') // 'closed' | 'compose' | 'all'
+  const discussionOpen = discussionMode !== 'closed'
+  const showCommentList = discussionMode === 'all'
   const dragRef = useRef(null)
+  const stageRef = useRef(null)
   const activeMedia = selectedMediaIndex == null ? null : media[selectedMediaIndex]
   const likesCount = Number(report?.likesCount || 0)
   const sawItTooCount = Number(report?.sawItTooCount || 0)
@@ -421,10 +425,12 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
       }
 
       if (event.key === 'ArrowRight' && media.length > 1) {
+        setZoomScale(1)
         setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev + 1) % media.length))
       }
 
       if (event.key === 'ArrowLeft' && media.length > 1) {
+        setZoomScale(1)
         setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev - 1 + media.length) % media.length))
       }
     }
@@ -466,11 +472,26 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   const zoomOut = () => setZoomScale((prev) => clampScale(prev - 0.15))
   const zoomReset = () => setZoomScale(1)
 
-  const handleLightboxWheel = (event) => {
-    event.preventDefault()
-    const delta = event.deltaY > 0 ? -0.12 : 0.12
-    setZoomScale((prev) => clampScale(prev + delta))
-  }
+  useEffect(() => {
+    if (!activeMedia) return
+    const stage = stageRef.current
+    if (!stage) return
+    const onWheel = (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      const delta = event.deltaY > 0 ? -0.12 : 0.12
+      setZoomScale((prev) => clampScale(prev + delta))
+    }
+    stage.addEventListener('wheel', onWheel, { passive: false })
+    return () => { stage.removeEventListener('wheel', onWheel) }
+  }, [activeMedia])
+
+  useEffect(() => {
+    if (!activeMedia) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [activeMedia])
 
   const startPan = (clientX, clientY) => {
     dragRef.current = {
@@ -639,7 +660,21 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           <span>{sawItTooCount > 0 ? sawItTooCount : 'Saw it'}</span>
         </button>
 
-        <button type="button" className="pc-act" onClick={handleLoadAllComments}>
+        <button
+          type="button"
+          className={`pc-act pc-act--cmt${discussionOpen ? ' on' : ''}`}
+          onClick={() => {
+            setDiscussionMode((prev) => {
+              const next = prev === 'closed' ? 'compose' : prev === 'compose' ? 'all' : 'closed'
+              if (next === 'all' && !allComments && commentsCount > commentsPreview.length && !allCommentsLoading) {
+                handleLoadAllComments()
+              }
+              return next
+            })
+          }}
+          aria-expanded={discussionOpen}
+          aria-controls={`pc-discuss-${report.id}`}
+        >
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
             <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v7a2 2 0 01-2 2H7l-4 4V14H4a2 2 0 01-2-2V5z"/>
           </svg>
@@ -655,52 +690,125 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
       </div>
 
       {/* ── DISCUSSION ── */}
-      <div className="pc-discuss">
-        {visibleComments.length > 0 && (
+      <div
+        id={`pc-discuss-${report.id}`}
+        className={`pc-discuss-wrap${discussionOpen ? ' is-open' : ''}`}
+        aria-hidden={!discussionOpen}
+      >
+       <div className="pc-discuss-inner">
+        <div className="pc-discuss">
+        {showCommentList && (commentsCount > 0 || visibleComments.length > 0) && (
+          <div className="pc-discuss-heading">
+            <span>{commentsCount > 0 ? `${commentsCount} ${commentsCount === 1 ? 'comment' : 'comments'}` : 'Comments'}</span>
+            {allCommentsLoading && <span className="pc-discuss-spinner" aria-hidden />}
+          </div>
+        )}
+
+        {showCommentList && visibleComments.length > 0 && (
           <ul className="pc-cmt-list">
-            {visibleComments.map((comment) => {
+            {visibleComments.map((comment, idx) => {
               const canDelete = isAdmin || (currentUserId && comment.author?.id === currentUserId)
+              const authorName = comment.author?.name || 'Anonymous'
+              const authorAvatar = getUserAvatarUrl(comment.author)
+              const authorInitials = getInitialsFromName(authorName, 'U')
               return (
-                <li key={comment.id} className="pc-cmt">
-                  <div className="pc-cmt-hd">
-                    <span className="pc-cmt-name">{comment.author?.name || 'Anonymous'}</span>
-                    <span className="pc-cmt-time">{formatRelativeTime(comment.createdAt)}</span>
-                    {canDelete && (
-                      <button type="button" className="pc-cmt-del" onClick={() => handleDeleteComment(comment.id)}>Delete</button>
-                    )}
+                <li key={comment.id} className="pc-cmt" style={{ '--pc-i': idx }}>
+                  <div className="pc-cmt-avatar" aria-hidden>
+                    {authorAvatar
+                      ? <img src={authorAvatar} alt="" loading="lazy" />
+                      : <span>{authorInitials}</span>}
                   </div>
-                  <p className="pc-cmt-body">{comment.body}</p>
+                  <div className="pc-cmt-bubble">
+                    <div className="pc-cmt-hd">
+                      <span className="pc-cmt-name">{authorName}</span>
+                      <span className="pc-cmt-dot" aria-hidden>·</span>
+                      <span className="pc-cmt-time">{formatRelativeTime(comment.createdAt)}</span>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          className="pc-cmt-del"
+                          onClick={() => handleDeleteComment(comment.id)}
+                          title="Delete comment"
+                          aria-label="Delete comment"
+                        >
+                          <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                            <path d="M3 5h10M6.5 5V3.5A1.5 1.5 0 018 2h0a1.5 1.5 0 011.5 1.5V5M4.5 5l.7 8.2A1.5 1.5 0 006.7 14.5h2.6a1.5 1.5 0 001.5-1.3L11.5 5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                    <p className="pc-cmt-body">{comment.body}</p>
+                  </div>
                 </li>
               )
             })}
           </ul>
         )}
 
-        {commentsCount > visibleComments.length && !allComments && (
-          <button type="button" className="pc-load-cmt" onClick={handleLoadAllComments} disabled={allCommentsLoading}>
-            {allCommentsLoading ? 'Loading...' : `View all ${commentsCount} comments`}
+        {showCommentList && commentsCount > visibleComments.length && !allComments && (
+          <button
+            type="button"
+            className="pc-load-cmt"
+            onClick={handleLoadAllComments}
+            disabled={allCommentsLoading}
+          >
+            {allCommentsLoading ? 'Loading…' : `View all ${commentsCount} comments`}
           </button>
-        )}
-        {allComments && (
-          <button type="button" className="pc-load-cmt" onClick={handleLoadAllComments}>Hide comments</button>
         )}
         {allCommentsError && <p className="pc-cmt-err">{allCommentsError}</p>}
 
         <form className="pc-cmt-form" onSubmit={handleSubmitComment}>
-          <input
-            type="text"
-            className="pc-cmt-input"
-            placeholder={currentUserId ? 'Write a comment...' : 'Sign in to comment'}
-            value={commentDraft}
-            onChange={(e) => setCommentDraft(e.target.value)}
-            maxLength={500}
-            disabled={!currentUserId || isSubmittingComment}
-          />
-          <button type="submit" className="pc-cmt-submit" disabled={!currentUserId || isSubmittingComment || !commentDraft.trim()}>
-            {isSubmittingComment ? '···' : 'Post'}
-          </button>
+          <div className="pc-cmt-avatar pc-cmt-avatar--me" aria-hidden>
+            {currentUser && getUserAvatarUrl(currentUser)
+              ? <img src={getUserAvatarUrl(currentUser)} alt="" />
+              : <span>{getInitialsFromName(currentUser?.name || currentUser?.username || 'You', 'YO')}</span>}
+          </div>
+          <div className={`pc-cmt-composer${isSubmittingComment ? ' is-submitting' : ''}${!currentUserId ? ' is-disabled' : ''}`}>
+            <textarea
+              className="pc-cmt-input"
+              placeholder={currentUserId ? 'Write a comment…' : 'Sign in to comment'}
+              value={commentDraft}
+              onChange={(e) => setCommentDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  if (commentDraft.trim() && !isSubmittingComment && currentUserId) {
+                    handleSubmitComment(e)
+                  }
+                }
+              }}
+              rows={1}
+              maxLength={500}
+              disabled={!currentUserId || isSubmittingComment}
+            />
+            <div className="pc-cmt-composer-foot">
+              <span
+                className={`pc-cmt-counter${commentDraft.length >= 450 ? ' is-warn' : ''}`}
+                aria-live="polite"
+              >
+                {commentDraft.length}/500
+              </span>
+              <button
+                type="submit"
+                className="pc-cmt-submit"
+                disabled={!currentUserId || isSubmittingComment || !commentDraft.trim()}
+                title="Post comment"
+                aria-label="Post comment"
+              >
+                {isSubmittingComment ? (
+                  <span className="pc-cmt-submit-spinner" aria-hidden />
+                ) : (
+                  <svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden>
+                    <path d="M2.4 17.6 18 10 2.4 2.4l.1 5.9L13 10 2.5 11.7z"/>
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
         </form>
         {commentError && <p className="pc-cmt-err">{commentError}</p>}
+        </div>
+       </div>
       </div>
 
       {/* ── LIGHTBOX ── */}
@@ -713,10 +821,43 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
               <button type="button" className="post-media-zoom-btn" onClick={zoomIn} aria-label="Zoom in">+</button>
             </div>
             <button type="button" className="post-media-lightbox-close" onClick={() => setSelectedMediaIndex(null)} aria-label="Close photo preview">×</button>
+
+            {media.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="post-media-lightbox-nav post-media-lightbox-nav--prev"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setZoomScale(1)
+                    setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev - 1 + media.length) % media.length))
+                  }}
+                  aria-label="Previous photo"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="post-media-lightbox-nav post-media-lightbox-nav--next"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setZoomScale(1)
+                    setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev + 1) % media.length))
+                  }}
+                  aria-label="Next photo"
+                >
+                  ›
+                </button>
+                <span className="post-media-lightbox-counter">
+                  {selectedMediaIndex + 1} / {media.length}
+                </span>
+              </>
+            )}
+
             <div
+              ref={stageRef}
               className={`post-media-lightbox-stage${zoomScale > 1 ? ' zoomed' : ''}${isDragging ? ' dragging' : ''}`}
               onClick={(e) => { if (e.target === e.currentTarget) setSelectedMediaIndex(null) }}
-              onWheel={handleLightboxWheel}
               onMouseDown={(e) => { if (zoomScale > 1) { e.preventDefault(); startPan(e.clientX, e.clientY) } }}
               onMouseMove={(e) => movePan(e.clientX, e.clientY)}
               onMouseUp={stopPan}

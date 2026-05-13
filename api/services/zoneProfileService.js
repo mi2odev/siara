@@ -16,7 +16,7 @@ function badRequest(message) {
 }
 
 function pickDominantSeverity(counts) {
-  const order = ["critical", "high", "moderate", "low"];
+  const order = ["high", "medium", "low"];
   for (const sev of order) {
     if ((counts[sev] || 0) > 0) return sev;
   }
@@ -26,9 +26,8 @@ function pickDominantSeverity(counts) {
 function severityFromHint(hint) {
   const n = Number(hint);
   if (!Number.isFinite(n)) return "low";
-  if (n >= 5) return "critical";
-  if (n === 4) return "high";
-  if (n === 3 || n === 2) return "moderate";
+  if (n >= 4) return "high";
+  if (n === 3) return "medium";
   return "low";
 }
 
@@ -61,11 +60,8 @@ async function getZoneProfile({ lat, lng, radiusMeters } = {}) {
         EXTRACT(DOW FROM ar.created_at AT TIME ZONE 'UTC')::int AS dow_utc,
         date_trunc('month', ar.created_at) AS month_bucket,
         CASE
-          WHEN COALESCE(ar.severity_hint, 0) >= 5 THEN 'critical'
-          WHEN ar.severity_hint = 4 THEN 'high'
-          WHEN ar.severity_hint = 3 THEN 'moderate'
-          WHEN ar.severity_hint = 2 THEN 'moderate'
-          WHEN ar.severity_hint = 1 THEN 'low'
+          WHEN COALESCE(ar.severity_hint, 0) >= 4 THEN 'high'
+          WHEN ar.severity_hint = 3 THEN 'medium'
           ELSE 'low'
         END AS severity_bucket
       FROM app.accident_reports ar
@@ -81,9 +77,8 @@ async function getZoneProfile({ lat, lng, radiusMeters } = {}) {
     SELECT
       (SELECT COUNT(*)::int FROM base) AS total_count,
       (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'low') AS low_count,
-      (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'moderate') AS moderate_count,
+      (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'medium') AS medium_count,
       (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'high') AS high_count,
-      (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'critical') AS critical_count,
       (SELECT COUNT(*)::int FROM base WHERE verified_by_officer_id IS NOT NULL) AS verified_count,
       (SELECT COUNT(*)::int FROM base WHERE created_at >= NOW() - INTERVAL '30 days') AS reports_last_30d,
       (SELECT COUNT(*)::int FROM base WHERE created_at >= NOW() - INTERVAL '60 days' AND created_at < NOW() - INTERVAL '30 days') AS reports_prev_30d,
@@ -139,9 +134,8 @@ async function getZoneProfile({ lat, lng, radiusMeters } = {}) {
 
   const severityCounts = {
     low: Number(row.low_count) || 0,
-    moderate: Number(row.moderate_count) || 0,
+    medium: Number(row.medium_count) || 0,
     high: Number(row.high_count) || 0,
-    critical: Number(row.critical_count) || 0,
   };
   const totalCount = Number(row.total_count) || 0;
   const dominantSeverity = pickDominantSeverity(severityCounts);
@@ -203,9 +197,8 @@ async function getZoneProfile({ lat, lng, radiusMeters } = {}) {
         100,
         Math.round(
           (severityCounts.low * 20 +
-            severityCounts.moderate * 45 +
-            severityCounts.high * 70 +
-            severityCounts.critical * 90) /
+            severityCounts.medium * 45 +
+            severityCounts.high * 85) /
             Math.max(1, totalCount),
         ),
       );

@@ -15,13 +15,12 @@ const ACCIDENT_INCIDENT_TYPE = "accident";
 // the heatmap legend in client/src/styles/AccidentHeatmap.css.
 const SEVERITY_COLORS = {
   low: "#3B82F6",
-  moderate: "#FACC15",
-  high: "#F97316",
-  critical: "#DC2626",
+  medium: "#FACC15",
+  high: "#DC2626",
 };
 
-const SEVERITY_ORDER = ["critical", "high", "moderate", "low"];
-const SEVERITY_WEIGHTS = { low: 1, moderate: 3, high: 6, critical: 10 };
+const SEVERITY_ORDER = ["high", "medium", "low"];
+const SEVERITY_WEIGHTS = { low: 1, medium: 3, high: 8 };
 
 function logHeatmap(message, payload) {
   if (process.env.NODE_ENV !== "production") {
@@ -92,13 +91,12 @@ function clamp(value, min, max) {
 
 function buildSeverityRatio(counts, total) {
   if (!total || total <= 0) {
-    return { low: 0, moderate: 0, high: 0, critical: 0 };
+    return { low: 0, medium: 0, high: 0 };
   }
   return {
     low: Number((counts.low / total).toFixed(4)),
-    moderate: Number((counts.moderate / total).toFixed(4)),
+    medium: Number((counts.medium / total).toFixed(4)),
     high: Number((counts.high / total).toFixed(4)),
-    critical: Number((counts.critical / total).toFixed(4)),
   };
 }
 
@@ -120,9 +118,8 @@ function buildColorStops(counts, total) {
     return [{ color: SEVERITY_COLORS.low, stop: 1 }];
   }
   // Concentric ring stops, ordered from center outward by severity.
-  // The center represents the most severe slice (critical → high →
-  // moderate → low). The frontend reads `stop` as a cumulative fraction
-  // [0..1] from the center.
+  // The center represents the most severe slice (high → medium → low).
+  // The frontend reads `stop` as a cumulative fraction [0..1] from the center.
   const stops = [];
   let cumulative = 0;
   for (const key of SEVERITY_ORDER) {
@@ -145,9 +142,8 @@ function buildColorStops(counts, total) {
 
 function buildPopupSummary(counts, dominantSeverity, reportCount) {
   const parts = [];
-  if (counts.critical > 0) parts.push(`${counts.critical} critical`);
   if (counts.high > 0) parts.push(`${counts.high} high`);
-  if (counts.moderate > 0) parts.push(`${counts.moderate} moderate`);
+  if (counts.medium > 0) parts.push(`${counts.medium} medium`);
   if (counts.low > 0) parts.push(`${counts.low} low`);
   const summary = parts.join(", ") || "no severity data";
   return `${reportCount} report${reportCount === 1 ? "" : "s"} (${summary}). Dominant: ${dominantSeverity}.`;
@@ -199,13 +195,10 @@ async function getDangerHeatClusters({
 
   const whereSql = filters.map((clause) => `        AND ${clause}`).join("\n").replace(/^        AND /, "        ");
 
-  // Severity bucketing matches the project convention used elsewhere
-  // (notification_priority_from_severity, etc.):
-  //   1 → low
-  //   2 → moderate (lower bound)
-  //   3 → moderate
-  //   4 → high
-  //   5+ → critical
+  // Severity bucketing for the 1-5 severity_hint scale, collapsed to 3 buckets:
+  //   1-2 → low
+  //   3   → medium
+  //   4-5 → high
   const sql = `
     WITH source AS (
       SELECT
@@ -215,11 +208,8 @@ async function getDangerHeatClusters({
         ar.created_at,
         ar.verified_by_officer_id,
         CASE
-          WHEN COALESCE(ar.severity_hint, 0) >= 5 THEN 'critical'
-          WHEN ar.severity_hint = 4 THEN 'high'
-          WHEN ar.severity_hint = 3 THEN 'moderate'
-          WHEN ar.severity_hint = 2 THEN 'moderate'
-          WHEN ar.severity_hint = 1 THEN 'low'
+          WHEN COALESCE(ar.severity_hint, 0) >= 4 THEN 'high'
+          WHEN ar.severity_hint = 3 THEN 'medium'
           ELSE 'low'
         END AS severity_bucket
       FROM app.accident_reports ar
@@ -239,9 +229,8 @@ async function getDangerHeatClusters({
       cluster_id,
       COUNT(*)::int AS report_count,
       COUNT(*) FILTER (WHERE severity_bucket = 'low')::int AS low_count,
-      COUNT(*) FILTER (WHERE severity_bucket = 'moderate')::int AS moderate_count,
+      COUNT(*) FILTER (WHERE severity_bucket = 'medium')::int AS medium_count,
       COUNT(*) FILTER (WHERE severity_bucket = 'high')::int AS high_count,
-      COUNT(*) FILTER (WHERE severity_bucket = 'critical')::int AS critical_count,
       COUNT(*) FILTER (WHERE verified_by_officer_id IS NOT NULL)::int AS verified_count,
       MAX(severity_hint)::int AS max_severity,
       AVG(severity_hint)::float AS avg_severity,
@@ -269,20 +258,18 @@ async function getDangerHeatClusters({
   const clusters = rows.map((row, index) => {
     const counts = {
       low: Number(row.low_count || 0),
-      moderate: Number(row.moderate_count || 0),
+      medium: Number(row.medium_count || 0),
       high: Number(row.high_count || 0),
-      critical: Number(row.critical_count || 0),
     };
-    const total = counts.low + counts.moderate + counts.high + counts.critical;
+    const total = counts.low + counts.medium + counts.high;
     const reportCount = Number(row.report_count || 0);
     const dominantSeverity = pickDominantSeverity(counts);
     const ratio = buildSeverityRatio(counts, total || reportCount);
     const colorStops = buildColorStops(counts, total || reportCount);
     const dangerWeight =
       counts.low * SEVERITY_WEIGHTS.low +
-      counts.moderate * SEVERITY_WEIGHTS.moderate +
-      counts.high * SEVERITY_WEIGHTS.high +
-      counts.critical * SEVERITY_WEIGHTS.critical;
+      counts.medium * SEVERITY_WEIGHTS.medium +
+      counts.high * SEVERITY_WEIGHTS.high;
     // Capped square-root scaling so a cluster of 1 still renders, and a
     // cluster of 100+ does not cover the whole map.
     const radiusPx = clamp(18 + Math.sqrt(reportCount) * 10, 22, 90);
@@ -344,14 +331,11 @@ function mapDangerWeightToVisuals(weight) {
   if (!Number.isFinite(value) || value <= 0) {
     return { level: "low", radiusMeters: 80, fillOpacity: 0.2, color: SEVERITY_COLORS.low };
   }
-  if (value > 60) {
-    return { level: "critical", radiusMeters: 320, fillOpacity: 0.5, color: SEVERITY_COLORS.critical };
-  }
   if (value >= 30) {
-    return { level: "high", radiusMeters: 220, fillOpacity: 0.4, color: SEVERITY_COLORS.high };
+    return { level: "high", radiusMeters: 260, fillOpacity: 0.45, color: SEVERITY_COLORS.high };
   }
   if (value >= 10) {
-    return { level: "moderate", radiusMeters: 140, fillOpacity: 0.3, color: SEVERITY_COLORS.moderate };
+    return { level: "medium", radiusMeters: 140, fillOpacity: 0.3, color: SEVERITY_COLORS.medium };
   }
   return { level: "low", radiusMeters: 80, fillOpacity: 0.2, color: SEVERITY_COLORS.low };
 }
@@ -369,11 +353,10 @@ function buildClusterExplanation({
   }
   const parts = [];
   parts.push(`${reportCount} accident ${reportCount === 1 ? "report" : "reports"} clustered here`);
-  const severeCount =
-    Number(severityCounts?.high || 0) + Number(severityCounts?.critical || 0);
+  const severeCount = Number(severityCounts?.high || 0);
   if (severeCount > 0) {
     parts.push(
-      `${severeCount} high or critical ${severeCount === 1 ? "report" : "reports"}`,
+      `${severeCount} high-severity ${severeCount === 1 ? "report" : "reports"}`,
     );
   }
   if (peakHourRange?.startHour != null && peakHourRange?.endHour != null) {
@@ -431,11 +414,8 @@ async function getClusterDetailByLocation({ lat, lng, radiusMeters, hours, limit
         ST_X(ar.incident_location::geometry) AS lng,
         EXTRACT(HOUR FROM ar.created_at AT TIME ZONE 'UTC')::int AS hour_utc,
         CASE
-          WHEN COALESCE(ar.severity_hint, 0) >= 5 THEN 'critical'
-          WHEN ar.severity_hint = 4 THEN 'high'
-          WHEN ar.severity_hint = 3 THEN 'moderate'
-          WHEN ar.severity_hint = 2 THEN 'moderate'
-          WHEN ar.severity_hint = 1 THEN 'low'
+          WHEN COALESCE(ar.severity_hint, 0) >= 4 THEN 'high'
+          WHEN ar.severity_hint = 3 THEN 'medium'
           ELSE 'low'
         END AS severity_bucket
       FROM app.accident_reports ar
@@ -452,9 +432,8 @@ async function getClusterDetailByLocation({ lat, lng, radiusMeters, hours, limit
     SELECT
       (SELECT COUNT(*)::int FROM base) AS report_count,
       (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'low') AS low_count,
-      (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'moderate') AS moderate_count,
+      (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'medium') AS medium_count,
       (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'high') AS high_count,
-      (SELECT COUNT(*)::int FROM base WHERE severity_bucket = 'critical') AS critical_count,
       (SELECT COUNT(*)::int FROM base WHERE verified_by_officer_id IS NOT NULL) AS verified_count,
       (SELECT MAX(created_at) FROM base) AS latest_report_at,
       (SELECT MIN(created_at) FROM base) AS earliest_report_at,
@@ -493,9 +472,8 @@ async function getClusterDetailByLocation({ lat, lng, radiusMeters, hours, limit
 
   const severityCounts = {
     low: Number(row.low_count || 0),
-    moderate: Number(row.moderate_count || 0),
+    medium: Number(row.medium_count || 0),
     high: Number(row.high_count || 0),
-    critical: Number(row.critical_count || 0),
   };
   const dominantSeverity = pickDominantSeverity(severityCounts);
   const verifiedCount = Number(row.verified_count || 0);

@@ -59,7 +59,7 @@ function normalizeAlertItem(item) {
     description: item?.description || '',
     zone: item?.zone || 'Unknown zone',
     zoneLabel: item?.zoneLabel || item?.zone || 'Unknown zone',
-    severity: ['low', 'medium', 'high', 'critical'].includes(item?.severity) ? item.severity : 'low',
+    severity: ['low', 'medium', 'high'].includes(item?.severity) ? item.severity : 'low',
     type: item?.type || 'advisory',
     trigger: ['auto', 'manual', 'scheduled'].includes(item?.trigger) ? item.trigger : 'manual',
     duration: item?.duration || '\u2014',
@@ -108,7 +108,7 @@ function normalizeTemplate(item) {
     name: item?.name || 'Template',
     description: item?.description || '',
     alertType: item?.alertType || 'advisory',
-    defaultSeverity: ['low', 'medium', 'high', 'critical'].includes(item?.defaultSeverity)
+    defaultSeverity: ['low', 'medium', 'high'].includes(item?.defaultSeverity)
       ? item.defaultSeverity
       : 'medium',
     defaultTitle: item?.defaultTitle || '',

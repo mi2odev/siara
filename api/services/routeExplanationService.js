@@ -35,15 +35,13 @@ const roundTo = (value, digits = 1) => {
 
 const normaliseLevel = (level, percent) => {
   const text = String(level || "").trim().toLowerCase();
-  if (text === "extreme" || text === "critical") return "extreme";
-  if (text === "high") return "high";
-  if (text === "moderate" || text === "medium") return "moderate";
+  if (text === "extreme" || text === "critical" || text === "high") return "high";
+  if (text === "moderate" || text === "medium") return "medium";
   if (text === "low") return "low";
   const n = safeNumber(percent);
   if (n == null) return "low";
-  if (n >= 75) return "extreme";
   if (n >= 50) return "high";
-  if (n >= 25) return "moderate";
+  if (n >= 25) return "medium";
   return "low";
 };
 
@@ -76,7 +74,7 @@ const countHighRiskSegments = (route) => {
   let count = 0;
   for (const seg of route.segments) {
     const level = normaliseLevel(seg?.danger_level, seg?.danger_percent);
-    if (level === "high" || level === "extreme") count += 1;
+    if (level === "high") count += 1;
   }
   return count;
 };
@@ -127,7 +125,7 @@ const buildClusterReasons = (selected, alternatives, heatmapClustersNearRoute) =
 
   const highRiskClusters = clusters.filter((c) => {
     const level = normaliseLevel(c?.severity || c?.danger_level, c?.severity_score || c?.danger_percent);
-    return level === "high" || level === "extreme";
+    return level === "high";
   });
 
   if (highRiskClusters.length > 0) {

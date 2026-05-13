@@ -16,12 +16,12 @@
    Usage:
      <CheckRoundedIcon className="icon-success" />
      <WarningAmberOutlinedIcon className="icon-warning" />
-     <FiberManualRecordIcon className="icon-severity-critical" />
+     <FiberManualRecordIcon className="icon-severity-high" />
      <StarRoundedIcon className="icon-rating" />
 
    Severity vocabulary mirrors the project's existing tier classes
-   (.risk-low/.risk-moderate/.risk-high/.risk-extreme,
-    .severity-low/.severity-medium/.severity-high/.severity-critical).
+   (.risk-low/.risk-medium/.risk-high,
+    .severity-low/.severity-medium/.severity-high).
    ============================================================================= */
 
 :root {
@@ -50,12 +50,10 @@
   --icon-color-rating-empty:  #CBD5E1;
 
   /* Severity dots — match the SIARA tier scale.
-     Low ramps from siara-accent (green), moderate uses siara-warning
-     (peachy amber), high steps to a dedicated orange, critical uses the
-     SIARA error red. */
-  --icon-severity-critical: var(--siara-error, #DC2626);
-  --icon-severity-high:     #EA580C;
-  --icon-severity-moderate: var(--siara-warning, #F4A261);
+     Low ramps from siara-accent (green), medium uses siara-warning
+     (peachy amber), high uses the SIARA error red. */
+  --icon-severity-high:     var(--siara-error, #DC2626);
+  --icon-severity-medium:   var(--siara-warning, #F4A261);
   --icon-severity-low:      var(--siara-accent, #0FA958);
   --icon-severity-info:     var(--siara-secondary, #1D4ED8);
   --icon-severity-neutral:  #6B7280;
@@ -79,9 +77,8 @@
     --icon-color-rating:        #F4A261;
     --icon-color-rating-empty:  #475569;
 
-    --icon-severity-critical: #EF4444;
-    --icon-severity-high:     #F97316;
-    --icon-severity-moderate: #F4A261;
+    --icon-severity-high:     #EF4444;
+    --icon-severity-medium:   #F4A261;
     --icon-severity-low:      #22C55E;
     --icon-severity-info:     #3B82F6;
     --icon-severity-neutral:  #94A3B8;
@@ -102,9 +99,8 @@
   --icon-color-fire:     #F97316;
   --icon-color-rating:   #F4A261;
   --icon-color-rating-empty: #475569;
-  --icon-severity-critical: #EF4444;
-  --icon-severity-high:     #F97316;
-  --icon-severity-moderate: #F4A261;
+  --icon-severity-high:     #EF4444;
+  --icon-severity-medium:   #F4A261;
   --icon-severity-low:      #22C55E;
   --icon-severity-info:     #3B82F6;
   --icon-severity-neutral:  #94A3B8;
@@ -129,14 +125,45 @@
 .icon-rating        { color: var(--icon-color-rating); }
 .icon-rating-empty  { color: var(--icon-color-rating-empty); }
 
-.icon-severity-critical,
-.icon-severity-extreme { color: var(--icon-severity-critical); }
 .icon-severity-high    { color: var(--icon-severity-high); }
-.icon-severity-moderate,
-.icon-severity-medium  { color: var(--icon-severity-moderate); }
+.icon-severity-medium  { color: var(--icon-severity-medium); }
 .icon-severity-low     { color: var(--icon-severity-low); }
 .icon-severity-info    { color: var(--icon-severity-info); }
 .icon-severity-neutral { color: var(--icon-severity-neutral); }
+
+/* -----------------------------------------------------------------------------
+   Sidebar navigation icons — SIARA brand violet (every page, every shell)
+   -----------------------------------------------------------------------------
+   Covers all known left-rail icon classes so the brand identity is
+   consistent across user / police / admin / quick-info shells:
+
+     - FeedSidebarNav  .nav-icon                  (News, Map, Alerts, Reports,
+                                                   Notifications, IncidentDetail,
+                                                   UserDashboard, …)
+     - PoliceShell     .police-menu-icon          (officer + supervisor sidebars)
+     - Admin shell     .admin-nav-link .nav-icon  (matches admin specificity)
+     - LeftQuickInfoLinks .left-quick-link-icon   (Contact / About / Description)
+     - Profile sidebar .profile-nav-item .nav-icon
+
+   Default state uses the primary violet; active state deepens to the hover
+   variant for a subtle selected-emphasis on top of the existing nav-accent
+   bar + bold label.
+   ----------------------------------------------------------------------- */
+.nav-icon,
+.profile-nav-item .nav-icon,
+.admin-nav-link .nav-icon,
+.police-menu-icon,
+.left-quick-link-icon {
+  color: var(--siara-primary);
+}
+.nav-item-active .nav-icon,
+.profile-nav-item.is-active .nav-icon,
+.admin-nav-link.is-active .nav-icon,
+.admin-nav-link.active .nav-icon,
+.police-menu-btn.active .police-menu-icon,
+.left-quick-link-btn.active .left-quick-link-icon {
+  color: var(--siara-btn-primary-hover);
+}
 
 /* State helpers — apply alongside any color class */
 .icon-disabled { opacity: 0.45; }

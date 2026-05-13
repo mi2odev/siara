@@ -540,7 +540,7 @@ export default function NotificationsPage() {
                 <div className="card nd-header-card">
                   <div className="nd-priority-row">
                     <span className={`nd-priority-badge nd-priority-badge--${priorityKey}`}>
-                      <FiberManualRecordIcon fontSize="inherit" className={`icon-severity-${priorityKey === 'high' ? 'critical' : priorityKey === 'medium' ? 'moderate' : 'info'}`} />
+                      <FiberManualRecordIcon fontSize="inherit" className={`icon-severity-${priorityKey === 'high' ? 'high' : priorityKey === 'medium' ? 'medium' : 'info'}`} />
                       {' '}{getPriorityLabel(selectedNotification.priority)} Priority
                     </span>
                     {!selectedNotification.readAt ? (

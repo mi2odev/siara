@@ -75,7 +75,6 @@ export function formatPoliceRelativeTime(value) {
 }
 
 function severityRank(value) {
-  if (value === 'critical') return 4
   if (value === 'high') return 3
   if (value === 'medium') return 2
   return 1

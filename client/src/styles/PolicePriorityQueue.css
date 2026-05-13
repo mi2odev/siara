@@ -136,9 +136,8 @@
 }
 
 .siara-pq__pill.severity-low { background: #ECFDF5; color: #047857; }
-.siara-pq__pill.severity-moderate { background: #FEF3C7; color: #B45309; }
-.siara-pq__pill.severity-high { background: #FFEDD5; color: #C2410C; }
-.siara-pq__pill.severity-critical { background: #FEE2E2; color: #B91C1C; }
+.siara-pq__pill.severity-medium { background: #FEF3C7; color: #B45309; }
+.siara-pq__pill.severity-high { background: #FEE2E2; color: #B91C1C; }
 .siara-pq__pill.kind-cluster { background: #DBEAFE; color: #1E40AF; }
 .siara-pq__pill.kind-verified { background: #E0E7FF; color: #3730A3; }
 .siara-pq__pill.kind-community { background: #F3E8FF; color: #6B21A8; }

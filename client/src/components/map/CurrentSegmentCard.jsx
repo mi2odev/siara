@@ -17,35 +17,26 @@ import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownR
 const TIER_LABELS = {
   unknown: 'Unknown',
   low: 'Low',
-  moderate: 'Moderate',
-  medium: 'Moderate',
+  medium: 'Medium',
   high: 'High',
-  extreme: 'Extreme',
-  critical: 'Extreme',
 }
 
 const TIER_CLASSES = {
   unknown: 'risk-unknown',
   low: 'risk-low',
-  moderate: 'risk-moderate',
-  medium: 'risk-moderate',
+  medium: 'risk-medium',
   high: 'risk-high',
-  extreme: 'risk-extreme',
-  critical: 'risk-extreme',
 }
 
 function tierFromLevel(level, percent) {
   const text = String(level || '').trim().toLowerCase()
   if (text === 'unknown' || text === 'unavailable') return 'unknown'
-  if (text === 'medium') return 'moderate'
-  if (text === 'critical') return 'extreme'
   if (TIER_LABELS[text]) return text
   if (percent === null || percent === undefined || percent === '') return 'unknown'
   const numeric = Number(percent)
   if (!Number.isFinite(numeric)) return 'unknown'
-  if (numeric >= 75) return 'extreme'
   if (numeric >= 50) return 'high'
-  if (numeric >= 25) return 'moderate'
+  if (numeric >= 25) return 'medium'
   return 'low'
 }
 

@@ -70,7 +70,7 @@ function buildBlankFormState({ template = null, emergencyMode = false } = {}) {
     title: template?.defaultTitle || '',
     description: template?.defaultMessage || '',
     alertType: template?.alertType || (emergencyMode ? 'emergency' : 'incident'),
-    severity: template?.defaultSeverity || (emergencyMode ? 'critical' : 'medium'),
+    severity: template?.defaultSeverity || (emergencyMode ? 'high' : 'medium'),
     wilayaId: '',
     communeId: '',
     startsAtLocal: toLocalInputValue(startsAt),
@@ -471,22 +471,22 @@ export default function AdminAlertsPage() {
     <>
       {emergencyMode && (
         <div
-          className="admin-critical-bar"
+          className="admin-high-bar"
           style={{
             background: 'rgba(239, 68, 68, 0.15)',
             borderColor: 'var(--admin-danger)',
           }}
         >
-          <span className="critical-dot"></span>
+          <span className="high-dot"></span>
           <span
-            className="critical-text"
+            className="high-text"
             style={{ color: 'var(--admin-danger)', fontWeight: 700 }}
           >
-            EMERGENCY MODE READY - New alerts default to critical emergency settings until you
+            EMERGENCY MODE READY - New alerts default to high-severity emergency settings until you
             publish or reset the composer
           </span>
           <button
-            className="critical-action"
+            className="high-action"
             onClick={() => setEmergencyMode(false)}
             type="button"
           >
@@ -761,7 +761,6 @@ export default function AdminAlertsPage() {
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
-                <option value="critical">Critical</option>
               </select>
             </div>
 

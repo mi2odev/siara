@@ -477,6 +477,66 @@
   color: var(--report-muted);
 }
 
+.address-search-spinner {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #6d28d9;
+  letter-spacing: 1px;
+}
+
+.address-suggestions {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px;
+  background: var(--report-bg);
+  border: 1px solid var(--report-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.address-suggestion-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: var(--report-text);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.address-suggestion-btn:hover,
+.address-suggestion-btn:focus-visible {
+  outline: none;
+  background: rgba(99, 102, 241, 0.08);
+  color: #4338ca;
+}
+
+.address-suggestion-icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #6d28d9;
+}
+
+.address-suggestion-text {
+  flex: 1 1 auto;
+  line-height: 1.35;
+}
+
+.address-no-results {
+  margin: 6px 2px 0;
+  font-size: 0.82rem;
+  color: var(--report-muted);
+}
+
 /* Map Section */
 .map-section {
   background: var(--report-card);

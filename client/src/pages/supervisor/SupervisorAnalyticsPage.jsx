@@ -80,7 +80,7 @@ const STATUS_COLOR = {
   verified: 'fill-low',
   dispatched: 'fill-accent',
   resolved: '',
-  rejected: 'fill-critical',
+  rejected: 'fill-high',
 }
 
 export default function SupervisorAnalyticsPage() {
@@ -119,7 +119,7 @@ export default function SupervisorAnalyticsPage() {
     colorClass: STATUS_COLOR[s] || '',
   })).filter((d) => d.count > 0)
 
-  const severityData = ['critical', 'high', 'medium', 'low'].map((s) => ({
+  const severityData = ['high', 'medium', 'low'].map((s) => ({
     label: s.charAt(0).toUpperCase() + s.slice(1),
     count: bySeverity[s] || 0,
     colorClass: `fill-${s}`,

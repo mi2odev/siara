@@ -446,10 +446,9 @@
   font-size: 12px;
   font-weight: 700;
 }
-.nd-sev-chip--high     { background: #fee2e2; color: #b91c1c; }
+.nd-sev-chip--high     { background: #fce7f3; color: #9d174d; }
 .nd-sev-chip--medium   { background: #fef3c7; color: #b45309; }
 .nd-sev-chip--low      { background: #dcfce7; color: #15803d; }
-.nd-sev-chip--critical { background: #fce7f3; color: #9d174d; }
 .nd-sev-dot {
   width: 7px;
   height: 7px;

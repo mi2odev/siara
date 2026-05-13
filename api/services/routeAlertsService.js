@@ -100,20 +100,15 @@ const cumulativeDistanceFromStart = (lat, lng, path) => {
 const severityFromHint = (hint) => {
   const n = Number(hint);
   if (!Number.isFinite(n)) return "low";
-  if (n >= 4) return "extreme";
-  if (n === 3) return "high";
-  if (n === 2) return "moderate";
+  if (n >= 3) return "high";
+  if (n === 2) return "medium";
   return "low";
 };
 
 const severityRank = (severity) => {
   switch (String(severity || "").toLowerCase()) {
-    case "extreme":
-    case "critical":
-      return 4;
     case "high":
       return 3;
-    case "moderate":
     case "medium":
       return 2;
     default:

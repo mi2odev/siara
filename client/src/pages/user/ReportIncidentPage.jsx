@@ -126,6 +126,10 @@ export default function ReportIncidentPage() {
   const [isUploadDragActive, setIsUploadDragActive] = useState(false)
   const [isResolvingCurrentLocation, setIsResolvingCurrentLocation] = useState(false)
   const [locationActionError, setLocationActionError] = useState('')
+  const [addressQuery, setAddressQuery] = useState('')
+  const [addressResults, setAddressResults] = useState([])
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false)
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
 
   /* ═══ FORM STATE ═══ */
   // All report fields consolidated in a single state object
@@ -379,19 +383,64 @@ export default function ReportIncidentPage() {
     }
   }
 
-  // Simulate address geocoding — accepts query after 3+ characters
-  const searchAddress = (query) => {
-    setLocationActionError('')
-    if (query.length > 3) {
-      setReportData(prev => ({
-        ...prev,
-        locationType: 'search',
-        locationCoords: { lat: 36.7538, lng: 3.0588 },
-        locationAddress: query,
-        locationDetails: null,
-        locationAccuracy: 'Manual search'
-      }))
+  // Forward-geocode the query via OpenStreetMap Nominatim and present suggestions.
+  // Algeria is biased via countrycodes=dz to keep results relevant.
+  useEffect(() => {
+    const trimmed = addressQuery.trim()
+    if (trimmed.length < 3) {
+      setAddressResults([])
+      setIsSearchingAddress(false)
+      return undefined
     }
+
+    let cancelled = false
+    setIsSearchingAddress(true)
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(trimmed)}&countrycodes=dz&addressdetails=1&limit=6`,
+          { headers: { 'Accept-Language': 'en' } },
+        )
+        if (!response.ok) {
+          if (!cancelled) setAddressResults([])
+          return
+        }
+        const data = await response.json()
+        if (!cancelled) setAddressResults(Array.isArray(data) ? data : [])
+      } catch {
+        if (!cancelled) setAddressResults([])
+      } finally {
+        if (!cancelled) setIsSearchingAddress(false)
+      }
+    }, 350)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [addressQuery])
+
+  const handlePickAddressSuggestion = (suggestion) => {
+    const lat = Number(suggestion?.lat)
+    const lng = Number(suggestion?.lon)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+
+    const details = buildLocationDetails(suggestion, lat, lng)
+    const displayName = String(suggestion?.display_name || '').trim()
+
+    setReportData(prev => ({
+      ...prev,
+      locationType: 'search',
+      locationCoords: { lat, lng },
+      locationAddress: displayName,
+      locationDetails: details,
+      locationAccuracy: 'Address search',
+    }))
+    setAddressQuery(displayName)
+    setAddressResults([])
+    setShowAddressSuggestions(false)
+    setLocationActionError('')
   }
 
   /**
@@ -796,6 +845,7 @@ export default function ReportIncidentPage() {
           </div>
           <div className="dash-header-right">
             <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
+              <NotificationsOutlinedIcon fontSize="small" />
               <span className="notification-badge"></span>
             </button>
             <div className="dash-avatar-wrapper">
@@ -920,10 +970,46 @@ export default function ReportIncidentPage() {
                     <input
                       type="text"
                       placeholder="E.g.: Rue Didouche Mourad, Algiers..."
-                      value={reportData.locationType === 'search' ? reportData.locationAddress : ''}
-                      onChange={(e) => searchAddress(e.target.value)}
+                      value={addressQuery}
+                      onChange={(e) => {
+                        setAddressQuery(e.target.value)
+                        setShowAddressSuggestions(true)
+                      }}
+                      onFocus={() => setShowAddressSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 150)}
+                      autoComplete="off"
                     />
+                    {isSearchingAddress && (
+                      <span className="address-search-spinner" aria-hidden="true">…</span>
+                    )}
                   </div>
+
+                  {showAddressSuggestions && addressResults.length > 0 && (
+                    <ul className="address-suggestions" role="listbox">
+                      {addressResults.map((suggestion) => (
+                        <li key={`${suggestion.place_id}-${suggestion.osm_id}`}>
+                          <button
+                            type="button"
+                            className="address-suggestion-btn"
+                            onMouseDown={(event) => {
+                              event.preventDefault()
+                              handlePickAddressSuggestion(suggestion)
+                            }}
+                          >
+                            <LocationOnOutlinedIcon fontSize="inherit" className="address-suggestion-icon" />
+                            <span className="address-suggestion-text">{suggestion.display_name}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {showAddressSuggestions
+                    && !isSearchingAddress
+                    && addressQuery.trim().length >= 3
+                    && addressResults.length === 0 && (
+                    <p className="address-no-results">No matching address found.</p>
+                  )}
                 </div>
 
                 <div className="map-section">
