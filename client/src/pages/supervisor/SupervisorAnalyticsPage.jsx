@@ -146,7 +146,7 @@ export default function SupervisorAnalyticsPage() {
                 {d}d
               </button>
             ))}
-            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading} aria-label="Refresh"><RefreshRoundedIcon fontSize="small" /></button>
+            <button className="sv-btn sv-btn-ghost sv-btn-refresh" onClick={load} disabled={loading} aria-label="Refresh"><RefreshRoundedIcon fontSize="small" /></button>
           </div>
         </div>
 

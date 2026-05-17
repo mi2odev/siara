@@ -145,7 +145,12 @@ export default function RegisterPage() {
             <form className="register-form" onSubmit={handleSubmit}>
               <label htmlFor="register-name" className="field-label">Full name</label>
               <div className="input-shell">
-                <span className="input-icon" aria-hidden="true">A</span>
+                <span className="input-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                </span>
                 <input
                   id="register-name"
                   className="siara-input"

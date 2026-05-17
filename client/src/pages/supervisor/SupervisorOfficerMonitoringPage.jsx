@@ -147,7 +147,7 @@ export default function SupervisorOfficerMonitoringPage() {
             </p>
           </div>
           <div className="sv-page-actions">
-            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading}><RefreshRoundedIcon fontSize="inherit" /> Refresh</button>
+            <button className="sv-btn sv-btn-ghost sv-btn-refresh" onClick={load} disabled={loading}><RefreshRoundedIcon fontSize="inherit" /> Refresh</button>
           </div>
         </div>
 

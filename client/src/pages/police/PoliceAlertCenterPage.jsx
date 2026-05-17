@@ -139,7 +139,7 @@ export default function PoliceAlertCenterPage() {
             </span>
             <button
               type="button"
-              className="police-action police-action-secondary"
+              className="police-action police-action-secondary police-alert-center-refresh"
               onClick={() => loadAlerts({ refresh: true })}
               disabled={isLoading || isRefreshing || Boolean(busyAlertId)}
             >

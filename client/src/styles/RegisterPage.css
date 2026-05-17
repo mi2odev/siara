@@ -71,12 +71,69 @@
   color:#4B5563;
 }
 
+/* Register card: tuned to fit a typical viewport without feeling cramped.
+   Login has fewer fields so it doesn't need this; rules are scoped to the
+   register page via :has(). */
+.siara-login-root:has(.register-form) .siara-form-wrap{
+  padding:20px 28px 16px;
+  width:400px;
+}
+.siara-login-root:has(.register-form) .siara-brand{margin-bottom:8px;}
+.siara-login-root:has(.register-form) .siara-brand img{
+  height:50px;
+  margin-bottom:8px;
+}
+.siara-login-root:has(.register-form) .siara-brand .tag{font-size:12px;}
+.siara-login-root:has(.register-form) .siara-form-title{
+  font-size:20px;
+  margin:2px 0 4px;
+}
+.siara-login-root:has(.register-form) .siara-form-sub{
+  font-size:12.5px;
+  line-height:1.4;
+  margin-bottom:4px;
+}
+.siara-login-root:has(.register-form) .siara-form-helper{
+  font-size:11px;
+  margin-bottom:8px;
+}
+.siara-login-root:has(.register-form) .field-label{
+  margin:6px 0 3px;
+  font-size:12.5px;
+}
+.siara-login-root:has(.register-form) .siara-input{
+  padding:9px 14px 9px 36px;
+  font-size:13.5px;
+}
+.siara-login-root:has(.register-form) .agree{
+  font-size:12.5px;
+  gap:9px;
+  line-height:1.4;
+}
+.siara-login-root:has(.register-form) .agree input[type="checkbox"]{
+  width:17px;
+  height:17px;
+}
+.siara-login-root:has(.register-form) .siara-cta{
+  padding:11px 14px;
+  font-size:14px;
+}
+.siara-login-root:has(.register-form) .siara-auth-divider{
+  margin:10px 0 8px;
+  font-size:11.5px;
+}
+.siara-login-root:has(.register-form) .register-footer{
+  margin-top:10px;
+  padding-top:8px;
+  font-size:12.5px;
+}
+
 /* registration-specific tweaks INSIDE the shared siara-form-wrap card */
 .register-form{
-  margin-top:8px;
+  margin-top:6px;
   display:flex;
   flex-direction:column;
-  gap:6px; /* un peu moins d'espace vertical entre les champs */
+  gap:4px;
 }
 
 .field-label{
