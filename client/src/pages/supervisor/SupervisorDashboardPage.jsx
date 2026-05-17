@@ -119,7 +119,7 @@ export default function SupervisorDashboardPage() {
             </p>
           </div>
           <div className="sv-page-actions">
-            <button className="sv-btn sv-btn-ghost" onClick={load} disabled={loading}>
+            <button className="sv-btn sv-btn-ghost sv-btn-refresh" onClick={load} disabled={loading}>
               <RefreshRoundedIcon fontSize="inherit" /> Refresh
             </button>
           </div>

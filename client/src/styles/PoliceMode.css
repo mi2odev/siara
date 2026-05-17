@@ -1275,6 +1275,7 @@
 .police-action {
   border: 1px solid #c6d5ea;
   background: #ffffff;
+  color: #1e3a8a;
   border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
@@ -1288,7 +1289,135 @@
 
 .police-action:hover {
   border-color: #9cb8df;
+  color: #1e40af;
   transform: translateY(-1px);
+}
+
+/* === Unified refresh-button style across every police page === */
+.police-dashboard-refresh,
+.police-verification-refresh,
+.police-nearby-page-refresh,
+.police-alert-center-refresh,
+.police-cc-refresh-pill,
+.police-cc-refresh,
+.pmi-refresh,
+.pfr-refresh,
+.siara-pq__refresh,
+.sv-btn-refresh,
+.police-root .police-dashboard-refresh,
+.police-root .police-verification-refresh,
+.police-root .police-nearby-page-refresh,
+.police-root .police-alert-center-refresh,
+.police-root .police-cc-refresh-pill,
+.police-root .police-cc-refresh,
+.police-root .pmi-refresh,
+.police-root .pfr-refresh,
+.police-root .siara-pq__refresh,
+.police-root .sv-btn-refresh {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  min-height: 34px !important;
+  padding: 7px 14px !important;
+  border: 1px solid #1d4ed8 !important;
+  border-radius: 10px !important;
+  background: linear-gradient(180deg, #2563eb, #1d4ed8) !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  cursor: pointer !important;
+  box-shadow: 0 6px 14px -6px rgba(29, 78, 216, 0.55) !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.08) !important;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.police-dashboard-refresh:hover,
+.police-verification-refresh:hover,
+.police-nearby-page-refresh:hover,
+.police-alert-center-refresh:hover,
+.police-cc-refresh-pill:hover,
+.police-cc-refresh:hover,
+.pmi-refresh:hover,
+.pfr-refresh:hover,
+.siara-pq__refresh:hover,
+.sv-btn-refresh:hover,
+.police-root .police-dashboard-refresh:hover,
+.police-root .police-verification-refresh:hover,
+.police-root .police-nearby-page-refresh:hover,
+.police-root .police-alert-center-refresh:hover,
+.police-root .police-cc-refresh-pill:hover,
+.police-root .police-cc-refresh:hover,
+.police-root .pmi-refresh:hover,
+.police-root .pfr-refresh:hover,
+.police-root .siara-pq__refresh:hover,
+.police-root .sv-btn-refresh:hover {
+  background: linear-gradient(180deg, #1d4ed8, #1e40af) !important;
+  border-color: #1e40af !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+.police-dashboard-refresh:disabled,
+.police-verification-refresh:disabled,
+.police-nearby-page-refresh:disabled,
+.police-alert-center-refresh:disabled,
+.police-cc-refresh-pill:disabled,
+.police-cc-refresh:disabled,
+.pmi-refresh:disabled,
+.pfr-refresh:disabled,
+.siara-pq__refresh:disabled,
+.sv-btn-refresh:disabled,
+.police-root .police-dashboard-refresh:disabled,
+.police-root .police-verification-refresh:disabled,
+.police-root .police-nearby-page-refresh:disabled,
+.police-root .police-alert-center-refresh:disabled,
+.police-root .police-cc-refresh-pill:disabled,
+.police-root .police-cc-refresh:disabled,
+.police-root .pmi-refresh:disabled,
+.police-root .pfr-refresh:disabled,
+.police-root .siara-pq__refresh:disabled,
+.police-root .sv-btn-refresh:disabled {
+  opacity: 0.78;
+  cursor: default;
+  transform: none;
+  color: #ffffff !important;
+}
+
+/* Icon-only refresh buttons (square-ish) get a circle shape and SVG sizing */
+.pmi-refresh,
+.pfr-refresh,
+.police-cc-refresh,
+.police-root .pmi-refresh,
+.police-root .pfr-refresh,
+.police-root .police-cc-refresh {
+  width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+}
+
+.pmi-refresh svg,
+.pfr-refresh svg,
+.police-cc-refresh svg,
+.police-cc-refresh-pill svg,
+.police-root .pmi-refresh svg,
+.police-root .pfr-refresh svg,
+.police-root .police-cc-refresh svg,
+.police-root .police-cc-refresh-pill svg {
+  width: 18px;
+  height: 18px;
+  color: #ffffff;
+  fill: currentColor;
+}
+
+.pmi-refresh .is-spinning,
+.pfr-refresh .is-spinning,
+.police-cc-refresh .is-spinning,
+.police-cc-refresh-pill .is-spinning {
+  animation: policeRefreshSpin 0.9s linear infinite;
 }
 
 .police-action:focus-visible,
@@ -6751,32 +6880,6 @@
   background: #16a34a;
 }
 
-.police-root .police-cc-refresh {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid #1d4ed8;
-  background: linear-gradient(180deg, #2563eb, #1d4ed8);
-  color: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  cursor: pointer;
-  box-shadow: 0 6px 14px -6px rgba(29, 78, 216, 0.55);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-
-.police-root .police-cc-refresh:hover {
-  background: linear-gradient(180deg, #1d4ed8, #1e40af);
-  transform: translateY(-1px);
-}
-
-.police-root .police-cc-refresh:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
 .police-root .police-cc-refresh .is-spinning {
   animation: cc-spin 0.9s linear infinite;
 }
@@ -7416,19 +7519,8 @@
 .police-root .police-cc-map-pill.medium .dot { background: #f59e0b; }
 .police-root .police-cc-map-pill.low .dot { background: #16a34a; }
 
-/* ----- Refresh pill (icon + label, on active stream view) ----- */
-.police-root .police-cc-refresh-pill {
-  padding: 8px 14px;
-  font-size: 12px;
-  border-radius: 10px;
-  min-height: 36px;
-}
-
-.police-root .police-cc-refresh-pill svg {
-  width: 16px;
-  height: 16px;
-}
-
+/* ----- Refresh pill (icon + label, on active stream view) — visual styling
+        unified in the .pmi-refresh/.pfr-refresh/.police-cc-refresh rule block. */
 .police-root .police-cc-refresh-pill .is-spinning {
   animation: cc-spin 0.9s linear infinite;
 }
@@ -9529,25 +9621,7 @@
 }
 .pmi-refresh {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  background: #fff;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
-  color: #475569;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.pmi-refresh:hover:not(:disabled) {
-  background: #f0f4ff;
-  border-color: #a5b4fc;
-  color: #4f46e5;
-}
-.pmi-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
 .pmi-refresh .is-spinning {
   animation: pmi-spin 0.8s linear infinite;
 }
@@ -9907,25 +9981,7 @@
 }
 .pfr-refresh {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  background: #fff;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
-  color: #475569;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.pfr-refresh:hover:not(:disabled) {
-  background: #f0f4ff;
-  border-color: #a5b4fc;
-  color: #4f46e5;
-}
-.pfr-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
 .pfr-refresh .is-spinning { animation: pmi-spin 0.8s linear infinite; }
 
 /* ── Status tabs ── */
