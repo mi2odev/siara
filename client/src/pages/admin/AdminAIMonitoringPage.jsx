@@ -17,10 +17,12 @@
  * Data: Mock model metrics, 4×4 confusion matrix, 10-bucket histogram,
  *       4 override log entries, 3 false-positive & 3 false-negative categories.
  */
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ArrowRightAltRoundedIcon from '@mui/icons-material/ArrowRightAltRounded'
 import SquareRoundedIcon from '@mui/icons-material/SquareRounded'
+
+import { getOccurrenceBetaV1Metrics } from '../../services/adminModelsService'
 
 /* ═══════════════════════════════════════════════════════════════
    MOCK DATA — AI model metrics & analysis artifacts
@@ -102,13 +104,26 @@ const PatternLabel = ({ from, to }) => (
   </span>
 )
 
-/** Tab definitions for the 4 monitoring views */
+/** Tab definitions. The 'occurrence' tab is backed by real backend data
+ * (GET /api/admin/models/occurrence-beta-v1); the other four still use the
+ * severity-flavored mock data above and should be migrated separately. */
 const tabs = [
   { key: 'performance', label: 'Model Performance' },
   { key: 'confusion', label: 'Confusion Matrix' },
   { key: 'confidence', label: 'Confidence Analysis' },
   { key: 'overrides', label: 'Override Log' },
+  { key: 'occurrence', label: 'Occurrence Model (Beta)' },
 ]
+
+function formatPct(value, digits = 2) {
+  if (value == null || Number.isNaN(Number(value))) return '—'
+  return `${(Number(value) * 100).toFixed(digits)}%`
+}
+
+function formatNumber(value, digits = 4) {
+  if (value == null || Number.isNaN(Number(value))) return '—'
+  return Number(value).toFixed(digits)
+}
 
 /* ═══════════════════════════════════════════════════════════════
    COMPONENT
@@ -117,6 +132,31 @@ export default function AdminAIMonitoringPage() {
   /* URL-driven tab state — defaults to 'performance' */
   const [searchParams, setSearchParams] = useSearchParams()
   const currentTab = searchParams.get('tab') || 'performance'
+
+  /* Occurrence model metrics — fetched lazily when the tab opens, cached after. */
+  const [occurrenceData, setOccurrenceData] = useState(null)
+  const [occurrenceLoading, setOccurrenceLoading] = useState(false)
+  const [occurrenceError, setOccurrenceError] = useState(null)
+
+  useEffect(() => {
+    if (currentTab !== 'occurrence' || occurrenceData || occurrenceLoading) return
+    let cancelled = false
+    setOccurrenceLoading(true)
+    setOccurrenceError(null)
+    getOccurrenceBetaV1Metrics()
+      .then((data) => {
+        if (!cancelled) setOccurrenceData(data)
+      })
+      .catch((err) => {
+        if (!cancelled) setOccurrenceError(err.message || 'Failed to load occurrence metrics')
+      })
+      .finally(() => {
+        if (!cancelled) setOccurrenceLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [currentTab, occurrenceData, occurrenceLoading])
 
   /* ═══ RENDER ═══ */
   return (
@@ -319,6 +359,184 @@ export default function AdminAIMonitoringPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ═══ TAB: OCCURRENCE MODEL — real metrics from /api/admin/models/occurrence-beta-v1 ═══ */}
+      {currentTab === 'occurrence' && (
+        <>
+          {occurrenceLoading && (
+            <div className="admin-card">Loading occurrence model metrics…</div>
+          )}
+          {occurrenceError && !occurrenceLoading && (
+            <div className="admin-high-bar">
+              <span className="high-dot"></span>
+              <span className="high-text">{occurrenceError}</span>
+            </div>
+          )}
+          {occurrenceData && !occurrenceLoading && !occurrenceError && (() => {
+            const metrics = occurrenceData.metrics || {}
+            const calibrated = metrics.validation_calibrated || metrics.test_calibrated || metrics
+            const cm = calibrated.confusion_matrix_at_threshold || metrics.confusion_matrix_at_threshold || {}
+            const live = occurrenceData.live || {}
+            const manifest = occurrenceData.training_manifest || {}
+            const comparison = manifest.model_comparison || metrics.model_comparison || []
+            const thresholds = occurrenceData.risk_level_thresholds || {}
+            const weatherRate = manifest.weather_available_rate
+            const cacheRate = manifest.weather_coverage?.cache_hit_rate
+
+            return (
+              <>
+                <div className="admin-card" style={{ marginBottom: 12 }}>
+                  <h3 className="admin-card-title">Accident Occurrence Prediction</h3>
+                  <p className="admin-card-subtitle">
+                    Version <strong>{occurrenceData.model_name}</strong>
+                    {' · '}Algorithm <strong>{occurrenceData.algorithm}</strong>
+                    {' · '}Calibration <strong>{occurrenceData.calibration_method}</strong>
+                    {' · '}Time window {occurrenceData.time_window_hours}h
+                    {' · '}Decision threshold {occurrenceData.decision_threshold}
+                  </p>
+                  {!live.enabled && (
+                    <div className="admin-high-bar" style={{ marginTop: 10 }}>
+                      <span className="high-dot"></span>
+                      <span className="high-text">
+                        Flask occurrence model is NOT loaded
+                        {live.load_error ? ` — ${live.load_error}` : ''}.
+                        Predictions endpoint will return 503.
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 12 }}>
+                  <div className="admin-kpi"><div className="admin-kpi-body">
+                    <span className="admin-kpi-label">ROC-AUC</span>
+                    <span className="admin-kpi-value">{formatNumber(calibrated.roc_auc)}</span>
+                  </div></div>
+                  <div className="admin-kpi"><div className="admin-kpi-body">
+                    <span className="admin-kpi-label">PR-AUC</span>
+                    <span className="admin-kpi-value">{formatNumber(calibrated.pr_auc)}</span>
+                  </div></div>
+                  <div className="admin-kpi"><div className="admin-kpi-body">
+                    <span className="admin-kpi-label">Brier</span>
+                    <span className="admin-kpi-value">{formatNumber(calibrated.brier)}</span>
+                  </div></div>
+                  <div className="admin-kpi"><div className="admin-kpi-body">
+                    <span className="admin-kpi-label">Log Loss</span>
+                    <span className="admin-kpi-value">{formatNumber(calibrated.log_loss)}</span>
+                  </div></div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div className="admin-card">
+                    <h3 className="admin-card-title">Precision / Recall at Top-K</h3>
+                    <table className="admin-table" style={{ marginTop: 8 }}>
+                      <thead><tr><th>Top</th><th>Precision</th><th>Recall</th></tr></thead>
+                      <tbody>
+                        {[
+                          { k: '1%', p: calibrated.precision_at_top_1pct, r: calibrated.recall_at_top_1pct },
+                          { k: '5%', p: calibrated.precision_at_top_5pct, r: calibrated.recall_at_top_5pct },
+                          { k: '10%', p: calibrated.precision_at_top_10pct, r: calibrated.recall_at_top_10pct },
+                        ].map((row) => (
+                          <tr key={row.k}>
+                            <td style={{ fontWeight: 600 }}>{row.k}</td>
+                            <td>{formatNumber(row.p)}</td>
+                            <td>{formatNumber(row.r)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="admin-card">
+                    <h3 className="admin-card-title">
+                      Confusion Matrix
+                      {cm.threshold != null && (
+                        <span style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginLeft: 6 }}>
+                          (threshold {cm.threshold})
+                        </span>
+                      )}
+                    </h3>
+                    <table className="admin-matrix" style={{ marginTop: 8 }}>
+                      <thead><tr><th></th><th>Pred. 0</th><th>Pred. 1</th></tr></thead>
+                      <tbody>
+                        <tr>
+                          <td style={{ fontWeight: 600 }}>Actual 0</td>
+                          <td className="matrix-diag" style={{ background: 'rgba(34,197,94,0.18)', fontWeight: 700 }}>{cm.tn ?? '—'}</td>
+                          <td style={{ background: 'rgba(239,68,68,0.10)' }}>{cm.fp ?? '—'}</td>
+                        </tr>
+                        <tr>
+                          <td style={{ fontWeight: 600 }}>Actual 1</td>
+                          <td style={{ background: 'rgba(239,68,68,0.10)' }}>{cm.fn ?? '—'}</td>
+                          <td className="matrix-diag" style={{ background: 'rgba(34,197,94,0.18)', fontWeight: 700 }}>{cm.tp ?? '—'}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="admin-card" style={{ marginBottom: 12 }}>
+                  <h3 className="admin-card-title">Model Comparison (validation)</h3>
+                  <table className="admin-table" style={{ marginTop: 8 }}>
+                    <thead><tr><th>Model</th><th>PR-AUC</th><th>ROC-AUC</th><th>Brier</th><th>Fit (s)</th></tr></thead>
+                    <tbody>
+                      {comparison.map((row) => (
+                        <tr key={row.model_name}>
+                          <td style={{ fontWeight: 600 }}>{row.model_name}</td>
+                          <td>{formatNumber(row.pr_auc)}</td>
+                          <td>{formatNumber(row.roc_auc)}</td>
+                          <td>{formatNumber(row.brier)}</td>
+                          <td>{row.fit_seconds == null ? '—' : Number(row.fit_seconds).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div className="admin-card">
+                    <h3 className="admin-card-title">Risk Thresholds</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">Moderate</span><span className="admin-mini-stat-value">{thresholds.moderate}</span></div>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">High</span><span className="admin-mini-stat-value">{thresholds.high}</span></div>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">Critical</span><span className="admin-mini-stat-value">{thresholds.critical}</span></div>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">Explanation</span><span className="admin-mini-stat-value">{occurrenceData.explanation_source?.toUpperCase()}</span></div>
+                    </div>
+                  </div>
+                  <div className="admin-card">
+                    <h3 className="admin-card-title">Weather Coverage (training)</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">Available rate</span><span className="admin-mini-stat-value">{formatPct(weatherRate)}</span></div>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">Cache hit rate</span><span className="admin-mini-stat-value">{formatPct(cacheRate)}</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                {occurrenceData.calibrationCurveUrl && (
+                  <div className="admin-card" style={{ marginBottom: 12 }}>
+                    <h3 className="admin-card-title">Calibration curve — LightGBM + isotonic</h3>
+                    <img
+                      src={occurrenceData.calibrationCurveUrl}
+                      alt="Calibration curve for occurrence_beta_v1"
+                      style={{ maxWidth: '100%', marginTop: 10, border: '1px solid var(--admin-border)', borderRadius: 6 }}
+                      onError={(e) => {
+                        if (occurrenceData.calibrationCurveApiUrl && e.currentTarget.src !== occurrenceData.calibrationCurveApiUrl) {
+                          e.currentTarget.src = occurrenceData.calibrationCurveApiUrl
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+
+                <div className="admin-high-bar" style={{ background: 'rgba(234, 179, 8, 0.12)', borderColor: 'rgba(234,179,8,0.4)' }}>
+                  <span className="high-dot" style={{ background: 'var(--admin-warning)' }}></span>
+                  <span className="high-text">
+                    {occurrenceData.training_prevalence_note}
+                  </span>
+                </div>
+              </>
+            )
+          })()}
+        </>
       )}
 
       {/* ═══ TAB: OVERRIDE LOG — admin severity-change audit trail ═══ */}
