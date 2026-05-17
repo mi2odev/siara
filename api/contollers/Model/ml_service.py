@@ -114,6 +114,214 @@ except Exception as exc:
 
 SENTINEL_WEATHER_REQUIRED_COLS = [c for c in SENTINEL_WEATHER_COLS if c != "cloudcover"]
 
+# ---- Load accident-occurrence artifacts (occurrence_beta_v1)
+# Graceful degradation: a missing artifact must NOT crash the whole service.
+OCCURRENCE_DIR = os.path.join(
+    BASE_DIR, "occurrence-model", "occurrence_betav1_final"
+)
+OCCURRENCE_MODEL = None
+OCCURRENCE_PREPROCESSOR = None
+OCCURRENCE_CALIBRATOR = None
+OCCURRENCE_FEATURE_LIST = []
+OCCURRENCE_METRICS = {}
+OCCURRENCE_TRAINING_MANIFEST = {}
+OCCURRENCE_SHAP_TOP_FEATURES = []
+OCCURRENCE_FEATURE_IMPORTANCE = []
+OCCURRENCE_RISK_THRESHOLDS = {
+    "low": 0.0,
+    "moderate": 0.05,
+    "high": 0.2,
+    "critical": 0.5,
+}
+OCCURRENCE_DECISION_THRESHOLD = 0.2
+OCCURRENCE_MODEL_VERSION = "occurrence_beta_v1"
+OCCURRENCE_SELECTED_MODEL = "lightgbm"
+OCCURRENCE_CALIBRATION_METHOD = "isotonic"
+OCCURRENCE_LOAD_ERROR = None
+OCCURRENCE_ENABLED = False
+
+
+def _read_csv_rows(path, limit=None):
+    """Lightweight CSV reader without bringing pandas just for two small files."""
+    import csv
+
+    rows = []
+    with open(path, "r", encoding="utf-8") as csv_file:
+        reader = csv.DictReader(csv_file)
+        for idx, row in enumerate(reader):
+            if limit is not None and idx >= limit:
+                break
+            rows.append(row)
+    return rows
+
+
+try:
+    occ_model_path = os.path.join(OCCURRENCE_DIR, "model.joblib")
+    occ_preproc_path = os.path.join(OCCURRENCE_DIR, "preprocessor.joblib")
+    occ_calibrator_path = os.path.join(OCCURRENCE_DIR, "calibrator.joblib")
+    occ_features_path = os.path.join(OCCURRENCE_DIR, "feature_list.json")
+    occ_metrics_path = os.path.join(OCCURRENCE_DIR, "metrics.json")
+    occ_manifest_path = os.path.join(OCCURRENCE_DIR, "training_manifest.json")
+    occ_shap_path = os.path.join(OCCURRENCE_DIR, "shap_top_features.csv")
+    occ_importance_path = os.path.join(OCCURRENCE_DIR, "feature_importance.csv")
+
+    OCCURRENCE_MODEL = joblib.load(occ_model_path)
+    OCCURRENCE_PREPROCESSOR = joblib.load(occ_preproc_path)
+    # Calibrator is optional — fall through to raw probability if missing.
+    if os.path.exists(occ_calibrator_path):
+        OCCURRENCE_CALIBRATOR = joblib.load(occ_calibrator_path)
+
+    with open(occ_features_path, "r", encoding="utf-8") as f:
+        OCCURRENCE_FEATURE_LIST = list(json.load(f))
+
+    with open(occ_metrics_path, "r", encoding="utf-8") as f:
+        OCCURRENCE_METRICS = json.load(f)
+
+    with open(occ_manifest_path, "r", encoding="utf-8") as f:
+        OCCURRENCE_TRAINING_MANIFEST = json.load(f)
+
+    OCCURRENCE_RISK_THRESHOLDS = OCCURRENCE_TRAINING_MANIFEST.get(
+        "risk_level_thresholds", OCCURRENCE_RISK_THRESHOLDS
+    )
+    OCCURRENCE_MODEL_VERSION = OCCURRENCE_TRAINING_MANIFEST.get(
+        "model_version", OCCURRENCE_MODEL_VERSION
+    )
+    OCCURRENCE_SELECTED_MODEL = OCCURRENCE_TRAINING_MANIFEST.get(
+        "selected_model", OCCURRENCE_SELECTED_MODEL
+    )
+    OCCURRENCE_CALIBRATION_METHOD = OCCURRENCE_TRAINING_MANIFEST.get(
+        "calibration_method", OCCURRENCE_CALIBRATION_METHOD
+    )
+
+    if os.path.exists(occ_shap_path):
+        OCCURRENCE_SHAP_TOP_FEATURES = _read_csv_rows(occ_shap_path, limit=20)
+    if os.path.exists(occ_importance_path):
+        OCCURRENCE_FEATURE_IMPORTANCE = _read_csv_rows(occ_importance_path, limit=40)
+
+    OCCURRENCE_ENABLED = True
+    print(
+        f"[occurrence] loaded {OCCURRENCE_MODEL_VERSION} "
+        f"{OCCURRENCE_SELECTED_MODEL} + {OCCURRENCE_CALIBRATION_METHOD}",
+        flush=True,
+    )
+except FileNotFoundError as exc:
+    OCCURRENCE_LOAD_ERROR = str(exc)
+    OCCURRENCE_ENABLED = False
+    print(
+        f"[occurrence] {OCCURRENCE_MODEL_VERSION} artifacts missing at "
+        f"{OCCURRENCE_DIR}: {exc}",
+        flush=True,
+    )
+except Exception as exc:  # noqa: BLE001 — log & disable, never crash startup
+    OCCURRENCE_LOAD_ERROR = str(exc)
+    OCCURRENCE_ENABLED = False
+    print(
+        f"[occurrence] failed to load {OCCURRENCE_MODEL_VERSION}: {exc}",
+        flush=True,
+    )
+
+
+def _occurrence_risk_level(probability):
+    """Resolve risk level from the calibrated probability using manifest thresholds."""
+    thresholds = OCCURRENCE_RISK_THRESHOLDS or {}
+    critical = float(thresholds.get("critical", 0.5))
+    high = float(thresholds.get("high", 0.2))
+    moderate = float(thresholds.get("moderate", 0.05))
+
+    if probability is None or not np.isfinite(probability):
+        return "unknown"
+    if probability >= critical:
+        return "critical"
+    if probability >= high:
+        return "high"
+    if probability >= moderate:
+        return "moderate"
+    return "low"
+
+
+def _occurrence_confidence(probability):
+    """Confidence proxy: how far the calibrated probability is from 0.5."""
+    if probability is None or not np.isfinite(probability):
+        return None
+    return float(min(1.0, max(0.0, 1.0 - 2.0 * abs(probability - 0.5))))
+
+
+def _occurrence_global_top_factors():
+    """Static fallback when SHAP is unavailable: use shap_top_features.csv."""
+    factors = []
+    source = OCCURRENCE_SHAP_TOP_FEATURES or OCCURRENCE_FEATURE_IMPORTANCE
+    for row in source[:5]:
+        feature_name = row.get("feature") or row.get("name") or ""
+        raw_importance = (
+            row.get("mean_abs_shap")
+            or row.get("importance")
+            or row.get("gain")
+            or row.get("weight")
+        )
+        try:
+            importance_value = float(raw_importance) if raw_importance is not None else None
+        except (TypeError, ValueError):
+            importance_value = None
+        factors.append(
+            {
+                "feature": feature_name,
+                "value": None,
+                "importance": importance_value,
+                "direction": "increases_risk",
+            }
+        )
+    return factors
+
+
+def _occurrence_coerce_value(value):
+    """JSON-safe coercion: NaN/inf -> None, numpy scalars -> Python scalars."""
+    if value is None:
+        return None
+    if isinstance(value, (np.floating, float)):
+        scalar = float(value)
+        if not np.isfinite(scalar):
+            return None
+        return scalar
+    if isinstance(value, (np.integer,)):
+        return int(value)
+    return value
+
+
+def _occurrence_build_frame(rows):
+    """Build a pandas DataFrame in feature_list order; missing fields become NaN."""
+    columns = list(OCCURRENCE_FEATURE_LIST)
+    normalized_rows = []
+    for raw in rows or []:
+        if not isinstance(raw, dict):
+            raise ValueError("rows[] entries must be objects")
+        normalized_rows.append({col: raw.get(col, np.nan) for col in columns})
+    return pd.DataFrame(normalized_rows, columns=columns)
+
+
+def _occurrence_predict_calibrated(frame):
+    """Returns (raw_scores, calibrated_probabilities) for the input frame."""
+    transformed = OCCURRENCE_PREPROCESSOR.transform(frame)
+    if hasattr(OCCURRENCE_MODEL, "predict_proba"):
+        raw_proba = OCCURRENCE_MODEL.predict_proba(transformed)[:, 1]
+    elif hasattr(OCCURRENCE_MODEL, "decision_function"):
+        raw_scores = OCCURRENCE_MODEL.decision_function(transformed)
+        # Squash with logistic to keep it in [0, 1] for the raw_score field.
+        raw_proba = 1.0 / (1.0 + np.exp(-raw_scores))
+    else:
+        raw_proba = np.asarray(OCCURRENCE_MODEL.predict(transformed), dtype=float)
+
+    if OCCURRENCE_CALIBRATOR is not None:
+        try:
+            calibrated = OCCURRENCE_CALIBRATOR.transform(raw_proba)
+        except Exception:
+            # Some calibrators expose .predict instead of .transform.
+            calibrated = OCCURRENCE_CALIBRATOR.predict(raw_proba)
+    else:
+        calibrated = raw_proba
+
+    return np.asarray(raw_proba, dtype=float), np.asarray(calibrated, dtype=float)
+
+
 TRUE_STRINGS = {"1", "true", "t", "yes", "y", "on"}
 FALSE_STRINGS = {"0", "false", "f", "no", "n", "off"}
 
@@ -1402,6 +1610,98 @@ def report_spam_classify():
 # curl -X POST http://localhost:8000/risk/confidence \
 #   -H "Content-Type: application/json" \
 #   -d "{\"row\":{\"Start_Lat\":36.75,\"Start_Lng\":3.06,\"Start_Time\":\"2026-03-04T10:15:00\",\"Distance(mi)\":0.5,\"Temperature(F)\":77,\"Humidity(%)\":45,\"Pressure(in)\":30.0,\"Wind_Speed(mph)\":8,\"Wind_Direction\":\"NW\",\"Precipitation(in)\":0.0}}"
+
+
+@app.route("/risk/occurrence/predict", methods=["POST"])
+def risk_occurrence_predict():
+    if not OCCURRENCE_ENABLED:
+        return (
+            jsonify(
+                {
+                    "error": "Occurrence model is not loaded",
+                    "details": OCCURRENCE_LOAD_ERROR,
+                    "model_version": OCCURRENCE_MODEL_VERSION,
+                }
+            ),
+            503,
+        )
+
+    payload = request.get_json(silent=True) or {}
+    _log_incoming("/risk/occurrence/predict", payload)
+
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or len(rows) == 0:
+        return jsonify({"error": "rows[] is required and must be a non-empty list"}), 400
+
+    try:
+        frame = _occurrence_build_frame(rows)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    try:
+        raw_scores, calibrated = _occurrence_predict_calibrated(frame)
+    except Exception as exc:  # noqa: BLE001
+        return (
+            jsonify(
+                {
+                    "error": "Occurrence prediction failed",
+                    "details": str(exc),
+                    "model_version": OCCURRENCE_MODEL_VERSION,
+                }
+            ),
+            500,
+        )
+
+    fallback_factors = _occurrence_global_top_factors()
+
+    predictions = []
+    for raw_score, prob in zip(raw_scores, calibrated):
+        coerced_raw = _occurrence_coerce_value(raw_score)
+        coerced_prob = _occurrence_coerce_value(prob)
+        predictions.append(
+            {
+                "risk_score": coerced_raw,
+                "calibrated_probability": coerced_prob,
+                "risk_level": _occurrence_risk_level(coerced_prob),
+                "confidence_score": _occurrence_confidence(coerced_prob),
+                "model_version": OCCURRENCE_MODEL_VERSION,
+                "top_factors": fallback_factors,
+                "explanation_source": "global_importance_fallback",
+            }
+        )
+
+    return jsonify(
+        {
+            "model_version": OCCURRENCE_MODEL_VERSION,
+            "selected_model": OCCURRENCE_SELECTED_MODEL,
+            "calibration_method": OCCURRENCE_CALIBRATION_METHOD,
+            "decision_threshold": OCCURRENCE_DECISION_THRESHOLD,
+            "risk_level_thresholds": OCCURRENCE_RISK_THRESHOLDS,
+            "feature_list": OCCURRENCE_FEATURE_LIST,
+            "predictions": predictions,
+        }
+    )
+
+
+@app.route("/risk/occurrence/metadata", methods=["GET"])
+def risk_occurrence_metadata():
+    """Returns the metadata an Admin UI / Node proxy needs without joblib payload."""
+    return jsonify(
+        {
+            "enabled": OCCURRENCE_ENABLED,
+            "load_error": OCCURRENCE_LOAD_ERROR,
+            "model_version": OCCURRENCE_MODEL_VERSION,
+            "selected_model": OCCURRENCE_SELECTED_MODEL,
+            "calibration_method": OCCURRENCE_CALIBRATION_METHOD,
+            "decision_threshold": OCCURRENCE_DECISION_THRESHOLD,
+            "risk_level_thresholds": OCCURRENCE_RISK_THRESHOLDS,
+            "feature_list": OCCURRENCE_FEATURE_LIST,
+            "metrics": OCCURRENCE_METRICS,
+            "training_manifest": OCCURRENCE_TRAINING_MANIFEST,
+            "shap_top_features": OCCURRENCE_SHAP_TOP_FEATURES,
+            "feature_importance": OCCURRENCE_FEATURE_IMPORTANCE,
+        }
+    )
 
 
 if __name__ == "__main__":

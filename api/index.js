@@ -12,6 +12,7 @@ dotenv.config({
 const pool = require("./db");
 const authRoutes = require("./contollers/auth");
 const adminIncidentRoutes = require("./contollers/adminIncidents");
+const adminModelRoutes = require("./contollers/adminModels");
 const adminOperationalAlertRoutes = require("./contollers/adminOperationalAlerts");
 const adminOverviewRoutes = require("./contollers/adminOverview");
 const adminZonesRoutes = require("./contollers/adminZones");
@@ -25,6 +26,7 @@ const pushRoutes = require("./contollers/push");
 const reportRoutes = require("./contollers/reports");
 const driverQuizRoutes = require("./contollers/driverQuiz");
 const occurrenceRiskRoutes = require("./contollers/occurrenceRisk");
+const occurrenceModelRoutes = require("./contollers/occurrenceModel");
 const adminUsersRoutes = require("./contollers/adminUsers");
 const reportDangerHeatmapRoutes = require("./contollers/reportDangerHeatmap");
 const travelHistoryRoutes = require("./contollers/travelHistory");
@@ -63,9 +65,19 @@ app.use(cookieParser());
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Serve trained-model assets (calibration curves, importance plots) for Admin
+// pages. Read-only on disk; safe to expose because they contain no PII.
+app.use(
+  "/model-assets",
+  express.static(path.join(__dirname, "occurrence-model"), {
+    index: false,
+    fallthrough: true,
+  }),
+);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminIncidentRoutes);
+app.use("/api/admin", adminModelRoutes);
 app.use("/api/admin", adminOperationalAlertRoutes);
 app.use("/api/admin", adminOverviewRoutes);
 app.use("/api/admin", adminZonesRoutes);
@@ -79,6 +91,10 @@ app.use("/api/push", pushRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/driver-quiz", driverQuizRoutes);
 app.use("/api/occurrence-risk", occurrenceRiskRoutes);
+// Trained occurrence_beta_v1 model proxy. Lives alongside the rule-based
+// /api/occurrence-risk surface above and never replaces it.
+app.use("/api/risk/occurrence", occurrenceModelRoutes);
+app.use("/api/model/risk/occurrence", occurrenceModelRoutes);
 // Spec aliases for police/admin scoped occurrence-risk routes.
 app.use("/api/admin/users", (req, res, next) => {
   const match = req.path.match(/^\/([^/]+)\/occurrence-risk\/?$/);
