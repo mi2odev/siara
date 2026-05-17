@@ -16,6 +16,7 @@ const createError = require("http-errors");
 
 const pool = require("../db");
 const { verifyToken } = require("./verifytoken");
+const { acknowledgeOwnWarning } = require("../services/adminUsersService");
 
 const USER_EXPORT_MAX_ROWS = Math.max(
   100,
@@ -212,6 +213,20 @@ router.get("/export", verifyToken, async (req, res, next) => {
     return res.status(200).send(JSON.stringify(payload, null, 2));
   } catch (error) {
     console.error("[Node] /api/account/export error:", error.message);
+    return next(error);
+  }
+});
+
+// Dismiss the moderation warning banner for the authenticated user. Idempotent.
+router.post("/warning/acknowledge", verifyToken, async (req, res, next) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      throw createError(401, "Authentication required");
+    }
+    const updated = await acknowledgeOwnWarning(userId);
+    return res.status(200).json({ user: updated });
+  } catch (error) {
     return next(error);
   }
 });

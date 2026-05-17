@@ -128,7 +128,7 @@ app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/map", reportDangerHeatmapRoutes);
 app.use("/api/travel-history", travelHistoryRoutes);
 app.use("/api/danger-subscriptions", dangerSubscriptionRoutes);
-app.use("/api/account", accountRoutes);
+app.use("/api/account", accountRoutes); 
 app.use("/api/users/me/preferences", userPreferencesRoutes);
 
 app.get("/api/zone-profiles", async (req, res, next) => {

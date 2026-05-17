@@ -287,6 +287,8 @@ function buildIncidentBaseCte() {
         ar.latest_classified_at,
         ar.review_verdict,
         COALESCE(NULLIF(BTRIM(ar.location_label), ''), 'Unknown location') AS location,
+        ST_Y(ar.incident_location::geometry) AS lat,
+        ST_X(ar.incident_location::geometry) AS lng,
         latest_assessment.predicted_severity AS ai_severity_value,
         CASE
           WHEN lower(coalesce(latest_assessment.assessment_status, '')) IN ('completed', 'pending', 'failed')
@@ -341,6 +343,10 @@ function mapIncidentRow(row, now = new Date()) {
     incidentType: row.incident_type,
     title: row.title || "",
     location: row.location,
+    coordinates: {
+      lat: row.lat == null ? null : Number(row.lat),
+      lng: row.lng == null ? null : Number(row.lng),
+    },
     severity: mapSeverityLabel(severityValue),
     severitySource: hasCompletedAssessment && row.ai_severity_value != null ? "ai" : "hint",
     confidence: hasCompletedAssessment ? normalizeConfidenceScore(row.sortable_confidence) : null,
@@ -447,6 +453,8 @@ async function listAdminIncidents(
           base.incident_type,
           base.title,
           base.location,
+          base.lat,
+          base.lng,
           base.status,
           base.severity_hint,
           base.ml_status,

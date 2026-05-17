@@ -33,6 +33,7 @@ import ReportCredibilityBadge from '../../components/reports/ReportCredibilityBa
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
 import '../../styles/NewsPage.css'
+import '../../styles/Lightbox.css'
 import '../../styles/DashboardPage.css'
 
 const PAGE_SIZE = 10

@@ -19,10 +19,33 @@
  */
 import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import ArrowRightAltRoundedIcon from '@mui/icons-material/ArrowRightAltRounded'
 import SquareRoundedIcon from '@mui/icons-material/SquareRounded'
+import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
+import QueryStatsOutlinedIcon from '@mui/icons-material/QueryStatsOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
 
 import { getOccurrenceBetaV1Metrics } from '../../services/adminModelsService'
+
+/** Map a 0-100 confidence bucket center to a semantic color. */
+function confidenceBucketColor(midpoint) {
+  if (midpoint < 30) return 'var(--admin-danger)'
+  if (midpoint < 50) return 'var(--admin-warning)'
+  if (midpoint < 70) return 'var(--admin-primary)'
+  return 'var(--admin-success)'
+}
 
 /* ═══════════════════════════════════════════════════════════════
    MOCK DATA — AI model metrics & analysis artifacts
@@ -67,9 +90,6 @@ const confidenceHistogram = [
   { range: '80-90%', count: 186 },
   { range: '90-100%', count: 98 },
 ]
-/** Used to normalize bar heights in the histogram visualization */
-const maxHistCount = Math.max(...confidenceHistogram.map(h => h.count))
-
 /** Admin manual severity-override audit trail */
 const overrideLogs = [
   { id: 1, incident: 'INC-2389', admin: 'Super Admin', from: 'low', to: 'high', reason: 'Multi-vehicle collision confirmed on-site', time: '2025-01-17 14:22' },
@@ -268,47 +288,43 @@ export default function AdminAIMonitoringPage() {
         </>
       )}
 
-      {/* ═══ TAB: CONFUSION MATRIX — 4×4 actual vs predicted ═══ */}
+      {/* ═══ TAB: CONFUSION MATRIX — 3×3 actual vs predicted ═══ */}
       {currentTab === 'confusion' && (
         <div className="admin-card">
           <h3 className="admin-card-title">Confusion Matrix</h3>
           <p className="admin-card-subtitle">Actual (rows) vs Predicted (columns) — Last 30 days</p>
-          <div style={{ overflowX: 'auto', marginTop: 14 }}>
-            <table className="admin-matrix">
-              <thead>
-                <tr>
-                  <th style={{ width: 80 }}>Actual / Predicted</th>
-                  {matrixLabels.map(l => <th key={l}>{l}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {confusionMatrix.map((row, ri) => (
+          <table className="admin-matrix" style={{ marginTop: 16 }}>
+            <thead>
+              <tr>
+                <th>Actual ↓ / Predicted →</th>
+                {matrixLabels.map(l => <th key={l}>{l}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {confusionMatrix.map((row, ri) => {
+                const maxCell = Math.max(...row)
+                return (
                   <tr key={ri}>
-                    <td style={{ fontWeight: 600, fontSize: 11, color: 'var(--admin-text)' }}>{matrixLabels[ri]}</td>
+                    <td>{matrixLabels[ri]}</td>
                     {row.map((cell, ci) => {
-                      const isDiag = ri === ci         // diagonal = correct prediction
-                      const maxCell = Math.max(...row)  // max in row for opacity scaling
-                      const opacity = cell / maxCell
-                      /* Green background for diagonal (correct), red tint for misclassifications > 10 */
+                      const isDiag = ri === ci
+                      const intensity = cell / maxCell
                       return (
                         <td key={ci} className={isDiag ? 'matrix-diag' : ''} style={{
                           background: isDiag
-                            ? `rgba(34, 197, 94, ${0.1 + opacity * 0.25})`
-                            : cell > 10 ? `rgba(239, 68, 68, ${0.05 + (cell / maxCell) * 0.15})` : 'transparent',
-                          fontWeight: isDiag ? 700 : 500,
-                          fontSize: 13,
-                          textAlign: 'center',
+                            ? `rgba(34, 197, 94, ${0.10 + intensity * 0.22})`
+                            : cell > 10 ? `rgba(239, 68, 68, ${0.06 + intensity * 0.18})` : undefined,
                         }}>
                           {cell}
                         </td>
                       )
                     })}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: 12, display: 'flex', gap: 16, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
+                )
+              })}
+            </tbody>
+          </table>
+          <div style={{ marginTop: 16, display: 'flex', gap: 18, fontSize: 11, color: 'var(--admin-text-muted)' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <SquareRoundedIcon fontSize="inherit" className="icon-success icon-soft" />
               Diagonal = correct predictions
@@ -322,44 +338,157 @@ export default function AdminAIMonitoringPage() {
       )}
 
       {/* ═══ TAB: CONFIDENCE ANALYSIS — histogram + summary stats ═══ */}
-      {currentTab === 'confidence' && (
-        <div className="admin-card">
-          <h3 className="admin-card-title">Confidence Distribution</h3>
-          <p className="admin-card-subtitle">Distribution of AI confidence scores across all predictions (last 30 days)</p>
-          {/* Bar chart — height proportional to count/maxHistCount, color by confidence tier */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 180, marginTop: 16, padding: '0 8px' }}>
-            {confidenceHistogram.map((bar, i) => (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--admin-text-secondary)' }}>{bar.count}</span>
-                <div style={{
-                  width: '100%',
-                  height: `${(bar.count / maxHistCount) * 140}px`,
-                  /* Color bands: 0-30% danger, 30-50% warning, 50-70% primary, 70-100% success */
-                  background: i >= 7 ? 'var(--admin-success)' : i >= 5 ? 'var(--admin-primary)' : i >= 3 ? 'var(--admin-warning)' : 'var(--admin-danger)',
-                  borderRadius: '4px 4px 0 0',
-                  opacity: 0.8,
-                  transition: 'height 0.3s ease',
-                }}></div>
-                <span style={{ fontSize: 8, color: 'var(--admin-text-muted)', whiteSpace: 'nowrap' }}>{bar.range}</span>
+      {currentTab === 'confidence' && (() => {
+        const totalPredictions = confidenceHistogram.reduce((sum, b) => sum + b.count, 0)
+        const belowThresholdCount = confidenceHistogram
+          .filter((_, i) => i < 5)
+          .reduce((sum, b) => sum + b.count, 0)
+        const belowThresholdPct = totalPredictions > 0
+          ? ((belowThresholdCount / totalPredictions) * 100).toFixed(1)
+          : '0.0'
+        const aboveHighCount = confidenceHistogram
+          .filter((_, i) => i >= 7)
+          .reduce((sum, b) => sum + b.count, 0)
+        const aboveHighPct = totalPredictions > 0
+          ? ((aboveHighCount / totalPredictions) * 100).toFixed(1)
+          : '0.0'
+
+        const chartData = confidenceHistogram.map((bar, i) => {
+          const midpoint = i * 10 + 5
+          return {
+            range: bar.range,
+            count: bar.count,
+            pct: totalPredictions > 0 ? (bar.count / totalPredictions) * 100 : 0,
+            fill: confidenceBucketColor(midpoint),
+          }
+        })
+
+        const kpis = [
+          { label: 'Mean Confidence', value: '78.2%', icon: TrendingUpOutlinedIcon, tone: 'success', hint: '+1.4% vs last 30 days' },
+          { label: 'Median', value: '81.4%', icon: QueryStatsOutlinedIcon, tone: 'primary', hint: 'P50 of all predictions' },
+          { label: 'Below 50% Threshold', value: `${belowThresholdCount}`, icon: WarningAmberOutlinedIcon, tone: 'warning', hint: `${belowThresholdPct}% of predictions` },
+          { label: 'High Confidence (≥70%)', value: `${aboveHighCount}`, icon: InsightsOutlinedIcon, tone: 'success', hint: `${aboveHighPct}% of predictions` },
+        ]
+        const toneColor = (tone) => ({
+          success: 'var(--admin-success)',
+          primary: 'var(--admin-primary)',
+          warning: 'var(--admin-warning)',
+          danger: 'var(--admin-danger)',
+        }[tone] || 'var(--admin-text)')
+
+        return (
+          <>
+            {/* ── KPI summary row (4 cards) ── */}
+            <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 14 }}>
+              {kpis.map((m) => {
+                const Icon = m.icon
+                return (
+                  <div className="admin-kpi" key={m.label}>
+                    <div className="admin-kpi-body">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span className="admin-kpi-label">{m.label}</span>
+                        <Icon fontSize="small" sx={{ color: toneColor(m.tone), opacity: 0.85 }} />
+                      </div>
+                      <span className="admin-kpi-value" style={{ color: toneColor(m.tone) }}>{m.value}</span>
+                      <span style={{ fontSize: 10.5, color: 'var(--admin-text-muted)' }}>{m.hint}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* ── Distribution chart ── */}
+            <div className="admin-card">
+              <div className="admin-card-header">
+                <div>
+                  <h3 className="admin-card-title">Confidence Distribution</h3>
+                  <p className="admin-card-subtitle">AI confidence across {totalPredictions.toLocaleString()} predictions (last 30 days)</p>
+                </div>
+                <div style={{ display: 'flex', gap: 14, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
+                  {[
+                    { label: 'Very low', color: 'var(--admin-danger)' },
+                    { label: 'Low', color: 'var(--admin-warning)' },
+                    { label: 'Moderate', color: 'var(--admin-primary)' },
+                    { label: 'High', color: 'var(--admin-success)' },
+                  ].map((l) => (
+                    <span key={l.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: 2, background: l.color, display: 'inline-block' }} />
+                      {l.label}
+                    </span>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Mean Confidence</span>
-              <span className="admin-mini-stat-value">78.2%</span>
+
+              <div style={{ width: '100%', height: 280, marginTop: 14 }}>
+                <ResponsiveContainer>
+                  <BarChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }} barCategoryGap="18%">
+                    <CartesianGrid stroke="var(--admin-border)" strokeDasharray="3 4" vertical={false} />
+                    <XAxis
+                      dataKey="range"
+                      tick={{ fontSize: 10.5, fill: 'var(--admin-text-muted)' }}
+                      axisLine={{ stroke: 'var(--admin-border)' }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10.5, fill: 'var(--admin-text-muted)' }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={36}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                      contentStyle={{
+                        background: 'var(--admin-surface)',
+                        border: '1px solid var(--admin-border)',
+                        borderRadius: 6,
+                        fontSize: 11,
+                        padding: '6px 10px',
+                      }}
+                      formatter={(value, _name, item) => [
+                        `${value} predictions (${item.payload.pct.toFixed(1)}%)`,
+                        item.payload.range,
+                      ]}
+                      labelFormatter={() => ''}
+                    />
+                    <ReferenceLine
+                      x="40-50%"
+                      stroke="var(--admin-warning)"
+                      strokeDasharray="4 3"
+                      label={{
+                        value: 'Decision threshold (50%)',
+                        position: 'top',
+                        fill: 'var(--admin-warning)',
+                        fontSize: 10.5,
+                        fontWeight: 600,
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={48}>
+                      {chartData.map((d) => (
+                        <Cell key={d.range} fill={d.fill} fillOpacity={0.88} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div style={{
+                marginTop: 12,
+                padding: '10px 12px',
+                background: 'var(--admin-surface-2)',
+                borderRadius: 6,
+                fontSize: 11.5,
+                color: 'var(--admin-text-secondary)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+              }}>
+                <InsightsOutlinedIcon fontSize="inherit" sx={{ color: 'var(--admin-primary)' }} />
+                {aboveHighPct}% of predictions land in high-confidence bands (≥70%) — model is producing decisive outputs.
+              </div>
             </div>
-            <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Median</span>
-              <span className="admin-mini-stat-value">81.4%</span>
-            </div>
-            <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Below 50% Threshold</span>
-              <span className="admin-mini-stat-value" style={{ color: 'var(--admin-warning)' }}>45 (8.1%)</span>
-            </div>
-          </div>
-        </div>
-      )}
+          </>
+        )
+      })()}
 
       {/* ═══ TAB: OCCURRENCE MODEL — real metrics from /api/admin/models/occurrence-beta-v1 ═══ */}
       {currentTab === 'occurrence' && (

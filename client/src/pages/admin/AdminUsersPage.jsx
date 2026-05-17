@@ -4,7 +4,7 @@
  *
  * Features:
  *   - Server-side filter / search / sort / pagination
- *   - Real moderation actions (warn, suspend, ban, unsuspend, unban)
+ *   - Real moderation actions (warn, ban, unban)
  *   - Promote to trusted (role mutation)
  *   - Recalculate trust score on demand
  *   - Details modal showing report stats, driver quiz, occurrence risk
@@ -16,8 +16,18 @@ import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
+import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined'
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
+import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded'
+import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
+import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded'
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
+import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded'
+import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded'
+import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
 
 import {
+  fetchAdminRoles,
   fetchAdminUserDetails,
   fetchAdminUsers,
   recalculateAdminUserTrust,
@@ -30,9 +40,9 @@ const FILTER_TABS = [
   { key: 'active', label: 'Active', countKey: 'active' },
   { key: 'trusted', label: 'Trusted', countKey: 'trusted' },
   { key: 'at-risk', label: 'At Risk', countKey: 'atRisk' },
-  { key: 'suspended', label: 'Suspended', countKey: 'suspended' },
   { key: 'banned', label: 'Banned', countKey: 'banned' },
   { key: 'police', label: 'Police', countKey: 'police' },
+  { key: 'supervisor', label: 'Supervisor', countKey: 'supervisor' },
   { key: 'admin', label: 'Admins', countKey: 'admin' },
 ]
 
@@ -88,14 +98,39 @@ function formatOccurrence(value) {
   return `${Math.round(numeric * 100)}%`
 }
 
+function getUserInitials(name) {
+  const text = String(name || '').trim()
+  if (!text) return '?'
+  const parts = text.split(/\s+/).slice(0, 2)
+  const initials = parts.map((part) => part.charAt(0).toUpperCase()).join('')
+  return initials || '?'
+}
+
+/** Turn a raw role name (e.g. "POLICE_SUPERVISOR") into a display label. */
+function formatRoleLabel(name) {
+  return String(name || '')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (ch) => ch.toUpperCase())
+}
+
+/** Map a trust score to a fill class for the progress bar. */
+function trustFillClass(score) {
+  if (score == null) return 'warning'
+  if (score >= 75) return 'success'
+  if (score >= 40) return 'warning'
+  return 'danger'
+}
+
 const initialCounts = {
   all: 0,
   active: 0,
   trusted: 0,
   atRisk: 0,
-  suspended: 0,
   banned: 0,
   police: 0,
+  supervisor: 0,
   admin: 0,
 }
 
@@ -124,6 +159,69 @@ export default function AdminUsersPage() {
   const [actionError, setActionError] = useState('')
   const [detailsUser, setDetailsUser] = useState(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
+
+  /** Roles available in `auth.roles` — loaded once when the page mounts. */
+  const [availableRoles, setAvailableRoles] = useState([])
+  /** Selected role names for the user currently being edited in the modal. */
+  const [editingRoles, setEditingRoles] = useState(new Set())
+  const [rolesSaving, setRolesSaving] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchAdminRoles()
+      .then((roles) => {
+        if (!cancelled) setAvailableRoles(roles)
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableRoles([])
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  /** Sync the editor's selection with whichever user is currently open. */
+  useEffect(() => {
+    if (!detailsUser) {
+      setEditingRoles(new Set())
+      return
+    }
+    setEditingRoles(new Set(detailsUser.roles || []))
+  }, [detailsUser?.id, detailsUser?.roles])
+
+  /** Single-role selector: clicking a role replaces the entire selection.
+   * Clicking the already-selected role is a no-op (a user must have one role). */
+  const toggleEditingRole = (roleName) => {
+    setEditingRoles((prev) => {
+      if (prev.size === 1 && prev.has(roleName)) return prev
+      return new Set([roleName])
+    })
+  }
+
+  const saveRoles = async () => {
+    if (!detailsUser) return
+    setRolesSaving(true)
+    setActionError('')
+    try {
+      const updated = await updateAdminUserRoles(detailsUser.id, Array.from(editingRoles))
+      if (updated) setDetailsUser(updated)
+      triggerReload()
+    } catch (err) {
+      setActionError(err?.message || 'Failed to update user roles')
+    } finally {
+      setRolesSaving(false)
+    }
+  }
+
+  const currentRolesSet = useMemo(
+    () => new Set((detailsUser?.roles) || []),
+    [detailsUser?.roles],
+  )
+  const rolesDirty = useMemo(() => {
+    if (editingRoles.size !== currentRolesSet.size) return true
+    for (const role of editingRoles) {
+      if (!currentRolesSet.has(role)) return true
+    }
+    return false
+  }, [editingRoles, currentRolesSet])
 
   useEffect(() => {
     const handle = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300)
@@ -173,11 +271,11 @@ export default function AdminUsersPage() {
     else setSearchParams({ filter: key })
   }
 
-  const runStatusUpdate = async (user, status) => {
+  const runStatusUpdate = async (user, status, options) => {
     setBusyUserId(user.id)
     setActionError('')
     try {
-      await updateAdminUserStatus(user.id, status)
+      await updateAdminUserStatus(user.id, status, options)
       triggerReload()
       if (detailsUser?.id === user.id) {
         const refreshed = await fetchAdminUserDetails(user.id)
@@ -187,6 +285,122 @@ export default function AdminUsersPage() {
       setActionError(err?.message || 'Failed to update user status')
     } finally {
       setBusyUserId(null)
+    }
+  }
+
+  /* ── Warn modal: reason + optional expiry ─────────────────────────────── */
+  const [warnModalUser, setWarnModalUser] = useState(null)
+  const [warnDuration, setWarnDuration] = useState('ack')
+  const [warnReason, setWarnReason] = useState('')
+  const [warnCustomUntil, setWarnCustomUntil] = useState('')
+  const [warnSubmitting, setWarnSubmitting] = useState(false)
+
+  const openWarnModal = (user) => {
+    setWarnModalUser(user)
+    setWarnDuration('ack')
+    setWarnReason('')
+    setWarnCustomUntil('')
+  }
+  const closeWarnModal = () => {
+    if (warnSubmitting) return
+    setWarnModalUser(null)
+  }
+
+  const resolveWarningExpiresAt = () => {
+    if (warnDuration === 'ack') return null // null = until user acknowledges
+    const now = Date.now()
+    const DAY = 24 * 60 * 60 * 1000
+    switch (warnDuration) {
+      case '7d':  return new Date(now + 7 * DAY).toISOString()
+      case '30d': return new Date(now + 30 * DAY).toISOString()
+      case '90d': return new Date(now + 90 * DAY).toISOString()
+      case 'custom': {
+        if (!warnCustomUntil) return undefined
+        const dt = new Date(warnCustomUntil)
+        if (Number.isNaN(dt.getTime()) || dt.getTime() <= now) return undefined
+        return dt.toISOString()
+      }
+      default: return null
+    }
+  }
+
+  const confirmWarn = async () => {
+    if (!warnModalUser) return
+    const trimmedReason = warnReason.trim()
+    if (!trimmedReason) {
+      setActionError('A reason is required so the user knows what the warning is for.')
+      return
+    }
+    const warningExpiresAt = resolveWarningExpiresAt()
+    if (warningExpiresAt === undefined) {
+      setActionError('Pick a future date/time for the custom warning expiry.')
+      return
+    }
+    setWarnSubmitting(true)
+    try {
+      await runStatusUpdate(warnModalUser, 'warned', {
+        warningReason: trimmedReason,
+        warningExpiresAt,
+      })
+      setWarnModalUser(null)
+    } finally {
+      setWarnSubmitting(false)
+    }
+  }
+
+  /* ── Ban modal: preset durations, custom date, permanent ───────────────── */
+  const [banModalUser, setBanModalUser] = useState(null)
+  const [banDuration, setBanDuration] = useState('24h')
+  const [banReason, setBanReason] = useState('')
+  const [banCustomUntil, setBanCustomUntil] = useState('')
+  const [banSubmitting, setBanSubmitting] = useState(false)
+
+  const openBanModal = (user) => {
+    setBanModalUser(user)
+    setBanDuration('24h')
+    setBanReason('')
+    setBanCustomUntil('')
+  }
+  const closeBanModal = () => {
+    if (banSubmitting) return
+    setBanModalUser(null)
+  }
+
+  /** Resolve the picked preset/custom into an ISO timestamp or null (permanent). */
+  const resolveBannedUntil = () => {
+    if (banDuration === 'permanent') return null
+    const now = Date.now()
+    const HOUR = 60 * 60 * 1000
+    const DAY = 24 * HOUR
+    switch (banDuration) {
+      case '1h':   return new Date(now + 1 * HOUR).toISOString()
+      case '24h':  return new Date(now + 1 * DAY).toISOString()
+      case '7d':   return new Date(now + 7 * DAY).toISOString()
+      case '30d':  return new Date(now + 30 * DAY).toISOString()
+      case '6mo':  return new Date(now + 180 * DAY).toISOString()
+      case 'custom': {
+        if (!banCustomUntil) return undefined
+        const dt = new Date(banCustomUntil)
+        if (Number.isNaN(dt.getTime()) || dt.getTime() <= now) return undefined
+        return dt.toISOString()
+      }
+      default: return new Date(now + DAY).toISOString()
+    }
+  }
+
+  const confirmBan = async () => {
+    if (!banModalUser) return
+    const bannedUntil = resolveBannedUntil()
+    if (bannedUntil === undefined) {
+      setActionError('Pick a future date/time for the custom ban.')
+      return
+    }
+    setBanSubmitting(true)
+    try {
+      await runStatusUpdate(banModalUser, 'banned', { bannedUntil, reason: banReason.trim() || undefined })
+      setBanModalUser(null)
+    } finally {
+      setBanSubmitting(false)
     }
   }
 
@@ -393,28 +607,91 @@ export default function AdminUsersPage() {
                     <td><span className={`admin-pill ${riskCode}`}>{user.riskTier?.label || '—'}</span></td>
                     <td><span className={`admin-pill ${user.status}`}>{user.status}</span></td>
                     <td style={{ fontSize: 10.5, color: 'var(--admin-text-muted)' }}>{formatRelative(user.lastActiveAt)}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                        {user.status !== 'banned' && user.status !== 'suspended' && (
-                          <>
-                            <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => runStatusUpdate(user, 'warned')} disabled={isBusy}>Warn</button>
-                            <button className="admin-btn admin-btn-sm admin-btn-warning" onClick={() => runStatusUpdate(user, 'suspended')} disabled={isBusy}>Suspend</button>
-                          </>
-                        )}
-                        {user.status === 'suspended' && (
-                          <button className="admin-btn admin-btn-sm admin-btn-primary" onClick={() => runStatusUpdate(user, 'active')} disabled={isBusy}>Unsuspend</button>
-                        )}
-                        {user.status !== 'banned' && (
-                          <button className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => runStatusUpdate(user, 'banned')} disabled={isBusy}>Ban</button>
-                        )}
-                        {user.status === 'banned' && (
-                          <button className="admin-btn admin-btn-sm admin-btn-primary" onClick={() => runStatusUpdate(user, 'active')} disabled={isBusy}>Unban</button>
-                        )}
-                        {user.primaryRole !== 'trusted' && trustScore != null && trustScore >= 80 && (
-                          <button className="admin-btn admin-btn-sm admin-btn-primary" onClick={() => promoteToTrusted(user)} disabled={isBusy}>Promote</button>
-                        )}
-                        <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => recalcTrust(user)} disabled={isBusy}><RefreshRoundedIcon fontSize="inherit" /> Trust</button>
-                        <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => openDetails(user)}>Details</button>
+                    <td style={{ minWidth: 168 }}>
+                      <div className="admin-user-actions">
+                        {/* Row 1 — moderation icon group */}
+                        <div className="admin-user-actions-group" role="group" aria-label="Moderation">
+                          {user.status !== 'banned' && (
+                            <button
+                              type="button"
+                              className="admin-user-icon-btn warn"
+                              onClick={() => openWarnModal(user)}
+                              disabled={isBusy}
+                              title="Warn user…"
+                              aria-label="Warn user"
+                            >
+                              <ReportProblemOutlinedIcon fontSize="inherit" />
+                            </button>
+                          )}
+                          {user.status !== 'banned' && (
+                            <button
+                              type="button"
+                              className="admin-user-icon-btn ban"
+                              onClick={() => openBanModal(user)}
+                              disabled={isBusy}
+                              title="Ban user…"
+                              aria-label="Ban user"
+                            >
+                              <BlockOutlinedIcon fontSize="inherit" />
+                            </button>
+                          )}
+                          {user.status === 'banned' && (
+                            <button
+                              type="button"
+                              className="admin-user-icon-btn restore"
+                              onClick={() => {
+                                // Lifts both temporary and permanent bans. For permanent
+                                // ones we confirm first because is_active flips back on
+                                // and the user can sign in again immediately.
+                                const isPerm = user.isPermanentlyBanned || (!user.bannedUntil && user.moderationStatus === 'banned')
+                                if (isPerm && !window.confirm(`Lift the permanent ban on ${user.name}? They will be able to sign in again immediately.`)) {
+                                  return
+                                }
+                                runStatusUpdate(user, 'active')
+                              }}
+                              disabled={isBusy}
+                              title={user.bannedUntil
+                                ? `Unban now (current ban ends ${new Date(user.bannedUntil).toLocaleString()})`
+                                : 'Lift permanent ban'}
+                              aria-label="Unban user"
+                            >
+                              <LockOpenRoundedIcon fontSize="inherit" />
+                            </button>
+                          )}
+                          {user.primaryRole !== 'trusted' && trustScore != null && trustScore >= 80 && (
+                            <button
+                              type="button"
+                              className="admin-user-icon-btn promote"
+                              onClick={() => promoteToTrusted(user)}
+                              disabled={isBusy}
+                              title="Promote to Trusted reporter"
+                              aria-label="Promote to Trusted reporter"
+                            >
+                              <WorkspacePremiumOutlinedIcon fontSize="inherit" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="admin-user-icon-btn neutral"
+                            onClick={() => recalcTrust(user)}
+                            disabled={isBusy}
+                            title="Recalculate trust score"
+                            aria-label="Recalculate trust score"
+                          >
+                            <RefreshRoundedIcon fontSize="inherit" />
+                          </button>
+                        </div>
+
+                        {/* Row 2 — primary action */}
+                        <button
+                          type="button"
+                          className="admin-user-details-btn"
+                          onClick={() => openDetails(user)}
+                          disabled={isBusy}
+                        >
+                          <VisibilityRoundedIcon fontSize="inherit" />
+                          Details
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -470,111 +747,714 @@ export default function AdminUsersPage() {
             zIndex: 1000,
           }}
         >
-          <div
-            className="admin-card"
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              maxWidth: 720,
-              width: 'calc(100% - 32px)',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              padding: 18,
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-              <div>
-                <h2 className="admin-card-title" style={{ margin: 0 }}>{detailsUser.name}</h2>
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--admin-text-muted)' }}>
-                  {detailsUser.email || detailsUser.phone || '—'} · {detailsUser.id}
-                </p>
-              </div>
-              <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={closeDetails}>Close</button>
-            </div>
+          {(() => {
+            const trustScoreNum = detailsUser.trustScore == null ? null : Math.round(Number(detailsUser.trustScore))
+            const trustClass = trustFillClass(trustScoreNum)
+            const trustWidth = Math.max(0, Math.min(100, trustScoreNum ?? 0))
+            const trustColor = trustClass === 'success' ? 'var(--admin-success)' : trustClass === 'warning' ? 'var(--admin-warning)' : 'var(--admin-danger)'
+            const stats = detailsUser.reportStats || {}
+            const reportTiles = [
+              { label: 'Total', value: stats.totalReports ?? 0 },
+              { label: 'Verified', value: stats.verifiedReports ?? 0, color: 'var(--admin-success)' },
+              { label: 'Resolved', value: stats.resolvedReports ?? 0, color: 'var(--admin-primary)' },
+              { label: 'Suspicious', value: stats.suspiciousReports ?? 0, color: 'var(--admin-warning)' },
+              { label: 'Spam', value: stats.spamReports ?? 0, color: 'var(--admin-danger)' },
+              { label: 'Out of Context', value: stats.outOfContextReports ?? 0 },
+              { label: 'Invalid Location', value: stats.invalidLocationReports ?? 0 },
+              { label: 'Rejected', value: stats.rejectedReports ?? 0 },
+            ]
+            const falseRatio = stats.falseRatio ?? 0
+            const falseRatioColor = falseRatio <= 15 ? 'var(--admin-success)' : falseRatio <= 40 ? 'var(--admin-warning)' : 'var(--admin-danger)'
 
-            {detailsLoading && (
-              <p style={{ marginTop: 12, color: 'var(--admin-text-muted)' }}>Loading details…</p>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginTop: 14 }}>
-              <div>
-                <h3 className="admin-card-title">Account</h3>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '6px 0 0', fontSize: 12, lineHeight: 1.7 }}>
-                  <li><strong>Status:</strong> {detailsUser.status} {detailsUser.moderationStatus ? `(${detailsUser.moderationStatus})` : ''}</li>
-                  <li><strong>Roles:</strong> {(detailsUser.roles || []).join(', ') || '—'}</li>
-                  <li><strong>Auth provider:</strong> {detailsUser.authProvider || '—'}</li>
-                  <li><strong>Email verified:</strong> {detailsUser.emailVerifiedAt ? 'yes' : 'no'}</li>
-                  <li><strong>Created:</strong> {detailsUser.createdAt ? new Date(detailsUser.createdAt).toLocaleString() : '—'}</li>
-                  <li><strong>Last active:</strong> {formatRelative(detailsUser.lastActiveAt)}</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="admin-card-title">Trust & risk</h3>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '6px 0 0', fontSize: 12, lineHeight: 1.7 }}>
-                  <li><strong>Trust score:</strong> {formatScore(detailsUser.trustScore)} / 100 ({detailsUser.trustTier?.label || '—'})</li>
-                  <li><strong>Risk tier:</strong> {detailsUser.riskTier?.label || '—'}</li>
-                  <li><strong>Trust updated:</strong> {detailsUser.trustLastUpdatedAt ? new Date(detailsUser.trustLastUpdatedAt).toLocaleString() : '—'}</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="admin-card-title">Report stats</h3>
-                <ul style={{ listStyle: 'none', padding: 0, margin: '6px 0 0', fontSize: 12, lineHeight: 1.7 }}>
-                  <li><strong>Total:</strong> {detailsUser.reportStats?.totalReports ?? 0}</li>
-                  <li><strong>Verified:</strong> {detailsUser.reportStats?.verifiedReports ?? 0}</li>
-                  <li><strong>Spam:</strong> {detailsUser.reportStats?.spamReports ?? 0}</li>
-                  <li><strong>Out of context:</strong> {detailsUser.reportStats?.outOfContextReports ?? 0}</li>
-                  <li><strong>Invalid location:</strong> {detailsUser.reportStats?.invalidLocationReports ?? 0}</li>
-                  <li><strong>Suspicious:</strong> {detailsUser.reportStats?.suspiciousReports ?? 0}</li>
-                  <li><strong>Rejected:</strong> {detailsUser.reportStats?.rejectedReports ?? 0}</li>
-                  <li><strong>Resolved:</strong> {detailsUser.reportStats?.resolvedReports ?? 0}</li>
-                  <li><strong>False ratio:</strong> {formatPercent(detailsUser.reportStats?.falseRatio)}</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="admin-card-title">Driver behavior</h3>
-                {detailsUser.driverQuiz?.lastCompletedAt ? (
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '6px 0 0', fontSize: 12, lineHeight: 1.7 }}>
-                    <li><strong>Risk score:</strong> {formatScore(detailsUser.driverQuiz.latestRiskScore)} / 100</li>
-                    <li><strong>Result:</strong> {detailsUser.driverQuiz.latestResultTitle || detailsUser.driverQuiz.latestResultLabel || '—'}</li>
-                    <li><strong>Attempts:</strong> {detailsUser.driverQuiz.completedAttemptsCount}</li>
-                    <li><strong>Last completed:</strong> {formatRelative(detailsUser.driverQuiz.lastCompletedAt)}</li>
-                  </ul>
-                ) : (
-                  <p style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>No driver quiz completed.</p>
-                )}
-              </div>
-              <div>
-                <h3 className="admin-card-title">Latest occurrence risk</h3>
-                {detailsUser.occurrenceRisk?.latestAt ? (
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '6px 0 0', fontSize: 12, lineHeight: 1.7 }}>
-                    <li><strong>Personalized:</strong> {formatOccurrence(detailsUser.occurrenceRisk.latestPersonalizedScore)} ({detailsUser.occurrenceRisk.latestPersonalizedLevel || '—'})</li>
-                    <li><strong>Global:</strong> {formatOccurrence(detailsUser.occurrenceRisk.latestGlobalScore)} ({detailsUser.occurrenceRisk.latestGlobalLevel || '—'})</li>
-                    <li><strong>Recorded:</strong> {formatRelative(detailsUser.occurrenceRisk.latestAt)}</li>
-                  </ul>
-                ) : (
-                  <p style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>No occurrence-risk prediction yet.</p>
-                )}
-              </div>
-              {Array.isArray(detailsUser.recentReports) && detailsUser.recentReports.length > 0 && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <h3 className="admin-card-title">Recent reports</h3>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '6px 0 0', fontSize: 12, lineHeight: 1.6 }}>
-                    {detailsUser.recentReports.map((report) => (
-                      <li key={report.id} style={{ borderBottom: '1px solid var(--admin-border)', padding: '4px 0' }}>
-                        <strong>{report.title || '(untitled)'}</strong> — {report.status}
-                        {report.latestPredictedLabel ? ` · ${report.latestPredictedLabel}` : ''}
-                        {report.reviewVerdict ? ` · verdict: ${report.reviewVerdict}` : ''}
-                        <span style={{ marginLeft: 8, color: 'var(--admin-text-muted)' }}>
-                          {formatRelative(report.createdAt)}
+            return (
+              <div
+                className="admin-card"
+                onClick={(event) => event.stopPropagation()}
+                style={{
+                  maxWidth: 920,
+                  width: 'calc(100% - 32px)',
+                  maxHeight: '92vh',
+                  overflow: 'auto',
+                  padding: 0,
+                }}
+              >
+                {/* ═══ HEADER ═══ */}
+                <div style={{
+                  padding: '18px 22px 14px',
+                  borderBottom: '1px solid var(--admin-border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  position: 'sticky',
+                  top: 0,
+                  background: 'var(--admin-surface)',
+                  zIndex: 2,
+                }}>
+                  <div style={{
+                    width: 56,
+                    height: 56,
+                    flexShrink: 0,
+                    borderRadius: '50%',
+                    background: 'var(--admin-primary)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 20,
+                    fontWeight: 700,
+                    letterSpacing: '0.02em',
+                    boxShadow: '0 6px 18px -6px rgba(124, 58, 237, 0.55)',
+                  }}>
+                    {getUserInitials(detailsUser.name)}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--admin-text)' }}>
+                        {detailsUser.name || 'Unnamed user'}
+                      </h2>
+                      <span className={`admin-pill ${detailsUser.status}`}>{detailsUser.status}</span>
+                      {detailsUser.emailVerifiedAt && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, color: 'var(--admin-success)', fontWeight: 600 }}>
+                          <VerifiedRoundedIcon fontSize="inherit" /> Verified
                         </span>
-                      </li>
-                    ))}
-                  </ul>
+                      )}
+                    </div>
+                    <div style={{ marginTop: 4, fontSize: 11.5, color: 'var(--admin-text-muted)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <MailOutlineRoundedIcon sx={{ fontSize: 13 }} />
+                        {detailsUser.email || detailsUser.phone || '—'}
+                      </span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontVariantNumeric: 'tabular-nums' }} title={detailsUser.id}>
+                        <BadgeOutlinedIcon sx={{ fontSize: 13 }} />
+                        {shortId(detailsUser.id)}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    className="admin-btn admin-btn-icon admin-btn-ghost"
+                    onClick={closeDetails}
+                    aria-label="Close"
+                  >
+                    <CloseRoundedIcon fontSize="inherit" />
+                  </button>
                 </div>
-              )}
-            </div>
-          </div>
+
+                {detailsLoading && (
+                  <p style={{ padding: '12px 22px', margin: 0, fontSize: 12, color: 'var(--admin-text-muted)' }}>
+                    Loading details…
+                  </p>
+                )}
+
+                {/* ═══ BODY ═══ */}
+                <div style={{ padding: '16px 22px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                  {/* ── Hero row: Trust score + Account meta ── */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 12 }}>
+                    {/* Trust score hero */}
+                    <div style={{
+                      padding: '16px 18px',
+                      borderRadius: 10,
+                      border: '1px solid var(--admin-border)',
+                      background: 'linear-gradient(135deg, var(--admin-surface-2) 0%, var(--admin-surface) 100%)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--admin-text-muted)' }}>
+                          Trust Score
+                        </span>
+                        <span className={`admin-pill ${detailsUser.riskTier?.code || 'low'}`}>
+                          Risk: {detailsUser.riskTier?.label || '—'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                        <span style={{ fontSize: 38, fontWeight: 800, lineHeight: 1, color: trustColor, fontVariantNumeric: 'tabular-nums' }}>
+                          {trustScoreNum ?? '—'}
+                        </span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--admin-text-muted)' }}>/ 100</span>
+                      </div>
+                      <div className="admin-progress">
+                        <div className={`admin-progress-fill ${trustClass}`} style={{ width: `${trustWidth}%` }} />
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--admin-text-secondary)', fontWeight: 600 }}>
+                        {detailsUser.trustTier?.label || '—'}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
+                        Updated {detailsUser.trustLastUpdatedAt ? formatRelative(detailsUser.trustLastUpdatedAt) : '—'}
+                      </div>
+                    </div>
+
+                    {/* Account meta grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, alignContent: 'start' }}>
+                      <div className="admin-mini-stat">
+                        <span className="admin-mini-stat-label">Auth Provider</span>
+                        <span className="admin-mini-stat-value" style={{ textTransform: 'capitalize' }}>{detailsUser.authProvider || '—'}</span>
+                      </div>
+                      <div className="admin-mini-stat">
+                        <span className="admin-mini-stat-label">Email Verified</span>
+                        <span className="admin-mini-stat-value" style={{ color: detailsUser.emailVerifiedAt ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
+                          {detailsUser.emailVerifiedAt ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                      <div className="admin-mini-stat">
+                        <span className="admin-mini-stat-label">Joined</span>
+                        <span className="admin-mini-stat-value">
+                          {detailsUser.createdAt ? new Date(detailsUser.createdAt).toLocaleDateString() : '—'}
+                        </span>
+                      </div>
+                      <div className="admin-mini-stat">
+                        <span className="admin-mini-stat-label">Last Active</span>
+                        <span className="admin-mini-stat-value">{formatRelative(detailsUser.lastActiveAt)}</span>
+                      </div>
+                      <div className="admin-mini-stat" style={{ gridColumn: '1 / -1' }}>
+                        <span className="admin-mini-stat-label">Current Roles</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
+                          {(detailsUser.roles || []).length === 0 ? (
+                            <span style={{ fontSize: 11.5, color: 'var(--admin-text-muted)' }}>None</span>
+                          ) : (
+                            (detailsUser.roles || []).map((roleName) => (
+                              <span key={roleName} className={`admin-pill ${roleName.toLowerCase()}`}>
+                                {formatRoleLabel(roleName)}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Report activity ── */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <h3 className="admin-card-title">Report Activity</h3>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        background: 'var(--admin-surface-2)',
+                        fontSize: 11,
+                        fontWeight: 600,
+                      }}>
+                        <span style={{ color: 'var(--admin-text-muted)' }}>False ratio</span>
+                        <span style={{ color: falseRatioColor, fontVariantNumeric: 'tabular-nums' }}>
+                          {formatPercent(falseRatio, 1)}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                      {reportTiles.map((tile) => (
+                        <div className="admin-mini-stat" key={tile.label}>
+                          <span className="admin-mini-stat-label">{tile.label}</span>
+                          <span
+                            className="admin-mini-stat-value"
+                            style={{ fontSize: 18, fontWeight: 700, color: tile.color || 'var(--admin-text)', fontVariantNumeric: 'tabular-nums' }}
+                          >
+                            {tile.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Driver behavior + Occurrence risk ── */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div style={{ padding: 14, border: '1px solid var(--admin-border)', borderRadius: 10, background: 'var(--admin-surface-2)' }}>
+                      <h3 className="admin-card-title">Driver Behavior</h3>
+                      {detailsUser.driverQuiz?.lastCompletedAt ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, fontSize: 12 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>Risk score</span>
+                            <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                              {formatScore(detailsUser.driverQuiz.latestRiskScore)} / 100
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>Result</span>
+                            <span style={{ fontWeight: 600 }}>
+                              {detailsUser.driverQuiz.latestResultTitle || detailsUser.driverQuiz.latestResultLabel || '—'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>Attempts</span>
+                            <span style={{ fontWeight: 600 }}>{detailsUser.driverQuiz.completedAttemptsCount}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>Last completed</span>
+                            <span>{formatRelative(detailsUser.driverQuiz.lastCompletedAt)}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p style={{ marginTop: 10, fontSize: 11.5, color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>
+                          No driver quiz completed yet.
+                        </p>
+                      )}
+                    </div>
+                    <div style={{ padding: 14, border: '1px solid var(--admin-border)', borderRadius: 10, background: 'var(--admin-surface-2)' }}>
+                      <h3 className="admin-card-title">Latest Occurrence Risk</h3>
+                      {detailsUser.occurrenceRisk?.latestAt ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, fontSize: 12 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>Personalized</span>
+                            <span style={{ fontWeight: 700 }}>
+                              {formatOccurrence(detailsUser.occurrenceRisk.latestPersonalizedScore)}
+                              <span style={{ marginLeft: 6, fontSize: 10.5, color: 'var(--admin-text-muted)', textTransform: 'capitalize' }}>
+                                ({detailsUser.occurrenceRisk.latestPersonalizedLevel || '—'})
+                              </span>
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>Global</span>
+                            <span style={{ fontWeight: 700 }}>
+                              {formatOccurrence(detailsUser.occurrenceRisk.latestGlobalScore)}
+                              <span style={{ marginLeft: 6, fontSize: 10.5, color: 'var(--admin-text-muted)', textTransform: 'capitalize' }}>
+                                ({detailsUser.occurrenceRisk.latestGlobalLevel || '—'})
+                              </span>
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>Recorded</span>
+                            <span>{formatRelative(detailsUser.occurrenceRisk.latestAt)}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p style={{ marginTop: 10, fontSize: 11.5, color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>
+                          No occurrence-risk prediction yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── Account Type editor ── */}
+                  <div style={{ padding: 16, border: '1px solid var(--admin-border)', borderRadius: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+                      <h3 className="admin-card-title">Account Type</h3>
+                      {rolesDirty && (
+                        <span style={{ fontSize: 10.5, color: 'var(--admin-warning)', fontWeight: 600 }}>
+                          Unsaved changes
+                        </span>
+                      )}
+                    </div>
+
+                    {availableRoles.length === 0 ? (
+                      <p style={{ fontSize: 12, color: 'var(--admin-text-muted)', marginTop: 10 }}>No roles available.</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                        {availableRoles.map((role) => {
+                          const checked = editingRoles.has(role.name)
+                          return (
+                            <label
+                              key={role.id}
+                              title={role.description || role.name}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: '7px 12px',
+                                borderRadius: 999,
+                                border: `1px solid ${checked ? 'var(--admin-primary)' : 'var(--admin-border)'}`,
+                                background: checked ? 'var(--admin-primary-subtle)' : 'var(--admin-surface)',
+                                color: checked ? 'var(--admin-primary)' : 'var(--admin-text-secondary)',
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                cursor: rolesSaving ? 'not-allowed' : 'pointer',
+                                transition: 'all 120ms ease',
+                                opacity: rolesSaving ? 0.6 : 1,
+                                userSelect: 'none',
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name="user-role"
+                                checked={checked}
+                                onChange={() => toggleEditingRole(role.name)}
+                                disabled={rolesSaving}
+                                style={{ accentColor: 'var(--admin-primary)', cursor: 'inherit' }}
+                              />
+                              {formatRoleLabel(role.name)}
+                            </label>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: 6, marginTop: 14, alignItems: 'center' }}>
+                      <button
+                        className="admin-btn admin-btn-sm admin-btn-primary"
+                        onClick={saveRoles}
+                        disabled={!rolesDirty || rolesSaving || editingRoles.size === 0}
+                      >
+                        {rolesSaving ? 'Saving…' : 'Save Roles'}
+                      </button>
+                      <button
+                        className="admin-btn admin-btn-sm admin-btn-ghost"
+                        onClick={() => setEditingRoles(new Set(detailsUser.roles || []))}
+                        disabled={!rolesDirty || rolesSaving}
+                      >
+                        Reset
+                      </button>
+                      {editingRoles.size === 0 && (
+                        <span style={{ fontSize: 10.5, color: 'var(--admin-warning)', marginLeft: 'auto' }}>
+                          At least one role is required.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── Recent reports ── */}
+                  {Array.isArray(detailsUser.recentReports) && detailsUser.recentReports.length > 0 && (
+                    <div>
+                      <h3 className="admin-card-title" style={{ marginBottom: 8 }}>Recent Reports</h3>
+                      <div style={{ border: '1px solid var(--admin-border)', borderRadius: 8, overflow: 'hidden' }}>
+                        {detailsUser.recentReports.map((report, index) => (
+                          <div
+                            key={report.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 12,
+                              padding: '10px 12px',
+                              borderBottom: index < detailsUser.recentReports.length - 1 ? '1px solid var(--admin-border)' : 'none',
+                              fontSize: 11.5,
+                            }}
+                          >
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontWeight: 600, color: 'var(--admin-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {report.title || '(untitled)'}
+                              </div>
+                              <div style={{ fontSize: 10.5, color: 'var(--admin-text-muted)', marginTop: 2 }}>
+                                {formatRelative(report.createdAt)}
+                                {report.latestPredictedLabel ? ` · ${report.latestPredictedLabel}` : ''}
+                                {report.reviewVerdict ? ` · verdict: ${report.reviewVerdict}` : ''}
+                              </div>
+                            </div>
+                            <span className={`admin-pill ${report.status}`}>{report.status}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
         </div>
       )}
+
+      {/* ═══ WARN MODAL ═══ */}
+      {warnModalUser && (() => {
+        const previewExpires = resolveWarningExpiresAt()
+        const previewLabel =
+          warnDuration === 'ack'
+            ? 'Stays visible until the user dismisses it'
+            : previewExpires === undefined
+              ? 'Pick a future date/time'
+              : previewExpires === null
+                ? 'Until acknowledged'
+                : `Auto-clears on ${new Date(previewExpires).toLocaleString()}`
+        const presets = [
+          { key: 'ack', label: 'Until acknowledged' },
+          { key: '7d', label: '7 days' },
+          { key: '30d', label: '30 days' },
+          { key: '90d', label: '90 days' },
+          { key: 'custom', label: 'Custom date…' },
+        ]
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={closeWarnModal}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 1100, backdropFilter: 'blur(2px)',
+            }}
+          >
+            <div
+              className="admin-card"
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: 'min(480px, 92vw)', padding: 0, overflow: 'hidden' }}
+            >
+              <div style={{
+                padding: '14px 18px',
+                borderBottom: '1px solid var(--admin-border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--admin-warning)' }}>
+                    Warn user
+                  </h2>
+                  <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'var(--admin-text-muted)' }}>
+                    {warnModalUser.name} · {warnModalUser.email || warnModalUser.phone || '—'}
+                  </p>
+                </div>
+                <button className="admin-btn admin-btn-icon admin-btn-ghost" onClick={closeWarnModal} aria-label="Close">×</button>
+              </div>
+
+              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 6 }}>
+                    Reason (shown to the user)
+                  </label>
+                  <textarea
+                    className="admin-textarea"
+                    value={warnReason}
+                    onChange={(e) => setWarnReason(e.target.value)}
+                    placeholder="e.g. Posted an unverified incident with missing details"
+                    disabled={warnSubmitting}
+                    rows={3}
+                    style={{ width: '100%', fontSize: 12, resize: 'vertical' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 8 }}>
+                    Auto-clear after
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {presets.map((preset) => {
+                      const active = warnDuration === preset.key
+                      return (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() => setWarnDuration(preset.key)}
+                          disabled={warnSubmitting}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: 999,
+                            border: `1px solid ${active ? 'var(--admin-warning)' : 'var(--admin-border)'}`,
+                            background: active ? 'var(--admin-warning-subtle)' : 'var(--admin-surface-2)',
+                            color: active ? 'var(--admin-warning)' : 'var(--admin-text-secondary)',
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                            cursor: warnSubmitting ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {preset.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {warnDuration === 'custom' && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 6 }}>
+                      Clear on
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="admin-input"
+                      value={warnCustomUntil}
+                      onChange={(e) => setWarnCustomUntil(e.target.value)}
+                      disabled={warnSubmitting}
+                      style={{ width: '100%', height: 34, fontSize: 12 }}
+                    />
+                  </div>
+                )}
+
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  background: 'var(--admin-warning-subtle)',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  fontSize: 11.5,
+                  color: 'var(--admin-warning)',
+                }}>
+                  <strong>How it shows:</strong> {previewLabel}
+                  <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
+                    A yellow banner appears at the top of every page for this user. They can still post and comment.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                padding: '12px 18px',
+                borderTop: '1px solid var(--admin-border)',
+                display: 'flex',
+                gap: 6,
+                justifyContent: 'flex-end',
+              }}>
+                <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={closeWarnModal} disabled={warnSubmitting}>
+                  Cancel
+                </button>
+                <button
+                  className="admin-btn admin-btn-sm admin-btn-warning"
+                  onClick={confirmWarn}
+                  disabled={warnSubmitting || !warnReason.trim() || (warnDuration === 'custom' && !warnCustomUntil)}
+                >
+                  {warnSubmitting ? 'Sending…' : 'Send warning'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ═══ BAN MODAL ═══ */}
+      {banModalUser && (() => {
+        const previewUntil = resolveBannedUntil()
+        const previewLabel = banDuration === 'permanent'
+          ? 'Permanent (user cannot log in ever again)'
+          : previewUntil === undefined
+            ? 'Pick a future date/time'
+            : new Date(previewUntil).toLocaleString()
+        const presets = [
+          { key: '1h', label: '1 hour' },
+          { key: '24h', label: '24 hours' },
+          { key: '7d', label: '7 days' },
+          { key: '30d', label: '30 days' },
+          { key: '6mo', label: '6 months' },
+          { key: 'custom', label: 'Custom date…' },
+          { key: 'permanent', label: 'Permanent' },
+        ]
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={closeBanModal}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 1100, backdropFilter: 'blur(2px)',
+            }}
+          >
+            <div
+              className="admin-card"
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: 'min(480px, 92vw)', padding: 0, overflow: 'hidden' }}
+            >
+              <div style={{
+                padding: '14px 18px',
+                borderBottom: '1px solid var(--admin-border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--admin-danger)' }}>
+                    Ban user
+                  </h2>
+                  <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'var(--admin-text-muted)' }}>
+                    {banModalUser.name} · {banModalUser.email || banModalUser.phone || '—'}
+                  </p>
+                </div>
+                <button className="admin-btn admin-btn-icon admin-btn-ghost" onClick={closeBanModal} aria-label="Close">×</button>
+              </div>
+
+              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 8 }}>
+                    Ban duration
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {presets.map((preset) => {
+                      const active = banDuration === preset.key
+                      const isPerm = preset.key === 'permanent'
+                      return (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() => setBanDuration(preset.key)}
+                          disabled={banSubmitting}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: 999,
+                            border: `1px solid ${active ? (isPerm ? 'var(--admin-danger)' : 'var(--admin-primary)') : 'var(--admin-border)'}`,
+                            background: active
+                              ? (isPerm ? 'rgba(239, 68, 68, 0.12)' : 'var(--admin-primary-subtle)')
+                              : 'var(--admin-surface-2)',
+                            color: active
+                              ? (isPerm ? 'var(--admin-danger)' : 'var(--admin-primary)')
+                              : 'var(--admin-text-secondary)',
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                            cursor: banSubmitting ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {preset.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {banDuration === 'custom' && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 6 }}>
+                      Ban until
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="admin-input"
+                      value={banCustomUntil}
+                      onChange={(e) => setBanCustomUntil(e.target.value)}
+                      disabled={banSubmitting}
+                      style={{ width: '100%', height: 34, fontSize: 12 }}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 6 }}>
+                    Reason (shown to the user)
+                  </label>
+                  <textarea
+                    className="admin-textarea"
+                    value={banReason}
+                    onChange={(e) => setBanReason(e.target.value)}
+                    placeholder="e.g. Repeatedly posted false incidents"
+                    disabled={banSubmitting}
+                    rows={3}
+                    style={{ width: '100%', fontSize: 12, resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  background: banDuration === 'permanent' ? 'rgba(239, 68, 68, 0.08)' : 'var(--admin-surface-2)',
+                  border: `1px solid ${banDuration === 'permanent' ? 'rgba(239, 68, 68, 0.25)' : 'var(--admin-border)'}`,
+                  fontSize: 11.5,
+                  color: banDuration === 'permanent' ? 'var(--admin-danger)' : 'var(--admin-text-secondary)',
+                }}>
+                  <strong>{banDuration === 'permanent' ? 'Permanent ban' : 'Effective until'}:</strong> {previewLabel}
+                  {banDuration !== 'permanent' && (
+                    <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
+                      User can still log in to see the ban notice but cannot post or comment until then.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{
+                padding: '12px 18px',
+                borderTop: '1px solid var(--admin-border)',
+                display: 'flex',
+                gap: 6,
+                justifyContent: 'flex-end',
+              }}>
+                <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={closeBanModal} disabled={banSubmitting}>
+                  Cancel
+                </button>
+                <button
+                  className="admin-btn admin-btn-sm admin-btn-danger"
+                  onClick={confirmBan}
+                  disabled={banSubmitting || (banDuration === 'custom' && !banCustomUntil)}
+                >
+                  {banSubmitting ? 'Banning…' : (banDuration === 'permanent' ? 'Ban permanently' : 'Apply ban')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </>
   )
 }

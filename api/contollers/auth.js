@@ -568,6 +568,14 @@ router.post("/login", async (req, res, next) => {
       });
     }
 
+    if (error.code === "ACCOUNT_BANNED") {
+      return res.status(403).json({
+        message: error.message,
+        code: error.code,
+        ban: error.ban || { permanent: true, until: null, reason: null },
+      });
+    }
+
     return next(error);
   }
 });

@@ -1,15 +1,15 @@
 const pool = require("../db");
 const { recalculateUserTrustScore } = require("./reportSpamDetectionService");
 
-const STATUS_OPTIONS = new Set(["active", "warned", "suspended", "banned"]);
+const STATUS_OPTIONS = new Set(["active", "warned", "banned"]);
 const FILTER_OPTIONS = new Set([
   "all",
   "active",
   "trusted",
   "at-risk",
-  "suspended",
   "banned",
   "police",
+  "supervisor",
   "admin",
 ]);
 const SORT_OPTIONS = new Set([
@@ -20,6 +20,7 @@ const SORT_OPTIONS = new Set([
   "last_active_desc",
 ]);
 const POLICE_ROLES = ["police", "police_officer", "police officer"];
+const SUPERVISOR_ROLES = ["police_supervisor", "police supervisor"];
 const TRUSTED_ROLES = ["trusted", "trusted_reporter"];
 const ADMIN_ROLES = ["admin"];
 
@@ -103,6 +104,12 @@ const USERS_BASE_SQL = `
     u.avatar_url,
     u.is_active,
     coalesce(u.moderation_status, 'active') as moderation_status,
+    u.banned_until,
+    u.ban_reason,
+    u.warning_reason,
+    u.warned_at,
+    u.warning_expires_at,
+    u.warning_acknowledged_at,
     u.auth_provider,
     u.email_verified_at,
     u.created_at,
@@ -146,7 +153,6 @@ function safeNumber(value) {
 
 function deriveStatus(row) {
   const moderation = String(row.moderation_status || "").toLowerCase();
-  if (moderation === "suspended") return "suspended";
   if (moderation === "banned") return "banned";
   if (moderation === "warned") return "warned";
   if (row.is_active === false) return "inactive";
@@ -156,6 +162,7 @@ function deriveStatus(row) {
 function pickPrimaryRole(roles) {
   const list = Array.isArray(roles) ? roles.map((role) => String(role).toLowerCase()) : [];
   if (list.some((role) => ADMIN_ROLES.includes(role))) return "admin";
+  if (list.some((role) => SUPERVISOR_ROLES.includes(role))) return "supervisor";
   if (list.some((role) => POLICE_ROLES.includes(role))) return "police";
   if (list.some((role) => TRUSTED_ROLES.includes(role))) return "trusted";
   if (list.some((role) => role === "citizen")) return "citizen";
@@ -220,6 +227,16 @@ function mapUserRow(row) {
     isActive: row.is_active !== false,
     status,
     moderationStatus: String(row.moderation_status || "active").toLowerCase(),
+    bannedUntil: row.banned_until ? new Date(row.banned_until).toISOString() : null,
+    banReason: row.ban_reason || null,
+    isPermanentlyBanned:
+      String(row.moderation_status || "").toLowerCase() === "banned" && !row.banned_until,
+    warningReason: row.warning_reason || null,
+    warnedAt: row.warned_at ? new Date(row.warned_at).toISOString() : null,
+    warningExpiresAt: row.warning_expires_at ? new Date(row.warning_expires_at).toISOString() : null,
+    warningAcknowledgedAt: row.warning_acknowledged_at ? new Date(row.warning_acknowledged_at).toISOString() : null,
+    hasActiveWarning:
+      String(row.moderation_status || "").toLowerCase() === "warned" && !row.warning_acknowledged_at,
     roles,
     primaryRole: pickPrimaryRole(roles),
     trustScore,
@@ -293,15 +310,17 @@ function buildFilterClause(filter, paramOffset) {
         "(coalesce(u.trust_score, 50) < 40 or coalesce(rs.total_reports, 0) > 0 and (coalesce(rs.spam_reports, 0) + coalesce(rs.out_of_context_reports, 0) + coalesce(rs.invalid_location_reports, 0) + coalesce(rs.rejected_reports, 0))::numeric / nullif(rs.total_reports, 0) >= 0.4 or coalesce(dq.latest_risk_score, 0) >= 60)",
       );
       break;
-    case "suspended":
-      clauses.push("coalesce(u.moderation_status, 'active') = 'suspended'");
-      break;
     case "banned":
       clauses.push("coalesce(u.moderation_status, 'active') = 'banned'");
       break;
     case "police":
       clauses.push(
         "exists (select 1 from unnest(coalesce(rm.roles, '{}'::text[])) role where lower(role) in ('police', 'police_officer', 'police officer'))",
+      );
+      break;
+    case "supervisor":
+      clauses.push(
+        "exists (select 1 from unnest(coalesce(rm.roles, '{}'::text[])) role where lower(role) in ('police_supervisor', 'police supervisor'))",
       );
       break;
     case "admin":
@@ -363,11 +382,13 @@ async function getCounts(db = pool) {
               and ((coalesce(rs.spam_reports, 0) + coalesce(rs.out_of_context_reports, 0) + coalesce(rs.invalid_location_reports, 0) + coalesce(rs.rejected_reports, 0))::numeric / nullif(rs.total_reports, 0)) >= 0.4)
             or coalesce(dq.latest_risk_score, 0) >= 60
         )::int as at_risk_count,
-        count(*) filter (where coalesce(u.moderation_status, 'active') = 'suspended')::int as suspended_count,
         count(*) filter (where coalesce(u.moderation_status, 'active') = 'banned')::int as banned_count,
         count(*) filter (
           where exists (select 1 from unnest(coalesce(rm.roles, '{}'::text[])) role where lower(role) in ('police', 'police_officer', 'police officer'))
         )::int as police_count,
+        count(*) filter (
+          where exists (select 1 from unnest(coalesce(rm.roles, '{}'::text[])) role where lower(role) in ('police_supervisor', 'police supervisor'))
+        )::int as supervisor_count,
         count(*) filter (
           where exists (select 1 from unnest(coalesce(rm.roles, '{}'::text[])) role where lower(role) = 'admin')
         )::int as admin_count
@@ -383,14 +404,114 @@ async function getCounts(db = pool) {
     active: Number(row.active_count || 0),
     trusted: Number(row.trusted_count || 0),
     atRisk: Number(row.at_risk_count || 0),
-    suspended: Number(row.suspended_count || 0),
     banned: Number(row.banned_count || 0),
     police: Number(row.police_count || 0),
+    supervisor: Number(row.supervisor_count || 0),
     admin: Number(row.admin_count || 0),
   };
 }
 
+/**
+ * Sweep `auth.users` for moderation states whose timer has already passed and
+ * lift them back to 'active'. Runs as a single transaction-free maintenance
+ * pass — safe to call from any read endpoint to make sure the list the admin
+ * sees reflects the current effective state, not a stale snapshot.
+ *
+ *   - Bans with banned_until <= now()  → moderation_status='active',
+ *                                        is_active=true,
+ *                                        banned_until / ban_reason cleared.
+ *   - Warnings with warning_expires_at <= now() → moderation_status='active',
+ *                                                 warning_* columns cleared.
+ *
+ * Each lift writes an audit row with action='restore' so the history is kept.
+ * The audit insert is best-effort (table may not exist yet on fresh deploys).
+ */
+async function autoLiftExpiredModeration(db = pool) {
+  try {
+    const expiredBans = await db.query(
+      `
+        with lifted as (
+          update auth.users
+             set moderation_status = 'active',
+                 is_active         = true,
+                 banned_until      = null,
+                 ban_reason        = null,
+                 updated_at        = now()
+           where coalesce(moderation_status, 'active') = 'banned'
+             and banned_until is not null
+             and banned_until <= now()
+           returning id, coalesce(moderation_status, 'active') as new_status
+        )
+        select id from lifted
+      `,
+    );
+    if (expiredBans.rowCount > 0) {
+      try {
+        await db.query(
+          `
+            insert into app.user_moderation_actions
+              (user_id, actor_id, action, status_before, status_after, reason)
+            select id, null, 'restore', 'banned', 'active', 'auto-lifted (ban expired)'
+              from unnest($1::uuid[]) as t(id)
+          `,
+          [expiredBans.rows.map((r) => r.id)],
+        );
+      } catch (auditError) {
+        console.warn("[admin/users] expired-ban audit insert failed:", auditError?.message);
+      }
+    }
+
+    const expiredWarnings = await db.query(
+      `
+        with lifted as (
+          update auth.users
+             set moderation_status        = 'active',
+                 warning_reason           = null,
+                 warned_at                = null,
+                 warning_expires_at       = null,
+                 warning_acknowledged_at  = now(),
+                 updated_at               = now()
+           where coalesce(moderation_status, 'active') = 'warned'
+             and warning_expires_at is not null
+             and warning_expires_at <= now()
+             and warning_acknowledged_at is null
+           returning id
+        )
+        select id from lifted
+      `,
+    );
+    if (expiredWarnings.rowCount > 0) {
+      try {
+        await db.query(
+          `
+            insert into app.user_moderation_actions
+              (user_id, actor_id, action, status_before, status_after, reason)
+            select id, null, 'restore', 'warned', 'active', 'auto-lifted (warning expired)'
+              from unnest($1::uuid[]) as t(id)
+          `,
+          [expiredWarnings.rows.map((r) => r.id)],
+        );
+      } catch (auditError) {
+        console.warn("[admin/users] expired-warning audit insert failed:", auditError?.message);
+      }
+    }
+
+    return {
+      bansLifted: expiredBans.rowCount,
+      warningsLifted: expiredWarnings.rowCount,
+    };
+  } catch (error) {
+    console.warn("[admin/users] autoLiftExpiredModeration failed:", error?.message);
+    return { bansLifted: 0, warningsLifted: 0 };
+  }
+}
+
 async function listAdminUsers(query = {}, db = pool) {
+  // Auto-clear any bans/warnings whose timer has already passed so the table
+  // the admin sees matches the effective state. Runs unconditionally — it's a
+  // single fast scan keyed on the partial indexes we created in db+.
+  await autoLiftExpiredModeration(db);
+
   const search = String(query.search || "").trim();
   const filterRaw = String(query.filter || "all").trim().toLowerCase();
   const filter = FILTER_OPTIONS.has(filterRaw) ? filterRaw : "all";
@@ -437,9 +558,9 @@ async function listAdminUsers(query = {}, db = pool) {
     if (filter === "active") return counts.active;
     if (filter === "trusted") return counts.trusted;
     if (filter === "at-risk") return counts.atRisk;
-    if (filter === "suspended") return counts.suspended;
     if (filter === "banned") return counts.banned;
     if (filter === "police") return counts.police;
+    if (filter === "supervisor") return counts.supervisor;
     if (filter === "admin") return counts.admin;
     return counts.all;
   })();
@@ -457,6 +578,11 @@ async function listAdminUsers(query = {}, db = pool) {
 }
 
 async function getAdminUserDetails(userId, db = pool) {
+  // Same maintenance pass as the list endpoint so a stale "Banned" pill on a
+  // user whose timer has just expired flips to "Active" the moment an admin
+  // opens their details modal.
+  await autoLiftExpiredModeration(db);
+
   const result = await db.query(`${USERS_BASE_SQL} where u.id = $1 limit 1`, [userId]);
   if (result.rowCount === 0) return null;
   const user = mapUserRow(result.rows[0]);
@@ -488,42 +614,284 @@ async function getAdminUserDetails(userId, db = pool) {
   };
 }
 
-async function updateAdminUserStatus(userId, { status, note } = {}, actor = null) {
-  const normalized = String(status || "").trim().toLowerCase();
+/**
+ * Update a user's moderation state.
+ *
+ * Accepted payload:
+ *   status:       one of STATUS_OPTIONS — required
+ *   bannedUntil:  ISO timestamp string or null. Required interpretation:
+ *                   - 'banned' + null bannedUntil  → PERMANENT ban
+ *                       (sets is_active=false so the user cannot log in ever)
+ *                   - 'banned' + future bannedUntil → TEMPORARY ban
+ *                       (keeps is_active=true so the user can still log in
+ *                        and see the ban banner; writes are blocked elsewhere)
+ *                   - 'warned' / 'active' → bannedUntil and reason are cleared
+ *   reason:       admin-supplied explanation shown back to the user
+ *   note:         private admin-only note (audit log only)
+ */
+async function updateAdminUserStatus(userId, payload = {}, actor = null) {
+  const normalized = String(payload?.status || "").trim().toLowerCase();
   if (!STATUS_OPTIONS.has(normalized)) {
     const error = new Error(`status must be one of: ${[...STATUS_OPTIONS].join(", ")}`);
     error.status = 400;
     throw error;
   }
 
-  const isActiveValue = normalized === "active" || normalized === "warned";
+  const isBanLike = normalized === "banned";
+  const rawBannedUntil = payload?.bannedUntil ?? payload?.banned_until ?? null;
+  let parsedBannedUntil = null;
+  if (isBanLike && rawBannedUntil != null && rawBannedUntil !== "") {
+    const dateValue = new Date(rawBannedUntil);
+    if (Number.isNaN(dateValue.getTime())) {
+      const error = new Error("bannedUntil must be a valid ISO timestamp");
+      error.status = 400;
+      throw error;
+    }
+    if (dateValue.getTime() <= Date.now()) {
+      const error = new Error("bannedUntil must be in the future");
+      error.status = 400;
+      throw error;
+    }
+    parsedBannedUntil = dateValue.toISOString();
+  }
 
-  const result = await pool.query(
-    `
-      update auth.users
-      set moderation_status = $2,
-          is_active = $3,
-          updated_at = now()
-      where id = $1
-      returning id
-    `,
-    [userId, normalized, isActiveValue],
-  );
+  // Warning-specific input parsing (only meaningful when status='warned').
+  const isWarning = normalized === "warned";
+  const rawWarningExpiresAt =
+    payload?.warningExpiresAt ?? payload?.warning_expires_at ?? null;
+  let parsedWarningExpiresAt = null;
+  if (isWarning && rawWarningExpiresAt != null && rawWarningExpiresAt !== "") {
+    const dateValue = new Date(rawWarningExpiresAt);
+    if (Number.isNaN(dateValue.getTime())) {
+      const error = new Error("warningExpiresAt must be a valid ISO timestamp");
+      error.status = 400;
+      throw error;
+    }
+    if (dateValue.getTime() <= Date.now()) {
+      const error = new Error("warningExpiresAt must be in the future");
+      error.status = 400;
+      throw error;
+    }
+    parsedWarningExpiresAt = dateValue.toISOString();
+  }
+  const warningReason = isWarning
+    ? (payload?.warningReason ?? payload?.warning_reason ?? payload?.reason ?? null)
+    : null;
+  const finalWarningReason = warningReason
+    ? String(warningReason).slice(0, 500)
+    : null;
 
-  if (result.rowCount === 0) {
-    const error = new Error("User not found");
-    error.status = 404;
+  // Permanent ban only when status='banned' AND no expiry was supplied.
+  const isPermanentBan = normalized === "banned" && parsedBannedUntil == null;
+
+  // Keep is_active=true for warned/temp-ban so the user can log in and see
+  // the ban message. Only fully deactivate on permanent ban.
+  const isActiveValue = !isPermanentBan;
+
+  const finalReason = isBanLike && payload?.reason
+    ? String(payload.reason).slice(0, 500)
+    : null;
+
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+
+    const beforeResult = await client.query(
+      `select coalesce(moderation_status, 'active') as moderation_status
+         from auth.users where id = $1 limit 1`,
+      [userId],
+    );
+    if (beforeResult.rowCount === 0) {
+      const error = new Error("User not found");
+      error.status = 404;
+      throw error;
+    }
+    const statusBefore = beforeResult.rows[0].moderation_status;
+
+    // When the new status is "warned" we write the warning fields and clear
+    // any leftover ban fields. When the new status is anything else (active /
+    // warned-clear / banned) we clear the warning fields entirely
+    // so a returning-to-active user doesn't keep seeing a stale banner.
+    const updateResult = await client.query(
+      `
+        update auth.users
+           set moderation_status        = $2,
+               is_active                = $3,
+               banned_until             = $4::timestamptz,
+               ban_reason               = $5::text,
+               warning_reason           = case when $7 = 'warned' then $6::text        else null::text        end,
+               warned_at                = case when $7 = 'warned' then now()           else null::timestamptz end,
+               warning_expires_at       = case when $7 = 'warned' then $8::timestamptz else null::timestamptz end,
+               warning_acknowledged_at  = null,
+               updated_at               = now()
+         where id = $1
+         returning id
+      `,
+      [
+        userId,
+        normalized,
+        isActiveValue,
+        parsedBannedUntil,
+        finalReason,
+        finalWarningReason,
+        normalized,
+        parsedWarningExpiresAt,
+      ],
+    );
+    if (updateResult.rowCount === 0) {
+      const error = new Error("User not found");
+      error.status = 404;
+      throw error;
+    }
+
+    // On permanent ban: bump session_version so any outstanding access token
+    // is rejected immediately, forcing the user out.
+    if (isPermanentBan) {
+      await client.query(
+        `
+          insert into app.user_security_state (user_id, session_version, updated_at)
+          values ($1, 1, now())
+          on conflict (user_id)
+          do update set session_version = coalesce(app.user_security_state.session_version, 0) + 1,
+                        updated_at      = now()
+        `,
+        [userId],
+      );
+    }
+
+    // Audit log (best-effort — table is optional; ignore if missing).
+    try {
+      const auditReason = isWarning
+        ? finalWarningReason
+        : (finalReason || (payload?.note ? String(payload.note).slice(0, 500) : null));
+      await client.query(
+        `
+          insert into app.user_moderation_actions
+            (user_id, actor_id, action, status_before, status_after, banned_until, reason)
+          values ($1, $2, $3, $4, $5, $6, $7)
+        `,
+        [
+          userId,
+          actor?.userId || actor?.id || null,
+          deriveAuditAction(statusBefore, normalized),
+          statusBefore,
+          normalized,
+          parsedBannedUntil,
+          auditReason,
+        ],
+      );
+    } catch (auditError) {
+      // Table may not exist yet (db+ migration not applied). Log and continue.
+      console.warn("[admin/users] user_moderation_actions insert failed:", auditError?.message);
+    }
+
+    await client.query("commit");
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
     throw error;
+  } finally {
+    client.release();
   }
 
   logAdmin("status_updated", {
     userId,
     status: normalized,
+    bannedUntil: parsedBannedUntil,
+    isPermanentBan,
+    warningExpiresAt: parsedWarningExpiresAt,
+    warningReason: finalWarningReason,
     actorId: actor?.userId || actor?.id || null,
-    note: note ? String(note).slice(0, 500) : null,
+    note: payload?.note ? String(payload.note).slice(0, 500) : null,
   });
 
   return getAdminUserDetails(userId);
+}
+
+/**
+ * Called by the user themselves to dismiss the warning banner. Moves the user
+ * back to 'active' and clears the warning columns, while recording the dismissal
+ * in the audit log so admins can still see the warning history.
+ */
+async function acknowledgeOwnWarning(userId) {
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+
+    const before = await client.query(
+      `
+        select coalesce(moderation_status, 'active') as moderation_status,
+               warning_reason,
+               warning_acknowledged_at
+          from auth.users
+         where id = $1
+         limit 1
+      `,
+      [userId],
+    );
+    if (before.rowCount === 0) {
+      const error = new Error("User not found");
+      error.status = 404;
+      throw error;
+    }
+
+    const row = before.rows[0];
+    const status = String(row.moderation_status || "active").toLowerCase();
+    if (status !== "warned") {
+      // Nothing to acknowledge; succeed silently.
+      await client.query("commit");
+      return getAdminUserDetails(userId);
+    }
+    if (row.warning_acknowledged_at) {
+      await client.query("commit");
+      return getAdminUserDetails(userId);
+    }
+
+    await client.query(
+      `
+        update auth.users
+           set moderation_status        = 'active',
+               warning_acknowledged_at  = now(),
+               warning_reason           = null,
+               warning_expires_at       = null,
+               warned_at                = null,
+               updated_at               = now()
+         where id = $1
+      `,
+      [userId],
+    );
+
+    try {
+      await client.query(
+        `
+          insert into app.user_moderation_actions
+            (user_id, actor_id, action, status_before, status_after, banned_until, reason)
+          values ($1, $1, 'acknowledge', 'warned', 'active', null, $2)
+        `,
+        [userId, row.warning_reason || null],
+      );
+    } catch (auditError) {
+      console.warn("[admin/users] warning acknowledge audit insert failed:", auditError?.message);
+    }
+
+    await client.query("commit");
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  return getAdminUserDetails(userId);
+}
+
+function deriveAuditAction(statusBefore, statusAfter) {
+  if (statusAfter === "banned") return "ban";
+  if (statusAfter === "warned") return "warn";
+  if (statusAfter === "active") {
+    if (statusBefore === "banned") return "unban";
+    return "restore";
+  }
+  return "restore";
 }
 
 async function updateAdminUserRoles(userId, { roles } = {}, actor = null) {
@@ -617,6 +985,17 @@ async function updateAdminUserRoles(userId, { roles } = {}, actor = null) {
   return getAdminUserDetails(userId);
 }
 
+async function listAdminRoles() {
+  const result = await pool.query(
+    `select id, name, coalesce(description, '') as description from auth.roles order by name asc`,
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+  }));
+}
+
 async function recalculateUserTrustScoreForAdmin(userId, actor = null) {
   const updated = await recalculateUserTrustScore(userId, pool, {
     reason: "admin_manual_recalculation",
@@ -634,9 +1013,11 @@ module.exports = {
   FILTER_OPTIONS: [...FILTER_OPTIONS],
   SORT_OPTIONS: [...SORT_OPTIONS],
   listAdminUsers,
+  listAdminRoles,
   getAdminUserDetails,
   updateAdminUserStatus,
   updateAdminUserRoles,
+  acknowledgeOwnWarning,
   recalculateUserTrustScoreForAdmin,
   buildRiskTier,
   buildTrustTier,

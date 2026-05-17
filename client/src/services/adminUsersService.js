@@ -28,9 +28,9 @@ export async function fetchAdminUsers(params = {}) {
           active: 0,
           trusted: 0,
           atRisk: 0,
-          suspended: 0,
           banned: 0,
           police: 0,
+          supervisor: 0,
           admin: 0,
         },
         pagination: { limit: 20, offset: 0, hasMore: false, total: 0 },
@@ -50,15 +50,53 @@ export async function fetchAdminUserDetails(userId) {
   }
 }
 
-export async function updateAdminUserStatus(userId, status, note) {
+/**
+ * Update a user's moderation state.
+ *
+ * @param {string} userId
+ * @param {string} status      'active' | 'warned' | 'banned'
+ * @param {object} [options]
+ * @param {string|null} [options.bannedUntil]  ISO timestamp; null/omitted means
+ *                                              permanent ban when status is 'banned'.
+ * @param {string} [options.reason]            User-visible reason.
+ * @param {string} [options.note]              Private admin note.
+ */
+export async function updateAdminUserStatus(userId, status, options = {}) {
   try {
-    const response = await userRequest.patch(`/admin/users/${userId}/status`, {
-      status,
-      note,
-    })
+    const body = { status }
+    if (options && typeof options === 'object') {
+      if ('bannedUntil' in options) body.bannedUntil = options.bannedUntil
+      if (options.reason) body.reason = options.reason
+      if (options.note) body.note = options.note
+      if (options.warningReason) body.warningReason = options.warningReason
+      if ('warningExpiresAt' in options) body.warningExpiresAt = options.warningExpiresAt
+    } else if (typeof options === 'string') {
+      // Back-compat: previous signature was updateAdminUserStatus(id, status, note)
+      body.note = options
+    }
+    const response = await userRequest.patch(`/admin/users/${userId}/status`, body)
     return response.data?.user || null
   } catch (error) {
     throw normalizeError(error, 'Failed to update user status')
+  }
+}
+
+/** User-facing — dismisses the warning banner. Returns the refreshed user. */
+export async function acknowledgeMyWarning() {
+  try {
+    const response = await userRequest.post('/account/warning/acknowledge')
+    return response.data?.user || null
+  } catch (error) {
+    throw normalizeError(error, 'Failed to acknowledge warning')
+  }
+}
+
+export async function fetchAdminRoles() {
+  try {
+    const response = await userRequest.get('/admin/users/roles')
+    return Array.isArray(response.data?.roles) ? response.data.roles : []
+  } catch (error) {
+    throw normalizeError(error, 'Failed to load available roles')
   }
 }
 
