@@ -351,7 +351,28 @@
 }
 .admin-kpi-trend.up { color: var(--admin-danger); }
 .admin-kpi-trend.down { color: var(--admin-success); }
+.admin-kpi-trend.good { color: var(--admin-success); }
+.admin-kpi-trend.bad { color: var(--admin-danger); }
 .admin-kpi-trend.stable { color: var(--admin-text-muted); }
+
+/* Section heading above a sub-group of KPI cards (e.g. "Spam Triage") */
+.admin-kpi-section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--admin-text-muted);
+  margin: 6px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-kpi-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--admin-border);
+}
 
 /* ================================================ TABLE */
 .admin-table-wrapper { overflow-x: auto; border-radius: var(--admin-radius); }
@@ -407,9 +428,79 @@
 .admin-pill.manual { background: rgba(100,116,139,0.08); color: #475569; }
 .admin-pill.trusted { background: var(--admin-success-subtle); color: var(--admin-success); }
 .admin-pill.warned { background: var(--admin-warning-subtle); color: var(--admin-warning); }
-.admin-pill.suspended { background: var(--admin-danger-subtle); color: var(--admin-danger); }
 .admin-pill.banned { background: rgba(220,38,38,0.10); color: #DC2626; }
 .admin-pill.user { background: rgba(100,116,139,0.08); color: #475569; }
+
+/* ============================== USER GOVERNANCE — ROW ACTIONS */
+.admin-user-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: stretch;
+}
+.admin-user-actions-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-border);
+  width: fit-content;
+}
+.admin-user-icon-btn {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--admin-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background var(--admin-transition), color var(--admin-transition), transform 80ms ease;
+}
+.admin-user-icon-btn:hover:not(:disabled) {
+  background: var(--admin-surface);
+  color: var(--admin-text);
+}
+.admin-user-icon-btn:active:not(:disabled) { transform: scale(0.94); }
+.admin-user-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.admin-user-icon-btn.warn:hover:not(:disabled)    { background: var(--admin-warning-subtle); color: var(--admin-warning); }
+.admin-user-icon-btn.ban:hover:not(:disabled)     { background: var(--admin-danger-subtle); color: var(--admin-danger); }
+.admin-user-icon-btn.restore:hover:not(:disabled),
+.admin-user-icon-btn.promote:hover:not(:disabled) { background: var(--admin-success-subtle); color: var(--admin-success); }
+.admin-user-icon-btn.neutral:hover:not(:disabled) { background: var(--admin-primary-subtle); color: var(--admin-primary); }
+
+.admin-user-details-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--admin-primary);
+  background: var(--admin-primary-subtle);
+  color: var(--admin-primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background var(--admin-transition), color var(--admin-transition);
+}
+.admin-user-details-btn:hover:not(:disabled) {
+  background: var(--admin-primary);
+  color: #fff;
+}
+.admin-user-details-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.admin-pill.supervisor { background: rgba(59,130,246,0.12); color: #2563EB; }
+.admin-pill.police { background: rgba(20,184,166,0.12); color: #0F766E; }
+.admin-pill.admin { background: rgba(124,58,237,0.12); color: #7C3AED; }
+.admin-pill.citizen { background: rgba(100,116,139,0.08); color: #475569; }
 
 /* ================================================ BUTTONS */
 .admin-btn {
@@ -802,17 +893,64 @@
 
 /* ================================================ CONFUSION MATRIX */
 .admin-matrix {
-  display: grid; grid-template-columns: 80px 1fr 1fr; gap: 2px; font-size: 11px;
+  border-collapse: separate;
+  border-spacing: 6px;
+  font-variant-numeric: tabular-nums;
+  margin: 4px 0 2px;
 }
-.admin-matrix-header {
-  padding: 8px; text-align: center; font-weight: 600;
-  color: var(--admin-text-muted); background: var(--admin-surface-2);
+.admin-matrix thead th {
+  padding: 8px 14px;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--admin-text-muted);
+  background: var(--admin-surface-2);
+  border-radius: 6px;
+  white-space: nowrap;
 }
-.admin-matrix-cell {
-  padding: 12px 8px; text-align: center; font-weight: 700; border-radius: 4px;
+.admin-matrix thead th:first-child {
+  background: transparent;
+  text-align: left;
+  font-size: 10px;
+  color: var(--admin-text-muted);
+  letter-spacing: 0.04em;
+  min-width: 130px;
+  padding-left: 4px;
 }
-.admin-matrix-cell.correct { background: var(--admin-success-subtle); color: var(--admin-success); }
-.admin-matrix-cell.error { background: var(--admin-danger-subtle); color: var(--admin-danger); }
+.admin-matrix tbody td {
+  padding: 14px 18px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 72px;
+  color: var(--admin-text);
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.admin-matrix tbody td:first-child {
+  padding: 14px 14px;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--admin-text-secondary);
+  background: var(--admin-surface-2);
+  border-color: transparent;
+}
+.admin-matrix tbody td.matrix-diag {
+  border-color: rgba(34, 197, 94, 0.35);
+  color: var(--admin-success);
+  font-weight: 700;
+}
+.admin-matrix tbody td:not(:first-child):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+}
 
 /* ================================================ AUDIT LOG */
 .admin-audit-row {

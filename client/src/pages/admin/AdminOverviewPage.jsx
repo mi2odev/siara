@@ -8,6 +8,10 @@ import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsAc
 import RssFeedOutlinedIcon from '@mui/icons-material/RssFeedOutlined'
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
 import HourglassBottomOutlinedIcon from '@mui/icons-material/HourglassBottomOutlined'
+import PercentOutlinedIcon from '@mui/icons-material/PercentOutlined'
+import ArrowUpwardRoundedIcon from '@mui/icons-material/ArrowUpwardRounded'
+import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded'
+import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded'
 
 import {
   fetchAdminOverview,
@@ -33,40 +37,49 @@ const RANGE_TITLE_SUFFIX = {
   '30d': 'Last 30 days',
 }
 
-function getTrendTone(trend) {
+/** Direction of a trend string: 'up' | 'down' | 'stable'. */
+function getTrendDirection(trend) {
   const value = String(trend || '').trim().toLowerCase()
-
-  if (!value || value === 'stable' || value === 'live' || value.startsWith('0')) {
-    return 'stable'
-  }
-
-  if (value.startsWith('-')) {
-    return 'down'
-  }
-
-  if (value.startsWith('+')) {
-    return 'up'
-  }
-
+  if (!value || value === 'stable' || value === 'live') return 'stable'
+  if (value.startsWith('-')) return 'down'
+  if (value.startsWith('+')) return 'up'
   return 'stable'
 }
 
+/** Treat trends like "0", "0%", "0.0", "+0", "-0.0" as no movement. */
+function isZeroTrend(trend) {
+  if (!trend) return true
+  const numeric = String(trend).replace(/[^0-9.]/g, '')
+  return numeric === '' || Number(numeric) === 0
+}
+
+/**
+ * Map a trend direction + polarity to a tone class.
+ *   polarity = 'negative-up' → up movement is bad (e.g. incidents, pending review)
+ *   polarity = 'positive-up' → up movement is good (e.g. AI confidence)
+ *   polarity = 'neutral'     → never tinted as good/bad
+ */
+function getTrendTone(trend, polarity = 'neutral') {
+  if (isZeroTrend(trend)) return 'stable'
+  const direction = getTrendDirection(trend)
+  if (direction === 'stable') return 'stable'
+  if (polarity === 'neutral') return 'stable'
+  if (polarity === 'positive-up') return direction === 'up' ? 'good' : 'bad'
+  return direction === 'up' ? 'bad' : 'good'
+}
+
 function formatTrendText(trend) {
-  if (!trend) {
-    return EMPTY_TEXT
-  }
-
+  if (!trend) return EMPTY_TEXT
   const value = String(trend).trim()
-
-  if (value.startsWith('+')) {
-    return `Up ${value.slice(1)}`
-  }
-
-  if (value.startsWith('-')) {
-    return `Down ${value.slice(1)}`
-  }
-
+  if (value.startsWith('+')) return `Up ${value.slice(1)}`
+  if (value.startsWith('-')) return `Down ${value.slice(1)}`
   return value
+}
+
+const TREND_DIRECTION_ICON = {
+  up: ArrowUpwardRoundedIcon,
+  down: ArrowDownwardRoundedIcon,
+  stable: RemoveRoundedIcon,
 }
 
 function formatPercent(value, digits = 1) {
@@ -287,97 +300,138 @@ export default function AdminOverviewPage() {
         </div>
       ) : (
         <>
-          <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-            <div className="admin-kpi">
-              <div className="admin-kpi-icon danger">{KPI_ICONS.incidents}</div>
-              <div className="admin-kpi-body">
-                <span className="admin-kpi-label">{RANGE_TITLE_SUFFIX[timeRange]} Incidents</span>
-                <span className="admin-kpi-value">{overview.kpis.incidents.value}</span>
-                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.incidents.trend)}`}>
-                  {formatTrendText(overview.kpis.incidents.trend)}
-                </span>
-              </div>
-            </div>
-            <div className="admin-kpi">
-              <div className="admin-kpi-icon warning">{KPI_ICONS.pendingReview}</div>
-              <div className="admin-kpi-body">
-                <span className="admin-kpi-label">Pending Review</span>
-                <span className="admin-kpi-value">{overview.kpis.pendingReview.value}</span>
-                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.pendingReview.trend)}`}>
-                  {formatTrendText(overview.kpis.pendingReview.trend)}
-                </span>
-              </div>
-            </div>
-            <div className="admin-kpi">
-              <div className="admin-kpi-icon primary">{KPI_ICONS.aiConfidence}</div>
-              <div className="admin-kpi-body">
-                <span className="admin-kpi-label">AI Confidence</span>
-                <span className="admin-kpi-value">{formatPercent(overview.kpis.aiConfidence.value)}</span>
-                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.aiConfidence.trend)}`}>
-                  {formatTrendText(overview.kpis.aiConfidence.trend)}
-                </span>
-              </div>
-            </div>
-            <div className="admin-kpi">
-              <div className="admin-kpi-icon danger">{KPI_ICONS.highRiskZones}</div>
-              <div className="admin-kpi-body">
-                <span className="admin-kpi-label">High Risk Zones</span>
-                <span className="admin-kpi-value">{overview.kpis.highRiskZones.value}</span>
-                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.highRiskZones.trend)}`}>
-                  {formatTrendText(overview.kpis.highRiskZones.trend)}
-                </span>
-              </div>
-            </div>
-            <div className="admin-kpi">
-              <div className="admin-kpi-icon success">{KPI_ICONS.activeAlerts}</div>
-              <div className="admin-kpi-body">
-                <span className="admin-kpi-label">Active Alerts</span>
-                <span className="admin-kpi-value">{overview.kpis.activeAlerts.value}</span>
-                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.activeAlerts.trend)}`}>
-                  {formatTrendText(overview.kpis.activeAlerts.trend)}
-                </span>
-              </div>
-            </div>
-            <div className="admin-kpi">
-              <div className="admin-kpi-icon info">{KPI_ICONS.reportsPerMin}</div>
-              <div className="admin-kpi-body">
-                <span className="admin-kpi-label">Reports/min</span>
-                <span className="admin-kpi-value">{formatDecimal(overview.kpis.reportsPerMin.value)}</span>
-                <span className={`admin-kpi-trend ${getTrendTone(overview.kpis.reportsPerMin.trend)}`}>
-                  {formatTrendText(overview.kpis.reportsPerMin.trend)}
-                </span>
-              </div>
-            </div>
-          </div>
+          {(() => {
+            const operationsKpis = [
+              {
+                key: 'incidents',
+                label: `${RANGE_TITLE_SUFFIX[timeRange]} Incidents`,
+                value: overview.kpis.incidents.value,
+                trend: overview.kpis.incidents.trend,
+                polarity: 'negative-up',
+                iconKey: 'incidents',
+                iconTone: 'danger',
+              },
+              {
+                key: 'pendingReview',
+                label: 'Pending Review',
+                value: overview.kpis.pendingReview.value,
+                trend: overview.kpis.pendingReview.trend,
+                polarity: 'negative-up',
+                iconKey: 'pendingReview',
+                iconTone: 'warning',
+              },
+              {
+                key: 'aiConfidence',
+                label: 'AI Confidence',
+                value: formatPercent(overview.kpis.aiConfidence.value),
+                trend: overview.kpis.aiConfidence.trend,
+                polarity: 'positive-up',
+                iconKey: 'aiConfidence',
+                iconTone: 'primary',
+              },
+              {
+                key: 'highRiskZones',
+                label: 'High Risk Zones',
+                value: overview.kpis.highRiskZones.value,
+                trend: overview.kpis.highRiskZones.trend,
+                polarity: 'negative-up',
+                iconKey: 'highRiskZones',
+                iconTone: 'danger',
+              },
+              {
+                key: 'activeAlerts',
+                label: 'Active Alerts',
+                value: overview.kpis.activeAlerts.value,
+                trend: overview.kpis.activeAlerts.trend,
+                polarity: 'neutral',
+                iconKey: 'activeAlerts',
+                iconTone: 'success',
+              },
+              {
+                key: 'reportsPerMin',
+                label: 'Reports/min',
+                value: formatDecimal(overview.kpis.reportsPerMin.value),
+                trend: overview.kpis.reportsPerMin.trend,
+                polarity: 'neutral',
+                iconKey: 'reportsPerMin',
+                iconTone: 'info',
+              },
+            ]
+            const spamKpis = [
+              {
+                key: 'suspectedSpam',
+                label: 'Suspected Spam Reports',
+                value: incidentCounts.suspicious,
+                hint: 'Live admin queue count',
+                icon: <FlagOutlinedIcon fontSize="inherit" className="icon-warning" />,
+                iconTone: 'warning',
+              },
+              {
+                key: 'pendingManualReview',
+                label: 'Pending Manual Review',
+                value: incidentCounts['pending-review'],
+                hint: 'Spam-labelled, not yet reviewed',
+                icon: <HourglassBottomOutlinedIcon fontSize="inherit" className="icon-warning" />,
+                iconTone: 'warning',
+              },
+              {
+                key: 'spamRate',
+                label: 'Spam Rate',
+                value: formatPercent(spamRate),
+                hint: incidentCounts.all
+                  ? `${incidentCounts.suspicious} of ${incidentCounts.all} reports`
+                  : 'No reports yet',
+                icon: <PercentOutlinedIcon fontSize="inherit" className="icon-info" />,
+                iconTone: 'primary',
+              },
+            ]
 
-          <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 14 }}>
-            <div className="admin-kpi">
-              <div className="admin-kpi-icon warning"><FlagOutlinedIcon fontSize="inherit" className="icon-warning" /></div>
-              <div className="admin-kpi-body">
-                <span className="admin-kpi-label">Suspected Spam Reports</span>
-                <span className="admin-kpi-value">{incidentCounts.suspicious}</span>
-                <span className="admin-kpi-trend stable">Live admin queue count</span>
-              </div>
-            </div>
-            <div className="admin-kpi">
-              <div className="admin-kpi-icon warning"><HourglassBottomOutlinedIcon fontSize="inherit" className="icon-warning" /></div>
-              <div className="admin-kpi-body">
-                <span className="admin-kpi-label">Pending Manual Review</span>
-                <span className="admin-kpi-value">{incidentCounts['pending-review']}</span>
-                <span className="admin-kpi-trend stable">Spam-labelled, not yet reviewed</span>
-              </div>
-            </div>
-            <div className="admin-kpi">
-              <div className="admin-kpi-icon primary">%</div>
-              <div className="admin-kpi-body">
-                <span className="admin-kpi-label">Spam Rate</span>
-                <span className="admin-kpi-value">{formatPercent(spamRate)}</span>
-                <span className="admin-kpi-trend stable">
-                  {incidentCounts.all ? `${incidentCounts.suspicious} of ${incidentCounts.all} reports` : 'No reports yet'}
+            const renderTrend = (kpi) => {
+              const tone = getTrendTone(kpi.trend, kpi.polarity)
+              if (isZeroTrend(kpi.trend)) {
+                return <span className="admin-kpi-trend stable">No change</span>
+              }
+              const direction = getTrendDirection(kpi.trend)
+              const Icon = TREND_DIRECTION_ICON[direction] || RemoveRoundedIcon
+              return (
+                <span className={`admin-kpi-trend ${tone}`}>
+                  <Icon sx={{ fontSize: 11 }} />
+                  {formatTrendText(kpi.trend)}
                 </span>
-              </div>
-            </div>
-          </div>
+              )
+            }
+
+            return (
+              <>
+                <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                  {operationsKpis.map((kpi) => (
+                    <div className="admin-kpi" key={kpi.key}>
+                      <div className={`admin-kpi-icon ${kpi.iconTone}`}>{KPI_ICONS[kpi.iconKey]}</div>
+                      <div className="admin-kpi-body">
+                        <span className="admin-kpi-label">{kpi.label}</span>
+                        <span className="admin-kpi-value">{kpi.value}</span>
+                        {renderTrend(kpi)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="admin-kpi-section-label">Spam Triage</div>
+                <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 14 }}>
+                  {spamKpis.map((kpi) => (
+                    <div className="admin-kpi" key={kpi.key}>
+                      <div className={`admin-kpi-icon ${kpi.iconTone}`}>{kpi.icon}</div>
+                      <div className="admin-kpi-body">
+                        <span className="admin-kpi-label">{kpi.label}</span>
+                        <span className="admin-kpi-value">{kpi.value}</span>
+                        <span className="admin-kpi-trend stable">{kpi.hint}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )
+          })()}
 
           <div className="admin-card" style={{ marginBottom: 14 }}>
             <div className="admin-card-header">
@@ -464,9 +518,9 @@ export default function AdminOverviewPage() {
                             </span>
                           </div>
                         </td>
-                        <td style={{ fontSize: 11, color: 'var(--admin-text-secondary)' }}>
+                        <td style={{ fontSize: 11, color: 'var(--admin-text-secondary)', whiteSpace: 'nowrap', minWidth: 150 }}>
                           <div>{incident.reviewVerdict || (incident.pendingSpamReview ? 'Awaiting review' : EMPTY_TEXT)}</div>
-                          <div style={{ marginTop: 4 }}>{formatDateTime(incident.classifiedAt)}</div>
+                          <div style={{ marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{formatDateTime(incident.classifiedAt)}</div>
                         </td>
                         <td
                           style={{

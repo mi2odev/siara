@@ -74,6 +74,24 @@ export default function LoginPage() {
         return
       }
 
+      // Structured ban response from POST /auth/login.
+      if (authError.response?.data?.code === 'ACCOUNT_BANNED') {
+        const ban = authError.response.data.ban || {}
+        const lines = [
+          ban.permanent
+            ? 'Your account has been permanently banned.'
+            : `Your account is banned until ${ban.until ? new Date(ban.until).toLocaleString() : 'further notice'}.`,
+        ]
+        if (ban.reason) lines.push(`Reason: ${ban.reason}`)
+        if (!ban.permanent) {
+          lines.push('You will be able to sign in again once the ban expires.')
+        } else {
+          lines.push('Contact support if you believe this is a mistake.')
+        }
+        setError(lines.join('\n'))
+        return
+      }
+
       setError(getErrorMessage(authError))
     } finally {
       setLoading(false)
@@ -138,7 +156,7 @@ export default function LoginPage() {
             <div className="siara-form-helper">Secure session cookies keep you signed in when you choose Remember me.</div>
 
             {notice ? <div className="siara-notice-box">{notice}</div> : null}
-            {error ? <div className="error-box" role="alert">{error}</div> : null}
+            {error ? <div className="error-box" role="alert" style={{ whiteSpace: 'pre-line' }}>{error}</div> : null}
 
             <form onSubmit={handleSubmit}>
               <label htmlFor="login-email" className="field-label">Email</label>

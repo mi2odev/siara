@@ -2,6 +2,8 @@ import React, { createContext, useEffect, useMemo, useRef } from 'react'
 import { useAuthStore } from '../stores/authStore'
 import i18n, { normalizeLanguage } from '../i18n'
 import { getMyPreferences } from '../services/preferencesService'
+import BanBanner from '../components/common/BanBanner'
+import WarningBanner from '../components/common/WarningBanner'
 
 export const AuthContext = createContext(null)
 
@@ -30,6 +32,24 @@ export function AuthProvider({ children }) {
     hasRestoredRef.current = true
     restoreSession()
   }, [restoreSession])
+
+  // Re-fetch the session whenever the tab becomes visible again. This makes
+  // moderation actions (warning issued, ban applied/lifted) appear in the user
+  // UI without a manual page refresh.
+  useEffect(() => {
+    if (!isAuthenticated) return undefined
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        restoreSession()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('focus', onVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('focus', onVisibility)
+    }
+  }, [isAuthenticated, restoreSession])
 
   useEffect(() => {
     if (!isAuthenticated) return undefined
@@ -85,6 +105,8 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
+      {isAuthenticated && <BanBanner user={user} />}
+      {isAuthenticated && <WarningBanner user={user} />}
       {children}
     </AuthContext.Provider>
   )

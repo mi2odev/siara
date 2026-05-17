@@ -2,11 +2,13 @@
  * @file AdminIncidentReviewPage.jsx
  * @description Admin page for reviewing a single incident report in a 3-column split layout.
  */
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
+import { CircleMarker, MapContainer, TileLayer, Tooltip } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
-import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import EditRoundedIcon from '@mui/icons-material/EditRounded'
@@ -15,11 +17,30 @@ import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded'
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
+import BrokenImageOutlinedIcon from '@mui/icons-material/BrokenImageOutlined'
+import FormatQuoteRoundedIcon from '@mui/icons-material/FormatQuoteRounded'
 
 import {
   fetchAdminIncident,
+  fetchAdminIncidents,
   submitAdminIncidentAction,
 } from '../../services/adminIncidentsService'
+import { normalizeAvatarUrl } from '../../utils/avatarUtils'
+import '../../styles/Lightbox.css'
+
+/** Marker fill color keyed by severity tier — matches admin pills. */
+function severityMarkerColor(severity) {
+  switch (String(severity || '').toLowerCase()) {
+    case 'high': return '#ef4444'
+    case 'medium': return '#f59e0b'
+    case 'low': return '#22c55e'
+    default: return '#7c3aed'
+  }
+}
+
+function clampLightboxScale(value) {
+  return Math.min(4, Math.max(0.25, value))
+}
 
 const EMPTY_TEXT = '\u2014'
 
@@ -152,6 +173,58 @@ function getDecisionAction(decision) {
   }
 }
 
+/** Renders a single evidence thumbnail with a graceful fallback if the image
+ * fails to load. Clicking opens the parent's lightbox. */
+function EvidenceThumb({ src, alt, uploadedAt, onClick }) {
+  const [failed, setFailed] = useState(false)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: 130,
+        padding: 0,
+        background: 'var(--admin-surface-2)',
+        border: '1px solid var(--admin-border)',
+        borderRadius: 8,
+        overflow: 'hidden',
+        cursor: 'pointer',
+        textAlign: 'left',
+        transition: 'transform 120ms ease, border-color 120ms ease',
+      }}
+      onMouseEnter={(event) => {
+        event.currentTarget.style.transform = 'translateY(-1px)'
+        event.currentTarget.style.borderColor = 'var(--admin-primary)'
+      }}
+      onMouseLeave={(event) => {
+        event.currentTarget.style.transform = 'translateY(0)'
+        event.currentTarget.style.borderColor = 'var(--admin-border)'
+      }}
+    >
+      <div style={{ width: '100%', height: 96, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--admin-surface-alt)' }}>
+        {failed || !src ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, color: 'var(--admin-text-muted)' }}>
+            <BrokenImageOutlinedIcon fontSize="small" />
+            <span style={{ fontSize: 10 }}>Not available</span>
+          </div>
+        ) : (
+          <img
+            src={src}
+            alt={alt}
+            loading="lazy"
+            onError={() => setFailed(true)}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        )}
+      </div>
+      <div style={{ padding: '6px 8px', fontSize: 10, color: 'var(--admin-text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+        {uploadedAt || alt}
+      </div>
+    </button>
+  )
+}
+
 export default function AdminIncidentReviewPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -165,6 +238,139 @@ export default function AdminIncidentReviewPage() {
   const [mergeTargetReportId, setMergeTargetReportId] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [noteSubmitting, setNoteSubmitting] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(null)
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false)
+  const [mapIncidents, setMapIncidents] = useState([])
+  const [mapIncidentsLoading, setMapIncidentsLoading] = useState(false)
+  const [zoomScale, setZoomScale] = useState(1)
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragRef = useRef(null)
+  const stageRef = useRef(null)
+
+  const totalMedia = incident?.media?.length || 0
+  const activeMedia = lightboxIndex != null && incident?.media ? incident.media[lightboxIndex] : null
+  const activeMediaUrl = activeMedia ? normalizeAvatarUrl(activeMedia.url) : ''
+
+  /** Esc closes, arrow keys navigate. */
+  useEffect(() => {
+    if (lightboxIndex == null) return undefined
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setLightboxIndex(null)
+      if (event.key === 'ArrowRight' && totalMedia > 1) {
+        setZoomScale(1)
+        setLightboxIndex((prev) => (prev + 1) % totalMedia)
+      }
+      if (event.key === 'ArrowLeft' && totalMedia > 1) {
+        setZoomScale(1)
+        setLightboxIndex((prev) => (prev - 1 + totalMedia) % totalMedia)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [lightboxIndex, totalMedia])
+
+  /** Lock body scroll while the lightbox is open. */
+  useEffect(() => {
+    if (lightboxIndex == null) return undefined
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [lightboxIndex])
+
+  /** Lock body scroll + Esc-to-close while the fullscreen map is open. */
+  useEffect(() => {
+    if (!isMapFullscreen) return undefined
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (event) => {
+      if (event.key === 'Escape') setIsMapFullscreen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [isMapFullscreen])
+
+  /** Fetch every incident with coordinates once the fullscreen map opens. */
+  useEffect(() => {
+    if (!isMapFullscreen) return undefined
+    if (mapIncidents.length > 0) return undefined
+    const controller = new AbortController()
+    setMapIncidentsLoading(true)
+    fetchAdminIncidents({ filter: 'all', limit: 500 }, { signal: controller.signal })
+      .then((payload) => {
+        if (controller.signal.aborted) return
+        const withCoords = (payload.incidents || []).filter(
+          (row) => row?.coordinates?.lat != null && row?.coordinates?.lng != null,
+        )
+        setMapIncidents(withCoords)
+      })
+      .catch(() => { /* leave list empty; current incident still pins */ })
+      .finally(() => {
+        if (!controller.signal.aborted) setMapIncidentsLoading(false)
+      })
+    return () => controller.abort()
+  }, [isMapFullscreen, mapIncidents.length])
+
+  /** Reset zoom and pan whenever the active image changes. */
+  useEffect(() => {
+    if (lightboxIndex == null) setZoomScale(1)
+    setPanOffset({ x: 0, y: 0 })
+    setIsDragging(false)
+    dragRef.current = null
+  }, [lightboxIndex])
+
+  /** When zoom drops to 1, snap pan back to origin. */
+  useEffect(() => {
+    if (zoomScale <= 1) {
+      setPanOffset({ x: 0, y: 0 })
+      setIsDragging(false)
+      dragRef.current = null
+    }
+  }, [zoomScale])
+
+  /** Mouse wheel zoom on the stage. */
+  useEffect(() => {
+    if (!activeMedia) return undefined
+    const stage = stageRef.current
+    if (!stage) return undefined
+    const onWheel = (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      const delta = event.deltaY > 0 ? -0.12 : 0.12
+      setZoomScale((prev) => clampLightboxScale(prev + delta))
+    }
+    stage.addEventListener('wheel', onWheel, { passive: false })
+    return () => { stage.removeEventListener('wheel', onWheel) }
+  }, [activeMedia])
+
+  const zoomIn = () => setZoomScale((prev) => clampLightboxScale(prev + 0.15))
+  const zoomOut = () => setZoomScale((prev) => clampLightboxScale(prev - 0.15))
+  const zoomReset = () => setZoomScale(1)
+
+  const startPan = (clientX, clientY) => {
+    dragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      originX: panOffset.x,
+      originY: panOffset.y,
+    }
+    setIsDragging(true)
+  }
+  const movePan = (clientX, clientY) => {
+    if (!dragRef.current) return
+    setPanOffset({
+      x: dragRef.current.originX + (clientX - dragRef.current.startX),
+      y: dragRef.current.originY + (clientY - dragRef.current.startY),
+    })
+  }
+  const stopPan = () => {
+    if (!dragRef.current) return
+    dragRef.current = null
+    setIsDragging(false)
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -284,6 +490,7 @@ export default function AdminIncidentReviewPage() {
   }
 
   return (
+    <>
     <div className="admin-review-split">
       <div className="admin-review-left">
         <button className="admin-btn admin-btn-ghost" onClick={() => navigate('/admin/incidents')} style={{ marginBottom: 10, fontSize: 11 }}>
@@ -313,9 +520,23 @@ export default function AdminIncidentReviewPage() {
             </div>
             <span className={`admin-pill ${incident.severity}`}>{incident.severity}</span>
           </div>
-          <p style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--admin-text-secondary)', marginTop: 8 }}>
-            {incident.description || 'No additional description was provided for this report.'}
-          </p>
+          <div style={{
+            marginTop: 10,
+            padding: '10px 12px 10px 14px',
+            background: 'var(--admin-surface-2)',
+            borderLeft: '3px solid var(--admin-primary)',
+            borderRadius: '0 8px 8px 0',
+            fontSize: 12.5,
+            lineHeight: 1.55,
+            color: incident.description ? 'var(--admin-text)' : 'var(--admin-text-muted)',
+            fontStyle: incident.description ? 'normal' : 'italic',
+            display: 'flex',
+            gap: 8,
+            alignItems: 'flex-start',
+          }}>
+            <FormatQuoteRoundedIcon fontSize="small" sx={{ color: 'var(--admin-primary)', opacity: 0.6, mt: '-2px', transform: 'scaleX(-1)' }} />
+            <span>{incident.description || 'No additional description was provided for this report.'}</span>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
             <div className="admin-mini-stat">
               <span className="admin-mini-stat-label">Status</span>
@@ -351,22 +572,21 @@ export default function AdminIncidentReviewPage() {
 
         {incident.media.length > 0 && (
           <div className="admin-card">
-            <h3 className="admin-card-title">Evidence ({incident.media.length})</h3>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+            <div className="admin-card-header">
+              <div>
+                <h3 className="admin-card-title">Evidence ({incident.media.length})</h3>
+                <p className="admin-card-subtitle">Click any thumbnail to view full-size</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {incident.media.map((mediaItem, index) => (
-                <a
-                  key={mediaItem.id}
-                  href={mediaItem.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ display: 'block', width: 100, height: 70, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--admin-border)' }}
-                >
-                  <img
-                    src={mediaItem.url}
-                    alt={`Evidence ${index + 1}`}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                </a>
+                <EvidenceThumb
+                  key={mediaItem.id || index}
+                  src={normalizeAvatarUrl(mediaItem.url)}
+                  alt={`Evidence ${index + 1}`}
+                  uploadedAt={mediaItem.uploadedAt ? formatDateOnly(mediaItem.uploadedAt) : `Evidence ${index + 1}`}
+                  onClick={() => setLightboxIndex(index)}
+                />
               ))}
             </div>
           </div>
@@ -447,6 +667,118 @@ export default function AdminIncidentReviewPage() {
           </div>
         </div>
 
+        {incident.flags.length > 0 && (
+          <div className="admin-card">
+            <h3 className="admin-card-title">Community Flags</h3>
+            <div style={{ marginTop: 8 }}>
+              {openFlags.length > 0 ? openFlags.map((flag) => (
+                <div key={flag.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--admin-border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontWeight: 600, fontSize: 11.5 }}>{flag.reason}</span>
+                    <span style={{ color: 'var(--admin-text-muted)', fontSize: 10.5 }}>{formatDateTime(flag.createdAt)}</span>
+                  </div>
+                  {flag.comment ? (
+                    <p style={{ fontSize: 11, color: 'var(--admin-text-secondary)', marginTop: 4 }}>{flag.comment}</p>
+                  ) : null}
+                </div>
+              )) : (
+                <p style={{ fontSize: 11, color: 'var(--admin-text-muted)' }}>All community flags have been resolved.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="admin-card">
+          <h3 className="admin-card-title">Timeline</h3>
+          <div className="admin-audit-log" style={{ marginTop: 8, maxHeight: 'none' }}>
+            {incident.timeline.map((entry) => (
+              <div className="admin-audit-entry" key={entry.id}>
+                <span className="admin-audit-time">{entry.timeLabel}</span>
+                <span className="admin-audit-text">{entry.event}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="admin-review-center">
+        <div className="admin-card">
+          <div className="admin-card-header">
+            <div>
+              <h3 className="admin-card-title">Incident Location</h3>
+              <p className="admin-card-subtitle">{incident.location}</p>
+            </div>
+            {incident.coordinates.lat != null && incident.coordinates.lng != null && (
+              <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => setIsMapFullscreen(true)}>
+                Open Full Map
+              </button>
+            )}
+          </div>
+          {incident.coordinates.lat != null && incident.coordinates.lng != null ? (
+            <div style={{
+              position: 'relative',
+              height: 200,
+              borderRadius: 8,
+              overflow: 'hidden',
+              border: '1px solid var(--admin-border)',
+            }}>
+              <MapContainer
+                key={`${incident.coordinates.lat}-${incident.coordinates.lng}`}
+                center={[incident.coordinates.lat, incident.coordinates.lng]}
+                zoom={14}
+                scrollWheelZoom={false}
+                style={{ width: '100%', height: '100%' }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <CircleMarker
+                  center={[incident.coordinates.lat, incident.coordinates.lng]}
+                  radius={9}
+                  pathOptions={{
+                    color: '#ffffff',
+                    weight: 2,
+                    fillColor: severityMarkerColor(incident.severity),
+                    fillOpacity: 1,
+                  }}
+                />
+              </MapContainer>
+              <span style={{
+                position: 'absolute',
+                bottom: 8,
+                left: 8,
+                zIndex: 500,
+                padding: '4px 10px',
+                borderRadius: 999,
+                background: 'rgba(255, 255, 255, 0.92)',
+                border: '1px solid var(--admin-border)',
+                fontSize: 10.5,
+                fontWeight: 600,
+                fontVariantNumeric: 'tabular-nums',
+                color: 'var(--admin-text-secondary)',
+                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.08)',
+              }}>
+                {incident.coordinates.lat.toFixed(4)}°N · {incident.coordinates.lng.toFixed(4)}°E
+              </span>
+            </div>
+          ) : (
+            <div style={{
+              height: 200,
+              borderRadius: 8,
+              border: '1px dashed var(--admin-border)',
+              background: 'var(--admin-surface-2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--admin-text-muted)',
+              fontSize: 12,
+            }}>
+              No coordinates provided for this incident
+            </div>
+          )}
+        </div>
+
         <div className="admin-card">
           <h3 className="admin-card-title">Spam Analysis</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
@@ -501,61 +833,6 @@ export default function AdminIncidentReviewPage() {
           ) : null}
         </div>
 
-        {incident.flags.length > 0 && (
-          <div className="admin-card">
-            <h3 className="admin-card-title">Community Flags</h3>
-            <div style={{ marginTop: 8 }}>
-              {openFlags.length > 0 ? openFlags.map((flag) => (
-                <div key={flag.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--admin-border)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={{ fontWeight: 600, fontSize: 11.5 }}>{flag.reason}</span>
-                    <span style={{ color: 'var(--admin-text-muted)', fontSize: 10.5 }}>{formatDateTime(flag.createdAt)}</span>
-                  </div>
-                  {flag.comment ? (
-                    <p style={{ fontSize: 11, color: 'var(--admin-text-secondary)', marginTop: 4 }}>{flag.comment}</p>
-                  ) : null}
-                </div>
-              )) : (
-                <p style={{ fontSize: 11, color: 'var(--admin-text-muted)' }}>All community flags have been resolved.</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="admin-card">
-          <h3 className="admin-card-title">Timeline</h3>
-          <div className="admin-audit-log" style={{ marginTop: 8, maxHeight: 'none' }}>
-            {incident.timeline.map((entry) => (
-              <div className="admin-audit-entry" key={entry.id}>
-                <span className="admin-audit-time">{entry.timeLabel}</span>
-                <span className="admin-audit-text">{entry.event}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="admin-review-center">
-        <div className="admin-card" style={{ flex: 1, minHeight: 300 }}>
-          <h3 className="admin-card-title">Incident Location</h3>
-          <div style={{ background: 'var(--admin-surface-alt)', borderRadius: 8, height: 260, marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--admin-text-muted)', fontSize: 12, position: 'relative' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 28, marginBottom: 6, lineHeight: 1 }}><LocationOnOutlinedIcon fontSize="inherit" /></div>
-              <div>{incident.location}</div>
-              <div style={{ fontSize: 10, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
-                {incident.coordinates.lat != null && incident.coordinates.lng != null
-                  ? `${incident.coordinates.lat.toFixed(4)}°N, ${incident.coordinates.lng.toFixed(4)}°E`
-                  : EMPTY_TEXT}
-              </div>
-            </div>
-            <div style={{ position: 'absolute', top: 8, right: 8 }}>
-              <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => navigate('/map')}>
-                Open Full Map
-              </button>
-            </div>
-          </div>
-        </div>
-
         <div className="admin-card">
           <h3 className="admin-card-title">Nearby Reports</h3>
           {incident.nearbyReports.length > 0 ? (
@@ -603,8 +880,8 @@ export default function AdminIncidentReviewPage() {
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button className={`admin-btn admin-btn-full ${decision === 'approve' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('approve')}>
-              <CheckRoundedIcon fontSize="inherit" className="icon-success" /> Approve & Publish
+            <button className={`admin-btn admin-btn-full ${decision === 'approve' ? 'admin-btn-primary' : 'admin-btn-success'}`} onClick={() => setDecision('approve')}>
+              <CheckRoundedIcon fontSize="inherit" /> Approve & Publish
             </button>
             <button className={`admin-btn admin-btn-full ${decision === 'change' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('change')}>
               <EditRoundedIcon fontSize="inherit" /> Change Severity
@@ -638,8 +915,8 @@ export default function AdminIncidentReviewPage() {
             <button className={`admin-btn admin-btn-full ${decision === 'archive' ? 'admin-btn-warning' : 'admin-btn-ghost'}`} onClick={() => setDecision('archive')}>
               <ArchiveOutlinedIcon fontSize="inherit" /> Archive
             </button>
-            <button className={`admin-btn admin-btn-full ${decision === 'reject' ? 'admin-btn-danger' : 'admin-btn-ghost'}`} onClick={() => setDecision('reject')}>
-              <CloseRoundedIcon fontSize="inherit" className="icon-danger" /> Reject
+            <button className={`admin-btn admin-btn-full admin-btn-danger`} style={decision === 'reject' ? { outline: '2px solid var(--admin-danger)', outlineOffset: -2 } : undefined} onClick={() => setDecision('reject')}>
+              <CloseRoundedIcon fontSize="inherit" /> Reject
             </button>
           </div>
 
@@ -700,5 +977,263 @@ export default function AdminIncidentReviewPage() {
         </div>
       </div>
     </div>
+
+    {isMapFullscreen && incident.coordinates.lat != null && incident.coordinates.lng != null && createPortal(
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Incident map"
+        onClick={() => setIsMapFullscreen(false)}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.78)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 1500,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          animation: 'fbLightboxFadeIn 0.18s ease',
+        }}
+      >
+        <div
+          onClick={(event) => event.stopPropagation()}
+          style={{
+            position: 'relative',
+            width: 'min(1200px, 96vw)',
+            height: 'min(820px, 92vh)',
+            background: 'var(--admin-surface)',
+            border: '1px solid var(--admin-border-2)',
+            borderRadius: 12,
+            overflow: 'hidden',
+            boxShadow: '0 24px 64px -16px rgba(0,0,0,0.6)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 16px',
+            borderBottom: '1px solid var(--admin-border)',
+            background: 'var(--admin-surface)',
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--admin-text)' }}>
+                {incident.displayId} · {formatIncidentType(incident.incidentType)}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--admin-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {incident.location}
+                {' · '}
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  {incident.coordinates.lat.toFixed(4)}°N · {incident.coordinates.lng.toFixed(4)}°E
+                </span>
+              </div>
+            </div>
+            <button
+              className="admin-btn admin-btn-sm admin-btn-ghost"
+              onClick={() => setIsMapFullscreen(false)}
+              aria-label="Close map"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              <CloseRoundedIcon fontSize="inherit" /> Close
+            </button>
+          </div>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <MapContainer
+              key={`fullscreen-${incident.coordinates.lat}-${incident.coordinates.lng}`}
+              center={[incident.coordinates.lat, incident.coordinates.lng]}
+              zoom={13}
+              scrollWheelZoom
+              style={{ width: '100%', height: '100%' }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+
+              {/* Background markers — every other incident with coordinates */}
+              {mapIncidents
+                .filter((row) => row.reportId !== incident.reportId)
+                .map((row) => (
+                  <CircleMarker
+                    key={row.reportId}
+                    center={[row.coordinates.lat, row.coordinates.lng]}
+                    radius={6}
+                    pathOptions={{
+                      color: '#ffffff',
+                      weight: 1.5,
+                      fillColor: severityMarkerColor(row.severity),
+                      fillOpacity: 0.85,
+                    }}
+                    eventHandlers={{
+                      click: () => navigate(`/admin/incidents/${row.reportId}`),
+                    }}
+                  >
+                    <Tooltip direction="top" offset={[0, -4]} opacity={0.95}>
+                      <div style={{ fontSize: 11 }}>
+                        <strong>{row.displayId}</strong>
+                        <div style={{ color: '#64748b', textTransform: 'capitalize' }}>
+                          {row.severity} · {row.status}
+                        </div>
+                      </div>
+                    </Tooltip>
+                  </CircleMarker>
+                ))}
+
+              {/* Highlight halo — soft pulsing-style ring behind the current incident */}
+              <CircleMarker
+                center={[incident.coordinates.lat, incident.coordinates.lng]}
+                radius={22}
+                pathOptions={{
+                  color: severityMarkerColor(incident.severity),
+                  weight: 2,
+                  fillColor: severityMarkerColor(incident.severity),
+                  fillOpacity: 0.12,
+                  interactive: false,
+                  dashArray: '4 4',
+                }}
+              />
+
+              {/* Current incident — large, opaque, permanent tooltip */}
+              <CircleMarker
+                center={[incident.coordinates.lat, incident.coordinates.lng]}
+                radius={12}
+                pathOptions={{
+                  color: '#ffffff',
+                  weight: 3,
+                  fillColor: severityMarkerColor(incident.severity),
+                  fillOpacity: 1,
+                }}
+              >
+                <Tooltip direction="top" offset={[0, -8]} permanent opacity={1}>
+                  <div style={{ fontSize: 11, fontWeight: 700 }}>
+                    {incident.displayId} · current
+                  </div>
+                </Tooltip>
+              </CircleMarker>
+            </MapContainer>
+
+            {/* Legend — pinned bottom-left */}
+            <div style={{
+              position: 'absolute',
+              bottom: 12,
+              left: 12,
+              zIndex: 500,
+              padding: '8px 12px',
+              borderRadius: 8,
+              background: 'rgba(255, 255, 255, 0.96)',
+              border: '1px solid var(--admin-border)',
+              boxShadow: '0 4px 12px rgba(15, 23, 42, 0.10)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+              fontSize: 11,
+              color: 'var(--admin-text-secondary)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{
+                  display: 'inline-block',
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  background: severityMarkerColor(incident.severity),
+                  border: '3px solid #fff',
+                  boxShadow: '0 0 0 1px rgba(15, 23, 42, 0.15)',
+                }} />
+                <span><strong style={{ color: 'var(--admin-text)' }}>Current</strong> ({incident.severity})</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: '#ef4444', border: '1.5px solid #fff' }} />
+                <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: '#f59e0b', border: '1.5px solid #fff' }} />
+                <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: '#22c55e', border: '1.5px solid #fff' }} />
+                <span>
+                  Others — {mapIncidentsLoading
+                    ? 'loading…'
+                    : `${Math.max(0, mapIncidents.filter((r) => r.reportId !== incident.reportId).length)} incidents`}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    )}
+
+    {activeMedia && createPortal(
+      <div
+        className="post-media-lightbox"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Evidence preview"
+        onClick={() => setLightboxIndex(null)}
+      >
+        <div className="post-media-lightbox-content" onClick={(event) => event.stopPropagation()}>
+          <div className="post-media-lightbox-toolbar">
+            <button type="button" className="post-media-zoom-btn" onClick={zoomOut} aria-label="Zoom out">−</button>
+            <button type="button" className="post-media-zoom-btn reset" onClick={zoomReset} aria-label="Reset zoom">{Math.round(zoomScale * 100)}%</button>
+            <button type="button" className="post-media-zoom-btn" onClick={zoomIn} aria-label="Zoom in">+</button>
+          </div>
+          <button
+            type="button"
+            className="post-media-lightbox-close"
+            onClick={() => setLightboxIndex(null)}
+            aria-label="Close evidence preview"
+          >×</button>
+
+          {totalMedia > 1 && (
+            <>
+              <button
+                type="button"
+                className="post-media-lightbox-nav post-media-lightbox-nav--prev"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setZoomScale(1)
+                  setLightboxIndex((prev) => (prev == null ? 0 : (prev - 1 + totalMedia) % totalMedia))
+                }}
+                aria-label="Previous evidence"
+              >‹</button>
+              <button
+                type="button"
+                className="post-media-lightbox-nav post-media-lightbox-nav--next"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setZoomScale(1)
+                  setLightboxIndex((prev) => (prev == null ? 0 : (prev + 1) % totalMedia))
+                }}
+                aria-label="Next evidence"
+              >›</button>
+              <span className="post-media-lightbox-counter">
+                {lightboxIndex + 1} / {totalMedia}
+              </span>
+            </>
+          )}
+
+          <div
+            ref={stageRef}
+            className={`post-media-lightbox-stage${zoomScale > 1 ? ' zoomed' : ''}${isDragging ? ' dragging' : ''}`}
+            onClick={(event) => { if (event.target === event.currentTarget) setLightboxIndex(null) }}
+            onMouseDown={(event) => { if (zoomScale > 1) { event.preventDefault(); startPan(event.clientX, event.clientY) } }}
+            onMouseMove={(event) => movePan(event.clientX, event.clientY)}
+            onMouseUp={stopPan}
+            onMouseLeave={stopPan}
+            onTouchStart={(event) => { if (zoomScale > 1) { const t = event.touches[0]; if (t) startPan(t.clientX, t.clientY) } }}
+            onTouchMove={(event) => { const t = event.touches[0]; if (t) movePan(t.clientX, t.clientY) }}
+            onTouchEnd={stopPan}
+          >
+            <img
+              className="post-media-lightbox-image"
+              src={activeMediaUrl}
+              alt={`Evidence ${lightboxIndex + 1}`}
+              style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})` }}
+            />
+          </div>
+        </div>
+      </div>,
+      document.body,
+    )}
+    </>
   )
 }

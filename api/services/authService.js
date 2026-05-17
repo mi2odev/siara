@@ -40,6 +40,13 @@ const USER_SELECT_SQL = `
     u.auth_provider,
     u.google_sub,
     u.is_active,
+    coalesce(u.moderation_status, 'active') as moderation_status,
+    u.banned_until,
+    u.ban_reason,
+    u.warning_reason,
+    u.warned_at,
+    u.warning_expires_at,
+    u.warning_acknowledged_at,
     u.created_at,
     u.updated_at,
     coalesce(uss.email_verified_at, u.email_verified_at) as email_verified_at,
@@ -160,6 +167,17 @@ function isEmailVerified(user) {
 function mapUser(row) {
   const roles = Array.isArray(row?.roles) ? row.roles : [];
   const name = [row?.first_name, row?.last_name].filter(Boolean).join(" ").trim();
+  const moderationStatus = String(row?.moderation_status || "active").toLowerCase();
+  const bannedUntilIso = row?.banned_until ? new Date(row.banned_until).toISOString() : null;
+  const isPermanentlyBanned = moderationStatus === "banned" && !bannedUntilIso;
+  const warnedAtIso = row?.warned_at ? new Date(row.warned_at).toISOString() : null;
+  const warningExpiresAtIso = row?.warning_expires_at
+    ? new Date(row.warning_expires_at).toISOString()
+    : null;
+  const warningAckIso = row?.warning_acknowledged_at
+    ? new Date(row.warning_acknowledged_at).toISOString()
+    : null;
+  const hasActiveWarning = moderationStatus === "warned" && !warningAckIso;
 
   return {
     id: row.id,
@@ -170,6 +188,24 @@ function mapUser(row) {
     avatar_url: row.avatar_url,
     auth_provider: row.auth_provider || "email",
     is_active: row.is_active,
+    moderation_status: moderationStatus,
+    moderationStatus,
+    banned_until: bannedUntilIso,
+    bannedUntil: bannedUntilIso,
+    ban_reason: row?.ban_reason || null,
+    banReason: row?.ban_reason || null,
+    is_permanently_banned: isPermanentlyBanned,
+    isPermanentlyBanned,
+    warning_reason: row?.warning_reason || null,
+    warningReason: row?.warning_reason || null,
+    warned_at: warnedAtIso,
+    warnedAt: warnedAtIso,
+    warning_expires_at: warningExpiresAtIso,
+    warningExpiresAt: warningExpiresAtIso,
+    warning_acknowledged_at: warningAckIso,
+    warningAcknowledgedAt: warningAckIso,
+    has_active_warning: hasActiveWarning,
+    hasActiveWarning,
     created_at: row.created_at,
     updated_at: row.updated_at,
     roles,
@@ -178,6 +214,96 @@ function mapUser(row) {
     email_verified: isEmailVerified(row),
     last_login_at: row.last_login_at || null,
     last_password_reset_at: row.last_password_reset_at || null,
+  };
+}
+
+/**
+ * If a 'warned' user has a warning_expires_at in the past (and they never
+ * acknowledged it), clear the warning back to 'active' silently. Mutates the
+ * row in place.
+ */
+async function liftExpiredWarning(row, client) {
+  if (!row) return;
+  const status = String(row.moderation_status || "active").toLowerCase();
+  if (status !== "warned") return;
+  if (row.warning_acknowledged_at) return; // acknowledged warnings are handled elsewhere
+  if (!row.warning_expires_at) return;
+  const ts = new Date(row.warning_expires_at).getTime();
+  if (Number.isNaN(ts) || ts > Date.now()) return;
+
+  await client.query(
+    `
+      update auth.users
+         set moderation_status        = 'active',
+             warning_reason           = null,
+             warned_at                = null,
+             warning_expires_at       = null,
+             warning_acknowledged_at  = now(),
+             updated_at               = now()
+       where id = $1
+    `,
+    [row.id],
+  );
+  row.moderation_status = "active";
+  row.warning_reason = null;
+  row.warned_at = null;
+  row.warning_expires_at = null;
+  row.warning_acknowledged_at = new Date().toISOString();
+}
+
+/**
+ * Returns true if the row should be treated as currently banned. Side-effect:
+ * if `banned_until` is in the past, clears the ban on `auth.users` so the user
+ * regains normal access without admin intervention.
+ *
+ * Mutates `row.moderation_status` / `row.banned_until` / `row.ban_reason` /
+ * `row.is_active` in place so callers see the fresh state.
+ */
+async function evaluateAndLiftExpiredBan(row, client) {
+  if (!row) return { banned: false };
+  // Auto-clear an expired warning regardless of whether we're in a ban path.
+  await liftExpiredWarning(row, client);
+  const status = String(row.moderation_status || "active").toLowerCase();
+  if (status !== "banned") {
+    return { banned: false };
+  }
+
+  const bannedUntilTs = row.banned_until ? new Date(row.banned_until).getTime() : null;
+  const hasExpiry = bannedUntilTs != null && !Number.isNaN(bannedUntilTs);
+
+  // Permanent ban: status='banned' without an expiry.
+  if (status === "banned" && !hasExpiry) {
+    return { banned: true, permanent: true, until: null, reason: row.ban_reason || null };
+  }
+
+  // Expired temporary ban → auto-lift.
+  if (hasExpiry && bannedUntilTs <= Date.now()) {
+    await client.query(
+      `
+        update auth.users
+           set moderation_status = 'active',
+               is_active         = true,
+               banned_until      = null,
+               ban_reason        = null,
+               updated_at        = now()
+         where id = $1
+      `,
+      [row.id],
+    );
+    row.moderation_status = "active";
+    row.banned_until = null;
+    row.ban_reason = null;
+    row.is_active = true;
+    return { banned: false, autoLifted: true };
+  }
+
+  // Still in effect, with a future expiry.
+  return {
+    banned: true,
+    permanent: false,
+    until: new Date(bannedUntilTs).toISOString(),
+    reason: row.ban_reason || null,
+    status,
   };
 }
 
@@ -615,13 +741,31 @@ async function loginUser({ identifier, password, rememberMe, res }) {
       throw createError(401, "Invalid email or password");
     }
 
-    if (!user.is_active) {
-      throw createError(403, "User account is inactive");
-    }
-
     const passwordMatches = await bcrypt.compare(normalizedPassword, user.password_hash);
     if (!passwordMatches) {
       throw createError(401, "Invalid email or password");
+    }
+
+    // Auto-lift any expired ban then evaluate current ban state.
+    const banState = await evaluateAndLiftExpiredBan(user, client);
+
+    if (banState.permanent) {
+      const error = createError(
+        403,
+        banState.reason
+          ? `Your account has been permanently banned: ${banState.reason}`
+          : "Your account has been permanently banned.",
+      );
+      error.code = "ACCOUNT_BANNED";
+      error.ban = { permanent: true, until: null, reason: banState.reason || null };
+      throw error;
+    }
+
+    // Block login when is_active=false but ban metadata wasn't set (legacy).
+    if (!user.is_active) {
+      const error = createError(403, "Your account is inactive. Contact support if this is unexpected.");
+      error.code = "ACCOUNT_INACTIVE";
+      throw error;
     }
 
     await bootstrapLegacySecurityState(client, user);

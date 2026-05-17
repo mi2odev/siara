@@ -23,6 +23,7 @@ const {
   resolveOptionalAuthenticatedUser,
   verifyToken,
   verifyTokenAndAdmin,
+  requireUnbanned,
 } = require("./verifytoken");
 
 const REPORT_ID_REGEX =
@@ -1202,7 +1203,7 @@ router.post("/suggestions", async (req, res, next) => {
   }
 });
 
-router.post("/threads", verifyToken, async (req, res, next) => {
+router.post("/threads", verifyToken, requireUnbanned, async (req, res, next) => {
   try {
     const body = req.body && typeof req.body === "object" ? req.body : {};
     const result = await linkReportsAsThread({
@@ -1250,7 +1251,7 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-router.post("/", verifyToken, async (req, res, next) => {
+router.post("/", verifyToken, requireUnbanned, async (req, res, next) => {
   let reportId = null;
   let client = null;
 
@@ -1366,7 +1367,7 @@ router.post("/", verifyToken, async (req, res, next) => {
   }
 });
 
-router.post("/:id/media", verifyToken, async (req, res, next) => {
+router.post("/:id/media", verifyToken, requireUnbanned, async (req, res, next) => {
   try {
     const reportId = String(req.params.id || "").trim();
     if (!isValidUuid(reportId)) {
@@ -1444,7 +1445,7 @@ router.post("/:id/media", verifyToken, async (req, res, next) => {
   }
 });
 
-router.put("/:id", verifyToken, async (req, res, next) => {
+router.put("/:id", verifyToken, requireUnbanned, async (req, res, next) => {
   try {
     const reportId = String(req.params.id || "").trim();
     if (!isValidUuid(reportId)) {
@@ -1662,7 +1663,7 @@ router.get("/:id/comments", async (req, res, next) => {
   }
 });
 
-router.post("/:id/comments", verifyToken, async (req, res, next) => {
+router.post("/:id/comments", verifyToken, requireUnbanned, async (req, res, next) => {
   let client = null;
   try {
     const reportId = String(req.params.id || "").trim();
@@ -1795,7 +1796,7 @@ router.delete("/:id/comments/:commentId", verifyToken, async (req, res, next) =>
   }
 });
 
-router.post("/:id/reactions", verifyToken, async (req, res, next) => {
+router.post("/:id/reactions", verifyToken, requireUnbanned, async (req, res, next) => {
   let client = null;
   try {
     const reportId = String(req.params.id || "").trim();

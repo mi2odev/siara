@@ -1333,7 +1333,7 @@ export default function ReportIncidentPage() {
 
                 <div className="review-notice">
                   <span className="notice-icon"><InfoOutlinedIcon fontSize="inherit" className="icon-info" /></span>
-                  <p>Your report will be verified by our automated system and then made visible to other users. False reports may result in account suspension.</p>
+                  <p>Your report will be verified by our automated system and then made visible to other users. False reports may result in a warning or an account ban.</p>
                 </div>
 
                 {!user && (

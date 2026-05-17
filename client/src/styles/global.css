@@ -78,6 +78,23 @@ body{
   -moz-osx-font-smoothing:grayscale;
 }
 
+/* -----------------------------------------------------------------------------
+   Moderation banner offset
+   -----------------------------------------------------------------------------
+   BanBanner / WarningBanner are rendered position:fixed at the very top of the
+   viewport so they're always visible. They also set --moderation-banner-offset
+   on :root equal to their measured height. Any element that's normally fixed
+   at the top of the viewport should use this variable so it slides down to sit
+   below the banner instead of being hidden behind it.
+   --------------------------------------------------------------------------- */
+:root { --moderation-banner-offset: 0px; }
+
+.siara-header,
+.siara-dashboard-header,
+.admin-header {
+  top: var(--moderation-banner-offset, 0px) !important;
+}
+
 .sr-only{position:absolute!important;left:-9999px!important}
 
 /* Utility centered container used by pages */

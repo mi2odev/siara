@@ -3,6 +3,7 @@ const createError = require("http-errors");
 
 const {
   listAdminUsers,
+  listAdminRoles,
   getAdminUserDetails,
   updateAdminUserStatus,
   updateAdminUserRoles,
@@ -37,6 +38,15 @@ router.get("/", verifyTokenAndAdmin, async (req, res, next) => {
   }
 });
 
+router.get("/roles", verifyTokenAndAdmin, async (req, res, next) => {
+  try {
+    const roles = await listAdminRoles();
+    return res.status(200).json({ roles });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.get("/:userId", verifyTokenAndAdmin, async (req, res, next) => {
   try {
     const userId = ensureUuid(req.params.userId);
@@ -56,6 +66,11 @@ router.patch("/:userId/status", verifyTokenAndAdmin, async (req, res, next) => {
       {
         status: req.body?.status,
         note: req.body?.note,
+        reason: req.body?.reason,
+        bannedUntil: req.body?.bannedUntil ?? req.body?.banned_until ?? null,
+        warningReason: req.body?.warningReason ?? req.body?.warning_reason ?? null,
+        warningExpiresAt:
+          req.body?.warningExpiresAt ?? req.body?.warning_expires_at ?? null,
       },
       req.user,
     );

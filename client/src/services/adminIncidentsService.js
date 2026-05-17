@@ -145,6 +145,10 @@ function normalizeIncidentRow(item) {
     incidentType: item?.incidentType || 'other',
     title: item?.title || '',
     location: item?.location || 'Unknown location',
+    coordinates: {
+      lat: ensureNullableNumber(item?.coordinates?.lat),
+      lng: ensureNullableNumber(item?.coordinates?.lng),
+    },
     severity: ['high', 'medium', 'low'].includes(item?.severity) ? item.severity : 'low',
     severitySource: item?.severitySource === 'ai' ? 'ai' : 'hint',
     confidence: ensureNullableNumber(item?.confidence, 0),
