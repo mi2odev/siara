@@ -109,8 +109,8 @@ async function getPriorityQueue({ limit = DEFAULT_LIMIT, includeStatuses = ["pen
         ar.review_verdict,
         ar.created_at,
         ar.location_label,
-        ar.lat,
-        ar.lng,
+        ST_Y(ar.incident_location::geometry) AS lat,
+        ST_X(ar.incident_location::geometry) AS lng,
         ar.assigned_officer_id,
         ar.verified_by_officer_id,
         ar.verified_at,
@@ -122,8 +122,6 @@ async function getPriorityQueue({ limit = DEFAULT_LIMIT, includeStatuses = ["pen
         ar.incident_location
       FROM app.accident_reports ar
       WHERE ar.status = ANY ($1::text[])
-        AND ar.lat IS NOT NULL
-        AND ar.lng IS NOT NULL
         AND ar.incident_location IS NOT NULL
         AND COALESCE(ar.latest_predicted_label, 'real') <> 'spam'
       ORDER BY ar.created_at DESC
@@ -136,8 +134,6 @@ async function getPriorityQueue({ limit = DEFAULT_LIMIT, includeStatuses = ["pen
           SELECT COUNT(*)::int
           FROM app.accident_reports nb
           WHERE nb.id <> r.id
-            AND nb.lat IS NOT NULL
-            AND nb.lng IS NOT NULL
             AND nb.incident_location IS NOT NULL
             AND nb.created_at >= NOW() - INTERVAL '7 days'
             AND ST_DWithin(
@@ -150,8 +146,6 @@ async function getPriorityQueue({ limit = DEFAULT_LIMIT, includeStatuses = ["pen
           SELECT COUNT(*)::int
           FROM app.accident_reports nbv
           WHERE nbv.id <> r.id
-            AND nbv.lat IS NOT NULL
-            AND nbv.lng IS NOT NULL
             AND nbv.incident_location IS NOT NULL
             AND nbv.verified_by_officer_id IS NOT NULL
             AND nbv.created_at >= NOW() - INTERVAL '14 days'

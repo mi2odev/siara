@@ -17,6 +17,17 @@ const createError = require("http-errors");
 const pool = require("../db");
 const { verifyToken } = require("./verifytoken");
 const { acknowledgeOwnWarning } = require("../services/adminUsersService");
+const {
+  ensureUserNotificationPreferences,
+  fetchActiveMobilePushDevicesForUser,
+  fetchActivePushSubscriptionsForUser,
+  updateUserNotificationPreferences,
+} = require("../services/pushService");
+const {
+  ALL_CATEGORIES,
+  fetchAllCategoryPreferences,
+  updateCategoryPreference,
+} = require("../services/notificationOrchestrator");
 
 const USER_EXPORT_MAX_ROWS = Math.max(
   100,
@@ -213,6 +224,82 @@ router.get("/export", verifyToken, async (req, res, next) => {
     return res.status(200).send(JSON.stringify(payload, null, 2));
   } catch (error) {
     console.error("[Node] /api/account/export error:", error.message);
+    return next(error);
+  }
+});
+
+// Notification settings — combined view of:
+//   - account-wide preferences (push_enabled, push_mode, quiet_hours, in_app)
+//   - per-category preferences (8 categories × 4 channels + important_only)
+//   - active web push subscriptions + mobile push devices (for the "Manage devices" UI)
+router.get("/notification-settings", verifyToken, async (req, res, next) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) throw createError(401, "Authentication required");
+
+    const [account, categories, webSubs, mobileDevices] = await Promise.all([
+      ensureUserNotificationPreferences(userId),
+      fetchAllCategoryPreferences(userId),
+      fetchActivePushSubscriptionsForUser(userId),
+      fetchActiveMobilePushDevicesForUser(userId),
+    ]);
+
+    return res.status(200).json({
+      account,
+      categories,
+      devices: {
+        web: webSubs.map((sub) => ({
+          id: sub.id,
+          userAgent: sub.userAgent,
+          createdAt: sub.createdAt,
+          lastUsedAt: sub.lastUsedAt,
+        })),
+        mobile: mobileDevices.map((device) => ({
+          id: device.id,
+          platform: device.platform,
+          provider: device.provider,
+          deviceName: device.deviceName,
+          appVersion: device.appVersion,
+          createdAt: device.createdAt,
+          lastUsedAt: device.lastUsedAt,
+        })),
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// PUT body shape (all fields optional, missing keys leave existing values alone):
+//   { account: { pushEnabled, pushMode, inAppEnabled, quietHoursStart, quietHoursEnd },
+//     categories: { incident_nearby: { in_app_enabled, mobile_push_enabled, ... }, ... } }
+router.put("/notification-settings", verifyToken, async (req, res, next) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) throw createError(401, "Authentication required");
+
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+
+    if (body.account && typeof body.account === "object") {
+      await updateUserNotificationPreferences(userId, body.account);
+    }
+
+    if (body.categories && typeof body.categories === "object") {
+      const tasks = [];
+      for (const [category, patch] of Object.entries(body.categories)) {
+        if (!ALL_CATEGORIES.includes(category)) continue;
+        if (!patch || typeof patch !== "object") continue;
+        tasks.push(updateCategoryPreference(userId, category, patch));
+      }
+      await Promise.all(tasks);
+    }
+
+    const [account, categories] = await Promise.all([
+      ensureUserNotificationPreferences(userId),
+      fetchAllCategoryPreferences(userId),
+    ]);
+    return res.status(200).json({ account, categories });
+  } catch (error) {
     return next(error);
   }
 });

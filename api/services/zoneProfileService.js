@@ -53,8 +53,8 @@ async function getZoneProfile({ lat, lng, radiusMeters } = {}) {
         ar.created_at,
         ar.verified_by_officer_id,
         ar.review_verdict,
-        ar.lat,
-        ar.lng,
+        ST_Y(ar.incident_location::geometry) AS lat,
+        ST_X(ar.incident_location::geometry) AS lng,
         ar.location_label,
         EXTRACT(HOUR FROM ar.created_at AT TIME ZONE 'UTC')::int AS hour_utc,
         EXTRACT(DOW FROM ar.created_at AT TIME ZONE 'UTC')::int AS dow_utc,
@@ -66,8 +66,6 @@ async function getZoneProfile({ lat, lng, radiusMeters } = {}) {
         END AS severity_bucket
       FROM app.accident_reports ar
       WHERE ar.incident_location IS NOT NULL
-        AND ar.lat IS NOT NULL
-        AND ar.lng IS NOT NULL
         AND ST_DWithin(
           ar.incident_location::geography,
           ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,

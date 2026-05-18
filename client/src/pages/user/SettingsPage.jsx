@@ -13,6 +13,25 @@ import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import LanguageSelect from '../../components/layout/LanguageSelect'
 import { changePassword, exportMyData, getUserSettings, updateUserSettings, uploadUserAvatar } from '../../services/authService'
+import {
+  LOCATION_PREFERENCE_DEFAULT,
+  LOCATION_PREFERENCE_GPS,
+  getLocationPreference,
+  setLocationPreference,
+} from '../../config/locationPreference'
+import { FALLBACK_LABEL } from '../../config/fallbackLocation'
+import {
+  NOTIFICATION_CATEGORIES,
+  deactivateNotificationDevice,
+  fetchNotificationSettings,
+  sendNotificationTest,
+  updateNotificationSettings,
+} from '../../services/notificationSettingsService'
+import {
+  getPushPermissionState,
+  isPushSupported,
+  subscribeCurrentBrowserToPush,
+} from '../../services/pushService'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/DashboardPage.css'
 import '../../styles/SettingsPage.css'
@@ -173,6 +192,20 @@ export default function SettingsPage() {
   })
   const [notifs, setNotifs] = useState(DEFAULT_NOTIFS)
   const [privacy, setPrivacy] = useState(DEFAULT_PRIVACY)
+  // Orchestrator-managed notification settings: account-wide prefs + per-category
+  // toggles + registered devices. Lazily loaded when the user opens the
+  // notifications section to keep first-paint fast.
+  const [orchestratorSettings, setOrchestratorSettings] = useState({
+    account: null,
+    categories: {},
+    devices: { web: [], mobile: [] },
+  })
+  const [isLoadingOrchestrator, setIsLoadingOrchestrator] = useState(false)
+  const [orchestratorError, setOrchestratorError] = useState('')
+  const [browserPermission, setBrowserPermission] = useState(() => getPushPermissionState())
+  const [testFeedback, setTestFeedback] = useState({ type: '', message: '' })
+  const [isSendingTest, setIsSendingTest] = useState(false)
+  const [isEnablingDesktop, setIsEnablingDesktop] = useState(false)
   const [twoFA, setTwoFA] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordError, setPasswordError] = useState('')
@@ -293,6 +326,133 @@ export default function SettingsPage() {
   const setSavedField = useCallback((field) => {
     setSaved(field)
     setTimeout(() => setSaved(null), 1800)
+  }, [])
+
+  // Lazy-load orchestrator settings the first time the notifications section opens.
+  useEffect(() => {
+    if (activeSection !== 'notifications' || !userId) return
+    let ignore = false
+    setIsLoadingOrchestrator(true)
+    setOrchestratorError('')
+    fetchNotificationSettings()
+      .then((settings) => {
+        if (ignore) return
+        setOrchestratorSettings({
+          account: settings.account || null,
+          categories: settings.categories || {},
+          devices: settings.devices || { web: [], mobile: [] },
+        })
+      })
+      .catch((error) => {
+        if (ignore) return
+        setOrchestratorError(error?.response?.data?.message || error?.message || 'Unable to load notification settings.')
+      })
+      .finally(() => {
+        if (!ignore) setIsLoadingOrchestrator(false)
+      })
+    return () => {
+      ignore = true
+    }
+  }, [activeSection, userId])
+
+  const toggleOrchestratorCategory = useCallback(async (category, field) => {
+    const current = orchestratorSettings.categories[category] || {
+      in_app_enabled: true,
+      mobile_push_enabled: true,
+      web_push_enabled: true,
+      email_enabled: false,
+      important_only: false,
+    }
+    const patch = { [field]: !current[field] }
+    // Optimistic update.
+    setOrchestratorSettings((prev) => ({
+      ...prev,
+      categories: { ...prev.categories, [category]: { ...current, ...patch } },
+    }))
+    try {
+      const next = await updateNotificationSettings({ categories: { [category]: patch } })
+      if (next?.categories) {
+        setOrchestratorSettings((prev) => ({ ...prev, categories: next.categories }))
+      }
+      setSavedField(`category:${category}:${field}`)
+    } catch (error) {
+      // Roll back on failure.
+      setOrchestratorSettings((prev) => ({
+        ...prev,
+        categories: { ...prev.categories, [category]: current },
+      }))
+      setOrchestratorError(error?.response?.data?.message || error?.message || 'Save failed')
+    }
+  }, [orchestratorSettings.categories, setSavedField])
+
+  const updateOrchestratorAccount = useCallback(async (patch) => {
+    try {
+      const next = await updateNotificationSettings({ account: patch })
+      if (next?.account) {
+        setOrchestratorSettings((prev) => ({ ...prev, account: next.account }))
+      }
+      setSavedField('account')
+    } catch (error) {
+      setOrchestratorError(error?.response?.data?.message || error?.message || 'Save failed')
+    }
+  }, [setSavedField])
+
+  const enableDesktopNotifications = useCallback(async () => {
+    if (!isPushSupported()) {
+      setTestFeedback({ type: 'error', message: 'Push notifications are not supported in this browser.' })
+      return
+    }
+    setIsEnablingDesktop(true)
+    setTestFeedback({ type: '', message: '' })
+    try {
+      const result = await subscribeCurrentBrowserToPush()
+      setBrowserPermission(result.permission || getPushPermissionState())
+      // Re-fetch device list so the new subscription appears immediately.
+      const next = await fetchNotificationSettings()
+      setOrchestratorSettings({
+        account: next.account || null,
+        categories: next.categories || {},
+        devices: next.devices || { web: [], mobile: [] },
+      })
+      setTestFeedback({ type: 'success', message: 'Desktop notifications enabled.' })
+    } catch (error) {
+      setTestFeedback({ type: 'error', message: error?.message || 'Unable to enable desktop notifications.' })
+    } finally {
+      setIsEnablingDesktop(false)
+    }
+  }, [])
+
+  const sendTestNotification = useCallback(async () => {
+    setIsSendingTest(true)
+    setTestFeedback({ type: '', message: '' })
+    try {
+      const result = await sendNotificationTest()
+      setTestFeedback({
+        type: result.ok ? 'success' : 'error',
+        message: result.ok
+          ? `Test sent to ${result.sentCount || 0} device(s).`
+          : `Test could not be delivered: ${result.reason || 'unknown reason'}.`,
+      })
+    } catch (error) {
+      setTestFeedback({ type: 'error', message: error?.response?.data?.message || error?.message || 'Test failed.' })
+    } finally {
+      setIsSendingTest(false)
+    }
+  }, [])
+
+  const removeNotificationDevice = useCallback(async (deviceId) => {
+    if (!deviceId) return
+    try {
+      await deactivateNotificationDevice(deviceId)
+      const next = await fetchNotificationSettings()
+      setOrchestratorSettings({
+        account: next.account || null,
+        categories: next.categories || {},
+        devices: next.devices || { web: [], mobile: [] },
+      })
+    } catch (error) {
+      setOrchestratorError(error?.response?.data?.message || error?.message || 'Unable to remove device.')
+    }
   }, [])
 
   const saveSettings = useCallback(async (payload) => {
@@ -513,6 +673,19 @@ export default function SettingsPage() {
     if (ok) {
       setSavedField(key)
     }
+  }
+
+  // Location-source toggle (local-only — no server round-trip). The flag is
+  // read by useLiveLocation through the locationPreference helper; setting
+  // it dispatches a CustomEvent so live map/navigation views switch
+  // immediately, no reload required.
+  const [locationSource, setLocationSourceState] = useState(() => getLocationPreference())
+  const isLiveLocationOn = locationSource !== LOCATION_PREFERENCE_DEFAULT
+  const toggleLocationSource = () => {
+    const next = isLiveLocationOn ? LOCATION_PREFERENCE_DEFAULT : LOCATION_PREFERENCE_GPS
+    setLocationPreference(next)
+    setLocationSourceState(next)
+    setSavedField('locationSource')
   }
 
   const handlePrivacyChange = async (field, value) => {
@@ -863,6 +1036,36 @@ export default function SettingsPage() {
                 <span className="settings-label">Member since</span>
                 <span className="settings-value settings-muted">{memberSinceLabel}</span>
               </div>
+
+              <div className="settings-group" style={{ marginTop: 16 }}>
+                <h4 className="settings-group-label">Location source</h4>
+                <label className="settings-toggle-row">
+                  <span className="settings-toggle-label">
+                    Use my real GPS location
+                    <span
+                      className="settings-toggle-hint"
+                      style={{ display: 'block', fontSize: 12, opacity: 0.7, marginTop: 2 }}
+                    >
+                      {isLiveLocationOn
+                        ? 'Live tracking is on — map and navigation follow your real position and auto-update.'
+                        : `Using default location (${FALLBACK_LABEL}). No GPS auto-updates until you switch back on.`}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className={`settings-toggle ${isLiveLocationOn ? 'on' : 'off'}`}
+                    onClick={toggleLocationSource}
+                    role="switch"
+                    aria-checked={isLiveLocationOn}
+                    aria-label="Use my real GPS location"
+                  >
+                    <span className="settings-toggle-knob" />
+                  </button>
+                </label>
+                {saved === 'locationSource' ? (
+                  <span className="settings-saved">{t('settings:saved', { defaultValue: 'Saved' })}</span>
+                ) : null}
+              </div>
             </section>
           )}
 
@@ -968,6 +1171,179 @@ export default function SettingsPage() {
                   </label>
                 ))}
               </div>
+
+              {/* Orchestrator-managed settings: per-category granular control,
+                  account-wide push mode + quiet hours, devices + status + test. */}
+              <div className="settings-group" style={{ marginTop: 16 }}>
+                <h4 className="settings-group-label">System notification status</h4>
+                {orchestratorError ? (
+                  <p className="settings-group-hint" style={{ color: '#c0392b' }}>{orchestratorError}</p>
+                ) : null}
+                <div className="settings-toggle-row" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 8 }}>
+                  <span className="settings-toggle-label" style={{ fontWeight: 500 }}>
+                    Browser permission: <strong>{browserPermission || 'unsupported'}</strong>
+                  </span>
+                  {browserPermission === 'denied' ? (
+                    <span className="settings-group-hint">
+                      You blocked notifications for SIARA in this browser. Update your browser site settings to allow notifications, then refresh this page.
+                    </span>
+                  ) : null}
+                  <span className="settings-toggle-label" style={{ fontWeight: 500 }}>
+                    Active devices: {orchestratorSettings.devices.web.length} web, {orchestratorSettings.devices.mobile.length} mobile
+                  </span>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="settings-action"
+                      onClick={enableDesktopNotifications}
+                      disabled={isEnablingDesktop || browserPermission === 'denied'}
+                    >
+                      {isEnablingDesktop ? 'Enabling…' : 'Enable desktop notifications'}
+                    </button>
+                    <button
+                      type="button"
+                      className="settings-action"
+                      onClick={sendTestNotification}
+                      disabled={isSendingTest}
+                    >
+                      {isSendingTest ? 'Sending…' : 'Send test notification'}
+                    </button>
+                  </div>
+                  {testFeedback.message ? (
+                    <span
+                      className="settings-group-hint"
+                      style={{ color: testFeedback.type === 'error' ? '#c0392b' : '#2c7a3a' }}
+                    >
+                      {testFeedback.message}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              {orchestratorSettings.account ? (
+                <div className="settings-group" style={{ marginTop: 16 }}>
+                  <h4 className="settings-group-label">Account-wide push</h4>
+                  <label className="settings-toggle-row">
+                    <span className="settings-toggle-label">In-app notifications</span>
+                    <button
+                      className={`settings-toggle ${orchestratorSettings.account.inAppEnabled ? 'on' : 'off'}`}
+                      onClick={() => updateOrchestratorAccount({ inAppEnabled: !orchestratorSettings.account.inAppEnabled })}
+                      role="switch"
+                      aria-checked={orchestratorSettings.account.inAppEnabled}
+                    >
+                      <span className="settings-toggle-knob" />
+                    </button>
+                  </label>
+                  <label className="settings-toggle-row">
+                    <span className="settings-toggle-label">Push notifications (web + mobile)</span>
+                    <button
+                      className={`settings-toggle ${orchestratorSettings.account.pushEnabled ? 'on' : 'off'}`}
+                      onClick={() => updateOrchestratorAccount({ pushEnabled: !orchestratorSettings.account.pushEnabled })}
+                      role="switch"
+                      aria-checked={orchestratorSettings.account.pushEnabled}
+                    >
+                      <span className="settings-toggle-knob" />
+                    </button>
+                  </label>
+                  <label className="settings-toggle-row" style={{ alignItems: 'center' }}>
+                    <span className="settings-toggle-label">Push mode</span>
+                    <select
+                      value={orchestratorSettings.account.pushMode || 'important_only'}
+                      onChange={(e) => updateOrchestratorAccount({ pushMode: e.target.value })}
+                    >
+                      <option value="all">All notifications</option>
+                      <option value="important_only">Important only</option>
+                      <option value="off">Off</option>
+                    </select>
+                  </label>
+                  <label className="settings-toggle-row" style={{ alignItems: 'center', gap: 8 }}>
+                    <span className="settings-toggle-label">Quiet hours</span>
+                    <input
+                      type="time"
+                      value={orchestratorSettings.account.quietHoursStart || ''}
+                      onChange={(e) => updateOrchestratorAccount({ quietHoursStart: e.target.value || null })}
+                    />
+                    <span>to</span>
+                    <input
+                      type="time"
+                      value={orchestratorSettings.account.quietHoursEnd || ''}
+                      onChange={(e) => updateOrchestratorAccount({ quietHoursEnd: e.target.value || null })}
+                    />
+                  </label>
+                </div>
+              ) : null}
+
+              <div className="settings-group" style={{ marginTop: 16 }}>
+                <h4 className="settings-group-label">Categories</h4>
+                <p className="settings-group-hint">
+                  Per-category toggle: in-app (I), web push (W), mobile push (M), email (E). Off means SIARA never delivers that category on that channel.
+                </p>
+                {isLoadingOrchestrator ? (
+                  <p className="settings-group-hint">Loading…</p>
+                ) : (
+                  NOTIFICATION_CATEGORIES.map((category) => {
+                    const prefs = orchestratorSettings.categories[category] || {
+                      in_app_enabled: true,
+                      mobile_push_enabled: true,
+                      web_push_enabled: true,
+                      email_enabled: false,
+                    }
+                    const label = category.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+                    return (
+                      <div key={category} style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 6 }}>
+                        <span className="settings-toggle-label" style={{ flex: 1 }}>{label}</span>
+                        {[
+                          { field: 'in_app_enabled', tag: 'I' },
+                          { field: 'web_push_enabled', tag: 'W' },
+                          { field: 'mobile_push_enabled', tag: 'M' },
+                          { field: 'email_enabled', tag: 'E' },
+                        ].map(({ field, tag }) => (
+                          <button
+                            key={field}
+                            type="button"
+                            className={`settings-toggle ${prefs[field] ? 'on' : 'off'}`}
+                            onClick={() => toggleOrchestratorCategory(category, field)}
+                            role="switch"
+                            aria-checked={prefs[field]}
+                            aria-label={`${label} ${tag}`}
+                            title={`${label} — ${tag}`}
+                            style={{ minWidth: 36, padding: '2px 6px' }}
+                          >
+                            <span className="settings-toggle-knob" />
+                            <span style={{ fontSize: 10, marginLeft: 4 }}>{tag}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {(orchestratorSettings.devices.web.length > 0 || orchestratorSettings.devices.mobile.length > 0) ? (
+                <div className="settings-group" style={{ marginTop: 16 }}>
+                  <h4 className="settings-group-label">Registered devices</h4>
+                  {orchestratorSettings.devices.web.map((sub) => (
+                    <div key={sub.id} className="settings-toggle-row">
+                      <span className="settings-toggle-label" style={{ fontSize: 13 }}>
+                        Web · {sub.userAgent ? String(sub.userAgent).slice(0, 60) : 'browser'}
+                      </span>
+                      <button type="button" className="settings-action" onClick={() => removeNotificationDevice(sub.id)}>
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  {orchestratorSettings.devices.mobile.map((device) => (
+                    <div key={device.id} className="settings-toggle-row">
+                      <span className="settings-toggle-label" style={{ fontSize: 13 }}>
+                        Mobile · {device.platform || '?'} · {device.deviceName || device.provider || 'device'}
+                      </span>
+                      <button type="button" className="settings-action" onClick={() => removeNotificationDevice(device.id)}>
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </section>
           )}
 

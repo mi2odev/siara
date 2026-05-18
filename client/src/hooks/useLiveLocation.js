@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { buildFallbackLocation } from '../config/fallbackLocation'
+import {
+  LOCATION_PREFERENCE_DEFAULT,
+  LOCATION_PREFERENCE_EVENT,
+  getLocationPreference,
+} from '../config/locationPreference'
+import { pingUserLocation } from '../services/notificationSettingsService'
+
+// Throttle for the server-side last-known-location ping. watchPosition can fire
+// several times per second; we only need a coarse "where is this user roughly"
+// for orchestrator nearby-incident matching.
+const LOCATION_PING_MIN_INTERVAL_MS = 30 * 1000
+const LOCATION_PING_MIN_DISTANCE_M = 50
 
 const GEOLOCATION_OPTIONS = {
   enableHighAccuracy: true,
@@ -179,6 +191,13 @@ export default function useLiveLocation(opts = {}) {
   const previousLocationRef = useRef(null)
   const orientationListeningRef = useRef(false)
   const permissionStatusRef = useRef(null)
+  // Mirrors the forced-fallback flag for the watcher entry points so
+  // startWatching / retryLocation can short-circuit without becoming
+  // dependent on a state value (which would re-create every callback).
+  const forceFallbackRef = useRef(false)
+  // Throttle state for the server-side last-known-location ping.
+  const lastPingedAtRef = useRef(0)
+  const lastPingedLocationRef = useRef(null)
 
   const handleOrientation = useCallback((event) => {
     const heading = getDeviceOrientationHeading(event)
@@ -258,6 +277,24 @@ export default function useLiveLocation(opts = {}) {
     setLastError(null)
     setIsLoading(false)
     setPermissionState('granted')
+
+    // Throttled server ping so the orchestrator can fan out 5 km nearby
+    // notifications based on a roughly-current location. Failures are
+    // swallowed — losing one ping is not a UX-visible problem.
+    const now = Date.now()
+    const lastPinged = lastPingedLocationRef.current
+    const enoughTime = now - lastPingedAtRef.current >= LOCATION_PING_MIN_INTERVAL_MS
+    const enoughMovement = !lastPinged || distanceMeters(lastPinged, nextLocation) >= LOCATION_PING_MIN_DISTANCE_M
+    if (enoughTime && enoughMovement) {
+      lastPingedAtRef.current = now
+      lastPingedLocationRef.current = nextLocation
+      pingUserLocation({
+        lat: nextLocation.lat,
+        lng: nextLocation.lng,
+        accuracyMeters: nextLocation.accuracy,
+        source: 'browser_watch',
+      }).catch(() => {})
+    }
   }, [])
 
   const handlePositionError = useCallback(
@@ -288,6 +325,13 @@ export default function useLiveLocation(opts = {}) {
   )
 
   const startWatching = useCallback(() => {
+    // Respect the Settings-page "default location" toggle. The Retry GPS
+    // button (or any caller that wires My Location to startWatching) must
+    // not silently override the user's explicit choice.
+    if (forceFallbackRef.current) {
+      applyFallback('user_preference_default_location')
+      return
+    }
     if (typeof window !== 'undefined') {
       const isLocalhost =
         window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -337,6 +381,14 @@ export default function useLiveLocation(opts = {}) {
   ])
 
   const retryLocation = useCallback(() => {
+    if (forceFallbackRef.current) {
+      // User is in "default location" mode — clear any stale error but keep
+      // the fallback in place. They have to switch Settings back to live GPS
+      // to retry.
+      applyFallback('user_preference_default_location')
+      setError(null)
+      return
+    }
     if (typeof window !== 'undefined') {
       const isLocalhost =
         window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -382,14 +434,51 @@ export default function useLiveLocation(opts = {}) {
     timeout,
   ])
 
+  // User-controlled toggle: when the Settings page picks "default location"
+  // we skip the GPS watcher entirely and serve the static fallback. The hook
+  // re-reads this on every CustomEvent from setLocationPreference() so the
+  // map updates immediately, without a page reload.
+  const [preference, setPreference] = useState(() => getLocationPreference())
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const handler = (event) => {
+      const next = event?.detail?.value || getLocationPreference()
+      setPreference(next)
+    }
+    window.addEventListener(LOCATION_PREFERENCE_EVENT, handler)
+    return () => window.removeEventListener(LOCATION_PREFERENCE_EVENT, handler)
+  }, [])
+
+  const forceFallback = preference === LOCATION_PREFERENCE_DEFAULT
+  forceFallbackRef.current = forceFallback
+
+  useEffect(() => {
+    // Forced-fallback mode: stop any live watcher and freeze the static
+    // fallback location. No retries, no auto-updates — that's the whole
+    // point of the toggle.
+    if (forceFallback) {
+      clearWatcher()
+      stopOrientation()
+      setGpsLocation(null)
+      gpsLocationRef.current = null
+      setFallbackActive(true)
+      setIsLoading(false)
+      setStatus('idle')
+      setError(null)
+      setLastError(null)
+      return () => {
+        // No-op cleanup; switching back to GPS is handled by the next effect run.
+      }
+    }
+    // Live-GPS mode (default for new users): start the watcher exactly as
+    // before. Cleanup tears the watcher down on preference change too.
     if (autoStart) startWatching()
     return () => {
       clearWatcher()
       stopOrientation()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStart])
+  }, [autoStart, forceFallback])
 
   useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
@@ -485,6 +574,11 @@ export default function useLiveLocation(opts = {}) {
     permissionState,
     lastUpdatedAt,
     fallbackLocation,
+    // User Settings → "Location source" toggle. `forceFallback` is true when
+    // the user explicitly chose default location, so callers can show
+    // different copy (e.g. "Switch in Settings" vs "Retry GPS").
+    locationPreference: preference,
+    forceFallback,
     // Control surface.
     retryLocation,
     startWatching,

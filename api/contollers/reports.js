@@ -9,6 +9,10 @@ const {
   fetchReportNotificationDiagnostics,
 } = require("../services/reportNotificationService");
 const {
+  notifyNearbyUsersForReport,
+  notifyPoliceWorkZoneIncident,
+} = require("../services/notificationOrchestrator");
+const {
   refreshReportSpamAnalysis,
   queueReportSpamAnalysis,
   reclassifyStuckReports,
@@ -1352,6 +1356,17 @@ router.post("/", verifyToken, requireUnbanned, async (req, res, next) => {
     client = null;
 
     queueReportSpamAnalysis(reportId, "report_created");
+
+    // Orchestrator-driven fan-out (post-commit so we never notify for rolled-back rows).
+    // notifyNearbyUsersForReport only fires for incident_type=accident; gating lives in the service.
+    Promise.allSettled([
+      notifyNearbyUsersForReport(reportId).catch((error) => {
+        console.warn("[notify-orchestrator] nearby_failed", { reportId, message: error.message });
+      }),
+      notifyPoliceWorkZoneIncident(reportId).catch((error) => {
+        console.warn("[notify-orchestrator] work_zone_failed", { reportId, message: error.message });
+      }),
+    ]);
 
     const createdRow = await requireExistingReport(reportId);
     return res.status(201).json({
