@@ -63,6 +63,63 @@ const occurrenceRiskLabel = (level) => {
   if (!level) return "n/a";
   return level.charAt(0).toUpperCase() + level.slice(1);
 };
+
+// Human-readable labels for occurrence_beta_v1 feature names. The trained
+// model and SHAP fallback both surface raw column names like
+// "num__past_segment_hourofweek_count" which mean nothing to a driver.
+// Mapping is matched after stripping the sklearn preprocessor prefix
+// ("num__", "cat__", "binary__") so the underlying column name is what we
+// key on.
+const OCCURRENCE_FEATURE_LABELS = {
+  past_segment_hourofweek_count: "Previous accidents on this segment at similar hours",
+  past_road_class_positive_count: "Historical risk for this road type",
+  past_segment_positive_count: "Previous accidents on this road segment",
+  past_segment_positive_count_7d: "Accidents on this segment in the last 7 days",
+  past_segment_positive_count_30d: "Accidents on this segment in the last 30 days",
+  hour: "Current hour",
+  hour_of_week: "Hour-of-week pattern",
+  weekday: "Day of week",
+  month: "Month of year",
+  is_night: "Night-time condition",
+  is_weekend: "Weekend condition",
+  road_class: "Road type",
+  segment_length_m: "Segment length",
+  oneway: "One-way road",
+  bridge: "Bridge",
+  tunnel: "Tunnel",
+  weather_temp: "Temperature",
+  weather_rhum: "Humidity",
+  weather_prcp: "Precipitation",
+  weather_pres: "Air pressure",
+  weather_wspd: "Wind speed",
+  weather_wdir: "Wind direction",
+  weather_dwpt: "Dew point",
+};
+
+const FEATURE_PREFIX_STRIP = /^(num__|cat__|binary__|bool__|raw__)/;
+
+function stripFeaturePrefix(featureName) {
+  return String(featureName || "").replace(FEATURE_PREFIX_STRIP, "");
+}
+
+function humanizeOccurrenceFeature(featureName) {
+  const stripped = stripFeaturePrefix(featureName);
+  if (OCCURRENCE_FEATURE_LABELS[stripped]) return OCCURRENCE_FEATURE_LABELS[stripped];
+  if (!stripped) return "Unknown factor";
+  return stripped
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatOccurrenceFactorValue(value) {
+  if (value == null || value === "") return null;
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    if (Number.isInteger(numeric)) return String(numeric);
+    return numeric.toFixed(2);
+  }
+  return String(value);
+}
 const TIME_PRESET_OPTIONS = [
   { value: "0", label: "Now" },
   { value: String(5 * 60 * 1000), label: "+5 min" },
@@ -3951,7 +4008,7 @@ const SiaraMap = ({
           <div className="srd-header">
             <div className="srd-title-row">
               <span className="srd-live-dot" />
-              <h4>Current Risk</h4>
+              <h4>Current SIARA risk</h4>
             </div>
             <div className="siara-status-pills">
               <span className="siara-status-pill">{locationStatusText}</span>
@@ -3959,6 +4016,21 @@ const SiaraMap = ({
               <span className="siara-status-pill">{navigationUpdatedText}</span>
             </div>
           </div>
+          <div
+            className="srd-subtitle"
+            style={{ fontSize: 12, opacity: 0.85, marginTop: 4, fontWeight: 600 }}
+          >
+            Danger-zone risk — severity/road danger model
+          </div>
+          <p style={{ fontSize: 11, opacity: 0.7, marginTop: 2, marginBottom: 8 }}>
+            {currentRisk?.dangerZoneRisk?.warning
+              || "Relative danger score, not occurrence probability. Different from the occurrence risk below."}
+            {currentRisk?.dangerZoneRisk?.modelVersion ? (
+              <>
+                {' '}· Model: <strong>{currentRisk.dangerZoneRisk.modelVersion}</strong>
+              </>
+            ) : null}
+          </p>
           {!hasValidUserLocation && (
             <>
               <p>Location is required for SIARA risk prediction.</p>
@@ -4063,46 +4135,67 @@ const SiaraMap = ({
                   )}
                   {!occurrenceRiskLoading && !occurrenceRiskError && occurrenceRisk && (
                     (() => {
-                      // The new endpoint returns { modelOnly, personalized }. The legacy
-                      // rule-fusion shape (global_occurrence_score / personalized_occurrence_score)
-                      // is still supported as a backwards-compatible fallback so this card
-                      // does not blank out during the migration window.
+                      // Preferred source: the new explicit `occurrenceRisk` /
+                      // `personalizedRisk` wrappers added on the backend. Fall
+                      // back to the older `modelOnly` / `personalized` shape,
+                      // and ultimately to the legacy rule-fusion fields, so the
+                      // card never blanks out during a partial deploy.
+                      const occurrenceWrap = occurrenceRisk.occurrenceRisk || null;
+                      const personalizedWrap = occurrenceRisk.personalizedRisk || null;
                       const modelOnlyBlock = occurrenceRisk.modelOnly || null;
                       const personalizedBlock = occurrenceRisk.personalized || null;
                       const driverMeta = occurrenceRisk.driver_meta || {};
-                      const scoringSource = occurrenceRisk.scoring_source || (modelOnlyBlock ? 'trained_model' : 'rule_fusion');
+                      const scoringSource = occurrenceRisk.scoring_source
+                        || occurrenceWrap?.source
+                        || (modelOnlyBlock ? 'trained_model' : 'rule_fusion');
                       const modelProbability =
-                        modelOnlyBlock?.calibrated_probability != null
-                          ? Number(modelOnlyBlock.calibrated_probability)
-                          : modelOnlyBlock?.risk_score != null
-                            ? Number(modelOnlyBlock.risk_score)
-                            : Number(occurrenceRisk.global_occurrence_score || 0);
+                        occurrenceWrap?.calibratedProbability != null
+                          ? Number(occurrenceWrap.calibratedProbability)
+                          : occurrenceWrap?.score != null
+                            ? Number(occurrenceWrap.score)
+                            : modelOnlyBlock?.calibrated_probability != null
+                              ? Number(modelOnlyBlock.calibrated_probability)
+                              : modelOnlyBlock?.risk_score != null
+                                ? Number(modelOnlyBlock.risk_score)
+                                : Number(occurrenceRisk.global_occurrence_score || 0);
                       const personalizedProbability =
-                        personalizedBlock?.calibrated_probability != null
-                          ? Number(personalizedBlock.calibrated_probability)
-                          : personalizedBlock?.risk_score != null
-                            ? Number(personalizedBlock.risk_score)
-                            : Number(occurrenceRisk.personalized_occurrence_score || 0);
-                      const modelLevel = modelOnlyBlock?.risk_level
+                        personalizedWrap?.score != null
+                          ? Number(personalizedWrap.score)
+                          : personalizedBlock?.calibrated_probability != null
+                            ? Number(personalizedBlock.calibrated_probability)
+                            : personalizedBlock?.risk_score != null
+                              ? Number(personalizedBlock.risk_score)
+                              : Number(occurrenceRisk.personalized_occurrence_score || 0);
+                      const modelLevel = occurrenceWrap?.riskLevel
+                        || modelOnlyBlock?.risk_level
                         || occurrenceRisk.global_risk_level
                         || 'low';
-                      const personalizedLevel = personalizedBlock?.risk_level
+                      const personalizedLevel = personalizedWrap?.riskLevel
+                        || personalizedBlock?.risk_level
                         || occurrenceRisk.personalized_risk_level
                         || modelLevel;
-                      const driverApplied = personalizedBlock?.driver_behavior_applied
-                        ?? occurrenceRisk.driver_behavior?.has_driver_profile
-                        ?? false;
+                      const driverApplied = Boolean(personalizedWrap)
+                        || personalizedBlock?.driver_behavior_applied
+                        || occurrenceRisk.driver_behavior?.has_driver_profile
+                        || false;
                       const behaviorMultiplier = Number(
-                        personalizedBlock?.behavior_multiplier
+                        personalizedWrap?.driverMultiplier
+                        ?? personalizedBlock?.behavior_multiplier
                         ?? occurrenceRisk.driver_behavior?.multiplier
                         ?? 1,
                       );
-                      const behaviorDelta = Number(personalizedBlock?.behavior_delta ?? 0);
-                      const driverScore = personalizedBlock?.driver_risk_score
+                      const behaviorDelta = Number(
+                        personalizedWrap?.behaviorDelta
+                        ?? personalizedBlock?.behavior_delta
+                        ?? 0,
+                      );
+                      const driverScore = personalizedWrap?.driverRiskScore
+                        ?? personalizedBlock?.driver_risk_score
                         ?? driverMeta.latest_risk_score
                         ?? occurrenceRisk.driver_behavior?.latest_risk_score
                         ?? null;
-                      const driverLabel = personalizedBlock?.driver_result_label
+                      const driverLabel = personalizedWrap?.driverResultLabel
+                        ?? personalizedBlock?.driver_result_label
                         ?? driverMeta.latest_result_label
                         ?? occurrenceRisk.driver_behavior?.latest_result_label
                         ?? null;
@@ -4129,7 +4222,7 @@ const SiaraMap = ({
                         <>
                           <div className="siara-occurrence-card__section">
                             <div className="siara-occurrence-card__section-title">
-                              Road/time risk from model
+                              Occurrence risk — road/time model
                             </div>
                             <div className="siara-occurrence-card__row">
                               <span>{showAsProbability ? 'Calibrated probability' : 'Score'}</span>
@@ -4139,24 +4232,41 @@ const SiaraMap = ({
                               </strong>
                             </div>
                             <div className="siara-occurrence-card__meta">
-                              {modelVersion} · source: {scoringSource}
+                              Model: <strong>{modelVersion}</strong> · source: {scoringSource}
+                            </div>
+                            <div className="siara-occurrence-card__meta" style={{ fontSize: 11, opacity: 0.75 }}>
+                              Probability that an accident occurs on this segment in the current hour bucket — independent of your driving.
                             </div>
                             {Array.isArray(modelOnlyBlock?.top_factors)
                               && modelOnlyBlock.top_factors.length > 0 && (
                                 <ul className="siara-occurrence-card__factors">
-                                  {modelOnlyBlock.top_factors.slice(0, 3).map((factor, index) => (
-                                    <li key={`${factor?.feature || 'factor'}-${index}`}>
-                                      {factor?.feature || 'factor'} ·{' '}
-                                      {factor?.direction === 'decreases_risk' ? '↓' : '↑'}
-                                    </li>
-                                  ))}
+                                  {modelOnlyBlock.top_factors.slice(0, 3).map((factor, index) => {
+                                    const featureKey = stripFeaturePrefix(factor?.feature);
+                                    const label = humanizeOccurrenceFeature(factor?.feature);
+                                    const direction = factor?.direction === 'decreases_risk' ? '↓' : '↑';
+                                    const directionLabel = factor?.direction === 'decreases_risk'
+                                      ? 'lowers risk'
+                                      : 'raises risk';
+                                    const valueDisplay = formatOccurrenceFactorValue(factor?.value);
+                                    return (
+                                      <li key={`${featureKey || 'factor'}-${index}`}>
+                                        <strong>{label}</strong>{' '}
+                                        <span style={{ opacity: 0.8 }}>
+                                          {direction} {directionLabel}
+                                        </span>
+                                        {valueDisplay != null ? (
+                                          <span style={{ opacity: 0.65 }}> · value {valueDisplay}</span>
+                                        ) : null}
+                                      </li>
+                                    );
+                                  })}
                                 </ul>
                               )}
                           </div>
 
                           <div className="siara-occurrence-card__section">
                             <div className="siara-occurrence-card__section-title">
-                              Personalized risk with your driving behavior
+                              Personalized risk — adjusted by driver profile
                             </div>
                             <div className="siara-occurrence-card__row">
                               <span>{showAsProbability ? 'Calibrated probability' : 'Score'}</span>

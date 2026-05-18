@@ -1276,6 +1276,26 @@ exports.predictCurrentRisk = async (req, res) => {
       console.error("[Node] /api/risk/current persistence error:", persistError.message);
     }
 
+    // Explicit semantic wrapper so the frontend never confuses this with the
+    // occurrence model. danger_percent is a 0–100 relative severity score, NOT
+    // a calibrated accident-occurrence probability — surface that intent in
+    // the response shape itself instead of relying on UI labels alone.
+    const dangerPercentNum = Number(responseData.danger_percent);
+    const dangerScore = Number.isFinite(dangerPercentNum)
+      ? Math.max(0, Math.min(1, dangerPercentNum / 100))
+      : null;
+    const confidenceNum = Number(responseData.confidence);
+    responseData.dangerZoneRisk = {
+      score: dangerScore,
+      riskLevel: responseData.danger_level || null,
+      confidence: Number.isFinite(confidenceNum) ? confidenceNum : null,
+      modelVersion: responseData.model_version || "danger_zone_v1",
+      source: "danger_zone_model",
+      isCalibratedProbability: false,
+      warning:
+        "Relative danger score, not occurrence probability",
+    };
+
     return res.json(responseData);
   } catch (err) {
     const status = err.response?.status || 500;

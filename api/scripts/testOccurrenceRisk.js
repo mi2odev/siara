@@ -326,12 +326,47 @@ assert(
 const skipNetwork = process.argv.includes("--skip-network");
 const skipDb = process.argv.includes("--skip-db");
 
+async function tryFlaskOccurrenceStatus() {
+  if (skipNetwork) return { skipped: true };
+  try {
+    const response = await axios.get(
+      `${FLASK_BASE_URL}/risk/occurrence/status`,
+      { timeout: 5000 },
+    );
+    return { skipped: false, data: response.data };
+  } catch (error) {
+    if (error?.code === "ECONNREFUSED") return { skipped: true, reason: error.message };
+    return { skipped: false, error };
+  }
+}
+
 async function tryFlaskOccurrencePredict() {
   if (skipNetwork) return { skipped: true };
   try {
     const response = await axios.post(
       `${FLASK_BASE_URL}/risk/occurrence/predict`,
       { rows: trainedSampleRows },
+      { timeout: 8000 },
+    );
+    return { skipped: false, data: response.data };
+  } catch (error) {
+    if (error?.code === "ECONNREFUSED" || error?.response?.status === 503) {
+      return { skipped: true, reason: error.message };
+    }
+    return { skipped: false, error };
+  }
+}
+
+async function tryFlaskOccurrencePredictMissingField() {
+  if (skipNetwork) return { skipped: true };
+  try {
+    // Drop one required column on purpose so we can assert Flask reports it
+    // back via missing_required_features instead of throwing 500.
+    const truncatedRow = { ...trainedSampleRows[0] };
+    delete truncatedRow.weather_temp;
+    const response = await axios.post(
+      `${FLASK_BASE_URL}/risk/occurrence/predict`,
+      { rows: [truncatedRow] },
       { timeout: 8000 },
     );
     return { skipped: false, data: response.data };
@@ -451,12 +486,43 @@ async function tryBuildOneSegmentFeatureRow() {
     }
   }
 
+  const statusResult = await tryFlaskOccurrenceStatus();
+  if (statusResult.skipped) {
+    console.log("SKIP trained_beta · Flask /risk/occurrence/status not reachable");
+  } else if (statusResult.error) {
+    failed += 1;
+    console.log(
+      "FAIL trained_beta · Flask /risk/occurrence/status failed:",
+      statusResult.error.message,
+    );
+  } else {
+    const data = statusResult.data || {};
+    assert(
+      "trained_beta · /status reports model_loaded=true",
+      data.model_loaded === true,
+      JSON.stringify({
+        load_error: data.load_error,
+        artifact_dir: data.artifact_dir,
+      }),
+    );
+    assert(
+      "trained_beta · /status reports correct feature_count (23)",
+      data.feature_count === 23,
+      `feature_count=${data.feature_count}`,
+    );
+    assert(
+      "trained_beta · /status reports model_version=occurrence_beta_v1",
+      data.model_version === "occurrence_beta_v1",
+    );
+  }
+
   const flaskResult = await tryFlaskOccurrencePredict();
   if (flaskResult.skipped) {
     console.log("SKIP trained_beta · Flask /risk/occurrence/predict not reachable");
   } else if (flaskResult.error) {
     failed += 1;
-    console.log("FAIL trained_beta · Flask /risk/occurrence/predict failed:", flaskResult.error.message);
+    const detail = flaskResult.error.response?.data || flaskResult.error.message;
+    console.log("FAIL trained_beta · Flask /risk/occurrence/predict failed:", JSON.stringify(detail));
   } else {
     const data = flaskResult.data || {};
     const sample = (data.predictions || [])[0] || {};
@@ -478,6 +544,36 @@ async function tryBuildOneSegmentFeatureRow() {
       "trained_beta · Flask response is NaN-free JSON",
       !JSON.stringify(data).includes("NaN"),
     );
+    assert(
+      "trained_beta · sample row carries missing_required_features array",
+      Array.isArray(sample.missing_required_features),
+    );
+  }
+
+  const missingResult = await tryFlaskOccurrencePredictMissingField();
+  if (missingResult.skipped) {
+    console.log(
+      "SKIP trained_beta · Flask missing-field probe (service unreachable)",
+    );
+  } else if (missingResult.error) {
+    failed += 1;
+    const detail = missingResult.error.response?.data || missingResult.error.message;
+    console.log(
+      "FAIL trained_beta · Flask missing-field probe should not 500:",
+      JSON.stringify(detail),
+    );
+  } else {
+    const sample = (missingResult.data?.predictions || [])[0] || {};
+    assert(
+      "trained_beta · Flask reports missing_required_features for dropped column",
+      Array.isArray(sample.missing_required_features)
+        && sample.missing_required_features.includes("weather_temp"),
+      `missing=${JSON.stringify(sample.missing_required_features)}`,
+    );
+    assert(
+      "trained_beta · Flask still returns a calibrated_probability when columns missing",
+      typeof sample.calibrated_probability === "number",
+    );
   }
 
   const nodeResult = await tryNodeOccurrencePredict();
@@ -485,7 +581,8 @@ async function tryBuildOneSegmentFeatureRow() {
     console.log("SKIP trained_beta · Node /api/risk/occurrence/predict not reachable");
   } else if (nodeResult.error) {
     failed += 1;
-    console.log("FAIL trained_beta · Node /api/risk/occurrence/predict failed:", nodeResult.error.message);
+    const detail = nodeResult.error.response?.data || nodeResult.error.message;
+    console.log("FAIL trained_beta · Node /api/risk/occurrence/predict failed:", JSON.stringify(detail));
   } else {
     const data = nodeResult.data || {};
     assert(
