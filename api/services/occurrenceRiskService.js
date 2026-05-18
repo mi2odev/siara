@@ -1477,6 +1477,15 @@ async function predictOccurrenceForSegments({
   const predictions = featureRows.map((row, index) => {
     const prediction = rawPredictions[index] || {};
     const calibrated = trainedNumericOrNull(prediction.calibrated_probability);
+    const missingRequired = Array.isArray(prediction.missing_required_features)
+      ? prediction.missing_required_features
+      : [];
+    if (missingRequired.length > 0) {
+      logOccurrence("trained_model_missing_required_features", {
+        roadSegmentId: row.roadSegmentId,
+        missing: missingRequired,
+      });
+    }
     return {
       road_segment_id: row.roadSegmentId,
       time_bucket: row.timeBucket instanceof Date
@@ -1490,6 +1499,7 @@ async function predictOccurrenceForSegments({
       confidence_score: trainedNumericOrNull(prediction.confidence_score),
       top_factors: Array.isArray(prediction.top_factors) ? prediction.top_factors : [],
       explanation_source: prediction.explanation_source || null,
+      missing_required_features: missingRequired,
       model_version: data.model_version || TRAINED_MODEL_NAME,
       meta: row.meta || null,
     };
@@ -1741,18 +1751,35 @@ async function persistTrainedGlobalPrediction(client, {
   riskLevel,
   confidenceScore,
 }) {
-  const featureRow = await client.query(
-    `
-      select id
-      from ml.segment_time_features
-      where road_segment_id = $1
-        and time_bucket = date_trunc('minute', $2::timestamptz)
-      order by id desc
-      limit 1
-    `,
-    [roadSegmentId, new Date(timeBucket).toISOString()],
-  );
-  const featureId = featureRow.rows[0]?.id || null;
+  // ml.segment_time_features is optional metadata. If the table is missing
+  // (or the lookup fails for any other reason) we still want to persist the
+  // prediction — feature_id is just a join key. Wrap the lookup in a
+  // SAVEPOINT so a "relation does not exist" doesn't poison the outer txn.
+  let featureId = null;
+  try {
+    await client.query("savepoint trained_feature_lookup");
+    const featureRow = await client.query(
+      `
+        select id
+        from ml.segment_time_features
+        where road_segment_id = $1
+          and time_bucket = date_trunc('minute', $2::timestamptz)
+        order by id desc
+        limit 1
+      `,
+      [roadSegmentId, new Date(timeBucket).toISOString()],
+    );
+    featureId = featureRow.rows[0]?.id || null;
+    await client.query("release savepoint trained_feature_lookup");
+  } catch (featureError) {
+    await client.query("rollback to savepoint trained_feature_lookup").catch(() => {});
+    await client.query("release savepoint trained_feature_lookup").catch(() => {});
+    logOccurrence("trained_feature_lookup_skipped", {
+      roadSegmentId,
+      message: featureError?.message,
+      code: featureError?.code,
+    });
+  }
   const insert = await client.query(
     `
       insert into ml.risk_predictions (
@@ -1936,8 +1963,23 @@ async function predictTrainedOccurrenceRiskForSegment({
     let modelVersionId = null;
     let globalPredictionId = null;
     let personalizedRowId = null;
+    let persistedSuccessfully = false;
     if (persist) {
+      logOccurrence("trained_model_persisting", {
+        roadSegmentId: segmentIdText,
+        modelVersion: TRAINED_MODEL_NAME,
+        calibratedProbability: segment.modelOnly?.calibrated_probability,
+        riskLevel: segment.modelOnly?.risk_level,
+        userId: userId || null,
+      });
+      // Wrap the whole persistence block in a SAVEPOINT. Without this, the
+      // first failing INSERT would put the outer transaction into an aborted
+      // state and the subsequent COMMIT would throw, causing the caller to
+      // think the trained-model run failed and fall back to rule_fusion —
+      // even though Flask already returned 200 with a valid prediction.
+      const useSavepoint = useTransaction;
       try {
+        if (useSavepoint) await client.query("savepoint trained_persist");
         modelVersionId = await ensureTrainedModelVersionId(client);
         globalPredictionId = await persistTrainedGlobalPrediction(client, {
           roadSegmentId: segmentIdText,
@@ -1960,11 +2002,29 @@ async function predictTrainedOccurrenceRiskForSegment({
             driverProfile,
           });
         }
+        if (useSavepoint) await client.query("release savepoint trained_persist");
+        persistedSuccessfully = true;
+        logOccurrence("trained_model_persisted", {
+          roadSegmentId: segmentIdText,
+          modelVersion: TRAINED_MODEL_NAME,
+          modelVersionId,
+          globalPredictionId,
+          personalizedPredictionId: personalizedRowId,
+          calibratedProbability: segment.modelOnly?.calibrated_probability,
+          riskLevel: segment.modelOnly?.risk_level,
+        });
       } catch (persistError) {
-        // Persistence failure must not crash the prediction response — the
-        // model output is the contract; logs surface the DB problem.
+        // Roll the persistence inserts back inside the savepoint so the outer
+        // transaction stays committable. Without this, COMMIT below would
+        // throw "current transaction is aborted" and the caller would fall
+        // back to rule_fusion even though Flask succeeded.
+        if (useSavepoint) {
+          await client.query("rollback to savepoint trained_persist").catch(() => {});
+          await client.query("release savepoint trained_persist").catch(() => {});
+        }
         logOccurrence("trained_persist_failed", {
           roadSegmentId: segmentIdText,
+          modelVersion: TRAINED_MODEL_NAME,
           message: persistError?.message,
           code: persistError?.code,
         });
@@ -1972,6 +2032,35 @@ async function predictTrainedOccurrenceRiskForSegment({
     }
 
     if (useTransaction) await client.query("commit");
+
+    // Explicit semantic wrappers — the spec asks for clearly-named blocks the
+    // UI can render without re-interpreting field names. These coexist with
+    // `modelOnly` / `personalized` (kept for backwards compat).
+    const occurrenceRiskBlock = {
+      score: segment.modelOnly?.risk_score ?? null,
+      calibratedProbability: segment.modelOnly?.calibrated_probability ?? null,
+      riskLevel: segment.modelOnly?.risk_level ?? null,
+      confidence: segment.modelOnly?.confidence_score ?? null,
+      modelVersion: personalized.model_version || TRAINED_MODEL_NAME,
+      source: "trained_model",
+      topFactors: Array.isArray(segment.modelOnly?.top_factors)
+        ? segment.modelOnly.top_factors
+        : [],
+    };
+    // personalizedRisk is only meaningful when the driver multiplier actually
+    // got applied — when no quiz profile exists, the personalized number is
+    // identical to occurrenceRisk and would just clutter the response.
+    const personalizedRiskBlock = segment.personalized?.driver_behavior_applied
+      ? {
+          score: segment.personalized?.calibrated_probability ?? null,
+          driverMultiplier: segment.personalized?.behavior_multiplier ?? null,
+          riskLevel: segment.personalized?.risk_level ?? null,
+          source: "occurrence_beta_v1_adjusted_by_driver_profile",
+          driverRiskScore: segment.personalized?.driver_risk_score ?? null,
+          driverResultLabel: segment.personalized?.driver_result_label ?? null,
+          behaviorDelta: segment.personalized?.behavior_delta ?? null,
+        }
+      : null;
 
     return {
       road_segment_id: segmentIdText,
@@ -1983,6 +2072,8 @@ async function predictTrainedOccurrenceRiskForSegment({
       decision_threshold: personalized.decision_threshold,
       probability_interpretation: personalized.probability_interpretation,
       probability_warning: personalized.probability_warning,
+      occurrenceRisk: occurrenceRiskBlock,
+      personalizedRisk: personalizedRiskBlock,
       modelOnly: segment.modelOnly,
       personalized: segment.personalized,
       driver_meta: segment.driver_meta,
@@ -1990,6 +2081,7 @@ async function predictTrainedOccurrenceRiskForSegment({
         model_version: TRAINED_MODEL_NAME,
         global_prediction_id: globalPredictionId,
         personalized_prediction_id: personalizedRowId,
+        successful: persistedSuccessfully,
       },
     };
   } catch (error) {
@@ -2095,12 +2187,40 @@ async function predictOccurrenceRisk({
       driver_effect: ruleFusion.driver_behavior?.reason || "No driver profile applied.",
     },
   };
+  // Mirror the trained-model semantic wrappers so the frontend can read the
+  // same fields no matter which scoring path actually ran. For rule-fusion,
+  // `calibratedProbability` is null on purpose — the score is heuristic, not
+  // a calibrated probability.
+  const occurrenceRiskBlock = {
+    score: ruleFusion.global_occurrence_score ?? null,
+    calibratedProbability: null,
+    riskLevel: ruleFusion.global_risk_level ?? null,
+    confidence: ruleFusion.confidence_score ?? null,
+    modelVersion: ruleFusion.persisted?.model_version || MODEL_VERSION_TAG,
+    source: "rule_fusion",
+    topFactors: [],
+  };
+  const personalizedRiskBlock = ruleFusion.driver_behavior?.has_driver_profile
+    ? {
+        score: ruleFusion.personalized_occurrence_score ?? null,
+        driverMultiplier: ruleFusion.driver_behavior?.multiplier ?? null,
+        riskLevel: ruleFusion.personalized_risk_level ?? null,
+        source: "rule_fusion_adjusted_by_driver_profile",
+        driverRiskScore: ruleFusion.driver_behavior?.latest_risk_score ?? null,
+        driverResultLabel: ruleFusion.driver_behavior?.latest_result_label ?? null,
+        behaviorDelta:
+          (ruleFusion.personalized_occurrence_score || 0)
+          - (ruleFusion.global_occurrence_score || 0),
+      }
+    : null;
   return {
     road_segment_id: ruleFusion.road_segment_id,
     time_bucket: ruleFusion.time_bucket,
     scoring_source: "rule_fusion",
     model_version: ruleFusion.persisted?.model_version || MODEL_VERSION_TAG,
     probability_warning: PROTOTYPE_WARNING,
+    occurrenceRisk: occurrenceRiskBlock,
+    personalizedRisk: personalizedRiskBlock,
     modelOnly,
     personalized,
     driver_meta: {
