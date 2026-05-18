@@ -5,6 +5,11 @@ const { hasAnyRole, POLICE_ROLE_NAMES } = require("../contollers/verifytoken");
 const { mapNotificationRow, markNotificationAsRead } = require("./notificationsService");
 const { emitNotificationCreatedToUser } = require("./notificationSocket");
 const { evaluateAndSendPushForNotification } = require("./pushService");
+const {
+  notifyOfficerAssignedToIncident,
+  notifySupervisorOfOfficerStatusChange,
+  notifyNearbyOfficersForBackup,
+} = require("./notificationOrchestrator");
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -17,6 +22,46 @@ const INCIDENT_STATUS_VALUES = new Set([
   "resolved",
   "rejected",
 ]);
+
+// Only these values are permitted by accident_reports_status_check. Code that
+// mutates accident_reports.status must use sanitizeReportStatusWrite() to
+// strip non-persistable values like "under_review" (which is a derived
+// display-only state — see mapIncidentRow + computeDisplayStatus).
+const PERSISTABLE_REPORT_STATUS_VALUES = new Set([
+  "pending",
+  "verified",
+  "rejected",
+  "resolved",
+]);
+
+function sanitizeReportStatusWrite(nextStatus, currentStatus) {
+  if (PERSISTABLE_REPORT_STATUS_VALUES.has(nextStatus)) {
+    return nextStatus;
+  }
+  console.warn("[police] invalid_report_status_for_assignment", {
+    rejected: nextStatus,
+    keptAs: currentStatus,
+    note: "accident_reports.status only persists pending/verified/rejected/resolved; assignment lifecycle lives in app.incident_assignments.status",
+  });
+  return currentStatus;
+}
+
+// Derived: "under_review" if the report is still pending but already has an
+// assigned officer (or an active assignment). The DB never stores this value;
+// the frontend reads it as the report's display status.
+function computeDisplayStatus(row) {
+  if (!row || row.status !== "pending") {
+    return row?.status || null;
+  }
+  if (row.assigned_officer_id) {
+    return "under_review";
+  }
+  const assignmentStatus = String(row.latest_assignment_status || "").toLowerCase();
+  if (assignmentStatus === "active") {
+    return "under_review";
+  }
+  return "pending";
+}
 
 const ALERT_SEVERITY_VALUES = new Set(["low", "medium", "high"]);
 const ALERT_TYPE_VALUES = new Set([
@@ -794,13 +839,21 @@ function mapIncidentRow(row) {
     row.reporter_email,
   );
 
+  const displayStatus = computeDisplayStatus(row);
+
   return {
     id: row.id,
     displayId: buildDisplayIncidentId(row.id),
     incidentType: row.incident_type,
     title: row.title || "",
     description: row.description || "",
-    status: row.status,
+    // status is the displayed value (kept as the API contract everything
+    // currently reads); rawStatus exposes the persisted lifecycle value so
+    // callers that need DB truth (not display) can read it. The DB only ever
+    // stores pending/verified/rejected/resolved — see PERSISTABLE_REPORT_STATUS_VALUES.
+    status: displayStatus,
+    rawStatus: row.status,
+    displayStatus,
     severityHint,
     severity: severityLabelFromHint(severityHint),
     locationLabel: row.location_label || "",
@@ -1801,11 +1854,14 @@ async function applyIncidentAction(officerUserId, reportId, handler, db = pool) 
 
 async function verifyIncident(officerUserId, reportId, payload = {}, db = pool) {
   const note = normalizeOptionalNote(payload.note);
+  let priorStatus = null;
 
-  return applyIncidentAction(
+  const detail = await applyIncidentAction(
     officerUserId,
     reportId,
     async ({ client, currentRow }) => {
+      priorStatus = currentRow.status;
+
       await client.query(
         `
           UPDATE app.accident_reports
@@ -1823,22 +1879,36 @@ async function verifyIncident(officerUserId, reportId, payload = {}, db = pool) 
         officerUserId,
         reportId,
         actionType: "verify_incident",
-        fromStatus: currentRow.status,
+        fromStatus: priorStatus,
         toStatus: "verified",
         note,
       });
     },
     db,
   );
+
+  // Post-commit: notify the officer's supervisor of the status change.
+  dispatchSupervisorStatusChange({
+    officerUserId,
+    reportId,
+    oldStatus: priorStatus,
+    newStatus: "verified",
+    db,
+  });
+
+  return detail;
 }
 
 async function rejectIncident(officerUserId, reportId, payload = {}, db = pool) {
   const note = normalizeOptionalNote(payload.note, "note");
+  let priorStatus = null;
 
-  return applyIncidentAction(
+  const detail = await applyIncidentAction(
     officerUserId,
     reportId,
     async ({ client, currentRow }) => {
+      priorStatus = currentRow.status;
+
       await client.query(
         `
           UPDATE app.accident_reports
@@ -1856,13 +1926,23 @@ async function rejectIncident(officerUserId, reportId, payload = {}, db = pool) 
         officerUserId,
         reportId,
         actionType: "reject_incident",
-        fromStatus: currentRow.status,
+        fromStatus: priorStatus,
         toStatus: "rejected",
         note,
       });
     },
     db,
   );
+
+  dispatchSupervisorStatusChange({
+    officerUserId,
+    reportId,
+    oldStatus: priorStatus,
+    newStatus: "rejected",
+    db,
+  });
+
+  return detail;
 }
 
 async function assignSelfToIncident(officerUserId, reportId, payload = {}, db = pool) {
@@ -1900,7 +1980,13 @@ async function assignSelfToIncident(officerUserId, reportId, payload = {}, db = 
         [reportId, officerUserId, note],
       );
 
-      const nextStatus = currentRow.status === "pending" ? "under_review" : currentRow.status;
+      // Do not touch accident_reports.status here — "under_review" is a
+      // display-only state. The assignment lifecycle is tracked in
+      // app.incident_assignments.status (set to 'active' just above).
+      const nextStatus = sanitizeReportStatusWrite(
+        currentRow.status === "pending" ? "under_review" : currentRow.status,
+        currentRow.status,
+      );
 
       await client.query(
         `
@@ -1930,11 +2016,14 @@ async function assignSelfToIncident(officerUserId, reportId, payload = {}, db = 
 async function updateIncidentStatus(officerUserId, reportId, payload = {}, db = pool) {
   const nextStatus = normalizeIncidentStatus(payload.status, "status", { required: true });
   const note = normalizeOptionalNote(payload.note);
+  let priorStatus = null;
 
-  return applyIncidentAction(
+  const detail = await applyIncidentAction(
     officerUserId,
     reportId,
     async ({ client, currentRow }) => {
+      priorStatus = currentRow.status;
+
       const updateClauses = ["status = $2::text", "updated_at = NOW()"];
       const values = [reportId, nextStatus];
 
@@ -1967,13 +2056,57 @@ async function updateIncidentStatus(officerUserId, reportId, payload = {}, db = 
         officerUserId,
         reportId,
         actionType: "update_status",
-        fromStatus: currentRow.status,
+        fromStatus: priorStatus,
         toStatus: nextStatus,
         note,
       });
     },
     db,
   );
+
+  dispatchSupervisorStatusChange({
+    officerUserId,
+    reportId,
+    oldStatus: priorStatus,
+    newStatus: nextStatus,
+    db,
+  });
+
+  return detail;
+}
+
+// Resolve the officer's supervisor and fire the orchestrator. Detached
+// (no await): runs after the parent function has returned so a slow
+// fan-out can't delay the HTTP response or fail the action.
+function dispatchSupervisorStatusChange({ officerUserId, reportId, oldStatus, newStatus, db }) {
+  if (!officerUserId || !reportId || !newStatus) return;
+  if (oldStatus === newStatus) return;
+
+  (async () => {
+    try {
+      const supervisorRow = await db.query(
+        `select supervisor_user_id from app.police_profiles where user_id = $1::uuid limit 1`,
+        [officerUserId],
+      );
+      const supervisorUserId = supervisorRow.rows[0]?.supervisor_user_id || null;
+      if (!supervisorUserId) return;
+      await notifySupervisorOfOfficerStatusChange({
+        reportId,
+        officerUserId,
+        supervisorUserId,
+        oldStatus,
+        newStatus,
+        db,
+      });
+    } catch (error) {
+      console.warn("[notify-orchestrator] supervisor_status_change_failed", {
+        reportId,
+        officerUserId,
+        newStatus,
+        message: error.message,
+      });
+    }
+  })();
 }
 
 async function addIncidentFieldNote(officerUserId, reportId, payload = {}, db = pool) {
@@ -2184,7 +2317,12 @@ async function requestIncidentBackup(officerUserId, reportId, payload = {}, db =
     reportId,
     async ({ client, currentRow, officerContext }) => {
       const supervisorUserId = await getSupervisorRecipientUserId(officerContext, client);
-      const nextStatus = currentRow.status === "pending" ? "under_review" : currentRow.status;
+      // "under_review" is display-only; the persisted status stays whatever
+      // it was. assigned_officer_id is the field that flips display state.
+      const nextStatus = sanitizeReportStatusWrite(
+        currentRow.status === "pending" ? "under_review" : currentRow.status,
+        currentRow.status,
+      );
 
       await client.query(
         `
@@ -2207,35 +2345,46 @@ async function requestIncidentBackup(officerUserId, reportId, payload = {}, db =
         note,
       });
 
+      // Capture the supervisor id so we can notify after commit.
       if (supervisorUserId) {
-        supervisorNotificationRows = await insertNotificationsForUsers(client, [
-          {
-            userId: supervisorUserId,
-            reportId,
-            operationalAlertId: null,
-            priority: 1,
-            eventType: "POLICE_BACKUP_REQUESTED",
-            title: "Backup requested",
-            body: `Officer requested backup for ${currentRow.title || buildDisplayIncidentId(reportId)}.`,
-            data: {
-              reportId,
-              requestedBy: officerUserId,
-              source: "police",
-              action: "request_backup",
-            },
-          },
-        ]);
+        supervisorNotificationRows = [{ userId: supervisorUserId, reportId, requesterId: officerUserId }];
       }
     },
     db,
   );
 
-  await Promise.allSettled(
-    supervisorNotificationRows.map(async (notification) => {
-      emitNotificationCreatedToUser(notification.userId, notification);
-      await evaluateAndSendPushForNotification(notification, db);
-    }),
-  );
+  // Post-commit fan-out via orchestrator:
+  //  - Supervisor gets a single targeted notification (existing behaviour, now on all platforms).
+  //  - Nearby on-duty officers get the urgent backup-requested fan-out.
+  Promise.allSettled([
+    ...(supervisorNotificationRows.map((row) =>
+      notifyNearbyOfficersForBackup({
+        reportId: row.reportId,
+        requesterOfficerId: row.requesterId,
+        db,
+      }).catch((error) => {
+        console.warn("[notify-orchestrator] backup_nearby_failed", {
+          reportId: row.reportId,
+          message: error.message,
+        });
+      }),
+    )),
+    ...(supervisorNotificationRows.map((row) =>
+      notifySupervisorOfOfficerStatusChange({
+        reportId: row.reportId,
+        officerUserId: row.requesterId,
+        supervisorUserId: row.userId,
+        oldStatus: null,
+        newStatus: "backup_requested",
+        db,
+      }).catch((error) => {
+        console.warn("[notify-orchestrator] backup_supervisor_failed", {
+          reportId: row.reportId,
+          message: error.message,
+        });
+      }),
+    )),
+  ]);
 
   return detail;
 }
@@ -3434,20 +3583,27 @@ async function assignIncidentBySupervisor(supervisorUser, reportId, payload = {}
   }
 
   const client = await db.connect();
-  let officerNotifications = [];
   let newAssignmentId = null;
+  let previousAssignedOfficerId = null;
+  // incident_assignments.status values are constrained to ('active','closed','cancelled')
+  // by 20260422_police_module.sql. The orchestrator notification has Accept/Decline
+  // actions, but until we widen that constraint we record the assignment as 'active'
+  // — the existing UI already treats supervisor-driven assignments as immediately active.
+  const assignmentStatus = "active";
 
   try {
     await client.query("BEGIN");
 
-    // Lock the report row to serialize concurrent assignment writes.
+    // Lock the report row to serialize concurrent assignment writes and capture
+    // the previously assigned officer for the audit trail.
     const lockedReport = await client.query(
-      `SELECT id, status FROM app.accident_reports WHERE id = $1::uuid FOR UPDATE`,
+      `SELECT id, status, assigned_officer_id FROM app.accident_reports WHERE id = $1::uuid FOR UPDATE`,
       [reportId],
     );
     if (lockedReport.rowCount === 0) {
       throw createError(404, "Incident was not found");
     }
+    previousAssignedOfficerId = lockedReport.rows[0].assigned_officer_id || null;
 
     const currentRow = await requireIncidentRow(reportId, client);
 
@@ -3475,19 +3631,22 @@ async function assignIncidentBySupervisor(supervisorUser, reportId, payload = {}
           note,
           assigned_at
         )
-        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::text, 'active', $5, $6, NOW())
+        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::text, $5::text, $6, $7, NOW())
         RETURNING id
       `,
-      [reportId, officerUserId, supervisorUser.userId, assignmentType, priorityOverride, note],
+      [reportId, officerUserId, supervisorUser.userId, assignmentType, assignmentStatus, priorityOverride, note],
     );
     newAssignmentId = insertedAssignment.rows[0]?.id ?? null;
 
+    // Update ONLY assigned_officer_id + updated_at. Do not touch status —
+    // accident_reports.status is constrained to pending/verified/rejected/resolved
+    // and represents the REPORT lifecycle, not the assignment lifecycle. The
+    // "under review" UI state is computed by mapIncidentRow via computeDisplayStatus.
     await client.query(
       `
         UPDATE app.accident_reports
         SET
           assigned_officer_id = $2::uuid,
-          status = CASE WHEN status = 'pending' THEN 'under_review' ELSE status END,
           updated_at = NOW()
         WHERE id = $1::uuid
       `,
@@ -3499,36 +3658,20 @@ async function assignIncidentBySupervisor(supervisorUser, reportId, payload = {}
       reportId,
       actionType: "assign_officer",
       fromStatus: currentRow.status,
-      toStatus: currentRow.status === "pending" ? "under_review" : currentRow.status,
+      toStatus: currentRow.status,
       note,
       metadata: {
-        assignedOfficerId: officerUserId,
+        action: "SUPERVISOR_ASSIGNED_INCIDENT",
+        reportId,
         assignmentId: newAssignmentId,
+        officerUserId,
+        supervisorUserId: supervisorUser.userId,
+        previousAssignedOfficerId,
+        assignmentStatus,
+        assignedOfficerId: officerUserId,
         priorityOverride,
       },
     });
-
-    // Single-target notification — only the assigned officer is notified.
-    officerNotifications = await insertNotificationsForUsers(client, [
-      {
-        userId: officerUserId,
-        reportId,
-        operationalAlertId: null,
-        priority: 1,
-        eventType: "INCIDENT_ASSIGNED",
-        title: "New incident assigned",
-        body: `A supervisor assigned ${currentRow.title || buildDisplayIncidentId(reportId)} to you.`,
-        data: {
-          reportId,
-          assignmentId: newAssignmentId,
-          assignedBy: supervisorUser.userId,
-          action: "assign_incident",
-          incidentTitle: currentRow.title || null,
-          locationLabel: currentRow.location_label || null,
-          severityHint: currentRow.severity_hint == null ? null : Number(currentRow.severity_hint),
-        },
-      },
-    ]);
 
     await client.query("COMMIT");
   } catch (error) {
@@ -3538,14 +3681,22 @@ async function assignIncidentBySupervisor(supervisorUser, reportId, payload = {}
     client.release();
   }
 
-  // Fan-out happens after COMMIT so we never emit/push for a rolled-back row.
-  // Socket emit + web-push are both per-recipient — no broadcast.
-  await Promise.allSettled(
-    officerNotifications.map(async (notification) => {
-      emitNotificationCreatedToUser(notification.userId, notification);
-      await evaluateAndSendPushForNotification(notification, db);
-    }),
-  );
+  // Fan-out happens after COMMIT so we never notify for a rolled-back row.
+  // Orchestrator handles all platforms (in-app + web push + mobile push + email
+  // gating + delivery_log + dedupe) — no need to drive insert/emit/push inline.
+  notifyOfficerAssignedToIncident({
+    reportId,
+    assignmentId: newAssignmentId,
+    officerUserId,
+    supervisorUserId: supervisorUser.userId,
+    db,
+  }).catch((error) => {
+    console.warn("[notify-orchestrator] officer_assignment_failed", {
+      reportId,
+      officerUserId,
+      message: error.message,
+    });
+  });
 
   return getIncidentById(officerUserId, reportId, db);
 }

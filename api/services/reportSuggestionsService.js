@@ -67,8 +67,8 @@ async function findDuplicateCandidates({ lat, lng, type }) {
       ar.incident_type,
       ar.severity_hint,
       ar.created_at,
-      ar.lat,
-      ar.lng,
+      ST_Y(ar.incident_location::geometry) AS lat,
+      ST_X(ar.incident_location::geometry) AS lng,
       ar.verified_by_officer_id,
       ar.saw_it_too_count,
       ar.likes_count,
@@ -78,8 +78,6 @@ async function findDuplicateCandidates({ lat, lng, type }) {
       ) AS distance_meters
     FROM app.accident_reports ar
     WHERE ar.incident_location IS NOT NULL
-      AND ar.lat IS NOT NULL
-      AND ar.lng IS NOT NULL
       AND ar.created_at >= NOW() - ($4::int * INTERVAL '1 hour')
       AND COALESCE(ar.latest_predicted_label, 'real') <> 'spam'
       AND ST_DWithin(

@@ -39,8 +39,8 @@ async function getThreadByReportId(reportId) {
         ar.incident_type,
         ar.severity_hint,
         ar.created_at,
-        ar.lat,
-        ar.lng,
+        ST_Y(ar.incident_location::geometry) AS lat,
+        ST_X(ar.incident_location::geometry) AS lng,
         ar.verified_by_officer_id,
         ar.location_label
       FROM app.incident_thread_reports itr
