@@ -52,6 +52,7 @@ import profileAvatar from "../../assets/logos/siara-logo1.png";
 /* ── Components ── */
 import DangerForecastChart from "../../components/map/DangerForecastChart";
 import SiaraMap from "../../components/map/SiaraMap";
+import FallbackLocationBanner from "../../components/map/FallbackLocationBanner";
 import DrivingQuiz from "../../components/ui/DrivingQuiz";
 import useReportMapReports from "../../hooks/useReportMapReports";
 import useLiveLocation from "../../hooks/useLiveLocation";
@@ -392,12 +393,16 @@ export default function MapPage() {
     lastError: liveLocationLastError,
     status: liveLocationStatus,
     lastUpdatedAt: liveLocationUpdatedAt,
-    startTracking: startLiveLocationTracking,
+    isFallback: liveLocationIsFallback,
+    isLoading: liveLocationIsLoading,
+    errorMessage: liveLocationErrorMessage,
+    startWatching: startLiveLocationTracking,
+    retryLocation: retryLiveLocation,
   } = useLiveLocation({
     autoStart: false,
     enableHighAccuracy: true,
-    maximumAge: 0,
-    timeout: 15000,
+    maximumAge: 5000,
+    timeout: 10000,
   });
 
   // Whether the map is displayed in fullscreen mode
@@ -431,7 +436,9 @@ export default function MapPage() {
 
   const contextPointKey = useMemo(() => toPointKey(contextPoint), [contextPoint]);
   const hasGrantedLocation = useMemo(
-    () => locationStatus === "granted" && normalizePoint(userPosition) != null,
+    () =>
+      (locationStatus === "granted" || locationStatus === "fallback") &&
+      normalizePoint(userPosition) != null,
     [locationStatus, userPosition],
   );
   const {
@@ -475,6 +482,14 @@ export default function MapPage() {
   useEffect(() => {
     if (!liveLocation) return;
     setUserPosition(liveLocation);
+    if (liveLocation.isFallback) {
+      // Keep weather/place lookups working off fallback coords, but flag it.
+      setLocationStatus("fallback");
+      setLocationWarning(
+        "Using fallback test location because GPS is unavailable."
+      );
+      return;
+    }
     setLocationStatus("granted");
     setLocationError("");
     setLocationWarning(buildLocationWarning(liveLocation));
@@ -1091,6 +1106,11 @@ export default function MapPage() {
     requestLocation();
   };
 
+  const handleRetryGps = useCallback(() => {
+    setLocationError("");
+    retryLiveLocation();
+  }, [retryLiveLocation]);
+
   /* ────────── Fullscreen inline styles (applied when toggled) ────────── */
 
   const fullscreenStyle = isFullscreen
@@ -1393,11 +1413,30 @@ export default function MapPage() {
                 liveLocationStatus={liveLocationStatus}
                 liveLocationUpdatedAt={liveLocationUpdatedAt}
                 liveLocationLastError={liveLocationLastError}
+                liveLocationIsFallback={liveLocationIsFallback}
                 onSelectedTimestampChange={setSelectedTimestampIso}
                 weatherData={weatherData}
                 placeName={resolvedPlaceName}
                 riskPanelTarget={isFullscreen ? null : riskPanelHost}
               />
+              {liveLocationIsFallback ? (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 12,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 1000,
+                  }}
+                >
+                  <FallbackLocationBanner
+                    isFallback={liveLocationIsFallback}
+                    isLoading={liveLocationIsLoading}
+                    errorMessage={liveLocationErrorMessage}
+                    onRetry={handleRetryGps}
+                  />
+                </div>
+              ) : null}
             </div>
 
             {/* ── Status bar at the bottom of the map ── */}

@@ -66,6 +66,11 @@ const {
 } = require("../../services/risk/weatherProvider");
 const { getTwilightFields, buildTwilightFallback } = require("../../services/risk/twilightProvider");
 const {
+  predictPersonalizedOccurrenceForUser: predictOccurrenceForRouteSegments,
+  trainedRiskLevelFromProbability,
+  TRAINED_MODEL_PROBABILITY_WARNING,
+} = require("../../services/occurrenceRiskService");
+const {
   buildDangerRow,
   safeRowNumber,
   safeRowCategory,
@@ -1698,6 +1703,131 @@ exports.predictRouteGuide = async (req, res) => {
       geometryHash,
     });
     timer.mark("response_formatting");
+
+    // ── Trained occurrence-model enrichment (additive, never breaks severity).
+    //
+    // Each route segment with a numeric `segment_id` gets an `occurrence` block
+    // with modelOnly + personalized. The trained model lives in Flask; if it
+    // is unreachable we skip enrichment silently — severity scoring is the
+    // primary signal for navigation and must not be blocked by an occurrence
+    // outage.
+    try {
+      const occurrenceUserId =
+        req.user?.userId || req.user?.id || req.body?.user_id || req.body?.userId || null;
+      const allSegmentIds = new Set();
+      for (const route of responsePayload.routes || []) {
+        for (const segment of route?.segments || []) {
+          if (parseNumericRoadSegmentId(segment?.segment_id)) {
+            allSegmentIds.add(String(segment.segment_id));
+          }
+        }
+      }
+      if (allSegmentIds.size > 0) {
+        const occurrenceResult = await predictOccurrenceForRouteSegments({
+          userId: occurrenceUserId,
+          segmentIds: Array.from(allSegmentIds),
+          targetTime: timestampIso || new Date(),
+          weather: null,
+          deadline: req.deadline,
+        });
+        if (occurrenceResult.available) {
+          const bySegmentId = new Map(
+            occurrenceResult.segments.map((entry) => [String(entry.road_segment_id), entry]),
+          );
+          for (const route of responsePayload.routes || []) {
+            const modelOnlyProbs = [];
+            const personalizedProbs = [];
+            let highestModel = null;
+            let highestPersonalized = null;
+            for (const segment of route?.segments || []) {
+              const occurrence = bySegmentId.get(String(segment?.segment_id));
+              if (!occurrence) continue;
+              segment.occurrence = {
+                modelOnly: occurrence.modelOnly,
+                personalized: occurrence.personalized,
+                driver_meta: occurrence.driver_meta,
+              };
+              const modelProb = Number(occurrence.modelOnly?.calibrated_probability);
+              const personalizedProb = Number(occurrence.personalized?.calibrated_probability);
+              if (Number.isFinite(modelProb)) {
+                modelOnlyProbs.push(modelProb);
+                if (!highestModel || modelProb > highestModel.calibrated_probability) {
+                  highestModel = {
+                    segment_id: segment.segment_id,
+                    calibrated_probability: modelProb,
+                    risk_level: occurrence.modelOnly.risk_level,
+                  };
+                }
+              }
+              if (Number.isFinite(personalizedProb)) {
+                personalizedProbs.push(personalizedProb);
+                if (!highestPersonalized || personalizedProb > highestPersonalized.calibrated_probability) {
+                  highestPersonalized = {
+                    segment_id: segment.segment_id,
+                    calibrated_probability: personalizedProb,
+                    risk_level: occurrence.personalized.risk_level,
+                  };
+                }
+              }
+            }
+            if (modelOnlyProbs.length > 0 || personalizedProbs.length > 0) {
+              const avgModel = modelOnlyProbs.length
+                ? modelOnlyProbs.reduce((sum, x) => sum + x, 0) / modelOnlyProbs.length
+                : null;
+              const avgPersonalized = personalizedProbs.length
+                ? personalizedProbs.reduce((sum, x) => sum + x, 0) / personalizedProbs.length
+                : null;
+              const driverApplied = (route.segments || []).some(
+                (segment) => segment?.occurrence?.personalized?.driver_behavior_applied,
+              );
+              route.occurrence_summary = {
+                model_version: occurrenceResult.model_version,
+                probability_warning: occurrenceResult.probability_warning,
+                driver_behavior_applied: driverApplied,
+                average_modelOnly_probability:
+                  avgModel == null ? null : Number(avgModel.toFixed(6)),
+                average_personalized_probability:
+                  avgPersonalized == null ? null : Number(avgPersonalized.toFixed(6)),
+                average_modelOnly_risk_level:
+                  avgModel == null ? null : trainedRiskLevelFromProbability(avgModel),
+                average_personalized_risk_level:
+                  avgPersonalized == null ? null : trainedRiskLevelFromProbability(avgPersonalized),
+                highest_modelOnly_segment: highestModel,
+                highest_personalized_segment: highestPersonalized,
+                segments_scored: modelOnlyProbs.length,
+              };
+            }
+          }
+          responsePayload.occurrence_model = {
+            available: true,
+            model_version: occurrenceResult.model_version,
+            selected_model: occurrenceResult.selected_model,
+            calibration_method: occurrenceResult.calibration_method,
+            decision_threshold: occurrenceResult.decision_threshold,
+            probability_warning: occurrenceResult.probability_warning,
+            driver_profile: occurrenceResult.driver_profile,
+          };
+        } else {
+          responsePayload.occurrence_model = {
+            available: false,
+            reason: occurrenceResult.error?.message || "Occurrence model unavailable",
+            probability_warning: TRAINED_MODEL_PROBABILITY_WARNING,
+          };
+        }
+      }
+      timer.mark("occurrence_enrichment");
+    } catch (occurrenceError) {
+      console.warn(
+        "[Node] /api/risk/route occurrence enrichment failed:",
+        occurrenceError?.message || occurrenceError,
+      );
+      responsePayload.occurrence_model = {
+        available: false,
+        reason: occurrenceError?.message || "Occurrence enrichment failed",
+        probability_warning: TRAINED_MODEL_PROBABILITY_WARNING,
+      };
+      timer.mark("occurrence_enrichment");
+    }
 
     const persistItems = responsePayload.routes.flatMap((route) =>
       (Array.isArray(route?.segments) ? route.segments : [])

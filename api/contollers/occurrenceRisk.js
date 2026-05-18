@@ -2,7 +2,7 @@ const router = require("express").Router();
 const createError = require("http-errors");
 
 const {
-  predictOccurrenceRiskForSegment,
+  predictOccurrenceRisk,
   listUserOccurrenceRiskHistory,
   canViewOccurrenceRisk,
 } = require("../services/occurrenceRiskService");
@@ -23,7 +23,7 @@ router.post("/segment", verifyToken, async (req, res, next) => {
   try {
     const body = req.body && typeof req.body === "object" ? req.body : {};
     const personalize = body.personalize !== false;
-    const result = await predictOccurrenceRiskForSegment({
+    const result = await predictOccurrenceRisk({
       userId: personalize ? req.user.userId : null,
       roadSegmentId: body.roadSegmentId ?? body.road_segment_id,
       timeBucket: body.timeBucket ?? body.time_bucket,
@@ -31,6 +31,7 @@ router.post("/segment", verifyToken, async (req, res, next) => {
       roadFeaturesOverride: body.roadFeatures || null,
       contextOverride: body.context || null,
       persist: body.persist !== false,
+      deadline: req.deadline,
     });
     return res.status(200).json(result);
   } catch (error) {

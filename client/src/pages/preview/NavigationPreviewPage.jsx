@@ -11,6 +11,7 @@ import ShieldIcon from '@mui/icons-material/Shield'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 
 import useLiveLocation from '../../hooks/useLiveLocation'
+import FallbackLocationBanner from '../../components/map/FallbackLocationBanner'
 import {
   bearingDegrees,
   formatDistanceMeters,
@@ -117,6 +118,10 @@ export default function NavigationPreviewPage() {
     lastError,
     status,
     lastUpdatedAt,
+    isFallback,
+    isLoading,
+    errorMessage,
+    retryLocation,
     startTracking,
   } = useLiveLocation({ autoStart: false })
 
@@ -222,6 +227,25 @@ export default function NavigationPreviewPage() {
   return (
     <main className={`nav-preview-page${routePanelOpen ? ' is-route-panel-open' : ''}`}>
       <div ref={mapNodeRef} className="nav-preview-map" />
+
+      {isFallback ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 30,
+          }}
+        >
+          <FallbackLocationBanner
+            isFallback={isFallback}
+            isLoading={isLoading}
+            errorMessage={errorMessage}
+            onRetry={retryLocation}
+          />
+        </div>
+      ) : null}
 
       <nav className="nav-preview-tabs" aria-label="Preview modes">
         <button type="button" className="is-active">

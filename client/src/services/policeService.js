@@ -1,5 +1,11 @@
 import { userRequest } from '../requestMethodes'
 import { normalizeReportMediaUrl } from './reportsService'
+import {
+  ALLOW_FALLBACK_LOCATION_UPLOAD,
+  FALLBACK_LAT,
+  FALLBACK_LNG,
+  buildFallbackLocation,
+} from '../config/fallbackLocation'
 
 const POLICE_LOCATION_CACHE_KEY = 'siara.police.lastKnownLocation'
 const POLICE_LOCATION_CACHE_MAX_AGE_MS = 15 * 60 * 1000
@@ -418,12 +424,53 @@ export async function updatePoliceLocation(payload) {
   }
 }
 
+function buildFallbackSyncResult(reason) {
+  // Fallback coords are visualised client-side but, by default, are NOT
+  // uploaded to the backend so an officer's saved position is never
+  // overwritten with a fake test fix. Set VITE_ALLOW_FALLBACK_LOCATION_UPLOAD
+  // to "true" to opt in to uploads (the payload will carry
+  // source = "fallback_test").
+  const fallback = buildFallbackLocation()
+  return {
+    ok: true,
+    coords: { lat: FALLBACK_LAT, lng: FALLBACK_LNG },
+    accuracyM: null,
+    capturedAt: fallback.timestamp,
+    source: 'fallback',
+    isFallback: true,
+    state: 'using_fallback',
+    reason,
+    uploaded: false,
+    warning: 'Fallback location is for local testing only and was not sent as live police position.',
+  }
+}
+
+async function uploadFallbackPoliceLocation(reason) {
+  if (!ALLOW_FALLBACK_LOCATION_UPLOAD) return false
+  try {
+    await updatePoliceLocation({
+      lat: FALLBACK_LAT,
+      lng: FALLBACK_LNG,
+      accuracyM: null,
+      heading: null,
+      speedKmh: null,
+      capturedAt: new Date().toISOString(),
+      source: 'fallback_test',
+      isFallback: true,
+      reason: reason || 'fallback_enabled',
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function syncPoliceBrowserLocation() {
   const cachedLocation = readCachedPoliceLocation()
 
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
-    return cachedLocation
-      ? {
+    if (cachedLocation) {
+      return {
         ok: true,
         coords: cachedLocation.coords,
         accuracyM: cachedLocation.accuracyM,
@@ -432,7 +479,10 @@ export async function syncPoliceBrowserLocation() {
         state: 'using_last_known',
         reason: 'unsupported',
       }
-      : { ok: false, reason: 'unsupported', state: 'location_unavailable' }
+    }
+    const fallbackResult = buildFallbackSyncResult('unsupported')
+    fallbackResult.uploaded = await uploadFallbackPoliceLocation('unsupported')
+    return fallbackResult
   }
 
   const position = await new Promise((resolve, reject) => {
@@ -457,11 +507,9 @@ export async function syncPoliceBrowserLocation() {
       }
     }
 
-    return {
-      ok: false,
-      reason,
-      state: reason === 'permission_denied' ? 'permission_denied' : 'location_unavailable',
-    }
+    const fallbackResult = buildFallbackSyncResult(reason)
+    fallbackResult.uploaded = await uploadFallbackPoliceLocation(reason)
+    return fallbackResult
   }
 
   const locationCheck = shouldUseBrowserLocation(position)
@@ -479,12 +527,9 @@ export async function syncPoliceBrowserLocation() {
       }
     }
 
-    return {
-      ok: false,
-      reason: locationCheck.reason,
-      state: locationCheck.reason === 'permission_denied' ? 'permission_denied' : 'location_unavailable',
-      accuracyM: locationCheck.accuracyM || null,
-    }
+    const fallbackResult = buildFallbackSyncResult(locationCheck.reason)
+    fallbackResult.uploaded = await uploadFallbackPoliceLocation(locationCheck.reason)
+    return fallbackResult
   }
 
   const nextLocation = {
@@ -508,7 +553,7 @@ export async function syncPoliceBrowserLocation() {
           ? null
           : Number(position.coords.speed) * 3.6,
       capturedAt: nextLocation.capturedAt,
-      source: 'browser',
+      source: 'gps',
     })
 
     lastLocationSyncMeta = {
@@ -524,7 +569,7 @@ export async function syncPoliceBrowserLocation() {
     coords: nextLocation.coords,
     accuracyM: nextLocation.accuracyM,
     capturedAt: nextLocation.capturedAt,
-    source: 'browser',
+    source: 'gps',
     state: 'nearby_loaded',
   }
 }

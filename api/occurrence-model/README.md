@@ -133,18 +133,110 @@ The script reads `inference_sample.json`, POSTs the rows, and asserts that
 [0, 1], that `risk_level` ∈ {low, moderate, high, critical}, and that the
 response contains no `NaN` tokens.
 
-## Deferred work (next PR)
+## Model-only vs personalized (user-facing contract)
 
-These were intentionally scoped out of the integration PR:
+Every request to `POST /api/occurrence-risk/segment` (authenticated) now
+returns **both** values so the UI can render them side by side:
 
-- **DB feature builder** (`buildOccurrenceFeaturesForSegment`,
-  `buildOccurrenceFeaturesForRoute`) joining `gis.road_segments`,
-  `ml.segment_time_features`, `gis.accident_events` and the weather cache.
-- **Persistence** of trained-model predictions into `ml.risk_predictions`
-  (global) and `app.user_occurrence_risk_predictions` (personalized).
-- **Route-risk integration** — replacing the rule-fusion call in the
-  road-guidance path with the trained model, with the rule-based scorer kept
-  as the Flask-down fallback.
+```jsonc
+{
+  "scoring_source": "trained_model",   // or "rule_fusion" if Flask is down
+  "model_version": "occurrence_beta_v1",
+  "probability_warning": "The model was trained with sampled negatives. …",
+  "modelOnly": {
+    "calibrated_probability": 0.12,
+    "risk_level": "moderate",
+    "risk_score": 0.41,
+    "confidence_score": 0.63,
+    "top_factors": [ … ]
+  },
+  "personalized": {
+    "calibrated_probability": 0.15,
+    "risk_level": "high",
+    "driver_behavior_applied": true,
+    "behavior_multiplier": 1.22,
+    "behavior_delta": 0.03,
+    "driver_risk_score": 72,
+    "driver_result_label": "risky",
+    "explanation": {
+      "base_model": "…",
+      "driver_effect": "…"
+    }
+  },
+  "driver_meta": { … },
+  "persisted": {
+    "model_version": "occurrence_beta_v1",
+    "global_prediction_id": 1234,
+    "personalized_prediction_id": 5678
+  }
+}
+```
 
-The existing rule-based path at `api/services/occurrenceRiskService.js` is
-untouched and continues to serve `/api/occurrence-risk/*`.
+Rules enforced server-side:
+
+- `modelOnly` is **always** the raw occurrence_beta_v1 output. It is never
+  overwritten by personalization.
+- `personalized` is derived from `modelOnly` × the driver-behavior multiplier.
+- If the user has no `app.user_driver_quiz_profile` row, `personalized`
+  equals `modelOnly`, `driver_behavior_applied` is `false`, and
+  `behavior_multiplier` is `1.0`.
+
+## Driver-behavior formula
+
+```
+behavior_multiplier  = clamp(1 + (driver_risk_score - 50)/100, 0.70, 1.50)
+personalized_prob    = clamp(modelOnly.calibrated_probability × multiplier, 0, 1)
+personalized_level   = thresholds(personalized_prob)   // moderate ≥ 0.05, …
+```
+
+Examples: quiz score `20` → ×0.70 (clamped), `50` → ×1.00, `80` → ×1.30,
+`100` → ×1.50 (clamped). Risk-level thresholds are pulled from
+`training_manifest.json` and applied identically to model and personalized
+probabilities.
+
+## Route guidance (`POST /api/risk/route`)
+
+Severity overlay scoring is unchanged. After the severity pass the route
+response is enriched with an additional occurrence pass:
+
+- Each segment with a numeric `segment_id` gets an `occurrence` block:
+  `{ modelOnly, personalized, driver_meta }`.
+- Each route gets a `route.occurrence_summary` with the average modelOnly
+  and personalized probabilities/levels and the highest-risk segment for each.
+- The response root carries `occurrence_model` with `available`,
+  `model_version`, and the sampled-negatives warning.
+
+If Flask is unreachable, occurrence enrichment is skipped silently — severity
+scoring (the primary navigation signal) is never blocked.
+
+## Trained-model + rule-fusion coexistence
+
+`api/services/occurrenceRiskService.js` exposes a single entry point —
+`predictOccurrenceRisk()` — that:
+
+1. Calls the trained occurrence_beta_v1 model via Flask first.
+2. Persists results into `ml.risk_predictions` and (for authenticated calls)
+   `app.user_occurrence_risk_predictions`. Persistence failure does **not**
+   fail the response.
+3. Falls back to the rule-fusion scorer only on 5xx / network failure.
+4. Tags the response with `scoring_source: "trained_model" | "rule_fusion"`.
+
+4xx errors (bad input, segment not found) bubble up — they are not silently
+hidden behind the rule-based fallback.
+
+## Smoke test
+
+```bash
+cd api
+node scripts/testOccurrenceRisk.js              # JS helpers (no network needed)
+node scripts/testOccurrenceModel.js             # Flask only, direct
+node scripts/testOccurrenceModel.js --via-node  # via Node proxy
+```
+
+`testOccurrenceRisk.js` covers:
+- Rule-fusion baseline (5 cases).
+- Trained-model JS-side helpers: risk thresholds, level mapping, and the
+  driver-behavior multiplier across risky/safe/no-quiz scenarios.
+- Optional network checks against Flask `POST /risk/occurrence/predict` and
+  Node `POST /api/risk/occurrence/predict`. These skip cleanly when the
+  services aren't reachable (or pass `--skip-network` to skip explicitly).

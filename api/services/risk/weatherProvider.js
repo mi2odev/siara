@@ -793,6 +793,9 @@ function buildCurrentWeatherUiFromSnapshot(snapshot, weatherSource, targetSecond
         : roundNumber(rawVisibilityMeters / 1000, 1),
     wind_kmh: roundNumber(windSpeedKmh, 1),
     wind_direction: mapWindDirection(snapshot.wind_direction_10m, windSpeedMph),
+    // Numeric (degrees from North) for downstream models — `wind_direction`
+    // above is the compass-letter label for the UI and is lossy.
+    wind_direction_deg: safeNumber(snapshot.wind_direction_10m),
     humidity_pct: roundNumber(snapshot.relative_humidity_2m, 0),
     pressure_hpa: roundNumber(snapshot.pressure_msl, 1),
     precipitation_mm: roundNumber(snapshot.precipitation, 2),

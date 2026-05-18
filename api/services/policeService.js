@@ -1652,10 +1652,24 @@ async function updatePoliceLocation(officerUserId, payload = {}, db = pool) {
     normalizeDateTime(payload.capturedAt ?? payload.captured_at, "capturedAt", {
       required: false,
     }) || new Date();
-  const source = normalizeString(payload.source || "device", "source", {
+  const rawSource = normalizeString(payload.source || "device", "source", {
     required: true,
     maxLength: 50,
   });
+  // Accept "gps", "device", "browser", "cached", "fallback", "fallback_test".
+  // Any other string is collapsed to "device" so an attacker cannot poison the
+  // audit trail with arbitrary labels. Fallback variants and an explicit
+  // `isFallback: true` flag both resolve to "fallback_test" so the row is
+  // never confused with a trusted GPS reading downstream.
+  const isFallbackInput = payload.isFallback === true
+    || payload.isFallback === "true"
+    || /^fallback/i.test(rawSource);
+  let source = "device";
+  if (isFallbackInput) {
+    source = "fallback_test";
+  } else if (/^(gps|device|browser|cached)$/i.test(rawSource)) {
+    source = rawSource.toLowerCase();
+  }
 
   const client = await db.connect();
   let locationRow = null;
@@ -1714,6 +1728,7 @@ async function updatePoliceLocation(officerUserId, payload = {}, db = pool) {
         heading,
         speedKmh,
         source,
+        isFallback: source === "fallback_test",
         capturedAt: capturedAt.toISOString(),
       },
     });
