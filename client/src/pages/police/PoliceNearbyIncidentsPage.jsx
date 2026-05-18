@@ -32,6 +32,20 @@ function severityColor(severity) {
 }
 
 function buildLocationState(syncResult, responseLocationRequired) {
+  if (syncResult?.state === 'using_fallback' && syncResult?.coords) {
+    const uploadedNote = syncResult?.uploaded
+      ? ' (uploaded for testing)'
+      : ''
+    return {
+      key: 'using_fallback',
+      message:
+        `Using fallback test location because GPS is unavailable${uploadedNote}.`
+        + (syncResult?.uploaded
+          ? ''
+          : ' Fallback location is for local testing only and was not sent as live police position.'),
+    }
+  }
+
   if (syncResult?.state === 'using_last_known' && syncResult?.coords) {
     return {
       key: 'using_last_known',

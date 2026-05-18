@@ -1331,6 +1331,7 @@ const SiaraMap = ({
   liveLocationStatus = "idle",
   liveLocationUpdatedAt = null,
   liveLocationLastError = null,
+  liveLocationIsFallback = false,
   onSelectedTimestampChange,
   weatherData = null,
   placeName = "",
@@ -1476,8 +1477,14 @@ const SiaraMap = ({
   const overlayBySegmentRef = useRef({});
   const nearbyRoutesRef = useRef([]);
   const userLatLng = useMemo(() => normalizePosition(userPosition), [userPosition]);
+  const isFallbackPosition = useMemo(
+    () => Boolean(liveLocationIsFallback || userPosition?.isFallback || locationStatus === "fallback"),
+    [liveLocationIsFallback, locationStatus, userPosition?.isFallback],
+  );
   const hasGrantedLocation = useMemo(
-    () => locationStatus === "granted" && normalizePosition(userPosition) != null,
+    () =>
+      (locationStatus === "granted" || locationStatus === "fallback") &&
+      normalizePosition(userPosition) != null,
     [locationStatus, userPosition],
   );
   const hasValidUserLocation = useMemo(
@@ -3621,11 +3628,14 @@ const SiaraMap = ({
                     pathOptions={{
                       color: "#ffffff",
                       weight: 2,
-                      fillColor: "#7c3aed",
+                      fillColor: isFallbackPosition ? "#f59e0b" : "#7c3aed",
                       fillOpacity: 0.95,
+                      dashArray: isFallbackPosition ? "4 3" : undefined,
                     }}
                   >
-                    <Tooltip direction="top">Start</Tooltip>
+                    <Tooltip direction="top">
+                      {isFallbackPosition ? "Fallback test start" : "Start"}
+                    </Tooltip>
                   </CircleMarker>
                 )}
                 {normalizePosition(guidedRoute?.destination) && (
@@ -3827,11 +3837,14 @@ const SiaraMap = ({
               pathOptions={{
                 color: "#ffffff",
                 weight: 2,
-                fillColor: "#7c3aed",
+                fillColor: isFallbackPosition ? "#f59e0b" : "#7c3aed",
                 fillOpacity: 1,
+                dashArray: isFallbackPosition ? "4 3" : undefined,
               }}
             >
-              <Tooltip direction="top">You are here</Tooltip>
+              <Tooltip direction="top">
+                {isFallbackPosition ? "Fallback test location" : "You are here"}
+              </Tooltip>
             </CircleMarker>
           )}
         </MapContainer>
@@ -4049,34 +4062,137 @@ const SiaraMap = ({
                     </p>
                   )}
                   {!occurrenceRiskLoading && !occurrenceRiskError && occurrenceRisk && (
-                    <>
-                      <div className="siara-occurrence-card__row">
-                        <span>Road risk</span>
-                        <strong style={{ color: occurrenceRiskColor(occurrenceRisk.global_risk_level) }}>
-                          {Math.round((occurrenceRisk.global_occurrence_score || 0) * 100)}% ·{' '}
-                          {occurrenceRiskLabel(occurrenceRisk.global_risk_level)}
-                        </strong>
-                      </div>
-                      <div className="siara-occurrence-card__row">
-                        <span>Your personalized risk</span>
-                        <strong
-                          style={{ color: occurrenceRiskColor(occurrenceRisk.personalized_risk_level) }}
-                        >
-                          {Math.round((occurrenceRisk.personalized_occurrence_score || 0) * 100)}% ·{' '}
-                          {occurrenceRiskLabel(occurrenceRisk.personalized_risk_level)}
-                        </strong>
-                      </div>
-                      <div className="siara-occurrence-card__meta">
-                        {occurrenceRisk.driver_behavior?.has_driver_profile
-                          ? `Adjusted using your driver behavior quiz (×${
-                              occurrenceRisk.driver_behavior.multiplier?.toFixed?.(2) ?? '1.00'
-                            }).`
-                          : 'No driver quiz result found; neutral adjustment used.'}
-                      </div>
-                      <div className="siara-occurrence-card__warning">
-                        Relative occurrence-risk estimate. Not a calibrated probability yet.
-                      </div>
-                    </>
+                    (() => {
+                      // The new endpoint returns { modelOnly, personalized }. The legacy
+                      // rule-fusion shape (global_occurrence_score / personalized_occurrence_score)
+                      // is still supported as a backwards-compatible fallback so this card
+                      // does not blank out during the migration window.
+                      const modelOnlyBlock = occurrenceRisk.modelOnly || null;
+                      const personalizedBlock = occurrenceRisk.personalized || null;
+                      const driverMeta = occurrenceRisk.driver_meta || {};
+                      const scoringSource = occurrenceRisk.scoring_source || (modelOnlyBlock ? 'trained_model' : 'rule_fusion');
+                      const modelProbability =
+                        modelOnlyBlock?.calibrated_probability != null
+                          ? Number(modelOnlyBlock.calibrated_probability)
+                          : modelOnlyBlock?.risk_score != null
+                            ? Number(modelOnlyBlock.risk_score)
+                            : Number(occurrenceRisk.global_occurrence_score || 0);
+                      const personalizedProbability =
+                        personalizedBlock?.calibrated_probability != null
+                          ? Number(personalizedBlock.calibrated_probability)
+                          : personalizedBlock?.risk_score != null
+                            ? Number(personalizedBlock.risk_score)
+                            : Number(occurrenceRisk.personalized_occurrence_score || 0);
+                      const modelLevel = modelOnlyBlock?.risk_level
+                        || occurrenceRisk.global_risk_level
+                        || 'low';
+                      const personalizedLevel = personalizedBlock?.risk_level
+                        || occurrenceRisk.personalized_risk_level
+                        || modelLevel;
+                      const driverApplied = personalizedBlock?.driver_behavior_applied
+                        ?? occurrenceRisk.driver_behavior?.has_driver_profile
+                        ?? false;
+                      const behaviorMultiplier = Number(
+                        personalizedBlock?.behavior_multiplier
+                        ?? occurrenceRisk.driver_behavior?.multiplier
+                        ?? 1,
+                      );
+                      const behaviorDelta = Number(personalizedBlock?.behavior_delta ?? 0);
+                      const driverScore = personalizedBlock?.driver_risk_score
+                        ?? driverMeta.latest_risk_score
+                        ?? occurrenceRisk.driver_behavior?.latest_risk_score
+                        ?? null;
+                      const driverLabel = personalizedBlock?.driver_result_label
+                        ?? driverMeta.latest_result_label
+                        ?? occurrenceRisk.driver_behavior?.latest_result_label
+                        ?? null;
+                      const driverTitle = personalizedBlock?.driver_result_title
+                        ?? driverMeta.latest_result_title
+                        ?? null;
+                      const baseExplanation = personalizedBlock?.explanation?.base_model
+                        || 'Road/time risk from the trained occurrence model (road, weather, time, history).';
+                      const driverEffectExplanation = personalizedBlock?.explanation?.driver_effect
+                        || (driverApplied
+                          ? 'Personalized using your latest driver quiz result.'
+                          : 'No driver behavior profile available — personalized score equals the model score.');
+                      const probabilityWarning =
+                        occurrenceRisk.probability_warning
+                        || modelOnlyBlock?.probability_warning
+                        || (scoringSource === 'trained_model'
+                          ? 'Probabilities should be interpreted as relative operational risk (model trained with sampled negatives).'
+                          : 'Relative occurrence-risk estimate. Not a calibrated probability yet.');
+                      const modelVersion = occurrenceRisk.model_version
+                        || modelOnlyBlock?.model_version
+                        || 'occurrence_beta_v1';
+                      const showAsProbability = scoringSource === 'trained_model';
+                      return (
+                        <>
+                          <div className="siara-occurrence-card__section">
+                            <div className="siara-occurrence-card__section-title">
+                              Road/time risk from model
+                            </div>
+                            <div className="siara-occurrence-card__row">
+                              <span>{showAsProbability ? 'Calibrated probability' : 'Score'}</span>
+                              <strong style={{ color: occurrenceRiskColor(modelLevel) }}>
+                                {Math.round((modelProbability || 0) * 100)}% ·{' '}
+                                {occurrenceRiskLabel(modelLevel)}
+                              </strong>
+                            </div>
+                            <div className="siara-occurrence-card__meta">
+                              {modelVersion} · source: {scoringSource}
+                            </div>
+                            {Array.isArray(modelOnlyBlock?.top_factors)
+                              && modelOnlyBlock.top_factors.length > 0 && (
+                                <ul className="siara-occurrence-card__factors">
+                                  {modelOnlyBlock.top_factors.slice(0, 3).map((factor, index) => (
+                                    <li key={`${factor?.feature || 'factor'}-${index}`}>
+                                      {factor?.feature || 'factor'} ·{' '}
+                                      {factor?.direction === 'decreases_risk' ? '↓' : '↑'}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                          </div>
+
+                          <div className="siara-occurrence-card__section">
+                            <div className="siara-occurrence-card__section-title">
+                              Personalized risk with your driving behavior
+                            </div>
+                            <div className="siara-occurrence-card__row">
+                              <span>{showAsProbability ? 'Calibrated probability' : 'Score'}</span>
+                              <strong style={{ color: occurrenceRiskColor(personalizedLevel) }}>
+                                {Math.round((personalizedProbability || 0) * 100)}% ·{' '}
+                                {occurrenceRiskLabel(personalizedLevel)}
+                              </strong>
+                            </div>
+                            <div className="siara-occurrence-card__meta">
+                              {driverApplied
+                                ? `Driver quiz applied · ×${behaviorMultiplier.toFixed(2)}${
+                                    Number.isFinite(behaviorDelta) && behaviorDelta !== 0
+                                      ? ` · Δ ${behaviorDelta > 0 ? '+' : ''}${Math.round(behaviorDelta * 100)}pp`
+                                      : ''
+                                  }${driverScore != null ? ` · score ${Math.round(driverScore)}/100` : ''}`
+                                : 'No driver behavior profile is available yet. Complete the driver quiz to personalize this risk.'}
+                            </div>
+                            {(driverTitle || driverLabel) && (
+                              <div className="siara-occurrence-card__meta">
+                                Latest quiz: {driverTitle || driverLabel}
+                              </div>
+                            )}
+                            <div className="siara-occurrence-card__meta">
+                              {baseExplanation}
+                            </div>
+                            <div className="siara-occurrence-card__meta">
+                              {driverEffectExplanation}
+                            </div>
+                          </div>
+
+                          <div className="siara-occurrence-card__warning">
+                            {probabilityWarning}
+                          </div>
+                        </>
+                      );
+                    })()
                   )}
                 </div>
               )}

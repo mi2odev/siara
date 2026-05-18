@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Circle, CircleMarker, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import useLiveLocation from '../../hooks/useLiveLocation'
+import FallbackLocationBanner from './FallbackLocationBanner'
 
 // Default Leaflet marker icons don't load correctly under Vite's bundler
 // because the relative URLs in the CSS get rewritten. Re-bind them once.
@@ -69,7 +70,16 @@ export default function LiveLocationMap({
   zoom = DEFAULT_ZOOM,
   initialCenter = DEFAULT_CENTER,
 }) {
-  const { position, error, status, requestStart } = useLiveLocation()
+  const {
+    position,
+    error,
+    status,
+    isFallback,
+    isLoading,
+    errorMessage,
+    retryLocation,
+    requestStart,
+  } = useLiveLocation()
 
   // followUser starts true so the first valid fix recenters the map.
   const [followUser, setFollowUser] = useState(true)
@@ -86,6 +96,8 @@ export default function LiveLocationMap({
       requestStart()
     }
   }
+
+  const hasAccuracy = Number.isFinite(Number(position?.accuracy))
 
   return (
     <div style={{ position: 'relative', width: '100%', height }}>
@@ -104,15 +116,32 @@ export default function LiveLocationMap({
         <FollowController position={position} followUser={followUser} zoom={zoom} />
 
         {position && (
-          <>
-            <Marker position={[position.lat, position.lng]} />
-            {/* Accuracy halo so the user sees how precise the fix is. */}
-            <Circle
+          isFallback ? (
+            <CircleMarker
               center={[position.lat, position.lng]}
-              radius={position.accuracy}
-              pathOptions={{ color: '#1976d2', fillOpacity: 0.1, weight: 1 }}
-            />
-          </>
+              radius={10}
+              pathOptions={{
+                color: '#ffffff',
+                weight: 2,
+                fillColor: '#f59e0b',
+                fillOpacity: 0.95,
+                dashArray: '4 3',
+              }}
+            >
+              <Tooltip direction="top">Fallback test location</Tooltip>
+            </CircleMarker>
+          ) : (
+            <>
+              <Marker position={[position.lat, position.lng]} />
+              {hasAccuracy && (
+                <Circle
+                  center={[position.lat, position.lng]}
+                  radius={Number(position.accuracy)}
+                  pathOptions={{ color: '#1976d2', fillOpacity: 0.1, weight: 1 }}
+                />
+              )}
+            </>
+          )
         )}
       </MapContainer>
 
@@ -138,9 +167,27 @@ export default function LiveLocationMap({
         My Location
       </button>
 
-      {/* Lightweight status banner for the four error cases. */}
-      {status !== 'watching' && (
-        <StatusBanner status={status} error={error} onRetry={requestStart} />
+      {isFallback ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+          }}
+        >
+          <FallbackLocationBanner
+            isFallback={isFallback}
+            isLoading={isLoading}
+            errorMessage={errorMessage}
+            onRetry={retryLocation}
+          />
+        </div>
+      ) : (
+        status !== 'watching' && (
+          <StatusBanner status={status} error={error} onRetry={retryLocation} />
+        )
       )}
     </div>
   )

@@ -1,4 +1,6 @@
 const pool = require("../db");
+const { postToFlask } = require("./risk/mlClient");
+const { getCurrentWeatherUi } = require("./risk/weatherProvider");
 
 const MODEL_NAME = "siara_occurrence_rule_fusion";
 const MODEL_VERSION_TAG = "occurrence_v1_rule_fusion";
@@ -9,6 +11,21 @@ const MODEL_ARTIFACT_PATH = "internal://rule-fusion/occurrence_v1";
 const MODEL_DATA_SOURCE = "SIARA_DB";
 const PROTOTYPE_WARNING =
   "Prototype occurrence score. This is not yet a trained calibrated occurrence probability.";
+
+// Trained occurrence model (occurrence_beta_v1) constants. The actual joblib
+// artifacts live in api/occurrence-model/occurrence_betav1_final/ and are
+// loaded by the Flask service — we never touch them from Node.
+const TRAINED_MODEL_NAME = "occurrence_beta_v1";
+const TRAINED_MODEL_FEATURE_SET = "occurrence_beta_v1_23_features";
+const TRAINED_MODEL_ALGORITHM = "lightgbm";
+const TRAINED_MODEL_CALIBRATION = "isotonic";
+const TRAINED_MODEL_ARTIFACT_PATH = "api/occurrence-model/occurrence_betav1_final";
+const TRAINED_MODEL_DATA_SOURCE = "US_Accidents + OSM + weather cache";
+const TRAINED_MODEL_FLASK_PREDICT = "/risk/occurrence/predict";
+const TRAINED_MODEL_PROBABILITY_WARNING =
+  "The model was trained with sampled negatives. Calibrated probabilities should be interpreted as relative operational risk until recalibrated on realistic local exposure.";
+const TRAINED_MODEL_RISK_THRESHOLDS = { moderate: 0.05, high: 0.2, critical: 0.5 };
+const TRAINED_MODEL_DECISION_THRESHOLD = 0.2;
 
 const SCORE_MIN = 0.01;
 const SCORE_MAX = 0.99;
@@ -895,6 +912,1094 @@ async function listUserOccurrenceRiskHistory(userId, { limit = 20, offset = 0 } 
   };
 }
 
+// ─── Trained occurrence model (occurrence_beta_v1) helpers ──────────────────
+
+function trainedRiskLevelFromProbability(probability) {
+  const numeric = Number(probability);
+  if (!Number.isFinite(numeric)) return "low";
+  if (numeric >= TRAINED_MODEL_RISK_THRESHOLDS.critical) return "critical";
+  if (numeric >= TRAINED_MODEL_RISK_THRESHOLDS.high) return "high";
+  if (numeric >= TRAINED_MODEL_RISK_THRESHOLDS.moderate) return "moderate";
+  return "low";
+}
+
+function trainedBooleanFlag(value) {
+  if (value === true || value === 1 || value === "1" || value === "true" || value === "T" || value === "t") {
+    return "T";
+  }
+  return "F";
+}
+
+function trainedOnewayFlag(value) {
+  if (value === true || value === 1 || value === "1" || value === "true" || value === "T" || value === "t" || value === "yes") {
+    return "T";
+  }
+  return "B";
+}
+
+function trainedNumericOrNull(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+// ─── Weather unit conversions (model-side) ──────────────────────────────────
+// The occurrence model was trained on Meteostat units: Celsius, %, mm,
+// degrees, km/h, hPa. The existing /risk/current helper (getCurrentWeatherUi)
+// already returns weather in those units, so most fields map 1:1. The
+// conversions below cover the few callers that may still hand us
+// Fahrenheit/inches/mph (e.g. raw payloads from the danger-zone overlay
+// service).
+
+function fahrenheitToCelsius(value) {
+  const numeric = trainedNumericOrNull(value);
+  return numeric == null ? null : (numeric - 32) * (5 / 9);
+}
+
+function inHgToHpa(value) {
+  const numeric = trainedNumericOrNull(value);
+  return numeric == null ? null : numeric * 33.8638866667;
+}
+
+function mphToKmhLocal(value) {
+  const numeric = trainedNumericOrNull(value);
+  return numeric == null ? null : numeric * 1.609344;
+}
+
+function inchesToMm(value) {
+  const numeric = trainedNumericOrNull(value);
+  return numeric == null ? null : numeric * 25.4;
+}
+
+// Magnus approximation for dew point in Celsius.
+// Returns null if temperature or humidity are missing/invalid.
+function calculateDewPointC(tempC, rhum) {
+  const t = trainedNumericOrNull(tempC);
+  const h = trainedNumericOrNull(rhum);
+  if (t == null || h == null || h <= 0) return null;
+  const a = 17.27;
+  const b = 237.7;
+  const alpha = (a * t) / (b + t) + Math.log(h / 100);
+  const denominator = a - alpha;
+  if (denominator === 0) return null;
+  return (b * alpha) / denominator;
+}
+
+function roundOrNull(value, digits = 2) {
+  const numeric = trainedNumericOrNull(value);
+  if (numeric == null) return null;
+  const factor = 10 ** digits;
+  return Math.round(numeric * factor) / factor;
+}
+
+// Convert any of the weather payload shapes SIARA produces into the seven
+// occurrence-model weather features. Accepts:
+//   - getCurrentWeatherUi() output (temperature_c, humidity_pct, ...)
+//   - raw model rows (Temperature(F), Humidity(%), Pressure(in), ...)
+//   - hybrid payloads (windspeed_10m_kmh / winddirection_10m)
+// Anything missing is returned as null so the trained-model preprocessor
+// can impute it.
+function mapWeatherToOccurrenceFeatures(weather) {
+  if (!weather || typeof weather !== "object") {
+    return {
+      weather_temp: null,
+      weather_dwpt: null,
+      weather_rhum: null,
+      weather_prcp: null,
+      weather_wdir: null,
+      weather_wspd: null,
+      weather_pres: null,
+    };
+  }
+
+  // Temperature → Celsius
+  let weatherTemp = trainedNumericOrNull(
+    weather.weather_temp
+    ?? weather.temperature_c
+    ?? weather.temp_c,
+  );
+  if (weatherTemp == null) {
+    weatherTemp = fahrenheitToCelsius(
+      weather["Temperature(F)"] ?? weather.temperature_f ?? weather.temp_f,
+    );
+  }
+
+  // Relative humidity → %
+  const weatherRhum = trainedNumericOrNull(
+    weather.weather_rhum
+    ?? weather.humidity_pct
+    ?? weather.relative_humidity_2m
+    ?? weather["Humidity(%)"]
+    ?? weather.rhum,
+  );
+
+  // Pressure → hPa
+  let weatherPres = trainedNumericOrNull(
+    weather.weather_pres
+    ?? weather.pressure_hpa
+    ?? weather.pressure_msl
+    ?? weather.pres,
+  );
+  if (weatherPres == null) {
+    weatherPres = inHgToHpa(weather["Pressure(in)"] ?? weather.pressure_in);
+  }
+
+  // Wind speed → km/h (prefer existing km/h, else convert from mph)
+  let weatherWspd = trainedNumericOrNull(
+    weather.weather_wspd
+    ?? weather.windspeed_10m_kmh
+    ?? weather.wind_speed_kmh
+    ?? weather.wind_kmh
+    ?? weather.wspd,
+  );
+  if (weatherWspd == null) {
+    weatherWspd = mphToKmhLocal(
+      weather["Wind_Speed(mph)"]
+      ?? weather.wind_speed_mph
+      ?? weather.wind_mph
+      ?? weather.windspeed_mph,
+    );
+  }
+  // If only windspeed_10m is present without a unit suffix, assume the
+  // Open-Meteo defaults that SIARA's helper requests (km/h). The
+  // wind_speed_10m field from Open-Meteo is in the unit the request asked
+  // for — when callers don't tell us, km/h is the safer assumption for
+  // this codebase because getCurrentWeatherUi already returns km/h.
+  if (weatherWspd == null) {
+    weatherWspd = trainedNumericOrNull(weather.windspeed_10m ?? weather.wind_speed_10m);
+  }
+
+  // Wind direction → degrees (0–360, numeric only)
+  const weatherWdir = trainedNumericOrNull(
+    weather.weather_wdir
+    ?? weather.wind_direction_deg
+    ?? weather.winddirection_10m
+    ?? weather.wind_direction_10m
+    ?? weather.wdir,
+  );
+
+  // Precipitation → mm
+  let weatherPrcp = trainedNumericOrNull(
+    weather.weather_prcp
+    ?? weather.precipitation_mm
+    ?? weather.precip_mm
+    ?? weather.prcp,
+  );
+  if (weatherPrcp == null) {
+    weatherPrcp = inchesToMm(weather["Precipitation(in)"] ?? weather.precipitation_in);
+  }
+
+  // Dew point → Celsius (direct value if provided, else Magnus from temp/rhum)
+  let weatherDwpt = trainedNumericOrNull(
+    weather.weather_dwpt
+    ?? weather.dewpoint_c
+    ?? weather.dwpt,
+  );
+  if (weatherDwpt == null) {
+    const dewpointF = trainedNumericOrNull(weather["Dewpoint(F)"] ?? weather.dewpoint_f);
+    if (dewpointF != null) {
+      weatherDwpt = fahrenheitToCelsius(dewpointF);
+    }
+  }
+  if (weatherDwpt == null) {
+    weatherDwpt = calculateDewPointC(weatherTemp, weatherRhum);
+  }
+
+  return {
+    weather_temp: roundOrNull(weatherTemp, 2),
+    weather_dwpt: roundOrNull(weatherDwpt, 2),
+    weather_rhum: roundOrNull(weatherRhum, 1),
+    weather_prcp: roundOrNull(weatherPrcp, 3),
+    weather_wdir: roundOrNull(weatherWdir, 1),
+    weather_wspd: roundOrNull(weatherWspd, 2),
+    weather_pres: roundOrNull(weatherPres, 2),
+  };
+}
+
+function trainedTimePartsFromBucket(timeBucket) {
+  const dt = new Date(timeBucket);
+  if (Number.isNaN(dt.getTime())) {
+    const error = new Error("Invalid timeBucket for occurrence_beta_v1 features");
+    error.status = 400;
+    throw error;
+  }
+  // Use UTC to keep predictions deterministic against the same payload from
+  // any client timezone — matches how the danger-zone pipeline uses UTC too.
+  const month = dt.getUTCMonth() + 1;
+  const weekday = dt.getUTCDay();
+  const hour = dt.getUTCHours();
+  const hourOfWeek = weekday * 24 + hour;
+  // Saturday = 6, Sunday = 0 in JS — matching the training notebook's "weekend"
+  // convention (treats both weekend days alike).
+  const isWeekend = weekday === 0 || weekday === 6 ? 1 : 0;
+  // Conservative night window: 22:00 → 05:59 inclusive.
+  const isNight = hour >= 22 || hour < 6 ? 1 : 0;
+  return { month, weekday, hour, hourOfWeek, isWeekend, isNight };
+}
+
+async function loadSegmentForTrainedModel(client, roadSegmentId) {
+  const result = await client.query(
+    `
+      select
+        rs.id,
+        coalesce(rs.road_class, '') as road_class,
+        ST_Length(rs.geom::geography) as segment_length_m,
+        ST_Y(ST_Centroid(rs.geom)) as centroid_lat,
+        ST_X(ST_Centroid(rs.geom)) as centroid_lng,
+        to_jsonb(rs.*) as raw
+      from gis.road_segments rs
+      where rs.id = $1
+      limit 1
+    `,
+    [roadSegmentId],
+  );
+  if (result.rowCount === 0) return null;
+  const row = result.rows[0];
+  const raw = row.raw || {};
+  return {
+    id: String(row.id),
+    roadClass: row.road_class || raw.road_class || null,
+    segmentLengthM: trainedNumericOrNull(row.segment_length_m),
+    centroidLat: trainedNumericOrNull(row.centroid_lat),
+    centroidLng: trainedNumericOrNull(row.centroid_lng),
+    oneway: raw.oneway,
+    bridge: raw.bridge ?? raw.is_bridge,
+    tunnel: raw.tunnel ?? raw.is_tunnel,
+  };
+}
+
+async function loadTrainedPastSegmentCounts(client, roadSegmentId, timeBucket, hourOfWeek) {
+  // gis.accident_events.event_time + .location are assumed (the rule-fusion
+  // path uses the same columns at line 425). If the table lacks any of these,
+  // counts default to 0 so a feature row is always produced.
+  try {
+    const isoTime = new Date(timeBucket).toISOString();
+    const result = await client.query(
+      `
+        with seg as (
+          select id, geom from gis.road_segments where id = $1 limit 1
+        )
+        select
+          count(*) filter (
+            where ae.event_time < $2::timestamptz
+          )::int as past_segment_positive_count,
+          count(*) filter (
+            where ae.event_time >= $2::timestamptz - interval '7 days'
+              and ae.event_time < $2::timestamptz
+          )::int as past_segment_positive_count_7d,
+          count(*) filter (
+            where ae.event_time >= $2::timestamptz - interval '30 days'
+              and ae.event_time < $2::timestamptz
+          )::int as past_segment_positive_count_30d,
+          count(*) filter (
+            where ae.event_time < $2::timestamptz
+              and (
+                (extract(dow from ae.event_time)::int * 24)
+                + extract(hour from ae.event_time)::int
+              ) = $3
+          )::int as past_segment_hourofweek_count
+        from gis.accident_events ae, seg
+        where ae.location is not null
+          and ST_DWithin(ae.location::geography, seg.geom::geography, 50)
+      `,
+      [roadSegmentId, isoTime, hourOfWeek],
+    );
+    const row = result.rows[0] || {};
+    return {
+      pastSegmentPositiveCount: Number(row.past_segment_positive_count || 0),
+      pastSegmentPositiveCount7d: Number(row.past_segment_positive_count_7d || 0),
+      pastSegmentPositiveCount30d: Number(row.past_segment_positive_count_30d || 0),
+      pastSegmentHourOfWeekCount: Number(row.past_segment_hourofweek_count || 0),
+    };
+  } catch (error) {
+    logOccurrence("trained_past_segment_counts_unavailable", {
+      message: error?.message,
+      code: error?.code,
+    });
+    return {
+      pastSegmentPositiveCount: 0,
+      pastSegmentPositiveCount7d: 0,
+      pastSegmentPositiveCount30d: 0,
+      pastSegmentHourOfWeekCount: 0,
+    };
+  }
+}
+
+async function loadTrainedPastRoadClassCount(client, roadClass, timeBucket) {
+  if (!roadClass) return 0;
+  try {
+    const isoTime = new Date(timeBucket).toISOString();
+    const result = await client.query(
+      `
+        select count(*)::int as past_road_class_positive_count
+        from gis.accident_events ae
+        join gis.road_segments rs on rs.id = ae.road_segment_id
+        where ae.event_time < $2::timestamptz
+          and lower(coalesce(rs.road_class, '')) = lower($1)
+      `,
+      [roadClass, isoTime],
+    );
+    return Number(result.rows[0]?.past_road_class_positive_count || 0);
+  } catch (error) {
+    logOccurrence("trained_past_road_class_count_unavailable", {
+      message: error?.message,
+      code: error?.code,
+    });
+    return 0;
+  }
+}
+
+async function fetchWeatherForOccurrenceSegment({
+  centroidLat,
+  centroidLng,
+  targetTimeIso,
+  deadline,
+  roadSegmentId,
+}) {
+  if (centroidLat == null || centroidLng == null) {
+    logOccurrence("weather_enrichment_skipped", {
+      roadSegmentId,
+      reason: "segment_centroid_unavailable",
+    });
+    return { weatherPayload: null, fallbackUsed: true };
+  }
+  try {
+    const weatherPayload = await getCurrentWeatherUi(
+      centroidLat,
+      centroidLng,
+      targetTimeIso,
+      deadline,
+    );
+    return { weatherPayload: weatherPayload || null, fallbackUsed: !weatherPayload };
+  } catch (error) {
+    console.warn(
+      "[occurrence-risk] weather_enrichment_failed",
+      JSON.stringify({
+        roadSegmentId,
+        centroidLat,
+        centroidLng,
+        targetTimeIso,
+        message: error?.message,
+        code: error?.code,
+      }),
+    );
+    return { weatherPayload: null, fallbackUsed: true };
+  }
+}
+
+async function buildOccurrenceFeaturesForSegment({
+  roadSegmentId,
+  targetTime,
+  weather = null,
+  deadline = null,
+  db = pool,
+} = {}) {
+  const segmentIdText = parsePositiveBigint(roadSegmentId);
+  if (!segmentIdText) {
+    const error = new Error("roadSegmentId must be a positive integer");
+    error.status = 400;
+    throw error;
+  }
+  const timeParts = trainedTimePartsFromBucket(targetTime);
+  const truncatedTime = coerceTimeBucket(targetTime);
+
+  const client = db === pool ? await db.connect() : db;
+  const useTransaction = db === pool;
+  try {
+    const segment = await loadSegmentForTrainedModel(client, segmentIdText);
+    if (!segment) {
+      const error = new Error("road segment not found");
+      error.status = 404;
+      throw error;
+    }
+
+    const [segmentCounts, roadClassCount] = await Promise.all([
+      loadTrainedPastSegmentCounts(
+        client,
+        segmentIdText,
+        truncatedTime,
+        timeParts.hourOfWeek,
+      ),
+      loadTrainedPastRoadClassCount(client, segment.roadClass, truncatedTime),
+    ]);
+
+    // Weather enrichment: prefer the caller-supplied payload (e.g. a unit test
+    // override), otherwise hit the existing /risk/current helper so we reuse
+    // the same Open-Meteo client + cache that powers /risk/current and
+    // /risk/overlay — no duplicate API code.
+    let weatherFallbackUsed = false;
+    let weatherSource = weather ? "caller_supplied" : null;
+    let weatherPayload = weather || null;
+    if (!weatherPayload) {
+      const fetched = await fetchWeatherForOccurrenceSegment({
+        centroidLat: segment.centroidLat,
+        centroidLng: segment.centroidLng,
+        targetTimeIso: truncatedTime.toISOString(),
+        deadline,
+        roadSegmentId: segmentIdText,
+      });
+      weatherPayload = fetched.weatherPayload;
+      weatherFallbackUsed = fetched.fallbackUsed;
+      weatherSource = fetched.weatherPayload ? "open_meteo_current" : "fallback_null";
+    }
+
+    const weatherFeatures = mapWeatherToOccurrenceFeatures(weatherPayload);
+
+    // Build the 23-feature row in the exact order Flask expects (Flask reorders
+    // by feature_list.json anyway, but keeping the local ordering aligned makes
+    // diffs easier to read).
+    const features = {
+      month: timeParts.month,
+      weekday: timeParts.weekday,
+      hour: timeParts.hour,
+      hour_of_week: timeParts.hourOfWeek,
+      is_weekend: timeParts.isWeekend,
+      is_night: timeParts.isNight,
+      road_class: segment.roadClass || "unknown",
+      segment_length_m: segment.segmentLengthM,
+      oneway: trainedOnewayFlag(segment.oneway),
+      bridge: trainedBooleanFlag(segment.bridge),
+      tunnel: trainedBooleanFlag(segment.tunnel),
+      ...weatherFeatures,
+      past_segment_positive_count: segmentCounts.pastSegmentPositiveCount,
+      past_segment_positive_count_7d: segmentCounts.pastSegmentPositiveCount7d,
+      past_segment_positive_count_30d: segmentCounts.pastSegmentPositiveCount30d,
+      past_road_class_positive_count: roadClassCount,
+      past_segment_hourofweek_count: segmentCounts.pastSegmentHourOfWeekCount,
+    };
+
+    const hasWeather = Object.values(weatherFeatures).some((value) => value != null);
+    logOccurrence("weather_features_built", {
+      roadSegmentId: segmentIdText,
+      hasWeather,
+      weather_temp: weatherFeatures.weather_temp,
+      weather_rhum: weatherFeatures.weather_rhum,
+      weather_prcp: weatherFeatures.weather_prcp,
+      weather_wspd: weatherFeatures.weather_wspd,
+      weather_pres: weatherFeatures.weather_pres,
+      weather_wdir: weatherFeatures.weather_wdir,
+      weather_dwpt: weatherFeatures.weather_dwpt,
+      weatherSource,
+      weatherFallbackUsed,
+    });
+
+    return {
+      roadSegmentId: segmentIdText,
+      timeBucket: truncatedTime,
+      features,
+      meta: {
+        roadClass: segment.roadClass,
+        segmentLengthM: segment.segmentLengthM,
+        centroidLat: segment.centroidLat,
+        centroidLng: segment.centroidLng,
+        weatherSource,
+        weatherFallbackUsed,
+      },
+    };
+  } finally {
+    if (useTransaction) client.release();
+  }
+}
+
+async function buildOccurrenceFeaturesForRoute({
+  routeSegments,
+  startTime,
+  weather = null,
+  db = pool,
+} = {}) {
+  if (!Array.isArray(routeSegments) || routeSegments.length === 0) return [];
+  const out = [];
+  for (const segment of routeSegments) {
+    const segmentId = parsePositiveBigint(segment?.roadSegmentId ?? segment?.road_segment_id ?? segment?.segment_id);
+    if (!segmentId) continue;
+    try {
+      const featureRow = await buildOccurrenceFeaturesForSegment({
+        roadSegmentId: segmentId,
+        // ETA per segment is optional — fall back to the route start time so a
+        // missing segment ETA never blocks the rest of the route from scoring.
+        targetTime: segment?.targetTime || segment?.estimated_arrival || startTime,
+        weather: segment?.weather || weather,
+        deadline,
+        db,
+      });
+      out.push(featureRow);
+    } catch (error) {
+      logOccurrence("trained_route_feature_skip", {
+        roadSegmentId: segmentId,
+        message: error?.message,
+        status: error?.status,
+      });
+    }
+  }
+  return out;
+}
+
+function buildTrainedPredictionFailure(error, fallback) {
+  const status = error?.response?.status;
+  const message =
+    error?.response?.data?.error || error?.message || "Occurrence model unavailable";
+  return {
+    available: false,
+    httpStatus: status || 502,
+    message,
+    fallback,
+  };
+}
+
+async function predictOccurrenceForSegments({
+  featureRows,
+  deadline = null,
+} = {}) {
+  if (!Array.isArray(featureRows) || featureRows.length === 0) {
+    return {
+      available: true,
+      model_version: TRAINED_MODEL_NAME,
+      predictions: [],
+      probability_interpretation: "relative_operational_risk",
+      decision_threshold: TRAINED_MODEL_DECISION_THRESHOLD,
+      risk_level_thresholds: TRAINED_MODEL_RISK_THRESHOLDS,
+      probability_warning: TRAINED_MODEL_PROBABILITY_WARNING,
+    };
+  }
+
+  let response;
+  try {
+    response = await postToFlask(
+      TRAINED_MODEL_FLASK_PREDICT,
+      { rows: featureRows.map((row) => row.features) },
+      deadline,
+    );
+  } catch (error) {
+    return buildTrainedPredictionFailure(error);
+  }
+
+  const data = response?.data || {};
+  const rawPredictions = Array.isArray(data.predictions) ? data.predictions : [];
+  const predictions = featureRows.map((row, index) => {
+    const prediction = rawPredictions[index] || {};
+    const calibrated = trainedNumericOrNull(prediction.calibrated_probability);
+    return {
+      road_segment_id: row.roadSegmentId,
+      time_bucket: row.timeBucket instanceof Date
+        ? row.timeBucket.toISOString()
+        : row.timeBucket,
+      risk_score: trainedNumericOrNull(prediction.risk_score),
+      calibrated_probability: calibrated,
+      risk_level: calibrated == null
+        ? "unknown"
+        : prediction.risk_level || trainedRiskLevelFromProbability(calibrated),
+      confidence_score: trainedNumericOrNull(prediction.confidence_score),
+      top_factors: Array.isArray(prediction.top_factors) ? prediction.top_factors : [],
+      explanation_source: prediction.explanation_source || null,
+      model_version: data.model_version || TRAINED_MODEL_NAME,
+      meta: row.meta || null,
+    };
+  });
+
+  return {
+    available: true,
+    model_version: data.model_version || TRAINED_MODEL_NAME,
+    selected_model: data.selected_model || TRAINED_MODEL_ALGORITHM,
+    calibration_method: data.calibration_method || TRAINED_MODEL_CALIBRATION,
+    decision_threshold: data.decision_threshold ?? TRAINED_MODEL_DECISION_THRESHOLD,
+    risk_level_thresholds: data.risk_level_thresholds || TRAINED_MODEL_RISK_THRESHOLDS,
+    probability_interpretation: "relative_operational_risk",
+    probability_warning: TRAINED_MODEL_PROBABILITY_WARNING,
+    feature_list: data.feature_list || null,
+    predictions,
+  };
+}
+
+function logTrainedModelSuccess({ segmentCount, modelVersion }) {
+  logOccurrence("trained_model_success", {
+    modelVersion: modelVersion || TRAINED_MODEL_NAME,
+    segmentCount,
+  });
+}
+
+function applyDriverBehaviorToPrediction(modelPrediction, driverProfile) {
+  const driver = driverMultiplierFromProfile(driverProfile);
+  const calibrated = trainedNumericOrNull(modelPrediction?.calibrated_probability);
+
+  if (!driver.hasProfile || calibrated == null) {
+    const sameRiskLevel = calibrated == null
+      ? modelPrediction?.risk_level || "low"
+      : trainedRiskLevelFromProbability(calibrated);
+    return {
+      personalized: {
+        ...modelPrediction,
+        risk_level: sameRiskLevel,
+        driver_behavior_applied: false,
+        driver_risk_score: driverProfile?.latestRiskScore ?? null,
+        driver_result_label: driverProfile?.latestResultLabel ?? null,
+        driver_result_title: driverProfile?.latestResultTitle ?? null,
+        behavior_multiplier: 1,
+        behavior_delta: 0,
+        probability_warning: TRAINED_MODEL_PROBABILITY_WARNING,
+        explanation: {
+          base_model:
+            "The model estimates the road/time risk from road, weather, time, and historical accident patterns.",
+          driver_effect:
+            "No driver quiz profile was available, so the personalized score is the same as the model score.",
+        },
+      },
+      driver,
+    };
+  }
+
+  // Spec formula: clamp(1 + (driver_risk_score - 50)/100, 0.70, 1.50).
+  const driverScore = Number(driverProfile.latestRiskScore);
+  const rawMultiplier = 1 + (driverScore - 50) / 100;
+  const behaviorMultiplier = Math.min(1.5, Math.max(0.7, rawMultiplier));
+  const personalizedProbability = Math.min(
+    1,
+    Math.max(0, calibrated * behaviorMultiplier),
+  );
+  const behaviorDelta = personalizedProbability - calibrated;
+  const personalizedLevel = trainedRiskLevelFromProbability(personalizedProbability);
+
+  let driverEffectText;
+  if (behaviorMultiplier > 1.0001) {
+    driverEffectText = `The personalized risk is higher because the latest driver quiz (score ${Math.round(driverScore)}/100) indicates riskier driving behavior.`;
+  } else if (behaviorMultiplier < 0.9999) {
+    driverEffectText = `The personalized risk is lower because the latest driver quiz (score ${Math.round(driverScore)}/100) indicates safer driving behavior.`;
+  } else {
+    driverEffectText =
+      "The driver quiz score is neutral, so the personalized risk matches the model score.";
+  }
+
+  return {
+    personalized: {
+      ...modelPrediction,
+      calibrated_probability: Number(personalizedProbability.toFixed(6)),
+      risk_score: trainedNumericOrNull(modelPrediction.risk_score),
+      risk_level: personalizedLevel,
+      driver_behavior_applied: true,
+      driver_risk_score: driverScore,
+      driver_result_label: driverProfile.latestResultLabel ?? null,
+      driver_result_title: driverProfile.latestResultTitle ?? null,
+      behavior_multiplier: Number(behaviorMultiplier.toFixed(4)),
+      behavior_delta: Number(behaviorDelta.toFixed(6)),
+      probability_warning: TRAINED_MODEL_PROBABILITY_WARNING,
+      explanation: {
+        base_model:
+          "The model estimates the road/time risk from road, weather, time, and historical accident patterns.",
+        driver_effect: driverEffectText,
+      },
+    },
+    driver,
+  };
+}
+
+async function predictPersonalizedOccurrenceForUser({
+  userId = null,
+  segmentIds,
+  targetTime,
+  weather = null,
+  deadline = null,
+  db = pool,
+} = {}) {
+  const ids = (Array.isArray(segmentIds) ? segmentIds : [segmentIds])
+    .map((id) => parsePositiveBigint(id))
+    .filter(Boolean);
+  if (ids.length === 0) {
+    const error = new Error("At least one valid roadSegmentId is required");
+    error.status = 400;
+    throw error;
+  }
+
+  const truncatedTime = coerceTimeBucket(targetTime);
+  const client = db === pool ? await db.connect() : db;
+  const useTransaction = db === pool;
+  try {
+    const driverProfile = userId ? await loadDriverProfile(client, userId) : null;
+    const featureRows = [];
+    for (const id of ids) {
+      try {
+        const row = await buildOccurrenceFeaturesForSegment({
+          roadSegmentId: id,
+          targetTime: truncatedTime,
+          weather,
+          deadline,
+          db: client,
+        });
+        featureRows.push(row);
+      } catch (error) {
+        logOccurrence("trained_personalized_skip_segment", {
+          roadSegmentId: id,
+          message: error?.message,
+          status: error?.status,
+        });
+      }
+    }
+
+    const trained = await predictOccurrenceForSegments({ featureRows, deadline });
+    if (!trained.available) {
+      return { available: false, error: trained, segments: [] };
+    }
+    logTrainedModelSuccess({
+      segmentCount: trained.predictions?.length || 0,
+      modelVersion: trained.model_version,
+    });
+
+    const segments = trained.predictions.map((modelPrediction) => {
+      const { personalized, driver } = applyDriverBehaviorToPrediction(
+        modelPrediction,
+        driverProfile,
+      );
+      const modelOnly = {
+        road_segment_id: modelPrediction.road_segment_id,
+        time_bucket: modelPrediction.time_bucket,
+        risk_score: modelPrediction.risk_score,
+        calibrated_probability: modelPrediction.calibrated_probability,
+        risk_level: modelPrediction.risk_level,
+        confidence_score: modelPrediction.confidence_score,
+        model_version: modelPrediction.model_version,
+        top_factors: modelPrediction.top_factors,
+        explanation_source: modelPrediction.explanation_source,
+        probability_warning: TRAINED_MODEL_PROBABILITY_WARNING,
+      };
+      return {
+        road_segment_id: modelPrediction.road_segment_id,
+        modelOnly,
+        personalized,
+        driver_meta: {
+          has_driver_profile: driver.hasProfile,
+          latest_risk_score: driverProfile?.latestRiskScore ?? null,
+          latest_result_label: driverProfile?.latestResultLabel ?? null,
+          latest_result_title: driverProfile?.latestResultTitle ?? null,
+          last_completed_at: driverProfile?.lastCompletedAt || null,
+        },
+      };
+    });
+
+    return {
+      available: true,
+      model_version: trained.model_version,
+      selected_model: trained.selected_model,
+      calibration_method: trained.calibration_method,
+      decision_threshold: trained.decision_threshold,
+      risk_level_thresholds: trained.risk_level_thresholds,
+      probability_interpretation: trained.probability_interpretation,
+      probability_warning: trained.probability_warning,
+      driver_profile: driverProfile
+        ? {
+            latest_risk_score: driverProfile.latestRiskScore,
+            latest_result_label: driverProfile.latestResultLabel,
+            latest_result_title: driverProfile.latestResultTitle,
+            last_completed_at: driverProfile.lastCompletedAt,
+          }
+        : null,
+      segments,
+    };
+  } finally {
+    if (useTransaction) client.release();
+  }
+}
+
+async function ensureTrainedModelVersionId(client) {
+  const select = await client.query(
+    `
+      select id
+      from ml.model_versions
+      where model_name = $1
+        and target_type = $2
+      order by created_at desc
+      limit 1
+    `,
+    [TRAINED_MODEL_NAME, MODEL_TARGET_TYPE],
+  );
+  if (select.rowCount > 0) return select.rows[0].id;
+  const insert = await client.query(
+    `
+      insert into ml.model_versions (
+        model_name, target_type, algorithm, feature_set_name,
+        data_source, calibration_method, artifact_path, status,
+        is_active, created_at
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, 'deployed', true, now())
+      returning id
+    `,
+    [
+      TRAINED_MODEL_NAME,
+      MODEL_TARGET_TYPE,
+      TRAINED_MODEL_ALGORITHM,
+      TRAINED_MODEL_FEATURE_SET,
+      TRAINED_MODEL_DATA_SOURCE,
+      TRAINED_MODEL_CALIBRATION,
+      TRAINED_MODEL_ARTIFACT_PATH,
+    ],
+  );
+  return insert.rows[0].id;
+}
+
+async function persistTrainedGlobalPrediction(client, {
+  roadSegmentId,
+  timeBucket,
+  modelVersionId,
+  calibratedProbability,
+  rawRiskScore,
+  riskLevel,
+  confidenceScore,
+}) {
+  const featureRow = await client.query(
+    `
+      select id
+      from ml.segment_time_features
+      where road_segment_id = $1
+        and time_bucket = date_trunc('minute', $2::timestamptz)
+      order by id desc
+      limit 1
+    `,
+    [roadSegmentId, new Date(timeBucket).toISOString()],
+  );
+  const featureId = featureRow.rows[0]?.id || null;
+  const insert = await client.query(
+    `
+      insert into ml.risk_predictions (
+        road_segment_id,
+        model_version_id,
+        feature_id,
+        time_bucket,
+        risk_score,
+        risk_level,
+        calibrated_probability,
+        confidence_score,
+        drift_flag,
+        source_type,
+        status,
+        warning_message,
+        predicted_at
+      )
+      values (
+        $1, $2, $3,
+        date_trunc('minute', $4::timestamptz),
+        $5, $6, $7, $8, false, 'live', 'active', $9, now()
+      )
+      on conflict (road_segment_id, time_bucket, model_version_id)
+      do update set
+        feature_id = excluded.feature_id,
+        risk_score = excluded.risk_score,
+        risk_level = excluded.risk_level,
+        calibrated_probability = excluded.calibrated_probability,
+        confidence_score = excluded.confidence_score,
+        drift_flag = false,
+        source_type = excluded.source_type,
+        status = excluded.status,
+        warning_message = excluded.warning_message,
+        predicted_at = now()
+      returning id
+    `,
+    [
+      roadSegmentId,
+      modelVersionId,
+      featureId,
+      new Date(timeBucket).toISOString(),
+      rawRiskScore == null ? null : Number(rawRiskScore),
+      riskLevel || "low",
+      calibratedProbability == null ? null : Number(calibratedProbability),
+      confidenceScore == null ? null : Number(confidenceScore),
+      TRAINED_MODEL_PROBABILITY_WARNING,
+    ],
+  );
+  return insert.rows[0]?.id || null;
+}
+
+async function persistTrainedPersonalizedPrediction(client, {
+  userId,
+  roadSegmentId,
+  timeBucket,
+  globalPredictionId,
+  modelOnly,
+  personalized,
+  driverProfile,
+}) {
+  if (!userId) return null;
+  const explanation = {
+    model_version: TRAINED_MODEL_NAME,
+    warning: TRAINED_MODEL_PROBABILITY_WARNING,
+    modelOnly: {
+      calibrated_probability: modelOnly?.calibrated_probability ?? null,
+      risk_level: modelOnly?.risk_level ?? null,
+      risk_score: modelOnly?.risk_score ?? null,
+    },
+    personalized: {
+      calibrated_probability: personalized?.calibrated_probability ?? null,
+      risk_level: personalized?.risk_level ?? null,
+      behavior_multiplier: personalized?.behavior_multiplier ?? 1,
+      behavior_delta: personalized?.behavior_delta ?? 0,
+      driver_behavior_applied: personalized?.driver_behavior_applied ?? false,
+    },
+    explanation_text: personalized?.explanation || null,
+    top_factors: modelOnly?.top_factors || [],
+  };
+
+  const result = await client.query(
+    `
+      insert into app.user_occurrence_risk_predictions (
+        user_id,
+        road_segment_id,
+        global_prediction_id,
+        time_bucket,
+        global_occurrence_score,
+        personalized_occurrence_score,
+        global_risk_level,
+        personalized_risk_level,
+        driver_risk_score,
+        driver_result_label,
+        driver_category_scores,
+        explanation,
+        model_version,
+        created_at
+      )
+      values (
+        $1, $2, $3,
+        date_trunc('minute', $4::timestamptz),
+        $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, now()
+      )
+      on conflict (user_id, road_segment_id, time_bucket, model_version)
+      do update set
+        global_prediction_id = excluded.global_prediction_id,
+        global_occurrence_score = excluded.global_occurrence_score,
+        personalized_occurrence_score = excluded.personalized_occurrence_score,
+        global_risk_level = excluded.global_risk_level,
+        personalized_risk_level = excluded.personalized_risk_level,
+        driver_risk_score = excluded.driver_risk_score,
+        driver_result_label = excluded.driver_result_label,
+        driver_category_scores = excluded.driver_category_scores,
+        explanation = excluded.explanation,
+        created_at = now()
+      returning id
+    `,
+    [
+      userId,
+      roadSegmentId,
+      globalPredictionId,
+      new Date(timeBucket).toISOString(),
+      modelOnly?.calibrated_probability ?? null,
+      personalized?.calibrated_probability ?? null,
+      modelOnly?.risk_level || "low",
+      personalized?.risk_level || "low",
+      driverProfile?.latestRiskScore ?? null,
+      driverProfile?.latestResultLabel ?? null,
+      JSON.stringify(driverProfile?.categoryScores || {}),
+      JSON.stringify(explanation),
+      TRAINED_MODEL_NAME,
+    ],
+  );
+  return result.rows[0]?.id || null;
+}
+
+async function predictTrainedOccurrenceRiskForSegment({
+  userId = null,
+  roadSegmentId,
+  timeBucket,
+  weather = null,
+  persist = true,
+  deadline = null,
+  db = pool,
+} = {}) {
+  const segmentIdText = parsePositiveBigint(roadSegmentId);
+  if (!segmentIdText) {
+    const error = new Error("roadSegmentId must be a positive integer");
+    error.status = 400;
+    throw error;
+  }
+  const truncatedTime = coerceTimeBucket(timeBucket);
+
+  const useTransaction = persist && db === pool;
+  const client = useTransaction ? await db.connect() : db === pool ? await db.connect() : db;
+  try {
+    if (useTransaction) await client.query("begin");
+
+    const personalized = await predictPersonalizedOccurrenceForUser({
+      userId,
+      segmentIds: [segmentIdText],
+      targetTime: truncatedTime,
+      weather,
+      deadline,
+      db: client,
+    });
+
+    if (!personalized.available) {
+      const error = new Error(personalized.error?.message || "Occurrence model unavailable");
+      error.status = personalized.error?.httpStatus || 502;
+      throw error;
+    }
+
+    const segment = personalized.segments[0];
+    if (!segment) {
+      const error = new Error("Trained occurrence model returned no predictions");
+      error.status = 502;
+      throw error;
+    }
+
+    let modelVersionId = null;
+    let globalPredictionId = null;
+    let personalizedRowId = null;
+    if (persist) {
+      try {
+        modelVersionId = await ensureTrainedModelVersionId(client);
+        globalPredictionId = await persistTrainedGlobalPrediction(client, {
+          roadSegmentId: segmentIdText,
+          timeBucket: truncatedTime,
+          modelVersionId,
+          calibratedProbability: segment.modelOnly.calibrated_probability,
+          rawRiskScore: segment.modelOnly.risk_score,
+          riskLevel: segment.modelOnly.risk_level,
+          confidenceScore: segment.modelOnly.confidence_score,
+        });
+        if (userId) {
+          const driverProfile = await loadDriverProfile(client, userId);
+          personalizedRowId = await persistTrainedPersonalizedPrediction(client, {
+            userId,
+            roadSegmentId: segmentIdText,
+            timeBucket: truncatedTime,
+            globalPredictionId,
+            modelOnly: segment.modelOnly,
+            personalized: segment.personalized,
+            driverProfile,
+          });
+        }
+      } catch (persistError) {
+        // Persistence failure must not crash the prediction response — the
+        // model output is the contract; logs surface the DB problem.
+        logOccurrence("trained_persist_failed", {
+          roadSegmentId: segmentIdText,
+          message: persistError?.message,
+          code: persistError?.code,
+        });
+      }
+    }
+
+    if (useTransaction) await client.query("commit");
+
+    return {
+      road_segment_id: segmentIdText,
+      time_bucket: truncatedTime.toISOString(),
+      scoring_source: "trained_model",
+      model_version: personalized.model_version,
+      selected_model: personalized.selected_model,
+      calibration_method: personalized.calibration_method,
+      decision_threshold: personalized.decision_threshold,
+      probability_interpretation: personalized.probability_interpretation,
+      probability_warning: personalized.probability_warning,
+      modelOnly: segment.modelOnly,
+      personalized: segment.personalized,
+      driver_meta: segment.driver_meta,
+      persisted: {
+        model_version: TRAINED_MODEL_NAME,
+        global_prediction_id: globalPredictionId,
+        personalized_prediction_id: personalizedRowId,
+      },
+    };
+  } catch (error) {
+    if (useTransaction) await client.query("rollback").catch(() => {});
+    throw error;
+  } finally {
+    if (useTransaction || db === pool) client.release();
+  }
+}
+
 function canViewOccurrenceRisk(requestUser, targetUserId) {
   if (!requestUser || !targetUserId) return false;
   const requesterId = requestUser.userId || requestUser.id;
@@ -906,14 +2011,131 @@ function canViewOccurrenceRisk(requestUser, targetUserId) {
   return false;
 }
 
+// Public entry point: try the trained model first, fall back to rule-fusion if
+// Flask is unreachable / the artifact is missing. Returns a response shape with
+// both `modelOnly` and `personalized` plus a clear `scoring_source` label so
+// callers/UI can tell which path produced the score.
+async function predictOccurrenceRisk({
+  userId = null,
+  roadSegmentId,
+  timeBucket,
+  weather = null,
+  roadFeaturesOverride = null,
+  contextOverride = null,
+  persist = true,
+  deadline = null,
+  db = pool,
+} = {}) {
+  try {
+    const trained = await predictTrainedOccurrenceRiskForSegment({
+      userId,
+      roadSegmentId,
+      timeBucket,
+      weather,
+      persist,
+      deadline,
+      db,
+    });
+    return trained;
+  } catch (error) {
+    const status = Number(error?.status);
+    // 4xx errors (bad input, missing segment) should NOT silently fall back —
+    // the caller's payload is wrong and rule-fusion would mask that.
+    if (Number.isInteger(status) && status >= 400 && status < 500) {
+      throw error;
+    }
+    logOccurrence("trained_model_fallback_to_rule_fusion", {
+      roadSegmentId,
+      message: error?.message,
+      status: error?.status,
+    });
+  }
+
+  const ruleFusion = await predictOccurrenceRiskForSegment({
+    userId,
+    roadSegmentId,
+    timeBucket,
+    weather,
+    roadFeaturesOverride,
+    contextOverride,
+    persist,
+    db,
+  });
+
+  // Adapt rule-fusion shape to the modelOnly/personalized contract so the
+  // controller and UI can stay schema-agnostic about which scoring source
+  // ran. Note: rule-fusion calibrated_probability is intentionally null —
+  // the rule-fusion score is not a calibrated probability.
+  const modelOnly = {
+    road_segment_id: ruleFusion.road_segment_id,
+    time_bucket: ruleFusion.time_bucket,
+    risk_score: ruleFusion.global_occurrence_score,
+    calibrated_probability: null,
+    risk_level: ruleFusion.global_risk_level,
+    confidence_score: ruleFusion.confidence_score,
+    model_version: ruleFusion.persisted?.model_version || MODEL_VERSION_TAG,
+    top_factors: [],
+    explanation_source: "rule_fusion",
+    probability_warning: PROTOTYPE_WARNING,
+  };
+  const personalized = {
+    ...modelOnly,
+    risk_score: ruleFusion.personalized_occurrence_score,
+    risk_level: ruleFusion.personalized_risk_level,
+    driver_behavior_applied: Boolean(ruleFusion.driver_behavior?.has_driver_profile),
+    driver_risk_score: ruleFusion.driver_behavior?.latest_risk_score ?? null,
+    driver_result_label: ruleFusion.driver_behavior?.latest_result_label ?? null,
+    behavior_multiplier: ruleFusion.driver_behavior?.multiplier ?? 1,
+    behavior_delta:
+      (ruleFusion.personalized_occurrence_score || 0)
+      - (ruleFusion.global_occurrence_score || 0),
+    explanation: {
+      base_model:
+        "Rule-fusion fallback score combining road, weather, time, and context heuristics.",
+      driver_effect: ruleFusion.driver_behavior?.reason || "No driver profile applied.",
+    },
+  };
+  return {
+    road_segment_id: ruleFusion.road_segment_id,
+    time_bucket: ruleFusion.time_bucket,
+    scoring_source: "rule_fusion",
+    model_version: ruleFusion.persisted?.model_version || MODEL_VERSION_TAG,
+    probability_warning: PROTOTYPE_WARNING,
+    modelOnly,
+    personalized,
+    driver_meta: {
+      has_driver_profile: Boolean(ruleFusion.driver_behavior?.has_driver_profile),
+      latest_risk_score: ruleFusion.driver_behavior?.latest_risk_score ?? null,
+      latest_result_label: ruleFusion.driver_behavior?.latest_result_label ?? null,
+      latest_result_title: null,
+      last_completed_at: null,
+    },
+    rule_fusion: ruleFusion,
+    persisted: ruleFusion.persisted || null,
+  };
+}
+
 module.exports = {
   MODEL_NAME,
   MODEL_VERSION_TAG,
   PROTOTYPE_WARNING,
+  TRAINED_MODEL_NAME,
+  TRAINED_MODEL_RISK_THRESHOLDS,
+  TRAINED_MODEL_PROBABILITY_WARNING,
+  predictOccurrenceRisk,
   predictOccurrenceRiskForSegment,
+  predictTrainedOccurrenceRiskForSegment,
+  predictPersonalizedOccurrenceForUser,
+  predictOccurrenceForSegments,
+  buildOccurrenceFeaturesForSegment,
+  buildOccurrenceFeaturesForRoute,
   calculateGlobalOccurrenceScore,
   driverMultiplierFromProfile,
   riskLevelFromScore,
+  trainedRiskLevelFromProbability,
+  applyDriverBehaviorToPrediction,
+  mapWeatherToOccurrenceFeatures,
+  calculateDewPointC,
   listUserOccurrenceRiskHistory,
   canViewOccurrenceRisk,
 };
