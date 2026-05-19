@@ -54,6 +54,7 @@ router.post("/incidents/:id/actions", verifyTokenAndAdmin, async (req, res, next
         note: req.body?.note,
         severity: req.body?.severity,
         mergeTargetReportId: req.body?.mergeTargetReportId,
+        rejectReason: req.body?.rejectReason ?? req.body?.reject_reason ?? null,
       },
       req.user.userId,
     );

@@ -1,0 +1,254 @@
+-- ============================================================================
+-- Indexes for the admin Analytics page
+-- ============================================================================
+-- The Advanced Analytics dashboard groups app.accident_reports by created_at
+-- (heatmap, hourly buckets, time-of-day, 7-day trend) and by severity_hint
+-- (severity distribution). Both queries become full table scans without these
+-- indexes as the dataset grows. Re-runnable (IF NOT EXISTS).
+-- ============================================================================
+
+begin;
+
+create index if not exists idx_accident_reports_created_at
+  on app.accident_reports (created_at desc);
+
+create index if not exists idx_accident_reports_created_severity
+  on app.accident_reports (created_at desc, severity_hint);
+
+-- Spatial indexes — without these, the per-report nearest-road join used by
+-- Dangerous Roads / Road Type Correlation does a sequential scan over every
+-- row in gis.road_segments and the request can stall for minutes. Both are
+-- standard GiST indexes; cheap to maintain.
+create index if not exists idx_road_segments_geom_gist
+  on gis.road_segments using gist (geom);
+
+create index if not exists idx_accident_reports_location_gist
+  on app.accident_reports using gist (incident_location);
+
+commit;
+
+-- ============================================================================
+-- System settings (admin → System Settings page)
+-- ============================================================================
+-- A single key/value store backing all four tabs of the System Settings UI:
+--   - severity.rules         (array of auto-classification rules)
+--   - notifications.channels (array of channel toggles + min severity)
+--   - geofence.rules         (array of {name, lat, lng, radiusKm, events[], active})
+--   - general.auto_approve, general.maintenance_mode, general.incident_archive_days,
+--     general.audit_log_retention, general.api_rate_limit_per_min,
+--     general.max_upload_mb
+--
+-- One row per key. `value` is jsonb so the same table can hold scalars, arrays,
+-- and objects without schema churn as we add settings later. updated_by points
+-- at the admin that last touched the row (nullable for system seeds / migrations).
+-- Re-runnable.
+-- ============================================================================
+begin;
+
+create table if not exists app.system_settings (
+  key         text primary key,
+  value       jsonb not null default '{}'::jsonb,
+  updated_at  timestamptz not null default now(),
+  updated_by  uuid references auth.users(id) on delete set null
+);
+
+create index if not exists idx_system_settings_updated_at
+  on app.system_settings (updated_at desc);
+
+commit;
+
+-- ============================================================================
+-- Decision Engine — extra columns on app.accident_reports
+-- ============================================================================
+-- The admin Incident Review page now offers a structured "Request more info"
+-- flow and a typed "Reject reason" picker. We need somewhere to remember:
+--   - reject_reason            : enum-ish text label, used for analytics
+--   - info_requested_at        : when the reviewer asked the reporter for more
+--                                detail. Null if never asked.
+--   - info_requested_by        : which admin asked. Null on backfill.
+--   - info_request_message     : optional message shown to the reporter.
+-- Plus a constraint that pins reject_reason to a small allowlist (extendable).
+-- Re-runnable.
+-- ============================================================================
+begin;
+
+alter table app.accident_reports
+  add column if not exists reject_reason          text,
+  add column if not exists info_requested_at      timestamptz,
+  add column if not exists info_requested_by      uuid,
+  add column if not exists info_request_message   text;
+
+-- Soft FK on info_requested_by → auth.users. Added inside DO so re-runs don't
+-- explode when the constraint already exists.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'accident_reports_info_requested_by_fkey'
+       and conrelid = 'app.accident_reports'::regclass
+  ) then
+    alter table app.accident_reports
+      add constraint accident_reports_info_requested_by_fkey
+      foreign key (info_requested_by) references auth.users(id)
+      on delete set null;
+  end if;
+end $$;
+
+-- Reject reason allowlist (NULL means "not rejected" or "no reason captured").
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint
+     where conname = 'accident_reports_reject_reason_check'
+       and conrelid = 'app.accident_reports'::regclass
+  ) then
+    alter table app.accident_reports
+      drop constraint accident_reports_reject_reason_check;
+  end if;
+
+  alter table app.accident_reports
+    add constraint accident_reports_reject_reason_check
+    check (
+      reject_reason is null
+      or reject_reason in (
+        'spam',
+        'duplicate',
+        'off_topic',
+        'false_report',
+        'insufficient_evidence',
+        'wrong_location',
+        'other'
+      )
+    );
+end $$;
+
+create index if not exists idx_accident_reports_reject_reason
+  on app.accident_reports (reject_reason)
+  where reject_reason is not null;
+
+create index if not exists idx_accident_reports_info_requested_at
+  on app.accident_reports (info_requested_at)
+  where info_requested_at is not null;
+
+commit;
+
+-- ============================================================================
+-- Align review_verdict CHECK with the values the code actually writes
+-- ============================================================================
+-- The Decision Engine writes either 'confirmed_legit' (on approve) or
+-- 'confirmed_spam' (on reject) to app.accident_reports.review_verdict. Some
+-- DBs were created with a stricter CHECK constraint added by hand that didn't
+-- include these values, which caused "violates check constraint
+-- accident_reports_review_verdict_check" on every rejection. Drop the legacy
+-- constraint (if present) and add one that matches the code paths.
+-- Re-runnable.
+-- ============================================================================
+begin;
+
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint
+     where conname = 'accident_reports_review_verdict_check'
+       and conrelid = 'app.accident_reports'::regclass
+  ) then
+    alter table app.accident_reports
+      drop constraint accident_reports_review_verdict_check;
+  end if;
+
+  alter table app.accident_reports
+    add constraint accident_reports_review_verdict_check
+    check (
+      review_verdict is null
+      or review_verdict in (
+        'confirmed_legit',
+        'confirmed_spam',
+        'pending_review'
+      )
+    );
+end $$;
+
+commit;
+
+-- ============================================================================
+-- Align accident_reports.status CHECK with the values the code actually writes
+-- ============================================================================
+-- The legacy CHECK on app.accident_reports.status was created before the admin
+-- Decision Engine grew the archive / merge / flag / unarchive flows. Archiving
+-- a report now fails with:
+--   "new row for relation accident_reports violates check constraint
+--    accident_reports_status_check"
+-- Drop the legacy constraint (if present) and add one that matches every status
+-- string the API writes today:
+--   - pending   : default for new reports + the unarchive flow
+--   - verified  : admin "Approve & Publish"
+--   - rejected  : admin "Reject"
+--   - flagged   : admin "Flag for Review"
+--   - merged    : admin "Merge with Cluster"
+--   - archived  : admin "Archive"
+-- Re-runnable.
+-- ============================================================================
+begin;
+
+-- Drop the legacy constraint first so the normalization UPDATE below cannot
+-- trip it.
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint
+     where conname = 'accident_reports_status_check'
+       and conrelid = 'app.accident_reports'::regclass
+  ) then
+    alter table app.accident_reports
+      drop constraint accident_reports_status_check;
+  end if;
+end $$;
+
+-- Surface any out-of-allowlist statuses so the operator sees what's about to
+-- be remapped. Safe to run repeatedly — RAISE NOTICE only logs.
+do $$
+declare
+  rec record;
+begin
+  for rec in
+    select status, count(*)::int as row_count
+      from app.accident_reports
+     where status is null
+        or status not in (
+          'pending','verified','rejected','flagged','merged','archived'
+        )
+     group by status
+  loop
+    raise notice
+      'accident_reports.status: legacy value % (rows: %) will be remapped to ''pending''',
+      coalesce(rec.status, '<null>'),
+      rec.row_count;
+  end loop;
+end $$;
+
+-- Defensive normalization: any legacy status value not in the new allowlist
+-- (or NULL) is mapped back to 'pending' so the admin can re-decide it from
+-- the review queue. Mapping to 'pending' is intentional — we'd rather
+-- re-review a report than silently mark it 'verified' or 'rejected'.
+update app.accident_reports
+   set status = 'pending'
+ where status is null
+    or status not in (
+      'pending','verified','rejected','flagged','merged','archived'
+    );
+
+alter table app.accident_reports
+  add constraint accident_reports_status_check
+  check (
+    status in (
+      'pending',
+      'verified',
+      'rejected',
+      'flagged',
+      'merged',
+      'archived'
+    )
+  );
+
+commit;
+

@@ -376,6 +376,21 @@
 
 /* ================================================ TABLE */
 .admin-table-wrapper { overflow-x: auto; border-radius: var(--admin-radius); }
+
+/* Drag-scroll opt-in for the incidents table: scrolls both axes by holding
+ * the left mouse button and dragging. The container becomes the scroll port
+ * (max-height caps it so vertical drag-scroll actually has somewhere to go). */
+.admin-drag-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 280px);
+  cursor: grab;
+  scrollbar-width: thin;
+}
+.admin-drag-scroll.dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+.admin-drag-scroll.dragging * { cursor: grabbing !important; }
 .admin-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .admin-table thead th {
   text-align: left; padding: 8px 12px;
@@ -415,7 +430,14 @@
 .admin-pill.info, .admin-pill.pending {
   background: var(--admin-primary-subtle); color: var(--admin-primary);
 }
-.admin-pill.rejected { background: rgba(100,116,139,0.08); color: #64748B; }
+.admin-pill.rejected { background: var(--admin-danger-subtle); color: var(--admin-danger); }
+.admin-pill.confirmed_spam { background: var(--admin-danger-subtle); color: var(--admin-danger); }
+.admin-pill.confirmed_legit { background: var(--admin-success-subtle); color: var(--admin-success); }
+.admin-pill.pending_review { background: var(--admin-warning-subtle); color: var(--admin-warning); }
+.admin-pill.spam { background: var(--admin-danger-subtle); color: var(--admin-danger); }
+.admin-pill.real { background: var(--admin-success-subtle); color: var(--admin-success); }
+.admin-pill.unclassified { background: rgba(100,116,139,0.10); color: #64748B; }
+.admin-pill.not_started { background: rgba(100,116,139,0.10); color: #64748B; }
 .admin-pill.verified { background: var(--admin-success-subtle); color: var(--admin-success); }
 .admin-pill.flagged { background: var(--admin-warning-subtle); color: var(--admin-warning); }
 .admin-pill.merged { background: rgba(124,58,237,0.07); color: #7C3AED; }
@@ -431,22 +453,152 @@
 .admin-pill.banned { background: rgba(220,38,38,0.10); color: #DC2626; }
 .admin-pill.user { background: rgba(100,116,139,0.08); color: #475569; }
 
-/* ============================== USER GOVERNANCE — ROW ACTIONS */
-.admin-user-actions {
+/* ============================== ANALYTICS PAGE POLISH */
+/* KPI tile that pairs a tinted icon square with a label / value / trend stack. */
+.analytics-kpi {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  padding: 14px 16px;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: stretch;
+  gap: 14px;
+  align-items: flex-start;
+  transition: border-color var(--admin-transition), transform 120ms ease;
+}
+.analytics-kpi:hover { border-color: var(--admin-border-2); transform: translateY(-1px); }
+.analytics-kpi-icon {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.analytics-kpi-icon.primary { background: var(--admin-primary-subtle); color: var(--admin-primary); }
+.analytics-kpi-icon.success { background: var(--admin-success-subtle); color: var(--admin-success); }
+.analytics-kpi-icon.warning { background: var(--admin-warning-subtle); color: var(--admin-warning); }
+.analytics-kpi-icon.danger  { background: var(--admin-danger-subtle);  color: var(--admin-danger); }
+.analytics-kpi-icon.info    { background: rgba(59, 130, 246, 0.12);    color: #2563EB; }
+.analytics-kpi-body { display: flex; flex-direction: column; min-width: 0; gap: 2px; flex: 1; }
+.analytics-kpi-label {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--admin-text-muted);
+}
+.analytics-kpi-value {
+  font-size: 22px; font-weight: 700; color: var(--admin-text);
+  font-variant-numeric: tabular-nums; line-height: 1.1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.analytics-kpi-trend {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 600;
+}
+.analytics-kpi-trend.up      { color: var(--admin-danger); }
+.analytics-kpi-trend.down    { color: var(--admin-success); }
+.analytics-kpi-trend.good    { color: var(--admin-success); }
+.analytics-kpi-trend.bad     { color: var(--admin-danger); }
+.analytics-kpi-trend.stable  { color: var(--admin-text-muted); }
+
+/* Summary chips above the heatmap / charts (e.g. Peak hour · Busiest day). */
+.analytics-chip-row {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+}
+.analytics-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: 999px;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-border);
+  font-size: 11px; color: var(--admin-text-secondary);
+}
+.analytics-chip strong { color: var(--admin-text); font-weight: 700; }
+.analytics-chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* Medal-style rank tile for top-3 dangerous roads. */
+.analytics-rank {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 8px;
+  font-size: 12px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--admin-text-secondary);
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-border);
+}
+.analytics-rank.gold {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FCD34D 100%);
+  border-color: #F59E0B; color: #92400E;
+  box-shadow: 0 2px 6px -2px rgba(245, 158, 11, 0.5);
+}
+.analytics-rank.silver {
+  background: linear-gradient(135deg, #F3F4F6 0%, #D1D5DB 100%);
+  border-color: #9CA3AF; color: #374151;
+  box-shadow: 0 2px 6px -2px rgba(156, 163, 175, 0.5);
+}
+.analytics-rank.bronze {
+  background: linear-gradient(135deg, #FED7AA 0%, #FB923C 100%);
+  border-color: #EA580C; color: #7C2D12;
+  box-shadow: 0 2px 6px -2px rgba(234, 88, 12, 0.5);
+}
+
+/* Time-of-day card — highlight the peak band. */
+.analytics-tod-card {
+  padding: 14px 12px; border-radius: 10px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  text-align: center;
+  transition: border-color var(--admin-transition), transform 120ms ease;
+}
+.analytics-tod-card:hover { transform: translateY(-1px); border-color: var(--admin-border-2); }
+.analytics-tod-card.peak {
+  background: var(--admin-primary-subtle);
+  border-color: rgba(124, 58, 237, 0.35);
+}
+.analytics-tod-card.peak .analytics-tod-value { color: var(--admin-primary); }
+
+.analytics-tod-icon {
+  width: 36px; height: 36px; border-radius: 8px; margin: 0 auto 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  background: var(--admin-surface-2); color: var(--admin-text-secondary);
+}
+.analytics-tod-card.peak .analytics-tod-icon {
+  background: var(--admin-primary); color: #fff;
+}
+.analytics-tod-period {
+  font-size: 10.5px; color: var(--admin-text-muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px;
+}
+.analytics-tod-value {
+  font-size: 22px; font-weight: 800; color: var(--admin-text);
+  font-variant-numeric: tabular-nums; line-height: 1.1;
+}
+.analytics-tod-pct { font-size: 10px; color: var(--admin-text-muted); margin-top: 2px; }
+
+/* ============================== USER GOVERNANCE — ROW ACTIONS */
+/* Single-row composite action bar:
+ *   [⚠ ⊘ ↻] | [👁 Details]
+ * The icon group + the Details button share the same height and sit on one
+ * line. A vertical divider separates moderation icons from the primary
+ * "Details" action so the eye is drawn straight to it.
+ */
+.admin-user-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-2);
+  white-space: nowrap;
 }
 .admin-user-actions-group {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 2px;
-  border-radius: 8px;
-  background: var(--admin-surface-2);
-  border: 1px solid var(--admin-border);
-  width: fit-content;
+  padding-right: 6px;
+  margin-right: 6px;
+  border-right: 1px solid var(--admin-border);
+}
+.admin-user-actions-group:last-child {
+  padding-right: 0;
+  margin-right: 0;
+  border-right: 0;
 }
 .admin-user-icon-btn {
   width: 26px;
@@ -474,28 +626,35 @@
 .admin-user-icon-btn.promote:hover:not(:disabled) { background: var(--admin-success-subtle); color: var(--admin-success); }
 .admin-user-icon-btn.neutral:hover:not(:disabled) { background: var(--admin-primary-subtle); color: var(--admin-primary); }
 
+/* Primary "Details" button — filled violet, same 26px height as the icons. */
 .admin-user-details-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  width: 100%;
-  padding: 5px 10px;
+  height: 26px;
+  padding: 0 10px;
   border-radius: 6px;
-  border: 1px solid var(--admin-primary);
-  background: var(--admin-primary-subtle);
-  color: var(--admin-primary);
+  border: 0;
+  background: var(--admin-primary);
+  color: #fff;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.02em;
   cursor: pointer;
-  transition: background var(--admin-transition), color var(--admin-transition);
+  transition: background var(--admin-transition), transform 80ms ease, box-shadow var(--admin-transition);
+  box-shadow: 0 1px 2px rgba(124, 58, 237, 0.25);
 }
 .admin-user-details-btn:hover:not(:disabled) {
-  background: var(--admin-primary);
-  color: #fff;
+  background: var(--admin-primary-hover);
+  box-shadow: 0 2px 6px -1px rgba(124, 58, 237, 0.45);
 }
-.admin-user-details-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.admin-user-details-btn:active:not(:disabled) { transform: scale(0.96); }
+.admin-user-details-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+.admin-user-details-btn .siara-eye-dot {
+  font-size: 14px;
+  display: inline-flex;
+}
 
 .admin-pill.supervisor { background: rgba(59,130,246,0.12); color: #2563EB; }
 .admin-pill.police { background: rgba(20,184,166,0.12); color: #0F766E; }
@@ -995,6 +1154,119 @@
 .admin-toggle.small { width: 28px; height: 16px; }
 .admin-toggle.small .admin-toggle-thumb { width: 12px; height: 12px; }
 .admin-toggle.small.active .admin-toggle-thumb { left: 14px; }
+.admin-toggle:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
+
+/* ================================================ SYSTEM SETTINGS POLISH */
+/* Hero strip — count chips above each tab body */
+.admin-settings-hero {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin-bottom: 14px;
+}
+.admin-settings-hero-chip {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  display: flex; align-items: center; gap: 10px;
+}
+.admin-settings-hero-chip-icon {
+  width: 34px; height: 34px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--admin-primary-subtle); color: var(--admin-primary);
+  font-size: 18px; flex-shrink: 0;
+}
+.admin-settings-hero-chip-body { display: flex; flex-direction: column; min-width: 0; }
+.admin-settings-hero-chip-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.4px; color: var(--admin-text-muted);
+}
+.admin-settings-hero-chip-value {
+  font-size: 18px; font-weight: 700; color: var(--admin-text);
+  font-variant-numeric: tabular-nums; line-height: 1.1;
+}
+
+/* Tab dirty-indicator dot */
+.admin-tab .admin-tab-dirty-dot {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--admin-warning);
+  margin-left: 6px; vertical-align: middle;
+}
+
+/* Numeric input with suffix (% / km / MB / req/min) */
+.admin-suffix-input {
+  display: inline-flex; align-items: stretch; height: 32px;
+  border: 1px solid var(--admin-border); border-radius: 6px;
+  background: var(--admin-surface); overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+.admin-suffix-input:focus-within { border-color: var(--admin-primary); }
+.admin-suffix-input input {
+  border: 0; outline: none; background: transparent;
+  padding: 0 8px; font-size: 12px; font-variant-numeric: tabular-nums;
+  width: 100%; min-width: 0; color: var(--admin-text);
+}
+.admin-suffix-input .admin-suffix-input-unit {
+  padding: 0 10px; display: inline-flex; align-items: center;
+  font-size: 10.5px; font-weight: 600; color: var(--admin-text-muted);
+  background: var(--admin-surface-2);
+  border-left: 1px solid var(--admin-border);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+
+/* Floating toast (success / error) */
+.admin-toast {
+  position: fixed; right: 20px; bottom: 20px;
+  z-index: 9999; min-width: 240px; max-width: 360px;
+  padding: 10px 14px; border-radius: 10px;
+  font-size: 12px; font-weight: 600;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+  animation: adminToastIn 0.22s ease;
+}
+.admin-toast.success {
+  background: #fff;
+  color: var(--admin-success);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+.admin-toast.error {
+  background: #fff;
+  color: var(--admin-danger);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+@keyframes adminToastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Channel row — icon tile + body + control */
+.admin-channel-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 0; border-bottom: 1px solid var(--admin-border);
+}
+.admin-channel-row:last-child { border-bottom: 0; }
+.admin-channel-icon {
+  width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.admin-channel-icon.push    { background: rgba(124, 58, 237, 0.10); color: #7C3AED; }
+.admin-channel-icon.sms     { background: rgba(20, 184, 166, 0.10); color: #0F766E; }
+.admin-channel-icon.in_app  { background: rgba(59, 130, 246, 0.10); color: #2563EB; }
+.admin-channel-icon.email   { background: rgba(245, 158, 11, 0.12); color: #B45309; }
+.admin-channel-icon.webhook { background: rgba(100, 116, 139, 0.10); color: #475569; }
+
+/* Settings sticky save bar — pinned bottom-right of each card */
+.admin-settings-actions {
+  display: flex; justify-content: flex-end; gap: 6px;
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px dashed var(--admin-border);
+}
+.admin-settings-actions .dirty-hint {
+  margin-right: auto; align-self: center;
+  font-size: 11px; color: var(--admin-warning); font-weight: 600;
+}
 
 /* ================================================ HEATMAP GRID (analytics) */
 .admin-heatmap-grid {

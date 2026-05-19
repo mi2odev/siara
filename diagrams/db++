@@ -1,0 +1,90 @@
+-- ============================================================================
+-- Reporter response to "Request More Info"
+-- ============================================================================
+-- The admin Decision Engine's "Request More Info" stores who asked, when, and
+-- what message they sent (info_requested_at / info_requested_by /
+-- info_request_message — added in db+). The reporter side was never wired up:
+-- the reporter had no way to see the request or send a response back.
+--
+-- These two columns close the loop:
+--   - info_response       : free-text response from the reporter.
+--   - info_responded_at   : timestamp; non-null marks the request as answered.
+--
+-- We deliberately do NOT clear info_requested_* on response so the admin
+-- timeline / audit log keeps the full back-and-forth. The "pending" flag in
+-- the API is derived as (info_requested_at IS NOT NULL AND info_responded_at
+-- IS NULL).
+-- Re-runnable.
+-- ============================================================================
+begin;
+
+alter table app.accident_reports
+  add column if not exists info_response        text,
+  add column if not exists info_responded_at    timestamptz;
+
+create index if not exists idx_accident_reports_info_pending
+  on app.accident_reports (info_requested_at)
+  where info_requested_at is not null
+    and info_responded_at is null;
+
+commit;
+
+-- ============================================================================
+-- Align report_flags.reason CHECK with the values the code writes
+-- ============================================================================
+-- The admin Decision Engine "Flag for Review" action inserts a row into
+-- app.report_flags with reason = 'admin_review'. The legacy CHECK constraint
+-- on this column predates that flow and rejects it with:
+--   "new row for relation report_flags violates check constraint
+--    report_flags_reason_check"
+-- Drop the legacy constraint (if present) and add one that covers both the
+-- community-flag reasons users pick from the report menu AND the admin-side
+-- escalation reason. Re-runnable.
+-- ============================================================================
+begin;
+
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint
+     where conname = 'report_flags_reason_check'
+       and conrelid = 'app.report_flags'::regclass
+  ) then
+    alter table app.report_flags
+      drop constraint report_flags_reason_check;
+  end if;
+
+  alter table app.report_flags
+    add constraint report_flags_reason_check
+    check (
+      reason in (
+        'spam',
+        'duplicate',
+        'off_topic',
+        'false_report',
+        'insufficient_evidence',
+        'wrong_location',
+        'harassment',
+        'inappropriate',
+        'other',
+        'admin_review'
+      )
+    );
+end $$;
+
+commit;
+
+-- ============================================================================
+-- ONE QUERY — Did the notification row land in the DB?
+-- ============================================================================
+-- After the admin clicks "Request More Info" and you reload pgAdmin, this
+-- query should show a NEW row. If it does, the backend is fine and you only
+-- need to hard-refresh /notifications in the browser. If it shows nothing,
+-- the API isn't running the new code yet — kill nodemon and `npm start` again.
+-- ============================================================================
+
+SELECT id, user_id, report_id, event_type, title, created_at
+  FROM app.notifications
+ WHERE event_type = 'REPORT_INFO_REQUESTED'
+ ORDER BY created_at DESC
+ LIMIT 5;

@@ -101,6 +101,11 @@ const REPORT_SELECT_SQL = `
     ar.latest_model_version,
     ar.latest_classified_at,
     ar.review_verdict,
+    ar.info_requested_at,
+    ar.info_requested_by,
+    ar.info_request_message,
+    ar.info_response,
+    ar.info_responded_at,
     ar.assigned_officer_id,
     ar.verified_by_officer_id,
     ar.verified_at,
@@ -595,7 +600,7 @@ function getReporterTrustTier(score) {
   return { code: "very_low", label: "Very low confidence reporter", style: "danger" };
 }
 
-function mapReportRow(row, { social } = {}) {
+function mapReportRow(row, { social, viewerUserId = null } = {}) {
   if (!row) {
     return null;
   }
@@ -639,6 +644,24 @@ function mapReportRow(row, { social } = {}) {
     viewerHasLiked: Boolean(socialState.viewerHasLiked),
     viewerSawItToo: Boolean(socialState.viewerSawItToo),
     commentsPreview: Array.isArray(socialState.commentsPreview) ? socialState.commentsPreview : [],
+    // Only the reporter who owns the report can see the moderator dialogue.
+    // The admin/police paths use their own DTOs (adminIncidentService) which
+    // already include this data unconditionally for staff viewers.
+    infoRequest:
+      row.info_requested_at
+      && viewerUserId
+      && row.reported_by
+      && String(row.reported_by) === String(viewerUserId)
+        ? {
+            pending: !row.info_responded_at,
+            askedAt: new Date(row.info_requested_at).toISOString(),
+            message: row.info_request_message || "",
+            respondedAt: row.info_responded_at
+              ? new Date(row.info_responded_at).toISOString()
+              : null,
+            response: row.info_response || "",
+          }
+        : null,
     reportedBy: row.reported_by
       ? (() => {
           const trustScoreRaw = Number(row.reporter_trust_score);
@@ -836,7 +859,7 @@ async function buildReportResponse(row, db = pool, { viewerUserId = null } = {})
   }
 
   const enrichment = await buildSocialEnrichment([row.id], viewerUserId, db);
-  const report = mapReportRow(row, { social: enrichment.get(row.id) });
+  const report = mapReportRow(row, { social: enrichment.get(row.id), viewerUserId });
   if (!report) {
     return null;
   }
@@ -859,7 +882,7 @@ async function buildReportsResponse(rows, db = pool, { viewerUserId = null } = {
   ]);
 
   return rows.map((row) => ({
-    ...mapReportRow(row, { social: enrichment.get(row.id) }),
+    ...mapReportRow(row, { social: enrichment.get(row.id), viewerUserId }),
     media: mediaMap.get(row.id) || [],
   }));
 }
@@ -1125,7 +1148,9 @@ async function listReports(query, db = pool, { viewerUserId = null } = {}) {
   if (normalizedQuery.feed === "verified") {
     whereClauses.push("base.status = 'verified'");
   } else {
-    whereClauses.push("base.status <> 'rejected'");
+    // Hide both rejected (confirmed spam / false report) AND archived
+    // (admin-soft-deleted) reports from every public-facing feed.
+    whereClauses.push("base.status not in ('rejected', 'archived')");
   }
 
   const orderClauses = [];
@@ -1597,6 +1622,84 @@ router.delete("/:id", verifyToken, async (req, res, next) => {
     await client.query("commit");
 
     return res.status(200).json({ id: reportId, message: "Report deleted successfully" });
+  } catch (error) {
+    await client.query("rollback");
+    return next(error);
+  } finally {
+    client.release();
+  }
+});
+
+const MAX_INFO_RESPONSE_LENGTH = 2000;
+
+router.post("/:id/info-response", verifyToken, requireUnbanned, async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const reportId = String(req.params.id || "").trim();
+    if (!isValidUuid(reportId)) {
+      throw createError(400, "Invalid report id");
+    }
+
+    const rawResponse = typeof req.body?.response === "string" ? req.body.response : "";
+    const responseText = rawResponse.trim();
+    if (!responseText) {
+      throw createError(400, "Response cannot be empty");
+    }
+    if (responseText.length > MAX_INFO_RESPONSE_LENGTH) {
+      throw createError(
+        400,
+        `Response must be at most ${MAX_INFO_RESPONSE_LENGTH} characters`,
+      );
+    }
+
+    await client.query("begin");
+
+    const existingRow = await requireExistingReport(reportId, client);
+
+    // Only the reporter who owns the report may respond.
+    if (!existingRow.reported_by || existingRow.reported_by !== req.user?.userId) {
+      throw createError(403, "Only the reporter can answer this request");
+    }
+
+    if (!existingRow.info_requested_at) {
+      throw createError(409, "No pending info request on this report");
+    }
+    if (existingRow.info_responded_at) {
+      throw createError(409, "This info request has already been answered");
+    }
+
+    await client.query(
+      `
+        UPDATE app.accident_reports
+        SET info_response = $2,
+            info_responded_at = now(),
+            updated_at = now()
+        WHERE id = $1
+      `,
+      [reportId, responseText],
+    );
+
+    await client.query(
+      `
+        INSERT INTO app.report_review_actions (
+          report_id,
+          action,
+          from_status,
+          to_status,
+          note,
+          reviewed_by
+        )
+        VALUES ($1, 'info_response', $2, $2, $3, $4)
+      `,
+      [reportId, existingRow.status, responseText, req.user.userId],
+    );
+
+    await client.query("commit");
+
+    const updatedRow = await requireExistingReport(reportId);
+    return res.status(200).json({
+      report: await buildReportResponse(updatedRow, pool, { viewerUserId: req.user.userId }),
+    });
   } catch (error) {
     await client.query("rollback");
     return next(error);

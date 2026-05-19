@@ -36,6 +36,14 @@ export function AuthProvider({ children }) {
   // Re-fetch the session whenever the tab becomes visible again. This makes
   // moderation actions (warning issued, ban applied/lifted) appear in the user
   // UI without a manual page refresh.
+  //
+  // Important: we listen ONLY to `visibilitychange`, not to window `focus`.
+  // Native OS dialogs (e.g. the file picker opened from the report wizard's
+  // media step) blur the window and re-focus it on close, but they never
+  // change `document.visibilityState`. Refreshing the session on every focus
+  // event caused a transient auth state flip that unmounted ProtectedRoute's
+  // children — wiping the wizard back to step 1 whenever the user picked an
+  // image from their device.
   useEffect(() => {
     if (!isAuthenticated) return undefined
     const onVisibility = () => {
@@ -44,10 +52,8 @@ export function AuthProvider({ children }) {
       }
     }
     document.addEventListener('visibilitychange', onVisibility)
-    window.addEventListener('focus', onVisibility)
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
-      window.removeEventListener('focus', onVisibility)
     }
   }, [isAuthenticated, restoreSession])
 

@@ -607,9 +607,9 @@ export default function AdminUsersPage() {
                     <td><span className={`admin-pill ${riskCode}`}>{user.riskTier?.label || '—'}</span></td>
                     <td><span className={`admin-pill ${user.status}`}>{user.status}</span></td>
                     <td style={{ fontSize: 10.5, color: 'var(--admin-text-muted)' }}>{formatRelative(user.lastActiveAt)}</td>
-                    <td style={{ minWidth: 168 }}>
+                    <td style={{ width: 240, whiteSpace: 'nowrap' }}>
                       <div className="admin-user-actions">
-                        {/* Row 1 — moderation icon group */}
+                        {/* Moderation icon group */}
                         <div className="admin-user-actions-group" role="group" aria-label="Moderation">
                           {user.status !== 'banned' && (
                             <button
@@ -682,14 +682,14 @@ export default function AdminUsersPage() {
                           </button>
                         </div>
 
-                        {/* Row 2 — primary action */}
+                        {/* Primary action — sits inline to the right of the icon group */}
                         <button
                           type="button"
                           className="admin-user-details-btn"
                           onClick={() => openDetails(user)}
                           disabled={isBusy}
                         >
-                          <VisibilityRoundedIcon fontSize="inherit" />
+                          <VisibilityRoundedIcon className="siara-eye-dot" fontSize="inherit" />
                           Details
                         </button>
                       </div>
