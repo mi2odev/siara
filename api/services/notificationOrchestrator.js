@@ -156,6 +156,14 @@ const EVENT_TYPES = Object.freeze({
     defaultPriority: 1,
     important: true,
   },
+  // Admin Decision Engine "Request More Info" — pings the original reporter
+  // so they see the moderator's question on their Reports page and can answer
+  // via POST /api/reports/:id/info-response.
+  REPORT_INFO_REQUESTED: {
+    category: NOTIFICATION_CATEGORIES.SYSTEM,
+    defaultPriority: 1,
+    important: true,
+  },
 });
 
 const NEARBY_RADIUS_METERS = 5000;

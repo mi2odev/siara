@@ -562,6 +562,16 @@ async function persistZoneSummarySnapshot(period, snapshotAt, summaries, db = po
   try {
     await client.query("BEGIN");
 
+    // Wipe any previous snapshots for this period so we never accumulate
+    // multiple rows per zone (the table's unique constraint includes
+    // snapshot_at, which would otherwise let duplicates pile up on every
+    // rebuild and show as repeated rows in the admin Zone Management table).
+    await client.query(
+      `DELETE FROM ml.zone_risk_summary
+        WHERE period_type = $1`,
+      [period],
+    );
+
     for (const summary of summaries) {
       const params = [
         summary.adminAreaId,
@@ -784,39 +794,47 @@ async function getZoneMap(period = DEFAULT_PERIOD, metric = DEFAULT_METRIC, db =
 
   const result = await db.query(
     `
+      WITH latest AS (
+        SELECT DISTINCT ON (zsc.admin_area_id)
+          zsc.admin_area_id,
+          zsc.zone_name,
+          zsc.zone_level,
+          zsc.snapshot_at,
+          zsc.model_avg_score,
+          zsc.model_weighted_score,
+          zsc.top_road_risk_score,
+          zsc.recent_report_count,
+          zsc.verified_report_count,
+          zsc.pending_report_count,
+          zsc.flagged_report_count,
+          zsc.report_score,
+          zsc.active_alert_count,
+          zsc.scheduled_alert_count,
+          zsc.high_severity_alert_count,
+          zsc.alert_score,
+          zsc.confidence_avg,
+          zsc.trend_vs_previous,
+          zsc.top_road_name,
+          zsc.top_road_segment_id,
+          zsc.final_risk_score,
+          zsc.risk_level,
+          zsc.centroid,
+          zsc.geom
+        FROM ml.zone_risk_summary zsc
+        WHERE zsc.period_type = $1
+          AND zsc.zone_level = 'wilaya'
+        ORDER BY zsc.admin_area_id, zsc.snapshot_at DESC
+      )
       SELECT
-        zsc.admin_area_id,
-        zsc.zone_name,
-        zsc.zone_level,
-        zsc.snapshot_at,
-        zsc.model_avg_score,
-        zsc.model_weighted_score,
-        zsc.top_road_risk_score,
-        zsc.recent_report_count,
-        zsc.verified_report_count,
-        zsc.pending_report_count,
-        zsc.flagged_report_count,
-        zsc.report_score,
-        zsc.active_alert_count,
-        zsc.scheduled_alert_count,
-        zsc.high_severity_alert_count,
-        zsc.alert_score,
-        zsc.confidence_avg,
-        zsc.trend_vs_previous,
-        zsc.top_road_name,
-        zsc.top_road_segment_id,
-        zsc.final_risk_score,
-        zsc.risk_level,
+        latest.*,
         ST_AsGeoJSON(
-          COALESCE(zsc.centroid, ST_PointOnSurface(zsc.geom))
+          COALESCE(latest.centroid, ST_PointOnSurface(latest.geom))
         )::jsonb AS centroid_geojson,
         ST_AsGeoJSON(
-          ST_SimplifyPreserveTopology(zsc.geom, $2::double precision)
+          ST_SimplifyPreserveTopology(latest.geom, $2::double precision)
         )::jsonb AS geometry_geojson
-      FROM ml.zone_risk_summary zsc
-      WHERE zsc.period_type = $1
-        AND zsc.zone_level = 'wilaya'
-      ORDER BY zsc.zone_name ASC
+      FROM latest
+      ORDER BY latest.zone_name ASC
     `,
     [normalizedPeriod, SUMMARY_GEOMETRY_TOLERANCE],
   );
@@ -1061,6 +1079,7 @@ async function getZoneDetails(adminAreaId, period = DEFAULT_PERIOD, db = pool) {
       WHERE zsc.period_type = $1
         AND zsc.zone_level = 'wilaya'
         AND zsc.admin_area_id = $2::bigint
+      ORDER BY zsc.snapshot_at DESC
       LIMIT 1
     `,
     [normalizedPeriod, normalizedAdminAreaId, SUMMARY_GEOMETRY_TOLERANCE],

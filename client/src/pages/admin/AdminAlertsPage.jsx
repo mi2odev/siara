@@ -437,7 +437,7 @@ export default function AdminAlertsPage() {
       setError(null)
       setPage(1)
       if (templateTabActive) {
-        setSearchParams({})
+        setSearchParams({ tab: 'all' })
       } else {
         await refreshAlerts(1)
       }
@@ -962,7 +962,7 @@ export default function AdminAlertsPage() {
           <button
             key={tab.key}
             className={`admin-tab ${currentTab === tab.key ? 'active' : ''}`}
-            onClick={() => setSearchParams(tab.key === 'all' ? {} : { tab: tab.key })}
+            onClick={() => setSearchParams({ tab: tab.key })}
             type="button"
           >
             {tab.label}

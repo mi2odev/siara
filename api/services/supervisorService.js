@@ -42,10 +42,10 @@ async function getSupervisorDashboard(supervisorUser, query = {}, db = pool) {
       `
         SELECT
           COUNT(*) FILTER (
-            WHERE ar.status NOT IN ('resolved', 'rejected')
+            WHERE ar.status NOT IN ('resolved', 'rejected', 'archived')
           )::int AS active_count,
           COUNT(*) FILTER (
-            WHERE ar.status NOT IN ('resolved', 'rejected')
+            WHERE ar.status NOT IN ('resolved', 'rejected', 'archived')
               AND COALESCE(ar.severity_hint, 0) >= 3
           )::int AS high_severity_count,
           COUNT(*) FILTER (
@@ -88,7 +88,7 @@ async function getSupervisorDashboard(supervisorUser, query = {}, db = pool) {
           CONCAT_WS(' ', assigned.first_name, assigned.last_name) AS assigned_officer_name
         FROM app.accident_reports ar
         LEFT JOIN auth.users assigned ON assigned.id = ar.assigned_officer_id
-        WHERE ar.status NOT IN ('resolved', 'rejected')
+        WHERE ar.status NOT IN ('resolved', 'rejected', 'archived')
           AND COALESCE(ar.severity_hint, 0) >= 3
         ORDER BY COALESCE(ar.severity_hint, 0) DESC, ar.created_at DESC
         LIMIT 8
@@ -123,7 +123,7 @@ async function getSupervisorDashboard(supervisorUser, query = {}, db = pool) {
           CONCAT_WS(' ', assigned.first_name, assigned.last_name) AS assigned_officer_name
         FROM app.accident_reports ar
         LEFT JOIN auth.users assigned ON assigned.id = ar.assigned_officer_id
-        WHERE ar.status NOT IN ('resolved', 'rejected')
+        WHERE ar.status NOT IN ('resolved', 'rejected', 'archived')
           AND ar.incident_location IS NOT NULL
         ORDER BY COALESCE(ar.severity_hint, 0) DESC, ar.created_at DESC
         LIMIT 100
@@ -265,7 +265,7 @@ async function getSupervisorAnalytics(supervisorUser, query = {}, db = pool) {
       `
         SELECT
           CONCAT_WS(' ', u.first_name, u.last_name) AS officer_name,
-          COUNT(ar.id) FILTER (WHERE ar.status NOT IN ('resolved', 'rejected'))::int AS active_incidents,
+          COUNT(ar.id) FILTER (WHERE ar.status NOT IN ('resolved', 'rejected', 'archived'))::int AS active_incidents,
           COUNT(ar.id)::int AS total_incidents
         FROM auth.users u
         JOIN auth.user_roles ur ON ur.user_id = u.id
@@ -354,7 +354,7 @@ async function getSupervisorGlobalMap(supervisorUser, db = pool) {
           assigned.id AS assigned_officer_id
         FROM app.accident_reports ar
         LEFT JOIN auth.users assigned ON assigned.id = ar.assigned_officer_id
-        WHERE ar.status NOT IN ('resolved', 'rejected')
+        WHERE ar.status NOT IN ('resolved', 'rejected', 'archived')
           AND ar.incident_location IS NOT NULL
         ORDER BY COALESCE(ar.severity_hint, 0) DESC, ar.created_at DESC
         LIMIT 200

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded'
 import ArrowDropUpRoundedIcon from '@mui/icons-material/ArrowDropUpRounded'
@@ -66,6 +66,33 @@ function formatPredictedLabel(value) {
   }
 
   return value === 'spam' ? 'Spam' : 'Real'
+}
+
+/** Maps spam-model verdicts to the right .admin-pill color class so the eye
+ *  can tell "confirmed spam" (red) from "confirmed legit" (green) without
+ *  reading the label. */
+function getPredictedLabelClass(value) {
+  const v = String(value || '').toLowerCase()
+  if (v === 'spam') return 'danger'
+  if (v === 'real') return 'success'
+  return 'unclassified'
+}
+
+function getReviewVerdictClass(value) {
+  const v = String(value || '').toLowerCase()
+  if (v === 'confirmed_spam' || v === 'rejected') return 'danger'
+  if (v === 'confirmed_legit' || v === 'verified') return 'success'
+  if (v === 'pending_review') return 'warning'
+  return ''
+}
+
+/** Turn 'confirmed_spam' → 'Confirmed spam' so the table doesn't shout. */
+function formatVerdictLabel(value) {
+  if (!value) return ''
+  return String(value)
+    .replace(/[_-]+/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (ch) => ch.toUpperCase())
 }
 
 function getConfidenceFillClass(confidence) {
@@ -199,14 +226,22 @@ function renderReporterScore(score) {
 }
 
 function renderSpamAnalysisCell(incident) {
+  const verdictClass = incident.pendingSpamReview
+    ? 'warning'
+    : getReviewVerdictClass(incident.reviewVerdict)
+  const verdictLabel = incident.reviewVerdict
+    ? formatVerdictLabel(incident.reviewVerdict)
+    : incident.pendingSpamReview
+      ? 'Pending review'
+      : formatMlStatus(incident.mlStatus)
   return (
     <div style={{ display: 'grid', gap: 4, minWidth: 180 }}>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span className={`admin-pill ${incident.predictedLabel === 'spam' ? 'warning' : incident.predictedLabel === 'real' ? 'success' : ''}`}>
+        <span className={`admin-pill ${getPredictedLabelClass(incident.predictedLabel)}`}>
           {formatPredictedLabel(incident.predictedLabel)}
         </span>
-        <span className={`admin-pill ${incident.pendingSpamReview ? 'warning' : incident.reviewVerdict ? 'success' : ''}`}>
-          {incident.reviewVerdict ? incident.reviewVerdict : incident.pendingSpamReview ? 'Pending review' : formatMlStatus(incident.mlStatus)}
+        <span className={`admin-pill ${verdictClass || 'unclassified'}`}>
+          {verdictLabel}
         </span>
       </div>
       <div style={{ fontSize: 11, color: 'var(--admin-text-secondary)', display: 'grid', gap: 2 }}>
@@ -242,6 +277,56 @@ export default function AdminIncidentsPage() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  /* Click-and-drag scrolling on the incidents table. Holds left mouse button
+   * down anywhere in the table and drags to scroll both axes. */
+  const tableScrollRef = useRef(null)
+  const dragStateRef = useRef(null)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleTableMouseDown = (event) => {
+    // Skip drag-scroll when the click started on something interactive — the
+    // row actions, sort headers, links etc. should still work normally.
+    if (event.button !== 0) return
+    if (event.target.closest('button, a, input, select, textarea, th')) return
+    const el = tableScrollRef.current
+    if (!el) return
+    dragStateRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: el.scrollLeft,
+      scrollTop: el.scrollTop,
+      moved: false,
+    }
+    setIsDragging(true)
+  }
+  const handleTableMouseMove = (event) => {
+    const state = dragStateRef.current
+    const el = tableScrollRef.current
+    if (!state || !el) return
+    const dx = event.clientX - state.startX
+    const dy = event.clientY - state.startY
+    if (!state.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+      state.moved = true
+    }
+    el.scrollLeft = state.scrollLeft - dx
+    el.scrollTop = state.scrollTop - dy
+  }
+  const endTableDrag = () => {
+    if (dragStateRef.current) {
+      dragStateRef.current = null
+      setIsDragging(false)
+    }
+  }
+  // Suppress the trailing click that follows a real drag, so dragging to
+  // scroll doesn't accidentally fire a row click handler.
+  const handleTableClickCapture = (event) => {
+    const state = dragStateRef.current
+    if (state && state.moved) {
+      event.stopPropagation()
+      event.preventDefault()
+    }
+  }
 
   const filterParam = normalizeIncidentFilter(searchParams.get('filter') || 'all')
 
@@ -365,7 +450,15 @@ export default function AdminIncidentsPage() {
       )}
 
       <div className="admin-card">
-        <div className="admin-table-wrapper">
+        <div
+          ref={tableScrollRef}
+          className={`admin-table-wrapper admin-drag-scroll${isDragging ? ' dragging' : ''}`}
+          onMouseDown={handleTableMouseDown}
+          onMouseMove={handleTableMouseMove}
+          onMouseUp={endTableDrag}
+          onMouseLeave={endTableDrag}
+          onClickCapture={handleTableClickCapture}
+        >
           <table className="admin-table">
             <thead>
               <tr>
@@ -441,7 +534,9 @@ export default function AdminIncidentsPage() {
                       <div style={{ display: 'grid', gap: 4 }}>
                         <span className={`admin-pill ${incident.status}`}>{incident.status}</span>
                         {incident.reviewVerdict ? (
-                          <span className="admin-pill success">{incident.reviewVerdict}</span>
+                          <span className={`admin-pill ${getReviewVerdictClass(incident.reviewVerdict) || 'unclassified'}`}>
+                            {formatVerdictLabel(incident.reviewVerdict)}
+                          </span>
                         ) : incident.pendingSpamReview ? (
                           <span className="admin-pill warning">Awaiting review</span>
                         ) : null}

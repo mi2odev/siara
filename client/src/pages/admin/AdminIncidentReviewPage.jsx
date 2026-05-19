@@ -19,6 +19,7 @@ import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import BrokenImageOutlinedIcon from '@mui/icons-material/BrokenImageOutlined'
 import FormatQuoteRoundedIcon from '@mui/icons-material/FormatQuoteRounded'
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
 
 import {
   fetchAdminIncident,
@@ -168,8 +169,77 @@ function getDecisionAction(decision) {
       return 'reject'
     case 'archive':
       return 'archive'
+    case 'unarchive':
+      return 'unarchive'
     default:
       return null
+  }
+}
+
+/* Decision tiles displayed in the action grid. Order is intentional:
+ *  - Confirm path  (approve, change severity)
+ *  - Investigate   (merge, request info, flag)
+ *  - Reject path   (archive, reject)
+ */
+const DECISION_TILES = [
+  { key: 'approve', label: 'Approve & Publish',  hint: 'Verifies the report and publishes it to the public feed.',           tone: 'success'  },
+  { key: 'change',  label: 'Change Severity',    hint: 'Override the AI severity. The report stays in its current status.',   tone: 'primary'  },
+  { key: 'merge',   label: 'Merge with Cluster', hint: 'Mark as a duplicate of a nearby incident. Merges its reports too.',   tone: 'primary'  },
+  { key: 'info',    label: 'Request More Info',  hint: 'Ask the reporter for clarification. Report stays in the queue.',      tone: 'info'     },
+  { key: 'flag',    label: 'Flag for Review',    hint: 'Escalate to another moderator. Records a flag entry on the report.',  tone: 'warning'  },
+  { key: 'archive', label: 'Archive',            hint: 'Quiet removal without a verdict (e.g. outdated reports).',            tone: 'neutral'  },
+  { key: 'reject',  label: 'Reject',             hint: 'Mark as confirmed spam / false report. Requires a reason.',           tone: 'danger'   },
+]
+
+const REJECT_REASONS = [
+  { value: 'spam',                  label: 'Spam' },
+  { value: 'duplicate',             label: 'Duplicate' },
+  { value: 'off_topic',             label: 'Off-topic' },
+  { value: 'false_report',          label: 'False report' },
+  { value: 'insufficient_evidence', label: 'Insufficient evidence' },
+  { value: 'wrong_location',        label: 'Wrong location' },
+  { value: 'other',                 label: 'Other' },
+]
+
+const TERMINAL_INCIDENT_STATUSES = new Set(['verified', 'rejected', 'archived', 'merged'])
+
+/** Compute the AI-suggested decision based on the incident's signals. */
+function computeAiRecommendation(incident) {
+  if (!incident) return null
+  const aiConf = typeof incident?.aiAssessment?.confidence === 'number' ? incident.aiAssessment.confidence : null
+  const aiStatus = incident?.aiAssessment?.status
+  const spamScore = typeof incident?.spamAnalysis?.spamScore === 'number' ? incident.spamAnalysis.spamScore : null
+  const predicted = String(incident?.spamAnalysis?.predictedLabel || '').toLowerCase()
+
+  if (predicted === 'spam' && (spamScore ?? 0) >= 60) {
+    return {
+      action: 'reject',
+      label: 'Reject as spam',
+      tone: 'danger',
+      explanation: `Spam classifier flagged this report (score ${Math.round(spamScore)}%).`,
+    }
+  }
+  if (aiStatus === 'completed' && (aiConf ?? 0) >= 85 && (spamScore ?? 0) < 30) {
+    return {
+      action: 'approve',
+      label: 'Approve & Publish',
+      tone: 'success',
+      explanation: `High AI confidence (${Math.round(aiConf)}%) and clean spam signals — safe to publish.`,
+    }
+  }
+  if (aiStatus === 'completed' && aiConf != null && aiConf >= 40 && aiConf < 85) {
+    return {
+      action: 'info',
+      label: 'Request More Info',
+      tone: 'info',
+      explanation: `AI confidence is moderate (${Math.round(aiConf)}%) — ask the reporter for clarification before deciding.`,
+    }
+  }
+  return {
+    action: null,
+    label: 'Manual review needed',
+    tone: 'neutral',
+    explanation: 'AI signals are unclear or unavailable — review the evidence manually.',
   }
 }
 
@@ -236,6 +306,7 @@ export default function AdminIncidentReviewPage() {
   const [actionNote, setActionNote] = useState('')
   const [internalNote, setInternalNote] = useState('')
   const [mergeTargetReportId, setMergeTargetReportId] = useState('')
+  const [rejectReason, setRejectReason] = useState('spam')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [noteSubmitting, setNoteSubmitting] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(null)
@@ -420,14 +491,48 @@ export default function AdminIncidentReviewPage() {
     setError(null)
 
     try {
-      await submitAdminIncidentAction(incident.reportId, {
+      const updated = await submitAdminIncidentAction(incident.reportId, {
         action,
         note: actionNote,
         severity: decision === 'change' ? newSeverity : null,
         mergeTargetReportId: decision === 'merge' ? mergeTargetReportId : null,
+        rejectReason: decision === 'reject' ? rejectReason : null,
       })
 
-      navigate('/admin/incidents')
+      // Stay on the page so the resulting state is visually obvious — for
+      // terminal decisions (verify/reject/archive/merge) the "Already X" banner
+      // appears, and for request-info / flag the relevant badge becomes visible.
+      // Without this the user navigates to the list and assumes nothing changed
+      // because archived/verified reports still appear under "All Incidents".
+      if (updated) {
+        setIncident(updated)
+        setDecision('')
+        setActionNote('')
+        setRejectReason('spam')
+        setMergeTargetReportId('')
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+      }
+    } catch (requestError) {
+      setError(requestError)
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleUnarchive() {
+    if (!incident || isSubmitting || incident.status !== 'archived') {
+      return
+    }
+    setIsSubmitting(true)
+    setError(null)
+    try {
+      const updated = await submitAdminIncidentAction(incident.reportId, { action: 'unarchive' })
+      if (updated) setIncident(updated)
     } catch (requestError) {
       setError(requestError)
     } finally {
@@ -873,78 +978,469 @@ export default function AdminIncidentReviewPage() {
       </div>
 
       <div className="admin-review-right">
-        <div className="admin-card">
-          <h3 className="admin-card-title">Decision Engine</h3>
-          <p style={{ fontSize: 10.5, color: 'var(--admin-text-muted)', marginTop: 4, marginBottom: 12 }}>
-            Select an action for this incident
-          </p>
+        {(() => {
+          const isTerminal = TERMINAL_INCIDENT_STATUSES.has(incident.status)
+          const aiRec = computeAiRecommendation(incident)
+          const infoPending = incident.infoRequest?.pending
+          const selectedTile = DECISION_TILES.find((t) => t.key === decision)
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button className={`admin-btn admin-btn-full ${decision === 'approve' ? 'admin-btn-primary' : 'admin-btn-success'}`} onClick={() => setDecision('approve')}>
-              <CheckRoundedIcon fontSize="inherit" /> Approve & Publish
-            </button>
-            <button className={`admin-btn admin-btn-full ${decision === 'change' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('change')}>
-              <EditRoundedIcon fontSize="inherit" /> Change Severity
-            </button>
-            {decision === 'change' && (
-              <select className="admin-select" value={newSeverity} onChange={(event) => setNewSeverity(event.target.value)} style={{ marginLeft: 8 }}>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            )}
-            <button className={`admin-btn admin-btn-full ${decision === 'merge' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('merge')}>
-              <MergeRoundedIcon fontSize="inherit" /> Merge with Cluster
-            </button>
-            {decision === 'merge' && (
-              <input
-                className="admin-input"
-                type="text"
-                placeholder="Merge target report ID"
-                value={mergeTargetReportId}
-                onChange={(event) => setMergeTargetReportId(event.target.value)}
-                style={{ marginLeft: 8 }}
-              />
-            )}
-            <button className={`admin-btn admin-btn-full ${decision === 'info' ? 'admin-btn-primary' : 'admin-btn-ghost'}`} onClick={() => setDecision('info')}>
-              <HelpOutlineRoundedIcon fontSize="inherit" className="icon-info" /> Request More Info
-            </button>
-            <button className={`admin-btn admin-btn-full ${decision === 'flag' ? 'admin-btn-warning' : 'admin-btn-ghost'}`} onClick={() => setDecision('flag')}>
-              <FlagOutlinedIcon fontSize="inherit" className="icon-warning" /> Flag for Review
-            </button>
-            <button className={`admin-btn admin-btn-full ${decision === 'archive' ? 'admin-btn-warning' : 'admin-btn-ghost'}`} onClick={() => setDecision('archive')}>
-              <ArchiveOutlinedIcon fontSize="inherit" /> Archive
-            </button>
-            <button className={`admin-btn admin-btn-full admin-btn-danger`} style={decision === 'reject' ? { outline: '2px solid var(--admin-danger)', outlineOffset: -2 } : undefined} onClick={() => setDecision('reject')}>
-              <CloseRoundedIcon fontSize="inherit" /> Reject
-            </button>
-          </div>
+          const TONE_TO_COLOR = {
+            success: 'var(--admin-success)',
+            primary: 'var(--admin-primary)',
+            info:    '#2563EB',
+            warning: 'var(--admin-warning)',
+            neutral: 'var(--admin-text-secondary)',
+            danger:  'var(--admin-danger)',
+          }
+          const TONE_TO_BG = {
+            success: 'var(--admin-success-subtle)',
+            primary: 'var(--admin-primary-subtle)',
+            info:    'rgba(59, 130, 246, 0.10)',
+            warning: 'var(--admin-warning-subtle)',
+            neutral: 'var(--admin-surface-2)',
+            danger:  'var(--admin-danger-subtle)',
+          }
+          const iconFor = (key) => {
+            switch (key) {
+              case 'approve': return <CheckRoundedIcon fontSize="inherit" />
+              case 'change':  return <EditRoundedIcon fontSize="inherit" />
+              case 'merge':   return <MergeRoundedIcon fontSize="inherit" />
+              case 'info':    return <HelpOutlineRoundedIcon fontSize="inherit" />
+              case 'flag':    return <FlagOutlinedIcon fontSize="inherit" />
+              case 'archive': return <ArchiveOutlinedIcon fontSize="inherit" />
+              case 'reject':  return <CloseRoundedIcon fontSize="inherit" />
+              default:        return null
+            }
+          }
 
-          {decision && (
-            <div style={{ marginTop: 12 }}>
-              <textarea
-                className="admin-textarea"
-                value={actionNote}
-                onChange={(event) => setActionNote(event.target.value)}
-                placeholder={
-                  decision === 'merge'
-                    ? 'Merge reason (optional)'
-                    : decision === 'info'
-                      ? 'Request details (optional)'
-                      : 'Reviewer note (optional)'
-                }
-              />
-              <button
-                className="admin-btn admin-btn-primary admin-btn-full"
-                style={{ marginTop: 10 }}
-                onClick={handleDecisionSubmit}
-                disabled={isSubmitting || (decision === 'merge' && !mergeTargetReportId)}
-              >
-                {isSubmitting ? 'Submitting...' : <>Confirm Decision <ArrowForwardRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle' }} /></>}
-              </button>
+          const canSubmit = (() => {
+            if (!decision || isSubmitting) return false
+            if (decision === 'merge' && !mergeTargetReportId) return false
+            if (decision === 'reject' && !rejectReason) return false
+            if (decision === 'info' && !actionNote.trim()) return false
+            return true
+          })()
+
+          const cancelDecision = () => { setDecision(''); setActionNote('') }
+
+          return (
+            <div
+              className="admin-card"
+              style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+            >
+              {/* ─── Header ─── */}
+              <div style={{
+                padding: '14px 16px',
+                borderBottom: '1px solid var(--admin-border)',
+                background: 'linear-gradient(180deg, #FCFCFD 0%, var(--admin-surface) 100%)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <h3 className="admin-card-title" style={{ margin: 0, fontSize: 14 }}>Decision Engine</h3>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--admin-text-muted)' }}>
+                      Pick an action — every choice is audited.
+                    </p>
+                  </div>
+                  <span className={`admin-pill ${incident.status}`}>{incident.status}</span>
+                </div>
+              </div>
+
+              {/* ─── Status banners ─── */}
+              {isTerminal && (
+                <div style={{
+                  margin: 14, padding: '12px 14px', borderRadius: 8,
+                  background: 'var(--admin-surface-2)', border: '1px solid var(--admin-border)',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  fontSize: 12, color: 'var(--admin-text-secondary)',
+                }}>
+                  <span style={{
+                    width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+                    background: 'var(--admin-success-subtle)', color: 'var(--admin-success)',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+                  }}>
+                    <CheckRoundedIcon fontSize="inherit" />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, color: 'var(--admin-text)', textTransform: 'capitalize' }}>
+                      Already {incident.status}
+                    </div>
+                    {incident.rejectReason && (
+                      <div style={{ fontSize: 11, marginTop: 2 }}>
+                        Reason: <strong>{incident.rejectReason.replace(/_/g, ' ')}</strong>
+                      </div>
+                    )}
+                    {incident.status === 'archived' && (
+                      <div style={{ fontSize: 11, marginTop: 2 }}>
+                        Hidden from public feeds. Unarchive to return it to the review queue.
+                      </div>
+                    )}
+                  </div>
+                  {incident.status === 'archived' && (
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-secondary"
+                      onClick={handleUnarchive}
+                      disabled={isSubmitting}
+                      style={{ flexShrink: 0, fontSize: 12, padding: '6px 12px' }}
+                    >
+                      {isSubmitting ? 'Unarchiving…' : 'Unarchive'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {!isTerminal && infoPending && (
+                <div style={{
+                  margin: 14, padding: '10px 12px', borderRadius: 8,
+                  background: 'rgba(245, 158, 11, 0.10)', border: '1px solid rgba(245, 158, 11, 0.30)',
+                  display: 'flex', alignItems: 'flex-start', gap: 8,
+                  fontSize: 11.5, color: 'var(--admin-warning)',
+                }}>
+                  <HelpOutlineRoundedIcon fontSize="inherit" style={{ marginTop: 2 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700 }}>Awaiting reporter response</div>
+                    <div style={{ fontSize: 10.5, marginTop: 1, opacity: 0.9, color: 'var(--admin-text-secondary)' }}>
+                      Asked {formatDateTime(incident.infoRequest.requestedAt)}
+                    </div>
+                    {incident.infoRequest?.message ? (
+                      <div style={{ fontSize: 11, marginTop: 4, color: 'var(--admin-text)', whiteSpace: 'pre-wrap' }}>
+                        "{incident.infoRequest.message}"
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
+              {!isTerminal && !infoPending && incident.infoRequest?.respondedAt && incident.infoRequest?.response && (
+                <div style={{
+                  margin: 14, padding: '10px 12px', borderRadius: 8,
+                  background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.30)',
+                  display: 'flex', alignItems: 'flex-start', gap: 8,
+                  fontSize: 11.5, color: 'var(--admin-success)',
+                }}>
+                  <CheckRoundedIcon fontSize="inherit" style={{ marginTop: 2 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700 }}>Reporter responded</div>
+                    <div style={{ fontSize: 10.5, marginTop: 1, opacity: 0.9, color: 'var(--admin-text-secondary)' }}>
+                      Answered {formatDateTime(incident.infoRequest.respondedAt)}
+                    </div>
+                    <div style={{ fontSize: 11, marginTop: 4, color: 'var(--admin-text)', whiteSpace: 'pre-wrap' }}>
+                      "{incident.infoRequest.response}"
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── AI suggestion (compact, one-line) ─── */}
+              {!isTerminal && aiRec && (
+                <div style={{
+                  margin: '14px 14px 8px',
+                  padding: '10px 12px', borderRadius: 8,
+                  background: TONE_TO_BG[aiRec.tone] || 'var(--admin-surface-2)',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <span style={{
+                    width: 24, height: 24, borderRadius: 50, flexShrink: 0,
+                    background: '#fff', color: TONE_TO_COLOR[aiRec.tone] || 'var(--admin-text-secondary)',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                  }}>
+                    <BoltOutlinedIcon fontSize="inherit" />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: TONE_TO_COLOR[aiRec.tone], lineHeight: 1.2 }}>
+                      AI suggestion
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--admin-text)', marginTop: 1 }}>
+                      {aiRec.label}
+                    </div>
+                    <div style={{ fontSize: 10.5, color: 'var(--admin-text-secondary)', marginTop: 2, lineHeight: 1.4 }}>
+                      {aiRec.explanation}
+                    </div>
+                  </div>
+                  {aiRec.action && decision !== aiRec.action && (
+                    <button
+                      type="button"
+                      onClick={() => setDecision(aiRec.action)}
+                      style={{
+                        flexShrink: 0,
+                        padding: '5px 10px',
+                        borderRadius: 999,
+                        border: 0,
+                        background: TONE_TO_COLOR[aiRec.tone],
+                        color: '#fff',
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        letterSpacing: 0.2,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Use it
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* ─── Action list (vertical, inline form under the picked row) ───
+               *  All 7 rows stay visible at all times so the moderator can
+               *  jump from "Approve" to "Reject" without first clicking
+               *  Cancel. Clicking a different row swaps the inline form (and
+               *  its Confirm/Cancel buttons) under the new selection.
+               */}
+              {!isTerminal && (
+                <div style={{ padding: '0 8px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {DECISION_TILES.map((tile) => {
+                      const active = decision === tile.key
+                      const recommended = aiRec?.action === tile.key
+                      const color = TONE_TO_COLOR[tile.tone] || TONE_TO_COLOR.neutral
+                      const bg = TONE_TO_BG[tile.tone] || TONE_TO_BG.neutral
+
+                      return (
+                        <React.Fragment key={tile.key}>
+                          <button
+                            type="button"
+                            onClick={() => active ? cancelDecision() : setDecision(tile.key)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              padding: '9px 10px',
+                              borderRadius: 7,
+                              border: 0,
+                              background: active ? bg : 'transparent',
+                              color: active ? color : 'var(--admin-text)',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              position: 'relative',
+                              transition: 'background 120ms ease, color 120ms ease',
+                              outline: 'none',
+                            }}
+                            onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--admin-surface-2)' }}
+                            onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent' }}
+                          >
+                            {/* Left accent bar for the active row */}
+                            {active && (
+                              <span style={{
+                                position: 'absolute', left: 0, top: 6, bottom: 6,
+                                width: 3, borderRadius: '0 2px 2px 0',
+                                background: color,
+                              }} />
+                            )}
+                            <span style={{
+                              width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                              background: active ? color : bg,
+                              color: active ? '#fff' : color,
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 15,
+                            }}>
+                              {iconFor(tile.key)}
+                            </span>
+                            <span style={{ flex: 1, minWidth: 0 }}>
+                              <span style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                fontSize: 12.5, fontWeight: active ? 700 : 600,
+                              }}>
+                                {tile.label}
+                                {recommended && !active && (
+                                  <span style={{
+                                    fontSize: 8.5, fontWeight: 800, letterSpacing: 0.4,
+                                    textTransform: 'uppercase',
+                                    padding: '1px 6px', borderRadius: 999,
+                                    background: color, color: '#fff',
+                                  }}>AI</span>
+                                )}
+                              </span>
+                              <span style={{
+                                display: 'block',
+                                fontSize: 10.5, color: 'var(--admin-text-muted)',
+                                marginTop: 1, lineHeight: 1.35,
+                              }}>
+                                {tile.hint}
+                              </span>
+                            </span>
+                            {/* Right-side hint: chevron when not picked, "Change" label when active */}
+                            {active ? (
+                              <span style={{
+                                fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3,
+                                textTransform: 'uppercase',
+                                padding: '4px 8px', borderRadius: 999,
+                                color: color, border: `1px solid ${color}55`,
+                                flexShrink: 0,
+                              }}>Change</span>
+                            ) : (
+                              <ArrowForwardRoundedIcon
+                                fontSize="inherit"
+                                style={{
+                                  fontSize: 16,
+                                  opacity: 0.3,
+                                  color: 'var(--admin-text-muted)',
+                                  flexShrink: 0,
+                                }}
+                              />
+                            )}
+                          </button>
+
+                          {/* Inline form + Confirm/Cancel — only renders for the
+                              picked row, which is now the only row visible. */}
+                          {active && (
+                            <div style={{
+                              margin: '4px 0 6px',
+                              padding: '12px 14px',
+                              borderRadius: 8,
+                              background: 'var(--admin-surface-2)',
+                              border: `1px solid ${color}33`,
+                              display: 'flex', flexDirection: 'column', gap: 10,
+                            }}>
+                              {/* Change Severity */}
+                              {decision === 'change' && (
+                                <div>
+                                  <label className="admin-form-label" style={{ marginBottom: 6 }}>New severity</label>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    {['low', 'medium', 'high'].map((sev) => (
+                                      <button
+                                        key={sev}
+                                        type="button"
+                                        onClick={() => setNewSeverity(sev)}
+                                        className={`admin-pill ${sev}`}
+                                        style={{
+                                          flex: 1, cursor: 'pointer', padding: '7px 10px',
+                                          fontSize: 11, textTransform: 'capitalize',
+                                          border: newSeverity === sev ? '2px solid currentColor' : '2px solid transparent',
+                                          opacity: newSeverity === sev ? 1 : 0.55,
+                                        }}
+                                      >
+                                        {sev}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Merge */}
+                              {decision === 'merge' && (
+                                <div>
+                                  <label className="admin-form-label" style={{ marginBottom: 6 }}>Merge target</label>
+                                  {incident.nearbyReports.length > 0 && (
+                                    <select
+                                      className="admin-select"
+                                      value={mergeTargetReportId}
+                                      onChange={(e) => setMergeTargetReportId(e.target.value)}
+                                      style={{ width: '100%' }}
+                                    >
+                                      <option value="">Select a nearby report…</option>
+                                      {incident.nearbyReports.map((nearby) => (
+                                        <option key={nearby.reportId} value={nearby.reportId}>
+                                          {nearby.displayId} · {nearby.severity} · {formatDistance(nearby.distanceKm)}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  )}
+                                  <input
+                                    className="admin-input"
+                                    type="text"
+                                    placeholder="Or paste a report ID"
+                                    value={mergeTargetReportId}
+                                    onChange={(e) => setMergeTargetReportId(e.target.value)}
+                                    style={{ width: '100%', marginTop: 6 }}
+                                  />
+                                </div>
+                              )}
+
+                              {/* Reject */}
+                              {decision === 'reject' && (
+                                <div>
+                                  <label className="admin-form-label" style={{ marginBottom: 6 }}>Rejection reason</label>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                                    {REJECT_REASONS.map((reason) => {
+                                      const checked = rejectReason === reason.value
+                                      return (
+                                        <button
+                                          key={reason.value}
+                                          type="button"
+                                          onClick={() => setRejectReason(reason.value)}
+                                          style={{
+                                            padding: '7px 10px',
+                                            borderRadius: 6,
+                                            border: `1px solid ${checked ? 'var(--admin-danger)' : 'var(--admin-border)'}`,
+                                            background: checked ? 'var(--admin-danger-subtle)' : 'var(--admin-surface)',
+                                            color: checked ? 'var(--admin-danger)' : 'var(--admin-text-secondary)',
+                                            fontSize: 11, fontWeight: 600,
+                                            cursor: 'pointer', textAlign: 'left',
+                                          }}
+                                        >
+                                          {reason.label}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Reviewer note */}
+                              <div>
+                                <label className="admin-form-label" style={{ marginBottom: 6 }}>
+                                  {decision === 'info'
+                                    ? 'Message to the reporter '
+                                    : decision === 'reject'
+                                      ? 'Internal note '
+                                      : 'Reviewer note '}
+                                  <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}>
+                                    {decision === 'info' ? '(required)' : '(optional)'}
+                                  </span>
+                                </label>
+                                <textarea
+                                  className="admin-textarea"
+                                  value={actionNote}
+                                  onChange={(e) => setActionNote(e.target.value)}
+                                  rows={3}
+                                  placeholder={
+                                    decision === 'merge'    ? 'Why is this a duplicate of the target report?' :
+                                    decision === 'info'     ? 'What does the reporter need to clarify?' :
+                                    decision === 'reject'   ? 'Internal context for this rejection.' :
+                                    decision === 'archive'  ? 'Optional note for the audit log.' :
+                                    decision === 'flag'     ? 'Why are you escalating this report?' :
+                                    decision === 'change'   ? 'Why is the severity being overridden?' :
+                                                              'Reviewer note (optional)'
+                                  }
+                                  style={{ width: '100%' }}
+                                />
+                              </div>
+
+                              {/* Confirm / Cancel — sit right under the form so
+                                  the moderator never has to scroll to commit. */}
+                              <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                                <button
+                                  type="button"
+                                  className="admin-btn admin-btn-sm admin-btn-ghost"
+                                  onClick={cancelDecision}
+                                  disabled={isSubmitting}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`admin-btn admin-btn-sm ${decision === 'reject' ? 'admin-btn-danger' : 'admin-btn-primary'}`}
+                                  onClick={handleDecisionSubmit}
+                                  disabled={!canSubmit}
+                                  style={{ flex: 1, justifyContent: 'center', height: 32 }}
+                                >
+                                  {isSubmitting ? 'Submitting…' : (
+                                    <>
+                                      Confirm: {tile.label}
+                                      <ArrowForwardRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', ml: 0.5 }} />
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </React.Fragment>
+                      )
+                    })}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          )
+        })()}
 
         <div className="admin-card">
           <h3 className="admin-card-title">Internal Notes</h3>

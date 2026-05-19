@@ -404,23 +404,33 @@ function resolveOperationalAlertNotificationEvent(change) {
 function buildOperationalAlertNotificationBody(alert, eventType) {
   const zoneName = alert?.zoneName || "the targeted zone";
   const endsAtLabel = formatOperationalAlertDateTime(alert?.endsAt);
+  // Admin-supplied description is included in the notification body so the
+  // operator's actual message reaches the user instead of just the auto-built
+  // "is now active in X" summary.
+  const description = typeof alert?.description === "string"
+    ? alert.description.trim()
+    : "";
 
   if (eventType === OPERATIONAL_ALERT_NOTIFICATION_EVENTS.expired) {
-    return endsAtLabel
+    const base = endsAtLabel
       ? `${alert.title} in ${zoneName} has expired. Ended at ${endsAtLabel}.`
       : `${alert.title} in ${zoneName} has expired.`;
+    return description ? `${base} ${description}` : base;
   }
 
-  if (endsAtLabel) {
-    return `${alert.title} is now active in ${zoneName}. Active until ${endsAtLabel}.`;
-  }
+  const lead = endsAtLabel
+    ? `${alert.title} is now active in ${zoneName}. Active until ${endsAtLabel}.`
+    : `${alert.title} is now active in ${zoneName}.`;
 
-  return `${alert.title} is now active in ${zoneName}.`;
+  return description ? `${lead} ${description}` : lead;
 }
 
 function buildOperationalAlertNotificationData(alert, eventType) {
   const nextStatus =
     eventType === OPERATIONAL_ALERT_NOTIFICATION_EVENTS.expired ? "expired" : "active";
+  const description = typeof alert?.description === "string"
+    ? alert.description.trim()
+    : "";
 
   return {
     operationalAlertId: alert.id,
@@ -434,6 +444,10 @@ function buildOperationalAlertNotificationData(alert, eventType) {
     startsAt: alert.startsAt ? new Date(alert.startsAt).toISOString() : null,
     endsAt: alert.endsAt ? new Date(alert.endsAt).toISOString() : null,
     sourceType: alert.sourceType || "manual",
+    // Carry the admin-authored description so the user's notification UI can
+    // render it as a distinct field if it wants to instead of relying on the
+    // appended sentence in the notification body.
+    description: description || null,
   };
 }
 

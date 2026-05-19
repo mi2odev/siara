@@ -220,6 +220,15 @@ export async function deleteReport(reportId) {
   }
 }
 
+export async function respondToInfoRequest(reportId, response) {
+  try {
+    const res = await userRequest.post(`/reports/${reportId}/info-response`, { response })
+    return normalizeReport(res.data?.report)
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to send response')
+  }
+}
+
 export async function uploadReportMedia(reportId, files) {
   try {
     const formData = new FormData()

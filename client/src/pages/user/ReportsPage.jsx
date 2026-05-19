@@ -10,7 +10,7 @@ import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
-import { deleteReport, listReports } from '../../services/reportsService'
+import { deleteReport, listReports, respondToInfoRequest } from '../../services/reportsService'
 import '../../styles/NewsPage.css'
 import '../../styles/AlertsPage.css'
 import '../../styles/DashboardPage.css'
@@ -149,6 +149,40 @@ export default function ReportsPage() {
   const [selectedReportId, setSelectedReportId] = useState(null)
   const [severityFilter, setSeverityFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [infoModalReport, setInfoModalReport] = useState(null)
+  const [infoModalText, setInfoModalText] = useState('')
+  const [infoModalSubmitting, setInfoModalSubmitting] = useState(false)
+  const [infoModalError, setInfoModalError] = useState('')
+
+  function openInfoModal(report) {
+    setInfoModalReport(report)
+    setInfoModalText('')
+    setInfoModalError('')
+  }
+  function closeInfoModal() {
+    if (infoModalSubmitting) return
+    setInfoModalReport(null)
+    setInfoModalText('')
+    setInfoModalError('')
+  }
+  async function submitInfoResponse() {
+    if (!infoModalReport || !infoModalText.trim() || infoModalSubmitting) return
+    setInfoModalSubmitting(true)
+    setInfoModalError('')
+    try {
+      const updated = await respondToInfoRequest(infoModalReport.id, infoModalText.trim())
+      if (updated) {
+        setReports((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+        setToast('Response sent — thanks for the extra info.')
+        setInfoModalReport(null)
+        setInfoModalText('')
+      }
+    } catch (err) {
+      setInfoModalError(err?.message || 'Failed to send response')
+    } finally {
+      setInfoModalSubmitting(false)
+    }
+  }
 
   const userIdentity = useMemo(() => ({
     id: user?.id,
@@ -423,6 +457,57 @@ export default function ReportsPage() {
                       </span>
                     </div>
                   </div>
+                  {report.infoRequest?.pending && (
+                    <div
+                      className="info-request-banner"
+                      onClick={(event) => event.stopPropagation()}
+                      style={{
+                        margin: '8px 12px 0',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        background: 'rgba(245, 158, 11, 0.10)',
+                        border: '1px solid rgba(245, 158, 11, 0.35)',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 10,
+                      }}
+                    >
+                      <span style={{ fontSize: 18, lineHeight: '20px', color: '#B45309' }}>?</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 12.5, color: '#92400E' }}>
+                          A moderator needs more info
+                        </div>
+                        {report.infoRequest.message ? (
+                          <div style={{ fontSize: 12, color: '#78350F', marginTop: 2, whiteSpace: 'pre-wrap' }}>
+                            "{report.infoRequest.message}"
+                          </div>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        className="act-btn act-edit"
+                        onClick={(event) => { event.stopPropagation(); openInfoModal(report) }}
+                      >
+                        Respond
+                      </button>
+                    </div>
+                  )}
+                  {report.infoRequest && !report.infoRequest.pending && report.infoRequest.response && (
+                    <div
+                      onClick={(event) => event.stopPropagation()}
+                      style={{
+                        margin: '8px 12px 0',
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        background: 'rgba(16, 185, 129, 0.08)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        fontSize: 11.5,
+                        color: '#065F46',
+                      }}
+                    >
+                      <strong>Your response was sent.</strong> Waiting on the moderator to follow up.
+                    </div>
+                  )}
                   <div className="card-foot">
                     <button className="act-btn act-edit" onClick={(event) => { event.stopPropagation(); navigate(`/incident/${report.id}`) }}>
                       View
@@ -534,6 +619,78 @@ export default function ReportsPage() {
           </div>
         </aside>
       </div>
+
+      {infoModalReport && (
+        <div
+          onClick={closeInfoModal}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            background: 'rgba(15, 23, 42, 0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: 'min(520px, 100%)', background: '#fff', borderRadius: 12,
+              boxShadow: '0 24px 60px rgba(15, 23, 42, 0.25)', padding: 20,
+              display: 'flex', flexDirection: 'column', gap: 12,
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0, fontSize: 16, color: '#0F172A' }}>Respond to moderator</h3>
+              <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#475569' }}>
+                Your answer goes to the admin reviewing this report.
+              </p>
+            </div>
+            {infoModalReport.infoRequest?.message ? (
+              <div
+                style={{
+                  padding: '10px 12px', borderRadius: 8,
+                  background: 'rgba(245, 158, 11, 0.10)',
+                  border: '1px solid rgba(245, 158, 11, 0.30)',
+                  fontSize: 12.5, color: '#78350F', whiteSpace: 'pre-wrap',
+                }}
+              >
+                "{infoModalReport.infoRequest.message}"
+              </div>
+            ) : null}
+            <textarea
+              value={infoModalText}
+              onChange={(event) => setInfoModalText(event.target.value)}
+              placeholder="Type your response…"
+              rows={5}
+              maxLength={2000}
+              disabled={infoModalSubmitting}
+              style={{
+                width: '100%', padding: 10, border: '1px solid #E2E8F0', borderRadius: 8,
+                fontSize: 13, fontFamily: 'inherit', resize: 'vertical', minHeight: 100,
+              }}
+            />
+            {infoModalError ? (
+              <div style={{ fontSize: 12, color: '#B91C1C' }}>{infoModalError}</div>
+            ) : null}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                type="button"
+                className="act-btn"
+                onClick={closeInfoModal}
+                disabled={infoModalSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="act-btn act-edit"
+                onClick={submitInfoResponse}
+                disabled={!infoModalText.trim() || infoModalSubmitting}
+              >
+                {infoModalSubmitting ? 'Sending…' : 'Send response'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

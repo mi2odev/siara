@@ -16,6 +16,7 @@ import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import { AuthContext } from '../../contexts/AuthContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useNotificationStore } from '../../stores/notificationStore'
+import { respondToInfoRequest } from '../../services/reportsService'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
@@ -128,6 +129,10 @@ export default function NotificationsPage() {
   const [showDropdown, setShowDropdown] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
   const [timeFilter, setTimeFilter] = useState('all')
+  // Inline "respond to admin info request" state — keyed by reportId so each
+  // notification keeps its own draft / status independently.
+  const [infoReplyText, setInfoReplyText] = useState({})
+  const [infoReplyStatus, setInfoReplyStatus] = useState({}) // reportId -> { state, error }
   const displayName = user?.name || user?.email || 'SIARA User'
   const normalizedRoles = getUserRoles(user)
   const primaryRole = normalizedRoles.includes('admin')
@@ -233,10 +238,41 @@ export default function NotificationsPage() {
     }
   }
 
+  async function handleSubmitInfoReply(notification) {
+    const reportId = notification?.data?.reportId
+    const draft = (infoReplyText[reportId] || '').trim()
+    if (!reportId || !draft) return
+
+    setInfoReplyStatus((prev) => ({ ...prev, [reportId]: { state: 'sending' } }))
+    try {
+      await respondToInfoRequest(reportId, draft)
+      setInfoReplyStatus((prev) => ({ ...prev, [reportId]: { state: 'sent' } }))
+      setInfoReplyText((prev) => ({ ...prev, [reportId]: '' }))
+      if (!notification.readAt) {
+        try { await markNotificationRead(notification.id) } catch (_error) {}
+      }
+    } catch (error) {
+      setInfoReplyStatus((prev) => ({
+        ...prev,
+        [reportId]: { state: 'error', error: error?.message || 'Failed to send response' },
+      }))
+    }
+  }
+
   function renderNotificationItem(notification) {
     const priorityColor = getPriorityColor(notification.priority)
     const priorityKey = notification.priority <= 1 ? 'high' : notification.priority === 2 ? 'medium' : 'neutral'
     const priorityLetter = notification.priority <= 1 ? 'H' : notification.priority === 2 ? 'M' : 'N'
+
+    // Info-request notifications get an inline reply field on the card itself.
+    // The reporter never has to navigate away — type, send, done.
+    const isInfoRequest = notification.eventType === 'REPORT_INFO_REQUESTED'
+      && Boolean(notification.data?.reportId)
+    const reportId = isInfoRequest ? notification.data.reportId : null
+    const draft = reportId ? (infoReplyText[reportId] || '') : ''
+    const replyStatus = reportId ? (infoReplyStatus[reportId] || { state: 'idle' }) : { state: 'idle' }
+    const replySending = replyStatus.state === 'sending'
+    const replySent = replyStatus.state === 'sent'
 
     return (
       <div
@@ -250,12 +286,16 @@ export default function NotificationsPage() {
         onClick={() => { void handleSelectNotification(notification) }}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
+            // Don't hijack Enter while the reporter is typing in the textarea.
+            const tag = event.target?.tagName
+            if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'BUTTON') return
             event.preventDefault()
             void handleSelectNotification(notification)
           }
         }}
         role="button"
         tabIndex={0}
+        style={isInfoRequest ? { flexWrap: 'wrap' } : undefined}
       >
         <div
           className="notif-avatar"
@@ -264,7 +304,22 @@ export default function NotificationsPage() {
           {priorityLetter}
         </div>
         <div className="notif-body">
-          <div className="notif-item-title">{notification.title}</div>
+          <div className="notif-item-title">
+            {notification.title}
+            {isInfoRequest && !replySent ? (
+              <span
+                style={{
+                  marginLeft: 8, padding: '1px 8px', borderRadius: 999,
+                  background: 'rgba(245, 158, 11, 0.18)',
+                  color: '#92400E', fontSize: 10, fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: 0.4,
+                  verticalAlign: 'middle',
+                }}
+              >
+                Action needed
+              </span>
+            ) : null}
+          </div>
           <div className="notif-item-body">{notification.body}</div>
           {(notification.data?.zoneName || notification.data?.locationLabel) ? (
             <span className="notif-item-zone">
@@ -276,6 +331,97 @@ export default function NotificationsPage() {
           <span className="notif-item-time">{formatRelativeTime(notification.createdAt)}</span>
           {!notification.readAt ? <span className="notif-unread-dot" aria-label="Unread" /> : null}
         </div>
+
+        {/* Inline reply form, only on REPORT_INFO_REQUESTED cards. */}
+        {isInfoRequest ? (
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              flexBasis: '100%',
+              marginTop: 10,
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: replySent ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.07)',
+              border: replySent
+                ? '1px solid rgba(16, 185, 129, 0.30)'
+                : '1px solid rgba(245, 158, 11, 0.30)',
+            }}
+          >
+            {notification.data?.requestMessage && !replySent ? (
+              <div
+                style={{
+                  fontSize: 12.5,
+                  color: '#78350F',
+                  whiteSpace: 'pre-wrap',
+                  marginBottom: 8,
+                  fontStyle: 'italic',
+                }}
+              >
+                "{notification.data.requestMessage}"
+              </div>
+            ) : null}
+
+            {replySent ? (
+              <div style={{ fontSize: 12.5, color: '#065F46' }}>
+                <strong>Response sent.</strong> The moderator was notified — they'll follow up on your report.
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={draft}
+                  onChange={(event) => setInfoReplyText((prev) => ({
+                    ...prev,
+                    [reportId]: event.target.value,
+                  }))}
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  placeholder="Type your reply to the moderator…"
+                  rows={3}
+                  maxLength={2000}
+                  disabled={replySending}
+                  style={{
+                    width: '100%',
+                    padding: 9,
+                    border: '1px solid #E2E8F0',
+                    borderRadius: 6,
+                    fontSize: 13,
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                    minHeight: 72,
+                    background: '#fff',
+                  }}
+                />
+                {replyStatus.state === 'error' ? (
+                  <div style={{ fontSize: 11.5, color: '#B91C1C', marginTop: 6 }}>
+                    {replyStatus.error}
+                  </div>
+                ) : null}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      void handleSubmitInfoReply(notification)
+                    }}
+                    disabled={!draft.trim() || replySending}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: !draft.trim() || replySending ? '#94A3B8' : '#2563EB',
+                      color: '#fff',
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      cursor: !draft.trim() || replySending ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {replySending ? 'Sending…' : 'Send reply'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
     )
   }
@@ -625,33 +771,120 @@ export default function NotificationsPage() {
                   ) : null}
                 </div>
 
-                {/* ── Card 3: Actions ── */}
-                <div className="card nd-actions-card">
-                  <h3 className="widget-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><BoltOutlinedIcon fontSize="inherit" /> Quick Actions</h3>
-                  <button
-                    type="button"
-                    className="nd-btn-primary"
-                    onClick={() => navigate(getNotificationTarget(selectedNotification))}
-                  >
-                    <OpenInNewRoundedIcon fontSize="inherit" /> Open Related Incident
-                  </button>
-                  <button
-                    type="button"
-                    className="nd-btn-outline"
-                    onClick={() => navigate('/map')}
-                  >
-                    <MapOutlinedIcon fontSize="inherit" /> View on Map
-                  </button>
-                  {!selectedNotification.readAt ? (
+                {/* ── Card 3: Actions (info-request gets an inline reply form) ── */}
+                {selectedNotification.eventType === 'REPORT_INFO_REQUESTED' && selectedNotification.data?.reportId ? (
+                  (() => {
+                    const reportId = selectedNotification.data.reportId
+                    const draft = infoReplyText[reportId] || ''
+                    const status = infoReplyStatus[reportId] || { state: 'idle' }
+                    const sending = status.state === 'sending'
+                    const sent = status.state === 'sent'
+                    return (
+                      <div className="card nd-actions-card">
+                        <h3 className="widget-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <BoltOutlinedIcon fontSize="inherit" /> Respond to moderator
+                        </h3>
+                        {selectedNotification.data?.requestMessage ? (
+                          <div
+                            style={{
+                              padding: '10px 12px', borderRadius: 8,
+                              background: 'rgba(245, 158, 11, 0.10)',
+                              border: '1px solid rgba(245, 158, 11, 0.30)',
+                              fontSize: 12.5, color: '#78350F', whiteSpace: 'pre-wrap',
+                              marginBottom: 10,
+                            }}
+                          >
+                            "{selectedNotification.data.requestMessage}"
+                          </div>
+                        ) : null}
+                        {sent ? (
+                          <div
+                            style={{
+                              padding: '10px 12px', borderRadius: 8,
+                              background: 'rgba(16, 185, 129, 0.10)',
+                              border: '1px solid rgba(16, 185, 129, 0.30)',
+                              fontSize: 12.5, color: '#065F46',
+                            }}
+                          >
+                            <strong>Response sent.</strong> The moderator has been notified — they'll follow up on this report.
+                          </div>
+                        ) : (
+                          <>
+                            <textarea
+                              value={draft}
+                              onChange={(event) => setInfoReplyText((prev) => ({ ...prev, [reportId]: event.target.value }))}
+                              placeholder="Type the extra info the moderator asked for…"
+                              rows={5}
+                              maxLength={2000}
+                              disabled={sending}
+                              style={{
+                                width: '100%', padding: 10, border: '1px solid #E2E8F0', borderRadius: 8,
+                                fontSize: 13, fontFamily: 'inherit', resize: 'vertical', minHeight: 100,
+                                marginBottom: 8,
+                              }}
+                            />
+                            {status.state === 'error' ? (
+                              <div style={{ fontSize: 12, color: '#B91C1C', marginBottom: 8 }}>
+                                {status.error}
+                              </div>
+                            ) : null}
+                            <button
+                              type="button"
+                              className="nd-btn-primary"
+                              onClick={() => { void handleSubmitInfoReply(selectedNotification) }}
+                              disabled={!draft.trim() || sending}
+                            >
+                              {sending ? 'Sending…' : 'Send response'}
+                            </button>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          className="nd-btn-outline"
+                          onClick={() => navigate(`/incident/${reportId}`)}
+                        >
+                          <OpenInNewRoundedIcon fontSize="inherit" /> Open Related Incident
+                        </button>
+                        {!selectedNotification.readAt ? (
+                          <button
+                            type="button"
+                            className="nd-btn-ghost"
+                            onClick={() => { void handleMarkSingleRead(selectedNotification.id) }}
+                          >
+                            <CheckRoundedIcon fontSize="inherit" className="icon-success" /> Mark as Read
+                          </button>
+                        ) : null}
+                      </div>
+                    )
+                  })()
+                ) : (
+                  <div className="card nd-actions-card">
+                    <h3 className="widget-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><BoltOutlinedIcon fontSize="inherit" /> Quick Actions</h3>
                     <button
                       type="button"
-                      className="nd-btn-ghost"
-                      onClick={() => { void handleMarkSingleRead(selectedNotification.id) }}
+                      className="nd-btn-primary"
+                      onClick={() => navigate(getNotificationTarget(selectedNotification))}
                     >
-                      <CheckRoundedIcon fontSize="inherit" className="icon-success" /> Mark as Read
+                      <OpenInNewRoundedIcon fontSize="inherit" /> Open Related Incident
                     </button>
-                  ) : null}
-                </div>
+                    <button
+                      type="button"
+                      className="nd-btn-outline"
+                      onClick={() => navigate('/map')}
+                    >
+                      <MapOutlinedIcon fontSize="inherit" /> View on Map
+                    </button>
+                    {!selectedNotification.readAt ? (
+                      <button
+                        type="button"
+                        className="nd-btn-ghost"
+                        onClick={() => { void handleMarkSingleRead(selectedNotification.id) }}
+                      >
+                        <CheckRoundedIcon fontSize="inherit" className="icon-success" /> Mark as Read
+                      </button>
+                    ) : null}
+                  </div>
+                )}
 
                 {/* ── Card 4: All recent notifications summary ── */}
                 <div className="card nd-recent-card">

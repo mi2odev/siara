@@ -1,8 +1,6 @@
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useContext } from 'react'
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import { AuthContext } from '../../contexts/AuthContext'
 
 const routeNames = {
@@ -41,19 +39,6 @@ export default function AdminHeader({ onToggleSidebar }) {
         </div>
       </div>
       <div className="admin-header-right">
-        <input
-          type="search"
-          className="admin-header-search"
-          placeholder="Search incidents, users, zones…"
-        />
-        <span className="admin-role-badge">Super Admin</span>
-        <button className="admin-header-btn" title="Notifications" onClick={() => navigate('/admin/alerts')}>
-          <NotificationsOutlinedIcon fontSize="small" aria-hidden="true" />
-          <span className="notif-dot"></span>
-        </button>
-        <button className="admin-header-btn" title="Settings" onClick={() => navigate('/admin/system')}>
-          <SettingsOutlinedIcon fontSize="small" aria-hidden="true" />
-        </button>
         <button
           className="admin-header-logout"
           title="Log out"
@@ -63,7 +48,6 @@ export default function AdminHeader({ onToggleSidebar }) {
         >
           Deconnexion
         </button>
-        <div className="admin-avatar" title="Admin User">SA</div>
       </div>
     </header>
   )

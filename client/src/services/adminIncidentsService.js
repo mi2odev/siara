@@ -256,6 +256,13 @@ function normalizeIncidentDetail(item) {
     modelVersion: spamAnalysis.modelVersion,
     classifiedAt: spamAnalysis.classifiedAt,
     reviewVerdict: spamAnalysis.reviewVerdict,
+    rejectReason: item?.rejectReason || null,
+    infoRequest: {
+      requestedAt: item?.infoRequest?.requestedAt || null,
+      requestedBy: item?.infoRequest?.requestedBy || null,
+      message: item?.infoRequest?.message || '',
+      pending: Boolean(item?.infoRequest?.pending),
+    },
     pendingSpamReview: spamAnalysis.pendingReview,
     reporterScore,
     spamAnalysis,
@@ -368,6 +375,7 @@ export async function submitAdminIncidentAction(reportId, payload) {
       note: payload?.note || null,
       severity: payload?.severity || null,
       mergeTargetReportId: payload?.mergeTargetReportId || null,
+      rejectReason: payload?.rejectReason || null,
     })
 
     return normalizeIncidentDetail(response.data?.incident)

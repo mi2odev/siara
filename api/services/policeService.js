@@ -1123,7 +1123,7 @@ function applyIncidentScope({
         ${NEARBY_DISTANCE_METERS}::double precision
       )
     `);
-    whereClauses.push(`base.status <> 'rejected'`);
+    whereClauses.push(`base.status not in ('rejected', 'archived')`);
     whereClauses.push(`base.status <> 'resolved'`);
     return { locationRequired: false };
   }
@@ -1150,7 +1150,7 @@ function applyIncidentScope({
   }
 
   if (scope === "field_reports") {
-    whereClauses.push(`base.status <> 'rejected'`);
+    whereClauses.push(`base.status not in ('rejected', 'archived')`);
 
     if (workZoneCommuneId) {
       values.push(workZoneCommuneId);
@@ -1437,7 +1437,7 @@ async function getPoliceDashboard(officerUserId, db = pool) {
           SELECT
             COUNT(*) FILTER (
               WHERE base.status <> 'resolved'
-                AND base.status <> 'rejected'
+                AND base.status not in ('rejected', 'archived')
                 AND (
                   ($1::bigint IS NOT NULL AND base.commune_id = $1::bigint)
                   OR ($1::bigint IS NULL AND $2::bigint IS NOT NULL AND base.wilaya_id = $2::bigint)
@@ -1446,7 +1446,7 @@ async function getPoliceDashboard(officerUserId, db = pool) {
             COUNT(*) FILTER (
               WHERE COALESCE(base.severity_hint, 0) >= 3
                 AND base.status <> 'resolved'
-                AND base.status <> 'rejected'
+                AND base.status not in ('rejected', 'archived')
                 AND (
                   ($1::bigint IS NOT NULL AND base.commune_id = $1::bigint)
                   OR ($1::bigint IS NULL AND $2::bigint IS NOT NULL AND base.wilaya_id = $2::bigint)
