@@ -12,6 +12,10 @@ const {
   upsertMobilePushDevice,
   upsertPushSubscription,
   updateUserNotificationPreferences,
+  createMobileDevicePairingSession,
+  getMobileDevicePairingSession,
+  completeMobileDevicePairingSession,
+  cancelMobileDevicePairingSession,
 } = require("../services/pushService");
 const { mapNotificationRow, markNotificationAsSent } = require("../services/notificationsService");
 const { emitNotificationCreatedToUser } = require("../services/notificationSocket");
@@ -93,6 +97,71 @@ router.delete("/mobile/unregister", verifyToken, async (req, res, next) => {
     return res.status(200).json({
       ok: true,
       deactivated: Boolean(device),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// ---------- Mobile device pairing (QR flow) ----------
+//
+// The QR rendered on the web carries ONLY the short-lived pairing code (32
+// chars base64url, hashed at rest, single-use, 5-minute TTL). The mobile app
+// must be logged in as the same SIARA user; the completion endpoint enforces
+// userId equality between the session creator and the JWT used to complete.
+// No JWTs / refresh tokens / Expo push tokens / passwords are encoded in the
+// QR itself — see api/services/pushService.js for the mechanism.
+
+router.post("/mobile/pairing-sessions", verifyToken, async (req, res, next) => {
+  try {
+    const meta = (req.body && typeof req.body.meta === "object" && req.body.meta) || {};
+    const result = await createMobileDevicePairingSession(req.user.userId, { meta });
+    // Response includes the raw pairing code and a deep-link URL exactly
+    // once. The frontend renders the URL inside a QR and never stores the
+    // code longer than the modal lifetime.
+    return res.status(201).json({
+      session: result.session,
+      pairingUrl: result.pairingUrl,
+      code: result.code,
+      expiresAt: result.expiresAt,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/mobile/pairing-sessions/:id", verifyToken, async (req, res, next) => {
+  try {
+    const sessionId = String(req.params.id || "").trim();
+    if (!sessionId) throw createError(400, "session id is required");
+    const session = await getMobileDevicePairingSession(req.user.userId, sessionId);
+    return res.status(200).json({ session });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.delete("/mobile/pairing-sessions/:id", verifyToken, async (req, res, next) => {
+  try {
+    const sessionId = String(req.params.id || "").trim();
+    if (!sessionId) throw createError(400, "session id is required");
+    const session = await cancelMobileDevicePairingSession(req.user.userId, sessionId);
+    return res.status(200).json({
+      ok: true,
+      cancelled: Boolean(session),
+      session,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/mobile/pairing-sessions/complete", verifyToken, async (req, res, next) => {
+  try {
+    const result = await completeMobileDevicePairingSession(req.user.userId, req.body || {});
+    return res.status(200).json({
+      session: result.session,
+      device: result.device,
     });
   } catch (error) {
     return next(error);

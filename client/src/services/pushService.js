@@ -180,3 +180,33 @@ export async function sendPushTest() {
     reason: response.data?.reason || null,
   }
 }
+
+// ---------- Mobile device pairing (QR flow) ----------
+//
+// All four endpoints require an authenticated SIARA user. The pairing code
+// is returned exactly once on creation and is one-time-use; the modal must
+// not persist it beyond the lifetime of the open QR card.
+
+export async function createMobilePairingSession({ meta = {} } = {}) {
+  const response = await userRequest.post(
+    `${PUSH_ENDPOINT}/mobile/pairing-sessions`,
+    { meta },
+  )
+  return response.data || null
+}
+
+export async function fetchMobilePairingSession(sessionId) {
+  if (!sessionId) throw new Error('sessionId is required')
+  const response = await userRequest.get(
+    `${PUSH_ENDPOINT}/mobile/pairing-sessions/${encodeURIComponent(sessionId)}`,
+  )
+  return response.data?.session || null
+}
+
+export async function cancelMobilePairingSession(sessionId) {
+  if (!sessionId) throw new Error('sessionId is required')
+  const response = await userRequest.delete(
+    `${PUSH_ENDPOINT}/mobile/pairing-sessions/${encodeURIComponent(sessionId)}`,
+  )
+  return response.data || { ok: false, cancelled: false }
+}

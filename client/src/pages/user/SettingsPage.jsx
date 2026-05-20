@@ -32,6 +32,7 @@ import {
   isPushSupported,
   subscribeCurrentBrowserToPush,
 } from '../../services/pushService'
+import AddMobileDeviceModal from '../../components/notifications/AddMobileDeviceModal'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/DashboardPage.css'
 import '../../styles/SettingsPage.css'
@@ -206,6 +207,10 @@ export default function SettingsPage() {
   const [testFeedback, setTestFeedback] = useState({ type: '', message: '' })
   const [isSendingTest, setIsSendingTest] = useState(false)
   const [isEnablingDesktop, setIsEnablingDesktop] = useState(false)
+  // Mobile device pairing (QR flow). State is intentionally local to the page
+  // so closing the modal forgets the pairing code; the backend stores only
+  // its hash.
+  const [addMobileDeviceOpen, setAddMobileDeviceOpen] = useState(false)
   const [twoFA, setTwoFA] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordError, setPasswordError] = useState('')
@@ -452,6 +457,29 @@ export default function SettingsPage() {
       })
     } catch (error) {
       setOrchestratorError(error?.response?.data?.message || error?.message || 'Unable to remove device.')
+    }
+  }, [])
+
+  const handleMobilePairingCompleted = useCallback(async () => {
+    // The session reaching "completed" means the mobile app upserted itself
+    // into app.mobile_push_devices. Refresh the device list so the new entry
+    // appears and then close the modal.
+    try {
+      const next = await fetchNotificationSettings()
+      setOrchestratorSettings({
+        account: next.account || null,
+        categories: next.categories || {},
+        devices: next.devices || { web: [], mobile: [] },
+      })
+      setTestFeedback({ type: 'success', message: 'Mobile device connected.' })
+    } catch (error) {
+      setOrchestratorError(
+        error?.response?.data?.message || error?.message || 'Mobile device added but the list failed to refresh.',
+      )
+    } finally {
+      // Slight delay so the user reads the "Mobile device connected" success
+      // state before the modal disappears.
+      window.setTimeout(() => setAddMobileDeviceOpen(false), 1200)
     }
   }, [])
 
@@ -812,6 +840,11 @@ export default function SettingsPage() {
 
   return (
     <div className="settings-root">
+      <AddMobileDeviceModal
+        open={addMobileDeviceOpen}
+        onClose={() => setAddMobileDeviceOpen(false)}
+        onCompleted={handleMobilePairingCompleted}
+      />
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
@@ -1319,25 +1352,47 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              {(orchestratorSettings.devices.web.length > 0 || orchestratorSettings.devices.mobile.length > 0) ? (
+              <div className="settings-group" style={{ marginTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <h4 className="settings-group-label" style={{ margin: 0 }}>Connected mobile devices</h4>
+                  <button
+                    type="button"
+                    className="settings-action"
+                    onClick={() => setAddMobileDeviceOpen(true)}
+                  >
+                    Add mobile device
+                  </button>
+                </div>
+                {orchestratorSettings.devices.mobile.length === 0 ? (
+                  <p style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>
+                    No mobile devices yet. Use “Add mobile device” to pair the SIARA app by QR.
+                  </p>
+                ) : (
+                  orchestratorSettings.devices.mobile.map((device) => (
+                    <div key={device.id} className="settings-toggle-row">
+                      <span className="settings-toggle-label" style={{ fontSize: 13 }}>
+                        {device.deviceName || device.provider || 'Mobile device'}
+                        {device.platform ? ` · ${device.platform}` : ''}
+                        {device.provider ? ` · ${device.provider}` : ''}
+                        {device.lastUsedAt ? ` · last used ${new Date(device.lastUsedAt).toLocaleString()}` : ''}
+                      </span>
+                      <button type="button" className="settings-action" onClick={() => removeNotificationDevice(device.id)}>
+                        Remove
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {orchestratorSettings.devices.web.length > 0 ? (
                 <div className="settings-group" style={{ marginTop: 16 }}>
-                  <h4 className="settings-group-label">Registered devices</h4>
+                  <h4 className="settings-group-label">Web push subscriptions</h4>
                   {orchestratorSettings.devices.web.map((sub) => (
                     <div key={sub.id} className="settings-toggle-row">
                       <span className="settings-toggle-label" style={{ fontSize: 13 }}>
                         Web · {sub.userAgent ? String(sub.userAgent).slice(0, 60) : 'browser'}
                       </span>
                       <button type="button" className="settings-action" onClick={() => removeNotificationDevice(sub.id)}>
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                  {orchestratorSettings.devices.mobile.map((device) => (
-                    <div key={device.id} className="settings-toggle-row">
-                      <span className="settings-toggle-label" style={{ fontSize: 13 }}>
-                        Mobile · {device.platform || '?'} · {device.deviceName || device.provider || 'device'}
-                      </span>
-                      <button type="button" className="settings-action" onClick={() => removeNotificationDevice(device.id)}>
                         Remove
                       </button>
                     </div>
