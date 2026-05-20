@@ -88,8 +88,61 @@ const DEFAULT_MAX_DESTINATIONS = Number(process.env.NEARBY_MAX_DESTINATIONS || 4
 const MAX_NEARBY_DESTINATIONS = Number(process.env.NEARBY_MAX_DESTINATIONS_CAP || 8);
 const DEFAULT_ROUTE_SAMPLES = Number(process.env.NEARBY_ROUTE_SAMPLES || 5);
 const MAX_ROUTE_SAMPLES = Number(process.env.NEARBY_ROUTE_SAMPLES_CAP || 12);
-const DEFAULT_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT || 12);
-const MAX_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT_CAP || 40);
+const DEFAULT_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT || 8);
+// Hard cap for normal production traffic; explicitly bumped via env for
+// load/regression testing only. Keeps backend from being asked for 40 samples
+// when the frontend asks for ROUTE_SAMPLE_COUNT=12 etc.
+const MAX_GUIDE_SAMPLE_COUNT = Number(process.env.ROUTE_GUIDE_SAMPLE_COUNT_CAP || 15);
+// Cap on concurrent buildDangerRow() jobs per /risk/route request. Each job
+// touches PostGIS + weather + (optional) Open-Meteo and can be heavy; running
+// 15 in parallel hammered the DB and tripped ML timeouts. Defaults to 4.
+const ROUTE_SAMPLE_BUILD_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.ROUTE_SAMPLE_BUILD_CONCURRENCY || 4),
+);
+
+// Lightweight async pool. Preserves input order on the output and limits
+// in-flight tasks to `limit`. Used to throttle buildDangerRow() calls per
+// route request without changing the response shape.
+async function runWithConcurrency(items, limit, worker) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const cap = Math.max(1, Number(limit) || 1);
+  if (cap >= items.length) {
+    return Promise.all(items.map((item, index) => worker(item, index)));
+  }
+  const results = new Array(items.length);
+  let next = 0;
+  const runOne = async () => {
+    while (true) {
+      const current = next;
+      next += 1;
+      if (current >= items.length) return;
+      results[current] = await worker(items[current], current);
+    }
+  };
+  const workers = [];
+  for (let i = 0; i < cap; i += 1) workers.push(runOne());
+  await Promise.all(workers);
+  return results;
+}
+
+// Adaptive route sample count based on great-circle distance between origin
+// and destination. Keeps the network responsive on short trips and only
+// pays for extra samples on long ones. Caller can still override via
+// req.body.sample_count (bounded by MAX_GUIDE_SAMPLE_COUNT).
+function adaptiveRouteSampleCount(origin, destination) {
+  if (!origin || !destination) return DEFAULT_GUIDE_SAMPLE_COUNT;
+  const distanceKm = haversineDistanceKm(
+    origin.lat,
+    origin.lng,
+    destination.lat,
+    destination.lng,
+  );
+  if (!Number.isFinite(distanceKm)) return DEFAULT_GUIDE_SAMPLE_COUNT;
+  if (distanceKm < 3) return 5;
+  if (distanceKm < 15) return 8;
+  return 12;
+}
 const ROUTE_GUIDE_CACHE_MAX = Number(process.env.ROUTE_GUIDE_CACHE_MAX || 200);
 const ROUTE_GUIDE_CACHE_TTL_MS = Number(process.env.ROUTE_GUIDE_CACHE_TTL_MS || 5 * 60 * 1000);
 const ROUTE_GUIDE_FALLBACK_CACHE_TTL_MS = Number(
@@ -1402,7 +1455,11 @@ exports.predictRouteGuide = async (req, res) => {
 
     destinationName = req.body?.destination?.name || "Destination";
     timestampIso = toIsoTimestamp(req.body?.timestamp);
-    sampleCount = parseBoundedNumber(req.body?.sample_count, DEFAULT_GUIDE_SAMPLE_COUNT, {
+    // Choose an adaptive sample count from origin→destination distance so
+    // short trips don't pay for 12 PostGIS+weather lookups, and only let the
+    // client override via req.body.sample_count if present.
+    const adaptiveDefault = adaptiveRouteSampleCount(origin, destinationPoint);
+    sampleCount = parseBoundedNumber(req.body?.sample_count, adaptiveDefault, {
       min: 5,
       max: MAX_GUIDE_SAMPLE_COUNT,
       integer: true,
@@ -1598,8 +1655,10 @@ exports.predictRouteGuide = async (req, res) => {
 
     let scoredRows = [];
     try {
-      scoredRows = await Promise.all(
-        sampleJobs.map(async (job) => {
+      scoredRows = await runWithConcurrency(
+        sampleJobs,
+        ROUTE_SAMPLE_BUILD_CONCURRENCY,
+        async (job) => {
           const row = await buildDangerRow({
             lat: job.lat,
             lng: job.lng,
@@ -1618,7 +1677,7 @@ exports.predictRouteGuide = async (req, res) => {
               ...row,
             },
           };
-        }),
+        },
       );
       timer.mark("database_postgis_query");
     } catch (error) {
@@ -2036,8 +2095,10 @@ exports.predictNearbyZones = async (req, res) => {
       return res.json({ origin, routes });
     }
 
-    const modelRows = await Promise.all(
-      sampleJobs.map(async (job) => {
+    const modelRows = await runWithConcurrency(
+      sampleJobs,
+      ROUTE_SAMPLE_BUILD_CONCURRENCY,
+      async (job) => {
         const row = await buildDangerRow({
           lat: job.lat,
           lng: job.lng,
@@ -2049,7 +2110,7 @@ exports.predictNearbyZones = async (req, res) => {
           segment_id: job.sample_id,
           ...row,
         };
-      }),
+      },
     );
 
     const overlayResponse = await postToFlask("/risk/overlay", { rows: modelRows }, req.deadline);

@@ -42,16 +42,46 @@ import "../../styles/Navigation.css";
 // Leaflet markers / overlays are unaffected.
 
 const USER_ZOOM = 15;
+const ALGERIA_FALLBACK_CENTER = [28.0339, 1.6596];
 const NEARBY_RADIUS_KM = 25;
 const NEARBY_MAX_DESTINATIONS = 4;
-const ROUTE_SAMPLE_COUNT = 12;
+const ROUTE_SAMPLE_COUNT = 8;
 const UI_CLOCK_REFRESH_MS = 1000;
 const PREDICTION_REFRESH_MS = 30 * 1000;
-const NEARBY_REFRESH_MS = 60 * 1000;
+// Coalesce current-risk and nearby-roads requests onto a 5-minute timestamp
+// bucket. Tiny clock drift / GPS jitter must not produce N duplicate calls.
+const CURRENT_RISK_TIMESTAMP_BUCKET_MS = 5 * 60 * 1000;
+const CURRENT_RISK_REFRESH_INTERVAL_MS = 30 * 1000;
+const NEARBY_MOVEMENT_THRESHOLD_M = 100;
 // (Previous GUIDANCE_REFRESH_MS removed — guided route is no longer
 // re-fetched on a timer. Route updates are user-initiated only.)
 const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const DEV = typeof import.meta !== "undefined" && import.meta.env?.DEV;
+
+const haversineMeters = (a, b) => {
+  if (!a || !b) return Infinity;
+  const lat1 = Number(a[0]);
+  const lng1 = Number(a[1]);
+  const lat2 = Number(b[0]);
+  const lng2 = Number(b[1]);
+  if (![lat1, lng1, lat2, lng2].every(Number.isFinite)) return Infinity;
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+};
+
+const timestampBucket = (timestampIso, bucketMs = CURRENT_RISK_TIMESTAMP_BUCKET_MS) => {
+  const ms = Date.parse(timestampIso || "");
+  if (!Number.isFinite(ms)) return "now";
+  return Math.floor(ms / bucketMs);
+};
 
 const occurrenceRiskColor = (level) => {
   if (level === "high") return "#b91c1c";
@@ -189,12 +219,6 @@ const normalizePosition = (pos) => {
   const lng = Number(pos.lng);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return [lat, lng];
-}
-
-const toNearbyRequestKey = (pos) => {
-  const normalized = normalizePosition(pos);
-  if (!normalized) return "";
-  return `${normalized[0].toFixed(3)}:${normalized[1].toFixed(3)}`;
 }
 
 const getIncidentColor = (sev) => {
@@ -1487,13 +1511,27 @@ const SiaraMap = ({
   const routeFetchCacheRef = useRef(new Map());
   const routeFetchCooldownUntilRef = useRef(0);
   const routeFetchAbortRef = useRef(null);
-  // Per-render request id and in-memory cache for the "Why this route?"
-  // explanation. The cache key is route_identity + timestamp + risk percent
-  // so the same selected route doesn't re-call Ollama on every cluster
-  // refresh. The id ref invalidates stale responses (e.g. user picks a new
-  // route while the previous request is still in flight). Cache also dedupes
-  // an in-flight promise so concurrent triggers share one request.
-  const routeExplanationRequestIdRef = useRef(0);
+  // Current-risk request guards. Tiny GPS jitter / 30s refresh tick used to
+  // produce duplicate POST /api/risk/current calls. We now:
+  //   • abort the previous request when a meaningful new one is issued
+  //   • dedupe identical requests by (rounded lat, rounded lng, ts bucket)
+  //   • cache the last response per key so a re-render doesn't re-fetch
+  //   • keep the previously-loaded risk visible if refresh fails
+  const currentRiskAbortRef = useRef(null);
+  const currentRiskInflightRef = useRef(new Map());
+  const currentRiskCacheRef = useRef(new Map());
+  const currentRiskLastKeyRef = useRef("");
+  // Nearby-roads guards: only refetch on meaningful movement, timestamp
+  // bucket change, manual refresh, or first activation of the layer. The
+  // 60s interval no longer participates in the request key.
+  const nearbyAbortRef = useRef(null);
+  const nearbyLastOriginRef = useRef(null);
+  const nearbyRequestIdRef = useRef(0);
+  const [nearbyManualRefreshTick, setNearbyManualRefreshTick] = useState(0);
+  // In-memory cache + in-flight map for the "Why this route?" explanation.
+  // The auto-fetch effect was removed; the cache is now only used by the
+  // manual "Generate AI explanation" button and the local template effect
+  // (which reads the cache so an AI response sticks across re-renders).
   const routeExplanationCacheRef = useRef(new Map());
   const routeExplanationInflightRef = useRef(new Map());
   const [helpOpen, setHelpOpen] = useState(false);
@@ -1518,7 +1556,6 @@ const SiaraMap = ({
   const [customTimestampLocal, setCustomTimestampLocal] = useState("");
   const [uiClockTick, setUiClockTick] = useState(0);
   const [predictionRefreshTick, setPredictionRefreshTick] = useState(0);
-  const [nearbyRefreshTick, setNearbyRefreshTick] = useState(0);
   // Guided-route auto-refresh state was removed: the route is fetched on
   // user action (Start travel / change destination / change time), not on
   // a periodic timer. See the guarded fetchGuidedRoute / cooldown logic.
@@ -1548,7 +1585,16 @@ const SiaraMap = ({
     () => hasGrantedLocation && normalizePosition(userPosition) != null,
     [hasGrantedLocation, userPosition],
   );
+  // Coarse location key (~11m precision). Tiny GPS jitter no longer
+  // re-triggers /api/risk/current or other location-keyed effects.
   const userLocationKey = useMemo(() => {
+    if (!userLatLng) {
+      return "";
+    }
+    return `${userLatLng[0].toFixed(4)}:${userLatLng[1].toFixed(4)}`;
+  }, [userLatLng]);
+  // Fine key kept only for non-network UI (e.g. updating "last seen" badge).
+  const userLocationFineKey = useMemo(() => {
     if (!userLatLng) {
       return "";
     }
@@ -1644,9 +1690,14 @@ const SiaraMap = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapMode, guidedRoute?.route_type, guidedRoutes]);
 
-  // Fetch route explanation whenever the recommended route identity changes.
-  // Cluster filter keeps the payload small: only heat clusters within ~1.5km
-  // of any route path point are sent to the explain endpoint.
+  // Build a local "template" route explanation immediately when the
+  // recommended route identity changes. This used to auto-call
+  // /api/risk/route/explain (Ollama) on every new route, which was wasteful
+  // and slow. The AI version is now opt-in via
+  // handleGenerateAiRouteExplanation. The local template surfaces enough
+  // detail (ETA, distance, danger %, comparison row) for the user to act on
+  // immediately; the manual AI button still uses the existing cache /
+  // dedupe / watchdog pipeline.
   useEffect(() => {
     if (!guidedRoute || !Array.isArray(guidedRoute?.path) || guidedRoute.path.length < 2) {
       setRouteExplanation(null);
@@ -1655,28 +1706,6 @@ const SiaraMap = ({
       return undefined;
     }
 
-    const path = guidedRoute.path;
-    const clustersNearRoute = (Array.isArray(heatClusters) ? heatClusters : [])
-      .filter((cluster) => {
-        const clat = Number(cluster?.lat ?? cluster?.latitude);
-        const clng = Number(cluster?.lng ?? cluster?.longitude);
-        if (!Number.isFinite(clat) || !Number.isFinite(clng)) return false;
-        for (let i = 0; i < path.length; i += 1) {
-          const point = path[i];
-          const plat = Array.isArray(point) ? Number(point[0]) : Number(point?.lat);
-          const plng = Array.isArray(point) ? Number(point[1]) : Number(point?.lng);
-          if (!Number.isFinite(plat) || !Number.isFinite(plng)) continue;
-          if (haversineDistanceKm([plat, plng], [clat, clng]) <= 1.5) {
-            return true;
-          }
-        }
-        return false;
-      })
-      .slice(0, 10);
-
-    // Cache key + dedupe key. We include the recommended risk percent so a
-    // re-prediction (same path, new model output) still refreshes the
-    // explanation, but identical re-renders do not.
     const cacheKey = [
       guidedRoute?.route_identity || guidedRoute?.route_id || "route",
       guidedRoute?.route_type || "type",
@@ -1689,6 +1718,9 @@ const SiaraMap = ({
         : "na",
     ].join("|");
 
+    // If the user already triggered the AI explanation for this route, that
+    // response is in the cache — keep it visible instead of overwriting
+    // with the template.
     const cached = routeExplanationCacheRef.current.get(cacheKey);
     if (cached) {
       setRouteExplanation(cached);
@@ -1697,124 +1729,30 @@ const SiaraMap = ({
       return undefined;
     }
 
-    const requestId = ++routeExplanationRequestIdRef.current;
-    setRouteExplanationLoading(true);
+    const recommendedType = guidedRoute?.route_type || "balanced";
+    const label = recommendedType.charAt(0).toUpperCase() + recommendedType.slice(1);
+    const risk = Number(guidedRoute?.summary?.danger_percent);
+    const distanceKm = Number(guidedRoute?.distance_km);
+    const durationMin = Number(guidedRoute?.duration_min ?? guidedRoute?.eta_min);
+    const facts = [];
+    if (Number.isFinite(distanceKm)) facts.push(`${distanceKm.toFixed(1)} km`);
+    if (Number.isFinite(durationMin)) facts.push(`${durationMin.toFixed(0)} min ETA`);
+    if (Number.isFinite(risk)) facts.push(`relative danger ${Math.round(risk)}%`);
+    const factsText = facts.length ? ` (${facts.join(", ")})` : "";
+
+    const template = {
+      ok: true,
+      summary: `SIARA picked this ${label.toLowerCase()} route based on distance, ETA and segment danger scores${factsText}. Tap "Generate AI explanation" for a deeper write-up.`,
+      reasons: [],
+      comparison: null,
+      recommendedRouteType: recommendedType,
+      recommendedRiskLevel: guidedRoute?.summary?.danger_level || null,
+      recommendedRiskPercent: Number.isFinite(risk) ? Math.round(risk) : null,
+      source: "template",
+    };
+    setRouteExplanation(template);
+    setRouteExplanationLoading(false);
     setRouteExplanationError("");
-
-    // Frontend hard cap so the card never gets stuck on "Analysing risk
-    // factors…". If the backend hasn't returned in time we surface a
-    // template-style fallback locally and stop the spinner. Backend already
-    // has its own short Ollama timeout, but a stalled connection or
-    // network hiccup must not pin the UI.
-    const FRONTEND_MAX_WAIT_MS = 10000;
-    const controller = new AbortController();
-    let cancelled = false;
-    let watchdog = null;
-
-    const buildLocalFallback = () => {
-      const recommendedType = guidedRoute?.route_type || "balanced";
-      const label = recommendedType.charAt(0).toUpperCase() + recommendedType.slice(1);
-      const risk = Number(guidedRoute?.summary?.danger_percent);
-      const riskText = Number.isFinite(risk)
-        ? ` Predicted risk along this route is about ${Math.round(risk)}%.`
-        : "";
-      return {
-        ok: true,
-        summary: `SIARA selected this ${label.toLowerCase()} route based on the available route risk, distance, ETA, and segment danger data.${riskText} AI explanation is temporarily unavailable.`,
-        reasons: [],
-        comparison: null,
-        recommendedRouteType: recommendedType,
-        recommendedRiskLevel: guidedRoute?.summary?.danger_level || null,
-        recommendedRiskPercent: Number.isFinite(risk) ? Math.round(risk) : null,
-        source: "fallback",
-      };
-    };
-
-    const finishWithFallback = () => {
-      if (cancelled || requestId !== routeExplanationRequestIdRef.current) return;
-      const fallback = buildLocalFallback();
-      routeExplanationCacheRef.current.set(cacheKey, fallback);
-      setRouteExplanation(fallback);
-      setRouteExplanationError("");
-      setRouteExplanationLoading(false);
-    };
-
-    watchdog = window.setTimeout(() => {
-      if (cancelled || requestId !== routeExplanationRequestIdRef.current) return;
-      try { controller.abort(); } catch { /* ignore */ }
-      finishWithFallback();
-    }, FRONTEND_MAX_WAIT_MS);
-
-    // Dedupe: if an identical request is already in flight, await its
-    // promise instead of issuing a second network call.
-    const existing = routeExplanationInflightRef.current.get(cacheKey);
-
-    const payload = {
-      selectedRoute: {
-        route_type: guidedRoute.route_type,
-        route_id: guidedRoute.route_id,
-        summary: guidedRoute.summary,
-        duration_min: guidedRoute.duration_min,
-        eta_min: guidedRoute.eta_min,
-        distance_km: guidedRoute.distance_km,
-        segments: guidedRoute.segments,
-        is_recommended: guidedRoute.is_recommended,
-      },
-      alternatives: (Array.isArray(guidedRoutes) ? guidedRoutes : []).map((route) => ({
-        route_type: route.route_type,
-        route_id: route.route_id,
-        summary: route.summary,
-        duration_min: route.duration_min,
-        eta_min: route.eta_min,
-        distance_km: route.distance_km,
-        segments: route.segments,
-        is_recommended: route.is_recommended,
-      })),
-      destination: guidedRoute.destination || selectedDestination || null,
-      timestamp: routeAnalysisTimestampIso,
-      heatmapClustersNearRoute: clustersNearRoute,
-    };
-
-    const promise = existing || explainRoute(payload, { signal: controller.signal });
-    if (!existing) routeExplanationInflightRef.current.set(cacheKey, promise);
-
-    promise
-      .then((response) => {
-        if (cancelled || requestId !== routeExplanationRequestIdRef.current) return;
-        if (response && response.ok !== false) {
-          routeExplanationCacheRef.current.set(cacheKey, response);
-          setRouteExplanation(response);
-          setRouteExplanationError("");
-        } else {
-          finishWithFallback();
-          return;
-        }
-        setRouteExplanationLoading(false);
-      })
-      .catch((error) => {
-        if (cancelled || requestId !== routeExplanationRequestIdRef.current) return;
-        if (import.meta.env.DEV) {
-          console.warn("[explain-route] frontend fetch failed", error?.message);
-        }
-        // Network/abort/timeout — never leave the UI in "loading" forever.
-        finishWithFallback();
-      })
-      .finally(() => {
-        if (watchdog) {
-          window.clearTimeout(watchdog);
-          watchdog = null;
-        }
-        routeExplanationInflightRef.current.delete(cacheKey);
-      });
-
-    return () => {
-      cancelled = true;
-      if (watchdog) {
-        window.clearTimeout(watchdog);
-        watchdog = null;
-      }
-      try { controller.abort(); } catch { /* ignore */ }
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guidedRoute?.route_identity, routeAnalysisTimestampIso]);
 
@@ -1859,27 +1797,12 @@ const SiaraMap = ({
       return undefined;
     }
 
-    const intervalId = window.setInterval(() => {
-      setNearbyRefreshTick((value) => value + 1);
-    }, NEARBY_REFRESH_MS);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [liveTimeEnabled]);
-
-  useEffect(() => {
-    if (!liveTimeEnabled) {
-      return undefined;
-    }
-
     const forceRefresh = () => {
       if (document.visibilityState && document.visibilityState !== "visible") {
         return;
       }
       setUiClockTick((value) => value + 1);
       setPredictionRefreshTick((value) => value + 1);
-      setNearbyRefreshTick((value) => value + 1);
     };
 
     const handleVisibilityChange = () => {
@@ -1914,10 +1837,10 @@ const SiaraMap = ({
   }, [nearbyRoutes]);
 
   useEffect(() => {
-    if (userLocationKey) {
+    if (userLocationFineKey) {
       setLocationUpdatedAt(Date.now());
     }
-  }, [userLocationKey]);
+  }, [userLocationFineKey]);
 
   useEffect(() => {
     if (mapLayer !== "points") {
@@ -1987,42 +1910,121 @@ const SiaraMap = ({
     }
   };
 
+  // Current risk fetch — guarded against GPS jitter and rapid re-renders.
+  // The effect key (userLocationKey, selectedTimestampIso, predictionRefreshTick)
+  // produces a `requestKey` containing the rounded lat/lng + 5-min timestamp
+  // bucket. Re-runs with the same key are no-ops; meaningful new requests
+  // abort the previous in-flight call and cache the result for 5 minutes.
   useEffect(() => {
     if (!hasValidUserLocation || !userPosition) {
+      // Drop any in-flight request when location goes away.
+      if (currentRiskAbortRef.current) {
+        currentRiskAbortRef.current.abort();
+        currentRiskAbortRef.current = null;
+      }
       setCurrentRisk(null);
       setCurrentRiskState("idle");
       setCurrentRiskError("");
-      return;
+      currentRiskLastKeyRef.current = "";
+      return undefined;
     }
 
-    const body = {
-      lat: userPosition.lat,
-      lng: userPosition.lng,
-      timestamp: selectedTimestampIso,
-    };
-    let cancelled = false;
-    const fetchCurrentRisk = async () => {
-      setCurrentRiskState(currentRiskRef.current ? "refreshing" : "loading");
-      setCurrentRiskError("");
-      try {
-        const data = await postJson("/api/risk/current", body);
-        if (cancelled) return;
+    const lat = Number(userPosition.lat);
+    const lng = Number(userPosition.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return undefined;
+    }
+
+    const roundedLat = lat.toFixed(4);
+    const roundedLng = lng.toFixed(4);
+    const bucket = timestampBucket(selectedTimestampIso);
+    const requestKey = `${roundedLat}:${roundedLng}:${bucket}`;
+
+    // Cache hit: hydrate state and skip the network call.
+    const cached = currentRiskCacheRef.current.get(requestKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      if (currentRiskLastKeyRef.current !== requestKey) {
+        currentRiskLastKeyRef.current = requestKey;
+        setCurrentRisk(cached.data);
+        setCurrentRiskState("success");
+        setCurrentRiskError("");
+        setCurrentRiskUpdatedAt(cached.fetchedAt);
+        if (DEV) console.debug("[risk/current] cache_hit", { key: requestKey });
+      }
+      return undefined;
+    }
+
+    // Already executing this exact request from a parallel effect run.
+    if (currentRiskInflightRef.current.has(requestKey)) {
+      if (DEV) console.debug("[risk/current] dedupe", { key: requestKey });
+      return undefined;
+    }
+
+    // Mark this as the latest request so a parallel cache hit doesn't fight.
+    currentRiskLastKeyRef.current = requestKey;
+
+    // Cancel the previously in-flight call — it is stale relative to the new
+    // request key.
+    if (currentRiskAbortRef.current) {
+      currentRiskAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    currentRiskAbortRef.current = controller;
+
+    const body = { lat, lng, timestamp: selectedTimestampIso };
+    setCurrentRiskState(currentRiskRef.current ? "refreshing" : "loading");
+    setCurrentRiskError("");
+
+    const startedAt = DEV ? performance.now() : 0;
+    const promise = (async () => {
+      const data = await postJson("/api/risk/current", body, { signal: controller.signal });
+      return data;
+    })();
+    currentRiskInflightRef.current.set(requestKey, promise);
+
+    promise
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        currentRiskCacheRef.current.set(requestKey, {
+          data,
+          fetchedAt: Date.now(),
+          expiresAt: Date.now() + CURRENT_RISK_TIMESTAMP_BUCKET_MS,
+        });
         setCurrentRisk(data);
         setCurrentRiskState("success");
+        setCurrentRiskError("");
         setCurrentRiskUpdatedAt(Date.now());
-      } catch (error) {
-        if (cancelled) return;
+        if (DEV) {
+          console.debug("[risk/current] success", {
+            key: requestKey,
+            duration_ms: Math.round(performance.now() - startedAt),
+          });
+        }
+      })
+      .catch((error) => {
+        if (controller.signal.aborted || error?.name === "AbortError") {
+          if (DEV) console.debug("[risk/current] aborted", { key: requestKey });
+          return;
+        }
         console.error("Current risk error:", error);
+        // Preserve the previously-loaded risk; only flip to "error" if there
+        // is nothing to show yet.
         setCurrentRiskState(currentRiskRef.current ? "success" : "error");
         setCurrentRiskError(error.message || "Failed to refresh current risk");
-      }
-    };
+      })
+      .finally(() => {
+        currentRiskInflightRef.current.delete(requestKey);
+        if (currentRiskAbortRef.current === controller) {
+          currentRiskAbortRef.current = null;
+        }
+      });
 
-    fetchCurrentRisk();
     return () => {
-      cancelled = true;
+      // Effect cleanup intentionally does NOT abort: the request may still
+      // be valid for the next render. We only abort when a *different* key
+      // supersedes this one (handled above) or when location is lost.
     };
-  }, [hasValidUserLocation, selectedTimestampIso, userLocationKey]);
+  }, [hasValidUserLocation, selectedTimestampIso, userLocationKey, predictionRefreshTick, userPosition]);
 
   useEffect(() => {
     const segmentId = currentRisk?.road_segment_id;
@@ -2061,7 +2063,7 @@ const SiaraMap = ({
   useEffect(() => {
     if (!hasValidUserLocation || !userPosition) {
       setCurrentRiskNowBaseline(null);
-      return;
+      return undefined;
     }
 
     const nowIso = new Date().toISOString();
@@ -2069,21 +2071,40 @@ const SiaraMap = ({
     const nowMs = new Date(nowIso).getTime();
     if (Number.isFinite(selectedTimeMs) && Math.abs(selectedTimeMs - nowMs) < 60 * 1000) {
       setCurrentRiskNowBaseline(currentRiskRef.current);
-      return;
+      return undefined;
     }
 
+    // Reuse the same cache the primary effect populates so the baseline call
+    // doesn't double-hit the backend for the "now" bucket.
+    const lat = Number(userPosition.lat);
+    const lng = Number(userPosition.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return undefined;
+    const nowBucket = timestampBucket(nowIso);
+    const cacheKey = `${lat.toFixed(4)}:${lng.toFixed(4)}:${nowBucket}`;
+    const cached = currentRiskCacheRef.current.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      setCurrentRiskNowBaseline(cached.data);
+      return undefined;
+    }
+
+    const controller = new AbortController();
     let cancelled = false;
     const fetchCurrentRiskBaseline = async () => {
       try {
-        const data = await postJson("/api/risk/current", {
-          lat: userPosition.lat,
-          lng: userPosition.lng,
-          timestamp: nowIso,
+        const data = await postJson(
+          "/api/risk/current",
+          { lat, lng, timestamp: nowIso },
+          { signal: controller.signal },
+        );
+        if (cancelled) return;
+        currentRiskCacheRef.current.set(cacheKey, {
+          data,
+          fetchedAt: Date.now(),
+          expiresAt: Date.now() + CURRENT_RISK_TIMESTAMP_BUCKET_MS,
         });
-        if (cancelled) return;
         setCurrentRiskNowBaseline(data);
-      } catch {
-        if (cancelled) return;
+      } catch (error) {
+        if (cancelled || error?.name === "AbortError") return;
         setCurrentRiskNowBaseline(null);
       }
     };
@@ -2091,8 +2112,9 @@ const SiaraMap = ({
     void fetchCurrentRiskBaseline();
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [hasValidUserLocation, selectedTimestampIso, userLocationKey]);
+  }, [hasValidUserLocation, selectedTimestampIso, userLocationKey, userPosition]);
 
   useEffect(() => {
     if (!hasValidUserLocation || !userPosition || !markers.length) {
@@ -2144,58 +2166,126 @@ const SiaraMap = ({
     };
   }, [hasValidUserLocation, mapLayer, markers, selectedTimestampIso, userLocationKey]);
 
+  // Nearby roads — refetch only when the *layer is active* AND one of:
+  //   a) first activation (cached origin missing)
+  //   b) user moved > 100 m
+  //   c) timestamp bucket changed
+  //   d) manual refresh tick bumped
+  // The previous 60s timer used to force a refetch even if nothing changed,
+  // and userLocationKey was part of the request key so tiny GPS jitter
+  // would re-hit the backend.
   useEffect(() => {
     if (mapLayer !== "nearbyRoads") {
       nearbyRequestKeyRef.current = "";
+      nearbyLastOriginRef.current = null;
       pendingNearbyFitRef.current = false;
+      if (nearbyAbortRef.current) {
+        nearbyAbortRef.current.abort();
+        nearbyAbortRef.current = null;
+      }
       setNearbyRoutesState("idle");
       setNearbyRoutesError("");
-      return;
+      return undefined;
     }
 
     if (!hasValidUserLocation || !userPosition) {
       setNearbyRoutes([]);
       setNearbyRoutesState("idle");
       setNearbyRoutesError("");
-      return;
+      return undefined;
     }
 
-    const requestKey = `${toNearbyRequestKey(userPosition)}:${selectedTimestampIso}:${nearbyRefreshTick}`;
-    if (!requestKey || requestKey === nearbyRequestKeyRef.current) {
-      return;
+    const lat = Number(userPosition.lat);
+    const lng = Number(userPosition.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return undefined;
+
+    const previousOrigin = nearbyLastOriginRef.current;
+    const distanceMoved = previousOrigin
+      ? haversineMeters(previousOrigin.origin, [lat, lng])
+      : Infinity;
+    const bucket = timestampBucket(selectedTimestampIso);
+    const movedEnough = distanceMoved >= NEARBY_MOVEMENT_THRESHOLD_M;
+    const bucketChanged = !previousOrigin || previousOrigin.bucket !== bucket;
+    const manualBump = !previousOrigin || previousOrigin.manualTick !== nearbyManualRefreshTick;
+    const isFirstLoad = !previousOrigin;
+    if (!isFirstLoad && !movedEnough && !bucketChanged && !manualBump) {
+      if (DEV) {
+        console.debug("[risk/nearby-zones] skip", {
+          distance_m: Math.round(distanceMoved),
+          bucket,
+        });
+      }
+      return undefined;
     }
+
+    const requestId = ++nearbyRequestIdRef.current;
+    const requestKey = `${lat.toFixed(4)}:${lng.toFixed(4)}:${bucket}:${nearbyManualRefreshTick}`;
+
+    // Abort any older request — its response is now stale.
+    if (nearbyAbortRef.current) {
+      nearbyAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    nearbyAbortRef.current = controller;
 
     const body = {
-      lat: userPosition.lat,
-      lng: userPosition.lng,
+      lat,
+      lng,
       radius_km: NEARBY_RADIUS_KM,
       max_destinations: NEARBY_MAX_DESTINATIONS,
       timestamp: selectedTimestampIso,
     };
-    let cancelled = false;
-    const fetchNearbyRoutes = async () => {
-      setNearbyRoutesState(nearbyRoutesRef.current.length > 0 ? "refreshing" : "loading");
-      setNearbyRoutesError("");
+
+    setNearbyRoutesState(nearbyRoutesRef.current.length > 0 ? "refreshing" : "loading");
+    setNearbyRoutesError("");
+
+    const startedAt = DEV ? performance.now() : 0;
+    (async () => {
       try {
-        const data = await postJson("/api/risk/nearby-zones", body);
-        if (cancelled) return;
+        const data = await postJson("/api/risk/nearby-zones", body, {
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted || requestId !== nearbyRequestIdRef.current) {
+          if (DEV) console.debug("[risk/nearby-zones] stale_ignored");
+          return;
+        }
         setNearbyRoutes(Array.isArray(data?.routes) ? data.routes : []);
         setNearbyRoutesState("success");
         setNearbyUpdatedAt(Date.now());
         nearbyRequestKeyRef.current = requestKey;
+        nearbyLastOriginRef.current = {
+          origin: [lat, lng],
+          bucket,
+          manualTick: nearbyManualRefreshTick,
+        };
+        if (DEV) {
+          console.debug("[risk/nearby-zones] success", {
+            key: requestKey,
+            duration_ms: Math.round(performance.now() - startedAt),
+          });
+        }
       } catch (error) {
-        if (cancelled) return;
+        if (controller.signal.aborted || error?.name === "AbortError") return;
+        if (requestId !== nearbyRequestIdRef.current) return;
         console.error("Nearby routes error:", error);
         setNearbyRoutesState(nearbyRoutesRef.current.length > 0 ? "success" : "error");
         setNearbyRoutesError(error.message || "Failed to refresh nearby routes");
+      } finally {
+        if (nearbyAbortRef.current === controller) {
+          nearbyAbortRef.current = null;
+        }
       }
-    };
+    })();
 
-    fetchNearbyRoutes();
-    return () => {
-      cancelled = true;
-    };
-  }, [hasValidUserLocation, mapLayer, nearbyRefreshTick, selectedTimestampIso, userLocationKey]);
+    return undefined;
+  }, [
+    hasValidUserLocation,
+    mapLayer,
+    nearbyManualRefreshTick,
+    selectedTimestampIso,
+    userLocationKey,
+    userPosition,
+  ]);
 
   useEffect(() => {
     if (mapLayer === "nearbyRoads" && !guidedRoute) {
@@ -2417,32 +2507,50 @@ const SiaraMap = ({
       heatmapClustersNearRoute: clustersNearRoute,
     };
 
+    const cacheKey = [
+      guidedRoute?.route_identity || guidedRoute?.route_id || "route",
+      guidedRoute?.route_type || "type",
+      guidedRoute?.destination?.lat != null
+        ? `${Number(guidedRoute.destination.lat).toFixed(4)},${Number(guidedRoute.destination.lng).toFixed(4)}`
+        : "no-dest",
+      routeAnalysisTimestampIso || "no-ts",
+      Number.isFinite(Number(guidedRoute?.summary?.danger_percent))
+        ? Math.round(Number(guidedRoute.summary.danger_percent))
+        : "na",
+    ].join("|");
+
+    // Watchdog so the AI button can never get stuck on "Generating…".
+    const FRONTEND_MAX_WAIT_MS = 12000;
+    const controller = new AbortController();
+    let timedOut = false;
+    const watchdog = window.setTimeout(() => {
+      timedOut = true;
+      try { controller.abort(); } catch { /* ignore */ }
+    }, FRONTEND_MAX_WAIT_MS);
+
     setRouteExplanationAiGenerating(true);
     try {
-      const response = await explainRoute(payload);
+      // Dedupe: reuse an in-flight identical request if present.
+      const existing = routeExplanationInflightRef.current.get(cacheKey);
+      const promise = existing || explainRoute(payload, { signal: controller.signal });
+      if (!existing) routeExplanationInflightRef.current.set(cacheKey, promise);
+      const response = await promise;
       if (response && response.ok !== false) {
-        // Persist into the cache so the AI version sticks for the
-        // current route identity and is reused by other consumers.
-        const cacheKey = [
-          guidedRoute?.route_identity || guidedRoute?.route_id || "route",
-          guidedRoute?.route_type || "type",
-          guidedRoute?.destination?.lat != null
-            ? `${Number(guidedRoute.destination.lat).toFixed(4)},${Number(guidedRoute.destination.lng).toFixed(4)}`
-            : "no-dest",
-          routeAnalysisTimestampIso || "no-ts",
-          Number.isFinite(Number(guidedRoute?.summary?.danger_percent))
-            ? Math.round(Number(guidedRoute.summary.danger_percent))
-            : "na",
-        ].join("|");
         routeExplanationCacheRef.current.set(cacheKey, response);
         setRouteExplanation(response);
         setRouteExplanationError("");
       }
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.warn("[explain-route] manual AI fetch failed", error?.message);
+      if (DEV) {
+        console.warn("[explain-route] manual AI fetch failed", {
+          message: error?.message,
+          timedOut,
+        });
       }
+      // Don't overwrite the template — the user still sees a useful summary.
     } finally {
+      window.clearTimeout(watchdog);
+      routeExplanationInflightRef.current.delete(cacheKey);
       setRouteExplanationAiGenerating(false);
     }
   };
@@ -2571,6 +2679,7 @@ const SiaraMap = ({
     // live GPS ticks must not repeatedly score an unchanged route.
     const cached = routeFetchCacheRef.current.get(cacheKey);
     if (cached && cached.expiresAt > now) {
+      if (DEV) console.debug("[risk/route] cache_hit", { key: cacheKey });
       if (requestId === routeRequestIdRef.current) {
         applyGuidedRouteResult(cached.result, {
           requestKey,
@@ -2583,6 +2692,7 @@ const SiaraMap = ({
     // In-flight dedupe: if an identical request is mid-flight, await it.
     const existingInflight = routeFetchInflightRef.current.get(cacheKey);
     if (existingInflight) {
+      if (DEV) console.debug("[risk/route] dedupe", { key: cacheKey });
       const result = await existingInflight;
       if (requestId === routeRequestIdRef.current) {
         applyGuidedRouteResult(result, {
@@ -2605,6 +2715,9 @@ const SiaraMap = ({
       clearRouteExplanationSelection();
     }
 
+    // Note: sample_count intentionally omitted so the backend chooses an
+    // adaptive count based on origin→destination distance (5 / 8 / 12).
+    // The legacy ROUTE_SAMPLE_COUNT constant is kept only for the cache key.
     const body = {
       origin: { lat: origin[0], lng: origin[1] },
       destination: {
@@ -2613,14 +2726,22 @@ const SiaraMap = ({
         lng: destination.lng,
       },
       timestamp: timestampIso,
-      sample_count: ROUTE_SAMPLE_COUNT,
       max_alternatives: 3,
     };
 
+    const startedAtMs = DEV ? performance.now() : 0;
     const promise = (async () => {
       const data = await postJson("/api/risk/route", body, {
         signal: controller.signal,
       });
+      if (DEV) {
+        console.debug("[risk/route] success", {
+          key: cacheKey,
+          duration_ms: Math.round(performance.now() - startedAtMs),
+          risk_available:
+            data?.riskAvailable !== false && data?.risk_available !== false,
+        });
+      }
       const nextRoutes = normalizeGuidedRoutePayload(data);
       if (nextRoutes.length === 0) {
         throw new Error("No valid route alternatives were returned");
@@ -3278,12 +3399,11 @@ const SiaraMap = ({
     : mapLayer === "nearbyRoads"
       ? nearbyUpdatedText
       : "Navigation ready";
-  const riskSourceFilters = [
-    { key: "weather", label: "Weather-related risk", available: false },
-    { key: "darkness", label: "Darkness / time-of-day", available: false },
-    { key: "historical", label: "Historical concentration", available: false },
-    { key: "road", label: "Road-context risk", available: false },
-  ];
+  // Per-source attribution (weather / darkness / historical / road) is not
+  // yet implemented end-to-end on the backend. We surface a single
+  // "Coming soon" notice instead of four fake buttons so the UI does not
+  // suggest the feature is shipped.
+  const showRiskSourceFilters = false;
   const nearbyRouteWarnings = useMemo(() => {
     if (mapLayer !== "nearbyRoads" || guidedRoute || !Array.isArray(nearbyRoutes)) {
       return [];
@@ -3301,25 +3421,44 @@ const SiaraMap = ({
       })
       .slice(0, 4);
   }, [mapLayer, guidedRoute, nearbyRoutes]);
-  const showGuideControls = hasValidUserLocation || Boolean(guidedRoute);
+  // Show search/destination controls always so the user can browse, but the
+  // Start-guidance action still requires a live location (gated below).
+  const showGuideControls = true;
+
+  // The map canvas always renders. When live GPS is missing we centre on the
+  // best available fallback so that report markers, heatmap, zones and the
+  // layer switcher stay usable. Order:
+  //   1. live user position (or fallback location reading)
+  //   2. selected alert zone centre
+  //   3. Algeria default centre
+  const mapDisplayCenter = useMemo(() => {
+    if (userLatLng) return userLatLng;
+    const zoneCenter = normalizeAlertZoneCenter(selectedAlertZone);
+    if (zoneCenter) return zoneCenter;
+    return ALGERIA_FALLBACK_CENTER;
+  }, [selectedAlertZone, userLatLng]);
+  const mapDisplayZoom = userLatLng ? USER_ZOOM : 6;
+  const usingFallbackCenter = !userLatLng;
 
   useEffect(() => {
     const nextRenderState = hasValidUserLocation
       ? "render_ready"
       : locationStatus === "locating"
-        ? "render_blocked_locating"
-        : "render_blocked_missing_location";
+        ? "render_locating_fallback_center"
+        : "render_fallback_center";
     if (locationRenderStateRef.current === nextRenderState) {
       return;
     }
     locationRenderStateRef.current = nextRenderState;
-    console.info("[map/location]", nextRenderState, {
-      location_status: locationStatus,
-      has_valid_user_location: hasValidUserLocation,
-      user_position: userLatLng,
-      default_center_used: false,
-    });
-  }, [hasValidUserLocation, locationStatus, userLatLng]);
+    if (DEV) {
+      console.info("[map/location]", nextRenderState, {
+        location_status: locationStatus,
+        has_valid_user_location: hasValidUserLocation,
+        user_position: userLatLng,
+        default_center_used: usingFallbackCenter,
+      });
+    }
+  }, [hasValidUserLocation, locationStatus, userLatLng, usingFallbackCenter]);
 
 
   
@@ -3338,7 +3477,15 @@ const SiaraMap = ({
         )}
         {nearbyRoutesError && (
           <div className="siara-map-error">
-            Nearby routes error: {nearbyRoutesError}
+            Nearby routes error: {nearbyRoutesError}{" "}
+            <button
+              type="button"
+              className="siara-inline-link"
+              onClick={() => setNearbyManualRefreshTick((value) => value + 1)}
+              style={{ marginLeft: 6 }}
+            >
+              Retry
+            </button>
           </div>
         )}
         {guidedRouteError && (
@@ -3399,10 +3546,10 @@ const SiaraMap = ({
           lastLocationError={liveLocationLastError || null}
           routeOrigin={routeScoringOrigin}
         />
-      ) : hasValidUserLocation ? (
+      ) : (
         <MapContainer
-          center={userLatLng}
-          zoom={USER_ZOOM}
+          center={mapDisplayCenter}
+          zoom={mapDisplayZoom}
           className="siara-leaflet-map"
           zoomControl={true}
           worldCopyJump={true}
@@ -3427,12 +3574,14 @@ const SiaraMap = ({
       }}
     />
 
-          <FlyToUser
-            userPosition={userPosition}
-            mapLayer={mapLayer}
-            locationRequestVersion={locationRequestVersion}
-            followUser={normalFollowUser}
-          />
+          {hasValidUserLocation && (
+            <FlyToUser
+              userPosition={userPosition}
+              mapLayer={mapLayer}
+              locationRequestVersion={locationRequestVersion}
+              followUser={normalFollowUser}
+            />
+          )}
           <LeafletFollowGestureHandler onUserGesture={() => setNormalFollowUser(false)} />
           <MapClickHandler
             enabled={!guidanceActive}
@@ -3905,7 +4054,7 @@ const SiaraMap = ({
             </CircleMarker>
           )}
         </MapContainer>
-      ) : null}
+      )}
 
       {mapLayer === "heatmap" && mapMode !== "navigation" ? (
         <>
@@ -3974,30 +4123,42 @@ const SiaraMap = ({
           MapLibreNavigationView while in navigation mode. */}
 
       {!hasValidUserLocation && mapMode !== "navigation" && (
-        <div className="siara-leaflet-map">
-          <div className="siara-map-error-stack">
-            <div className="siara-map-error">
-              {locationStatus === "locating"
-                ? "Locating your device..."
-                : "A valid real-time location is required before the map can load."}
-            </div>
-            {locationWarning && (
-              <div className="siara-map-warning">{locationWarning}</div>
-            )}
-            {locationError && (
-              <div className="siara-map-error">{locationError}</div>
-            )}
-            {typeof requestLocation === "function" && (
+        <div
+          className="siara-map-warning siara-map-location-hint"
+          style={{
+            position: "absolute",
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            padding: "6px 12px",
+            borderRadius: 999,
+            background: "rgba(17, 24, 39, 0.78)",
+            color: "#ffffff",
+            fontSize: 13,
+            boxShadow: "0 6px 16px rgba(0,0,0,0.18)",
+          }}
+        >
+          <LocationOnOutlinedIcon fontSize="inherit" />
+          <span>
+            {locationStatus === "locating"
+              ? "Locating your device..."
+              : "Enable location for live risk and navigation."}
+          </span>
+          {typeof requestLocation === "function" &&
+            locationStatus !== "locating" && (
               <button
                 type="button"
-                className="siara-guide-btn siara-guide-btn-primary"
+                className="siara-guide-btn"
                 onClick={requestLocation}
-                disabled={locationStatus === "locating"}
+                style={{ marginLeft: 6 }}
               >
-                {locationStatus === "locating" ? "Locating..." : "Retry location"}
+                Enable
               </button>
             )}
-          </div>
         </div>
       )}
 
@@ -4020,11 +4181,11 @@ const SiaraMap = ({
             className="srd-subtitle"
             style={{ fontSize: 12, opacity: 0.85, marginTop: 4, fontWeight: 600 }}
           >
-            Danger-zone risk — severity/road danger model
+            Relative danger — severity-informed model
           </div>
           <p style={{ fontSize: 11, opacity: 0.7, marginTop: 2, marginBottom: 8 }}>
             {currentRisk?.dangerZoneRisk?.warning
-              || "Relative danger score, not occurrence probability. Different from the occurrence risk below."}
+              || "Severity-informed relative danger score. This is not a calibrated accident-occurrence probability."}
             {currentRisk?.dangerZoneRisk?.modelVersion ? (
               <>
                 {' '}· Model: <strong>{currentRisk.dangerZoneRisk.modelVersion}</strong>
@@ -4235,7 +4396,7 @@ const SiaraMap = ({
                               Model: <strong>{modelVersion}</strong> · source: {scoringSource}
                             </div>
                             <div className="siara-occurrence-card__meta" style={{ fontSize: 11, opacity: 0.75 }}>
-                              Probability that an accident occurs on this segment in the current hour bucket — independent of your driving.
+                              Trained occurrence model output. Treat as relative operational risk per hour bucket — not a calibrated probability — until calibration is shipped.
                             </div>
                             {Array.isArray(modelOnlyBlock?.top_factors)
                               && modelOnlyBlock.top_factors.length > 0 && (
@@ -4456,25 +4617,15 @@ const SiaraMap = ({
                   <p>No strong hazard concentration detected on the selected route.</p>
                 )}
               </div>
-              <div className="siara-route-panel">
-                <div className="siara-route-panel__head">
-                  <h5>Risk source layers</h5>
-                  <span>Future-ready</span>
+              {showRiskSourceFilters && (
+                <div className="siara-route-panel">
+                  <div className="siara-route-panel__head">
+                    <h5>Risk source layers</h5>
+                    <span>Coming soon</span>
+                  </div>
+                  <p>Per-source attribution (weather, darkness, history, road) will be available once backend source scoring is live.</p>
                 </div>
-                <div className="siara-filter-pills">
-                  {riskSourceFilters.map((filter) => (
-                    <button
-                      key={filter.key}
-                      type="button"
-                      className="siara-filter-pill"
-                      disabled={!filter.available}
-                    >
-                      {filter.label}
-                    </button>
-                  ))}
-                </div>
-                <p>Per-source route attribution will appear here when backend source scoring is available.</p>
-              </div>
+              )}
             </>
           )}
         </div>
