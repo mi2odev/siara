@@ -962,25 +962,46 @@ async function resetPassword({ email, resetToken, newPassword, res }) {
   }
 }
 
+function getGoogleClientIds() {
+  const raw = [
+    ...String(process.env.GOOGLE_CLIENT_IDS || "").split(","),
+    process.env.GOOGLE_WEB_CLIENT_ID,
+    process.env.GOOGLE_MOBILE_WEB_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_AUTH_CLIENT_ID,
+    process.env.VITE_GOOGLE_CLIENT_ID,
+    process.env.VITE_GOOGLE_AUTH_CLIENT_ID,
+  ];
+
+  const seen = new Set();
+  const allowed = [];
+  for (const entry of raw) {
+    if (typeof entry !== "string") continue;
+    const trimmed = entry.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    allowed.push(trimmed);
+  }
+
+  return allowed;
+}
+
 function getGoogleClient() {
-  const clientId = String(
-    process.env.GOOGLE_CLIENT_ID
-    || process.env.GOOGLE_AUTH_CLIENT_ID
-    || process.env.VITE_GOOGLE_CLIENT_ID
-    || process.env.VITE_GOOGLE_AUTH_CLIENT_ID
-    || "",
-  ).trim();
-  if (!clientId) {
-    throw createError(500, "GOOGLE_CLIENT_ID is not configured");
+  const allowedClientIds = getGoogleClientIds();
+  if (allowedClientIds.length === 0) {
+    throw createError(
+      500,
+      "Google OAuth is not configured (set GOOGLE_CLIENT_IDS, GOOGLE_WEB_CLIENT_ID, or GOOGLE_MOBILE_WEB_CLIENT_ID)",
+    );
   }
 
   if (!googleClient) {
-    googleClient = new OAuth2Client(clientId);
+    googleClient = new OAuth2Client(allowedClientIds[0]);
   }
 
   return {
-    clientId,
     client: googleClient,
+    allowedClientIds,
   };
 }
 
@@ -990,13 +1011,14 @@ async function verifyGoogleCredential(credential) {
     throw createError(400, "Google ID token is required");
   }
 
-  const { client, clientId } = getGoogleClient();
-  let ticket = null;
+  const { client, allowedClientIds } = getGoogleClient();
+  logAuth("google_verify_audience", { allowedAudienceCount: allowedClientIds.length });
 
+  let ticket = null;
   try {
     ticket = await client.verifyIdToken({
       idToken: normalizedCredential,
-      audience: clientId,
+      audience: allowedClientIds,
     });
   } catch (_error) {
     throw createError(401, "Google token is invalid or has the wrong audience");
