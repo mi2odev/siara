@@ -7,6 +7,7 @@
  */
 import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import FancySelect from '../../components/ui/FancySelect'
 import {
   Bar,
   BarChart,
@@ -141,17 +142,13 @@ export default function AdminAnalyticsPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <select
-            className="admin-select"
-            style={{ height: 32 }}
+          <FancySelect
             value={period}
-            onChange={(event) => setPeriod(event.target.value)}
+            onChange={setPeriod}
+            options={PERIOD_OPTIONS}
+            label="Period"
             disabled={loading}
-          >
-            {PERIOD_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+          />
           <button className="admin-btn admin-btn-ghost" disabled>Export PDF</button>
         </div>
       </div>

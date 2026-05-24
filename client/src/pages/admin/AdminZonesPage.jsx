@@ -4,6 +4,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import FancySelect from '../../components/ui/FancySelect'
 import { GeoJSON, MapContainer, Marker, Pane, TileLayer, useMap, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -382,24 +383,18 @@ export default function AdminZonesPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <select
-            className="admin-select"
+          <FancySelect
             value={period}
-            onChange={(event) => setPeriod(normalizeZonePeriod(event.target.value))}
-          >
-            {PERIOD_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-          <select
-            className="admin-select"
+            onChange={(v) => setPeriod(normalizeZonePeriod(v))}
+            options={PERIOD_OPTIONS}
+            label="Period"
+          />
+          <FancySelect
             value={metric}
-            onChange={(event) => setMetric(normalizeZoneMetric(event.target.value))}
-          >
-            {METRIC_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
+            onChange={(v) => setMetric(normalizeZoneMetric(v))}
+            options={METRIC_OPTIONS}
+            label="Metric"
+          />
           <button className="admin-btn admin-btn-ghost" onClick={handleExportGeoJson}>
             Export Zones
           </button>

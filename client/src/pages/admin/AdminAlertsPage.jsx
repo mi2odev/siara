@@ -1,7 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
+import FancySelect from '../../components/ui/FancySelect'
 import { fetchCommunes, fetchWilayas } from '../../services/alertService'
+
+const ALERT_SEVERITY_OPTIONS = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+]
+
+const ALERT_AUDIENCE_OPTIONS = [
+  { value: 'users_in_zone', label: 'Users in Zone' },
+  { value: 'all_users', label: 'All Users' },
+  { value: 'subscribed_users_only', label: 'Subscribed Users Only' },
+]
 import {
   cancelAdminOperationalAlert,
   createAdminOperationalAlert,
@@ -707,94 +720,85 @@ export default function AdminAlertsPage() {
 
             <div>
               <label className="admin-form-label">Wilaya</label>
-              <select
-                className="admin-select"
+              <FancySelect
                 value={formData.wilayaId}
-                onChange={(event) => setFormData((current) => ({
+                onChange={(value) => setFormData((current) => ({
                   ...current,
-                  wilayaId: event.target.value,
+                  wilayaId: value,
                   communeId: '',
                 }))}
                 disabled={loadingWilayas}
-              >
-                <option value="">{loadingWilayas ? 'Loading wilayas...' : 'Select wilaya...'}</option>
-                {wilayas.map((wilaya) => (
-                  <option key={wilaya.id} value={wilaya.id}>{wilaya.name}</option>
-                ))}
-              </select>
+                placeholder={loadingWilayas ? 'Loading wilayas...' : 'Select wilaya...'}
+                menuAlign="left"
+                options={[
+                  { value: '', label: loadingWilayas ? 'Loading wilayas...' : 'Select wilaya...' },
+                  ...wilayas.map((w) => ({ value: w.id, label: w.name })),
+                ]}
+              />
             </div>
 
             <div>
               <label className="admin-form-label">Commune (optional)</label>
-              <select
-                className="admin-select"
+              <FancySelect
                 value={formData.communeId}
-                onChange={(event) => setFormData((current) => ({
+                onChange={(value) => setFormData((current) => ({
                   ...current,
-                  communeId: event.target.value,
+                  communeId: value,
                 }))}
                 disabled={!formData.wilayaId || loadingCommunes}
-              >
-                <option value="">
-                  {!formData.wilayaId
-                    ? 'Select wilaya first...'
-                    : loadingCommunes
-                      ? 'Loading communes...'
-                      : 'Use wilaya-wide alert'}
-                </option>
-                {communes.map((commune) => (
-                  <option key={commune.id} value={commune.id}>{commune.name}</option>
-                ))}
-              </select>
+                menuAlign="left"
+                options={[
+                  {
+                    value: '',
+                    label: !formData.wilayaId
+                      ? 'Select wilaya first...'
+                      : loadingCommunes
+                        ? 'Loading communes...'
+                        : 'Use wilaya-wide alert',
+                  },
+                  ...communes.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+              />
             </div>
 
             <div>
               <label className="admin-form-label">Severity</label>
-              <select
-                className="admin-select"
+              <FancySelect
                 value={formData.severity}
-                onChange={(event) => setFormData((current) => ({
+                onChange={(value) => setFormData((current) => ({
                   ...current,
-                  severity: event.target.value,
+                  severity: value,
                 }))}
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
+                options={ALERT_SEVERITY_OPTIONS}
+                menuAlign="left"
+              />
             </div>
 
             <div>
               <label className="admin-form-label">Type</label>
-              <select
-                className="admin-select"
+              <FancySelect
                 value={formData.alertType}
-                onChange={(event) => setFormData((current) => ({
+                onChange={(value) => setFormData((current) => ({
                   ...current,
-                  alertType: event.target.value,
+                  alertType: value,
                 }))}
                 disabled={formMode === 'edit'}
-              >
-                {ALERT_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
+                options={ALERT_TYPE_OPTIONS}
+                menuAlign="left"
+              />
             </div>
 
             <div>
               <label className="admin-form-label">Audience Scope</label>
-              <select
-                className="admin-select"
+              <FancySelect
                 value={formData.audienceScope}
-                onChange={(event) => setFormData((current) => ({
+                onChange={(value) => setFormData((current) => ({
                   ...current,
-                  audienceScope: event.target.value,
+                  audienceScope: value,
                 }))}
-              >
-                <option value="users_in_zone">Users in Zone</option>
-                <option value="all_users">All Users</option>
-                <option value="subscribed_users_only">Subscribed Users Only</option>
-              </select>
+                options={ALERT_AUDIENCE_OPTIONS}
+                menuAlign="left"
+              />
             </div>
 
             <div>

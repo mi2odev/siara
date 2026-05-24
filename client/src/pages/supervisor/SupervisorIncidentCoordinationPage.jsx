@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
+import FancySelect from '../../components/ui/FancySelect'
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
 
 import PoliceShell from '../../components/layout/PoliceShell'
@@ -295,20 +296,20 @@ export default function SupervisorIncidentCoordinationPage() {
                                 )
                               }
                               return (
-                                <select
-                                  className="sv-assign-select"
+                                <FancySelect
                                   value={selectedOfficer[inc.id] || ''}
-                                  onChange={(e) =>
-                                    setSelectedOfficer((prev) => ({ ...prev, [inc.id]: e.target.value }))
+                                  onChange={(value) =>
+                                    setSelectedOfficer((prev) => ({ ...prev, [inc.id]: value }))
                                   }
-                                >
-                                  <option value="">Select officer...</option>
-                                  {list.map((off) => (
-                                    <option key={off.id} value={off.id}>
-                                      {renderOfficerOption(off)}
-                                    </option>
-                                  ))}
-                                </select>
+                                  menuAlign="left"
+                                  options={[
+                                    { value: '', label: 'Select officer...' },
+                                    ...list.map((off) => ({
+                                      value: off.id,
+                                      label: renderOfficerOption(off),
+                                    })),
+                                  ]}
+                                />
                               )
                             })()}
                             <button

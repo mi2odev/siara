@@ -69,10 +69,22 @@ export const useNotificationStore = create((set) => ({
       ? items.map(normalizeNotification).filter(Boolean)
       : []
 
+    // Defensive dedupe by id — a backend that briefly returns duplicates (e.g.
+    // during a migration or a double-insert bug) would otherwise crash React
+    // with "Encountered two children with the same key". Keep the first
+    // occurrence so the most-recent ordering stays stable.
+    const seenIds = new Set()
+    const dedupedItems = []
+    for (const item of normalizedItems) {
+      if (item.id && seenIds.has(item.id)) continue
+      if (item.id) seenIds.add(item.id)
+      dedupedItems.push(item)
+    }
+
     set({
       error: '',
       hasLoaded: true,
-      items: sortNotifications(normalizedItems),
+      items: sortNotifications(dedupedItems),
     })
   },
 

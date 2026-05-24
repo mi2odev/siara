@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import FancySelect from '../ui/FancySelect'
 
 const DEFAULT_FORM = {
   name: '',
@@ -77,30 +78,30 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
       <div className="siara-ds-form__row siara-ds-form__row--two">
         <div>
           <span className="siara-ds-form__label">Type</span>
-          <select
-            className="siara-ds-form__select"
+          <FancySelect
             value={form.type}
-            onChange={(e) => update({ type: e.target.value })}
-          >
-            <option value="zone">Zone (centre + radius)</option>
-            <option value="point">Point (small area around a place)</option>
-            <option value="route" disabled>
-              Route — set up from the map (coming soon)
-            </option>
-          </select>
+            onChange={(value) => update({ type: value })}
+            menuAlign="left"
+            options={[
+              { value: 'zone',  label: 'Zone (centre + radius)' },
+              { value: 'point', label: 'Point (small area around a place)' },
+              { value: 'route', label: 'Route — set up from the map (coming soon)' },
+            ]}
+          />
         </div>
         <div>
           <span className="siara-ds-form__label">Risk threshold</span>
-          <select
-            className="siara-ds-form__select"
+          <FancySelect
             value={form.riskThreshold}
-            onChange={(e) => update({ riskThreshold: e.target.value })}
-          >
-            <option value="low">Notify on any risk</option>
-            <option value="moderate">Notify on moderate or higher</option>
-            <option value="high">Notify on high or higher</option>
-            <option value="extreme">Notify on extreme only</option>
-          </select>
+            onChange={(value) => update({ riskThreshold: value })}
+            menuAlign="left"
+            options={[
+              { value: 'low',      label: 'Notify on any risk' },
+              { value: 'moderate', label: 'Notify on moderate or higher' },
+              { value: 'high',     label: 'Notify on high or higher' },
+              { value: 'extreme',  label: 'Notify on extreme only' },
+            ]}
+          />
         </div>
       </div>
 

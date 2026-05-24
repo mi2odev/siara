@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MapContainer, Marker, TileLayer } from 'react-leaflet'
+import FancySelect from '../../components/ui/FancySelect'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import DirectionsCarOutlinedIcon from '@mui/icons-material/DirectionsCarOutlined'
@@ -598,16 +599,26 @@ export default function AlertsPage() {
           </div>
 
           <div className="al-filters">
-            <select value={severityFilter} onChange={(event) => setSeverityFilter(event.target.value)}>
-              <option value="all">Severity</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-            <select value={areaFilter} onChange={(event) => setAreaFilter(event.target.value)}>
-              <option value="all">Area</option>
-              {wilayas.map((wilaya) => <option key={wilaya} value={wilaya}>{wilaya}</option>)}
-            </select>
+            <FancySelect
+              value={severityFilter}
+              onChange={setSeverityFilter}
+              options={[
+                { value: 'all',    label: 'Severity' },
+                { value: 'high',   label: 'High' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'low',    label: 'Low' },
+              ]}
+              menuAlign="left"
+            />
+            <FancySelect
+              value={areaFilter}
+              onChange={setAreaFilter}
+              options={[
+                { value: 'all', label: 'Area' },
+                ...wilayas.map((wilaya) => ({ value: wilaya, label: wilaya })),
+              ]}
+              menuAlign="left"
+            />
           </div>
 
           {errorMessage && <div className="step-hint" style={{ color: '#b91c1c', marginBottom: 12 }}>{errorMessage}</div>}

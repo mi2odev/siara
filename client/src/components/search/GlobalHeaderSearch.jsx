@@ -230,7 +230,6 @@ export default function GlobalHeaderSearch({
         onChange={(event) => setQuery(event.target.value)}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        onSearch={(event) => runSearch(event.currentTarget.value)}
         onKeyDown={(event) => {
           if (event.key !== 'Enter') return
           event.preventDefault()

@@ -3,6 +3,7 @@
  * @description Admin page for reviewing a single incident report in a 3-column split layout.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import FancySelect from '../../components/ui/FancySelect'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CircleMarker, MapContainer, TileLayer, Tooltip } from 'react-leaflet'
@@ -1320,19 +1321,19 @@ export default function AdminIncidentReviewPage() {
                                 <div>
                                   <label className="admin-form-label" style={{ marginBottom: 6 }}>Merge target</label>
                                   {incident.nearbyReports.length > 0 && (
-                                    <select
-                                      className="admin-select"
+                                    <FancySelect
                                       value={mergeTargetReportId}
-                                      onChange={(e) => setMergeTargetReportId(e.target.value)}
-                                      style={{ width: '100%' }}
-                                    >
-                                      <option value="">Select a nearby report…</option>
-                                      {incident.nearbyReports.map((nearby) => (
-                                        <option key={nearby.reportId} value={nearby.reportId}>
-                                          {nearby.displayId} · {nearby.severity} · {formatDistance(nearby.distanceKm)}
-                                        </option>
-                                      ))}
-                                    </select>
+                                      onChange={setMergeTargetReportId}
+                                      placeholder="Select a nearby report…"
+                                      menuAlign="left"
+                                      options={[
+                                        { value: '', label: 'Select a nearby report…' },
+                                        ...incident.nearbyReports.map((nearby) => ({
+                                          value: nearby.reportId,
+                                          label: `${nearby.displayId} · ${nearby.severity} · ${formatDistance(nearby.distanceKm)}`,
+                                        })),
+                                      ]}
+                                    />
                                   )}
                                   <input
                                     className="admin-input"

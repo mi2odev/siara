@@ -212,6 +212,133 @@
   border-color: rgba(239,68,68,0.38);
 }
 
+/* ─── Header system status (moved from sidebar footer) ─── */
+.admin-header-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--admin-text-secondary);
+  white-space: nowrap;
+}
+.admin-header-status-env {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #16A34A;
+}
+.admin-header-status-env-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #16A34A;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+  animation: admin-header-pulse 2s ease-in-out infinite;
+}
+.admin-header-status-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--admin-border-2);
+}
+.admin-header-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.admin-header-status-item strong {
+  color: var(--admin-text);
+  font-weight: 600;
+}
+.admin-header-status-meta {
+  color: var(--admin-text-muted);
+}
+.admin-header-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+  flex-shrink: 0;
+}
+.admin-header-status-dot.green { background: #16A34A; }
+.admin-header-status-dot.amber { background: #F59E0B; }
+.admin-header-status-dot.red   { background: #DC2626; }
+@keyframes admin-header-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18); }
+  50%      { box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.08); }
+}
+
+/* ─── Header profile chip (moved from sidebar footer) ─── */
+.admin-header-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.admin-header-profile:hover {
+  border-color: var(--admin-primary);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.12);
+}
+.admin-header-profile-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7C3AED, #6D28D9);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.admin-header-profile-body {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  min-width: 0;
+}
+.admin-header-profile-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--admin-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+.admin-header-profile-role {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--admin-primary);
+}
+
+/* Responsive collapse — the status bar disappears first, then the profile
+   body text, keeping only the avatar + logout on narrow screens. */
+@media (max-width: 1280px) {
+  .admin-header-status-meta { display: none; }
+}
+@media (max-width: 1080px) {
+  .admin-header-status { display: none; }
+}
+@media (max-width: 720px) {
+  .admin-header-profile-body { display: none; }
+  .admin-header-profile { padding: 4px; }
+}
+
 /* ================================================ WORKSPACE */
 .admin-workspace {
   margin-left: var(--admin-sidebar-w);
@@ -739,10 +866,197 @@
   color: var(--admin-text-muted); cursor: pointer;
   border: none; background: transparent;
   transition: all var(--admin-transition); white-space: nowrap;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.admin-tab:focus { outline: none; }
+.admin-tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.30);
 }
 .admin-tab:hover { color: var(--admin-text-secondary); }
 .admin-tab.active { background: var(--admin-primary); color: #fff; }
 .admin-tab .tab-count { margin-left: 4px; font-size: 10px; opacity: 0.7; }
+
+/* FancySelect styles moved to components/ui/FancySelect.css and are loaded
+   automatically by the FancySelect.jsx component, so they ship on every
+   page (admin, user, police, supervisor) regardless of AdminPanel.css. */
+
+/* ================================================ INCIDENTS TOOLBAR
+   One row that holds the filter tabs (left, can scroll horizontally if too
+   many) and the sort control (right, never wraps to its own line). Using
+   `min-width: 0` on the tabs lets them shrink and scroll instead of pushing
+   the sort control to a new row. */
+.admin-incidents-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.admin-incidents-toolbar-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.admin-incidents-toolbar-tabs::-webkit-scrollbar { height: 6px; }
+.admin-incidents-toolbar-tabs::-webkit-scrollbar-thumb {
+  background: var(--admin-border-2);
+  border-radius: 3px;
+}
+.admin-incidents-toolbar > .admin-sort-control {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+/* ================================================ SORT CONTROL */
+/* Polished segmented control + animated direction toggle for the
+   Incident Management list. Uses a translating "indicator" pill behind
+   the active segment so switching is smooth instead of a hard flip. */
+.admin-sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 4px 4px 12px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+.admin-sort-control:hover {
+  border-color: var(--admin-border-2);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.admin-sort-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--admin-text-muted);
+  white-space: nowrap;
+}
+.admin-sort-label > svg { font-size: 14px; opacity: 0.7; }
+
+.admin-sort-segment {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  background: var(--admin-surface-2);
+  border-radius: 8px;
+}
+
+/* The animated highlight pill — sized to one segment, translates between them. */
+.admin-sort-indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  background: var(--admin-primary);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+  transition:
+    transform 280ms cubic-bezier(0.34, 1.18, 0.64, 1),
+    width    180ms ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.admin-sort-seg-btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--admin-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 220ms ease, transform 120ms ease;
+  white-space: nowrap;
+  min-width: 60px;
+  justify-content: center;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.admin-sort-seg-btn > svg { font-size: 14px; }
+.admin-sort-seg-btn:hover:not(.is-active) {
+  color: var(--admin-text-secondary);
+  transform: translateY(-1px);
+}
+.admin-sort-seg-btn.is-active { color: #fff; }
+.admin-sort-seg-btn:focus { outline: none; }
+.admin-sort-seg-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.25);
+}
+
+/* Direction toggle — separate pill button, rotating icon. */
+.admin-sort-dir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    background 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    box-shadow 200ms ease;
+}
+.admin-sort-dir:hover {
+  background: var(--admin-primary-subtle);
+  border-color: var(--admin-primary);
+  color: var(--admin-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(124, 58, 237, 0.18);
+}
+.admin-sort-dir:active { transform: translateY(0); }
+.admin-sort-dir:focus { outline: none; }
+.admin-sort-dir:focus-visible {
+  outline: none;
+  box-shadow:
+    0 4px 10px rgba(124, 58, 237, 0.18),
+    0 0 0 2px rgba(124, 58, 237, 0.25);
+}
+.admin-sort-dir {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.admin-sort-dir-icon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 280ms cubic-bezier(0.34, 1.18, 0.64, 1);
+}
+.admin-sort-dir.is-asc .admin-sort-dir-icon { transform: rotate(180deg); }
+.admin-sort-dir-label { white-space: nowrap; }
+
+@media (max-width: 680px) {
+  .admin-sort-control { padding: 4px; gap: 6px; }
+  .admin-sort-label { display: none; }
+  .admin-sort-dir-label { display: none; }
+  .admin-sort-dir { padding: 6px 8px; }
+}
 
 /* ================================================ GRIDS */
 .admin-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -1298,27 +1612,507 @@
 .admin-root ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 3px; }
 .admin-root ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.14); }
 
-/* ================================================ RESPONSIVE */
+/* ============================================================================
+   RESPONSIVE — full breakpoint ladder
+
+   Breakpoints (max-width unless stated):
+     ≥ 1537 px : ultra-wide / large desktop — wider content cap, bigger gaps
+     1280 px   : laptops / smaller desktops — current default
+     1024 px   : small laptops / landscape tablets — sidebar becomes a drawer
+      768 px   : tablets — tighter padding, status pill hidden
+      640 px   : large phones / landscape — single-column grids, fluid type
+      480 px   : small phones — denser typography, full-bleed modals
+
+   The sidebar uses an off-canvas drawer pattern below 1024 px. The drawer is
+   driven by the `.is-mobile-open` class set by AdminLayout.jsx. A backdrop
+   (.admin-mobile-backdrop) catches taps outside the drawer to close it.
+   ============================================================================ */
+
+/* ── Mobile burger button (hidden by default on desktops) ───────────────── */
+.admin-header-burger {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  cursor: pointer;
+  padding: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  transition: background var(--admin-transition), border-color var(--admin-transition);
+}
+.admin-header-burger:hover { background: var(--admin-primary-subtle); border-color: var(--admin-primary); }
+.admin-header-burger > span {
+  display: block;
+  width: 16px;
+  height: 2px;
+  background: var(--admin-text);
+  border-radius: 2px;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+.admin-header-burger.is-open > span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.admin-header-burger.is-open > span:nth-child(2) { opacity: 0; }
+.admin-header-burger.is-open > span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+/* ── Backdrop behind the off-canvas sidebar ─────────────────────────────── */
+.admin-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 45;
+  animation: admin-fade-in 180ms ease;
+}
+@keyframes admin-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Large screens — give content room to breathe ───────────────────────── */
+@media (min-width: 1537px) {
+  .admin-content { padding: 28px 32px; max-width: 1760px; margin-inline: auto; }
+  .admin-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+}
+
+/* ── Laptops (default ≤ 1400px) ─────────────────────────────────────────── */
 @media (max-width: 1400px) {
   .admin-ctx-panel { display: none; }
   .admin-workspace.has-ctx { margin-right: 0; }
   .admin-review-split { grid-template-columns: 1fr 300px; }
 }
-@media (max-width: 1100px) {
+
+/* ── Small laptops / landscape tablets — sidebar collapses to drawer ───── */
+@media (max-width: 1024px) {
+  .admin-header-burger { display: inline-flex; }
+
+  /* Sidebar becomes a fixed off-canvas drawer */
+  .siara-sb {
+    transform: translateX(-100%);
+    transition: transform 240ms cubic-bezier(0.32, 0.72, 0.4, 1);
+    box-shadow: 8px 0 24px rgba(15, 23, 42, 0.16);
+    width: min(86vw, 320px);
+    z-index: 60;
+  }
+  .siara-sb.is-mobile-open { transform: translateX(0); }
+
+  /* Workspace + header take full width since sidebar is overlaid now */
+  .admin-workspace { margin-left: 0; }
+  .admin-header { left: 0; }
+
+  /* Long DTOs in two columns become one */
   .admin-grid-sidebar { grid-template-columns: 1fr; }
   .admin-review-split { grid-template-columns: 1fr; }
+  .admin-grid-3 { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── Tablets portrait — tighter padding ─────────────────────────────────── */
 @media (max-width: 900px) {
-  .admin-root { --admin-sidebar-w: 200px; }
   .admin-grid-2 { grid-template-columns: 1fr; }
   .admin-grid-3 { grid-template-columns: 1fr; }
-  .admin-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .admin-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-content { padding: 16px; }
+  .admin-header { padding: 0 14px; }
+  .admin-page-title { font-size: clamp(15px, 2.6vw, 18px); }
 }
+
+/* ── Tablets / large phones ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .admin-header-search { width: 140px; }
+  .admin-header-search:focus { width: 180px; }
+  .admin-page-header { gap: 8px; }
+  .admin-card { padding: 12px; }
+  .admin-card-header { gap: 8px; }
+  .admin-tabs { overflow-x: auto; }
+
+  /* Tables get a guaranteed scroll container so they never push the page */
+  .admin-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .admin-table { font-size: 11.5px; }
+  .admin-table thead th,
+  .admin-table tbody td { padding: 8px 10px; }
+}
+
+/* ── Phones (portrait + landscape) ──────────────────────────────────────── */
 @media (max-width: 640px) {
-  .admin-sidebar { display: none; }
-  .admin-workspace { margin-left: 0; }
-  .admin-workspace.has-ctx { margin-right: 0; }
-  .admin-header { left: 0; }
+  .admin-root { --admin-header-h: 56px; }
   .admin-content { padding: 12px; }
   .admin-kpi-grid { grid-template-columns: 1fr; }
+  .admin-page-title { font-size: clamp(14px, 4.4vw, 17px); }
+  .admin-page-subtitle { font-size: 11px; }
+
+  /* Header right-side — drop status pill, shrink profile chip text */
+  .admin-header-status,
+  .admin-header-profile-body { display: none; }
+  .admin-header-profile { padding: 4px; }
+  .admin-header-logout { padding: 0 8px; font-size: 10.5px; }
+
+  /* Sort control compacts so the title row stays on one line */
+  .admin-sort-control { padding: 4px 8px; gap: 6px; }
+  .admin-sort-label { display: none; }
+  .admin-sort-dir-label { display: none; }
+
+  /* Mini stat tiles: 2 across instead of 4 */
+  .admin-grid-3 { grid-template-columns: 1fr; }
+
+  /* Modals → fill the viewport so forms remain usable */
+  .admin-modal,
+  .admin-user-modal-card,
+  .admin-confirm-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100vh;
+    border-radius: 0 !important;
+  }
+
+  /* Touch targets — keep buttons reachable */
+  .admin-btn,
+  .admin-btn-icon,
+  .admin-header-btn { min-height: 36px; }
+}
+
+/* ── Small phones (≤ 480 px) ────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .admin-content { padding: 10px; }
+  .admin-tabs { padding: 2px; }
+  .admin-tab { padding: 5px 10px; font-size: 11px; }
+  .admin-card { padding: 10px; border-radius: 8px; }
+  .admin-card-title { font-size: 13px; }
+  .admin-card-subtitle { font-size: 10.5px; }
+  .admin-fancy-select { height: 30px; }
+  .admin-fancy-select-control { min-width: 100px; }
+  .admin-header { padding: 0 10px; }
+  .admin-header-profile-avatar { width: 28px; height: 28px; }
+  .admin-mini-stat { padding: 8px; }
+}
+
+/* ── Landscape phones — keep header out of the way ──────────────────────── */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 480px) {
+  .admin-root { --admin-header-h: 44px; }
+  .admin-content { padding: 10px 14px; }
+}
+
+/* ── Touch / coarse-pointer devices — taller tap targets ────────────────── */
+@media (pointer: coarse) {
+  .admin-btn,
+  .admin-btn-icon,
+  .admin-header-btn,
+  .admin-nav-link,
+  .admin-tab,
+  .admin-fancy-select-option { min-height: 40px; }
+  .admin-fancy-select { height: 36px; }
+}
+
+/* ── Reduced motion — disable spring transitions ────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .siara-sb,
+  .admin-mobile-backdrop,
+  .admin-header-burger > span,
+  .admin-sort-indicator,
+  .admin-sort-dir-icon,
+  .admin-fancy-select-menu,
+  .admin-fancy-select-chevron { transition: none !important; animation: none !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================================
+   POLISH LAYER — production-grade refinements
+   (appended last so it wins over earlier declarations without rewrites)
+
+   - Fluid type system via clamp()
+   - Container queries for self-aware cards
+   - Sticky table headers + first-column anchoring on touch
+   - iOS notch / home-indicator safe areas
+   - Logical properties for RTL parity
+   - Print stylesheet
+   - Skip link
+   - Drawer physics, sidebar scrollbar, visible focus rings
+   ============================================================================ */
+
+/* ── Fluid type tokens — single source of truth for headings ────────────── */
+:root {
+  --admin-fz-title:    clamp(15px, 1.05vw + 12px, 20px);
+  --admin-fz-subtitle: clamp(11px, 0.35vw + 10px, 13px);
+  --admin-fz-card:     clamp(13px, 0.30vw + 12px, 15px);
+  --admin-fz-body:     clamp(12px, 0.20vw + 11.4px, 13.5px);
+  --admin-content-pad: clamp(10px, 1.8vw, 28px);
+  --admin-grid-gap:    clamp(8px, 1.2vw, 16px);
+  /* iOS notch / Android navigation insets — fall back to 0 on browsers
+     that don't expose env(). Apply via padding-* on fixed surfaces. */
+  --admin-safe-top:    env(safe-area-inset-top, 0px);
+  --admin-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --admin-safe-left:   env(safe-area-inset-left, 0px);
+  --admin-safe-right:  env(safe-area-inset-right, 0px);
+}
+
+/* Apply fluid type uniformly — overrides earlier fixed font-sizes. */
+.admin-root .admin-page-title    { font-size: var(--admin-fz-title); line-height: 1.2; }
+.admin-root .admin-page-subtitle { font-size: var(--admin-fz-subtitle); line-height: 1.35; }
+.admin-root .admin-card-title    { font-size: var(--admin-fz-card); line-height: 1.25; }
+.admin-root .admin-card-subtitle { font-size: var(--admin-fz-subtitle); line-height: 1.35; }
+.admin-root                       { font-size: var(--admin-fz-body); }
+
+/* Fluid content padding so the page breathes proportionally to viewport. */
+.admin-content { padding: var(--admin-content-pad); padding-inline-end: max(var(--admin-content-pad), var(--admin-safe-right)); padding-inline-start: max(var(--admin-content-pad), var(--admin-safe-left)); }
+
+/* Page header: gap scales too. */
+.admin-page-header { gap: var(--admin-grid-gap); align-items: flex-start; }
+
+/* Grids opt into fluid gaps + auto-fit minimums when possible. */
+.admin-kpi-grid,
+.admin-grid-2,
+.admin-grid-3 { gap: var(--admin-grid-gap); }
+
+/* Auto-fit KPI grid — never overflows, never has dead empty cells. */
+.admin-root .admin-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+/* ── Container queries — each card adapts to ITS OWN width, not the
+   viewport. Lets a card placed in a narrow sidebar collapse its internals
+   without writing per-page media queries. Progressive: ignored on browsers
+   that don't support `container-type`. ─────────────────────────────────── */
+.admin-card { container-type: inline-size; }
+
+@container (max-width: 360px) {
+  .admin-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .admin-mini-stat { padding: 8px 10px; }
+}
+@container (max-width: 240px) {
+  .admin-kpi-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Skip link — visible only on focus, lands you on main content ──────── */
+.admin-skip-link {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  background: var(--admin-primary);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  z-index: 200;
+  transform: translateY(-200%);
+  transition: transform 180ms ease;
+  text-decoration: none;
+}
+.admin-skip-link:focus { transform: translateY(0); }
+
+/* ── Header safe-area + iOS notch ───────────────────────────────────────── */
+.admin-header {
+  padding-top: var(--admin-safe-top);
+  padding-inline-start: max(20px, var(--admin-safe-left));
+  padding-inline-end:   max(20px, var(--admin-safe-right));
+  height: calc(var(--admin-header-h) + var(--admin-safe-top));
+}
+.admin-workspace { padding-top: calc(var(--admin-header-h) + var(--admin-safe-top)); padding-bottom: var(--admin-safe-bottom); }
+
+/* Backdrop-filter fallback — solid surface for engines without filter support */
+@supports not ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+  .admin-header { background: var(--admin-surface); }
+}
+
+/* ── Sticky table headers — preserve column context while scrolling ────── */
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--admin-surface);
+  z-index: 2;
+  box-shadow: inset 0 -1px 0 var(--admin-border);
+}
+/* Anchored first column on touch devices so identifiers stay visible. */
+@media (pointer: coarse) and (max-width: 768px) {
+  .admin-table tbody td:first-child,
+  .admin-table thead th:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--admin-surface);
+    z-index: 1;
+    box-shadow: inset -1px 0 0 var(--admin-border);
+  }
+  .admin-table thead th:first-child { z-index: 3; }
+}
+
+/* Smooth horizontal scrollbar inside the table wrapper. */
+.admin-table-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.18) transparent;
+}
+.admin-table-wrapper::-webkit-scrollbar { height: 8px; }
+.admin-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.18);
+  border-radius: 4px;
+}
+
+/* ── Refined drawer physics + safe areas on the off-canvas sidebar ─────── */
+@media (max-width: 1024px) {
+  .siara-sb {
+    /* Smoother spring with a touch of overshoot, faster open than close. */
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    padding-top: var(--admin-safe-top);
+    padding-bottom: var(--admin-safe-bottom);
+    padding-inline-start: var(--admin-safe-left);
+    /* Scroll inside the drawer, not the page, when content overflows. */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Backdrop fades + softly blurs the underlying page. */
+  .admin-mobile-backdrop {
+    background: rgba(15, 23, 42, 0.5);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+    animation: admin-fade-in 200ms ease;
+  }
+}
+
+/* ── Logical-property layout for RTL parity (Arabic is supported) ──────── */
+.admin-sidebar,
+.siara-sb {
+  inset-inline-start: 0;
+  inset-block: 0;
+}
+[dir="rtl"] .siara-sb {
+  border-right: none;
+  border-left: 1px solid var(--admin-border);
+  box-shadow: -1px 0 12px rgba(15, 23, 42, 0.04);
+}
+[dir="rtl"] .admin-workspace { margin-left: 0; margin-right: var(--admin-sidebar-w); }
+[dir="rtl"] .admin-header    { left: 0; right: var(--admin-sidebar-w); }
+@media (max-width: 1024px) {
+  [dir="rtl"] .admin-workspace,
+  [dir="rtl"] .admin-header { margin-right: 0; right: 0; }
+  [dir="rtl"] .siara-sb {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+    transform: translateX(100%);
+    box-shadow: -8px 0 24px rgba(15, 23, 42, 0.16);
+  }
+  [dir="rtl"] .siara-sb.is-mobile-open { transform: translateX(0); }
+}
+
+/* ── Visible focus rings — consistent, brand-coloured, never harsh black ─ */
+.admin-root :focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Exceptions: components that already manage their own focus appearance. */
+.admin-root .admin-fancy-select-control:focus-visible,
+.admin-root .admin-fancy-select-option:focus-visible,
+.admin-root .admin-sort-seg-btn:focus-visible,
+.admin-root .admin-sort-dir:focus-visible,
+.admin-root .admin-tab:focus-visible { outline: none; }
+
+/* ── Long-text truncation utility — pairs with title="" tooltips ───────── */
+.admin-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* ── Modal centering — keep tall content scrollable inside the modal ───── */
+.admin-modal,
+.admin-user-modal-card,
+.admin-confirm-modal {
+  max-height: min(92vh, 920px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 640px) {
+  .admin-modal,
+  .admin-user-modal-card,
+  .admin-confirm-modal {
+    max-height: 100vh;
+    /* Bottom safe area so iOS home-indicator never covers a submit button */
+    padding-bottom: calc(16px + var(--admin-safe-bottom));
+  }
+}
+
+/* ── Tap-highlight + smooth-scroll polish ──────────────────────────────── */
+.admin-root {
+  -webkit-tap-highlight-color: transparent;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+html { scroll-behavior: smooth; }
+
+/* ── Hide scrollbars on horizontal tab strips while keeping scroll ─────── */
+.admin-tabs::-webkit-scrollbar { display: none; }
+.admin-tabs { scrollbar-width: none; }
+
+/* ── Print stylesheet — clean printable admin pages ─────────────────────── */
+@media print {
+  .admin-root {
+    --admin-content-pad: 0;
+    background: #fff;
+    color: #000;
+    display: block;
+  }
+  .siara-sb,
+  .admin-header,
+  .admin-mobile-backdrop,
+  .admin-ctx-panel,
+  .admin-header-burger,
+  .admin-header-logout,
+  .admin-tabs,
+  .admin-sort-control,
+  .admin-fancy-select { display: none !important; }
+  .admin-workspace { margin: 0 !important; padding: 0 !important; }
+  .admin-content { padding: 0 !important; }
+  .admin-card {
+    page-break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #bbb;
+  }
+  .admin-table thead th { position: static; box-shadow: none; border-bottom: 1px solid #000; }
+  a[href]:not(.no-print-url)::after { content: " (" attr(href) ")"; font-size: 0.85em; color: #666; }
+}
+
+/* ── Forced-colors (Windows High Contrast) — keep critical UI visible ──── */
+@media (forced-colors: active) {
+  .admin-card,
+  .admin-tab,
+  .admin-btn,
+  .admin-fancy-select,
+  .siara-sb { border: 1px solid CanvasText; }
+  .admin-tab.active,
+  .admin-sort-seg-btn.is-active,
+  .admin-fancy-select-option.is-active { background: Highlight; color: HighlightText; }
+}
+
+/* ── Lazy image / iframe defaults — keep aspect ratio, avoid CLS ─────────
+   Scoped to content media only. The :not() excludes branded UI imagery
+   (sidebar logo, avatars, status icons) so their explicit height/size
+   rules continue to win. */
+.admin-root img:not(.siara-sb-brand-logo):not([class*="-logo"]):not([class*="-avatar"]):not([class*="-icon"]),
+.admin-root video,
+.admin-root iframe { max-width: 100%; height: auto; }
+.admin-root img[width][height]:not([class*="-logo"]):not([class*="-avatar"]) {
+  aspect-ratio: attr(width) / attr(height);
+}
+
+/* ── Sticky page headers above scrolling tables on tall pages ──────────── */
+@media (min-width: 1025px) {
+  .admin-page-header.is-sticky {
+    position: sticky;
+    top: var(--admin-header-h);
+    z-index: 10;
+    background: var(--admin-bg);
+    padding-block: 12px;
+    margin-block-end: 4px;
+  }
 }

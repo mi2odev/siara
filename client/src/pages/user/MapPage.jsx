@@ -9,6 +9,7 @@
  */
 
 import React, { useEffect, useMemo, useState, useContext, useCallback, useRef } from "react";
+import FancySelect from '../../components/ui/FancySelect';
 import { useLocation, useNavigate } from "react-router-dom";
 import ThunderstormOutlinedIcon from '@mui/icons-material/ThunderstormOutlined';
 import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined';
@@ -1327,16 +1328,15 @@ export default function MapPage() {
             {/* Wilaya (province) dropdown selector */}
             <div className="filter-group">
               <label className="filter-label">Zone</label>
-              <select
-                className="filter-select"
+              <FancySelect
                 value={selectedWilaya}
-                onChange={(e) => setSelectedWilaya(e.target.value)}
-              >
-                <option value="all">All provinces</option>
-                {wilayas.map((w) => (
-                  <option key={w} value={w}>{w}</option>
-                ))}
-              </select>
+                onChange={setSelectedWilaya}
+                menuAlign="left"
+                options={[
+                  { value: 'all', label: 'All provinces' },
+                  ...wilayas.map((w) => ({ value: w, label: w })),
+                ]}
+              />
             </div>
           </div>
 

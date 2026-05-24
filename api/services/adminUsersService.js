@@ -599,8 +599,43 @@ async function getAdminUserDetails(userId, db = pool) {
     [userId],
   );
 
+  // Moderation history counts — one row per audit action in
+  // app.user_moderation_actions. We count by action so the details modal can
+  // show "Times Banned" / "Times Warned" alongside the most-recent timestamps.
+  const moderationCounts = await db.query(
+    `
+      select
+        count(*) filter (where action = 'ban')::int           as ban_count,
+        count(*) filter (where action = 'warn')::int          as warn_count,
+        max(created_at) filter (where action = 'ban')         as last_banned_at,
+        max(created_at) filter (where action = 'warn')        as last_warned_at,
+        count(*) filter (
+          where action = 'restore' and status_before = 'banned'
+        )::int                                                as unban_count,
+        count(*) filter (
+          where action = 'restore' and status_before = 'warned'
+        )::int                                                as unwarn_count
+      from app.user_moderation_actions
+     where user_id = $1
+    `,
+    [userId],
+  );
+  const modRow = moderationCounts.rows[0] || {};
+
   return {
     ...user,
+    moderationHistory: {
+      banCount: Number(modRow.ban_count || 0),
+      warnCount: Number(modRow.warn_count || 0),
+      unbanCount: Number(modRow.unban_count || 0),
+      unwarnCount: Number(modRow.unwarn_count || 0),
+      lastBannedAt: modRow.last_banned_at
+        ? new Date(modRow.last_banned_at).toISOString()
+        : null,
+      lastWarnedAt: modRow.last_warned_at
+        ? new Date(modRow.last_warned_at).toISOString()
+        : null,
+    },
     recentReports: recentReports.rows.map((row) => ({
       id: row.id,
       title: row.title,

@@ -10,6 +10,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
+import FancySelect from '../../components/ui/FancySelect'
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
 import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded'
 import GavelOutlinedIcon from '@mui/icons-material/GavelOutlined'
@@ -448,16 +449,13 @@ export default function AdminSystemSettingsPage() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <select
-                            className="admin-select"
+                          <FancySelect
                             value={rule.autoSeverity}
-                            onChange={(e) => updateSeverityRow(rule.id, { autoSeverity: e.target.value })}
-                            style={{ height: 30, fontSize: 12, width: 100 }}
-                          >
-                            {SEVERITY_OPTIONS.map((opt) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
+                            onChange={(value) => updateSeverityRow(rule.id, { autoSeverity: value })}
+                            options={SEVERITY_OPTIONS}
+                            size="sm"
+                            menuAlign="left"
+                          />
                           <span className={`admin-pill ${rule.autoSeverity}`}>{rule.autoSeverity}</span>
                         </div>
                       </td>
@@ -564,17 +562,13 @@ export default function AdminSystemSettingsPage() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>Min. severity</span>
-                      <select
-                        className="admin-select"
+                      <FancySelect
                         value={ch.minSeverity}
-                        onChange={(e) => updateChannel(ch.id, { minSeverity: e.target.value })}
-                        style={{ width: 110, height: 30, fontSize: 11.5 }}
+                        onChange={(value) => updateChannel(ch.id, { minSeverity: value })}
+                        options={SEVERITY_OPTIONS}
                         disabled={!ch.enabled}
-                      >
-                        {SEVERITY_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
+                        size="sm"
+                      />
                       <ToggleSwitch
                         checked={ch.enabled}
                         onChange={(checked) => updateChannel(ch.id, { enabled: checked })}
@@ -864,27 +858,21 @@ export default function AdminSystemSettingsPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 4 }}>
                 <div>
                   <label className="admin-form-label">Incident Archive After</label>
-                  <select
-                    className="admin-select"
+                  <FancySelect
                     value={String(generalDraft.incidentArchiveDays ?? 90)}
-                    onChange={(e) => updateGeneral({ incidentArchiveDays: Number(e.target.value) })}
-                  >
-                    {ARCHIVE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={String(opt.value)}>{opt.label}</option>
-                    ))}
-                  </select>
+                    onChange={(value) => updateGeneral({ incidentArchiveDays: Number(value) })}
+                    options={ARCHIVE_OPTIONS.map((opt) => ({ value: String(opt.value), label: opt.label }))}
+                    menuAlign="left"
+                  />
                 </div>
                 <div>
                   <label className="admin-form-label">Audit Log Retention</label>
-                  <select
-                    className="admin-select"
+                  <FancySelect
                     value={generalDraft.auditLogRetention || '2y'}
-                    onChange={(e) => updateGeneral({ auditLogRetention: e.target.value })}
-                  >
-                    {RETENTION_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                    onChange={(value) => updateGeneral({ auditLogRetention: value })}
+                    options={RETENTION_OPTIONS}
+                    menuAlign="left"
+                  />
                 </div>
               </div>
             </div>

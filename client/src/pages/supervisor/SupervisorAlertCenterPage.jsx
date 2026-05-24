@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
+import FancySelect from '../../components/ui/FancySelect'
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
@@ -201,44 +202,38 @@ export default function SupervisorAlertCenterPage() {
                 <div className="sv-grid-2" style={{ gap: 12 }}>
                   <div className="sv-form-group">
                     <label className="sv-form-label">Alert Type</label>
-                    <select
-                      className="sv-form-select"
+                    <FancySelect
                       value={form.alertType}
-                      onChange={(e) => handleChange('alertType', e.target.value)}
-                    >
-                      {ALERT_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {t.charAt(0).toUpperCase() + t.slice(1)}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => handleChange('alertType', value)}
+                      menuAlign="left"
+                      options={ALERT_TYPES.map((t) => ({
+                        value: t,
+                        label: t.charAt(0).toUpperCase() + t.slice(1),
+                      }))}
+                    />
                   </div>
                   <div className="sv-form-group">
                     <label className="sv-form-label">Target Audience</label>
-                    <select
-                      className="sv-form-select"
+                    <FancySelect
                       value={form.targetType}
-                      onChange={(e) => handleChange('targetType', e.target.value)}
-                    >
-                      {TARGET_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                      ))}
-                    </select>
+                      onChange={(value) => handleChange('targetType', value)}
+                      menuAlign="left"
+                      options={TARGET_TYPES}
+                    />
                   </div>
                 </div>
 
                 <div className="sv-form-group">
                   <label className="sv-form-label">Zone (Wilaya)</label>
-                  <select
-                    className="sv-form-select"
+                  <FancySelect
                     value={form.adminAreaId}
-                    onChange={(e) => handleChange('adminAreaId', e.target.value)}
-                  >
-                    <option value="">Select wilaya...</option>
-                    {wilayas.map((w) => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
-                    ))}
-                  </select>
+                    onChange={(value) => handleChange('adminAreaId', value)}
+                    menuAlign="left"
+                    options={[
+                      { value: '', label: 'Select wilaya...' },
+                      ...wilayas.map((w) => ({ value: w.id, label: w.name })),
+                    ]}
+                  />
                   {errors.adminAreaId && <span className="sv-form-error">{errors.adminAreaId}</span>}
                 </div>
 

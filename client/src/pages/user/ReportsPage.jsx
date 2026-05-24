@@ -11,6 +11,7 @@ import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { getUserRoles } from '../../utils/roleUtils'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import { deleteReport, listReports, respondToInfoRequest } from '../../services/reportsService'
+import FancySelect from '../../components/ui/FancySelect'
 import '../../styles/NewsPage.css'
 import '../../styles/AlertsPage.css'
 import '../../styles/DashboardPage.css'
@@ -408,12 +409,17 @@ export default function ReportsPage() {
           </div>
 
           <div className="al-filters">
-            <select value={severityFilter} onChange={(event) => setSeverityFilter(event.target.value)}>
-              <option value="all">Severity</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
+            <FancySelect
+              value={severityFilter}
+              onChange={setSeverityFilter}
+              menuAlign="left"
+              options={[
+                { value: 'all',    label: 'Severity' },
+                { value: 'high',   label: 'High' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'low',    label: 'Low' },
+              ]}
+            />
           </div>
 
           {errorMessage && <div className="step-hint" style={{ color: '#b91c1c', marginBottom: 12 }}>{errorMessage}</div>}
