@@ -26,6 +26,7 @@ import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded'
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
 import AllInboxOutlinedIcon from '@mui/icons-material/AllInboxOutlined'
 import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined'
+import MarkunreadMailboxOutlinedIcon from '@mui/icons-material/MarkunreadMailboxOutlined'
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
 import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined'
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
@@ -171,6 +172,15 @@ function buildSections(incidentCounts, alertCounts, countsReady) {
         { to: '/admin/analytics?tab=roads',        icon: <AltRouteOutlinedIcon fontSize="inherit" />,          text: 'Dangerous Roads' },
         { to: '/admin/analytics?tab=correlations', icon: <ScatterPlotOutlinedIcon fontSize="inherit" />,       text: 'Correlations' },
         { to: '/admin/analytics?tab=predictions',  icon: <OnlinePredictionOutlinedIcon fontSize="inherit" />,  text: '7-Day Prediction' },
+      ],
+    },
+    {
+      key: 'inbox',
+      label: 'Support Inbox',
+      links: [
+        { to: '/admin/inbox',           icon: <MarkunreadMailboxOutlinedIcon fontSize="inherit" />, text: 'All Inbox' },
+        { to: '/admin/inbox?show=support', icon: <InboxOutlinedIcon fontSize="inherit" />,         text: 'Contact Messages' },
+        { to: '/admin/inbox?show=info',    icon: <AllInboxOutlinedIcon fontSize="inherit" />,      text: 'Info-Request Replies' },
       ],
     },
     {

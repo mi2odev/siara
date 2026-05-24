@@ -1672,6 +1672,11 @@
   to   { opacity: 1; }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* ── Large screens — give content room to breathe ───────────────────────── */
 @media (min-width: 1537px) {
   .admin-content { padding: 28px 32px; max-width: 1760px; margin-inline: auto; }

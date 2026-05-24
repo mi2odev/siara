@@ -13,6 +13,7 @@ import AdminUsersPage from "../pages/admin/AdminUsersPage";
 import AdminZonesPage from "../pages/admin/AdminZonesPage";
 import AdminSystemSettingsPage from "../pages/admin/AdminSystemSettingsPage";
 import AdminAnalyticsPage from "../pages/admin/AdminAnalyticsPage";
+import AdminInboxPage from "../pages/admin/AdminInboxPage";
 import CreateAlertPage from "../pages/user/CreateAlertPage";
 import AlertsPage from "../pages/user/AlertsPage";
 import ContactPage from "../pages/user/ContactPage";
@@ -157,6 +158,7 @@ export default function AppRouter() {
           <Route path="zones" element={<AdminZonesPage />} />
           <Route path="system" element={<AdminSystemSettingsPage />} />
           <Route path="analytics" element={<AdminAnalyticsPage />} />
+          <Route path="inbox" element={<AdminInboxPage />} />
         </Route>
       </Route>
 

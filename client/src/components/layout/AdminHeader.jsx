@@ -11,6 +11,7 @@ const routeNames = {
   '/admin/users': 'User Governance',
   '/admin/analytics': 'Analytics',
   '/admin/system': 'Configuration',
+  '/admin/inbox': 'Support Inbox',
 }
 
 function initialsFromName(name) {

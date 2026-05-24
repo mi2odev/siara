@@ -35,6 +35,10 @@ const travelHistoryRoutes = require("./contollers/travelHistory");
 const dangerSubscriptionRoutes = require("./contollers/dangerSubscriptions");
 const accountRoutes = require("./contollers/account");
 const userPreferencesRoutes = require("./contollers/userPreferences");
+const {
+  publicRouter: supportMessagesPublicRoutes,
+  adminRouter: supportMessagesAdminRoutes,
+} = require("./contollers/supportMessages");
 const userLocationRoutes = require("./contollers/userLocation");
 const { startNotificationListener } = require("./services/notificationListener");
 const { initializeNotificationSocketServer } = require("./services/notificationSocket");
@@ -86,6 +90,8 @@ app.use("/api/admin", adminOverviewRoutes);
 app.use("/api/admin", adminZonesRoutes);
 app.use("/api/admin", adminAnalyticsRoutes);
 app.use("/api/admin", adminSystemSettingsRoutes);
+app.use("/api/admin", supportMessagesAdminRoutes);
+app.use("/api/support", supportMessagesPublicRoutes);
 app.use("/api/admin-areas", adminAreaRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/dashboard", dashboardRoutes);

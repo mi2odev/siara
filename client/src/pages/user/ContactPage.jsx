@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import '../../styles/InfoPages.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
+import { submitSupportMessage } from '../../services/supportMessagesService'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -8,6 +9,8 @@ export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', message: '' })
   const [errors, setErrors] = useState({})
   const [statusMessage, setStatusMessage] = useState('')
+  const [submitError, setSubmitError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   const handleChange = (event) => {
@@ -39,14 +42,24 @@ export default function ContactPage() {
     return Object.keys(nextErrors).length === 0
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    if (!validateForm()) {
-      return
+    if (!validateForm() || isSubmitting) return
+    setIsSubmitting(true)
+    setSubmitError('')
+    try {
+      await submitSupportMessage({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        message: form.message.trim(),
+      })
+      setStatusMessage('Thank you. We will respond as soon as possible.')
+      setForm({ name: '', email: '', message: '' })
+    } catch (error) {
+      setSubmitError(error?.message || 'Could not send your message. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
-
-    setStatusMessage('Thank you. We will respond as soon as possible.')
-    setForm({ name: '', email: '', message: '' })
   }
 
   return (
@@ -143,10 +156,13 @@ export default function ContactPage() {
             />
             {errors.message ? <p id="contact-message-error" className="info-field-error">{errors.message}</p> : null}
 
-            <button type="submit">Submit</button>
+            <button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Sending…' : 'Submit'}
+            </button>
           </form>
           <p className="info-note">We will respond as soon as possible.</p>
           {statusMessage ? <p className="info-success-note" role="status" aria-live="polite">{statusMessage}</p> : null}
+          {submitError ? <p className="info-field-error" role="alert">{submitError}</p> : null}
         </section>
       </main>
     </div>
