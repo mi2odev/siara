@@ -252,9 +252,18 @@ export default function NotificationsPage() {
         try { await markNotificationRead(notification.id) } catch (_error) {}
       }
     } catch (error) {
+      // 409 "already been answered" means the reporter responded in another
+      // tab / session. Render it as success — the answer is on file, the
+      // form should collapse, no scary error needed.
+      const message = error?.message || ''
+      if (/already been answered|no pending info request/i.test(message)) {
+        setInfoReplyStatus((prev) => ({ ...prev, [reportId]: { state: 'sent' } }))
+        setInfoReplyText((prev) => ({ ...prev, [reportId]: '' }))
+        return
+      }
       setInfoReplyStatus((prev) => ({
         ...prev,
-        [reportId]: { state: 'error', error: error?.message || 'Failed to send response' },
+        [reportId]: { state: 'error', error: message || 'Failed to send response' },
       }))
     }
   }
@@ -272,7 +281,9 @@ export default function NotificationsPage() {
     const draft = reportId ? (infoReplyText[reportId] || '') : ''
     const replyStatus = reportId ? (infoReplyStatus[reportId] || { state: 'idle' }) : { state: 'idle' }
     const replySending = replyStatus.state === 'sending'
-    const replySent = replyStatus.state === 'sent'
+    // Sent if THIS session just sent it OR the backend stamped responseSent=true
+    // on the notification's data (persists across page reloads / new sessions).
+    const replySent = replyStatus.state === 'sent' || Boolean(notification.data?.responseSent)
 
     return (
       <div
@@ -347,6 +358,61 @@ export default function NotificationsPage() {
                 : '1px solid rgba(245, 158, 11, 0.30)',
             }}
           >
+            {/* Incident snapshot — keeps the reporter anchored to which report
+                this question is about without having to navigate away. */}
+            {(notification.data?.incidentTitle
+              || notification.data?.incidentLocation
+              || notification.data?.incidentType) && !replySent ? (
+              <div
+                style={{
+                  marginBottom: 10,
+                  padding: '8px 10px',
+                  borderRadius: 6,
+                  background: '#fff',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                }}
+              >
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+                  About this report
+                </div>
+                {notification.data.incidentTitle ? (
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', marginBottom: 2 }}>
+                    {notification.data.incidentTitle}
+                  </div>
+                ) : null}
+                <div style={{ fontSize: 11.5, color: '#475569', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {notification.data.incidentType ? (
+                    <span style={{ textTransform: 'capitalize' }}>{notification.data.incidentType}</span>
+                  ) : null}
+                  {notification.data.incidentSeverity ? (
+                    <span style={{ textTransform: 'capitalize', color: notification.data.incidentSeverity === 'high' ? '#DC2626' : notification.data.incidentSeverity === 'medium' ? '#D97706' : '#16A34A' }}>
+                      · {notification.data.incidentSeverity} severity
+                    </span>
+                  ) : null}
+                  {notification.data.incidentLocation ? (
+                    <span>· {notification.data.incidentLocation}</span>
+                  ) : null}
+                  {notification.data.incidentOccurredAt ? (
+                    <span>· {new Date(notification.data.incidentOccurredAt).toLocaleString()}</span>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            {notification.data?.requestMessage && !replySent ? (
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#92400E',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.4,
+                  marginBottom: 4,
+                }}
+              >
+                Moderator's question
+              </div>
+            ) : null}
             {notification.data?.requestMessage && !replySent ? (
               <div
                 style={{
@@ -675,7 +741,7 @@ export default function NotificationsPage() {
         {/* ── RIGHT PANEL ── */}
         <aside className="sidebar-right notif-sidebar-right">
           {selectedNotification ? (() => {
-            const sev = selectedNotification.data?.severity || ''
+            const sev = selectedNotification.data?.severity || selectedNotification.data?.incidentSeverity || ''
             const dangerScore = selectedNotification.data?.dangerScore
             const priorityKey = selectedNotification.priority <= 1 ? 'high' : selectedNotification.priority === 2 ? 'medium' : 'normal'
             const priorityColor = getPriorityColor(selectedNotification.priority)
@@ -723,10 +789,12 @@ export default function NotificationsPage() {
                   ) : null}
 
                   <div className="nd-info-list">
-                    {selectedNotification.eventType ? (
+                    {selectedNotification.data?.incidentTitle ? (
                       <div className="nd-info-row">
-                        <span className="nd-info-key">Event</span>
-                        <code className="nd-info-code">{selectedNotification.eventType}</code>
+                        <span className="nd-info-key">Report</span>
+                        <span className="nd-info-val" style={{ fontWeight: 600 }}>
+                          {selectedNotification.data.incidentTitle}
+                        </span>
                       </div>
                     ) : null}
                     {selectedNotification.data?.zoneName ? (
@@ -735,10 +803,26 @@ export default function NotificationsPage() {
                         <span className="nd-info-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LocationOnOutlinedIcon fontSize="inherit" /> {selectedNotification.data.zoneName}</span>
                       </div>
                     ) : null}
-                    {selectedNotification.data?.locationLabel ? (
+                    {(selectedNotification.data?.locationLabel || selectedNotification.data?.incidentLocation) ? (
                       <div className="nd-info-row">
                         <span className="nd-info-key">Location</span>
-                        <span className="nd-info-val nd-info-val--loc">{selectedNotification.data.locationLabel}</span>
+                        <span className="nd-info-val nd-info-val--loc">
+                          {selectedNotification.data.locationLabel || selectedNotification.data.incidentLocation}
+                        </span>
+                      </div>
+                    ) : null}
+                    {selectedNotification.data?.incidentOccurredAt ? (
+                      <div className="nd-info-row">
+                        <span className="nd-info-key">Occurred</span>
+                        <span className="nd-info-val">
+                          {new Date(selectedNotification.data.incidentOccurredAt).toLocaleString()}
+                        </span>
+                      </div>
+                    ) : null}
+                    {selectedNotification.eventType ? (
+                      <div className="nd-info-row">
+                        <span className="nd-info-key">Event</span>
+                        <code className="nd-info-code">{selectedNotification.eventType}</code>
                       </div>
                     ) : null}
                   </div>

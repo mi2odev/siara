@@ -1,5 +1,6 @@
 import React, { useContext, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import FancySelect from '../../components/ui/FancySelect'
 
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
@@ -218,11 +219,12 @@ export default function PoliceOperationHistoryPage() {
         <div className="police-history-filters">
           <label className="police-filter-field">
             <span>Action type</span>
-            <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
-              {ACTION_TYPES.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+            <FancySelect
+              value={typeFilter}
+              onChange={setTypeFilter}
+              options={ACTION_TYPES}
+              menuAlign="left"
+            />
           </label>
 
           <label className="police-filter-field">

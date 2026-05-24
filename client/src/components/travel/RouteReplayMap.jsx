@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import FancySelect from '../ui/FancySelect'
 import {
   CircleMarker,
   MapContainer,
@@ -282,16 +283,16 @@ export default function RouteReplayMap({ trip }) {
 
         <label className="siara-route-replay__speed">
           Speed
-          <select
-            value={speed}
-            onChange={(event) => setSpeed(Number(event.target.value) || 1)}
-          >
-            {SPEED_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FancySelect
+            value={String(speed)}
+            onChange={(value) => setSpeed(Number(value) || 1)}
+            menuAlign="left"
+            size="sm"
+            options={SPEED_OPTIONS.map((opt) => ({
+              value: String(opt.value),
+              label: opt.label,
+            }))}
+          />
         </label>
       </div>
 

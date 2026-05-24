@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Circle, MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import FancySelect from '../../components/ui/FancySelect'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -747,60 +748,55 @@ export default function CreateAlertPage() {
                 {alertData.zoneType === 'wilaya' && (
                   <div className="zone-config">
                     <label>Select a wilaya</label>
-                    <select
+                    <FancySelect
                       value={alertData.zoneWilayaId}
-                      onChange={(event) => setAlertData((prev) => ({ ...prev, zoneWilayaId: event.target.value }))}
-                    >
-                      <option value="">{loadingWilayas ? 'Loading wilayas...' : 'Choose a wilaya'}</option>
-                      {wilayas.map((wilaya) => (
-                        <option key={wilaya.id} value={wilaya.id}>
-                          {wilaya.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => setAlertData((prev) => ({ ...prev, zoneWilayaId: value }))}
+                      menuAlign="left"
+                      options={[
+                        { value: '', label: loadingWilayas ? 'Loading wilayas...' : 'Choose a wilaya' },
+                        ...wilayas.map((w) => ({ value: w.id, label: w.name })),
+                      ]}
+                    />
                   </div>
                 )}
 
                 {alertData.zoneType === 'commune' && (
                   <div className="zone-config">
                     <label>Wilaya</label>
-                    <select
+                    <FancySelect
                       value={alertData.zoneWilayaId}
-                      onChange={(event) =>
+                      onChange={(value) =>
                         setAlertData((prev) => ({
                           ...prev,
-                          zoneWilayaId: event.target.value,
+                          zoneWilayaId: value,
                           zoneCommuneId: '',
                         }))
                       }
-                    >
-                      <option value="">{loadingWilayas ? 'Loading wilayas...' : 'Choose a wilaya'}</option>
-                      {wilayas.map((wilaya) => (
-                        <option key={wilaya.id} value={wilaya.id}>
-                          {wilaya.name}
-                        </option>
-                      ))}
-                    </select>
+                      menuAlign="left"
+                      options={[
+                        { value: '', label: loadingWilayas ? 'Loading wilayas...' : 'Choose a wilaya' },
+                        ...wilayas.map((w) => ({ value: w.id, label: w.name })),
+                      ]}
+                    />
 
                     <label style={{ marginTop: 12 }}>Commune</label>
-                    <select
+                    <FancySelect
                       value={alertData.zoneCommuneId}
-                      onChange={(event) => setAlertData((prev) => ({ ...prev, zoneCommuneId: event.target.value }))}
+                      onChange={(value) => setAlertData((prev) => ({ ...prev, zoneCommuneId: value }))}
                       disabled={!alertData.zoneWilayaId || loadingCommunes}
-                    >
-                      <option value="">
-                        {!alertData.zoneWilayaId
-                          ? 'Choose a wilaya first'
-                          : loadingCommunes
-                            ? 'Loading communes...'
-                            : 'Choose a commune'}
-                      </option>
-                      {communes.map((commune) => (
-                        <option key={commune.id} value={commune.id}>
-                          {commune.name}
-                        </option>
-                      ))}
-                    </select>
+                      menuAlign="left"
+                      options={[
+                        {
+                          value: '',
+                          label: !alertData.zoneWilayaId
+                            ? 'Choose a wilaya first'
+                            : loadingCommunes
+                              ? 'Loading communes...'
+                              : 'Choose a commune',
+                        },
+                        ...communes.map((c) => ({ value: c.id, label: c.name })),
+                      ]}
+                    />
                   </div>
                 )}
 

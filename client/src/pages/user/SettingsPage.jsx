@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import FancySelect from '../../components/ui/FancySelect'
 import { useTranslation } from 'react-i18next'
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
@@ -1280,14 +1281,16 @@ export default function SettingsPage() {
                   </label>
                   <label className="settings-toggle-row" style={{ alignItems: 'center' }}>
                     <span className="settings-toggle-label">Push mode</span>
-                    <select
+                    <FancySelect
                       value={orchestratorSettings.account.pushMode || 'important_only'}
-                      onChange={(e) => updateOrchestratorAccount({ pushMode: e.target.value })}
-                    >
-                      <option value="all">All notifications</option>
-                      <option value="important_only">Important only</option>
-                      <option value="off">Off</option>
-                    </select>
+                      onChange={(value) => updateOrchestratorAccount({ pushMode: value })}
+                      menuAlign="left"
+                      options={[
+                        { value: 'all',            label: 'All notifications' },
+                        { value: 'important_only', label: 'Important only' },
+                        { value: 'off',            label: 'Off' },
+                      ]}
+                    />
                   </label>
                   <label className="settings-toggle-row" style={{ alignItems: 'center', gap: 8 }}>
                     <span className="settings-toggle-label">Quiet hours</span>

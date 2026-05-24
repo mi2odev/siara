@@ -19,11 +19,10 @@
  * older .admin-sidebar / .admin-nav-* classes are left untouched in
  * AdminPanel.css so nothing else regresses.
  */
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded'
-import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded'
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
 import AllInboxOutlinedIcon from '@mui/icons-material/AllInboxOutlined'
 import InboxOutlinedIcon from '@mui/icons-material/InboxOutlined'
@@ -67,7 +66,6 @@ import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOu
 import AnalyticsOutlinedIcon from '@mui/icons-material/AnalyticsOutlined'
 
 import siaraLogo from '../../assets/logos/siara-logo.png'
-import { AuthContext } from '../../contexts/AuthContext'
 import { fetchAdminIncidentCounts } from '../../services/adminIncidentsService'
 import { fetchAdminOperationalAlertCounts } from '../../services/adminOperationalAlertsService'
 import '../../styles/AdminSidebar.css'
@@ -190,21 +188,8 @@ function buildSections(incidentCounts, alertCounts, countsReady) {
 
 /* ─────────────────────────────────────────────────────────────────────── */
 
-function initialsFromName(name) {
-  const text = String(name || '').trim()
-  if (!text) return 'SA'
-  return text.split(/\s+/).slice(0, 2).map((p) => p.charAt(0).toUpperCase()).join('') || 'SA'
-}
-
-function primaryRoleLabel(roles) {
-  if (!Array.isArray(roles) || roles.length === 0) return 'Member'
-  const norm = roles.map((r) => String(r).toLowerCase().replace(/[\s_-]+/g, ''))
-  if (norm.includes('admin')) return 'Super Admin'
-  if (norm.includes('policesupervisor')) return 'Supervisor'
-  if (norm.includes('police') || norm.includes('policeofficer')) return 'Police'
-  if (norm.includes('trusted') || norm.includes('trustedreporter')) return 'Trusted'
-  return roles[0]
-}
+// initialsFromName / primaryRoleLabel removed — moved into AdminHeader along
+// with the profile chip they fed.
 
 function readPersistedCollapsed() {
   try {
@@ -227,9 +212,9 @@ function persistCollapsed(state) {
 
 /* ─────────────────────────────────────────────────────────────────────── */
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ mobileOpen = false } = {}) {
   const location = useLocation()
-  const { user, logout } = useContext(AuthContext) || {}
+  // AuthContext is no longer consumed here — profile + logout moved to AdminHeader.
 
   const [incidentCounts, setIncidentCounts] = useState(DEFAULT_INCIDENT_COUNTS)
   const [alertCounts, setAlertCounts]       = useState(DEFAULT_ALERT_COUNTS)
@@ -326,22 +311,18 @@ export default function AdminSidebar() {
     })
   }
 
-  /* ─── Footer profile derivations ────────────────────────────────────── */
-  const profileName = user?.name || [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.email || 'Admin'
-  const profileInitials = initialsFromName(profileName)
-  const profileRole = primaryRoleLabel(user?.roles)
-
-  const handleLogout = async () => {
-    if (typeof logout === 'function') {
-      try { await logout() } catch { /* ignore */ }
-    }
-  }
+  /* Profile + logout previously lived in the sidebar footer; they were
+     promoted to AdminHeader, so the sidebar no longer needs profileName /
+     profileInitials / profileRole / handleLogout. */
 
   const isSearching = normalizedQuery.length > 0
   const showEmptyState = isSearching && filteredSections.length === 0
 
   return (
-    <aside className="siara-sb">
+    <aside
+      id="admin-sidebar"
+      className={`siara-sb${mobileOpen ? ' is-mobile-open' : ''}`}
+    >
       {/* ─── Brand ─── */}
       <div className="siara-sb-brand">
         <img src={siaraLogo} alt="SIARA" className="siara-sb-brand-logo" />
@@ -434,40 +415,8 @@ export default function AdminSidebar() {
         )}
       </div>
 
-      {/* ─── Footer: profile + status ─── */}
-      <div className="siara-sb-footer">
-        <div className="siara-sb-profile">
-          <div className="siara-sb-profile-avatar" aria-hidden="true">{profileInitials}</div>
-          <div className="siara-sb-profile-body">
-            <span className="siara-sb-profile-name" title={profileName}>{profileName}</span>
-            <span className="siara-sb-profile-role">{profileRole}</span>
-          </div>
-          <button
-            type="button"
-            className="siara-sb-profile-action"
-            onClick={handleLogout}
-            title="Log out"
-            aria-label="Log out"
-          >
-            <LogoutRoundedIcon fontSize="inherit" />
-          </button>
-        </div>
-
-        <div className="siara-sb-status">
-          <span className="siara-sb-status-env">
-            <span className="siara-sb-status-env-dot" />
-            Production
-          </span>
-          <div className="siara-sb-status-row">
-            <span className="siara-sb-status-dot green" />
-            <span><strong>System</strong> · Operational</span>
-          </div>
-          <div className="siara-sb-status-row">
-            <span className="siara-sb-status-dot green" />
-            <span><strong>AI Model</strong> · v0.3 online</span>
-          </div>
-        </div>
-      </div>
+      {/* Footer (profile + status) moved to AdminHeader so the sidebar
+          becomes pure navigation. */}
     </aside>
   )
 }

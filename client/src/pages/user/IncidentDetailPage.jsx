@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import FancySelect from '../../components/ui/FancySelect'
 import { CircleMarker, MapContainer, TileLayer } from 'react-leaflet'
 import { createPortal } from 'react-dom'
 import 'leaflet/dist/leaflet.css'
@@ -1018,30 +1019,42 @@ export default function IncidentDetailPage() {
 
                 <label className="manage-form-label">
                   Type
-                  <select className="manage-form-input" value={editForm.incidentType} onChange={(event) => handleEditField('incidentType', event.target.value)}>
-                    {Object.entries(INCIDENT_TYPE_META).map(([key, value]) => (
-                      <option key={key} value={key}>{value.label}</option>
-                    ))}
-                  </select>
+                  <FancySelect
+                    value={editForm.incidentType}
+                    onChange={(value) => handleEditField('incidentType', value)}
+                    menuAlign="left"
+                    options={Object.entries(INCIDENT_TYPE_META).map(([key, meta]) => ({
+                      value: key,
+                      label: meta.label,
+                    }))}
+                  />
                 </label>
 
                 <label className="manage-form-label">
                   Severity
-                  <select className="manage-form-input" value={editForm.severity} onChange={(event) => handleEditField('severity', event.target.value)}>
-                    {severityOptions.map((severity) => (
-                      <option key={severity} value={severity}>{severity.charAt(0).toUpperCase() + severity.slice(1)}</option>
-                    ))}
-                  </select>
+                  <FancySelect
+                    value={editForm.severity}
+                    onChange={(value) => handleEditField('severity', value)}
+                    menuAlign="left"
+                    options={severityOptions.map((s) => ({
+                      value: s,
+                      label: s.charAt(0).toUpperCase() + s.slice(1),
+                    }))}
+                  />
                 </label>
 
                 {isAdmin && (
                   <label className="manage-form-label">
                     Status
-                    <select className="manage-form-input" value={editForm.status} onChange={(event) => handleEditField('status', event.target.value)}>
-                      {Object.entries(STATUS_META).map(([key, value]) => (
-                        <option key={key} value={key}>{value.label}</option>
-                      ))}
-                    </select>
+                    <FancySelect
+                      value={editForm.status}
+                      onChange={(value) => handleEditField('status', value)}
+                      menuAlign="left"
+                      options={Object.entries(STATUS_META).map(([key, meta]) => ({
+                        value: key,
+                        label: meta.label,
+                      }))}
+                    />
                   </label>
                 )}
 

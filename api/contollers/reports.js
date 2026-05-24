@@ -29,6 +29,7 @@ const {
   verifyTokenAndAdmin,
   requireUnbanned,
 } = require("./verifytoken");
+const { emitNotificationCreatedToUser } = require("../services/notificationSocket");
 
 const REPORT_ID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -1694,7 +1695,113 @@ router.post("/:id/info-response", verifyToken, requireUnbanned, async (req, res,
       [reportId, existingRow.status, responseText, req.user.userId],
     );
 
+    // Stamp the original REPORT_INFO_REQUESTED notification(s) for this report
+    // with responseSent=true. The reporter's notifications page reads from
+    // app.notifications, so on next load (or page reload) the inline reply
+    // form stays collapsed and the green "Response sent" state shows even if
+    // the page was refreshed since the reply.
+    await client.query(
+      `
+        UPDATE app.notifications
+        SET data = coalesce(data, '{}'::jsonb)
+                || jsonb_build_object(
+                     'responseSent', true,
+                     'respondedAt', to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+                     'response', $2::text
+                   ),
+            status = 'read',
+            read_at = coalesce(read_at, now())
+        WHERE report_id = $1
+          AND event_type = 'REPORT_INFO_REQUESTED'
+          AND user_id = $3::uuid
+      `,
+      [reportId, responseText, req.user.userId],
+    );
+
     await client.query("commit");
+
+    // Notify the admin who asked the question. Mirror of the citizen-side
+    // delivery: direct INSERT into app.notifications + socket emit, so the
+    // admin sees a bell update without having to revisit the incident page.
+    // Best-effort — a notification failure here must not roll back the reply.
+    if (existingRow.info_requested_by) {
+      try {
+        const reporterRow = await pool.query(
+          `SELECT first_name, last_name FROM auth.users WHERE id = $1::uuid LIMIT 1`,
+          [req.user.userId],
+        );
+        const reporterName = reporterRow.rows[0]
+          ? [reporterRow.rows[0].first_name, reporterRow.rows[0].last_name]
+              .filter(Boolean).join(" ").trim() || "The reporter"
+          : "The reporter";
+
+        const incidentTitle = existingRow.title || "their report";
+        const adminNotificationData = {
+          reportId,
+          eventType: "REPORT_INFO_ANSWERED",
+          category: "system",
+          important: true,
+          deepLink: `/admin/incidents/${reportId}`,
+          incidentTitle,
+          incidentType: existingRow.incident_type
+            ? String(existingRow.incident_type).replace(/_/g, " ")
+            : null,
+          incidentLocation: existingRow.location_label || null,
+          requestMessage: existingRow.info_request_message || null,
+          response: responseText,
+          reporterName,
+        };
+
+        const insertResult = await pool.query(
+          `
+            INSERT INTO app.notifications (
+              user_id, report_id, channel, status, priority, created_at,
+              event_type, title, body, data
+            )
+            VALUES ($1::uuid, $2::uuid, 'websocket', 'pending', 1, now(),
+                    'REPORT_INFO_ANSWERED', $3, $4, $5::jsonb)
+            RETURNING id, user_id, report_id, channel, status, priority,
+                      created_at, sent_at, delivered_at, read_at,
+                      event_type, title, body, data
+          `,
+          [
+            existingRow.info_requested_by,
+            reportId,
+            `${reporterName} answered your info request`,
+            `On "${incidentTitle}": "${responseText.slice(0, 140)}${responseText.length > 140 ? "…" : ""}"`,
+            JSON.stringify(adminNotificationData),
+          ],
+        );
+
+        const adminNotification = insertResult.rows[0];
+        if (adminNotification) {
+          try {
+            emitNotificationCreatedToUser(existingRow.info_requested_by, {
+              ...adminNotification,
+              createdAt: adminNotification.created_at,
+              eventType: adminNotification.event_type,
+              readAt: adminNotification.read_at,
+            });
+          } catch (socketError) {
+            console.warn("[reports] info_response admin socket emit failed", {
+              message: socketError?.message,
+            });
+          }
+        }
+
+        console.info("[reports] info_response admin notify inserted", {
+          notificationId: adminNotification?.id,
+          adminUserId: existingRow.info_requested_by,
+          reportId,
+        });
+      } catch (notifyError) {
+        console.warn("[reports] info_response admin notify failed", {
+          reportId,
+          adminUserId: existingRow.info_requested_by,
+          message: notifyError?.message,
+        });
+      }
+    }
 
     const updatedRow = await requireExistingReport(reportId);
     return res.status(200).json({

@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import FancySelect from '../ui/FancySelect'
 import i18n, {
   SUPPORTED_LANGUAGES,
   LANGUAGE_STORAGE_KEY,
@@ -8,6 +9,7 @@ import i18n, {
 } from '../../i18n'
 import { updateLanguagePreference } from '../../services/preferencesService'
 import { useAuthStore } from '../../stores/authStore'
+import './LanguageSelect.css'
 
 const NATIVE_LABELS = {
   en: 'English',
@@ -15,19 +17,11 @@ const NATIVE_LABELS = {
   ar: 'العربية',
 }
 
-const FLOATING_STYLE = {
+const FLOATING_WRAPPER_STYLE = {
   position: 'fixed',
   top: 12,
   insetInlineEnd: 12,
   zIndex: 1000,
-  background: 'rgba(0, 0, 0, 0.35)',
-  color: '#fff',
-  border: '1px solid rgba(255, 255, 255, 0.25)',
-  borderRadius: 6,
-  padding: '4px 8px',
-  fontSize: 13,
-  cursor: 'pointer',
-  backdropFilter: 'blur(4px)',
 }
 
 export default function LanguageSelect({
@@ -45,8 +39,8 @@ export default function LanguageSelect({
   const current = normalizeLanguage(instance?.language || i18n.language)
 
   const handleChange = useCallback(
-    async (event) => {
-      const next = normalizeLanguage(event.target.value)
+    async (value) => {
+      const next = normalizeLanguage(value)
       if (next === current) return
 
       try {
@@ -74,26 +68,36 @@ export default function LanguageSelect({
     [current, isAuthenticated, onChange],
   )
 
-  const classes = ['siara-lang-select', `siara-lang-select--${size}`, className]
-    .filter(Boolean)
-    .join(' ')
+  // The floating variant is overlaid on top of a hero image / map. A dedicated
+  // `.siara-lang-floating` wrapper darkens the FancySelect chip so it stays
+  // legible against bright photo backgrounds.
+  const wrapperStyle = floating ? { ...FLOATING_WRAPPER_STYLE, ...(style || {}) } : style
+  const wrapperClass = [
+    'siara-lang-wrapper',
+    floating ? 'siara-lang-floating' : '',
+    size === 'compact' ? 'siara-lang-compact' : '',
+    className,
+  ].filter(Boolean).join(' ')
 
-  const resolvedStyle = floating ? { ...FLOATING_STYLE, ...(style || {}) } : style
+  const options = SUPPORTED_LANGUAGES.map((code) => ({
+    value: code,
+    label: NATIVE_LABELS[code] || code,
+  }))
 
   return (
-    <select
-      className={classes}
-      value={current}
-      onChange={handleChange}
-      disabled={pending}
-      aria-label={ariaLabel || t('language.select')}
-      style={resolvedStyle}
-    >
-      {SUPPORTED_LANGUAGES.map((code) => (
-        <option key={code} value={code}>
-          {NATIVE_LABELS[code] || code}
-        </option>
-      ))}
-    </select>
+    <span className={wrapperClass} style={wrapperStyle}>
+      <FancySelect
+        value={current}
+        onChange={handleChange}
+        options={options}
+        disabled={pending}
+        menuAlign={floating ? 'right' : 'left'}
+        size="sm"
+      />
+      {/* Screen-reader-only context label — FancySelect's button already
+          has aria-label via the option text, but i18n pages prefer a
+          translated "Language" label here. */}
+      <span className="siara-lang-sr-only">{ariaLabel || t('language.select')}</span>
+    </span>
   )
 }

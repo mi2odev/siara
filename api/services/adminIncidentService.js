@@ -26,6 +26,7 @@ const SORT_FIELDS = Object.freeze({
   spamScore: "spamScore",
   confidence: "confidence",
   reporterScore: "reporterScore",
+  reporter: "reporter",
   createdAt: "createdAt",
   classifiedAt: "classifiedAt",
   status: "status",
@@ -264,6 +265,7 @@ function buildOrderBy(sortField, sortDir) {
     spamScore: `base.latest_spam_score ${direction} NULLS LAST, base.created_at DESC`,
     confidence: `base.sortable_confidence ${direction} NULLS LAST, base.created_at DESC`,
     reporterScore: `base.open_flag_count DESC, base.created_at DESC`,
+    reporter: `lower(coalesce(base.reporter_name, '~')) ${direction}, base.created_at DESC`,
     createdAt: `base.created_at ${direction}`,
     classifiedAt: `base.latest_classified_at ${direction} NULLS LAST, base.created_at DESC`,
     status: `base.status ${direction}, base.created_at DESC`,
@@ -1183,15 +1185,30 @@ async function applyAdminIncidentAction(
     // Notify the reporter after the txn commits. The orchestrator has many
     // gates (user prefs, dedupe, category disables) that can silently swallow
     // a "request_info" notification — so for this event we go straight to
-    // app.notifications via a direct INSERT. The row appearing in that table
-    // is what the notifications page reads, so this guarantees delivery.
-    // We still call the orchestrator AFTER the direct insert to opportunistically
-    // fan out push/email, but we don't depend on it.
+    // app.notifications via a direct INSERT + socket emit. The row in that
+    // table is what the notifications page reads, guaranteeing delivery. We
+    // do NOT fall back to the orchestrator afterward because it would insert
+    // its own duplicate row for the same event.
     if (normalizedAction === "request_info" && reporterUserId && reportId) {
-      const title = "A moderator needs more info";
+      const incidentTitle = currentRow.title || "your report";
+      const incidentTypeLabel = currentRow.incident_type
+        ? String(currentRow.incident_type).replace(/_/g, " ")
+        : null;
+      const incidentLocationLabel = currentRow.location_label || null;
+      const incidentOccurredAt = currentRow.occurred_at
+        ? new Date(currentRow.occurred_at).toISOString()
+        : null;
+      const incidentSeverityLabel = mapSeverityLabel(currentRow.severity_hint);
+      const incidentLat = currentRow.lat == null ? null : Number(currentRow.lat);
+      const incidentLng = currentRow.lng == null ? null : Number(currentRow.lng);
+
+      const title = `Moderator asked about "${incidentTitle}"`;
+      // Body stays short — it's what most notification UIs surface in a single
+      // line. Detailed incident metadata travels in `data` for the rich card.
       const body = normalizedNote
-        ? `On your report: "${normalizedNote}"`
-        : "An admin asked for more details about one of your reports.";
+        ? `"${normalizedNote}"`
+        : "A moderator wants more details about one of your reports.";
+
       const notificationData = {
         reportId,
         requestMessage: normalizedNote || null,
@@ -1199,6 +1216,16 @@ async function applyAdminIncidentAction(
         category: "system",
         eventType: "REPORT_INFO_REQUESTED",
         important: true,
+        // Incident snapshot — keeps the reporter from having to navigate
+        // anywhere to know which report this is about. Stable strings only,
+        // no objects-of-objects, so it survives jsonb round-tripping cleanly.
+        incidentTitle,
+        incidentType: incidentTypeLabel,
+        incidentLocation: incidentLocationLabel,
+        incidentOccurredAt,
+        incidentSeverity: incidentSeverityLabel,
+        incidentLat,
+        incidentLng,
       };
 
       let directNotification = null;
@@ -1249,23 +1276,10 @@ async function applyAdminIncidentAction(
         }
       }
 
-      // Opportunistic — also kick the orchestrator so web/mobile push fires
-      // for users who opted in to that channel. We ignore the result because
-      // we already have a guaranteed in-app delivery above.
-      try {
-        await dispatchNotificationToAllPlatforms({
-          userId: reporterUserId,
-          eventType: "REPORT_INFO_REQUESTED",
-          title,
-          body,
-          reportId,
-          data: notificationData,
-          force: true,
-        });
-      } catch (_dispatchError) {
-        // Already logged the direct insert success; orchestrator failure is
-        // non-fatal because the row exists and the socket emit ran.
-      }
+      // (No orchestrator follow-up — it would insert a SECOND row with a new
+      // UUID for the same event, producing duplicate notifications in the
+      // reporter's list. The direct INSERT + socket emit above is the only
+      // delivery path we want for this action.)
     } else if (normalizedAction === "request_info") {
       console.warn("[adminIncidentService] info_request notify SKIPPED — missing reporter or report id", {
         hasReporter: Boolean(reporterUserId),

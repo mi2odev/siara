@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded'
 import ArrowDropUpRoundedIcon from '@mui/icons-material/ArrowDropUpRounded'
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded'
+import TagRoundedIcon from '@mui/icons-material/TagRounded'
+import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded'
+import SwapVertRoundedIcon from '@mui/icons-material/SwapVertRounded'
+import SortRoundedIcon from '@mui/icons-material/SortRounded'
 
 import {
   fetchAdminIncidents,
@@ -258,7 +263,8 @@ export default function AdminIncidentsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
-  const [sortField, setSortField] = useState('spamScore')
+  // Default to "newest first by time" — most natural starting point for moderators.
+  const [sortField, setSortField] = useState('createdAt')
   const [sortDir, setSortDir] = useState('desc')
   const [incidents, setIncidents] = useState([])
   const [counts, setCounts] = useState({
@@ -418,17 +424,95 @@ export default function AdminIncidentsPage() {
         </div>
       </div>
 
-      <div className="admin-tabs" style={{ marginBottom: 12 }}>
-        {TAB_DEFINITIONS.map((tab) => (
-          <button
-            key={tab.key}
-            className={`admin-tab ${filterParam === tab.key ? 'active' : ''}`}
-            onClick={() => setSearchParams(tab.key === 'all' ? {} : { filter: tab.key })}
-          >
-            {tab.label}
-            <span className="tab-count">{counts[tab.key] ?? 0}</span>
-          </button>
-        ))}
+      <div className="admin-incidents-toolbar">
+        <div className="admin-tabs admin-incidents-toolbar-tabs" style={{ marginBottom: 0 }}>
+          {TAB_DEFINITIONS.map((tab) => (
+            <button
+              key={tab.key}
+              className={`admin-tab ${filterParam === tab.key ? 'active' : ''}`}
+              onClick={() => setSearchParams(tab.key === 'all' ? {} : { filter: tab.key })}
+            >
+              {tab.label}
+              <span className="tab-count">{counts[tab.key] ?? 0}</span>
+            </button>
+          ))}
+        </div>
+
+        {(() => {
+          const sortOptions = [
+            { key: 'createdAt', label: 'Time',   Icon: AccessTimeRoundedIcon },
+            { key: 'id',        label: 'ID',     Icon: TagRoundedIcon },
+            { key: 'reporter',  label: 'User',   Icon: PersonOutlineRoundedIcon },
+          ]
+          const activeIndex = Math.max(0, sortOptions.findIndex((o) => o.key === sortField))
+          const segmentWidthPct = 100 / sortOptions.length
+          const ascendingLabel = sortField === 'createdAt'
+            ? 'Oldest first'
+            : sortField === 'id'
+              ? 'A → Z'
+              : 'A → Z'
+          const descendingLabel = sortField === 'createdAt'
+            ? 'Newest first'
+            : sortField === 'id'
+              ? 'Z → A'
+              : 'Z → A'
+          const dirLabel = sortDir === 'desc' ? descendingLabel : ascendingLabel
+          return (
+            <div className="admin-sort-control">
+              <span className="admin-sort-label">
+                <SortRoundedIcon fontSize="inherit" />
+                Sort by
+              </span>
+              <div
+                className="admin-sort-segment"
+                role="tablist"
+                aria-label="Sort field"
+              >
+                <span
+                  className="admin-sort-indicator"
+                  style={{
+                    width: `calc(${segmentWidthPct}% - 4px)`,
+                    transform: `translateX(${activeIndex * 100}%)`,
+                  }}
+                  aria-hidden="true"
+                />
+                {sortOptions.map((option) => {
+                  const isActive = option.key === sortField
+                  const { Icon } = option
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      className={`admin-sort-seg-btn${isActive ? ' is-active' : ''}`}
+                      onClick={() => {
+                        if (sortField === option.key) return
+                        setSortField(option.key)
+                        setSortDir('desc')
+                      }}
+                    >
+                      <Icon fontSize="inherit" />
+                      <span>{option.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <button
+                type="button"
+                className={`admin-sort-dir${sortDir === 'asc' ? ' is-asc' : ''}`}
+                onClick={() => setSortDir((current) => (current === 'desc' ? 'asc' : 'desc'))}
+                title={dirLabel}
+                aria-label={`Toggle sort direction — currently ${dirLabel}`}
+              >
+                <span className="admin-sort-dir-icon" aria-hidden="true">
+                  <SwapVertRoundedIcon fontSize="inherit" />
+                </span>
+                <span className="admin-sort-dir-label">{dirLabel}</span>
+              </button>
+            </div>
+          )
+        })()}
       </div>
 
       {error && (

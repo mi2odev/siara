@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import FancySelect from '../../components/ui/FancySelect'
+
+const OVERVIEW_TIME_RANGE_OPTIONS = [
+  { value: '1h',  label: 'Last hour' },
+  { value: '24h', label: 'Last 24h' },
+  { value: '7d',  label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+]
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
 import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
 import PsychologyAltOutlinedIcon from '@mui/icons-material/PsychologyAltOutlined'
@@ -275,16 +283,12 @@ export default function AdminOverviewPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <select
-            className="admin-select"
+          <FancySelect
             value={timeRange}
-            onChange={(event) => setTimeRange(normalizeRange(event.target.value))}
-          >
-            <option value="1h">Last hour</option>
-            <option value="24h">Last 24h</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-          </select>
+            onChange={(v) => setTimeRange(normalizeRange(v))}
+            options={OVERVIEW_TIME_RANGE_OPTIONS}
+            label="Range"
+          />
           <button className="admin-btn admin-btn-ghost" type="button" onClick={() => navigate('/admin/incidents?filter=suspicious')}>
             Open Spam Queue
           </button>

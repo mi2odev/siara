@@ -10,6 +10,7 @@
  *   - Details modal showing report stats, driver quiz, occurrence risk
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import FancySelect from '../../components/ui/FancySelect'
 import { useSearchParams } from 'react-router-dom'
 import ArrowUpwardRoundedIcon from '@mui/icons-material/ArrowUpwardRounded'
 import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded'
@@ -55,6 +56,8 @@ const SORT_OPTIONS = [
 ]
 
 const PAGE_SIZE = 20
+
+// FancySelect is imported from ../../components/ui/FancySelect.
 
 function shortId(value) {
   if (!value) return ''
@@ -471,16 +474,17 @@ export default function AdminUsersPage() {
             onChange={(event) => setSearchInput(event.target.value)}
             style={{ width: 240, height: 32, fontSize: 11.5 }}
           />
-          <select
-            className="admin-input"
+          <FancySelect
             value={sort}
-            onChange={(event) => setSort(event.target.value)}
-            style={{ height: 32, fontSize: 11.5 }}
-          >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
+            onChange={setSort}
+            options={SORT_OPTIONS}
+            label="Sort by"
+            icon={(
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M3 6h18M6 12h12M10 18h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            )}
+          />
         </div>
       </div>
 
@@ -906,6 +910,51 @@ export default function AdminUsersPage() {
                       <div className="admin-mini-stat">
                         <span className="admin-mini-stat-label">Last Active</span>
                         <span className="admin-mini-stat-value">{formatRelative(detailsUser.lastActiveAt)}</span>
+                      </div>
+                      {/* Moderation history — counts pulled from app.user_moderation_actions */}
+                      <div className="admin-mini-stat">
+                        <span className="admin-mini-stat-label">Times Banned</span>
+                        <span
+                          className="admin-mini-stat-value"
+                          style={{
+                            color: (detailsUser.moderationHistory?.banCount || 0) > 0
+                              ? 'var(--admin-danger)'
+                              : 'var(--admin-text)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                          title={detailsUser.moderationHistory?.lastBannedAt
+                            ? `Last banned ${formatRelative(detailsUser.moderationHistory.lastBannedAt)}`
+                            : 'Never banned'}
+                        >
+                          {detailsUser.moderationHistory?.banCount || 0}
+                          {detailsUser.moderationHistory?.lastBannedAt ? (
+                            <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--admin-text-muted)', marginLeft: 6 }}>
+                              · last {formatRelative(detailsUser.moderationHistory.lastBannedAt)}
+                            </span>
+                          ) : null}
+                        </span>
+                      </div>
+                      <div className="admin-mini-stat">
+                        <span className="admin-mini-stat-label">Times Warned</span>
+                        <span
+                          className="admin-mini-stat-value"
+                          style={{
+                            color: (detailsUser.moderationHistory?.warnCount || 0) > 0
+                              ? 'var(--admin-warning)'
+                              : 'var(--admin-text)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                          title={detailsUser.moderationHistory?.lastWarnedAt
+                            ? `Last warned ${formatRelative(detailsUser.moderationHistory.lastWarnedAt)}`
+                            : 'Never warned'}
+                        >
+                          {detailsUser.moderationHistory?.warnCount || 0}
+                          {detailsUser.moderationHistory?.lastWarnedAt ? (
+                            <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--admin-text-muted)', marginLeft: 6 }}>
+                              · last {formatRelative(detailsUser.moderationHistory.lastWarnedAt)}
+                            </span>
+                          ) : null}
+                        </span>
                       </div>
                       <div className="admin-mini-stat" style={{ gridColumn: '1 / -1' }}>
                         <span className="admin-mini-stat-label">Current Roles</span>

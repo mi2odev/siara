@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import FancySelect from '../../components/ui/FancySelect'
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { createPortal } from 'react-dom'
@@ -1546,19 +1547,21 @@ export default function NewsPage() {
               <>
                 <div className="filter-section">
                   <label className="filter-label">Feed mode</label>
-                  <select className="filter-select" value={activeFeed} onChange={(event) => setActiveFeed(event.target.value)}>
-                    {FEED_TABS.map((tab) => (
-                      <option key={tab.id} value={tab.id}>{tab.label}</option>
-                    ))}
-                  </select>
+                  <FancySelect
+                    value={activeFeed}
+                    onChange={setActiveFeed}
+                    menuAlign="left"
+                    options={FEED_TABS.map((tab) => ({ value: tab.id, label: tab.label }))}
+                  />
                 </div>
                 <div className="filter-section">
                   <label className="filter-label">Sort</label>
-                  <select className="filter-select" value={sortMode} onChange={(event) => setSortMode(event.target.value)}>
-                    {SORT_OPTIONS.map((option) => (
-                      <option key={option.id} value={option.id}>{option.label}</option>
-                    ))}
-                  </select>
+                  <FancySelect
+                    value={sortMode}
+                    onChange={setSortMode}
+                    menuAlign="left"
+                    options={SORT_OPTIONS.map((opt) => ({ value: opt.id, label: opt.label }))}
+                  />
                 </div>
                 <div className="filter-section">
                   <label className="filter-label">Severity</label>

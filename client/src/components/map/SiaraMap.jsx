@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import FancySelect from "../ui/FancySelect";
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import {
   Circle,
@@ -2610,8 +2611,7 @@ const SiaraMap = ({
     clearGuidance();
   };
 
-  const handleTimePresetChange = (event) => {
-    const value = event.target.value;
+  const handleTimePresetChange = (value) => {
     setTimePresetMs(value);
     if (value === "custom" && !customTimestampLocal) {
       setCustomTimestampLocal(toDateTimeLocalValue(new Date()));
@@ -4812,18 +4812,16 @@ const SiaraMap = ({
             <label className="siara-time-label" htmlFor="siara-time-preset">
               Prediction time
             </label>
-            <select
-              id="siara-time-preset"
-              className="siara-time-select"
-              value={timePresetMs}
-              onChange={handleTimePresetChange}
-            >
-              {TIME_PRESET_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <FancySelect
+              value={String(timePresetMs)}
+              onChange={(value) => handleTimePresetChange(value === 'custom' ? 'custom' : (Number(value) || value))}
+              menuAlign="left"
+              size="sm"
+              options={TIME_PRESET_OPTIONS.map((option) => ({
+                value: String(option.value),
+                label: option.label,
+              }))}
+            />
             {timePresetMs === "custom" && (
               <input
                 type="datetime-local"
