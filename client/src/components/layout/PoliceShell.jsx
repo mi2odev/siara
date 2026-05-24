@@ -32,6 +32,7 @@ import 'leaflet/dist/leaflet.css'
 import '../../styles/DashboardPage.css'
 import '../../styles/PoliceMode.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
+import { submitSupportMessage } from '../../services/supportMessagesService'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -56,6 +57,8 @@ export default function PoliceShell({
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' })
   const [contactErrors, setContactErrors] = useState({})
   const [contactSuccess, setContactSuccess] = useState('')
+  const [contactSubmitting, setContactSubmitting] = useState(false)
+  const [contactSubmitError, setContactSubmitError] = useState('')
 
   const SUPERVISOR_KEYS = useMemo(() => new Set([
     'supervisor-dashboard', 'incident-coordination', 'officer-monitoring',
@@ -208,12 +211,25 @@ export default function PoliceShell({
     return Object.keys(nextErrors).length === 0
   }
 
-  const submitContactForm = (event) => {
+  const submitContactForm = async (event) => {
     event.preventDefault()
-    if (!validateContactForm()) return
+    if (!validateContactForm() || contactSubmitting) return
 
-    setContactSuccess('Thank you. We will respond as soon as possible.')
-    setContactForm({ name: '', email: '', message: '' })
+    setContactSubmitting(true)
+    setContactSubmitError('')
+    try {
+      await submitSupportMessage({
+        name: contactForm.name.trim(),
+        email: contactForm.email.trim(),
+        message: contactForm.message.trim(),
+      })
+      setContactSuccess('Thank you. We will respond as soon as possible.')
+      setContactForm({ name: '', email: '', message: '' })
+    } catch (error) {
+      setContactSubmitError(error?.message || 'Could not send your message. Please try again.')
+    } finally {
+      setContactSubmitting(false)
+    }
   }
 
   return (
@@ -458,9 +474,14 @@ export default function PoliceShell({
                         {contactErrors.message ? <p className="contact-quick-error">{contactErrors.message}</p> : null}
 
                         <div className="contact-quick-actions">
-                          <button type="submit" className="contact-quick-submit">Send Message</button>
+                          <button type="submit" className="contact-quick-submit" disabled={contactSubmitting}>
+                            {contactSubmitting ? 'Sending…' : 'Send Message'}
+                          </button>
                           <a className="contact-quick-mail" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">Email directly</a>
                         </div>
+                        {contactSubmitError ? (
+                          <p className="contact-quick-error" role="alert">{contactSubmitError}</p>
+                        ) : null}
                       </form>
 
                       <aside className="contact-quick-side" aria-label="Support information">

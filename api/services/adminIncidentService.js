@@ -261,7 +261,7 @@ function buildOrderBy(sortField, sortDir) {
     id: `base.display_id ${direction}, base.created_at DESC`,
     incidentType: `base.incident_type ${direction}, base.created_at DESC`,
     location: `base.location ${direction}, base.created_at DESC`,
-    severity: `base.severity_value ${direction}, base.created_at DESC`,
+    severity: `base.sortable_severity ${direction} NULLS LAST, base.created_at DESC`,
     spamScore: `base.latest_spam_score ${direction} NULLS LAST, base.created_at DESC`,
     confidence: `base.sortable_confidence ${direction} NULLS LAST, base.created_at DESC`,
     reporterScore: `base.open_flag_count DESC, base.created_at DESC`,
@@ -297,6 +297,19 @@ function buildIncidentBaseCte() {
         ST_Y(ar.incident_location::geometry) AS lat,
         ST_X(ar.incident_location::geometry) AS lng,
         latest_assessment.predicted_severity AS ai_severity_value,
+        -- Numeric severity used for sorting only. Mirrors the runtime logic
+        -- in mapIncidentRow: prefer the AI assessment when it completed,
+        -- otherwise fall back to the admin's severity_hint. Both columns
+        -- are smallint on the same 1=low / 2=medium / 3+=high scale, so
+        -- the coalesce stays numeric end-to-end and ORDER BY ranks the
+        -- effective severity correctly.
+        COALESCE(
+          CASE
+            WHEN lower(coalesce(latest_assessment.assessment_status, '')) = 'completed'
+              THEN latest_assessment.predicted_severity
+          END,
+          ar.severity_hint
+        )::int AS sortable_severity,
         CASE
           WHEN lower(coalesce(latest_assessment.assessment_status, '')) IN ('completed', 'pending', 'failed')
             THEN lower(latest_assessment.assessment_status)

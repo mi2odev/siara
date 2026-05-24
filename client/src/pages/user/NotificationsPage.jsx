@@ -12,6 +12,8 @@ import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
+import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined'
+import MarkEmailReadOutlinedIcon from '@mui/icons-material/MarkEmailReadOutlined'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import { useNotifications } from '../../contexts/NotificationContext'
@@ -133,6 +135,7 @@ export default function NotificationsPage() {
   // notification keeps its own draft / status independently.
   const [infoReplyText, setInfoReplyText] = useState({})
   const [infoReplyStatus, setInfoReplyStatus] = useState({}) // reportId -> { state, error }
+  const [contactTrigger, setContactTrigger] = useState(0)
   const displayName = user?.name || user?.email || 'SIARA User'
   const normalizedRoles = getUserRoles(user)
   const primaryRole = normalizedRoles.includes('admin')
@@ -284,6 +287,11 @@ export default function NotificationsPage() {
     // Sent if THIS session just sent it OR the backend stamped responseSent=true
     // on the notification's data (persists across page reloads / new sessions).
     const replySent = replyStatus.state === 'sent' || Boolean(notification.data?.responseSent)
+
+    // Support-reply notifications: an admin replied to a contact-form message.
+    // We render the full reply text on the card so the user doesn't have to
+    // navigate to read it.
+    const isSupportReply = notification.eventType === 'SUPPORT_MESSAGE_REPLY'
 
     return (
       <div
@@ -488,6 +496,74 @@ export default function NotificationsPage() {
             )}
           </div>
         ) : null}
+
+        {/* Inline reply display for SUPPORT_MESSAGE_REPLY notifications —
+            shows the original message you sent + the admin's full reply,
+            so you don't need to navigate anywhere to read it. */}
+        {isSupportReply ? (
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              flexBasis: '100%',
+              marginTop: 10,
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: 'rgba(16, 185, 129, 0.06)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+            }}
+          >
+            {notification.data?.originalMessage ? (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#64748B',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.4,
+                  marginBottom: 4,
+                }}>
+                  Your original message
+                </div>
+                <div style={{
+                  fontSize: 12,
+                  color: 'var(--admin-text-secondary, #475569)',
+                  whiteSpace: 'pre-wrap',
+                  fontStyle: 'italic',
+                  padding: 8,
+                  borderRadius: 6,
+                  background: 'rgba(100, 116, 139, 0.08)',
+                  maxHeight: 80,
+                  overflow: 'auto',
+                }}>
+                  {notification.data.originalMessage}
+                </div>
+              </div>
+            ) : null}
+            <div style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: '#065F46',
+              textTransform: 'uppercase',
+              letterSpacing: 0.4,
+              marginBottom: 4,
+            }}>
+              {notification.data?.repliedBy
+                ? `${notification.data.repliedBy} replied`
+                : 'SIARA team replied'}
+            </div>
+            <div style={{
+              fontSize: 13,
+              color: '#0F172A',
+              whiteSpace: 'pre-wrap',
+              padding: 8,
+              borderRadius: 6,
+              background: '#fff',
+              border: '1px solid rgba(16, 185, 129, 0.20)',
+            }}>
+              {notification.data?.reply || notification.body}
+            </div>
+          </div>
+        ) : null}
       </div>
     )
   }
@@ -581,7 +657,7 @@ export default function NotificationsPage() {
           </div>
 
           {/* Shared nav — same as feed page, with "notifications" active */}
-          <FeedSidebarNav activeKey="notifications" />
+          <FeedSidebarNav activeKey="notifications" triggerPanel={contactTrigger} />
 
           {/* Notification filters card */}
           <div className="card notif-filters-card">
@@ -746,6 +822,8 @@ export default function NotificationsPage() {
             const priorityKey = selectedNotification.priority <= 1 ? 'high' : selectedNotification.priority === 2 ? 'medium' : 'normal'
             const priorityColor = getPriorityColor(selectedNotification.priority)
 
+            const isSupportReply = selectedNotification.eventType === 'SUPPORT_MESSAGE_REPLY'
+
             return (
               <>
                 {/* ── Card 1: Notification header ── */}
@@ -768,95 +846,177 @@ export default function NotificationsPage() {
                   <p className="nd-body">{selectedNotification.body}</p>
                 </div>
 
-                {/* ── Card 2: Incident details ── */}
-                <div className="card nd-details-card">
-                  <h3 className="widget-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><AssignmentOutlinedIcon fontSize="inherit" /> Incident Details</h3>
+                {/* ── Card 2: Support reply thread OR incident details ── */}
+                {isSupportReply ? (
+                  <div className="card nd-details-card">
+                    <h3 className="widget-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <ForumOutlinedIcon fontSize="inherit" /> Conversation
+                    </h3>
 
-                  {(sev || selectedNotification.data?.incidentType) ? (
-                    <div className="nd-detail-highlights">
-                      {sev ? (
-                        <div className={`nd-sev-chip nd-sev-chip--${sev}`}>
-                          <span className="nd-sev-dot" />
-                          <span>{sev.charAt(0).toUpperCase() + sev.slice(1)} Severity</span>
+                    {selectedNotification.data?.originalSubject ? (
+                      <div className="nd-info-row" style={{ marginBottom: 10 }}>
+                        <span className="nd-info-key">Subject</span>
+                        <span className="nd-info-val" style={{ fontWeight: 600 }}>
+                          {selectedNotification.data.originalSubject}
+                        </span>
+                      </div>
+                    ) : null}
+
+                    {selectedNotification.data?.originalMessage ? (
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{
+                          fontSize: 10, fontWeight: 700, color: '#64748B',
+                          textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6,
+                        }}>
+                          Your message
+                        </div>
+                        <div style={{
+                          fontSize: 13, color: '#475569', whiteSpace: 'pre-wrap',
+                          padding: '10px 12px', borderRadius: 8,
+                          background: 'rgba(100, 116, 139, 0.07)',
+                          border: '1px solid rgba(100, 116, 139, 0.18)',
+                          maxHeight: 160, overflowY: 'auto',
+                        }}>
+                          {selectedNotification.data.originalMessage}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div>
+                      <div style={{
+                        fontSize: 10, fontWeight: 700, color: '#065F46',
+                        textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6,
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                      }}>
+                        <MarkEmailReadOutlinedIcon fontSize="inherit" />
+                        {selectedNotification.data?.repliedBy
+                          ? `${selectedNotification.data.repliedBy} replied`
+                          : 'SIARA team replied'}
+                      </div>
+                      <div style={{
+                        fontSize: 13, color: '#0F172A', whiteSpace: 'pre-wrap',
+                        padding: '10px 12px', borderRadius: 8,
+                        background: '#F0FDF4',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        maxHeight: 240, overflowY: 'auto',
+                        lineHeight: 1.6,
+                      }}>
+                        {selectedNotification.data?.reply || selectedNotification.body}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="card nd-details-card">
+                    <h3 className="widget-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><AssignmentOutlinedIcon fontSize="inherit" /> Incident Details</h3>
+
+                    {(sev || selectedNotification.data?.incidentType) ? (
+                      <div className="nd-detail-highlights">
+                        {sev ? (
+                          <div className={`nd-sev-chip nd-sev-chip--${sev}`}>
+                            <span className="nd-sev-dot" />
+                            <span>{sev.charAt(0).toUpperCase() + sev.slice(1)} Severity</span>
+                          </div>
+                        ) : null}
+                        {selectedNotification.data?.incidentType ? (
+                          <div className="nd-type-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <TrafficOutlinedIcon fontSize="inherit" /> {selectedNotification.data.incidentType.charAt(0).toUpperCase() + selectedNotification.data.incidentType.slice(1)}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <div className="nd-info-list">
+                      {selectedNotification.data?.incidentTitle ? (
+                        <div className="nd-info-row">
+                          <span className="nd-info-key">Report</span>
+                          <span className="nd-info-val" style={{ fontWeight: 600 }}>
+                            {selectedNotification.data.incidentTitle}
+                          </span>
                         </div>
                       ) : null}
-                      {selectedNotification.data?.incidentType ? (
-                        <div className="nd-type-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <TrafficOutlinedIcon fontSize="inherit" /> {selectedNotification.data.incidentType.charAt(0).toUpperCase() + selectedNotification.data.incidentType.slice(1)}
+                      {selectedNotification.data?.zoneName ? (
+                        <div className="nd-info-row">
+                          <span className="nd-info-key">Zone</span>
+                          <span className="nd-info-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LocationOnOutlinedIcon fontSize="inherit" /> {selectedNotification.data.zoneName}</span>
+                        </div>
+                      ) : null}
+                      {(selectedNotification.data?.locationLabel || selectedNotification.data?.incidentLocation) ? (
+                        <div className="nd-info-row">
+                          <span className="nd-info-key">Location</span>
+                          <span className="nd-info-val nd-info-val--loc">
+                            {selectedNotification.data.locationLabel || selectedNotification.data.incidentLocation}
+                          </span>
+                        </div>
+                      ) : null}
+                      {selectedNotification.data?.incidentOccurredAt ? (
+                        <div className="nd-info-row">
+                          <span className="nd-info-key">Occurred</span>
+                          <span className="nd-info-val">
+                            {new Date(selectedNotification.data.incidentOccurredAt).toLocaleString()}
+                          </span>
+                        </div>
+                      ) : null}
+                      {selectedNotification.eventType ? (
+                        <div className="nd-info-row">
+                          <span className="nd-info-key">Event</span>
+                          <code className="nd-info-code">{selectedNotification.eventType}</code>
                         </div>
                       ) : null}
                     </div>
-                  ) : null}
 
-                  <div className="nd-info-list">
-                    {selectedNotification.data?.incidentTitle ? (
-                      <div className="nd-info-row">
-                        <span className="nd-info-key">Report</span>
-                        <span className="nd-info-val" style={{ fontWeight: 600 }}>
-                          {selectedNotification.data.incidentTitle}
-                        </span>
-                      </div>
-                    ) : null}
-                    {selectedNotification.data?.zoneName ? (
-                      <div className="nd-info-row">
-                        <span className="nd-info-key">Zone</span>
-                        <span className="nd-info-val" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LocationOnOutlinedIcon fontSize="inherit" /> {selectedNotification.data.zoneName}</span>
-                      </div>
-                    ) : null}
-                    {(selectedNotification.data?.locationLabel || selectedNotification.data?.incidentLocation) ? (
-                      <div className="nd-info-row">
-                        <span className="nd-info-key">Location</span>
-                        <span className="nd-info-val nd-info-val--loc">
-                          {selectedNotification.data.locationLabel || selectedNotification.data.incidentLocation}
-                        </span>
-                      </div>
-                    ) : null}
-                    {selectedNotification.data?.incidentOccurredAt ? (
-                      <div className="nd-info-row">
-                        <span className="nd-info-key">Occurred</span>
-                        <span className="nd-info-val">
-                          {new Date(selectedNotification.data.incidentOccurredAt).toLocaleString()}
-                        </span>
-                      </div>
-                    ) : null}
-                    {selectedNotification.eventType ? (
-                      <div className="nd-info-row">
-                        <span className="nd-info-key">Event</span>
-                        <code className="nd-info-code">{selectedNotification.eventType}</code>
+                    {dangerScore != null ? (
+                      <div className="nd-danger-section">
+                        <div className="nd-danger-header">
+                          <span className="nd-danger-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" /> Danger Score</span>
+                          <span className="nd-danger-value" style={{ color: dangerScore >= 70 ? '#dc2626' : dangerScore >= 40 ? '#d97706' : '#16a34a' }}>
+                            {dangerScore}%
+                          </span>
+                        </div>
+                        <div className="nd-danger-track">
+                          <div
+                            className="nd-danger-fill"
+                            style={{
+                              width: `${dangerScore}%`,
+                              background: dangerScore >= 70
+                                ? 'linear-gradient(90deg, #f97316, #dc2626)'
+                                : dangerScore >= 40
+                                  ? 'linear-gradient(90deg, #22c55e, #f59e0b)'
+                                  : 'linear-gradient(90deg, #22c55e, #16a34a)',
+                            }}
+                          />
+                        </div>
+                        <div className="nd-danger-scale">
+                          <span>Low</span><span>Medium</span><span>High</span>
+                        </div>
                       </div>
                     ) : null}
                   </div>
+                )}
 
-                  {dangerScore != null ? (
-                    <div className="nd-danger-section">
-                      <div className="nd-danger-header">
-                        <span className="nd-danger-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" /> Danger Score</span>
-                        <span className="nd-danger-value" style={{ color: dangerScore >= 70 ? '#dc2626' : dangerScore >= 40 ? '#d97706' : '#16a34a' }}>
-                          {dangerScore}%
-                        </span>
-                      </div>
-                      <div className="nd-danger-track">
-                        <div
-                          className="nd-danger-fill"
-                          style={{
-                            width: `${dangerScore}%`,
-                            background: dangerScore >= 70
-                              ? 'linear-gradient(90deg, #f97316, #dc2626)'
-                              : dangerScore >= 40
-                                ? 'linear-gradient(90deg, #22c55e, #f59e0b)'
-                                : 'linear-gradient(90deg, #22c55e, #16a34a)',
-                          }}
-                        />
-                      </div>
-                      <div className="nd-danger-scale">
-                        <span>Low</span><span>Medium</span><span>High</span>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-
-                {/* ── Card 3: Actions (info-request gets an inline reply form) ── */}
-                {selectedNotification.eventType === 'REPORT_INFO_REQUESTED' && selectedNotification.data?.reportId ? (
+                {/* ── Card 3: Actions ── */}
+                {isSupportReply ? (
+                  <div className="card nd-actions-card">
+                    <h3 className="widget-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <BoltOutlinedIcon fontSize="inherit" /> Quick Actions
+                    </h3>
+                    <button
+                      type="button"
+                      className="nd-btn-outline"
+                      onClick={() => setContactTrigger((n) => n + 1)}
+                    >
+                      <OpenInNewRoundedIcon fontSize="inherit" /> Send another message
+                    </button>
+                    {!selectedNotification.readAt ? (
+                      <button
+                        type="button"
+                        className="nd-btn-ghost"
+                        onClick={() => { void handleMarkSingleRead(selectedNotification.id) }}
+                      >
+                        <CheckRoundedIcon fontSize="inherit" className="icon-success" /> Mark as Read
+                      </button>
+                    ) : null}
+                  </div>
+                ) : selectedNotification.eventType === 'REPORT_INFO_REQUESTED' && selectedNotification.data?.reportId ? (
                   (() => {
                     const reportId = selectedNotification.data.reportId
                     const draft = infoReplyText[reportId] || ''

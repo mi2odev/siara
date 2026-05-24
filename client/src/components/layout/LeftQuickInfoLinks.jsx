@@ -6,6 +6,7 @@ import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
 
 import '../../styles/LeftQuickInfoLinks.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
+import { submitSupportMessage } from '../../services/supportMessagesService'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -20,6 +21,8 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' })
   const [contactErrors, setContactErrors] = useState({})
   const [contactSuccess, setContactSuccess] = useState('')
+  const [contactSubmitting, setContactSubmitting] = useState(false)
+  const [contactSubmitError, setContactSubmitError] = useState('')
 
   useEffect(() => {
     if (!openPanel) return undefined
@@ -42,6 +45,7 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
     if (openPanel !== 'contact') {
       setContactErrors({})
       setContactSuccess('')
+      setContactSubmitError('')
     }
   }, [openPanel])
 
@@ -71,12 +75,25 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
     return Object.keys(nextErrors).length === 0
   }
 
-  const submitContactForm = (event) => {
+  const submitContactForm = async (event) => {
     event.preventDefault()
-    if (!validateContactForm()) return
+    if (!validateContactForm() || contactSubmitting) return
 
-    setContactSuccess('Thank you. We will respond as soon as possible.')
-    setContactForm({ name: '', email: '', message: '' })
+    setContactSubmitting(true)
+    setContactSubmitError('')
+    try {
+      await submitSupportMessage({
+        name: contactForm.name.trim(),
+        email: contactForm.email.trim(),
+        message: contactForm.message.trim(),
+      })
+      setContactSuccess('Thank you. We will respond as soon as possible.')
+      setContactForm({ name: '', email: '', message: '' })
+    } catch (error) {
+      setContactSubmitError(error?.message || 'Could not send your message. Please try again.')
+    } finally {
+      setContactSubmitting(false)
+    }
   }
 
   return (
@@ -158,9 +175,14 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
                         {contactErrors.message ? <p className="left-info-error">{contactErrors.message}</p> : null}
 
                         <div className="left-info-actions">
-                          <button type="submit" className="left-info-submit">Send Message</button>
+                          <button type="submit" className="left-info-submit" disabled={contactSubmitting}>
+                            {contactSubmitting ? 'Sending…' : 'Send Message'}
+                          </button>
                           <a className="left-info-mail" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">Email directly</a>
                         </div>
+                        {contactSubmitError ? (
+                          <p className="left-info-error" role="alert">{contactSubmitError}</p>
+                        ) : null}
                       </form>
 
                       <aside className="left-info-side" aria-label="Support information">
