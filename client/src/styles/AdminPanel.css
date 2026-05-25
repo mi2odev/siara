@@ -3,6 +3,39 @@
    Light theme — matched to user palette (violet / white / slate)
    ================================================ */
 
+/* ── Global focus outline suppression ──────────────────────────────
+   Removes the harsh black "focus rectangle" the browser draws around
+   buttons / links / tabs after a click. Keyboard users still get an
+   on-brand violet focus ring through :focus-visible. */
+.admin-root button,
+.admin-root a,
+.admin-root [role="button"],
+.admin-root [role="tab"],
+.admin-root [role="menuitem"],
+.admin-root [role="menuitemradio"] {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-root button:focus,
+.admin-root a:focus,
+.admin-root [role="button"]:focus,
+.admin-root [role="tab"]:focus,
+.admin-root [role="menuitem"]:focus,
+.admin-root [role="menuitemradio"]:focus {
+  outline: none;
+}
+
+.admin-root button:focus-visible,
+.admin-root a:focus-visible,
+.admin-root [role="button"]:focus-visible,
+.admin-root [role="tab"]:focus-visible,
+.admin-root [role="menuitem"]:focus-visible,
+.admin-root [role="menuitemradio"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.22);
+}
+
 /* ── CSS Variables ── */
 .admin-root {
   --admin-bg: #F6F7FB;

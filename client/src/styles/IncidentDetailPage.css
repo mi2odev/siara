@@ -1552,3 +1552,56 @@
 .incident-detail-page .incident-main {
   gap: 12px;
 }
+
+/* ────────── RESPONSIVE ENHANCEMENT (fluid clamps) ────────── */
+.incident-detail-page .incident-title {
+  font-size: var(--siara-text-4xl, clamp(1.4rem, 2vw + 1rem, 2.125rem));
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.incident-detail-page .incident-main,
+.incident-detail-page .incident-sidebar-right {
+  padding: clamp(0.75rem, 1.5vw + 0.25rem, 1.25rem);
+}
+
+.incident-detail-page .trust-indicators {
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+}
+
+.incident-detail-page .media-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: clamp(0.5rem, 1vw + 0.25rem, 0.875rem);
+}
+
+.incident-detail-page .signal-action-btn,
+.incident-detail-page .open-map-btn {
+  min-height: var(--siara-touch-target, 44px);
+}
+
+@media (max-width: 768px) {
+  .incident-detail-page .incident-layout {
+    padding-top: var(--siara-header-height, 80px);
+  }
+}
+
+@media (max-width: 480px) {
+  .incident-detail-page .signals-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Media lightbox safe-area awareness */
+.media-lightbox {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* Ultra-wide cap */
+@media (min-width: 1920px) {
+  .incident-detail-page .incident-layout {
+    max-width: var(--siara-page-max, 1600px);
+    margin-inline: auto;
+  }
+}

@@ -6,23 +6,166 @@
   --resp-space-2: 0.75rem;
   --resp-space-3: 1rem;
   --resp-space-4: 1.25rem;
+  --resp-space-5: 1.75rem;
+  --resp-space-6: 2.5rem;
+
+  /* Header height — keep page sticky calculations in sync with header CSS.
+     Used by sidebars, sticky panels, scroll offsets. */
+  --siara-header-height: 80px;
+
+  /* Content max-width caps for ultra-wide monitors */
+  --siara-page-max: 1600px;
+  --siara-content-max: 1160px;
+  --siara-prose-max: 720px;
+
+  /* Fluid type scale — clamps eliminate breakpoint jumps */
+  --siara-text-xs: clamp(0.72rem, 0.18vw + 0.68rem, 0.8rem);
+  --siara-text-sm: clamp(0.82rem, 0.2vw + 0.78rem, 0.92rem);
+  --siara-text-base: clamp(0.92rem, 0.25vw + 0.88rem, 1.02rem);
+  --siara-text-lg: clamp(1.05rem, 0.4vw + 1rem, 1.2rem);
+  --siara-text-xl: clamp(1.18rem, 0.6vw + 1.1rem, 1.45rem);
+  --siara-text-2xl: clamp(1.4rem, 1vw + 1.2rem, 1.85rem);
+  --siara-text-3xl: clamp(1.7rem, 1.6vw + 1.3rem, 2.4rem);
+  --siara-text-4xl: clamp(2rem, 2.6vw + 1.4rem, 3rem);
+  --siara-text-5xl: clamp(2.4rem, 3.6vw + 1.5rem, 4rem);
+
+  /* Touch target floor for interactive elements */
+  --siara-touch-target: 44px;
+}
+
+/* Box sizing reset so paddings stay inside declared widths */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 /* Fluid media and readable text defaults */
 img,
 video,
 canvas,
-iframe {
+iframe,
+svg {
   max-width: 100%;
+}
+
+img,
+video,
+canvas {
   height: auto;
 }
 
 html {
   font-size: clamp(14px, 0.35vw + 13px, 16px);
+  /* Prevent iOS Safari from auto-inflating text on orientation change */
+  -webkit-text-size-adjust: 100%;
+       text-size-adjust: 100%;
 }
 
 body {
   line-height: 1.5;
+  /* Stop horizontal scroll bleed from rogue page sections */
+  overflow-x: clip;
+}
+
+/* ════════════════════════════════════════
+   SHARED UTILITY CLASSES
+════════════════════════════════════════ */
+
+/* Cap content on ultra-wide monitors without hard-coding page widths */
+.siara-page-frame {
+  width: 100%;
+  max-width: var(--siara-page-max);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 3vw, 2.5rem);
+}
+
+.siara-content-frame {
+  width: 100%;
+  max-width: var(--siara-content-max);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 3vw, 2rem);
+}
+
+/* Universal touch-target enforcement for interactive elements on coarse pointers */
+@media (pointer: coarse) {
+  .siara-tap,
+  .siara-tap button,
+  .siara-tap a {
+    min-height: var(--siara-touch-target);
+    min-width: var(--siara-touch-target);
+  }
+}
+
+/* Responsive table container — wrap any table in this to prevent overflow */
+.siara-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.siara-table-scroll > table {
+  min-width: 0;
+}
+
+/* Modal/dialog overflow safety — content scrolls inside the viewport */
+.siara-modal-safe {
+  max-height: min(90vh, 100dvh - 2rem);
+  max-width: min(96vw, 100dvw - 1rem);
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+/* Safe-area insets — toasts, FABs, headers near phone notch/home-pill */
+.siara-safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+.siara-safe-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Visually-hidden helper for sr-only labels */
+.siara-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Form controls — never overflow their containers, never below touch target */
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  max-width: 100%;
+}
+
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea,
+  button {
+    min-height: var(--siara-touch-target);
+  }
+}
+
+/* Honor reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Shared dashboard-style navbar behavior */
@@ -66,8 +209,9 @@ body {
   width: 100%;
 }
 
-/* Keep common app grids full width by default */
-.siara-news-layout,
+/* Keep common app grids full width by default.
+   .siara-news-layout (Feed) is intentionally NOT in this list — its layout
+   is owned end-to-end by NewsPage.css (mobile-first). */
 .profile-layout,
 .map-content,
 .notif-grid,
@@ -92,7 +236,6 @@ body {
     padding-inline: 0.8rem;
   }
 
-  .siara-news-layout,
   .profile-layout,
   .notif-grid,
   .al-grid,
@@ -105,24 +248,8 @@ body {
   }
 }
 
-/* ---------- <= 1280px ---------- */
-@media (max-width: 1280px) {
-  /* NewsPage.css hides right sidebar at this width; keep it visible for
-     Feed / Dashboard / Predictions until smaller breakpoints. */
-  .siara-news-layout {
-    grid-template-columns: minmax(200px, 24vw) minmax(0, 1fr) minmax(220px, 27vw) !important;
-    align-items: start;
-  }
-
-  .siara-news-layout .sidebar-right {
-    display: flex !important;
-    position: sticky !important;
-    top: 80px !important;
-    height: calc(100vh - 90px) !important;
-    max-height: calc(100vh - 90px) !important;
-    overflow-y: auto !important;
-  }
-}
+/* Feed (.siara-news-layout) responsiveness is owned by NewsPage.css.
+   Do not add Feed-specific rules here. */
 
 /* ---------- <= 1024px (tablet) ---------- */
 @media (max-width: 1024px) {
@@ -209,7 +336,6 @@ body {
     flex-shrink: 0;
   }
 
-  .siara-news-layout,
   .profile-layout,
   .notif-grid,
   .al-grid,
@@ -222,32 +348,6 @@ body {
     min-height: auto;
   }
 
-  /* Keep left sidebar visible longer on Feed / Dashboard / Predictions. */
-  .siara-news-layout {
-    grid-template-columns: minmax(210px, 24vw) minmax(0, 1fr) minmax(240px, 28vw) !important;
-    align-items: start;
-  }
-
-  .siara-news-layout .sidebar-left {
-    display: flex !important;
-    position: sticky !important;
-    top: 80px !important;
-    height: calc(100vh - 90px) !important;
-    max-height: calc(100vh - 90px) !important;
-    overflow-y: auto !important;
-  }
-
-  .siara-news-layout .sidebar-right {
-    display: flex !important;
-    position: sticky !important;
-    top: 80px !important;
-    height: calc(100vh - 90px) !important;
-    max-height: calc(100vh - 90px) !important;
-    overflow-y: auto !important;
-  }
-
-  .sidebar-left,
-  .sidebar-right,
   .profile-sidebar-left,
   .profile-sidebar-right,
   .map-sidebar-left,
@@ -268,7 +368,6 @@ body {
     overflow: visible !important;
   }
 
-  .feed-center,
   .profile-main,
   .notif-center,
   .al-center,
@@ -278,29 +377,6 @@ body {
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
-  }
-}
-
-/* ---------- <= 980px ---------- */
-@media (max-width: 980px) {
-  /* Prioritize middle feed to prevent it from collapsing on narrow widths. */
-  .siara-news-layout {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    align-items: start;
-  }
-
-  .siara-news-layout .feed-center {
-    width: 100% !important;
-    min-width: 0 !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  .siara-news-layout .sidebar-left,
-  .siara-news-layout .sidebar-right {
-    display: none !important;
   }
 }
 
@@ -362,7 +438,6 @@ body {
     padding: 0.6rem 0.75rem;
   }
 
-  .siara-news-layout,
   .profile-layout,
   .notif-grid,
   .al-grid,
@@ -373,30 +448,6 @@ body {
     padding-inline: 0.5rem !important;
     padding-top: max(78px, 4.8rem) !important;
     gap: 0.5rem !important;
-  }
-
-  /* On true phone widths keep middle content primary. */
-  .siara-news-layout {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    align-items: start;
-  }
-
-  .feed-center {
-    order: 1;
-    width: 100% !important;
-    overflow: visible !important;
-    height: auto !important;
-    max-height: none !important;
-    padding: 12px !important;
-  }
-
-  .siara-news-layout .sidebar-left {
-    display: none !important;
-  }
-
-  .siara-news-layout .sidebar-right {
-    display: none !important;
   }
 
   .notif-left,
@@ -449,6 +500,20 @@ body {
   }
 }
 
+/* ---------- <= 480px (phones) ---------- */
+@media (max-width: 480px) {
+  /* Push touch-target floor down to the smallest devices */
+  button,
+  .dash-tab,
+  .filter-btn,
+  .action-btn,
+  .nav-item,
+  .profile-nav-item,
+  .activity-tab {
+    min-height: var(--siara-touch-target);
+  }
+}
+
 /* ---------- <= 320px (small phones) ---------- */
 @media (max-width: 320px) {
   html {
@@ -469,7 +534,6 @@ body {
     padding-inline: 0.55rem;
   }
 
-  .siara-news-layout,
   .profile-layout,
   .notif-grid,
   .al-grid,
@@ -478,5 +542,25 @@ body {
   .incident-layout,
   .settings-root .settings-layout {
     padding-inline: 0.35rem !important;
+  }
+}
+
+/* ---------- >= 1920px (ultra-wide) ---------- */
+@media (min-width: 1920px) {
+  /* Cap any page using the dashboard header so content doesn't sprawl */
+  .siara-dashboard-header .dash-header-inner {
+    max-width: var(--siara-page-max);
+  }
+
+  .profile-layout,
+  .map-content,
+  .notif-grid,
+  .al-grid,
+  .report-grid,
+  .create-grid,
+  .incident-layout,
+  .settings-root .settings-layout {
+    max-width: var(--siara-page-max);
+    margin-inline: auto;
   }
 }

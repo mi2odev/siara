@@ -3190,3 +3190,53 @@
   .pm-quiz-result { flex-direction: column; align-items: stretch; gap: 14px; }
   .pm-quiz-score { align-self: flex-start; }
 }
+
+/* ────────── RESPONSIVE ENHANCEMENT (fluid clamps) ────────── */
+.siara-profile-root {
+  min-height: 100vh;
+}
+
+.profile-nav-item {
+  min-height: var(--siara-touch-target, 44px);
+}
+
+.profile-main {
+  padding-inline: clamp(0.75rem, 1.5vw + 0.25rem, 1.5rem);
+}
+
+@media (max-width: 1024px) {
+  .siara-profile-root {
+    height: auto;
+    overflow: visible;
+  }
+
+  .profile-main {
+    overflow: visible;
+    height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-main {
+    padding-inline: 0.5rem;
+  }
+
+  .profile-cover {
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Ultra-wide cap */
+@media (min-width: 1920px) {
+  .profile-layout {
+    max-width: var(--siara-page-max, 1600px);
+    margin-inline: auto;
+  }
+}

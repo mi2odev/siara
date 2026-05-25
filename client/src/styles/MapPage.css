@@ -3966,3 +3966,107 @@
   font-style: italic !important;
   margin-top: 3px !important;
 }
+
+/* ────────── RESPONSIVE ENHANCEMENT (fluid clamps + safe-area + touch) ────────── */
+.map-page {
+  /* Lock the map page to viewport height even when keyboards open on mobile */
+  height: 100vh;
+  height: 100dvh;
+}
+
+.map-content {
+  /* Use header-height var so sticky sidebars stay aligned even if header changes */
+  margin-top: var(--siara-header-height, 80px);
+  height: calc(100dvh - var(--siara-header-height, 80px));
+}
+
+.map-step-nav {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.map-nav-btn {
+  min-height: var(--siara-touch-target, 44px);
+}
+
+/* Floating map controls — keep them within thumb reach, away from notch */
+.map-controls-top,
+.map-page .map-controls-top {
+  top: max(calc(var(--siara-header-height, 80px) + 0.5rem), env(safe-area-inset-top));
+}
+
+/* Geolocation banner — keep visible under header and notch */
+.geolocation-banner {
+  top: max(calc(var(--siara-header-height, 80px) + 0.75rem), env(safe-area-inset-top));
+  max-width: min(calc(100vw - 1.5rem), 560px);
+  width: auto;
+}
+
+@media (max-width: 1024px) {
+  /* Sidebars become full-width drawers below the map on tablets/phones */
+  .map-content {
+    grid-template-columns: 1fr !important;
+    height: auto;
+    min-height: calc(100dvh - var(--siara-header-height, 80px));
+  }
+
+  .map-sidebar-left,
+  .map-sidebar-right {
+    position: relative !important;
+    top: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .map-controls-top,
+  .map-controls-right {
+    /* Slightly tighter scaling than the default to keep buttons reachable */
+    transform: scale(0.9);
+    transform-origin: top left;
+  }
+
+  .map-controls-right {
+    transform-origin: top right;
+  }
+
+  /* Keep the map at least 50dvh so it's usable, even with side panels stacked. */
+  .leaflet-container,
+  .maplibregl-map {
+    min-height: 50dvh;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-step-nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .map-nav-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+/* Landscape phones — drop the side panel padding so the map dominates */
+@media (max-height: 480px) and (orientation: landscape) {
+  .map-content {
+    grid-template-columns: 1fr !important;
+  }
+
+  .leaflet-container,
+  .maplibregl-map {
+    min-height: 70dvh;
+  }
+}
+
+/* Ultra-wide cap */
+@media (min-width: 1920px) {
+  .map-content {
+    max-width: var(--siara-page-max, 1600px);
+    margin-inline: auto;
+  }
+}

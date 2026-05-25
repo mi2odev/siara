@@ -936,3 +936,60 @@
     font-size: 11px;
   }
 }
+
+/* ────────── RESPONSIVE ENHANCEMENT (fluid clamps) ────────── */
+.ud-section {
+  padding: clamp(1rem, 1.5vw + 0.4rem, 1.5rem);
+}
+
+.ud-section-title {
+  font-size: var(--siara-text-base, clamp(0.95rem, 0.3vw + 0.85rem, 1rem));
+}
+
+.ud-mini-title {
+  font-size: var(--siara-text-sm, 0.875rem);
+}
+
+.ud-grid-2up {
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: clamp(0.75rem, 1vw + 0.4rem, 1rem);
+}
+
+.ud-sidebar-right {
+  width: clamp(260px, 22vw, 300px) !important;
+}
+
+.ud-table-wrap,
+.ud-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ud-table {
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .ud-sidebar-right {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .ud-section-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .ud-table {
+    font-size: 11px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .ud-feed-wide {
+    max-width: var(--siara-content-max, 1160px) !important;
+    margin-inline: auto;
+  }
+}
