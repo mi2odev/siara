@@ -1873,3 +1873,56 @@
   border-color: var(--create-accent);
   color: #fff;
 }
+
+/* ────────── RESPONSIVE ENHANCEMENT (fluid clamps) ────────── */
+.create-center {
+  padding: clamp(1rem, 2vw + 0.5rem, 2rem) clamp(1rem, 2.5vw + 0.5rem, 2.25rem);
+}
+
+.step-header h1 {
+  font-size: var(--siara-text-2xl, clamp(1.2rem, 1vw + 0.95rem, 1.6rem));
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.type-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  gap: clamp(0.625rem, 1vw + 0.25rem, 1rem);
+}
+
+.time-options {
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+}
+
+.nav-btn,
+.delivery-card {
+  min-height: var(--siara-touch-target, 44px);
+}
+
+@media (max-width: 992px) {
+  .create-left {
+    /* If header height var is undefined this still falls back to 80px */
+    top: var(--header-height, var(--siara-header-height, 80px));
+    height: calc(100vh - var(--header-height, var(--siara-header-height, 80px)));
+    max-width: 85vw;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  }
+}
+
+@media (max-width: 480px) {
+  .step-nav {
+    gap: 0.5rem;
+  }
+  .nav-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+/* Ultra-wide cap */
+@media (min-width: 1920px) {
+  .create-grid {
+    max-width: var(--siara-page-max, 1600px);
+    margin-inline: auto;
+  }
+}

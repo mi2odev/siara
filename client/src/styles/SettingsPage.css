@@ -595,11 +595,29 @@
 }
 
 /* ── RESPONSIVE ── */
+.settings-root .settings-layout {
+  padding: clamp(5rem, 8vw + 1rem, 6.5rem) clamp(0.75rem, 2vw + 0.25rem, 1.5rem) clamp(2rem, 4vw + 0.5rem, 4rem);
+  gap: clamp(1rem, 1.5vw + 0.5rem, 1.75rem);
+}
+
+.settings-root .settings-section {
+  padding: clamp(1rem, 1.8vw + 0.5rem, 2rem);
+}
+
+@media (max-width: 1024px) {
+  .settings-root .settings-layout {
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .settings-root .settings-nav {
+    top: 80px;
+  }
+}
+
 @media (max-width: 768px) {
   .settings-root .settings-layout {
     grid-template-columns: 1fr;
-    padding: 88px 16px 40px;
-    gap: 16px;
   }
 
   .settings-root .settings-nav {
@@ -614,6 +632,8 @@
     box-shadow: none;
     border: 1px solid #E2E8F0;
     background: #FFFFFF;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
 
   .settings-root .settings-nav-title,
@@ -627,7 +647,9 @@
     white-space: nowrap;
     padding: 9px 12px;
     min-width: 156px;
+    min-height: var(--siara-touch-target, 44px);
     text-align: left;
+    flex-shrink: 0;
   }
 
   .settings-root .settings-nav-item-icon {
@@ -645,10 +667,6 @@
     padding: 2px 2px 0;
   }
 
-  .settings-root .settings-section {
-    padding: 20px 16px;
-  }
-
   .settings-root .settings-row {
     flex-wrap: wrap;
   }
@@ -657,5 +675,37 @@
     width: 100%;
     min-width: 0;
     margin-bottom: 4px;
+  }
+
+  .settings-root .settings-location-feedback,
+  .settings-root .settings-location-auto-status {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-root .settings-confirm-input {
+    width: 100%;
+  }
+
+  .settings-root .settings-confirm-actions {
+    width: 100%;
+  }
+
+  .settings-root .settings-confirm-actions > * {
+    flex: 1 1 auto;
+  }
+
+  .settings-root .settings-action,
+  .settings-root .settings-btn-danger,
+  .settings-root .settings-btn-cancel {
+    min-height: var(--siara-touch-target, 44px);
+  }
+}
+
+/* Ultra-wide cap */
+@media (min-width: 1920px) {
+  .settings-root .settings-layout {
+    max-width: 1280px;
   }
 }

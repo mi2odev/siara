@@ -1605,3 +1605,65 @@
     transition-duration: .01ms !important;
   }
 }
+
+/* ────────── RESPONSIVE ENHANCEMENT (fluid clamps) ────────── */
+.siara-dashboard-main {
+  padding-inline: clamp(0.75rem, 2vw + 0.25rem, 1.5rem);
+}
+
+.welcome-title {
+  font-size: var(--siara-text-3xl, clamp(1.4rem, 1.5vw + 1rem, 1.875rem));
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.dash-kpi-grid,
+.dash-stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: clamp(0.75rem, 1.2vw + 0.4rem, 1.25rem);
+}
+
+.dash-welcome-bar {
+  gap: clamp(0.75rem, 1.2vw + 0.4rem, 1.25rem);
+  flex-wrap: wrap;
+}
+
+.dash-controls-panel {
+  gap: clamp(0.5rem, 1vw + 0.3rem, 1rem);
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary {
+  min-height: var(--siara-touch-target, 44px);
+}
+
+.incidents-table-wrap,
+.dash-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.incidents-table {
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .dash-map-layers,
+  .dash-map-legend {
+    transform: scale(0.85);
+    transform-origin: top right;
+  }
+
+  .dash-map-legend {
+    transform-origin: bottom left;
+  }
+}
+
+@media (min-width: 1920px) {
+  .siara-dashboard-main {
+    max-width: var(--siara-page-max, 1600px);
+    margin-inline: auto;
+  }
+}

@@ -55,6 +55,41 @@
 .incidents-root * { box-sizing: border-box; }
 .incidents-root button { font-family: inherit; }
 
+/* Suppress the harsh default focus outline on every interactive element
+   inside the page. Keyboard users still get a clean, on-brand focus ring
+   via :focus-visible — mouse clicks no longer leave a black box behind. */
+.incidents-root button,
+.incidents-root a,
+.incidents-root input,
+.incidents-root textarea,
+.incidents-root [role="button"],
+.incidents-root [role="tab"],
+.incidents-root [role="menuitem"],
+.incidents-root [role="menuitemradio"] {
+  outline: none;
+}
+
+.incidents-root button:focus,
+.incidents-root a:focus,
+.incidents-root [role="button"]:focus,
+.incidents-root [role="tab"]:focus,
+.incidents-root [role="menuitem"]:focus,
+.incidents-root [role="menuitemradio"]:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.incidents-root button:focus-visible,
+.incidents-root a:focus-visible,
+.incidents-root [role="button"]:focus-visible,
+.incidents-root [role="tab"]:focus-visible,
+.incidents-root [role="menuitem"]:focus-visible,
+.incidents-root [role="menuitemradio"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(91, 91, 214, 0.20);
+  border-radius: 6px;
+}
+
 
 /* ════════════════════════════════════════════════════════════════════
    HEADER

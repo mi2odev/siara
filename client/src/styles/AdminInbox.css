@@ -67,6 +67,35 @@
 .inbox * { box-sizing: border-box; }
 .inbox button { font-family: inherit; }
 
+/* Suppress the harsh default focus outline on every interactive element.
+   Mouse clicks no longer leave a black box; keyboard users still get a
+   subtle indigo focus ring via :focus-visible. */
+.inbox button,
+.inbox a,
+.inbox input,
+.inbox textarea,
+.inbox [role="button"],
+.inbox [role="tab"] {
+  outline: none;
+}
+
+.inbox button:focus,
+.inbox a:focus,
+.inbox [role="button"]:focus,
+.inbox [role="tab"]:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.inbox button:focus-visible,
+.inbox a:focus-visible,
+.inbox [role="button"]:focus-visible,
+.inbox [role="tab"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(91, 91, 214, 0.20);
+  border-radius: 6px;
+}
+
 
 /* ════════════════════════════════════════════════════════════════════
    HEADER STRIP
