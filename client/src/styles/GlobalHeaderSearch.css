@@ -1,6 +1,46 @@
-.global-header-search {
-  position: relative;
-  width: 100%;
+/* Canonical search bar — single, LOCKED source of truth so the header search is
+   byte-for-byte identical on every page and at every width. The !important guards
+   stop any page-scoped (.map-page, .police-root, .create-alert-page, …) or
+   responsive rule from changing it. Both wrappers are covered: .global-header-search
+   (shared component) and .news-user-search (the Feed page's bespoke search).
+   Do NOT restyle .dash-search / .dash-header-center anywhere else. */
+.dash-header-center {
+  flex: 1 1 auto !important;
+  max-width: 440px !important;
+  min-width: 0 !important;
+}
+
+.global-header-search,
+.news-user-search {
+  position: relative !important;
+  width: 100% !important;
+  flex: 1 1 auto !important;
+}
+
+.dash-search {
+  width: 100% !important;
+  height: 42px !important;
+  padding: 10px 16px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  outline: none !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  transition: border 0.2s !important;
+}
+
+.dash-search:focus {
+  border-color: var(--siara-btn-accent) !important;
+}
+
+.dash-search::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
 }
 
 .global-header-search-menu {

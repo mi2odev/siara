@@ -15,6 +15,7 @@ import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
+import NotificationBell from '../../components/notifications/NotificationBell'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
@@ -665,9 +666,7 @@ export default function IncidentDetailPage() {
             />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              {renderHeaderIcon('notification')}<span className="notification-badge"></span>
-            </button>
+            <NotificationBell />
             <button className="dash-icon-btn" aria-label="Messages">{renderHeaderIcon('message')}</button>
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">

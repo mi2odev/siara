@@ -780,6 +780,19 @@
 }
 .admin-user-icon-btn:active:not(:disabled) { transform: scale(0.94); }
 .admin-user-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+/* These MUI icons use fontSize="inherit", which was resolving to ~0 here and
+   left the buttons blank. Pin an explicit glyph size so they always render. */
+.admin-user-icon-btn svg {
+  font-size: 16px;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+/* Pop animation for the action result toast (success/error banner). */
+@keyframes siara-admin-toast-pop {
+  0%   { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
 .admin-user-icon-btn.warn:hover:not(:disabled)    { background: var(--admin-warning-subtle); color: var(--admin-warning); }
 .admin-user-icon-btn.ban:hover:not(:disabled)     { background: var(--admin-danger-subtle); color: var(--admin-danger); }
 .admin-user-icon-btn.restore:hover:not(:disabled),

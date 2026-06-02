@@ -216,27 +216,9 @@
   display: none;
 }
 
-/* Header CENTER: Search */
-.map-page .dash-header-center {
-  flex: 1;
-  max-width: 440px;
-}
-
-.map-page .dash-search {
-  width: 100%;
-  padding: 10px 16px;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  font-size: 14px;
-  background: #FFFFFF;
-  color: #0F172A;
-  outline: none;
-  transition: border 0.2s;
-}
-
-.map-page .dash-search:focus {
-  border-color: var(--siara-btn-accent);
-}
+/* Header CENTER search uses the shared .dash-header-center / .dash-search rules
+   from GlobalHeaderSearch.css (kept identical across pages). Map-only responsive
+   tweaks to .dash-header-center remain in the media queries below. */
 
 /* Header RIGHT: Icons + Avatar */
 .map-page .dash-header-right {
@@ -331,12 +313,12 @@
   animation: dropdownFadeIn 0.2s ease;
 }
 
-.map-page .notif-header-shell {
+.map-page .notif-bell {
   position: relative;
   z-index: 2600;
 }
 
-.map-page .notif-header-panel,
+.map-page .notif-bell-panel,
 .map-page .notif-toast-stack {
   z-index: 2601;
 }
@@ -2491,10 +2473,6 @@
     padding: 8px 12px;
     font-size: 13px;
   }
-
-  .map-page .dash-header-center {
-    max-width: 360px;
-  }
 }
 
 @media (max-width: 1360px) {
@@ -2572,10 +2550,6 @@
   .map-main .siara-leaflet-map {
     height: 100%;
     min-height: 100%;
-  }
-
-  .map-page .dash-header-center {
-    max-width: 280px;
   }
 
   .map-page .dash-tab {

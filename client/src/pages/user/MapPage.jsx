@@ -19,6 +19,7 @@ import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined';
 import CloudQueueOutlinedIcon from '@mui/icons-material/CloudQueueOutlined';
 import WbSunnyOutlinedIcon from '@mui/icons-material/WbSunnyOutlined';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
+import NotificationBell from '../../components/notifications/NotificationBell';
 import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
@@ -31,8 +32,9 @@ import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsAc
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined';
-import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined';
 import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined';
+import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -55,6 +57,7 @@ import DangerForecastChart from "../../components/map/DangerForecastChart";
 import SiaraMap from "../../components/map/SiaraMap";
 import FallbackLocationBanner from "../../components/map/FallbackLocationBanner";
 import DrivingQuiz from "../../components/ui/DrivingQuiz";
+import { normalizeReportType } from "../../components/map/reportTypeMeta";
 import useReportMapReports from "../../hooks/useReportMapReports";
 import useLiveLocation from "../../hooks/useLiveLocation";
 import { fetchAlerts } from "../../services/alertService";
@@ -809,9 +812,10 @@ export default function MapPage() {
   const incidentTypes = [
     { id: "accident", label: "Accident", icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" /> },
     { id: "traffic", label: "Traffic", icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" /> },
-    { id: "danger", label: "Danger", icon: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-fire" /> },
+    { id: "danger", label: "Danger", icon: <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" /> },
     { id: "weather", label: "Weather", icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" /> },
     { id: "roadworks", label: "Roadworks", icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" /> },
+    { id: "other", label: "Other", icon: <HelpOutlineOutlinedIcon fontSize="inherit" className="icon-muted" /> },
   ];
 
   // List of wilayas available in the zone dropdown
@@ -828,7 +832,7 @@ export default function MapPage() {
     () =>
       reports.filter((report) => {
         const severity = normalizeSeverityLevel(report?.severity);
-        const reportType = String(report?.incidentType || report?.type || "").trim().toLowerCase();
+        const reportType = normalizeReportType(report?.incidentType || report?.type);
         const locationLabel = String(report?.locationLabel || "").trim().toLowerCase();
 
         if (severityFilter.length > 0 && !severityFilter.includes(severity)) {
@@ -1187,13 +1191,7 @@ export default function MapPage() {
 
           {/* ── Right: Notification, messages & avatar dropdown ── */}
           <div className="dash-header-right">
-            <button
-              className="dash-icon-btn"
-              aria-label="Notifications"
-              onClick={() => navigate("/notifications")}
-            >
-              {renderHeaderIcon("notification")}<span className="notification-badge"></span>
-            </button>
+            <NotificationBell />
 
 
             {/* Avatar with dropdown menu */}

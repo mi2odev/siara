@@ -14,13 +14,8 @@ import FancySelect from '../../components/ui/FancySelect'
 import { useSearchParams } from 'react-router-dom'
 import ArrowUpwardRoundedIcon from '@mui/icons-material/ArrowUpwardRounded'
 import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded'
-import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
-import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined'
-import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
-import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded'
-import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded'
@@ -35,6 +30,89 @@ import {
   updateAdminUserRoles,
   updateAdminUserStatus,
 } from '../../services/adminUsersService'
+
+/* Moderation action icons — plain inline SVGs with hard-coded sizes so they
+   never depend on MUI / inherited font-size (which rendered them blank here). */
+const ACTION_ICON_PROPS = {
+  width: 18,
+  height: 18,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+}
+
+function IconWarn() {
+  return (
+    <svg {...ACTION_ICON_PROPS}>
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  )
+}
+
+function IconBan() {
+  return (
+    <svg {...ACTION_ICON_PROPS}>
+      <circle cx="12" cy="12" r="9" />
+      <line x1="5.6" y1="5.6" x2="18.4" y2="18.4" />
+    </svg>
+  )
+}
+
+function IconUnban() {
+  return (
+    <svg {...ACTION_ICON_PROPS}>
+      <rect x="3" y="11" width="18" height="10" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+    </svg>
+  )
+}
+
+function IconPromote() {
+  return (
+    <svg {...ACTION_ICON_PROPS}>
+      <circle cx="12" cy="8" r="6" />
+      <path d="M15.5 12.9 17 22l-5-3-5 3 1.5-9.1" />
+    </svg>
+  )
+}
+
+function IconRecalc() {
+  return (
+    <svg {...ACTION_ICON_PROPS}>
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  )
+}
+
+/* Inline-styled action chips — colours applied directly on the element so the
+   buttons stay visible even if the stylesheet is cached/stale. */
+const ACTION_CHIP_BASE = {
+  width: 30,
+  height: 30,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 0,
+  borderRadius: 8,
+  border: '1px solid transparent',
+  cursor: 'pointer',
+}
+const ACTION_CHIP_VARIANTS = {
+  warn: { background: '#FEF3C7', color: '#B45309', borderColor: '#FDE68A' },
+  ban: { background: '#FEE2E2', color: '#DC2626', borderColor: '#FECACA' },
+  restore: { background: '#DCFCE7', color: '#15803D', borderColor: '#BBF7D0' },
+  promote: { background: '#DCFCE7', color: '#15803D', borderColor: '#BBF7D0' },
+  neutral: { background: '#EDE9FE', color: '#6D28D9', borderColor: '#DDD6FE' },
+}
+const actionChipStyle = (variant) => ({ ...ACTION_CHIP_BASE, ...ACTION_CHIP_VARIANTS[variant] })
 
 const FILTER_TABS = [
   { key: 'all', label: 'All Users', countKey: 'all' },
@@ -160,6 +238,7 @@ export default function AdminUsersPage() {
 
   const [busyUserId, setBusyUserId] = useState(null)
   const [actionError, setActionError] = useState('')
+  const [actionMessage, setActionMessage] = useState('')
   const [detailsUser, setDetailsUser] = useState(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
 
@@ -266,6 +345,13 @@ export default function AdminUsersPage() {
   }, [currentTab, debouncedSearch, sort, offset, reloadTick])
 
   const triggerReload = useCallback(() => setReloadTick((tick) => tick + 1), [])
+
+  // Auto-dismiss the success banner so it doesn't linger.
+  useEffect(() => {
+    if (!actionMessage) return undefined
+    const timer = setTimeout(() => setActionMessage(''), 4000)
+    return () => clearTimeout(timer)
+  }, [actionMessage])
 
   const tabBadge = useCallback((countKey) => counts?.[countKey] ?? 0, [counts])
 
@@ -424,9 +510,36 @@ export default function AdminUsersPage() {
   const recalcTrust = async (user) => {
     setBusyUserId(user.id)
     setActionError('')
+    setActionMessage('')
+    const previousScore = user.trustScore == null ? null : Math.round(Number(user.trustScore))
+    const label = user.name || user.email || 'user'
     try {
-      await recalculateAdminUserTrust(user.id)
-      triggerReload()
+      const updated = await recalculateAdminUserTrust(user.id)
+      const newScore = updated?.trustScore == null ? null : Math.round(Number(updated.trustScore))
+      if (newScore == null) {
+        setActionMessage(`Trust score recalculated for ${label}.`)
+      } else if (previousScore != null && previousScore !== newScore) {
+        setActionMessage(`Trust score for ${label} recalculated: ${previousScore} → ${newScore}.`)
+      } else {
+        setActionMessage(`Trust score for ${label} recalculated — unchanged at ${newScore}.`)
+      }
+      // Update only this user's row in place so the table doesn't refetch and
+      // re-sort, which would make the row jump and the change hard to see.
+      if (updated?.trustScore != null) {
+        setUsers((prev) => prev.map((row) => (
+          row.id === user.id
+            ? {
+                ...row,
+                trustScore: updated.trustScore,
+                riskTier: updated.riskTier ?? row.riskTier,
+                trustTier: updated.trustTier ?? row.trustTier,
+                trustLastUpdatedAt: updated.trustLastUpdatedAt ?? row.trustLastUpdatedAt,
+              }
+            : row
+        )))
+      } else {
+        triggerReload()
+      }
     } catch (err) {
       setActionError(err?.message || 'Failed to recalculate trust score')
     } finally {
@@ -501,8 +614,54 @@ export default function AdminUsersPage() {
       </div>
 
       {actionError && (
-        <div className="admin-card" style={{ marginBottom: 12, padding: '8px 12px', color: 'var(--admin-danger)' }}>
+        <div
+          role="alert"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 14,
+            padding: '11px 16px 11px 12px',
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: 12,
+            color: '#991B1B',
+            fontSize: 13.5,
+            fontWeight: 600,
+            boxShadow: '0 10px 26px rgba(220, 38, 38, 0.16)',
+            animation: 'siara-admin-toast-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', background: '#DC2626', color: '#fff', flexShrink: 0 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="7.5" x2="12" y2="13" /><line x1="12" y1="16.5" x2="12.01" y2="16.5" /></svg>
+          </span>
           {actionError}
+        </div>
+      )}
+
+      {actionMessage && (
+        <div
+          role="status"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 14,
+            padding: '11px 16px 11px 12px',
+            background: '#ECFDF5',
+            border: '1px solid #A7F3D0',
+            borderRadius: 12,
+            color: '#065F46',
+            fontSize: 13.5,
+            fontWeight: 600,
+            boxShadow: '0 10px 26px rgba(16, 185, 129, 0.18)',
+            animation: 'siara-admin-toast-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', background: '#10B981', color: '#fff', flexShrink: 0 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
+          </span>
+          {actionMessage}
         </div>
       )}
 
@@ -614,35 +773,38 @@ export default function AdminUsersPage() {
                     <td style={{ width: 240, whiteSpace: 'nowrap' }}>
                       <div className="admin-user-actions">
                         {/* Moderation icon group */}
-                        <div className="admin-user-actions-group" role="group" aria-label="Moderation">
+                        <div className="admin-user-actions-group" role="group" aria-label="Moderation" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {user.status !== 'banned' && (
                             <button
                               type="button"
                               className="admin-user-icon-btn warn"
+                              style={actionChipStyle('warn')}
                               onClick={() => openWarnModal(user)}
                               disabled={isBusy}
                               title="Warn user…"
                               aria-label="Warn user"
                             >
-                              <ReportProblemOutlinedIcon fontSize="inherit" />
+                              <IconWarn />
                             </button>
                           )}
                           {user.status !== 'banned' && (
                             <button
                               type="button"
                               className="admin-user-icon-btn ban"
+                              style={actionChipStyle('ban')}
                               onClick={() => openBanModal(user)}
                               disabled={isBusy}
                               title="Ban user…"
                               aria-label="Ban user"
                             >
-                              <BlockOutlinedIcon fontSize="inherit" />
+                              <IconBan />
                             </button>
                           )}
                           {user.status === 'banned' && (
                             <button
                               type="button"
                               className="admin-user-icon-btn restore"
+                              style={actionChipStyle('restore')}
                               onClick={() => {
                                 // Lifts both temporary and permanent bans. For permanent
                                 // ones we confirm first because is_active flips back on
@@ -659,30 +821,32 @@ export default function AdminUsersPage() {
                                 : 'Lift permanent ban'}
                               aria-label="Unban user"
                             >
-                              <LockOpenRoundedIcon fontSize="inherit" />
+                              <IconUnban />
                             </button>
                           )}
                           {user.primaryRole !== 'trusted' && trustScore != null && trustScore >= 80 && (
                             <button
                               type="button"
                               className="admin-user-icon-btn promote"
+                              style={actionChipStyle('promote')}
                               onClick={() => promoteToTrusted(user)}
                               disabled={isBusy}
                               title="Promote to Trusted reporter"
                               aria-label="Promote to Trusted reporter"
                             >
-                              <WorkspacePremiumOutlinedIcon fontSize="inherit" />
+                              <IconPromote />
                             </button>
                           )}
                           <button
                             type="button"
                             className="admin-user-icon-btn neutral"
+                            style={actionChipStyle('neutral')}
                             onClick={() => recalcTrust(user)}
                             disabled={isBusy}
                             title="Recalculate trust score"
                             aria-label="Recalculate trust score"
                           >
-                            <RefreshRoundedIcon fontSize="inherit" />
+                            <IconRecalc />
                           </button>
                         </div>
 

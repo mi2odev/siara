@@ -1,5 +1,5 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
@@ -19,6 +19,7 @@ import { AuthContext } from '../../contexts/AuthContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useNotificationStore } from '../../stores/notificationStore'
 import { respondToInfoRequest } from '../../services/reportsService'
+import NotificationBell from '../../components/notifications/NotificationBell'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
@@ -116,6 +117,9 @@ function getNotificationTarget(notification) {
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const requestedNotificationId = searchParams.get('notification')
+  const handledRequestRef = useRef(null)
   const { isAuthenticated, logout, user } = useContext(AuthContext)
   const { loadNotifications, markAllNotificationsRead, markNotificationRead } = useNotifications()
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
@@ -202,6 +206,20 @@ export default function NotificationsPage() {
     () => filteredNotifications.find((notification) => notification.id === selectedNotificationId) || null,
     [filteredNotifications, selectedNotificationId],
   )
+
+  // When arriving from the header bell (or a deep link) with ?notification=<id>,
+  // open that notification's detail once it has loaded. Applied once per id so a
+  // live socket update can't yank the selection back from a manual choice.
+  useEffect(() => {
+    if (!requestedNotificationId || handledRequestRef.current === requestedNotificationId) {
+      return
+    }
+
+    if (notifications.some((notification) => notification.id === requestedNotificationId)) {
+      handledRequestRef.current = requestedNotificationId
+      setSelectedNotificationId(requestedNotificationId)
+    }
+  }, [requestedNotificationId, notifications])
 
   useEffect(() => {
     if (filteredNotifications.length === 0) {
@@ -611,6 +629,7 @@ export default function NotificationsPage() {
             />
           </div>
           <div className="dash-header-right">
+            <NotificationBell />
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown((current) => !current)}>
                 {userAvatarUrl ? (

@@ -220,26 +220,8 @@
 }
 
 /* Header CENTER: Search */
-.dash-header-center {
-  flex: 1;
-  max-width: 440px;
-}
-
-.dash-search {
-  width: 100%;
-  padding: 10px 16px;
-  border: 1px solid #E2E8F0;
-  border-radius: 12px;
-  font-size: 14px;
-  background: #FFFFFF;
-  color: #0F172A;
-  outline: none;
-  transition: border 0.2s;
-}
-
-.dash-search:focus {
-  border-color: var(--siara-btn-accent);
-}
+/* .dash-header-center / .dash-search now live in GlobalHeaderSearch.css
+   (single source of truth, loaded with the search component on every page). */
 
 /* Header RIGHT: Icons + Avatar */
 .dash-header-right {
@@ -248,9 +230,25 @@
   gap: 10px;
 }
 
+/* Deterministic left-to-right order for the header-right cluster. The police
+   mode button is portaled in by PoliceModeTab as the LAST DOM child, so every
+   item needs an explicit order or it lands in the wrong slot (e.g. after the
+   avatar). Order: [Police mode] [Messages] [Notification bell] [Avatar]. */
 .dash-header-right .dash-police-mode-btn {
-  order: 0;
+  order: 1;
   margin-right: 2px;
+}
+
+.dash-header-right .dash-icon-btn {
+  order: 2;
+}
+
+.dash-header-right .notif-bell {
+  order: 3;
+}
+
+.dash-header-right .dash-avatar-wrapper {
+  order: 4;
 }
 
 .dash-icon-btn {
@@ -276,11 +274,17 @@
 
 .dash-icon-btn[aria-label="Notifications"] svg,
 .dash-icon-btn[aria-label="Messages"] svg {
+  display: block;
   width: 20px;
   height: 20px;
   color: #64748B;
   fill: currentColor;
   stroke: none;
+}
+
+.dash-icon-btn[aria-label="Notifications"] svg path,
+.dash-icon-btn[aria-label="Messages"] svg path {
+  fill: currentColor;
 }
 
 .dash-icon-btn svg {

@@ -29,7 +29,7 @@ import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepart
 import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined'
 import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined'
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import NotificationBell from '../../components/notifications/NotificationBell'
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
@@ -710,9 +710,7 @@ export default function ReportIncidentPage() {
               />
             </div>
             <div className="dash-header-right">
-              <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-                <NotificationsOutlinedIcon fontSize="small" /><span className="notification-badge"></span>
-              </button>
+              <NotificationBell />
               <div className="dash-avatar-wrapper">
                 <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                   {userAvatarUrl ? (
@@ -732,19 +730,6 @@ export default function ReportIncidentPage() {
             </div>
           </div>
         </header>
-
-        <div className="success-scroll-nav">
-          <button className="success-scroll-btn" aria-label="Scroll up" onClick={() => window.scrollBy({ top: -260, behavior: 'smooth' })}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="18 15 12 9 6 15" />
-            </svg>
-          </button>
-          <button className="success-scroll-btn" aria-label="Scroll down" onClick={() => window.scrollBy({ top: 260, behavior: 'smooth' })}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-        </div>
 
         <div className="success-container">
           <div className="success-card">
@@ -844,10 +829,7 @@ export default function ReportIncidentPage() {
             />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              <NotificationsOutlinedIcon fontSize="small" />
-              <span className="notification-badge"></span>
-            </button>
+            <NotificationBell />
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {userAvatarUrl ? (
