@@ -11,6 +11,7 @@ import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
 import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined'
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined'
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import NotificationBell from '../../components/notifications/NotificationBell'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
 import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined'
@@ -534,10 +535,7 @@ export default function AlertsPage() {
             />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              <NotificationsOutlinedIcon fontSize="small" />
-              <span className="notification-badge"></span>
-            </button>
+            <NotificationBell />
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {userAvatarUrl ? (

@@ -37,7 +37,9 @@ function ToastItem({ notification }) {
       }
     }
 
-    navigate(notification.data?.reportUrl || notification.data?.mapUrl || '/notifications')
+    // Open the notifications page with this item selected instead of following an
+    // event-specific deep link (e.g. a police map URL). Keeps parity with the bell.
+    navigate(`/notifications?notification=${encodeURIComponent(notification.id)}`)
   }
 
   return (
@@ -53,12 +55,17 @@ function ToastItem({ notification }) {
       role="button"
       tabIndex={0}
     >
+      <span className="notif-toast-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+      </span>
+
       <div className="notif-toast-copy">
         <span className="notif-toast-kicker">{getPriorityLabel(notification.priority)} priority</span>
         <span className="notif-toast-title">{notification.title}</span>
         <span className="notif-toast-body">{notification.body}</span>
-      </div>
-      <div className="notif-toast-actions">
         <button
           type="button"
           className="notif-toast-link"
@@ -67,20 +74,21 @@ function ToastItem({ notification }) {
             void handleView()
           }}
         >
-          View
-        </button>
-        <button
-          type="button"
-          className="notif-toast-close"
-          onClick={(event) => {
-            event.stopPropagation()
-            dismissToast(notification.id)
-          }}
-          aria-label="Dismiss notification"
-        >
-          ×
+          View details
         </button>
       </div>
+
+      <button
+        type="button"
+        className="notif-toast-close"
+        onClick={(event) => {
+          event.stopPropagation()
+          dismissToast(notification.id)
+        }}
+        aria-label="Dismiss notification"
+      >
+        ×
+      </button>
     </div>
   )
 }

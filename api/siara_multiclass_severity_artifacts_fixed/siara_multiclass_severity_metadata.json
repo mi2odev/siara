@@ -1,0 +1,2798 @@
+{
+  "project": "SIARA",
+  "model_name": "multi_class_accident_severity_model_fixed",
+  "model_type": "LightGBM multiclass classifier with safe optional sigmoid calibration",
+  "created_at": "2026-05-24T08:50:58.463333Z",
+  "random_seed": 42,
+  "target": {
+    "original_column": "Severity",
+    "target_transformation": "y = Severity - 1",
+    "class_mapping": {
+      "0": "Severity 1",
+      "1": "Severity 2",
+      "2": "Severity 3",
+      "3": "Severity 4"
+    },
+    "interpretation": "P(Severity=k | Accident, Context). This is conditional on an accident happening.",
+    "danger_percent_definition": "100 * (P(Severity 3) + P(Severity 4))"
+  },
+  "splits": {
+    "method": "chronological with representative full-period sampling",
+    "train": {
+      "start": "dataset_start",
+      "end_exclusive": "2021-09-22 17:57:46.200000",
+      "sample_rows": 1800000
+    },
+    "validation": {
+      "start_inclusive": "2021-09-22 17:57:46.200000",
+      "end_exclusive": "2022-02-24 20:37:32.400000",
+      "sample_rows": 250000
+    },
+    "calibration": {
+      "start_inclusive": "2022-02-24 20:37:32.400000",
+      "end_exclusive": "2022-08-14 17:51:57.600000",
+      "sample_rows": 249686
+    },
+    "test": {
+      "start_inclusive": "2022-08-14 17:51:57.600000",
+      "end": "dataset_end",
+      "sample_rows": 249937
+    },
+    "split_counts_full_dataset": [
+      {
+        "split": "train",
+        "rows": 5092930,
+        "sample_max_rows": 1800000,
+        "sampling_probability": 0.3534311290357417,
+        "severity_1_count": 29432,
+        "severity_2_count": 3742836,
+        "severity_3_count": 1179475,
+        "severity_4_count": 141187
+      },
+      {
+        "split": "val",
+        "rows": 665234,
+        "sample_max_rows": 250000,
+        "sampling_probability": 0.3758076105550829,
+        "severity_1_count": 192,
+        "severity_2_count": 590367,
+        "severity_3_count": 61522,
+        "severity_4_count": 13153
+      },
+      {
+        "split": "cal",
+        "rows": 627171,
+        "sample_max_rows": 250000,
+        "sampling_probability": 0.3986153696519769,
+        "severity_1_count": 29593,
+        "severity_2_count": 533172,
+        "severity_3_count": 50467,
+        "severity_4_count": 13939
+      },
+      {
+        "split": "test",
+        "rows": 599893,
+        "sample_max_rows": 250000,
+        "sampling_probability": 0.4167409854757432,
+        "severity_1_count": 8147,
+        "severity_2_count": 567503,
+        "severity_3_count": 7793,
+        "severity_4_count": 16450
+      }
+    ]
+  },
+  "features": {
+    "all": [
+      "Temperature(F)",
+      "Humidity(%)",
+      "Pressure(in)",
+      "Visibility(mi)",
+      "Wind_Speed(mph)",
+      "Precipitation(in)",
+      "hour",
+      "dow",
+      "month",
+      "hour_sin",
+      "hour_cos",
+      "dow_sin",
+      "dow_cos",
+      "month_sin",
+      "month_cos",
+      "is_weekend",
+      "is_rush_hour",
+      "is_night",
+      "is_rain",
+      "low_visibility",
+      "strong_wind",
+      "bad_weather",
+      "night_and_rain",
+      "junction_and_rush_hour",
+      "Wind_Direction",
+      "Weather_Condition",
+      "Sunrise_Sunset",
+      "Civil_Twilight",
+      "Nautical_Twilight",
+      "Astronomical_Twilight",
+      "Amenity",
+      "Bump",
+      "Crossing",
+      "Give_Way",
+      "Junction",
+      "No_Exit",
+      "Railway",
+      "Roundabout",
+      "Station",
+      "Stop",
+      "Traffic_Calming",
+      "Traffic_Signal",
+      "Turning_Loop"
+    ],
+    "numeric": [
+      "Temperature(F)",
+      "Humidity(%)",
+      "Pressure(in)",
+      "Visibility(mi)",
+      "Wind_Speed(mph)",
+      "Precipitation(in)",
+      "hour",
+      "dow",
+      "month",
+      "hour_sin",
+      "hour_cos",
+      "dow_sin",
+      "dow_cos",
+      "month_sin",
+      "month_cos",
+      "is_weekend",
+      "is_rush_hour",
+      "is_night",
+      "is_rain",
+      "low_visibility",
+      "strong_wind",
+      "bad_weather",
+      "night_and_rain",
+      "junction_and_rush_hour"
+    ],
+    "categorical": [
+      "Wind_Direction",
+      "Weather_Condition",
+      "Sunrise_Sunset",
+      "Civil_Twilight",
+      "Nautical_Twilight",
+      "Astronomical_Twilight"
+    ],
+    "boolean": [
+      "Amenity",
+      "Bump",
+      "Crossing",
+      "Give_Way",
+      "Junction",
+      "No_Exit",
+      "Railway",
+      "Roundabout",
+      "Station",
+      "Stop",
+      "Traffic_Calming",
+      "Traffic_Signal",
+      "Turning_Loop"
+    ],
+    "base_weather_numeric": [
+      "Temperature(F)",
+      "Humidity(%)",
+      "Pressure(in)",
+      "Visibility(mi)",
+      "Wind_Speed(mph)",
+      "Precipitation(in)"
+    ],
+    "engineered": [
+      "is_weekend",
+      "is_rush_hour",
+      "is_night",
+      "is_rain",
+      "low_visibility",
+      "strong_wind",
+      "bad_weather",
+      "night_and_rain",
+      "junction_and_rush_hour",
+      "hour_sin",
+      "hour_cos",
+      "dow_sin",
+      "dow_cos",
+      "month_sin",
+      "month_cos"
+    ]
+  },
+  "preprocess": {
+    "numeric_median": {
+      "Temperature(F)": 66.0,
+      "Humidity(%)": 67.0,
+      "Pressure(in)": 29.9,
+      "Visibility(mi)": 10.0,
+      "Wind_Speed(mph)": 7.0,
+      "Precipitation(in)": 0.0
+    },
+    "numeric_clip_p01_p99": {
+      "Temperature(F)": {
+        "p01": 15.0,
+        "p99": 96.8
+      },
+      "Humidity(%)": {
+        "p01": 12.0,
+        "p99": 100.0
+      },
+      "Pressure(in)": {
+        "p01": 25.13,
+        "p99": 30.48
+      },
+      "Visibility(mi)": {
+        "p01": 0.5,
+        "p99": 10.0
+      },
+      "Wind_Speed(mph)": {
+        "p01": 0.0,
+        "p99": 22.820000000006985
+      },
+      "Precipitation(in)": {
+        "p01": 0.0,
+        "p99": 0.29
+      }
+    },
+    "top_weather_condition": [
+      "Fair",
+      "Clear",
+      "Mostly Cloudy",
+      "Partly Cloudy",
+      "Cloudy",
+      "Overcast",
+      "Light Rain",
+      "Scattered Clouds",
+      "Unknown",
+      "Light Snow",
+      "Fog",
+      "Rain",
+      "Haze",
+      "Heavy Rain",
+      "Fair / Windy",
+      "Light Drizzle",
+      "Smoke",
+      "T-Storm",
+      "Thunder in the Vicinity",
+      "Mostly Cloudy / Windy",
+      "Cloudy / Windy",
+      "Snow",
+      "Thunder",
+      "Light Rain with Thunder",
+      "Partly Cloudy / Windy",
+      "Wintry Mix",
+      "Light Thunderstorms and Rain",
+      "Heavy T-Storm",
+      "Thunderstorm",
+      "Light Rain / Windy",
+      "Drizzle",
+      "Patches of Fog",
+      "Mist",
+      "Heavy Thunderstorms and Rain",
+      "Light Freezing Rain",
+      "Light Snow / Windy",
+      "Thunderstorms and Rain",
+      "Heavy Snow",
+      "Shallow Fog",
+      "N/A Precipitation",
+      "Rain / Windy",
+      "Light Freezing Drizzle",
+      "Light Freezing Fog",
+      "Showers in the Vicinity",
+      "Heavy Rain / Windy",
+      "Heavy T-Storm / Windy",
+      "Haze / Windy",
+      "T-Storm / Windy",
+      "Snow / Windy",
+      "Blowing Snow",
+      "Heavy Drizzle",
+      "Thunder / Windy",
+      "Light Ice Pellets",
+      "Drizzle and Fog",
+      "Fog / Windy",
+      "Heavy Snow / Windy",
+      "Light Rain Shower",
+      "Blowing Dust / Windy",
+      "Widespread Dust",
+      "Light Rain Showers",
+      "Blowing Dust",
+      "Snow and Sleet",
+      "Wintry Mix / Windy",
+      "Light Drizzle / Windy",
+      "Rain Showers",
+      "Blowing Snow / Windy",
+      "Ice Pellets",
+      "Light Sleet",
+      "Smoke / Windy",
+      "Freezing Rain",
+      "Small Hail",
+      "Light Snow and Sleet",
+      "Sleet",
+      "Light Freezing Rain / Windy",
+      "Rain Shower",
+      "Sand / Dust Whirlwinds",
+      "Partial Fog",
+      "Squalls / Windy",
+      "Squalls",
+      "Snow and Sleet / Windy",
+      "Light Snow and Sleet / Windy",
+      "Light Snow Showers",
+      "Volcanic Ash",
+      "Light Thunderstorms and Snow",
+      "Heavy Sleet",
+      "Funnel Cloud",
+      "Sand",
+      "Freezing Drizzle",
+      "Light Snow with Thunder",
+      "Drizzle / Windy",
+      "Light Rain Shower / Windy",
+      "Thunder / Wintry Mix",
+      "Light Haze",
+      "Light Snow Shower",
+      "Tornado",
+      "Snow Grains",
+      "Heavy Rain Showers",
+      "Patches of Fog / Windy",
+      "Heavy Thunderstorms with Small Hail",
+      "Heavy Freezing Rain",
+      "Light Snow Grains",
+      "Heavy Snow with Thunder",
+      "Low Drifting Snow",
+      "Heavy Thunderstorms and Snow",
+      "Light Sleet / Windy",
+      "Thunder / Wintry Mix / Windy",
+      "Light Fog",
+      "Heavy Ice Pellets",
+      "Sand / Dust Whirls Nearby",
+      "Thunder and Hail",
+      "Widespread Dust / Windy",
+      "Sand / Dust Whirlwinds / Windy",
+      "Heavy Blowing Snow",
+      "Hail",
+      "Duststorm",
+      "Freezing Rain / Windy",
+      "Light Hail",
+      "Light Thunderstorm",
+      "Heavy Freezing Drizzle",
+      "Light Blowing Snow"
+    ],
+    "top_weather_condition_n": 120,
+    "categorical_levels": {
+      "Wind_Direction": [
+        "CALM",
+        "Calm",
+        "E",
+        "ENE",
+        "ESE",
+        "East",
+        "N",
+        "NE",
+        "NNE",
+        "NNW",
+        "NW",
+        "North",
+        "S",
+        "SE",
+        "SSE",
+        "SSW",
+        "SW",
+        "South",
+        "Unknown",
+        "VAR",
+        "Variable",
+        "W",
+        "WNW",
+        "WSW",
+        "West"
+      ],
+      "Weather_Condition": [
+        "Blowing Dust",
+        "Blowing Dust / Windy",
+        "Blowing Snow",
+        "Blowing Snow / Windy",
+        "Clear",
+        "Cloudy",
+        "Cloudy / Windy",
+        "Drizzle",
+        "Drizzle / Windy",
+        "Drizzle and Fog",
+        "Duststorm",
+        "Fair",
+        "Fair / Windy",
+        "Fog",
+        "Fog / Windy",
+        "Freezing Drizzle",
+        "Freezing Rain",
+        "Freezing Rain / Windy",
+        "Funnel Cloud",
+        "Hail",
+        "Haze",
+        "Haze / Windy",
+        "Heavy Blowing Snow",
+        "Heavy Drizzle",
+        "Heavy Freezing Drizzle",
+        "Heavy Freezing Rain",
+        "Heavy Ice Pellets",
+        "Heavy Rain",
+        "Heavy Rain / Windy",
+        "Heavy Rain Showers",
+        "Heavy Sleet",
+        "Heavy Snow",
+        "Heavy Snow / Windy",
+        "Heavy Snow with Thunder",
+        "Heavy T-Storm",
+        "Heavy T-Storm / Windy",
+        "Heavy Thunderstorms and Rain",
+        "Heavy Thunderstorms and Snow",
+        "Heavy Thunderstorms with Small Hail",
+        "Ice Pellets",
+        "Light Blowing Snow",
+        "Light Drizzle",
+        "Light Drizzle / Windy",
+        "Light Freezing Drizzle",
+        "Light Freezing Fog",
+        "Light Freezing Rain",
+        "Light Freezing Rain / Windy",
+        "Light Hail",
+        "Light Haze",
+        "Light Ice Pellets",
+        "Light Rain",
+        "Light Rain / Windy",
+        "Light Rain Shower",
+        "Light Rain Shower / Windy",
+        "Light Rain Showers",
+        "Light Rain with Thunder",
+        "Light Sleet",
+        "Light Sleet / Windy",
+        "Light Snow",
+        "Light Snow / Windy",
+        "Light Snow Grains",
+        "Light Snow Shower",
+        "Light Snow Showers",
+        "Light Snow and Sleet",
+        "Light Snow and Sleet / Windy",
+        "Light Snow with Thunder",
+        "Light Thunderstorm",
+        "Light Thunderstorms and Rain",
+        "Light Thunderstorms and Snow",
+        "Low Drifting Snow",
+        "Mist",
+        "Mostly Cloudy",
+        "Mostly Cloudy / Windy",
+        "N/A Precipitation",
+        "Other",
+        "Overcast",
+        "Partial Fog",
+        "Partly Cloudy",
+        "Partly Cloudy / Windy",
+        "Patches of Fog",
+        "Patches of Fog / Windy",
+        "Rain",
+        "Rain / Windy",
+        "Rain Shower",
+        "Rain Showers",
+        "Sand",
+        "Sand / Dust Whirlwinds",
+        "Sand / Dust Whirlwinds / Windy",
+        "Scattered Clouds",
+        "Shallow Fog",
+        "Showers in the Vicinity",
+        "Sleet",
+        "Small Hail",
+        "Smoke",
+        "Smoke / Windy",
+        "Snow",
+        "Snow / Windy",
+        "Snow Grains",
+        "Snow and Sleet",
+        "Snow and Sleet / Windy",
+        "Squalls",
+        "Squalls / Windy",
+        "T-Storm",
+        "T-Storm / Windy",
+        "Thunder",
+        "Thunder / Windy",
+        "Thunder / Wintry Mix",
+        "Thunder / Wintry Mix / Windy",
+        "Thunder and Hail",
+        "Thunder in the Vicinity",
+        "Thunderstorm",
+        "Thunderstorms and Rain",
+        "Tornado",
+        "Unknown",
+        "Volcanic Ash",
+        "Widespread Dust",
+        "Widespread Dust / Windy",
+        "Wintry Mix",
+        "Wintry Mix / Windy"
+      ],
+      "Sunrise_Sunset": [
+        "Day",
+        "Night",
+        "Unknown"
+      ],
+      "Civil_Twilight": [
+        "Day",
+        "Night",
+        "Unknown"
+      ],
+      "Nautical_Twilight": [
+        "Day",
+        "Night",
+        "Unknown"
+      ],
+      "Astronomical_Twilight": [
+        "Day",
+        "Night",
+        "Unknown"
+      ]
+    }
+  },
+  "training": {
+    "algorithm": "LightGBM",
+    "objective": "multiclass",
+    "num_class": 4,
+    "class_imbalance_strategy": "soft_sqrt",
+    "class_weights": {
+      "0": 6.568783120834539,
+      "1": 0.5833459006118721,
+      "2": 1.038803831543861,
+      "3": 2.994912968261787
+    },
+    "best_iteration": 25830,
+    "parameters": {
+      "boosting_type": "gbdt",
+      "class_weight": null,
+      "colsample_bytree": 0.8,
+      "importance_type": "split",
+      "learning_rate": 0.03,
+      "max_depth": -1,
+      "min_child_samples": 40,
+      "min_child_weight": 0.001,
+      "min_split_gain": 0.0,
+      "n_estimators": 50000,
+      "n_jobs": -1,
+      "num_leaves": 64,
+      "objective": "multiclass",
+      "random_state": 42,
+      "reg_alpha": 0.0,
+      "reg_lambda": 1.0,
+      "subsample": 0.8,
+      "subsample_for_bin": 200000,
+      "subsample_freq": 1,
+      "num_class": 4,
+      "verbose": -1
+    }
+  },
+  "calibration": {
+    "method": "sigmoid",
+    "fit_rows": 150000,
+    "max_fit_rows": 150000,
+    "selection": {
+      "final_model_name": "base_lightgbm",
+      "use_calibrated": false,
+      "reasons": [
+        "Rejected calibration: calibrated model appears collapsed.",
+        "Rejected calibration: macro_f1 dropped by more than 0.02."
+      ]
+    },
+    "final_model_name": "base_lightgbm"
+  },
+  "metrics": {
+    "base_validation": {
+      "split": "validation",
+      "model_name": "base_lightgbm",
+      "n_rows": 250000,
+      "multi_logloss": 0.469535727564327,
+      "accuracy": 0.858848,
+      "macro_f1": 0.2611913380685302,
+      "weighted_f1": 0.8313053776490122,
+      "ovr_macro_auc": 0.6268180561638668,
+      "danger_logloss_binary_3_4": 0.41453053887234154,
+      "danger_brier_binary_3_4": 0.12737011109208876,
+      "severe_precision_at_0_50": 0.19362141287702245,
+      "severe_recall_at_0_50": 0.10422939068100358,
+      "severe_f1_at_0_50": 0.13551107900929657,
+      "severe_roc_auc": 0.6194163673084713,
+      "severe_pr_auc": 0.15861878572382473,
+      "ordinal_mae_predicted_class": 0.160412,
+      "ordinal_mae_expected_severity": 0.33069116256715947,
+      "predicted_class_share_sev1": 4.8e-05,
+      "predicted_class_share_sev2": 0.953592,
+      "predicted_class_share_sev3": 0.04552,
+      "predicted_class_share_sev4": 0.00084,
+      "max_predicted_class_share": 0.953592,
+      "unique_predicted_classes": 4,
+      "danger_probability_std": 0.15610716246658912,
+      "is_collapsed": true
+    },
+    "base_test": {
+      "split": "test",
+      "model_name": "base_lightgbm",
+      "n_rows": 249937,
+      "multi_logloss": 0.5959710704732224,
+      "accuracy": 0.8907724746636152,
+      "macro_f1": 0.25346659046801423,
+      "weighted_f1": 0.8934754987368927,
+      "ovr_macro_auc": 0.6291467347663627,
+      "danger_logloss_binary_3_4": 0.3757107990362546,
+      "danger_brier_binary_3_4": 0.11087215310655864,
+      "severe_precision_at_0_50": 0.06843698135311921,
+      "severe_recall_at_0_50": 0.1396414342629482,
+      "severe_f1_at_0_50": 0.09185612264954465,
+      "severe_roc_auc": 0.5833182586643634,
+      "severe_pr_auc": 0.05541635406351893,
+      "ordinal_mae_predicted_class": 0.13623033004317087,
+      "ordinal_mae_expected_severity": 0.35397604849397085,
+      "predicted_class_share_sev1": 0.00022805747048256162,
+      "predicted_class_share_sev2": 0.9374242309061883,
+      "predicted_class_share_sev3": 0.06085933655281131,
+      "predicted_class_share_sev4": 0.0014883750705177706,
+      "max_predicted_class_share": 0.9374242309061883,
+      "unique_predicted_classes": 4,
+      "danger_probability_std": 0.16154127518479577,
+      "is_collapsed": false
+    },
+    "calibrated_validation": {
+      "split": "validation",
+      "model_name": "calibrated_lightgbm",
+      "n_rows": 250000,
+      "multi_logloss": 0.44382867110821766,
+      "accuracy": 0.888152,
+      "macro_f1": 0.2351908109092912,
+      "weighted_f1": 0.8355407563628352,
+      "ovr_macro_auc": 0.6099699862828595,
+      "danger_logloss_binary_3_4": 0.3452509818122877,
+      "danger_brier_binary_3_4": 0.09827861555053957,
+      "severe_precision_at_0_50": 0.0,
+      "severe_recall_at_0_50": 0.0,
+      "severe_f1_at_0_50": 0.0,
+      "severe_roc_auc": 0.6184123200824969,
+      "severe_pr_auc": 0.15822428769838537,
+      "ordinal_mae_predicted_class": 0.131716,
+      "ordinal_mae_expected_severity": 0.17808177274674666,
+      "predicted_class_share_sev1": 0.0,
+      "predicted_class_share_sev2": 1.0,
+      "predicted_class_share_sev3": 0.0,
+      "predicted_class_share_sev4": 0.0,
+      "max_predicted_class_share": 1.0,
+      "unique_predicted_classes": 1,
+      "danger_probability_std": 0.026273477066487517,
+      "is_collapsed": true
+    },
+    "calibrated_test": {
+      "split": "test",
+      "model_name": "calibrated_lightgbm",
+      "n_rows": 249937,
+      "multi_logloss": 0.32059428097255643,
+      "accuracy": 0.9461744359578613,
+      "macro_f1": 0.24308572203913895,
+      "weighted_f1": 0.9200059837591671,
+      "ovr_macro_auc": 0.6097037715120376,
+      "danger_logloss_binary_3_4": 0.18791300643815173,
+      "danger_brier_binary_3_4": 0.04152337607667429,
+      "severe_precision_at_0_50": 0.0,
+      "severe_recall_at_0_50": 0.0,
+      "severe_f1_at_0_50": 0.0,
+      "severe_roc_auc": 0.5772386487514305,
+      "severe_pr_auc": 0.053821022208979136,
+      "ordinal_mae_predicted_class": 0.08100041210385017,
+      "ordinal_mae_expected_severity": 0.14157885621370633,
+      "predicted_class_share_sev1": 0.0,
+      "predicted_class_share_sev2": 1.0,
+      "predicted_class_share_sev3": 0.0,
+      "predicted_class_share_sev4": 0.0,
+      "max_predicted_class_share": 1.0,
+      "unique_predicted_classes": 1,
+      "danger_probability_std": 0.027855473286684654,
+      "is_collapsed": true
+    },
+    "final_validation": {
+      "split": "validation",
+      "model_name": "base_lightgbm",
+      "n_rows": 250000,
+      "multi_logloss": 0.469535727564327,
+      "accuracy": 0.858848,
+      "macro_f1": 0.2611913380685302,
+      "weighted_f1": 0.8313053776490122,
+      "ovr_macro_auc": 0.6268180561638668,
+      "danger_logloss_binary_3_4": 0.41453053887234154,
+      "danger_brier_binary_3_4": 0.12737011109208876,
+      "severe_precision_at_0_50": 0.19362141287702245,
+      "severe_recall_at_0_50": 0.10422939068100358,
+      "severe_f1_at_0_50": 0.13551107900929657,
+      "severe_roc_auc": 0.6194163673084713,
+      "severe_pr_auc": 0.15861878572382473,
+      "ordinal_mae_predicted_class": 0.160412,
+      "ordinal_mae_expected_severity": 0.33069116256715947,
+      "predicted_class_share_sev1": 4.8e-05,
+      "predicted_class_share_sev2": 0.953592,
+      "predicted_class_share_sev3": 0.04552,
+      "predicted_class_share_sev4": 0.00084,
+      "max_predicted_class_share": 0.953592,
+      "unique_predicted_classes": 4,
+      "danger_probability_std": 0.15610716246658912,
+      "is_collapsed": true
+    },
+    "final_test": {
+      "split": "test",
+      "model_name": "base_lightgbm",
+      "n_rows": 249937,
+      "multi_logloss": 0.5959710704732224,
+      "accuracy": 0.8907724746636152,
+      "macro_f1": 0.25346659046801423,
+      "weighted_f1": 0.8934754987368927,
+      "ovr_macro_auc": 0.6291467347663627,
+      "danger_logloss_binary_3_4": 0.3757107990362546,
+      "danger_brier_binary_3_4": 0.11087215310655864,
+      "severe_precision_at_0_50": 0.06843698135311921,
+      "severe_recall_at_0_50": 0.1396414342629482,
+      "severe_f1_at_0_50": 0.09185612264954465,
+      "severe_roc_auc": 0.5833182586643634,
+      "severe_pr_auc": 0.05541635406351893,
+      "ordinal_mae_predicted_class": 0.13623033004317087,
+      "ordinal_mae_expected_severity": 0.35397604849397085,
+      "predicted_class_share_sev1": 0.00022805747048256162,
+      "predicted_class_share_sev2": 0.9374242309061883,
+      "predicted_class_share_sev3": 0.06085933655281131,
+      "predicted_class_share_sev4": 0.0014883750705177706,
+      "max_predicted_class_share": 0.9374242309061883,
+      "unique_predicted_classes": 4,
+      "danger_probability_std": 0.16154127518479577,
+      "is_collapsed": false
+    }
+  },
+  "danger_thresholds": {
+    "q50": 23.045799059294396,
+    "q75": 33.929183532970136,
+    "q90": 44.63723060900197,
+    "source": "base_lightgbm validation predictions",
+    "definition": "danger_percent = 100 * (P(Severity 3) + P(Severity 4))"
+  },
+  "baseline_by_hour_dow": {
+    "0_0": {
+      "hour": 0,
+      "dow": 0,
+      "n": 3201,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5310840362386754,
+        "severity_2": 77.00718525460793,
+        "severity_3": 14.995313964386128,
+        "severity_4": 7.46641674476726
+      },
+      "historical_danger_percent": 22.46173070915339
+    },
+    "0_1": {
+      "hour": 0,
+      "dow": 1,
+      "n": 3550,
+      "severity_probabilities_percent": {
+        "severity_1": 0.4507042253521127,
+        "severity_2": 79.52112676056338,
+        "severity_3": 12.422535211267606,
+        "severity_4": 7.605633802816901
+      },
+      "historical_danger_percent": 20.028169014084508
+    },
+    "0_2": {
+      "hour": 0,
+      "dow": 2,
+      "n": 3780,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3439153439153439,
+        "severity_2": 79.41798941798942,
+        "severity_3": 12.513227513227513,
+        "severity_4": 7.724867724867725
+      },
+      "historical_danger_percent": 20.238095238095237
+    },
+    "0_3": {
+      "hour": 0,
+      "dow": 3,
+      "n": 3721,
+      "severity_probabilities_percent": {
+        "severity_1": 0.37624294544477294,
+        "severity_2": 81.32222520827735,
+        "severity_3": 11.986025262026336,
+        "severity_4": 6.315506584251546
+      },
+      "historical_danger_percent": 18.301531846277882
+    },
+    "0_4": {
+      "hour": 0,
+      "dow": 4,
+      "n": 3858,
+      "severity_probabilities_percent": {
+        "severity_1": 0.23328149300155523,
+        "severity_2": 79.44530844997408,
+        "severity_3": 13.21928460342146,
+        "severity_4": 7.102125453602904
+      },
+      "historical_danger_percent": 20.321410057024362
+    },
+    "0_5": {
+      "hour": 0,
+      "dow": 5,
+      "n": 3950,
+      "severity_probabilities_percent": {
+        "severity_1": 0.4810126582278481,
+        "severity_2": 78.15189873417722,
+        "severity_3": 14.607594936708862,
+        "severity_4": 6.7594936708860756
+      },
+      "historical_danger_percent": 21.367088607594937
+    },
+    "0_6": {
+      "hour": 0,
+      "dow": 6,
+      "n": 3501,
+      "severity_probabilities_percent": {
+        "severity_1": 0.2570694087403599,
+        "severity_2": 76.06398171950872,
+        "severity_3": 15.48129105969723,
+        "severity_4": 8.197657812053698
+      },
+      "historical_danger_percent": 23.67894887175093
+    },
+    "1_0": {
+      "hour": 1,
+      "dow": 0,
+      "n": 2820,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3900709219858156,
+        "severity_2": 80.35460992907801,
+        "severity_3": 13.333333333333334,
+        "severity_4": 5.921985815602837
+      },
+      "historical_danger_percent": 19.25531914893617
+    },
+    "1_1": {
+      "hour": 1,
+      "dow": 1,
+      "n": 2940,
+      "severity_probabilities_percent": {
+        "severity_1": 0.13605442176870747,
+        "severity_2": 83.36734693877551,
+        "severity_3": 11.428571428571429,
+        "severity_4": 5.068027210884353
+      },
+      "historical_danger_percent": 16.49659863945578
+    },
+    "1_2": {
+      "hour": 1,
+      "dow": 2,
+      "n": 3365,
+      "severity_probabilities_percent": {
+        "severity_1": 0.2674591381872214,
+        "severity_2": 83.12035661218425,
+        "severity_3": 11.203566121842497,
+        "severity_4": 5.408618127786033
+      },
+      "historical_danger_percent": 16.61218424962853
+    },
+    "1_3": {
+      "hour": 1,
+      "dow": 3,
+      "n": 3381,
+      "severity_probabilities_percent": {
+        "severity_1": 0.354924578527063,
+        "severity_2": 84.32416444838805,
+        "severity_3": 10.736468500443657,
+        "severity_4": 4.58444247264123
+      },
+      "historical_danger_percent": 15.320910973084887
+    },
+    "1_4": {
+      "hour": 1,
+      "dow": 4,
+      "n": 3352,
+      "severity_probabilities_percent": {
+        "severity_1": 0.32816229116945106,
+        "severity_2": 82.84606205250597,
+        "severity_3": 11.097852028639618,
+        "severity_4": 5.727923627684964
+      },
+      "historical_danger_percent": 16.82577565632458
+    },
+    "1_5": {
+      "hour": 1,
+      "dow": 5,
+      "n": 3612,
+      "severity_probabilities_percent": {
+        "severity_1": 0.636766334440753,
+        "severity_2": 80.06644518272425,
+        "severity_3": 13.981173864894794,
+        "severity_4": 5.3156146179401995
+      },
+      "historical_danger_percent": 19.29678848283499
+    },
+    "1_6": {
+      "hour": 1,
+      "dow": 6,
+      "n": 3353,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5964807634953773,
+        "severity_2": 76.58813003280645,
+        "severity_3": 16.7611094542201,
+        "severity_4": 6.05427974947808
+      },
+      "historical_danger_percent": 22.81538920369818
+    },
+    "2_0": {
+      "hour": 2,
+      "dow": 0,
+      "n": 2766,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5422993492407809,
+        "severity_2": 78.05495300072307,
+        "severity_3": 15.654374548083878,
+        "severity_4": 5.748373101952278
+      },
+      "historical_danger_percent": 21.402747650036154
+    },
+    "2_1": {
+      "hour": 2,
+      "dow": 1,
+      "n": 2782,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3235082674335011,
+        "severity_2": 80.5176132278936,
+        "severity_3": 13.407620416966212,
+        "severity_4": 5.7512580877066855
+      },
+      "historical_danger_percent": 19.1588785046729
+    },
+    "2_2": {
+      "hour": 2,
+      "dow": 2,
+      "n": 2894,
+      "severity_probabilities_percent": {
+        "severity_1": 0.17277125086385625,
+        "severity_2": 82.82653766413269,
+        "severity_3": 11.679336558396683,
+        "severity_4": 5.321354526606773
+      },
+      "historical_danger_percent": 17.000691085003456
+    },
+    "2_3": {
+      "hour": 2,
+      "dow": 3,
+      "n": 3034,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3955174686882004,
+        "severity_2": 81.83915622940013,
+        "severity_3": 12.887277521423862,
+        "severity_4": 4.878048780487805
+      },
+      "historical_danger_percent": 17.765326301911667
+    },
+    "2_4": {
+      "hour": 2,
+      "dow": 4,
+      "n": 3142,
+      "severity_probabilities_percent": {
+        "severity_1": 0.4137492043284532,
+        "severity_2": 80.90388287714832,
+        "severity_3": 13.3991088478676,
+        "severity_4": 5.2832590706556335
+      },
+      "historical_danger_percent": 18.682367918523234
+    },
+    "2_5": {
+      "hour": 2,
+      "dow": 5,
+      "n": 3715,
+      "severity_probabilities_percent": {
+        "severity_1": 0.2960969044414536,
+        "severity_2": 77.30820995962316,
+        "severity_3": 16.608344549125167,
+        "severity_4": 5.787348586810229
+      },
+      "historical_danger_percent": 22.395693135935396
+    },
+    "2_6": {
+      "hour": 2,
+      "dow": 6,
+      "n": 3445,
+      "severity_probabilities_percent": {
+        "severity_1": 0.46444121915820025,
+        "severity_2": 74.13642960812771,
+        "severity_3": 17.677793904209,
+        "severity_4": 7.721335268505079
+      },
+      "historical_danger_percent": 25.39912917271408
+    },
+    "3_0": {
+      "hour": 3,
+      "dow": 0,
+      "n": 2742,
+      "severity_probabilities_percent": {
+        "severity_1": 0.47410649161196206,
+        "severity_2": 78.08169219547776,
+        "severity_3": 14.916119620714808,
+        "severity_4": 6.528081692195478
+      },
+      "historical_danger_percent": 21.444201312910284
+    },
+    "3_1": {
+      "hour": 3,
+      "dow": 1,
+      "n": 2565,
+      "severity_probabilities_percent": {
+        "severity_1": 0.31189083820662766,
+        "severity_2": 75.7504873294347,
+        "severity_3": 16.530214424951268,
+        "severity_4": 7.4074074074074066
+      },
+      "historical_danger_percent": 23.937621832358673
+    },
+    "3_2": {
+      "hour": 3,
+      "dow": 2,
+      "n": 2520,
+      "severity_probabilities_percent": {
+        "severity_1": 0.2380952380952381,
+        "severity_2": 78.65079365079364,
+        "severity_3": 14.642857142857144,
+        "severity_4": 6.468253968253969
+      },
+      "historical_danger_percent": 21.111111111111114
+    },
+    "3_3": {
+      "hour": 3,
+      "dow": 3,
+      "n": 2710,
+      "severity_probabilities_percent": {
+        "severity_1": 0.44280442804428044,
+        "severity_2": 78.04428044280442,
+        "severity_3": 15.756457564575646,
+        "severity_4": 5.756457564575646
+      },
+      "historical_danger_percent": 21.512915129151292
+    },
+    "3_4": {
+      "hour": 3,
+      "dow": 4,
+      "n": 3014,
+      "severity_probabilities_percent": {
+        "severity_1": 0.43132050431320507,
+        "severity_2": 78.36761778367618,
+        "severity_3": 15.12939615129396,
+        "severity_4": 6.071665560716656
+      },
+      "historical_danger_percent": 21.201061712010617
+    },
+    "3_5": {
+      "hour": 3,
+      "dow": 5,
+      "n": 2887,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7273986837547627,
+        "severity_2": 75.09525458953932,
+        "severity_3": 17.319016279875303,
+        "severity_4": 6.85833044683062
+      },
+      "historical_danger_percent": 24.177346726705924
+    },
+    "3_6": {
+      "hour": 3,
+      "dow": 6,
+      "n": 2995,
+      "severity_probabilities_percent": {
+        "severity_1": 0.46744574290484137,
+        "severity_2": 72.75459098497495,
+        "severity_3": 18.664440734557598,
+        "severity_4": 8.113522537562606
+      },
+      "historical_danger_percent": 26.777963272120203
+    },
+    "4_0": {
+      "hour": 4,
+      "dow": 0,
+      "n": 7106,
+      "severity_probabilities_percent": {
+        "severity_1": 0.30959752321981426,
+        "severity_2": 74.69743878412609,
+        "severity_3": 21.57331832254433,
+        "severity_4": 3.419645370109766
+      },
+      "historical_danger_percent": 24.992963692654097
+    },
+    "4_1": {
+      "hour": 4,
+      "dow": 1,
+      "n": 6394,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3440725680325305,
+        "severity_2": 74.39787300594307,
+        "severity_3": 22.286518611197998,
+        "severity_4": 2.9715358148264
+      },
+      "historical_danger_percent": 25.258054426024394
+    },
+    "4_2": {
+      "hour": 4,
+      "dow": 2,
+      "n": 6785,
+      "severity_probabilities_percent": {
+        "severity_1": 0.23581429624170966,
+        "severity_2": 74.6352247605011,
+        "severity_3": 22.10759027266028,
+        "severity_4": 3.0213706705969052
+      },
+      "historical_danger_percent": 25.128960943257184
+    },
+    "4_3": {
+      "hour": 4,
+      "dow": 3,
+      "n": 6818,
+      "severity_probabilities_percent": {
+        "severity_1": 0.20533880903490762,
+        "severity_2": 74.34731592842476,
+        "severity_3": 22.513933704898797,
+        "severity_4": 2.933411557641537
+      },
+      "historical_danger_percent": 25.44734526254033
+    },
+    "4_4": {
+      "hour": 4,
+      "dow": 4,
+      "n": 7816,
+      "severity_probabilities_percent": {
+        "severity_1": 0.23029682702149437,
+        "severity_2": 76.06192425793245,
+        "severity_3": 20.66274309109519,
+        "severity_4": 3.04503582395087
+      },
+      "historical_danger_percent": 23.70777891504606
+    },
+    "4_5": {
+      "hour": 4,
+      "dow": 5,
+      "n": 3051,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3605375286791216,
+        "severity_2": 71.58308751229106,
+        "severity_3": 20.386758439855786,
+        "severity_4": 7.669616519174041
+      },
+      "historical_danger_percent": 28.056374959029828
+    },
+    "4_6": {
+      "hour": 4,
+      "dow": 6,
+      "n": 3052,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6225425950196593,
+        "severity_2": 69.39711664482306,
+        "severity_3": 21.428571428571427,
+        "severity_4": 8.551769331585845
+      },
+      "historical_danger_percent": 29.980340760157276
+    },
+    "5_0": {
+      "hour": 5,
+      "dow": 0,
+      "n": 10171,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3441156228492774,
+        "severity_2": 74.69275390817029,
+        "severity_3": 21.78743486382853,
+        "severity_4": 3.175695605151903
+      },
+      "historical_danger_percent": 24.96313046898043
+    },
+    "5_1": {
+      "hour": 5,
+      "dow": 1,
+      "n": 9704,
+      "severity_probabilities_percent": {
+        "severity_1": 0.4328112118713932,
+        "severity_2": 75.0515251442704,
+        "severity_3": 21.702390766694148,
+        "severity_4": 2.813272877164056
+      },
+      "historical_danger_percent": 24.5156636438582
+    },
+    "5_2": {
+      "hour": 5,
+      "dow": 2,
+      "n": 9932,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3322593636729762,
+        "severity_2": 74.89931534434152,
+        "severity_3": 22.211035038260167,
+        "severity_4": 2.5573902537253326
+      },
+      "historical_danger_percent": 24.7684252919855
+    },
+    "5_3": {
+      "hour": 5,
+      "dow": 3,
+      "n": 9822,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3563429036856038,
+        "severity_2": 74.88291590307473,
+        "severity_3": 21.909997963754833,
+        "severity_4": 2.8507432294848303
+      },
+      "historical_danger_percent": 24.760741193239667
+    },
+    "5_4": {
+      "hour": 5,
+      "dow": 4,
+      "n": 10068,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3476360746920938,
+        "severity_2": 75.64560985299961,
+        "severity_3": 20.570123162495033,
+        "severity_4": 3.43663090981327
+      },
+      "historical_danger_percent": 24.006754072308304
+    },
+    "5_5": {
+      "hour": 5,
+      "dow": 5,
+      "n": 3206,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8109794135995009,
+        "severity_2": 72.52027448533998,
+        "severity_3": 20.83593262632564,
+        "severity_4": 5.8328134747348725
+      },
+      "historical_danger_percent": 26.668746101060513
+    },
+    "5_6": {
+      "hour": 5,
+      "dow": 6,
+      "n": 3117,
+      "severity_probabilities_percent": {
+        "severity_1": 0.44914982354828364,
+        "severity_2": 70.19570099454604,
+        "severity_3": 21.97625922361245,
+        "severity_4": 7.378889958293231
+      },
+      "historical_danger_percent": 29.35514918190568
+    },
+    "6_0": {
+      "hour": 6,
+      "dow": 0,
+      "n": 18116,
+      "severity_probabilities_percent": {
+        "severity_1": 0.40295871053212634,
+        "severity_2": 74.20512254360786,
+        "severity_3": 23.50960476926474,
+        "severity_4": 1.8823139765952748
+      },
+      "historical_danger_percent": 25.391918745860014
+    },
+    "6_1": {
+      "hour": 6,
+      "dow": 1,
+      "n": 19074,
+      "severity_probabilities_percent": {
+        "severity_1": 0.35650623885918004,
+        "severity_2": 74.21621054839048,
+        "severity_3": 23.42455698857083,
+        "severity_4": 2.0027262241795114
+      },
+      "historical_danger_percent": 25.42728321275034
+    },
+    "6_2": {
+      "hour": 6,
+      "dow": 2,
+      "n": 18485,
+      "severity_probabilities_percent": {
+        "severity_1": 0.2218014606437652,
+        "severity_2": 74.12496618880174,
+        "severity_3": 23.93832837435759,
+        "severity_4": 1.7149039761969163
+      },
+      "historical_danger_percent": 25.653232350554507
+    },
+    "6_3": {
+      "hour": 6,
+      "dow": 3,
+      "n": 17796,
+      "severity_probabilities_percent": {
+        "severity_1": 0.4270622611822881,
+        "severity_2": 74.07844459429084,
+        "severity_3": 23.561474488649132,
+        "severity_4": 1.9330186558777254
+      },
+      "historical_danger_percent": 25.49449314452686
+    },
+    "6_4": {
+      "hour": 6,
+      "dow": 4,
+      "n": 16875,
+      "severity_probabilities_percent": {
+        "severity_1": 0.35555555555555557,
+        "severity_2": 75.09925925925926,
+        "severity_3": 22.58962962962963,
+        "severity_4": 1.9555555555555555
+      },
+      "historical_danger_percent": 24.545185185185183
+    },
+    "6_5": {
+      "hour": 6,
+      "dow": 5,
+      "n": 4274,
+      "severity_probabilities_percent": {
+        "severity_1": 0.2339728591483388,
+        "severity_2": 69.44314459522695,
+        "severity_3": 25.713617220402433,
+        "severity_4": 4.609265325222274
+      },
+      "historical_danger_percent": 30.322882545624708
+    },
+    "6_6": {
+      "hour": 6,
+      "dow": 6,
+      "n": 3961,
+      "severity_probabilities_percent": {
+        "severity_1": 0.40393839939409243,
+        "severity_2": 65.81671295127494,
+        "severity_3": 28.19994950770008,
+        "severity_4": 5.579399141630901
+      },
+      "historical_danger_percent": 33.779348649330984
+    },
+    "7_0": {
+      "hour": 7,
+      "dow": 0,
+      "n": 26277,
+      "severity_probabilities_percent": {
+        "severity_1": 0.38056094683563574,
+        "severity_2": 76.50036153289949,
+        "severity_3": 21.756669330593294,
+        "severity_4": 1.3624081896715758
+      },
+      "historical_danger_percent": 23.11907752026487
+    },
+    "7_1": {
+      "hour": 7,
+      "dow": 1,
+      "n": 29212,
+      "severity_probabilities_percent": {
+        "severity_1": 0.30124606326167325,
+        "severity_2": 76.20498425304669,
+        "severity_3": 22.227166917705052,
+        "severity_4": 1.2666027659865808
+      },
+      "historical_danger_percent": 23.49376968369163
+    },
+    "7_2": {
+      "hour": 7,
+      "dow": 2,
+      "n": 28447,
+      "severity_probabilities_percent": {
+        "severity_1": 0.2214644778008226,
+        "severity_2": 76.54585720814146,
+        "severity_3": 21.949590466481528,
+        "severity_4": 1.2830878475761942
+      },
+      "historical_danger_percent": 23.232678314057722
+    },
+    "7_3": {
+      "hour": 7,
+      "dow": 3,
+      "n": 27118,
+      "severity_probabilities_percent": {
+        "severity_1": 0.42038498414337344,
+        "severity_2": 76.84563758389261,
+        "severity_3": 21.222066524079946,
+        "severity_4": 1.5119109078840622
+      },
+      "historical_danger_percent": 22.733977431964007
+    },
+    "7_4": {
+      "hour": 7,
+      "dow": 4,
+      "n": 23906,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3220948715803564,
+        "severity_2": 77.27767087760394,
+        "severity_3": 20.542959926378316,
+        "severity_4": 1.8572743244373797
+      },
+      "historical_danger_percent": 22.400234250815696
+    },
+    "7_5": {
+      "hour": 7,
+      "dow": 5,
+      "n": 5017,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3787123779150887,
+        "severity_2": 61.09228622682878,
+        "severity_3": 33.84492724735898,
+        "severity_4": 4.68407414789715
+      },
+      "historical_danger_percent": 38.52900139525613
+    },
+    "7_6": {
+      "hour": 7,
+      "dow": 6,
+      "n": 4414,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5437245129134572,
+        "severity_2": 61.87131853194382,
+        "severity_3": 33.28047122791119,
+        "severity_4": 4.304485727231536
+      },
+      "historical_danger_percent": 37.58495695514273
+    },
+    "8_0": {
+      "hour": 8,
+      "dow": 0,
+      "n": 26677,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3598605540353113,
+        "severity_2": 76.93518761479926,
+        "severity_3": 21.288000899651387,
+        "severity_4": 1.4169509315140383
+      },
+      "historical_danger_percent": 22.704951831165424
+    },
+    "8_1": {
+      "hour": 8,
+      "dow": 1,
+      "n": 30207,
+      "severity_probabilities_percent": {
+        "severity_1": 0.33104909458072634,
+        "severity_2": 76.81663190651173,
+        "severity_3": 21.50494918396398,
+        "severity_4": 1.3473698149435562
+      },
+      "historical_danger_percent": 22.852318998907535
+    },
+    "8_2": {
+      "hour": 8,
+      "dow": 2,
+      "n": 29226,
+      "severity_probabilities_percent": {
+        "severity_1": 0.34558270033531785,
+        "severity_2": 76.8835967973722,
+        "severity_3": 21.37822486826798,
+        "severity_4": 1.3925956340244987
+      },
+      "historical_danger_percent": 22.77082050229248
+    },
+    "8_3": {
+      "hour": 8,
+      "dow": 3,
+      "n": 27592,
+      "severity_probabilities_percent": {
+        "severity_1": 0.4022905189910119,
+        "severity_2": 77.04407074514353,
+        "severity_3": 21.09307045520441,
+        "severity_4": 1.4605682806610611
+      },
+      "historical_danger_percent": 22.55363873586547
+    },
+    "8_4": {
+      "hour": 8,
+      "dow": 4,
+      "n": 24487,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5349777432923591,
+        "severity_2": 78.11083432025157,
+        "severity_3": 19.81051170008576,
+        "severity_4": 1.543676236370319
+      },
+      "historical_danger_percent": 21.35418793645608
+    },
+    "8_5": {
+      "hour": 8,
+      "dow": 5,
+      "n": 5213,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3644734318051026,
+        "severity_2": 62.86207558028008,
+        "severity_3": 32.38058699405333,
+        "severity_4": 4.3928639938615
+      },
+      "historical_danger_percent": 36.77345098791483
+    },
+    "8_6": {
+      "hour": 8,
+      "dow": 6,
+      "n": 4113,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7050814490639437,
+        "severity_2": 63.60320933625091,
+        "severity_3": 31.89885728178945,
+        "severity_4": 3.7928519328956964
+      },
+      "historical_danger_percent": 35.69170921468515
+    },
+    "9_0": {
+      "hour": 9,
+      "dow": 0,
+      "n": 15283,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5234574363672054,
+        "severity_2": 74.65811686187267,
+        "severity_3": 22.60027481515409,
+        "severity_4": 2.218150886606033
+      },
+      "historical_danger_percent": 24.818425701760123
+    },
+    "9_1": {
+      "hour": 9,
+      "dow": 1,
+      "n": 16994,
+      "severity_probabilities_percent": {
+        "severity_1": 0.40602565611392255,
+        "severity_2": 73.99082028951395,
+        "severity_3": 23.078733670707308,
+        "severity_4": 2.524420383664823
+      },
+      "historical_danger_percent": 25.60315405437213
+    },
+    "9_2": {
+      "hour": 9,
+      "dow": 2,
+      "n": 16673,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3958495771606789,
+        "severity_2": 73.90391651172554,
+        "severity_3": 23.415102261140767,
+        "severity_4": 2.2851316499730103
+      },
+      "historical_danger_percent": 25.700233911113777
+    },
+    "9_3": {
+      "hour": 9,
+      "dow": 3,
+      "n": 15980,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5632040050062578,
+        "severity_2": 73.2665832290363,
+        "severity_3": 23.842302878598247,
+        "severity_4": 2.327909887359199
+      },
+      "historical_danger_percent": 26.170212765957444
+    },
+    "9_4": {
+      "hour": 9,
+      "dow": 4,
+      "n": 15247,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5771627205351872,
+        "severity_2": 75.96248442316521,
+        "severity_3": 21.125467305043617,
+        "severity_4": 2.3348855512559847
+      },
+      "historical_danger_percent": 23.4603528562996
+    },
+    "9_5": {
+      "hour": 9,
+      "dow": 5,
+      "n": 5927,
+      "severity_probabilities_percent": {
+        "severity_1": 0.438670490973511,
+        "severity_2": 65.80057364602666,
+        "severity_3": 30.605702716382655,
+        "severity_4": 3.1550531466171754
+      },
+      "historical_danger_percent": 33.76075586299983
+    },
+    "9_6": {
+      "hour": 9,
+      "dow": 6,
+      "n": 4644,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6244616709732989,
+        "severity_2": 65.54694229112835,
+        "severity_3": 30.598621877691645,
+        "severity_4": 3.229974160206718
+      },
+      "historical_danger_percent": 33.828596037898365
+    },
+    "10_0": {
+      "hour": 10,
+      "dow": 0,
+      "n": 14044,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3916263172885218,
+        "severity_2": 74.95727712902307,
+        "severity_3": 22.379663913414984,
+        "severity_4": 2.271432640273426
+      },
+      "historical_danger_percent": 24.651096553688408
+    },
+    "10_1": {
+      "hour": 10,
+      "dow": 1,
+      "n": 14489,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5452412174753261,
+        "severity_2": 75.23638622403203,
+        "severity_3": 21.78204154876113,
+        "severity_4": 2.4363310097315205
+      },
+      "historical_danger_percent": 24.21837255849265
+    },
+    "10_2": {
+      "hour": 10,
+      "dow": 2,
+      "n": 14337,
+      "severity_probabilities_percent": {
+        "severity_1": 0.47429727279068146,
+        "severity_2": 75.3923414940364,
+        "severity_3": 21.685150310385715,
+        "severity_4": 2.4482109227871938
+      },
+      "historical_danger_percent": 24.13336123317291
+    },
+    "10_3": {
+      "hour": 10,
+      "dow": 3,
+      "n": 14381,
+      "severity_probabilities_percent": {
+        "severity_1": 0.4728461164035881,
+        "severity_2": 75.62756414713859,
+        "severity_3": 21.458869341492246,
+        "severity_4": 2.4407203949655796
+      },
+      "historical_danger_percent": 23.899589736457823
+    },
+    "10_4": {
+      "hour": 10,
+      "dow": 4,
+      "n": 14873,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5849525986687286,
+        "severity_2": 76.55483090163384,
+        "severity_3": 20.54730047737511,
+        "severity_4": 2.312916022322329
+      },
+      "historical_danger_percent": 22.86021649969744
+    },
+    "10_5": {
+      "hour": 10,
+      "dow": 5,
+      "n": 6916,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5060728744939271,
+        "severity_2": 64.83516483516483,
+        "severity_3": 31.795835743204165,
+        "severity_4": 2.8629265471370733
+      },
+      "historical_danger_percent": 34.65876229034124
+    },
+    "10_6": {
+      "hour": 10,
+      "dow": 6,
+      "n": 5494,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6006552602839461,
+        "severity_2": 65.5260283946123,
+        "severity_3": 30.724426647251548,
+        "severity_4": 3.1488896978522023
+      },
+      "historical_danger_percent": 33.873316345103746
+    },
+    "11_0": {
+      "hour": 11,
+      "dow": 0,
+      "n": 13793,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6017545131588486,
+        "severity_2": 75.13956354672659,
+        "severity_3": 21.822663669977523,
+        "severity_4": 2.4360182701370263
+      },
+      "historical_danger_percent": 24.258681940114553
+    },
+    "11_1": {
+      "hour": 11,
+      "dow": 1,
+      "n": 13883,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5834473816898365,
+        "severity_2": 75.9994237556724,
+        "severity_3": 20.76640495570122,
+        "severity_4": 2.650723906936541
+      },
+      "historical_danger_percent": 23.41712886263776
+    },
+    "11_2": {
+      "hour": 11,
+      "dow": 2,
+      "n": 13998,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5143591941705958,
+        "severity_2": 76.18231175882269,
+        "severity_3": 21.267323903414773,
+        "severity_4": 2.0360051435919417
+      },
+      "historical_danger_percent": 23.303329047006716
+    },
+    "11_3": {
+      "hour": 11,
+      "dow": 3,
+      "n": 13933,
+      "severity_probabilities_percent": {
+        "severity_1": 0.523935979329649,
+        "severity_2": 75.54008469102132,
+        "severity_3": 21.43831192133783,
+        "severity_4": 2.4976674083112034
+      },
+      "historical_danger_percent": 23.935979329649033
+    },
+    "11_4": {
+      "hour": 11,
+      "dow": 4,
+      "n": 15515,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6445375443119562,
+        "severity_2": 76.10054785691267,
+        "severity_3": 20.921688688366096,
+        "severity_4": 2.333225910409281
+      },
+      "historical_danger_percent": 23.25491459877538
+    },
+    "11_5": {
+      "hour": 11,
+      "dow": 5,
+      "n": 7817,
+      "severity_probabilities_percent": {
+        "severity_1": 0.49891262632723554,
+        "severity_2": 63.5921709095561,
+        "severity_3": 33.286427018037614,
+        "severity_4": 2.6224894460790584
+      },
+      "historical_danger_percent": 35.90891646411667
+    },
+    "11_6": {
+      "hour": 11,
+      "dow": 6,
+      "n": 6216,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5791505791505791,
+        "severity_2": 63.77091377091377,
+        "severity_3": 32.866795366795365,
+        "severity_4": 2.783140283140283
+      },
+      "historical_danger_percent": 35.64993564993565
+    },
+    "12_0": {
+      "hour": 12,
+      "dow": 0,
+      "n": 12381,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6623051449802116,
+        "severity_2": 75.27663355140942,
+        "severity_3": 20.878765850900574,
+        "severity_4": 3.182295452709797
+      },
+      "historical_danger_percent": 24.06106130361037
+    },
+    "12_1": {
+      "hour": 12,
+      "dow": 1,
+      "n": 12541,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7495415038673152,
+        "severity_2": 75.48839805438163,
+        "severity_3": 20.604417510565344,
+        "severity_4": 3.1576429311857104
+      },
+      "historical_danger_percent": 23.762060441751057
+    },
+    "12_2": {
+      "hour": 12,
+      "dow": 2,
+      "n": 12754,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5488474204171241,
+        "severity_2": 75.41947624274738,
+        "severity_3": 21.185510428100987,
+        "severity_4": 2.8461659087345144
+      },
+      "historical_danger_percent": 24.0316763368355
+    },
+    "12_3": {
+      "hour": 12,
+      "dow": 3,
+      "n": 12914,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8363016880904444,
+        "severity_2": 73.81136750813072,
+        "severity_3": 22.254917144184606,
+        "severity_4": 3.0974136595942388
+      },
+      "historical_danger_percent": 25.352330803778845
+    },
+    "12_4": {
+      "hour": 12,
+      "dow": 4,
+      "n": 14658,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7299768044753718,
+        "severity_2": 74.36894528585073,
+        "severity_3": 22.26088142993587,
+        "severity_4": 2.640196479738027
+      },
+      "historical_danger_percent": 24.901077909673898
+    },
+    "12_5": {
+      "hour": 12,
+      "dow": 5,
+      "n": 8114,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5669213704707912,
+        "severity_2": 63.43357160463397,
+        "severity_3": 33.41138772491989,
+        "severity_4": 2.5881192999753515
+      },
+      "historical_danger_percent": 35.999507024895244
+    },
+    "12_6": {
+      "hour": 12,
+      "dow": 6,
+      "n": 6557,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5795333231660821,
+        "severity_2": 63.50465151746225,
+        "severity_3": 33.231660820497176,
+        "severity_4": 2.6841543388744853
+      },
+      "historical_danger_percent": 35.91581515937166
+    },
+    "13_0": {
+      "hour": 13,
+      "dow": 0,
+      "n": 13769,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7843706877768901,
+        "severity_2": 75.52472946473964,
+        "severity_3": 20.829399375408528,
+        "severity_4": 2.8615004720749506
+      },
+      "historical_danger_percent": 23.69089984748348
+    },
+    "13_1": {
+      "hour": 13,
+      "dow": 1,
+      "n": 13895,
+      "severity_probabilities_percent": {
+        "severity_1": 0.662108672184239,
+        "severity_2": 76.66786613889889,
+        "severity_3": 19.733717164447643,
+        "severity_4": 2.9363080244692337
+      },
+      "historical_danger_percent": 22.670025188916874
+    },
+    "13_2": {
+      "hour": 13,
+      "dow": 2,
+      "n": 14115,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8784980517180305,
+        "severity_2": 76.46475380800567,
+        "severity_3": 19.82996811902232,
+        "severity_4": 2.826780021253985
+      },
+      "historical_danger_percent": 22.656748140276303
+    },
+    "13_3": {
+      "hour": 13,
+      "dow": 3,
+      "n": 14368,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8491091314031181,
+        "severity_2": 75.1391982182628,
+        "severity_3": 21.4434855233853,
+        "severity_4": 2.5682071269487747
+      },
+      "historical_danger_percent": 24.011692650334073
+    },
+    "13_4": {
+      "hour": 13,
+      "dow": 4,
+      "n": 16372,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7024187637429757,
+        "severity_2": 74.01050574150989,
+        "severity_3": 22.63620816027364,
+        "severity_4": 2.6508673344734914
+      },
+      "historical_danger_percent": 25.28707549474713
+    },
+    "13_5": {
+      "hour": 13,
+      "dow": 5,
+      "n": 8745,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7890222984562607,
+        "severity_2": 64.4253859348199,
+        "severity_3": 32.13264722698685,
+        "severity_4": 2.6529445397369926
+      },
+      "historical_danger_percent": 34.78559176672385
+    },
+    "13_6": {
+      "hour": 13,
+      "dow": 6,
+      "n": 7080,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7909604519774011,
+        "severity_2": 60.69209039548022,
+        "severity_3": 35.73446327683616,
+        "severity_4": 2.7824858757062145
+      },
+      "historical_danger_percent": 38.516949152542374
+    },
+    "14_0": {
+      "hour": 14,
+      "dow": 0,
+      "n": 15064,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7634094530005311,
+        "severity_2": 74.77429633563463,
+        "severity_3": 21.342272968667018,
+        "severity_4": 3.1200212426978227
+      },
+      "historical_danger_percent": 24.462294211364842
+    },
+    "14_1": {
+      "hour": 14,
+      "dow": 1,
+      "n": 15271,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7006744810424989,
+        "severity_2": 75.71213411040534,
+        "severity_3": 20.725558247658963,
+        "severity_4": 2.8616331608931964
+      },
+      "historical_danger_percent": 23.587191408552158
+    },
+    "14_2": {
+      "hour": 14,
+      "dow": 2,
+      "n": 15546,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7590376945838158,
+        "severity_2": 75.27981474334234,
+        "severity_3": 20.899266692396758,
+        "severity_4": 3.0618808696770876
+      },
+      "historical_danger_percent": 23.961147562073847
+    },
+    "14_3": {
+      "hour": 14,
+      "dow": 3,
+      "n": 15627,
+      "severity_probabilities_percent": {
+        "severity_1": 0.921482050297562,
+        "severity_2": 74.05132143085686,
+        "severity_3": 22.10917002623664,
+        "severity_4": 2.918026492608946
+      },
+      "historical_danger_percent": 25.027196518845585
+    },
+    "14_4": {
+      "hour": 14,
+      "dow": 4,
+      "n": 17579,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7793389840150179,
+        "severity_2": 72.65487229080152,
+        "severity_3": 24.273280618920303,
+        "severity_4": 2.292508106263155
+      },
+      "historical_danger_percent": 26.56578872518346
+    },
+    "14_5": {
+      "hour": 14,
+      "dow": 5,
+      "n": 8712,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7805325987144168,
+        "severity_2": 64.80716253443526,
+        "severity_3": 31.852617079889807,
+        "severity_4": 2.5596877869605144
+      },
+      "historical_danger_percent": 34.41230486685032
+    },
+    "14_6": {
+      "hour": 14,
+      "dow": 6,
+      "n": 7214,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6099251455503188,
+        "severity_2": 62.350984197393956,
+        "severity_3": 34.14194621569171,
+        "severity_4": 2.8971444413640146
+      },
+      "historical_danger_percent": 37.03909065705572
+    },
+    "15_0": {
+      "hour": 15,
+      "dow": 0,
+      "n": 18223,
+      "severity_probabilities_percent": {
+        "severity_1": 0.762772320693629,
+        "severity_2": 73.79685013444548,
+        "severity_3": 22.756955495802007,
+        "severity_4": 2.6834220490588816
+      },
+      "historical_danger_percent": 25.440377544860894
+    },
+    "15_1": {
+      "hour": 15,
+      "dow": 1,
+      "n": 18549,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7224109116394415,
+        "severity_2": 74.39754164644994,
+        "severity_3": 22.42169389185401,
+        "severity_4": 2.4583535500566067
+      },
+      "historical_danger_percent": 24.880047441910616
+    },
+    "15_2": {
+      "hour": 15,
+      "dow": 2,
+      "n": 18855,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7637231503579952,
+        "severity_2": 74.24025457438346,
+        "severity_3": 22.635905595332805,
+        "severity_4": 2.360116679925749
+      },
+      "historical_danger_percent": 24.996022275258554
+    },
+    "15_3": {
+      "hour": 15,
+      "dow": 3,
+      "n": 19214,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7754762152597064,
+        "severity_2": 73.2330592276465,
+        "severity_3": 23.555740605808264,
+        "severity_4": 2.435723951285521
+      },
+      "historical_danger_percent": 25.991464557093785
+    },
+    "15_4": {
+      "hour": 15,
+      "dow": 4,
+      "n": 21230,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8431464908148846,
+        "severity_2": 71.29533678756476,
+        "severity_3": 25.803108808290155,
+        "severity_4": 2.058407913330193
+      },
+      "historical_danger_percent": 27.86151672162035
+    },
+    "15_5": {
+      "hour": 15,
+      "dow": 5,
+      "n": 8126,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7014521289687423,
+        "severity_2": 63.61063253753384,
+        "severity_3": 32.45139059808024,
+        "severity_4": 3.2365247354171798
+      },
+      "historical_danger_percent": 35.687915333497415
+    },
+    "15_6": {
+      "hour": 15,
+      "dow": 6,
+      "n": 6904,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7097334878331402,
+        "severity_2": 60.805330243337195,
+        "severity_3": 35.095596755504054,
+        "severity_4": 3.389339513325609
+      },
+      "historical_danger_percent": 38.484936268829664
+    },
+    "16_0": {
+      "hour": 16,
+      "dow": 0,
+      "n": 21570,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6815020862308763,
+        "severity_2": 73.78303198887343,
+        "severity_3": 23.481687528975428,
+        "severity_4": 2.0537783959202596
+      },
+      "historical_danger_percent": 25.53546592489569
+    },
+    "16_1": {
+      "hour": 16,
+      "dow": 1,
+      "n": 22382,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8131534268608704,
+        "severity_2": 73.36252345634885,
+        "severity_3": 23.728889286033418,
+        "severity_4": 2.0954338307568583
+      },
+      "historical_danger_percent": 25.824323116790275
+    },
+    "16_2": {
+      "hour": 16,
+      "dow": 2,
+      "n": 22257,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7907624567551782,
+        "severity_2": 73.02421710023813,
+        "severity_3": 24.095790088511478,
+        "severity_4": 2.089230354495215
+      },
+      "historical_danger_percent": 26.185020443006696
+    },
+    "16_3": {
+      "hour": 16,
+      "dow": 3,
+      "n": 22926,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8156678007502398,
+        "severity_2": 71.95324086190351,
+        "severity_3": 25.141760446654455,
+        "severity_4": 2.089330890691791
+      },
+      "historical_danger_percent": 27.231091337346246
+    },
+    "16_4": {
+      "hour": 16,
+      "dow": 4,
+      "n": 24597,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8171728259543846,
+        "severity_2": 70.78098955157132,
+        "severity_3": 26.50323210147579,
+        "severity_4": 1.8986055209984958
+      },
+      "historical_danger_percent": 28.401837622474286
+    },
+    "16_5": {
+      "hour": 16,
+      "dow": 5,
+      "n": 7811,
+      "severity_probabilities_percent": {
+        "severity_1": 0.896172065036487,
+        "severity_2": 64.60120343105876,
+        "severity_3": 31.2508001536295,
+        "severity_4": 3.251824350275253
+      },
+      "historical_danger_percent": 34.50262450390475
+    },
+    "16_6": {
+      "hour": 16,
+      "dow": 6,
+      "n": 6564,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8074344911639244,
+        "severity_2": 62.416209628275446,
+        "severity_3": 33.27239488117002,
+        "severity_4": 3.503960999390616
+      },
+      "historical_danger_percent": 36.77635588056064
+    },
+    "17_0": {
+      "hour": 17,
+      "dow": 0,
+      "n": 21466,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6894624056647722,
+        "severity_2": 73.17618559582596,
+        "severity_3": 24.121867138731016,
+        "severity_4": 2.012484859778254
+      },
+      "historical_danger_percent": 26.13435199850927
+    },
+    "17_1": {
+      "hour": 17,
+      "dow": 1,
+      "n": 22820,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7887817703768624,
+        "severity_2": 71.98510078878178,
+        "severity_3": 25.20595968448729,
+        "severity_4": 2.0201577563540756
+      },
+      "historical_danger_percent": 27.226117440841364
+    },
+    "17_2": {
+      "hour": 17,
+      "dow": 2,
+      "n": 23277,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7818877003050222,
+        "severity_2": 71.66731107960648,
+        "severity_3": 25.566009365468055,
+        "severity_4": 1.9847918546204406
+      },
+      "historical_danger_percent": 27.550801220088495
+    },
+    "17_3": {
+      "hour": 17,
+      "dow": 3,
+      "n": 23609,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7370070735736372,
+        "severity_2": 71.4600364267864,
+        "severity_3": 25.81642593926045,
+        "severity_4": 1.9865305603795163
+      },
+      "historical_danger_percent": 27.80295649963997
+    },
+    "17_4": {
+      "hour": 17,
+      "dow": 4,
+      "n": 23655,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7778482350454449,
+        "severity_2": 70.04861551469034,
+        "severity_3": 27.212005918410487,
+        "severity_4": 1.961530331853731
+      },
+      "historical_danger_percent": 29.17353625026422
+    },
+    "17_5": {
+      "hour": 17,
+      "dow": 5,
+      "n": 6791,
+      "severity_probabilities_percent": {
+        "severity_1": 1.0160506552790458,
+        "severity_2": 66.3230746576351,
+        "severity_3": 28.861728758651157,
+        "severity_4": 3.7991459284346933
+      },
+      "historical_danger_percent": 32.66087468708585
+    },
+    "17_6": {
+      "hour": 17,
+      "dow": 6,
+      "n": 5895,
+      "severity_probabilities_percent": {
+        "severity_1": 0.882103477523325,
+        "severity_2": 63.47752332485157,
+        "severity_3": 31.772688719253605,
+        "severity_4": 3.867684478371501
+      },
+      "historical_danger_percent": 35.64037319762511
+    },
+    "18_0": {
+      "hour": 18,
+      "dow": 0,
+      "n": 15903,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7671508520404955,
+        "severity_2": 72.11218009180658,
+        "severity_3": 24.360183613154753,
+        "severity_4": 2.7604854429981764
+      },
+      "historical_danger_percent": 27.12066905615293
+    },
+    "18_1": {
+      "hour": 18,
+      "dow": 1,
+      "n": 17472,
+      "severity_probabilities_percent": {
+        "severity_1": 0.86996336996337,
+        "severity_2": 72.16117216117216,
+        "severity_3": 24.862637362637365,
+        "severity_4": 2.1062271062271063
+      },
+      "historical_danger_percent": 26.968864468864467
+    },
+    "18_2": {
+      "hour": 18,
+      "dow": 2,
+      "n": 17585,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8188797270400909,
+        "severity_2": 71.54392948535684,
+        "severity_3": 25.345464884845036,
+        "severity_4": 2.291725902758033
+      },
+      "historical_danger_percent": 27.63719078760307
+    },
+    "18_3": {
+      "hour": 18,
+      "dow": 3,
+      "n": 17587,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7676124410075624,
+        "severity_2": 70.67720475351112,
+        "severity_3": 26.30351964519247,
+        "severity_4": 2.25166316028885
+      },
+      "historical_danger_percent": 28.555182805481316
+    },
+    "18_4": {
+      "hour": 18,
+      "dow": 4,
+      "n": 18710,
+      "severity_probabilities_percent": {
+        "severity_1": 0.946018172100481,
+        "severity_2": 70.5398182789952,
+        "severity_3": 26.15713522180652,
+        "severity_4": 2.357028327097809
+      },
+      "historical_danger_percent": 28.51416354890433
+    },
+    "18_5": {
+      "hour": 18,
+      "dow": 5,
+      "n": 6458,
+      "severity_probabilities_percent": {
+        "severity_1": 1.0065035614741404,
+        "severity_2": 66.18148033446887,
+        "severity_3": 28.92536388974915,
+        "severity_4": 3.8866522143078357
+      },
+      "historical_danger_percent": 32.81201610405699
+    },
+    "18_6": {
+      "hour": 18,
+      "dow": 6,
+      "n": 5765,
+      "severity_probabilities_percent": {
+        "severity_1": 1.0754553339115351,
+        "severity_2": 65.18647007805724,
+        "severity_3": 29.71379011274935,
+        "severity_4": 4.024284475281873
+      },
+      "historical_danger_percent": 33.738074588031225
+    },
+    "19_0": {
+      "hour": 19,
+      "dow": 0,
+      "n": 10748,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8931894305917379,
+        "severity_2": 72.92519538518795,
+        "severity_3": 23.213621138816524,
+        "severity_4": 2.9679940454037963
+      },
+      "historical_danger_percent": 26.18161518422032
+    },
+    "19_1": {
+      "hour": 19,
+      "dow": 1,
+      "n": 11184,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7510729613733905,
+        "severity_2": 72.14771101573677,
+        "severity_3": 24.123748211731044,
+        "severity_4": 2.977467811158798
+      },
+      "historical_danger_percent": 27.10121602288984
+    },
+    "19_2": {
+      "hour": 19,
+      "dow": 2,
+      "n": 11411,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6835509596003856,
+        "severity_2": 72.10586276399965,
+        "severity_3": 24.13460695819823,
+        "severity_4": 3.0759793182017354
+      },
+      "historical_danger_percent": 27.21058627639996
+    },
+    "19_3": {
+      "hour": 19,
+      "dow": 3,
+      "n": 11873,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6485302787837952,
+        "severity_2": 71.85210140655268,
+        "severity_3": 24.281984334203656,
+        "severity_4": 3.217383980459867
+      },
+      "historical_danger_percent": 27.49936831466352
+    },
+    "19_4": {
+      "hour": 19,
+      "dow": 4,
+      "n": 13103,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6639700831870564,
+        "severity_2": 70.36556513775471,
+        "severity_3": 26.444325726932767,
+        "severity_4": 2.526139052125467
+      },
+      "historical_danger_percent": 28.970464779058236
+    },
+    "19_5": {
+      "hour": 19,
+      "dow": 5,
+      "n": 5906,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6942092786996275,
+        "severity_2": 68.26955638333898,
+        "severity_3": 26.75245513037589,
+        "severity_4": 4.283779207585506
+      },
+      "historical_danger_percent": 31.0362343379614
+    },
+    "19_6": {
+      "hour": 19,
+      "dow": 6,
+      "n": 5239,
+      "severity_probabilities_percent": {
+        "severity_1": 0.8780301584271807,
+        "severity_2": 66.40580263409048,
+        "severity_3": 27.562511929757587,
+        "severity_4": 5.153655277724757
+      },
+      "historical_danger_percent": 32.71616720748234
+    },
+    "20_0": {
+      "hour": 20,
+      "dow": 0,
+      "n": 8048,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3851888667992048,
+        "severity_2": 72.08001988071571,
+        "severity_3": 23.682902584493043,
+        "severity_4": 3.8518886679920477
+      },
+      "historical_danger_percent": 27.534791252485093
+    },
+    "20_1": {
+      "hour": 20,
+      "dow": 1,
+      "n": 8227,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3281876747295491,
+        "severity_2": 71.87310076577124,
+        "severity_3": 24.273732830922572,
+        "severity_4": 3.524978728576638
+      },
+      "historical_danger_percent": 27.79871155949921
+    },
+    "20_2": {
+      "hour": 20,
+      "dow": 2,
+      "n": 8313,
+      "severity_probabilities_percent": {
+        "severity_1": 0.4932034163358595,
+        "severity_2": 72.59713701431492,
+        "severity_3": 23.769998797064837,
+        "severity_4": 3.1396607722843735
+      },
+      "historical_danger_percent": 26.90965956934921
+    },
+    "20_3": {
+      "hour": 20,
+      "dow": 3,
+      "n": 8812,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5560599182932365,
+        "severity_2": 71.41398093508852,
+        "severity_3": 24.29641398093509,
+        "severity_4": 3.7335451656831595
+      },
+      "historical_danger_percent": 28.02995914661825
+    },
+    "20_4": {
+      "hour": 20,
+      "dow": 4,
+      "n": 9623,
+      "severity_probabilities_percent": {
+        "severity_1": 0.4364543281720877,
+        "severity_2": 69.62485711316637,
+        "severity_3": 26.38470331497454,
+        "severity_4": 3.5539852436870003
+      },
+      "historical_danger_percent": 29.938688558661543
+    },
+    "20_5": {
+      "hour": 20,
+      "dow": 5,
+      "n": 5257,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5706676811869889,
+        "severity_2": 70.36332509035572,
+        "severity_3": 24.652843827277916,
+        "severity_4": 4.413163401179379
+      },
+      "historical_danger_percent": 29.0660072284573
+    },
+    "20_6": {
+      "hour": 20,
+      "dow": 6,
+      "n": 4753,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7363770250368188,
+        "severity_2": 69.24047969703345,
+        "severity_3": 26.06774668630339,
+        "severity_4": 3.9553965916263416
+      },
+      "historical_danger_percent": 30.02314327792973
+    },
+    "21_0": {
+      "hour": 21,
+      "dow": 0,
+      "n": 6123,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5226196308998856,
+        "severity_2": 72.23583210844357,
+        "severity_3": 22.701290217213785,
+        "severity_4": 4.540258043442757
+      },
+      "historical_danger_percent": 27.24154826065654
+    },
+    "21_1": {
+      "hour": 21,
+      "dow": 1,
+      "n": 6287,
+      "severity_probabilities_percent": {
+        "severity_1": 0.42945761094321616,
+        "severity_2": 72.14887863846032,
+        "severity_3": 23.158899316048988,
+        "severity_4": 4.262764434547479
+      },
+      "historical_danger_percent": 27.42166375059647
+    },
+    "21_2": {
+      "hour": 21,
+      "dow": 2,
+      "n": 6594,
+      "severity_probabilities_percent": {
+        "severity_1": 0.40946314831665154,
+        "severity_2": 73.5213830755232,
+        "severity_3": 21.91386108583561,
+        "severity_4": 4.155292690324537
+      },
+      "historical_danger_percent": 26.06915377616015
+    },
+    "21_3": {
+      "hour": 21,
+      "dow": 3,
+      "n": 6914,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5351460804165461,
+        "severity_2": 72.51952560023142,
+        "severity_3": 23.34393983222447,
+        "severity_4": 3.601388487127567
+      },
+      "historical_danger_percent": 26.94532831935204
+    },
+    "21_4": {
+      "hour": 21,
+      "dow": 4,
+      "n": 7539,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5040456293938188,
+        "severity_2": 71.07043374452844,
+        "severity_3": 24.910465578989253,
+        "severity_4": 3.515055047088473
+      },
+      "historical_danger_percent": 28.425520626077727
+    },
+    "21_5": {
+      "hour": 21,
+      "dow": 5,
+      "n": 5315,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7714016933207902,
+        "severity_2": 71.72154280338664,
+        "severity_3": 22.671683913452494,
+        "severity_4": 4.835371589840076
+      },
+      "historical_danger_percent": 27.507055503292566
+    },
+    "21_6": {
+      "hour": 21,
+      "dow": 6,
+      "n": 4786,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5014625992478061,
+        "severity_2": 69.9331383201003,
+        "severity_3": 24.55077308817384,
+        "severity_4": 5.014625992478061
+      },
+      "historical_danger_percent": 29.5653990806519
+    },
+    "22_0": {
+      "hour": 22,
+      "dow": 0,
+      "n": 5340,
+      "severity_probabilities_percent": {
+        "severity_1": 0.46816479400749067,
+        "severity_2": 72.32209737827715,
+        "severity_3": 22.95880149812734,
+        "severity_4": 4.250936329588015
+      },
+      "historical_danger_percent": 27.20973782771535
+    },
+    "22_1": {
+      "hour": 22,
+      "dow": 1,
+      "n": 5770,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3292894280762565,
+        "severity_2": 73.44887348353552,
+        "severity_3": 22.253032928942808,
+        "severity_4": 3.968804159445407
+      },
+      "historical_danger_percent": 26.221837088388213
+    },
+    "22_2": {
+      "hour": 22,
+      "dow": 2,
+      "n": 6015,
+      "severity_probabilities_percent": {
+        "severity_1": 0.3657522859517872,
+        "severity_2": 74.3142144638404,
+        "severity_3": 21.23025768911056,
+        "severity_4": 4.089775561097256
+      },
+      "historical_danger_percent": 25.320033250207814
+    },
+    "22_3": {
+      "hour": 22,
+      "dow": 3,
+      "n": 6069,
+      "severity_probabilities_percent": {
+        "severity_1": 0.6261328060636019,
+        "severity_2": 70.91777887625639,
+        "severity_3": 24.699291481298403,
+        "severity_4": 3.7567968363816115
+      },
+      "historical_danger_percent": 28.456088317680013
+    },
+    "22_4": {
+      "hour": 22,
+      "dow": 4,
+      "n": 6881,
+      "severity_probabilities_percent": {
+        "severity_1": 0.508646998982706,
+        "severity_2": 71.38497311437291,
+        "severity_3": 24.05173666618224,
+        "severity_4": 4.054643220462142
+      },
+      "historical_danger_percent": 28.106379886644383
+    },
+    "22_5": {
+      "hour": 22,
+      "dow": 5,
+      "n": 4458,
+      "severity_probabilities_percent": {
+        "severity_1": 0.1794526693584567,
+        "severity_2": 74.85419470614625,
+        "severity_3": 19.201435621354868,
+        "severity_4": 5.764917003140422
+      },
+      "historical_danger_percent": 24.96635262449529
+    },
+    "22_6": {
+      "hour": 22,
+      "dow": 6,
+      "n": 3980,
+      "severity_probabilities_percent": {
+        "severity_1": 0.7035175879396985,
+        "severity_2": 72.53768844221106,
+        "severity_3": 20.502512562814072,
+        "severity_4": 6.256281407035176
+      },
+      "historical_danger_percent": 26.758793969849247
+    },
+    "23_0": {
+      "hour": 23,
+      "dow": 0,
+      "n": 3867,
+      "severity_probabilities_percent": {
+        "severity_1": 0.2585983966899405,
+        "severity_2": 80.63098008792345,
+        "severity_3": 14.507370054305662,
+        "severity_4": 4.603051461080941
+      },
+      "historical_danger_percent": 19.110421515386605
+    },
+    "23_1": {
+      "hour": 23,
+      "dow": 1,
+      "n": 4164,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5283381364073007,
+        "severity_2": 80.42747358309317,
+        "severity_3": 13.952929875120077,
+        "severity_4": 5.091258405379443
+      },
+      "historical_danger_percent": 19.04418828049952
+    },
+    "23_2": {
+      "hour": 23,
+      "dow": 2,
+      "n": 4281,
+      "severity_probabilities_percent": {
+        "severity_1": 0.37374445223078717,
+        "severity_2": 78.11259051623452,
+        "severity_3": 15.860780191544032,
+        "severity_4": 5.652884839990657
+      },
+      "historical_danger_percent": 21.51366503153469
+    },
+    "23_3": {
+      "hour": 23,
+      "dow": 3,
+      "n": 4283,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5136586504786365,
+        "severity_2": 77.67919682465562,
+        "severity_3": 15.246322671024984,
+        "severity_4": 6.560821853840766
+      },
+      "historical_danger_percent": 21.807144524865752
+    },
+    "23_4": {
+      "hour": 23,
+      "dow": 4,
+      "n": 4555,
+      "severity_probabilities_percent": {
+        "severity_1": 0.43907793633369924,
+        "severity_2": 76.31174533479692,
+        "severity_3": 16.81668496158068,
+        "severity_4": 6.432491767288694
+      },
+      "historical_danger_percent": 23.249176728869376
+    },
+    "23_5": {
+      "hour": 23,
+      "dow": 5,
+      "n": 3736,
+      "severity_probabilities_percent": {
+        "severity_1": 0.24089935760171305,
+        "severity_2": 77.64989293361884,
+        "severity_3": 14.480728051391864,
+        "severity_4": 7.628479657387581
+      },
+      "historical_danger_percent": 22.109207708779444
+    },
+    "23_6": {
+      "hour": 23,
+      "dow": 6,
+      "n": 3508,
+      "severity_probabilities_percent": {
+        "severity_1": 0.5131128848346637,
+        "severity_2": 77.65108323831242,
+        "severity_3": 15.678449258836944,
+        "severity_4": 6.1573546180159635
+      },
+      "historical_danger_percent": 21.835803876852907
+    }
+  },
+  "artifact_files": {
+    "base_model": "siara_multiclass_severity_artifacts_fixed/base_lightgbm_multiclass.joblib",
+    "calibrated_model": "siara_multiclass_severity_artifacts_fixed/calibrated_lightgbm_multiclass.joblib",
+    "final_selected_model": "siara_multiclass_severity_artifacts_fixed/siara_multiclass_severity_model.joblib",
+    "metadata": "siara_multiclass_severity_artifacts_fixed/siara_multiclass_severity_metadata.json",
+    "bundle": "siara_multiclass_severity_artifacts_fixed/siara_multiclass_bundle.joblib",
+    "feature_importance": "siara_multiclass_severity_artifacts_fixed/feature_importance_multiclass.csv",
+    "metrics_summary": "siara_multiclass_severity_artifacts_fixed/metrics_summary_multiclass.csv"
+  },
+  "fixes_applied": [
+    "Representative full-period sampling for train/validation/calibration/test instead of stopping at early chunks.",
+    "Soft square-root inverse-frequency class weighting by default.",
+    "Calibration sample cap to reduce runtime.",
+    "Automatic calibrated-model rejection if predictions collapse toward one class.",
+    "Final model selected using validation diagnostics.",
+    "Danger thresholds computed from selected final model, not blindly from calibrated predictions.",
+    "Added severe binary metrics for Danger% and ordinal metrics for ordered severity classes."
+  ],
+  "limitations": [
+    "This model predicts severity conditional on accident occurrence; it does not predict whether an accident will occur.",
+    "The dataset is from the United States, so deployment in Algeria may suffer from domain shift.",
+    "Severity classes are highly imbalanced, especially Severity 1 and Severity 4.",
+    "Road segment history, speed limits, lane counts, curvature, and traffic volume are not included in this dataset version.",
+    "SHAP explanations are model explanations, not causal explanations."
+  ]
+}

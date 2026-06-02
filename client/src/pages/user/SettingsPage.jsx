@@ -6,6 +6,7 @@ import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import NotificationBell from '../../components/notifications/NotificationBell'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 
@@ -873,10 +874,7 @@ export default function SettingsPage() {
             />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              <NotificationsOutlinedIcon fontSize="small" />
-              <span className="notification-badge"></span>
-            </button>
+            <NotificationBell />
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {userAvatarUrl ? (

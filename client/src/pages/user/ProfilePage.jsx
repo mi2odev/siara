@@ -1,4 +1,5 @@
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import NotificationBell from '../../components/notifications/NotificationBell'
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
 import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined'
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined'
@@ -709,10 +710,7 @@ export default function ProfilePage(){
             />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              <NotificationsOutlinedIcon fontSize="small" />
-              <span className="notification-badge"></span>
-            </button>
+            <NotificationBell />
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${headerAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {headerAvatarUrl ? (

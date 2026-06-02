@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import NotificationBell from '../../components/notifications/NotificationBell'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
@@ -12,6 +12,7 @@ import { getUserRoles } from '../../utils/roleUtils'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import { deleteReport, listReports, respondToInfoRequest } from '../../services/reportsService'
 import FancySelect from '../../components/ui/FancySelect'
+import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import '../../styles/NewsPage.css'
 import '../../styles/AlertsPage.css'
 import '../../styles/DashboardPage.css'
@@ -142,6 +143,7 @@ export default function ReportsPage() {
   const { user, logout } = useContext(AuthContext)
 
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showQuiz, setShowQuiz] = useState(false)
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
@@ -303,6 +305,7 @@ export default function ReportsPage() {
 
   return (
     <div className="alerts-page">
+      <DrivingQuiz onComplete={() => setShowQuiz(false)} forceShow={showQuiz} />
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
@@ -330,10 +333,7 @@ export default function ReportsPage() {
             />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              <NotificationsOutlinedIcon fontSize="small" />
-              <span className="notification-badge"></span>
-            </button>
+            <NotificationBell />
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {userAvatarUrl ? (
@@ -399,7 +399,7 @@ export default function ReportsPage() {
             </nav>
           </div>
 
-          <FeedSidebarNav activeKey="reports" />
+          <FeedSidebarNav activeKey="reports" onOpenQuiz={() => setShowQuiz(true)} />
         </aside>
 
         <main className="al-center">

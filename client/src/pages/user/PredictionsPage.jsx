@@ -18,6 +18,7 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
 import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined'
 import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
@@ -28,7 +29,7 @@ import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined'
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import NotificationBell from '../../components/notifications/NotificationBell'
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined'
 import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined'
@@ -174,10 +175,7 @@ export default function PredictionsPage() {
             />
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn dash-icon-btn-notification" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              <NotificationsOutlinedIcon fontSize="small" />
-              <span className="notification-badge"></span>
-            </button>
+            <NotificationBell />
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {userAvatarUrl ? (
@@ -207,7 +205,7 @@ export default function PredictionsPage() {
           <div className="card profile-summary">
             <div className="profile-avatar-container">
               <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
-              <span className="verified-badge">V</span>
+              <span className="verified-badge"><CheckRoundedIcon fontSize="inherit" /></span>
             </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>

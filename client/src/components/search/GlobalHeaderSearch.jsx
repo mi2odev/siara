@@ -33,14 +33,18 @@ function getReportAuthorProfile(report) {
   }
 }
 
+// The placeholder is intentionally fixed here (not a prop) so the header search
+// reads identically on every page. Any per-page `placeholder` prop is ignored.
+const SEARCH_PLACEHOLDER = 'Search users, incidents, roads, zones…'
+
 export default function GlobalHeaderSearch({
   navigate,
   query,
   setQuery,
-  placeholder = 'Search for an incident, a road, a wilaya...',
   ariaLabel = 'Search',
   currentUser = null,
 }) {
+  const placeholder = SEARCH_PLACEHOLDER
   const [reports, setReports] = useState([])
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)

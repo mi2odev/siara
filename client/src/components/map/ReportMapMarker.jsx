@@ -3,6 +3,7 @@ import { Marker, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 
 import '../../styles/ReportMapMarker.css'
+import { normalizeReportType } from './reportTypeMeta'
 
 const SEVERITY_HINT_TO_LEVEL = {
   1: 'low',
@@ -11,30 +12,21 @@ const SEVERITY_HINT_TO_LEVEL = {
   4: 'high',
 }
 
-// Inline Material Symbols SVG paths so the same icon set renders both inside
-// Leaflet's HTML divIcon (raw string) and JSX. Each path is drawn at 24x24.
+// Inline SVG paths so the same icon set renders inside Leaflet's HTML divIcon
+// and JSX without relying on React rendering or remote assets.
 const ICON_SVG = {
   accident:
-    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M11.5 2.2 12.6 5.3l3.1-1.1-1.7 2.8 2.8 1.7-3.2.5-.4 3.2-1.7-2.8-2.9 1.1 1.1-2.9-2.8-1.7 3.2-.5z"/><path d="M2.5 19.5h13.1c.3 0 .5-.2.5-.5v-2.6l-1-2.7-1.6-1.1H7l-1.5 1.1L4 16.4v2.6c0 .3.2.5.5.5zm2.4-3.1a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2zm9 0a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2z"/><path d="M19.5 13.6c.3 0 .5-.2.5-.5l-.5-2.7-1.1-1.6h-3.2l-1 1.1.6.5 1.6.5L19.5 13.6zm-1.7-1.3a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6z"/></svg>',
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M18 1c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5m.5 6h-1V3h1zm0 1v1h-1V8zM6 13.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5S8.33 15 7.5 15 6 14.33 6 13.5m13-.57c.65-.09 1.34-.28 2-.6V19c0 .55-.45 1-1 1h-1c-.55 0-1-.45-1-1v-1H6v1c0 .55-.45 1-1 1H4c-.55 0-1-.45-1-1v-8l2.08-5.99C5.29 4.42 5.84 4 6.5 4h4.79c-.19.63-.29 1.31-.29 2H6.85L5.81 9h5.86c.36.75.84 1.43 1.43 2H5v5h14zm-1.09.07c-.89-.01-1.74-.19-2.53-.51-.23.27-.38.62-.38 1.01 0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5c0-.18-.03-.34-.09-.5"/></svg>',
   traffic:
-    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true">' +
-      // Housing
-      '<path d="M16 2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H8V4h8v16z"/>' +
-      // Side brackets (mounting bars)
-      '<path d="M3 6h2v2H3zm0 5h2v2H3zm0 5h2v2H3zm16-10h2v2h-2zm0 5h2v2h-2zm0 5h2v2h-2z"/>' +
-      // Three lights
-      '<circle cx="12" cy="7.5" r="1.6"/>' +
-      '<circle cx="12" cy="12" r="1.6"/>' +
-      '<circle cx="12" cy="16.5" r="1.6"/>' +
-    '</svg>',
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M20 10h-3V8.86c1.72-.45 3-2 3-3.86h-3V4c0-.55-.45-1-1-1H8c-.55 0-1 .45-1 1v1H4c0 1.86 1.28 3.41 3 3.86V10H4c0 1.86 1.28 3.41 3 3.86V15H4c0 1.86 1.28 3.41 3 3.86V20c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-1.14c1.72-.45 3-2 3-3.86h-3v-1.14c1.72-.45 3-2 3-3.86m-5 9H9V5h6zm-3-1c.83 0 1.5-.67 1.5-1.5S12.83 15 12 15s-1.5.67-1.5 1.5.67 1.5 1.5 1.5m0-4.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5M12 9c.83 0 1.5-.67 1.5-1.5S12.83 6 12 6s-1.5.67-1.5 1.5S11.17 9 12 9"/></svg>',
   danger:
-    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zM11 10v5h2v-5h-2zm0 6v2h2v-2h-2z"/></svg>',
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="m16 6-.44.55c-.42.52-.98.75-1.54.75C13 7.3 12 6.52 12 5.3V2S4 6 4 13c0 4.42 3.58 8 8 8s8-3.58 8-8c0-2.96-1.61-5.62-4-7m-4 13c-1.1 0-2-.87-2-1.94 0-.51.2-.99.58-1.36L12 14.3l1.43 1.4c.37.37.57.85.57 1.36 0 1.07-.9 1.94-2 1.94m3.96-1.5c.04-.36.22-1.89-1.13-3.22L12 11.5l-2.83 2.78C7.81 15.62 8 17.16 8.04 17.5 6.79 16.4 6 14.79 6 13c0-3.16 2.13-5.65 4.03-7.25.23 1.99 1.93 3.55 3.99 3.55.78 0 1.54-.23 2.18-.66C17.34 9.78 18 11.35 18 13c0 1.79-.79 3.4-2.04 4.5"/></svg>',
   weather:
-    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M19.36 10.04A7.49 7.49 0 005 9.5 5.5 5.5 0 006 20h13a4.5 4.5 0 00.36-9.96zM7 17a3 3 0 010-6 5.5 5.5 0 0110.5 1.5h.5a2.5 2.5 0 010 5H7z"/></svg>',
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8m0 18c-3.35 0-6-2.57-6-6.2 0-2.34 1.95-5.44 6-9.14 4.05 3.7 6 6.79 6 9.14 0 3.63-2.65 6.2-6 6.2m-4.17-6c.37 0 .67.26.74.62.41 2.22 2.28 2.98 3.64 2.87.43-.02.79.32.79.75 0 .4-.32.73-.72.75-2.13.13-4.62-1.09-5.19-4.12-.08-.45.28-.87.74-.87"/></svg>',
   roadworks:
-    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M14.13 7.6L12 2 9.87 7.6l4.26 0zM7.5 8.93L4.21 15h6.58L7.5 8.93zm9 0L13.21 15h6.58L16.5 8.93zM3 17v3h18v-3H3z"/></svg>',
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="m13.7826 15.1719 2.1213-2.1213 5.9963 5.9962-2.1213 2.1213zM17.5 10c1.93 0 3.5-1.57 3.5-3.5 0-.58-.16-1.12-.41-1.6l-2.7 2.7-1.49-1.49 2.7-2.7c-.48-.25-1.02-.41-1.6-.41C15.57 3 14 4.57 14 6.5c0 .41.08.8.21 1.16l-1.85 1.85-1.78-1.78.71-.71-1.41-1.41L12 3.49c-1.17-1.17-3.07-1.17-4.24 0L4.22 7.03l1.41 1.41H2.81l-.71.71 3.54 3.54.71-.71V9.15l1.41 1.41.71-.71 1.78 1.78-7.41 7.41 2.12 2.12L16.34 9.79c.36.13.75.21 1.16.21"/></svg>',
   other:
-    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-5h2v2h-2v-2zm.5-9a3.5 3.5 0 013.5 3.5c0 1.4-.9 2.2-1.6 2.7-.7.5-1.4.9-1.4 1.8h-2c0-1.5.7-2.2 1.4-2.7.5-.4 1-.7 1-1.3a1.5 1.5 0 00-3 0H8.5a3.5 3.5 0 013-3.5z"/></svg>',
+    '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M11 18h2v-2h-2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4"/></svg>',
 }
 
 const TypeIcon = ({ type }) => (
@@ -72,15 +64,6 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
-}
-
-function sanitizeImageUrl(url) {
-  const normalized = String(url || '').trim()
-  if (!normalized) {
-    return ''
-  }
-
-  return normalized.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
 function truncateText(value, maxLength) {
@@ -126,8 +109,7 @@ function getReportSeverity(report) {
 }
 
 function getReportType(report) {
-  const normalizedType = String(report?.incidentType || report?.type || 'other').trim().toLowerCase()
-  return TYPE_META[normalizedType] ? normalizedType : 'other'
+  return normalizeReportType(report?.incidentType || report?.type)
 }
 
 function getReportMedia(report) {
@@ -138,7 +120,7 @@ function getReportMedia(report) {
   return report.media.filter((mediaItem) => String(mediaItem?.url || '').trim())
 }
 
-export function getReportMarkerPosition(report) {
+function getReportMarkerPosition(report) {
   const nestedLocation = report?.location && typeof report.location === 'object' ? report.location : null
   const lat = toFiniteNumber(nestedLocation?.lat ?? report?.lat)
   const lng = toFiniteNumber(nestedLocation?.lng ?? report?.lng)
@@ -155,9 +137,7 @@ function buildMarkerHtml({ report }) {
   const severity = getReportSeverity(report)
   const typeMeta = TYPE_META[reportType]
   const pinColor = SEVERITY_COLORS[severity] || SEVERITY_COLORS.low
-  const primaryImageUrl = sanitizeImageUrl(getReportMedia(report)[0]?.url)
   const title = escapeHtml(report?.title || typeMeta.label)
-  const imageStyle = primaryImageUrl ? ` style="background-image:url('${primaryImageUrl}')"` : ''
 
   return `
     <div class="siara-report-pin siara-report-pin--${severity}" style="--pin-color:${pinColor}" aria-label="${title}">
@@ -171,7 +151,7 @@ function buildMarkerHtml({ report }) {
           d="M24 6C14.7 6 7.2 13.4 7.2 22.5c0 3 .8 5.9 2.2 8.5 2-14.4 10.5-20 20.2-20 5.3 0 9.6 1.3 12.6 3.5C39.3 9.4 32.1 6 24 6Z"
         />
       </svg>
-      <div class="siara-report-pin__slot"${imageStyle}>
+      <div class="siara-report-pin__slot">
         <span class="siara-report-pin__fallback" aria-hidden="true">${typeMeta.svg}</span>
       </div>
     </div>

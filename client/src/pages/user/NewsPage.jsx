@@ -13,7 +13,7 @@ import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
 import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import NotificationBell from '../../components/notifications/NotificationBell'
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded'
 
 import { AuthContext } from '../../contexts/AuthContext'
@@ -1424,8 +1424,8 @@ export default function NewsPage() {
               <input
                 className="dash-search"
                 type="search"
-                placeholder="Search accounts or accidents..."
-                aria-label="Search accounts or accidents"
+                placeholder="Search users, incidents, roads, zones…"
+                aria-label="Search users, incidents, roads, zones"
                 value={userSearchQuery}
                 onChange={(event) => setUserSearchQuery(event.target.value)}
                 onFocus={handleSearchFocus}
@@ -1490,10 +1490,7 @@ export default function NewsPage() {
             </div>
           </div>
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              <NotificationsOutlinedIcon fontSize="small" />
-              <span className="notification-badge"></span>
-            </button>
+            <NotificationBell />
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown((previous) => !previous)} aria-label="User profile">
                 {userAvatarUrl ? (

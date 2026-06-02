@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { useLocation, useNavigate } from 'react-router-dom'
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import { useNavigate } from 'react-router-dom'
 
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useNotificationStore } from '../../stores/notificationStore'
@@ -21,8 +19,11 @@ function formatRelativeTime(value) {
   const hourMs = 60 * minuteMs
   const dayMs = 24 * hourMs
 
+  if (diffMs < minuteMs) {
+    return 'Now'
+  }
   if (diffMs < hourMs) {
-    return `${Math.max(1, Math.floor(diffMs / minuteMs))}m`
+    return `${Math.floor(diffMs / minuteMs)}m`
   }
   if (diffMs < dayMs) {
     return `${Math.floor(diffMs / hourMs)}h`
@@ -42,68 +43,65 @@ function getPriorityTone(priority) {
 }
 
 function BellIcon() {
-  return <NotificationsOutlinedIcon fontSize="medium" />
-}
-
-function useHeaderMountNode() {
-  const location = useLocation()
-  const [mountNode, setMountNode] = useState(null)
-
-  useEffect(() => {
-    let frameId = 0
-
-    const resolveMountNode = () => {
-      setMountNode(document.querySelector('.dash-header-right'))
-    }
-
-    resolveMountNode()
-    frameId = window.requestAnimationFrame(resolveMountNode)
-
-    const observer = new MutationObserver(resolveMountNode)
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    })
-
-    return () => {
-      window.cancelAnimationFrame(frameId)
-      observer.disconnect()
-    }
-  }, [location.pathname])
-
-  return mountNode
+  return (
+    <svg
+      className="notif-bell-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  )
 }
 
 export default function NotificationBell() {
   const navigate = useNavigate()
-  const mountNode = useHeaderMountNode()
-  const buttonRef = useRef(null)
-  const panelRef = useRef(null)
+  const shellRef = useRef(null)
+
+  // Panel open-state is local so multiple mounted bells (e.g. the responsive
+  // mobile + desktop headers on the report page) never share or fight over it.
+  const [isPanelOpen, setPanelOpen] = useState(false)
 
   const items = useNotificationStore((state) => state.items)
   const isLoading = useNotificationStore((state) => state.isLoading)
-  const isPanelOpen = useNotificationStore((state) => state.isPanelOpen)
   const unreadCount = useNotificationStore((state) => state.unreadCount)
-  const setPanelOpen = useNotificationStore((state) => state.setPanelOpen)
   const { loadNotifications, markAllNotificationsRead, markNotificationRead } = useNotifications()
 
   const latestNotifications = items.slice(0, 6)
 
+  // Close the panel when the user clicks outside of it or presses Escape.
   useEffect(() => {
     if (!isPanelOpen) {
       return undefined
     }
 
-    function handleClickOutside(event) {
-      if (panelRef.current?.contains(event.target) || buttonRef.current?.contains(event.target)) {
+    function handlePointerDown(event) {
+      if (shellRef.current?.contains(event.target)) {
         return
       }
-
       setPanelOpen(false)
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setPanelOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [isPanelOpen, setPanelOpen])
 
   async function handleTogglePanel() {
@@ -113,7 +111,8 @@ export default function NotificationBell() {
     if (nextOpenState) {
       try {
         await loadNotifications({ limit: 20, offset: 0 })
-      } catch (_error) {
+      } catch {
+        // Keep the header control responsive if a refresh request fails.
       }
     }
   }
@@ -124,11 +123,15 @@ export default function NotificationBell() {
     if (!notification.readAt) {
       try {
         await markNotificationRead(notification.id)
-      } catch (_error) {
+      } catch {
+        // Navigation should still continue even if the read receipt fails.
       }
     }
 
-    navigate(notification.data?.reportUrl || notification.data?.mapUrl || '/notifications')
+    // Always open the notifications page with this notification selected, rather
+    // than following an event-specific deep link (e.g. a police map URL). The
+    // detail panel itself exposes the relevant "view incident / map" actions.
+    navigate(`/notifications?notification=${encodeURIComponent(notification.id)}`)
   }
 
   async function handleMarkAllRead(event) {
@@ -136,7 +139,8 @@ export default function NotificationBell() {
 
     try {
       await markAllNotificationsRead()
-    } catch (_error) {
+    } catch {
+      // The notification panel remains usable if the bulk update fails.
     }
   }
 
@@ -145,39 +149,41 @@ export default function NotificationBell() {
 
     try {
       await markNotificationRead(notificationId)
-    } catch (_error) {
+    } catch {
+      // Avoid blocking the rest of the notification interactions.
     }
   }
 
-  if (!mountNode) {
-    return null
-  }
-
-  return createPortal(
-    <div className="notif-header-shell">
+  return (
+    <div className={`notif-bell ${isPanelOpen ? 'is-open' : ''}`} ref={shellRef}>
       <button
-        ref={buttonRef}
         type="button"
-        className={`notif-header-button ${isPanelOpen ? 'open' : ''}`}
-        aria-label="Open notifications"
+        className="notif-bell-btn"
+        aria-label="Notifications"
+        aria-haspopup="dialog"
+        aria-expanded={isPanelOpen}
         onClick={() => { void handleTogglePanel() }}
       >
         <BellIcon />
         {unreadCount > 0 ? (
-          <span className="notif-header-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+          <span className="notif-bell-badge" aria-label={`${unreadCount} unread notifications`}>
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
         ) : null}
       </button>
 
       {isPanelOpen ? (
-        <div ref={panelRef} className="notif-header-panel">
-          <div className="notif-header-panel-head">
-            <div>
-              <p className="notif-header-kicker">Notifications</p>
-              <h3>{unreadCount} unread</h3>
+        <div className="notif-bell-panel" role="dialog" aria-label="Notifications">
+          <div className="notif-bell-panel-head">
+            <div className="notif-bell-heading">
+              <span className="notif-bell-kicker">Notifications</span>
+              <h3 className="notif-bell-title">
+                {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+              </h3>
             </div>
             <button
               type="button"
-              className="notif-header-link"
+              className="notif-bell-markall"
               onClick={handleMarkAllRead}
               disabled={unreadCount === 0}
             >
@@ -185,16 +191,19 @@ export default function NotificationBell() {
             </button>
           </div>
 
-          <div className="notif-header-list">
-            {isLoading ? (
-              <div className="notif-header-empty">Loading notifications...</div>
+          <div className="notif-bell-list">
+            {isLoading && latestNotifications.length === 0 ? (
+              <div className="notif-bell-empty">Loading notifications…</div>
             ) : latestNotifications.length === 0 ? (
-              <div className="notif-header-empty">No notifications yet.</div>
+              <div className="notif-bell-empty">
+                <span className="notif-bell-empty-icon"><BellIcon /></span>
+                You have no notifications yet.
+              </div>
             ) : (
               latestNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`notif-header-item tone-${getPriorityTone(notification.priority)} ${notification.readAt ? '' : 'unread'}`}
+                  className={`notif-bell-item tone-${getPriorityTone(notification.priority)} ${notification.readAt ? '' : 'is-unread'}`}
                   onClick={() => { void handleOpenNotification(notification) }}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -205,35 +214,37 @@ export default function NotificationBell() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="notif-header-item-copy">
-                    <div className="notif-header-item-topline">
-                      <span className="notif-header-item-title">{notification.title}</span>
-                      {!notification.readAt ? <span className="notif-header-unread-dot" /> : null}
+                  <span className="notif-bell-item-rail" aria-hidden="true" />
+                  <div className="notif-bell-item-main">
+                    <div className="notif-bell-item-top">
+                      <span className="notif-bell-item-title">{notification.title}</span>
+                      <span className="notif-bell-item-time">{formatRelativeTime(notification.createdAt)}</span>
                     </div>
-                    <span className="notif-header-item-body">{notification.body}</span>
-                    <div className="notif-header-item-meta">
-                      <span>{notification.data?.zoneName || notification.data?.locationLabel || 'Monitored area'}</span>
-                      <span>{formatRelativeTime(notification.createdAt)}</span>
+                    <span className="notif-bell-item-body">{notification.body}</span>
+                    <div className="notif-bell-item-foot">
+                      <span className="notif-bell-item-zone">
+                        {notification.data?.zoneName || notification.data?.locationLabel || 'Monitored area'}
+                      </span>
+                      {!notification.readAt ? (
+                        <button
+                          type="button"
+                          className="notif-bell-read"
+                          onClick={(event) => { void handleMarkOneRead(event, notification.id) }}
+                        >
+                          Mark read
+                        </button>
+                      ) : null}
                     </div>
                   </div>
-                  {!notification.readAt ? (
-                    <button
-                      type="button"
-                      className="notif-header-mark"
-                      onClick={(event) => { void handleMarkOneRead(event, notification.id) }}
-                    >
-                      Read
-                    </button>
-                  ) : null}
                 </div>
               ))
             )}
           </div>
 
-          <div className="notif-header-panel-foot">
+          <div className="notif-bell-foot">
             <button
               type="button"
-              className="notif-header-view-all"
+              className="notif-bell-viewall"
               onClick={() => {
                 setPanelOpen(false)
                 navigate('/notifications')
@@ -244,7 +255,6 @@ export default function NotificationBell() {
           </div>
         </div>
       ) : null}
-    </div>,
-    mountNode,
+    </div>
   )
 }

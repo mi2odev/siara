@@ -19,6 +19,7 @@ import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import NotificationBell from '../notifications/NotificationBell'
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
@@ -33,6 +34,7 @@ import '../../styles/DashboardPage.css'
 import '../../styles/PoliceMode.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import { submitSupportMessage } from '../../services/supportMessagesService'
+import { listPoliceIncidents } from '../../services/policeService'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -43,7 +45,7 @@ export default function PoliceShell({
   rightPanelCollapsed = false,
   notificationCount = 0,
   emergencyMode = false,
-  verificationPendingCount = 0,
+  verificationPendingCount = null,
 }) {
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
@@ -67,6 +69,36 @@ export default function PoliceShell({
 
   const isInSupervisorMode = SUPERVISOR_KEYS.has(activeKey)
 
+  // The Verification Queue badge (officer menu) must be consistent on every
+  // officer page. Pages that already load the count pass it as a prop; for the
+  // rest, fetch it here so the number is never missing on some pages.
+  const [fetchedPendingCount, setFetchedPendingCount] = useState(0)
+
+  useEffect(() => {
+    if (verificationPendingCount != null || isInSupervisorMode) {
+      return undefined
+    }
+
+    let cancelled = false
+    listPoliceIncidents({ page: 1, pageSize: 1, status: 'pending' })
+      .then((result) => {
+        if (!cancelled) {
+          setFetchedPendingCount(Number(result?.pagination?.total || 0))
+        }
+      })
+      .catch(() => {
+        // Badge falls back to 0 if the count can't be loaded.
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [verificationPendingCount, isInSupervisorMode])
+
+  const resolvedPendingCount = verificationPendingCount != null
+    ? verificationPendingCount
+    : fetchedPendingCount
+
   const officerMenuGroups = useMemo(() => [
     {
       title: 'OPERATIONS',
@@ -79,7 +111,7 @@ export default function PoliceShell({
           label: 'Verification Queue',
           icon: <PendingActionsOutlinedIcon fontSize="inherit" />,
           path: '/police/verification',
-          badge: verificationPendingCount,
+          badge: resolvedPendingCount,
         },
         { key: 'my-incidents', label: 'My Incidents', icon: <LocalPoliceOutlinedIcon fontSize="inherit" />, path: '/police/my-incidents' },
         { key: 'field-reports', label: 'Field Reports', icon: <EditNoteOutlinedIcon fontSize="inherit" />, path: '/police/field-reports' },
@@ -101,7 +133,7 @@ export default function PoliceShell({
         { key: 'overview', label: 'Overview', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/overview' },
       ],
     },
-  ], [verificationPendingCount])
+  ], [resolvedPendingCount])
 
   const supervisorMenuGroups = useMemo(() => [
     {
@@ -266,10 +298,7 @@ export default function PoliceShell({
           </div>
 
           <div className="dash-header-right">
-            <button className="dash-icon-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}>
-              <NotificationsOutlinedIcon fontSize="small" />
-              {notificationCount > 0 ? <span className="notification-badge"></span> : null}
-            </button>
+            <NotificationBell />
             <div className="dash-avatar-wrapper">
               <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
                 {userAvatarUrl ? (

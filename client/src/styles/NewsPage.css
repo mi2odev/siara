@@ -3532,14 +3532,20 @@ body.has-left-info-open .police-shell-header {
 .pc {
   position: relative;
   background: #FFFFFF;
-  border-radius: 14px;
-  border: 1px solid #E8EEF4;
-  box-shadow: 0 1px 3px rgba(15,23,42,0.05), 0 4px 16px rgba(15,23,42,0.05);
+  border-radius: 16px;
+  border: 1px solid #eceff4;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 6px 22px rgba(15,23,42,0.05);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   margin-bottom: 16px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.pc:hover {
+  border-color: #e2e6ee;
+  box-shadow: 0 2px 4px rgba(15,23,42,0.05), 0 12px 30px rgba(15,23,42,0.07);
 }
 
 .pc::before {
@@ -3549,7 +3555,7 @@ body.has-left-info-open .police-shell-header {
   bottom: 0;
   left: 0;
   width: 4px;
-  border-radius: 14px 0 0 14px;
+  border-radius: 16px 0 0 16px;
 }
 
 .pc--high::before   { background: #EF4444; }
@@ -3683,8 +3689,8 @@ body.has-left-info-open .police-shell-header {
 .pc-sev {
   display: inline-flex;
   align-items: center;
-  padding: 3px 9px;
-  border-radius: 20px;
+  padding: 4px 10px;
+  border-radius: 999px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -3716,15 +3722,16 @@ body.has-left-info-open .police-shell-header {
 
 /* ── Content body ── */
 .pc-body {
-  padding: 0 22px 14px 22px;
+  padding: 0 18px 14px 18px;
 }
 
 .pc-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: #0F172A;
   margin: 0 0 7px;
-  line-height: 1.45;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
 }
 
 .pc-desc {
@@ -3822,27 +3829,30 @@ body.has-left-info-open .police-shell-header {
 .pc-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 5px 14px 7px;
+  gap: 4px;
+  padding: 6px 12px 8px;
   border-top: 1px solid #F1F5F9;
 }
 
 .pc-act {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 7px 10px;
-  border-radius: 8px;
+  padding: 7px 11px;
+  border-radius: 9px;
   border: none;
   background: transparent;
   color: #64748B;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.14s, color 0.14s;
+  transition: background 0.14s, color 0.14s, transform 0.1s ease;
   user-select: none;
   white-space: nowrap;
 }
+
+.pc-act:active:not(:disabled) { transform: scale(0.94); }
 
 .pc-act svg { width: 18px; height: 18px; flex-shrink: 0; }
 
@@ -3858,6 +3868,48 @@ body.has-left-info-open .police-shell-header {
 
 .pc-act--cmt.on { color: #0EA5E9; background: rgba(14,165,233,0.08); }
 .pc-act--cmt.on:hover:not(:disabled) { background: rgba(14,165,233,0.14); }
+
+/* ── Reaction feedback: icon pop + radiating burst when activated ── */
+@keyframes pc-react-pop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.42); }
+  60%  { transform: scale(0.86); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pc-react-burst {
+  0%   { opacity: 0.55; transform: translate(-50%, -50%) scale(0.3); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(2.4); }
+}
+
+.pc-act--like.on svg,
+.pc-act--saw.on svg {
+  animation: pc-react-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pc-act--like.on::after,
+.pc-act--saw.on::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  animation: pc-react-burst 0.5s ease-out;
+}
+
+.pc-act--like.on::after { border: 2px solid #E11D48; }
+.pc-act--saw.on::after  { border: 2px solid #7C3AED; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-act--like.on svg,
+  .pc-act--saw.on svg { animation: none; }
+  .pc-act--like.on::after,
+  .pc-act--saw.on::after { display: none; }
+}
 
 .pc-view-btn {
   display: inline-flex;

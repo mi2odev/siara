@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 
-import NotificationBell from '../components/notifications/NotificationBell'
 import NotificationToasts from '../components/notifications/NotificationToasts'
 import { createNotificationSocket } from '../services/notificationSocket'
 import {
@@ -32,15 +31,6 @@ export function NotificationProvider({ children }) {
   const applyReadAll = useNotificationStore((state) => state.applyReadAll)
   const enqueueToast = useNotificationStore((state) => state.enqueueToast)
   const dismissToast = useNotificationStore((state) => state.dismissToast)
-
-  useEffect(() => {
-    const enableBell = isAuthenticated && !isAdmin
-    document.body.classList.toggle('siara-notification-header-enabled', enableBell)
-
-    return () => {
-      document.body.classList.remove('siara-notification-header-enabled')
-    }
-  }, [isAdmin, isAuthenticated])
 
   useEffect(() => {
     if (isAuthLoading) {
@@ -225,7 +215,6 @@ export function NotificationProvider({ children }) {
   return (
     <NotificationContext.Provider value={value}>
       {children}
-      {isAuthenticated && !isAdmin ? <NotificationBell /> : null}
       {isAuthenticated && !isAdmin ? <NotificationToasts /> : null}
     </NotificationContext.Provider>
   )

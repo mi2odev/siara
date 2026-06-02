@@ -39,6 +39,7 @@ import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined'
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import NotificationBell from '../../components/notifications/NotificationBell'
 import MailOutlineOutlinedIcon from '@mui/icons-material/MailOutlineOutlined'
 import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
@@ -556,14 +557,7 @@ export default function CreateAlertPage() {
           </div>
 
           <div className="dash-header-right">
-            <button
-              className="dash-icon-btn"
-              aria-label="Notifications"
-              onClick={() => navigate('/notifications')}
-            >
-              {renderHeaderIcon('notification')}
-              <span className="notification-badge"></span>
-            </button>
+            <NotificationBell />
 
             <button className="dash-icon-btn" aria-label="Messages">
               {renderHeaderIcon('message')}
