@@ -39,6 +39,11 @@ function clampNumber(value, min, max) {
 
 function normalizeRiskLevel(level, dangerPercent = null) {
   const text = String(level || "").trim().toLowerCase();
+  // The multiclass model emits Low/Medium/High; map "medium" onto the stored
+  // 4-tier vocabulary ("moderate") so historical rows stay comparable.
+  if (text === "medium") {
+    return "moderate";
+  }
   if (text === "low" || text === "moderate" || text === "high" || text === "extreme") {
     return text;
   }
@@ -62,17 +67,25 @@ function normalizeProbability(dangerPercent) {
 }
 
 function normalizeConfidenceScore(prediction) {
-  const numericConfidence = safeNumber(prediction?.confidence);
+  // Prefer the numeric data-quality score. `data_quality_confidence` is the new
+  // home of the value historically stored here as `confidence`; the legacy
+  // `confidence` field is read only when it is still numeric.
+  const numericConfidence = safeNumber(
+    prediction?.data_quality_confidence ?? prediction?.confidence,
+  );
   if (numericConfidence != null) {
     return clampNumber(numericConfidence > 1 ? numericConfidence / 100 : numericConfidence, 0, 1);
   }
 
-  const sentinelConfidence = String(prediction?.sentinel?.confidence || "")
+  // Fall back to a label-based score (model confidence or sentinel confidence).
+  const labelConfidence = String(
+    prediction?.confidence || prediction?.sentinel?.confidence || "",
+  )
     .trim()
     .toLowerCase();
-  if (sentinelConfidence === "high") return 0.9;
-  if (sentinelConfidence === "medium") return 0.6;
-  if (sentinelConfidence === "low") return 0.3;
+  if (labelConfidence === "high") return 0.9;
+  if (labelConfidence === "medium") return 0.6;
+  if (labelConfidence === "low") return 0.3;
   return null;
 }
 

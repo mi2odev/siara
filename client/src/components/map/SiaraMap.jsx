@@ -259,9 +259,12 @@ const normalizeAlertZoneCenter = (alertZone) => {
 };
 
 const getDangerColor = (level) => {
-  if (level === "unknown") return "#64748b";
-  if (level === "high") return "#b91c1c";
-  if (level === "medium") return "#f59e0b";
+  // Accept any casing — the multiclass model emits Low/Medium/High, while
+  // normalizeDangerLevel() returns lowercase. "moderate" maps to the medium hue.
+  const text = String(level || "").trim().toLowerCase();
+  if (text === "unknown") return "#64748b";
+  if (text === "high" || text === "extreme") return "#b91c1c";
+  if (text === "medium" || text === "moderate") return "#f59e0b";
   return "#22c55e";
 }
 
@@ -3125,8 +3128,28 @@ const SiaraMap = ({
     ? String(sentinel?.confidence || "").trim().toLowerCase() || null
     : null;
   const sentinelIsOod = sentinelValid ? Boolean(sentinel?.is_ood) : null;
-  const legacyConfidencePct = toPercentOrNull(currentRisk?.confidence);
+  // The multiclass model exposes the numeric data-quality score as
+  // `data_quality_confidence`; `confidence` is now the model-confidence label
+  // (High/Medium/Low). Read the numeric field first, falling back to a legacy
+  // numeric `confidence` if present.
+  const legacyConfidencePct = toPercentOrNull(
+    currentRisk?.data_quality_confidence ?? currentRisk?.confidence,
+  );
   const qualityLabel = String(currentRisk?.quality || "").trim().toLowerCase() || null;
+  const severityConfidenceLabel =
+    typeof currentRisk?.confidence === "string"
+      ? currentRisk.confidence.trim() || null
+      : null;
+  const severityProbabilities =
+    currentRisk?.severity_probabilities && typeof currentRisk.severity_probabilities === "object"
+      ? currentRisk.severity_probabilities
+      : null;
+  const mostLikelySeverity = Number.isFinite(Number(currentRisk?.most_likely_severity))
+    ? Number(currentRisk.most_likely_severity)
+    : null;
+  const expectedSeverity = Number.isFinite(Number(currentRisk?.expected_severity))
+    ? Number(currentRisk.expected_severity)
+    : null;
   const sentinelReasons = mapSentinelReasons(sentinel?.reasons);
   const sentinelBannerTitle = String(sentinel?.banner?.title || "").trim();
   const sentinelBannerDetail = String(sentinel?.banner?.detail || "").trim();
@@ -3268,6 +3291,13 @@ const SiaraMap = ({
         riskLevel: enrichedRisk?.danger_level || null,
         confidence: compactConfidenceLabel || enrichedRisk?.confidence || null,
         dataQuality: compactQualityLabel || enrichedRisk?.quality || null,
+        // Multiclass severity breakdown (4-class model) for richer explanations.
+        severityProbabilities: enrichedRisk?.severity_probabilities || null,
+        mostLikelySeverity: enrichedRisk?.most_likely_severity ?? null,
+        expectedSeverity: enrichedRisk?.expected_severity ?? null,
+        severeProbability: enrichedRisk?.severe_probability ?? null,
+        baselinePercent: enrichedRisk?.baseline_percent ?? null,
+        deltaVsBaseline: enrichedRisk?.delta_vs_baseline ?? null,
         accuracyMeters: Number.isFinite(Number(userPosition?.accuracy))
           ? Number(userPosition.accuracy)
           : null,
@@ -4281,6 +4311,58 @@ const SiaraMap = ({
                   </IconButton>
                 </MuiTooltip>
               </div>
+              {severityProbabilities && (
+                <div className="siara-occurrence-card" role="group" aria-label="Severity outlook">
+                  <div className="siara-occurrence-card__title">
+                    Severity outlook{severityConfidenceLabel ? ` · ${severityConfidenceLabel} confidence` : ""}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
+                    {[1, 2, 3, 4].map((k) => {
+                      const pct = Number(severityProbabilities[`severity_${k}`]) || 0;
+                      const isTop = mostLikelySeverity === k;
+                      const barColor =
+                        k >= 3 ? getDangerColor("high") : k === 2 ? getDangerColor("medium") : getDangerColor("low");
+                      return (
+                        <div
+                          key={k}
+                          style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: isTop ? 700 : 400 }}
+                        >
+                          <span style={{ width: 38, fontSize: 11, color: "#475569" }}>Sev {k}</span>
+                          <span
+                            style={{
+                              position: "relative",
+                              flex: 1,
+                              height: 7,
+                              background: "rgba(148,163,184,0.25)",
+                              borderRadius: 4,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <span
+                              style={{
+                                position: "absolute",
+                                insetBlock: 0,
+                                left: 0,
+                                width: `${Math.min(100, Math.max(0, pct))}%`,
+                                background: barColor,
+                                borderRadius: 4,
+                              }}
+                            />
+                          </span>
+                          <span style={{ width: 44, textAlign: "right", fontSize: 11, fontVariantNumeric: "tabular-nums" }}>
+                            {pct}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {expectedSeverity != null && (
+                    <p className="siara-occurrence-card__line" style={{ marginTop: 6 }}>
+                      Most likely: Severity {mostLikelySeverity} · Expected: {expectedSeverity} / 4
+                    </p>
+                  )}
+                </div>
+              )}
               {(occurrenceRiskLoading || occurrenceRisk || occurrenceRiskError) && (
                 <div className="siara-occurrence-card" role="status">
                   <div className="siara-occurrence-card__title">

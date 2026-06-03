@@ -113,6 +113,12 @@ function normalizeDangerLevel(level, dangerPercent = null) {
   if (text === "unknown" || text === "unavailable") {
     return "unknown";
   }
+  // The multiclass model emits Low/Medium/High; honour the model's explicit
+  // "Medium" by mapping it onto the 4-tier vocabulary ("moderate") instead of
+  // re-bucketing from danger_percent (mirrors riskPersistence.normalizeRiskLevel).
+  if (text === "medium") {
+    return "moderate";
+  }
   if (text === "extreme" || text === "high" || text === "moderate" || text === "low") {
     return text;
   }
