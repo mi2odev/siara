@@ -1,6 +1,7 @@
 ﻿from flask import Flask, Response, jsonify, request, stream_with_context
 import json
 import joblib
+import math
 import numpy as np
 import pandas as pd
 import requests
@@ -51,10 +52,23 @@ MODEL_PATH = os.path.join(BASE_DIR, "driver-quiz-model", "driver_model.joblib")
 RAW_MODEL_PATH = os.path.join(BASE_DIR, "driver-quiz-model", "driver_model_raw.joblib")
 META_PATH = os.path.join(BASE_DIR, "driver-quiz-model", "metadata.json")
 
-# Danger-zone model artifacts (production-safe, no bundle class dependency)
-CAL_MODEL_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "siara_severe_model.joblib")
-BASE_MODEL_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "base_lightgbm.joblib")
-DANGER_META_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "siara_severe_metadata.json")
+# Danger-zone severity model artifacts.
+#
+# Migrated from the binary "severe (Severity>=3)" probability model to the
+# 4-class LightGBM multiclass severity model. predict_proba now returns
+# P(Severity=k | accident) for k in {1,2,3,4}; danger_percent is derived as
+# 100 * (P(Sev3) + P(Sev4)). The raw API inputs are unchanged — the new model
+# only requires 15 additional engineered features (cyclical time encodings +
+# weather/time indicators) that are derived on top of the existing
+# preprocessing in _engineer_danger_features() before inference.
+MULTICLASS_DIR = os.path.join(BASE_DIR, "siara_multiclass_severity_artifacts_fixed")
+MULTICLASS_MODEL_PATH = os.path.join(MULTICLASS_DIR, "base_lightgbm_multiclass.joblib")
+MULTICLASS_META_PATH = os.path.join(MULTICLASS_DIR, "siara_multiclass_severity_metadata.json")
+# Retained only for the per-(hour, dow) baseline reference rows used to compute
+# baseline_percent / delta_vs_baseline — the new metadata's baseline buckets do
+# not carry the weather feature snapshot needed to rebuild a baseline row, so
+# the existing baseline business logic keeps sourcing those reference rows here.
+DANGER_BASELINE_META_PATH = os.path.join(BASE_DIR, "danger-zone-model", "siara_v1_artifacts", "siara_severe_metadata.json")
 SENTINEL_PATH = os.path.join(
     BASE_DIR, "anomaly-detection", "SiaraSentinelDZ_v2.joblib"
 )
@@ -73,14 +87,24 @@ FEATURES = meta["features"]
 ordered_labels = meta["ordered_labels"]
 explainer = shap.TreeExplainer(rf_raw)
 
-# ---- Load danger-zone artifacts
-DANGER_MODEL = joblib.load(CAL_MODEL_PATH)
-BASE_MODEL = joblib.load(BASE_MODEL_PATH)
-with open(DANGER_META_PATH, "r", encoding="utf-8") as f:
+# ---- Load danger-zone multiclass severity artifacts
+DANGER_MODEL = joblib.load(MULTICLASS_MODEL_PATH)
+with open(MULTICLASS_META_PATH, "r", encoding="utf-8") as f:
     DANGER_META = json.load(f)
 
 DANGER_FEATURES = DANGER_META["features"]
-DANGER_NUMERIC_FEATURES = DANGER_FEATURES["numeric"]
+# Exact column order the model was trained with (43 features). Inference frames
+# must match this order precisely; verified against DANGER_MODEL.feature_name_.
+MULTICLASS_FEATURE_ORDER = DANGER_FEATURES["all"]
+# Engineered features derived in _engineer_danger_features (cyclical encodings +
+# indicators). Everything else is a raw API input handled by the existing
+# preprocessing.
+DANGER_ENGINEERED_FEATURES = DANGER_FEATURES["engineered"]
+
+# Base (raw-input) feature groups handled by _preprocess_danger_row exactly as
+# before. The base numeric group is the 6 weather columns + hour/dow/month; the
+# 15 engineered numeric features are NOT imputed here — they are derived.
+DANGER_NUMERIC_FEATURES = list(DANGER_FEATURES["base_weather_numeric"]) + ["hour", "dow", "month"]
 DANGER_CATEGORICAL_FEATURES = DANGER_FEATURES["categorical"]
 DANGER_BOOLEAN_FEATURES = DANGER_FEATURES["boolean"]
 DANGER_FEATURE_ORDER = (
@@ -90,11 +114,36 @@ DANGER_FEATURE_ORDER = (
 DANGER_PREPROCESS = DANGER_META.get("preprocess", {})
 DANGER_NUMERIC_MEDIANS = DANGER_PREPROCESS.get("numeric_median", {})
 DANGER_NUMERIC_CLIP = DANGER_PREPROCESS.get("numeric_clip_p01_p99", {})
-DANGER_CATEGORICAL_LEVELS = DANGER_META.get("categorical_levels", {})
-DANGER_THRESHOLDS = DANGER_META.get("thresholds", {})
-DANGER_BASELINE_BY_HD = DANGER_META.get("baseline_dynamic_by_hour_dow", {})
+DANGER_CATEGORICAL_LEVELS = DANGER_PREPROCESS.get("categorical_levels", {})
+DANGER_THRESHOLDS = DANGER_META.get("danger_thresholds", {})
 
-DANGER_SHAP_EXPLAINER = shap.TreeExplainer(BASE_MODEL)
+# Severity class bookkeeping: model classes_ are [0,1,2,3] -> Severity 1..4.
+DANGER_CLASS_LABELS = [int(c) + 1 for c in getattr(DANGER_MODEL, "classes_", [0, 1, 2, 3])]
+DANGER_NUM_CLASSES = len(DANGER_CLASS_LABELS)
+# Positions of the "severe" classes (Severity 3 & 4) within the severity-SORTED
+# probability vector returned by _predict_severity_proba (index i -> Severity
+# i+1). Used for severe_probability / danger_percent.
+DANGER_SEVERE_CLASS_INDICES = [i for i in range(DANGER_NUM_CLASSES) if (i + 1) >= 3]
+
+# danger_level cutoffs (percent) per product spec: Low < 20, Medium [20,50), High >= 50.
+DANGER_LEVEL_MEDIUM_CUTOFF = 20.0
+DANGER_LEVEL_HIGH_CUTOFF = 50.0
+
+# Baseline reference rows (per-(hour, dow) typical conditions) kept from the
+# previous artifacts so baseline_percent / delta_vs_baseline preserve the
+# existing business logic — now scored through the new model so the delta stays
+# self-consistent (same model on both sides).
+try:
+    with open(DANGER_BASELINE_META_PATH, "r", encoding="utf-8") as f:
+        _DANGER_BASELINE_META = json.load(f)
+    DANGER_BASELINE_BY_HD = _DANGER_BASELINE_META.get("baseline_dynamic_by_hour_dow", {})
+except Exception:
+    DANGER_BASELINE_BY_HD = {}
+
+# NOTE: shap.TreeExplainer is NOT usable on this model — its dump_model() JSON
+# exceeds the 2GB ctypes string limit (the model has ~25.8k boosting rounds x 4
+# classes). Feature attributions are instead computed via LightGBM's native
+# pred_contrib (TreeSHAP in C++) in _danger_top_reasons, which needs no dump.
 
 # ---- Load sentinel artifact (graceful fallback if unavailable)
 SENTINEL_ENABLED = False
@@ -583,18 +632,16 @@ def _to_bool_int(value):
     return int(num != 0.0)
 
 
-def _danger_level_from_thresholds(danger_percent):
-    q50 = float(DANGER_THRESHOLDS.get("q50", 25.0))
-    q75 = float(DANGER_THRESHOLDS.get("q75", 50.0))
-    q90 = float(DANGER_THRESHOLDS.get("q90", 75.0))
-
-    if danger_percent < q50:
-        return "low"
-    if danger_percent < q75:
-        return "moderate"
-    if danger_percent < q90:
-        return "high"
-    return "extreme"
+def _danger_level_label(danger_percent):
+    """danger_level from danger_percent per product spec:
+    Low < 20%, Medium [20%, 50%), High >= 50%."""
+    if danger_percent is None:
+        return "Low"
+    if danger_percent < DANGER_LEVEL_MEDIUM_CUTOFF:
+        return "Low"
+    if danger_percent < DANGER_LEVEL_HIGH_CUTOFF:
+        return "Medium"
+    return "High"
 
 
 def _build_quality_payload(quality, include_details=True):
@@ -763,29 +810,142 @@ def _preprocess_danger_row(raw_row):
     return frame, quality
 
 
-def _positive_prob_from_model(model_obj, frame):
-    proba = np.asarray(model_obj.predict_proba(frame))
-    if proba.ndim == 1:
-        return np.clip(proba, 0.0, 1.0)
+# Weather-condition substrings used by the engineered indicators. These are
+# matched against the RAW Weather_Condition text (before top-k "Other" mapping),
+# mirroring how the features were built at training time.
+_RAIN_WEATHER_TOKENS = ("rain", "drizzle", "storm", "shower")
+_SNOW_FOG_WEATHER_TOKENS = ("snow", "fog", "mist", "haze", "smoke", "dust", "ice", "sleet")
 
-    if proba.ndim != 2 or proba.shape[1] == 0:
+
+def _engineer_danger_features(base_frame, raw_row):
+    """Derive the 15 engineered features the multiclass model expects and return
+    a single-row DataFrame in MULTICLASS_FEATURE_ORDER (43 columns).
+
+    Replicates the training notebook's feature engineering 1:1. The raw API
+    inputs are unchanged; engineered features are deterministic functions of the
+    already-preprocessed base features (numeric values are post-clip, which is
+    equivalent to raw for every threshold used here), plus the raw
+    Weather_Condition / Sunrise_Sunset text for the keyword indicators.
+    """
+    base = base_frame.iloc[0]
+    raw = raw_row or {}
+
+    hour = float(base["hour"])
+    dow = float(base["dow"])
+    month = float(base["month"])
+    hour_i = int(round(hour))
+    dow_i = int(round(dow))
+
+    two_pi = 2.0 * math.pi
+    eng = {
+        "hour_sin": math.sin(two_pi * hour / 24.0),
+        "hour_cos": math.cos(two_pi * hour / 24.0),
+        "dow_sin": math.sin(two_pi * dow / 7.0),
+        "dow_cos": math.cos(two_pi * dow / 7.0),
+        "month_sin": math.sin(two_pi * month / 12.0),
+        "month_cos": math.cos(two_pi * month / 12.0),
+    }
+
+    eng["is_weekend"] = 1 if dow_i in (5, 6) else 0
+    eng["is_rush_hour"] = 1 if hour_i in (7, 8, 9, 16, 17, 18, 19) else 0
+
+    # is_night: Sunrise_Sunset says "night" OR hour in 20-23 OR hour in 0-5.
+    sunrise_sunset = str(raw.get("Sunrise_Sunset", base.get("Sunrise_Sunset", "")) or "").lower()
+    eng["is_night"] = 1 if (
+        "night" in sunrise_sunset or (20 <= hour_i <= 23) or (0 <= hour_i <= 5)
+    ) else 0
+
+    weather_text = str(raw.get("Weather_Condition", base.get("Weather_Condition", "")) or "").lower()
+    precipitation = float(base["Precipitation(in)"])
+    eng["is_rain"] = 1 if (
+        precipitation > 0 or any(tok in weather_text for tok in _RAIN_WEATHER_TOKENS)
+    ) else 0
+
+    eng["low_visibility"] = 1 if float(base["Visibility(mi)"]) < 2 else 0
+    eng["strong_wind"] = 1 if float(base["Wind_Speed(mph)"]) > 20 else 0
+
+    snow_or_fog = any(tok in weather_text for tok in _SNOW_FOG_WEATHER_TOKENS)
+    freezing = float(base["Temperature(F)"]) < 32
+    eng["bad_weather"] = 1 if (
+        eng["is_rain"] or eng["low_visibility"] or eng["strong_wind"] or snow_or_fog or freezing
+    ) else 0
+
+    eng["night_and_rain"] = 1 if (eng["is_night"] and eng["is_rain"]) else 0
+    junction = int(base["Junction"]) if "Junction" in base_frame.columns else 0
+    eng["junction_and_rush_hour"] = 1 if (junction and eng["is_rush_hour"]) else 0
+
+    # Extend the existing base frame so categorical/boolean dtypes are preserved,
+    # then project onto the exact model column order.
+    frame = base_frame.copy()
+    for feat in DANGER_ENGINEERED_FEATURES:
+        frame[feat] = float(eng[feat])
+    frame = frame[MULTICLASS_FEATURE_ORDER]
+    return frame, eng
+
+
+def _predict_severity_proba(model_frame):
+    """Return P(Severity=k | accident) ordered as [sev1, sev2, sev3, sev4]."""
+    proba = np.asarray(DANGER_MODEL.predict_proba(model_frame))
+    if proba.ndim != 2 or proba.shape[1] != DANGER_NUM_CLASSES:
         raise ValueError(f"Unexpected predict_proba shape: {proba.shape}")
-
-    positive_idx = proba.shape[1] - 1
-    classes = getattr(model_obj, "classes_", None)
-    if classes is not None:
-        class_list = list(np.asarray(classes))
-        if 1 in class_list:
-            positive_idx = class_list.index(1)
-        elif True in class_list:
-            positive_idx = class_list.index(True)
-
-    return np.clip(proba[:, positive_idx], 0.0, 1.0)
+    row = proba[0]
+    # Reorder columns by ascending severity label in case classes_ is not sorted.
+    order = np.argsort(DANGER_CLASS_LABELS)
+    return np.clip(row[order], 0.0, 1.0)
 
 
-def _predict_danger_percent(frame):
-    positive_prob = _positive_prob_from_model(DANGER_MODEL, frame)[0]
-    return float(np.clip(positive_prob * 100.0, 0.0, 100.0))
+def _severity_payload_from_proba(proba):
+    """Build the spec severity payload from an ordered [sev1..sev4] probability
+    vector."""
+    pct = [round(float(p) * 100.0, 1) for p in proba]
+    severity_probabilities = {f"severity_{i + 1}": pct[i] for i in range(len(pct))}
+
+    most_likely_severity = int(np.argmax(proba)) + 1
+    expected_severity = round(
+        float(sum((i + 1) * float(proba[i]) for i in range(len(proba)))), 2
+    )
+    # severe_probability = P(Sev3) + P(Sev4); danger_percent mirrors it. Rounded
+    # once from the raw probabilities (not from the per-class rounded values) so
+    # it stays consistent with _predict_danger_percent and never drifts 0.1pp
+    # across the danger_level cutoffs.
+    severe_probability = round(
+        float(sum(proba[i] for i in DANGER_SEVERE_CLASS_INDICES)) * 100.0, 1
+    )
+    danger_percent = severe_probability
+    danger_level = _danger_level_label(danger_percent)
+
+    max_prob_pct = float(np.max(proba)) * 100.0
+    if max_prob_pct >= 60.0:
+        confidence = "High"
+    elif max_prob_pct >= 40.0:
+        confidence = "Medium"
+    else:
+        confidence = "Low"
+
+    return {
+        "severity_probabilities": severity_probabilities,
+        "most_likely_severity": most_likely_severity,
+        "expected_severity": expected_severity,
+        "severe_probability": severe_probability,
+        "danger_percent": danger_percent,
+        "danger_level": danger_level,
+        "confidence": confidence,
+    }
+
+
+def _build_danger_model_frame(raw_row):
+    """Preprocess raw inputs (unchanged) then derive engineered features."""
+    base_frame, quality = _preprocess_danger_row(raw_row)
+    model_frame, _engineered = _engineer_danger_features(base_frame, raw_row)
+    return base_frame, model_frame, quality
+
+
+def _predict_danger_percent(model_frame):
+    """danger_percent for an already-built 43-column model frame (used by the
+    baseline computation)."""
+    proba = _predict_severity_proba(model_frame)
+    severe = float(sum(proba[i] for i in DANGER_SEVERE_CLASS_INDICES)) * 100.0
+    return float(np.clip(severe, 0.0, 100.0))
 
 
 def _build_baseline_input(scored_frame):
@@ -826,50 +986,48 @@ def _compute_baseline_percent(scored_frame):
     if baseline_row is None:
         return None, baseline_key
 
-    baseline_frame, _ = _preprocess_danger_row(baseline_row)
-    baseline_percent = _predict_danger_percent(baseline_frame)
+    _base_frame, baseline_model_frame, _quality = _build_danger_model_frame(baseline_row)
+    baseline_percent = _predict_danger_percent(baseline_model_frame)
     return baseline_percent, baseline_key
 
 
-def _extract_binary_shap_vector(shap_values):
-    if isinstance(shap_values, list):
-        if not shap_values:
-            raise ValueError("Empty SHAP values")
-        candidate = shap_values[1] if len(shap_values) > 1 else shap_values[0]
-        arr = np.asarray(candidate)
-        if arr.ndim == 2:
-            return arr[0]
-        if arr.ndim == 1:
-            return arr
-        raise ValueError(f"Unsupported SHAP list-array shape: {arr.shape}")
+# Indices into the model's NATIVE class order (DANGER_MODEL.classes_) for the
+# severe classes (Severity 3 & 4). pred_contrib columns follow this same order.
+DANGER_SEVERE_CLASS_INDICES_NATIVE = [
+    i for i, c in enumerate(getattr(DANGER_MODEL, "classes_", [0, 1, 2, 3])) if int(c) + 1 >= 3
+]
 
-    arr = np.asarray(shap_values)
-    if arr.ndim == 1:
-        return arr
-    if arr.ndim == 2:
-        return arr[0]
-    if arr.ndim == 3 and arr.shape[1] == len(DANGER_FEATURE_ORDER):
-        return arr[0, :, -1]
-    raise ValueError(f"Unsupported SHAP shape: {arr.shape}")
+
+def _severe_contributions(model_frame):
+    """Per-feature contribution toward the *severe* outcome (Severity 3 & 4) for
+    a single 43-column row, using LightGBM's native pred_contrib (TreeSHAP).
+
+    Returns (contrib_vector[n_features], base_value). The multiclass contribution
+    array has shape (n_samples, (n_features + 1) * n_classes), laid out
+    class-major as [feat_0..feat_{n-1}, base] per class. We sum the severe-class
+    rows to express "what drives danger_percent".
+    """
+    n_features = len(MULTICLASS_FEATURE_ORDER)
+    raw = np.asarray(DANGER_MODEL.booster_.predict(model_frame, pred_contrib=True))
+    mat = raw[0].reshape(DANGER_NUM_CLASSES, n_features + 1)
+    severe_idx = [i for i in DANGER_SEVERE_CLASS_INDICES_NATIVE if i < mat.shape[0]]
+    if not severe_idx:
+        severe_idx = [mat.shape[0] - 1]
+    severe = mat[severe_idx]
+    contrib_vector = severe[:, :n_features].sum(axis=0)
+    base_value = float(severe[:, -1].sum())
+    return contrib_vector, base_value
 
 
 def _danger_top_reasons(scored_frame, top_k=8):
-    shap_values = DANGER_SHAP_EXPLAINER.shap_values(scored_frame)
-    shap_vector = _extract_binary_shap_vector(shap_values)
-
-    expected = DANGER_SHAP_EXPLAINER.expected_value
-    if isinstance(expected, (list, tuple, np.ndarray)):
-        expected_arr = np.asarray(expected).reshape(-1)
-        base_value = float(expected_arr[-1])
-    else:
-        base_value = float(expected)
+    shap_vector, base_value = _severe_contributions(scored_frame)
 
     row_dict = scored_frame.iloc[0].to_dict()
     order = np.argsort(np.abs(shap_vector))[::-1]
     reasons = []
 
     for idx in order[: max(1, int(top_k))]:
-        feat = DANGER_FEATURE_ORDER[int(idx)]
+        feat = MULTICLASS_FEATURE_ORDER[int(idx)]
         impact = float(shap_vector[int(idx)])
         raw_value = row_dict.get(feat)
         if isinstance(raw_value, (np.integer, np.floating)):
@@ -889,37 +1047,49 @@ def _danger_top_reasons(scored_frame, top_k=8):
 
 
 def _score_danger_row(raw_row, include_quality_details=True):
-    scored_frame, quality = _preprocess_danger_row(raw_row)
+    _base_frame, model_frame, quality = _build_danger_model_frame(raw_row)
 
-    danger_percent = _predict_danger_percent(scored_frame)
-    danger_level = _danger_level_from_thresholds(danger_percent)
+    proba = _predict_severity_proba(model_frame)
+    severity = _severity_payload_from_proba(proba)
+    danger_percent = severity["danger_percent"]
 
-    baseline_percent, baseline_key = _compute_baseline_percent(scored_frame)
-    delta_percent = None
+    baseline_percent, baseline_key = _compute_baseline_percent(model_frame)
+    delta_vs_baseline = None
     if baseline_percent is not None:
-        delta_percent = danger_percent - baseline_percent
+        delta_vs_baseline = round(danger_percent - baseline_percent, 1)
 
     quality_payload = _build_quality_payload(
         quality, include_details=include_quality_details
     )
 
     payload = {
-        "danger_percent": round(danger_percent, 2),
-        "danger_level": danger_level,
-        "baseline_percent": None if baseline_percent is None else round(baseline_percent, 2),
-        "delta_percent": None if delta_percent is None else round(delta_percent, 2),
-        "confidence": quality_payload["confidence"],
+        # ---- New multiclass severity contract (per product spec) ----
+        "severity_probabilities": severity["severity_probabilities"],
+        "most_likely_severity": severity["most_likely_severity"],
+        "expected_severity": severity["expected_severity"],
+        "severe_probability": severity["severe_probability"],
+        "danger_percent": danger_percent,
+        "danger_level": severity["danger_level"],
+        "baseline_percent": None if baseline_percent is None else round(baseline_percent, 1),
+        "delta_vs_baseline": delta_vs_baseline,
+        # Model confidence label derived from the top class probability.
+        "confidence": severity["confidence"],
+        # ---- Preserved fields for backward compatibility ----
+        # Numeric data-quality score (the field formerly exposed as "confidence").
+        "data_quality_confidence": quality_payload["confidence"],
+        # Alias of delta_vs_baseline kept for existing consumers.
+        "delta_percent": delta_vs_baseline,
         "quality": quality_payload["quality"],
         "quality_signals": {
             "missing_count": quality_payload["missing_count"],
             "ood_count": quality_payload["ood_count"],
         },
         "thresholds": {
-            "q50": float(DANGER_THRESHOLDS.get("q50", 25.0)),
-            "q75": float(DANGER_THRESHOLDS.get("q75", 50.0)),
-            "q90": float(DANGER_THRESHOLDS.get("q90", 75.0)),
+            "medium": DANGER_LEVEL_MEDIUM_CUTOFF,
+            "high": DANGER_LEVEL_HIGH_CUTOFF,
         },
         "baseline_key": baseline_key,
+        "model_version": DANGER_META.get("model_name", "multiclass_severity"),
     }
 
     if include_quality_details:
@@ -929,7 +1099,7 @@ def _score_danger_row(raw_row, include_quality_details=True):
         payload["quality_signals"]["clipped_features"] = quality_payload["clipped_features"]
         payload["quality_signals"]["invalid_start_time"] = quality_payload["invalid_start_time"]
 
-    return payload, scored_frame
+    return payload, model_frame
 
 
 # -----------------------------
@@ -1551,7 +1721,7 @@ def risk_explain():
     if isinstance(payload, dict) and "top_k" in payload:
         top_k_val = _safe_float(payload.get("top_k"))
         if not np.isnan(top_k_val):
-            top_k = int(np.clip(round(top_k_val), 1, len(DANGER_FEATURE_ORDER)))
+            top_k = int(np.clip(round(top_k_val), 1, len(MULTICLASS_FEATURE_ORDER)))
 
     try:
         result, scored_frame = _score_danger_row(row, include_quality_details=True)

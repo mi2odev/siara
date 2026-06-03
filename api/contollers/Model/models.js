@@ -510,7 +510,10 @@ function normalizeOverlaySamplePrediction(prediction) {
   const percentRaw = safeNumber(prediction?.danger_percent);
   const percent = percentRaw == null ? 0 : roundNumber(percentRaw, 2);
   const level = normalizeDangerLevel(prediction?.danger_level, percent);
-  const confidence = safeNumber(prediction?.confidence);
+  // `confidence` is now the model-confidence label (High/Medium/Low); the numeric
+  // data-quality score lives in `data_quality_confidence`. Fall back to the old
+  // field only when it is still numeric (backward compatibility).
+  const confidence = safeNumber(prediction?.data_quality_confidence ?? prediction?.confidence);
   const quality = prediction?.quality == null ? null : String(prediction.quality);
 
   return {
@@ -1337,12 +1340,25 @@ exports.predictCurrentRisk = async (req, res) => {
     const dangerScore = Number.isFinite(dangerPercentNum)
       ? Math.max(0, Math.min(1, dangerPercentNum / 100))
       : null;
-    const confidenceNum = Number(responseData.confidence);
+    // Numeric data-quality score (the field previously named `confidence`).
+    // `responseData.confidence` is now the model-confidence label.
+    const dataQualityNum = Number(
+      responseData.data_quality_confidence ?? responseData.confidence,
+    );
     responseData.dangerZoneRisk = {
       score: dangerScore,
       riskLevel: responseData.danger_level || null,
-      confidence: Number.isFinite(confidenceNum) ? confidenceNum : null,
-      modelVersion: responseData.model_version || "danger_zone_v1",
+      confidence: Number.isFinite(dataQualityNum) ? dataQualityNum : null,
+      // Multiclass severity surface (4-class model).
+      severityConfidence:
+        typeof responseData.confidence === "string" ? responseData.confidence : null,
+      severityProbabilities: responseData.severity_probabilities || null,
+      mostLikelySeverity: responseData.most_likely_severity ?? null,
+      expectedSeverity: responseData.expected_severity ?? null,
+      severeProbability: responseData.severe_probability ?? null,
+      baselinePercent: responseData.baseline_percent ?? null,
+      deltaVsBaseline: responseData.delta_vs_baseline ?? null,
+      modelVersion: responseData.model_version || "danger_zone_multiclass_v1",
       source: "danger_zone_model",
       isCalibratedProbability: false,
       warning:

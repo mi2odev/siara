@@ -25,6 +25,11 @@ function severityFromPercent(dangerPercent) {
 
 function normalizeSeverity(level, dangerPercent) {
   const text = String(level || "").trim().toLowerCase();
+  // The multiclass model emits Low/Medium/High — map "medium" onto the chart's
+  // existing "moderate" tier.
+  if (text === "medium") {
+    return "moderate";
+  }
   if (text === "low" || text === "moderate" || text === "high" || text === "extreme") {
     return text;
   }
