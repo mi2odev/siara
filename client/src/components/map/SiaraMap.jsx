@@ -1421,6 +1421,7 @@ const SiaraMap = ({
   weatherData = null,
   placeName = "",
   riskPanelTarget = null,
+  guideControlsTarget = null,
 }) => {
   const markers = useMemo(() => {
     if (Array.isArray(reportMarkers)) {
@@ -4884,8 +4885,9 @@ const SiaraMap = ({
           </div>
         </div>
       )}
-      {showGuideControls && (
-        <div className={`siara-guide-controls${reportTooltipVisible ? " siara-overlay-dimmed" : ""}`}>
+      {showGuideControls && (() => {
+        const guideControlsNode = (
+        <div className={`siara-guide-controls${guideControlsTarget ? " siara-guide-controls--docked" : ""}${reportTooltipVisible ? " siara-overlay-dimmed" : ""}`}>
           <div className="siara-guide-status-row">
             <span className="siara-status-pill">{locationStatusText}</span>
             <span className="siara-status-pill">{navigationUpdatedText}</span>
@@ -4990,7 +4992,11 @@ const SiaraMap = ({
             )}
           </div>
         </div>
-      )}
+        );
+        return guideControlsTarget
+          ? createPortal(guideControlsNode, guideControlsTarget)
+          : guideControlsNode;
+      })()}
       <HeatmapClusterDetailPanel
         open={heatClusterPanelOpen}
         cluster={selectedHeatCluster}

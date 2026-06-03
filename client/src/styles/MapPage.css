@@ -666,14 +666,47 @@
   border-radius: 18px;
   border: 1px solid #E2E8F0;
   box-shadow: 0 12px 34px rgba(15, 23, 42, 0.12);
+  /* Stack a real toolbar above the map canvas */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Layer-switcher toolbar — a flow bar at the top of the map card. Because it is
+   in normal flow above the canvas, it can never overlap the on-map panels. */
+.map-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #eef1f7;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.map-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.map-toolbar .layer-switcher {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+  overflow: visible;
+  width: max-content;
+  max-width: none;
 }
 
 .map-container {
   width: 100%;
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
   --map-aside-width: min(320px, calc(100% - 24px));
   --map-right-controls-space: 232px;
-  border-radius: inherit;
   overflow: hidden;
 }
 
@@ -681,8 +714,11 @@
    tabs (top-left) and its own map controls (top-right), so the Leaflet-era
    layer-switcher and Full-Map / My-Location bar become redundant noise.
    Hide them while .siara-mlb-shell is mounted. */
-.map-container:has(.siara-mlb-shell) .map-controls-top,
-.map-container:has(.siara-mlb-shell) .map-controls-right {
+/* During MapLibre navigation the nav view has its own Drive/Routes/Risk tabs,
+   so hide the redundant layer-switcher toolbar. The Full Map / My Location
+   controls (top-right) are kept — the nav view has no fullscreen toggle of its
+   own, and the user needs Full Map while travelling. */
+.map-main:has(.siara-mlb-shell) .map-toolbar {
   display: none;
 }
 
@@ -1083,7 +1119,9 @@
 
 .siara-guide-controls {
   position: absolute;
-  top: 64px;
+  /* Sit clearly below the layer-switcher bar (top:14px, ~40px tall + shadow) so
+     the panel's status pills no longer tuck behind it. */
+  top: 80px;
   left: 64px;
   z-index: 430;
   width: min(360px, calc(100% - 72px));
@@ -4043,4 +4081,166 @@
     max-width: var(--siara-page-max, 1600px);
     margin-inline: auto;
   }
+}
+
+/* =====================================================================
+   Map page — compact "controls below map" layout (≤1024px)
+   ---------------------------------------------------------------------
+   On stacked/mobile layouts the search/prediction guide-controls panel is
+   portaled out of the map into .context-guide-slot below it (MapPage.jsx +
+   SiaraMap.jsx). The map becomes a clean, taller canvas with the controls in
+   a normal card directly beneath it. Appended last to win the cascade.
+   Fixed px heights (no clamp) per project responsive style.
+   ===================================================================== */
+.context-guide-slot:empty {
+  display: none;
+}
+
+.siara-guide-controls--docked {
+  position: static;
+  inset: auto;
+  top: auto;
+  left: auto;
+  right: auto;
+  width: 100%;
+  max-width: 100%;
+  z-index: auto;
+  transform: none;
+  backdrop-filter: none;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+}
+
+@media (max-width: 1024px) {
+  .map-main,
+  .map-content > .map-main {
+    height: 460px;
+    min-height: 460px;
+  }
+
+  .map-main .map-container,
+  .map-main .map-canvas,
+  .map-main .siara-map-shell,
+  .map-main .siara-leaflet-map,
+  .map-main .leaflet-container,
+  .map-main .maplibregl-map {
+    height: 100%;
+    min-height: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .map-main,
+  .map-content > .map-main {
+    height: 420px;
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 560px) {
+  .map-main,
+  .map-content > .map-main {
+    height: 360px;
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 380px) {
+  .map-main,
+  .map-content > .map-main {
+    height: 320px;
+    min-height: 320px;
+  }
+}
+
+/* =====================================================================
+   Occurrence Risk card — finished design
+   ---------------------------------------------------------------------
+   The base styles (.siara-occurrence-card / __title / __row / __meta /
+   __warning) ship above; these complete the design for the section groups,
+   section titles, and the top-factors list, which were previously unstyled.
+   ===================================================================== */
+.siara-occurrence-card__section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.siara-occurrence-card__section:first-of-type {
+  margin-top: 6px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.siara-occurrence-card__section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.01em;
+  margin-bottom: 8px;
+}
+
+.siara-occurrence-card__section-title::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ea580c;
+  flex-shrink: 0;
+}
+
+.siara-occurrence-card__factors {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.siara-occurrence-card__factors li {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #475569;
+  padding: 6px 9px;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+}
+
+.siara-occurrence-card__factors li strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* =====================================================================
+   Top-left overlay separation (authoritative)
+   ---------------------------------------------------------------------
+   The layer-switcher bar (.map-controls-top, top:14px) and the floating
+   search/guidance panel (.siara-guide-controls) both live at the top-left and
+   were colliding — the panel's status pills tucked behind the switcher. These
+   two rules win over every per-breakpoint value above (the :not() selector is
+   more specific than the bare .siara-guide-controls rules):
+     1. Force the switcher to a single, compact, horizontally-scrolling row so
+        it can never wrap into a second row that covers the panel.
+     2. Drop the floating panel clearly below the switcher (+ its shadow).
+   The docked (mobile, portaled) variant is intentionally excluded.
+   ===================================================================== */
+.map-toolbar .layer-switcher {
+  flex-wrap: nowrap;
+}
+
+.map-toolbar .layer-btn {
+  white-space: nowrap;
+}
+
+/* The layer switcher now lives in the toolbar above the map, so the on-map
+   search/guidance panel can sit near the top of the (clear) canvas — kept at
+   left:64px to stay clear of the Leaflet zoom +/- buttons in the corner. */
+.siara-guide-controls:not(.siara-guide-controls--docked) {
+  top: 16px;
+  left: 64px;
 }
