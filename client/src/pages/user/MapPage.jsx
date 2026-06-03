@@ -412,6 +412,23 @@ export default function MapPage() {
   // Whether the map is displayed in fullscreen mode
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [riskPanelHost, setRiskPanelHost] = useState(null);
+  // Host for the search / prediction-time / guidance panel. On compact
+  // (stacked) layouts the panel is portaled out of the map into this slot
+  // below it, so the map stays clean and tall instead of being covered by a
+  // floating overlay. On desktop the panel stays overlaid on the map.
+  const [guideControlsHost, setGuideControlsHost] = useState(null);
+  const [isCompactLayout, setIsCompactLayout] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 1023.98px)").matches,
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+    const mq = window.matchMedia("(max-width: 1023.98px)");
+    const update = (event) => setIsCompactLayout(event.matches);
+    setIsCompactLayout(mq.matches);
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherRefreshing, setWeatherRefreshing] = useState(false);
   const [weatherError, setWeatherError] = useState("");
@@ -1348,28 +1365,31 @@ export default function MapPage() {
 
         {/* ═══════════ CENTER — Interactive Map ═══════════ */}
         <main className="map-main" style={fullscreenStyle}>
-          <div className="map-container" style={fullscreenInnerStyle}>
 
-            {/* ── Layer-switcher toolbar (top of map) ── */}
-            <div className="map-controls-top">
-              <div className="layer-switcher">
-                {[
-                  { id: "points", label: "Points" },
-                  { id: "heatmap", label: "Heatmap" },
-                  { id: "zones", label: "Zones" },
-                  { id: "ai", label: "AI Risks" },
-                  { id: "nearbyRoads", label: "Nearby Roads" },
-                ].map((l) => (
-                  <button
-                    key={l.id}
-                    className={`layer-btn ${mapLayer === l.id ? "active" : ""}`}
-                    onClick={() => setMapLayer(l.id)}
-                  >
-                    {l.label}
-                  </button>
-                ))}
-              </div>
+          {/* ── Layer-switcher as a real toolbar ABOVE the map (normal flow) ──
+              Pulled out of the map overlay so it can never overlap the on-map
+              search / guidance panel. */}
+          <div className="map-toolbar">
+            <div className="layer-switcher">
+              {[
+                { id: "points", label: "Points" },
+                { id: "heatmap", label: "Heatmap" },
+                { id: "zones", label: "Zones" },
+                { id: "ai", label: "AI Risks" },
+                { id: "nearbyRoads", label: "Nearby Roads" },
+              ].map((l) => (
+                <button
+                  key={l.id}
+                  className={`layer-btn ${mapLayer === l.id ? "active" : ""}`}
+                  onClick={() => setMapLayer(l.id)}
+                >
+                  {l.label}
+                </button>
+              ))}
             </div>
+          </div>
+
+          <div className="map-container" style={fullscreenInnerStyle}>
 
             {/* ── Right-side map controls (fullscreen + locate me) ── */}
             <div className="map-controls-right">
@@ -1416,6 +1436,7 @@ export default function MapPage() {
                 weatherData={weatherData}
                 placeName={resolvedPlaceName}
                 riskPanelTarget={isFullscreen ? null : riskPanelHost}
+                guideControlsTarget={!isFullscreen && isCompactLayout ? guideControlsHost : null}
               />
               {liveLocationIsFallback ? (
                 <div
@@ -1447,6 +1468,11 @@ export default function MapPage() {
 
         {/* ═══════════ RIGHT SIDEBAR — Contextual Info ═══════════ */}
         <aside className="map-sidebar-right">
+
+          {/* Guidance/search controls — portaled here from SiaraMap on compact
+              (stacked) layouts so they sit in a clean card below the map.
+              Stays empty (and hidden) on desktop, where the panel overlays the map. */}
+          <div ref={setGuideControlsHost} className="context-guide-slot" />
 
           {/* ── Current weather widget ── */}
           <div className="context-weather">
