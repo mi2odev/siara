@@ -87,7 +87,6 @@ export default function PoliceAIInsightsPage() {
       activeKey="analytics"
       rightPanel={rightPanel}
       notificationCount={dashboard?.stats?.unreadAlertsCount || 0}
-      verificationPendingCount={dashboard?.stats?.pendingVerificationCount || 0}
       emergencyMode={highSeverityCount >= 3}
     >
       <section className="police-section">

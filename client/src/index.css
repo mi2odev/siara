@@ -60,9 +60,21 @@ button {
 button:hover {
   border-color: var(--siara-btn-border);
 }
-button:focus,
+/* No focus ring on click / tap (this was the black box around buttons). A
+   subtle, on-brand ring is kept for KEYBOARD focus only (:focus-visible),
+   so mouse users never see it but keyboard navigation stays accessible. */
+button:focus {
+  outline: none;
+}
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid var(--siara-primary, #7c3aed);
+  outline-offset: 2px;
+}
+
+/* Safety net for every other interactive element: kill the outline on
+   pointer focus, keep it for keyboard focus. */
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 @media (prefers-color-scheme: light) {

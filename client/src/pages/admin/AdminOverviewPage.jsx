@@ -234,7 +234,7 @@ export default function AdminOverviewPage() {
   const showInitialLoading = loading && !hasResolvedInitialLoad
 
   return (
-    <>
+    <div className="admin-overview">
       {error && (
         <div
           className="admin-card"
@@ -409,7 +409,7 @@ export default function AdminOverviewPage() {
               <>
                 <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                   {operationsKpis.map((kpi) => (
-                    <div className="admin-kpi" key={kpi.key}>
+                    <div className={`admin-kpi admin-kpi--${kpi.iconTone}`} key={kpi.key}>
                       <div className={`admin-kpi-icon ${kpi.iconTone}`}>{KPI_ICONS[kpi.iconKey]}</div>
                       <div className="admin-kpi-body">
                         <span className="admin-kpi-label">{kpi.label}</span>
@@ -423,7 +423,7 @@ export default function AdminOverviewPage() {
                 <div className="admin-kpi-section-label">Spam Triage</div>
                 <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 14 }}>
                   {spamKpis.map((kpi) => (
-                    <div className="admin-kpi" key={kpi.key}>
+                    <div className={`admin-kpi admin-kpi--${kpi.iconTone}`} key={kpi.key}>
                       <div className={`admin-kpi-icon ${kpi.iconTone}`}>{kpi.icon}</div>
                       <div className="admin-kpi-body">
                         <span className="admin-kpi-label">{kpi.label}</span>
@@ -649,6 +649,6 @@ export default function AdminOverviewPage() {
           </div>
         </>
       )}
-    </>
+    </div>
   )
 }

@@ -1278,7 +1278,112 @@
   .inbox__list { display: none; }
   .inbox--list-mode .inbox__list { display: block; }
   .inbox--list-mode .inbox__detail { display: none; }
-  .inbox__detail-inner { padding: 20px 18px 60px; }
+  .inbox__detail-inner { padding: 16px 18px 60px; }
   .inbox__search { width: 100%; }
   .inbox__tabs { width: 100%; overflow-x: auto; }
+  .inbox__back { display: inline-flex; }
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   DESIGN REFRESH  (header app-bar, new-pill, selected ring, back button)
+   ──────────────────────────────────────────────────────────────────── */
+
+/* Top region reads as one elevated app bar */
+.inbox__header {
+  padding-top: 20px;
+  background: var(--ix-surface);
+}
+
+.inbox__toolbar {
+  background: var(--ix-surface);
+}
+
+.inbox__brand {
+  width: 38px;
+  height: 38px;
+  box-shadow:
+    0 6px 14px -6px rgba(91, 91, 214, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.inbox__title {
+  font-size: 20px;
+}
+
+/* "N new" becomes a small accent pill instead of plain text */
+.inbox__title-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inbox__new-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--ix-accent-soft);
+  border: 1px solid var(--ix-accent-line);
+  color: var(--ix-accent-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+
+/* Search input a touch larger / friendlier */
+.inbox__search {
+  padding: 8px 12px;
+  border-radius: 9px;
+}
+
+/* Clearer selected item: accent ring in addition to the left bar */
+.inbox__item--active {
+  box-shadow: inset 0 0 0 1px var(--ix-accent-line);
+}
+
+.inbox__item--active::before {
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+}
+
+/* Avatars get a hairline so they sit on white cleanly */
+.ix-avatar {
+  box-shadow: inset 0 0 0 1px rgba(15, 18, 28, 0.04);
+}
+
+/* Detail cards: a hair more depth so the workspace feels layered */
+.ix-card,
+.ix-actions,
+.ix-report-ref {
+  box-shadow: var(--ix-shadow-pop);
+}
+
+/* Empty state icon: softly accent-tinted */
+.inbox__empty-icon {
+  font-size: 60px;
+  color: var(--ix-accent);
+  opacity: 0.3;
+}
+
+/* Mobile "back to list" button (hidden on desktop) */
+.inbox__back {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 0 18px;
+  padding: 8px 13px;
+  border: 1px solid var(--ix-line-2);
+  border-radius: 9px;
+  background: var(--ix-surface);
+  color: var(--ix-fg-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+}
+
+.inbox__back:hover {
+  background: var(--ix-hover);
+  color: var(--ix-fg-1);
 }

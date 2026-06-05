@@ -87,7 +87,6 @@ export default function PoliceVerificationQueuePage() {
       activeKey="verification-queue"
       rightPanel={rightPanel}
       notificationCount={queue.length}
-      verificationPendingCount={queue.length}
     >
       <section className="police-section police-verification-page">
         <div className="police-command-section-head police-verification-page-head">

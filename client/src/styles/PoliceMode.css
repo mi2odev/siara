@@ -6,8 +6,8 @@
   --police-text: #0f172a;
   --police-text-muted: #5f7087;
   --police-primary: #1d4ed8;
-  --police-sidebar-width: clamp(210px, 18vw, var(--siara-left-sidebar-width, 260px));
-  --police-right-width: clamp(260px, 22vw, 320px);
+  --police-sidebar-width: 240px;
+  --police-right-width: 300px;
 }
 
 .police-root {
@@ -35,18 +35,21 @@
   opacity: 0;
 }
 
+/* Mobile-first base: single column. The left sidebar / right panel are
+   progressively added back at >=1024px / >=1280px in the RESPONSIVE SYSTEM
+   block at the bottom of this file. */
 .police-layout {
   display: grid;
-  grid-template-columns: var(--police-sidebar-width) minmax(0, 1fr) var(--police-right-width);
-  min-height: calc(100vh - 80px);
+  grid-template-columns: minmax(0, 1fr);
+  min-height: auto;
   padding-top: 80px;
-  gap: 16px;
-  padding-right: 16px;
-  padding-left: 16px;
+  gap: 12px;
+  padding-right: 12px;
+  padding-left: 12px;
 }
 
 .police-layout.police-layout-collapsed {
-  grid-template-columns: var(--police-sidebar-width) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .police-layout > .police-sidebar {
@@ -56,6 +59,7 @@
 }
 
 .police-sidebar {
+  display: none; /* shown as a sticky column at >=1024px (RESPONSIVE SYSTEM block) */
   position: sticky;
   top: 80px;
   height: calc(100vh - 80px);
@@ -199,30 +203,13 @@
   line-height: 1.2;
 }
 
-.police-menu-badge {
-  margin-left: auto;
-  min-width: 20px;
-  height: 20px;
-  border-radius: 999px;
-  background: #dc2626;
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 6px;
-}
-
+/* Mobile-first base: the center column flows with the page (no inner scroll).
+   The sticky inner-scroll behaviour is restored at >=1024px. */
 .police-center {
   min-width: 0;
-  padding: 16px 0 16px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  max-height: calc(100vh - 80px);
+  padding: 12px 0 16px;
   background: transparent;
   scroll-behavior: smooth;
-  scrollbar-gutter: stable;
 }
 
 .police-center > * {
@@ -317,11 +304,11 @@
 }
 
 .police-filter-field select {
-  min-width: clamp(92px, 16vw, 128px);
+  min-width: 92px; /* widened at >=1024px — see CONTENT RESPONSIVE block */
 }
 
 .police-filter-search input {
-  min-width: clamp(120px, 24vw, 180px);
+  min-width: 120px; /* widened at >=1024px — see CONTENT RESPONSIVE block */
 }
 
 .police-topbar {
@@ -421,7 +408,7 @@
 .police-setup-zone-main {
   max-width: min(980px, 100%);
   margin: 0 auto;
-  padding: 52px 20px 28px;
+  padding: 34px 12px 20px; /* grows on larger screens — see WORK ZONE block below */
   max-height: none;
   overflow: visible;
 }
@@ -429,8 +416,8 @@
 .police-setup-zone-shell {
   position: relative;
   overflow: visible;
-  border-radius: 18px;
-  padding: 24px;
+  border-radius: 14px;
+  padding: 14px; /* grows on larger screens — see WORK ZONE block below */
   border-color: #cddbec;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 251, 255, 0.98)),
@@ -465,6 +452,7 @@
   position: relative;
   z-index: 1;
   display: flex;
+  flex-direction: column; /* row at >=768px — see WORK ZONE block below */
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
@@ -508,7 +496,7 @@
 
 .police-setup-zone-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr); /* 2-col at >=768px — see WORK ZONE block below */
   align-items: end;
   gap: 12px;
   margin-bottom: 12px;
@@ -516,7 +504,7 @@
 
 .police-setup-zone-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr); /* 2-col at >=768px — see WORK ZONE block below */
   gap: 10px;
 }
 
@@ -717,7 +705,7 @@
 }
 
 .police-setup-zone-stat strong {
-  font-size: clamp(16px, 1.35vw, 20px);
+  font-size: 18px;
   line-height: 1.2;
   word-break: break-word;
 }
@@ -728,43 +716,38 @@
   font-weight: 600;
 }
 
-@media (max-width: 980px) {
+/* ---- WORK ZONE SETUP (standalone gate page) — mobile-first scale-up ---- */
+@media (min-width: 768px) {
   .police-setup-zone-main {
     padding: 42px 16px 24px;
   }
 
   .police-setup-zone-shell {
+    border-radius: 18px;
     padding: 18px;
   }
 
-  .police-setup-zone-form {
-    grid-template-columns: 1fr;
-  }
-
-  .police-setup-zone-submit {
-    width: 100%;
-  }
-}
-
-@media (max-width: 760px) {
   .police-setup-zone-header {
-    flex-direction: column;
+    flex-direction: row;
     align-items: flex-start;
   }
 
+  .police-setup-zone-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .police-setup-zone-fields {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 560px) {
+@media (min-width: 1024px) {
   .police-setup-zone-main {
-    padding: 34px 12px 20px;
+    padding: 52px 20px 28px;
   }
 
   .police-setup-zone-shell {
-    border-radius: 14px;
-    padding: 14px;
+    padding: 24px;
   }
 }
 
@@ -1812,6 +1795,7 @@
 }
 
 .police-right {
+  display: none; /* shown as a sticky column at >=1280px (RESPONSIVE SYSTEM block) */
   position: sticky;
   top: 80px;
   height: calc(100vh - 80px);
@@ -3505,72 +3489,17 @@
   font-weight: 700;
 }
 
-.police-mobile-menu-toggle,
-.police-mobile-nav,
-.police-mobile-nav-backdrop {
-  display: none;
-}
+/* Mobile drawer nav + its desktop/tablet layout breakpoints are defined in the
+   RESPONSIVE SYSTEM block at the bottom of this file. */
 
 @media (max-width: 1440px) {
-  .police-root {
-    --police-sidebar-width: clamp(198px, 17vw, 238px);
-    --police-right-width: clamp(242px, 21vw, 296px);
-  }
-
-  .police-layout {
-    grid-template-columns: var(--police-sidebar-width) minmax(0, 1fr) var(--police-right-width);
-    gap: 14px;
-    padding-right: 14px;
-    padding-left: 14px;
-  }
-
   .police-section {
     padding: 18px;
   }
 }
 
-@media (max-width: 1320px) {
-  .police-stream-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .police-stream-controls {
-    width: 100%;
-    justify-content: flex-start;
-  }
-}
-
-@media (max-width: 1300px) {
-  .police-root {
-    --police-sidebar-width: clamp(188px, 16vw, 220px);
-    --police-right-width: clamp(228px, 20vw, 268px);
-  }
-
-  .police-layout {
-    grid-template-columns: var(--police-sidebar-width) minmax(0, 1fr) var(--police-right-width);
-    gap: 12px;
-    padding-right: 12px;
-    padding-left: 12px;
-  }
-
-  .police-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .police-incident-facts {
-    grid-template-columns: 1fr;
-  }
-
-  .police-evidence-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .police-history-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
+/* Stream-header / content grids are handled mobile-first in the
+   POLICE PAGES — CONTENT RESPONSIVE SYSTEM block at the bottom of this file. */
 
 @media (max-width: 1120px) {
   .police-stream-headline {
@@ -3601,14 +3530,6 @@
 }
 
 @media (max-width: 1180px) {
-  .police-layout {
-    grid-template-columns: 210px minmax(0, 1fr);
-  }
-
-  .police-right {
-    display: none;
-  }
-
   .police-stream-controls {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3625,10 +3546,6 @@
     min-width: 0;
   }
 
-  .police-nearby-layout {
-    grid-template-columns: 1fr;
-  }
-
   .police-nearby-map-wrap {
     min-height: 380px;
   }
@@ -3638,50 +3555,15 @@
   }
 }
 
+/* NOTE: shell layout (columns/sidebar/right panel/header/mobile drawer) and the
+   Dashboard overview cards are handled mobile-first in the RESPONSIVE SYSTEM
+   block at the bottom of this file. The rules below are page-content reflow
+   tweaks for pages not yet migrated to the new system. */
+/* Content grids, headers, split panes and hover-previews are handled
+   mobile-first in the POLICE PAGES — CONTENT RESPONSIVE SYSTEM block at the
+   bottom of this file. The rules below are page-specific reflow that is still
+   keyed to the tablet-and-below range. */
 @media (max-width: 1240px) {
-  .police-layout {
-    grid-template-columns: 1fr;
-    min-height: auto;
-    padding-right: 12px;
-    padding-left: 12px;
-    padding-top: 80px;
-    gap: 12px;
-  }
-
-  .police-sidebar,
-  .police-right {
-    display: none;
-  }
-
-  .police-root .dash-header-center {
-    display: none;
-  }
-
-  .police-center {
-    max-height: none;
-    overflow: visible;
-    padding-top: 10px;
-  }
-
-  .police-stream-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .police-dashboard-head {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .police-dashboard-head-actions {
-    justify-content: space-between;
-  }
-
-  .police-dashboard-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .police-stream-controls {
     width: 100%;
     display: grid;
@@ -3705,71 +3587,13 @@
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .police-dashboard-incident-card {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .police-dashboard-incident-actions {
-    grid-column: 1 / -1;
-    justify-content: flex-end;
-  }
-
-  .police-dashboard-time-wrap {
-    align-items: flex-start;
-  }
-
   .police-stream-row .police-action-row {
     grid-column: 1 / -1;
     width: 100%;
   }
 
-  .police-hover-preview,
-  .police-queue-hover-preview {
-    display: none !important;
-  }
-
-  .police-detail-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .police-verification-card {
-    grid-template-columns: 1fr;
-  }
-
-  .police-verification-left {
-    width: 100%;
-  }
-
-  .police-verification-right {
-    align-items: stretch;
-  }
-
-  .police-history-filters {
-    grid-template-columns: 1fr;
-  }
-
-  .police-nearby-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .police-nearby-list {
-    max-height: none;
-    overflow: visible;
-    padding-right: 0;
-  }
-
   .police-nearby-map-wrap {
     min-height: 360px;
-  }
-
-  .police-nearby-page-head {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .police-nearby-page-head-actions {
-    justify-content: space-between;
   }
 
   .police-nearby-page-map-wrap .police-leaflet-map {
@@ -3795,112 +3619,9 @@
   .police-field-report-item::before {
     display: none;
   }
-
-  .police-root .dash-header-left {
-    gap: 10px;
-  }
-
-  .police-root .dash-search {
-    display: none;
-  }
-
-  .police-root .dash-icon-btn[aria-label='Messages'] {
-    display: none;
-  }
-
-  .police-mobile-menu-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border: 1px solid #d7e1ef;
-    border-radius: 10px;
-    background: #ffffff;
-    color: #1f2937;
-    font-size: 16px;
-    cursor: pointer;
-  }
-
-  .police-mobile-nav-backdrop {
-    display: block;
-    position: fixed;
-    top: 80px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(15, 23, 42, 0.46);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.22s ease;
-    z-index: 115;
-  }
-
-  .police-mobile-nav-backdrop.open {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .police-mobile-nav {
-    display: block;
-    position: fixed;
-    top: 80px;
-    left: 0;
-    bottom: 0;
-    width: min(86vw, 320px);
-    background: #f4f8ff;
-    border-right: 1px solid #d5e1f0;
-    box-shadow: 12px 0 26px rgba(15, 23, 42, 0.24);
-    padding: 12px 10px 16px;
-    overflow-y: auto;
-    transform: translateX(-104%);
-    transition: transform 0.22s ease;
-    z-index: 116;
-  }
-
-  .police-mobile-nav.open {
-    transform: translateX(0);
-  }
-
-  .police-mobile-nav-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-
-  .police-mobile-nav-head strong {
-    color: #0f172a;
-    font-size: 13px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  .police-mobile-nav-close {
-    width: 30px;
-    height: 30px;
-    border: 1px solid #cdd9eb;
-    border-radius: 8px;
-    background: #ffffff;
-    color: #1f2937;
-    font-size: 18px;
-    line-height: 1;
-    cursor: pointer;
-  }
-
-  .police-mobile-nav .police-menu {
-    gap: 10px;
-  }
 }
 
 @media (max-width: 768px) {
-  .police-layout {
-    padding-right: 10px;
-    padding-left: 10px;
-    gap: 10px;
-  }
-
   .police-section {
     padding: 14px;
     border-radius: 12px;
@@ -3951,46 +3672,6 @@
 
   .police-nearby-page-map-wrap .police-leaflet-map {
     min-height: 300px;
-  }
-
-  .police-dashboard-head-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .police-dashboard-sync {
-    width: 100%;
-  }
-
-  .police-dashboard-refresh {
-    width: 100%;
-  }
-
-  .police-dashboard-stats {
-    grid-template-columns: 1fr;
-  }
-
-  .police-dashboard-incident-chip {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .police-dashboard-incident-id-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-
-  .police-dashboard-time-wrap {
-    align-items: flex-start;
-  }
-
-  .police-dashboard-incident-actions {
-    justify-content: flex-start;
-  }
-
-  .police-dashboard-open-btn {
-    width: 100%;
   }
 
   .police-severity-strip {
@@ -4095,10 +3776,6 @@
     width: 6px;
     height: 6px;
     margin-right: 6px;
-  }
-
-  .police-layout {
-    padding-top: 78px;
   }
 
   .police-section {
@@ -5810,7 +5487,7 @@
 .police-root .police-evidence-thumb {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: 150px;
   border-radius: 8px;
   overflow: hidden;
   background: linear-gradient(135deg, #eef2f8, #dbe4f0);
@@ -6806,9 +6483,10 @@
 /* ----- Top command bar ----- */
 .police-root .police-cc-bar {
   display: flex;
-  align-items: center;
+  flex-direction: column; /* row layout restored at >=768px in RESPONSIVE SYSTEM block */
+  align-items: stretch;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px;
   padding: 14px 16px;
   border-radius: 14px;
   border: 1px solid #d8e3f3;
@@ -7014,7 +6692,7 @@
 /* ----- KPI bar ----- */
 .police-root .police-cc-kpis {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr); /* desktop columns added in RESPONSIVE SYSTEM block */
   gap: 12px;
 }
 
@@ -7123,7 +6801,7 @@
 /* ----- Priority Incidents ----- */
 .police-root .police-cc-priority-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr); /* desktop columns added in RESPONSIVE SYSTEM block */
   gap: 12px;
 }
 
@@ -7281,23 +6959,19 @@
 }
 
 /* ----- Workspace grid ----- */
+/* Mobile-first base: single column, natural stacking order. The 2-column
+   desktop arrangement (with explicit cell placement) is restored at >=1280px
+   in the RESPONSIVE SYSTEM block at the bottom of this file. */
 .police-root .police-cc-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  grid-template-rows: auto auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
-
-.police-root .police-cc-map { grid-column: 1; grid-row: 1 / span 2; }
-.police-root .police-cc-quick { grid-column: 2; grid-row: 1; }
-.police-root .police-cc-alerts { grid-column: 2; grid-row: 2; }
-.police-root .police-cc-activity { grid-column: 1; grid-row: 3; }
-.police-root .police-cc-recent { grid-column: 2; grid-row: 3; }
 
 /* ----- Map ----- */
 .police-root .police-cc-map-shell {
   position: relative;
-  height: 460px;
+  height: 320px; /* grows to 380px / 460px on larger screens (RESPONSIVE SYSTEM block) */
   border-radius: 12px;
   border: 1px solid #dbe5f4;
   overflow: hidden;
@@ -7528,7 +7202,7 @@
 /* ----- Quick Actions ----- */
 .police-root .police-cc-quick-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr); /* desktop columns added in RESPONSIVE SYSTEM block */
   gap: 10px;
 }
 
@@ -7864,60 +7538,8 @@
   height: 16px;
 }
 
-/* ----- Responsive ----- */
-@media (max-width: 1280px) {
-  .police-root .police-cc-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-  }
-
-  .police-root .police-cc-map,
-  .police-root .police-cc-quick,
-  .police-root .police-cc-alerts,
-  .police-root .police-cc-activity,
-  .police-root .police-cc-recent {
-    grid-column: 1;
-    grid-row: auto;
-  }
-
-  .police-root .police-cc-map-shell {
-    height: 380px;
-  }
-}
-
-@media (max-width: 960px) {
-  .police-root .police-cc-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .police-root .police-cc-priority-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 720px) {
-  .police-root .police-cc-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .police-root .police-cc-bar-right {
-    justify-content: space-between;
-  }
-
-  .police-root .police-cc-kpis {
-    grid-template-columns: 1fr;
-  }
-
-  .police-root .police-cc-quick-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .police-root .police-cc-map-shell {
-    height: 320px;
-  }
-}
+/* NOTE: the .police-cc-* mobile→desktop breakpoints now live mobile-first in
+   the RESPONSIVE SYSTEM block at the bottom of this file. */
 
 /* ==========================================================================
    My Incidents page — redesigned cards
@@ -8351,7 +7973,7 @@
 .pid-evidence-thumb {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: 150px;
   border-radius: 5px;
   overflow: hidden;
   background: #f1f5f9;
@@ -11016,4 +10638,490 @@
     padding: 0 14px 12px;
   }
   .pic-btn { font-size: 11.5px; padding: 6px 10px; flex: 1 1 auto; }
+}
+
+/* ============================================================================
+   POLICE / SUPERVISOR — RESPONSIVE SYSTEM  (mobile-first, single source)
+   ----------------------------------------------------------------------------
+   Everything above is written phone-first (base = smallest screen). Layout is
+   then progressively enhanced at fixed breakpoints. No clamp(), no vw sizing —
+   concrete px only, so behaviour is predictable at every width.
+
+     base    phone           single column · drawer nav · stacked cards
+     480px   large phone     2-up card grids
+     768px   tablet          command bar in a row · 2-up KPI / priority / quick
+     1024px  laptop          LEFT SIDEBAR appears · drawer retires · 3/4-up grids
+     1280px  desktop         RIGHT PANEL appears → full 3-column workspace
+     1920px  wide desktop    roomier sidebar / right-panel widths
+
+   Phase 1 covers the shared shell + the Police Dashboard (.police-cc-*).
+   ============================================================================ */
+
+/* ---- Mobile drawer navigation: the base nav mechanism on phone & tablet ---- */
+/* (hidden at >=1024px, where the sticky left sidebar takes over)               */
+.police-mobile-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #cddcf3;
+  border-radius: 11px;
+  background: #eef4ff;
+  color: #1d4ed8;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.police-mobile-menu-toggle:hover {
+  background: #e0ecff;
+  border-color: #b6ccf2;
+}
+
+.police-mobile-menu-toggle svg {
+  font-size: 22px;
+}
+
+.police-mobile-nav-backdrop {
+  display: block;
+  position: fixed;
+  inset: 80px 0 0 0;
+  background: rgba(15, 23, 42, 0.46);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+  z-index: 115;
+}
+
+.police-mobile-nav-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.police-mobile-nav {
+  display: block;
+  position: fixed;
+  top: 80px;
+  left: 0;
+  bottom: 0;
+  width: 318px;
+  max-width: 88vw;
+  background: #ffffff;
+  border-right: 1px solid var(--police-border);
+  box-shadow: 16px 0 40px -12px rgba(15, 23, 42, 0.32);
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translateX(-104%);
+  transition: transform 0.22s ease;
+  z-index: 116;
+}
+
+.police-mobile-nav.open {
+  transform: translateX(0);
+}
+
+/* Sticky header bar */
+.police-mobile-nav-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  padding: 16px 14px 13px;
+  background: linear-gradient(180deg, #f7faff, #ffffff);
+  border-bottom: 1px solid var(--police-border);
+}
+
+.police-mobile-nav-head strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.police-mobile-nav-head strong::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.16);
+}
+
+.police-mobile-nav-close {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--police-border);
+  border-radius: 9px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.police-mobile-nav-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #c7d4e6;
+}
+
+/* ---- Menu body: flat list (no nested card-on-card look) ---- */
+.police-mobile-nav .police-menu {
+  gap: 14px;
+  padding: 14px 12px 24px;
+}
+
+.police-mobile-nav .police-mode-switcher {
+  padding: 14px 12px 0;
+}
+
+.police-mobile-nav .police-menu-group {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.police-mobile-nav .police-menu-group + .police-menu-group {
+  border-top: 1px solid #eef2f8;
+  padding-top: 14px;
+}
+
+.police-mobile-nav .police-menu-group-title {
+  margin: 0 0 8px;
+  padding: 0 8px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: #7185a0;
+}
+
+.police-mobile-nav .police-menu-group-items {
+  gap: 4px;
+}
+
+/* Touch-friendly rows */
+.police-mobile-nav .police-menu-btn {
+  min-height: 46px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border-color: transparent;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 12px;
+}
+
+.police-mobile-nav .police-menu-btn:hover {
+  background: #f3f7ff;
+  border-color: transparent;
+}
+
+.police-mobile-nav .police-menu-btn.active {
+  background: #eaf1ff;
+  color: #0f2d66;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.police-mobile-nav .police-menu-btn.active::before {
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+}
+
+.police-mobile-nav .police-menu-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 15px;
+  background: #eef4ff;
+  color: #1d4ed8;
+}
+
+/* ---- Header on phone: drop the centre search and the ghost spacer tabs ---- */
+/* (both restored at >=1024px so the desktop header is unchanged)             */
+.police-root .dash-header-left {
+  gap: 12px;
+}
+
+.police-root .dash-header-center {
+  display: none;
+}
+
+.police-root .police-switch-ghost {
+  display: none;
+}
+
+/* The SUPERVISOR badge collides with the mode-switch button on narrow headers;
+   the page title already states the mode. Restored at >=1024px. */
+.police-root .supervisor-mode-badge {
+  display: none;
+}
+
+/* Keep the "Switch to Normal Mode" button compact on phone & tablet so the
+   header never overflows (the inline 172px min-width is overridden here). */
+.police-root .dash-police-mode-btn {
+  min-width: 0 !important;
+  height: 34px !important;
+  padding: 0 12px !important;
+  font-size: 11.5px;
+}
+
+/* The normal-dashboard hamburger (injected globally by App.jsx) is not used in
+   the police shell — it has its own .police-mobile-menu-toggle. Belt-and-braces. */
+.police-root .dash-hamburger-btn {
+  display: none !important;
+}
+
+/* ============================ 480px — large phone ========================== */
+@media (min-width: 480px) {
+  .police-root .police-cc-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ============================ 768px — tablet =============================== */
+@media (min-width: 768px) {
+  .police-root .police-cc-bar {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .police-root .police-cc-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .police-root .police-cc-priority-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .police-root .police-cc-map-shell {
+    height: 380px;
+  }
+}
+
+/* ============================ 1024px — laptop ============================== */
+/* Left sidebar appears, drawer retires, layout becomes 2 columns.            */
+@media (min-width: 1024px) {
+  .police-layout,
+  .police-layout.police-layout-collapsed {
+    grid-template-columns: var(--police-sidebar-width) minmax(0, 1fr);
+    min-height: calc(100vh - 80px);
+    gap: 14px;
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .police-sidebar {
+    display: block;
+  }
+
+  .police-center {
+    padding-top: 16px;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+  }
+
+  /* Drawer + its trigger are not needed once the sidebar is visible */
+  .police-mobile-menu-toggle,
+  .police-mobile-nav,
+  .police-mobile-nav-backdrop {
+    display: none;
+  }
+
+  /* Restore the desktop header */
+  .police-root .dash-header-left {
+    gap: 24px;
+  }
+
+  .police-root .dash-header-center {
+    display: block;
+  }
+
+  .police-root .police-switch-ghost {
+    display: inline-block;
+  }
+
+  .police-root .supervisor-mode-badge {
+    display: inline-flex;
+  }
+
+  .police-root .dash-police-mode-btn {
+    min-width: 172px !important;
+    height: 38px !important;
+    padding: 0 14px !important;
+    font-size: 14px;
+  }
+
+  /* Dashboard density steps up */
+  .police-root .police-cc-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .police-root .police-cc-priority-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ============================ 1280px — desktop ============================= */
+/* Right panel appears → full 3-column shell + 2-column dashboard workspace.  */
+@media (min-width: 1280px) {
+  .police-layout {
+    grid-template-columns: var(--police-sidebar-width) minmax(0, 1fr) var(--police-right-width);
+    gap: 16px;
+  }
+
+  .police-layout.police-layout-collapsed {
+    grid-template-columns: var(--police-sidebar-width) minmax(0, 1fr);
+  }
+
+  .police-right {
+    display: block;
+  }
+
+  .police-root .police-cc-grid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+
+  .police-root .police-cc-map { grid-column: 1; grid-row: 1 / span 2; }
+  .police-root .police-cc-quick { grid-column: 2; grid-row: 1; }
+  .police-root .police-cc-alerts { grid-column: 2; grid-row: 2; }
+  .police-root .police-cc-activity { grid-column: 1; grid-row: 3; }
+  .police-root .police-cc-recent { grid-column: 2; grid-row: 3; }
+
+  .police-root .police-cc-map-shell {
+    height: 460px;
+  }
+}
+
+/* ============================ 1920px — wide desktop ======================== */
+@media (min-width: 1920px) {
+  .police-root {
+    --police-sidebar-width: 260px;
+    --police-right-width: 320px;
+  }
+}
+
+/* ============================================================================
+   POLICE PAGES — CONTENT RESPONSIVE SYSTEM  (mobile-first, single source)
+   ----------------------------------------------------------------------------
+   Structural reflow for the inner page content (grids, splits, toolbars) of
+   every police route: Nearby, Verification Queue, My Incidents, Field Reports,
+   Alert Center, Operation History, AI Insights, Incident Detail.
+   Same ladder as the shell: base = phone, then 480 / 768 / 1024 / 1280.
+   Rules are .police-root-scoped so they win over the legacy two-layer styling.
+   ============================================================================ */
+
+/* ---- Base (phone): every multi-column grid collapses to one column, every
+        split header stacks. Desktop arrangements are restored at the steps below. */
+.police-root .police-stats-grid,
+.police-root .police-incident-facts,
+.police-root .police-evidence-grid,
+.police-root .police-history-filters,
+.police-root .police-detail-layout,
+.police-root .police-nearby-layout,
+.police-root .police-verification-card,
+.police-root .police-unit-option {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.police-root .police-stream-header,
+.police-root .police-nearby-page-head-actions,
+.police-root .police-dashboard-head-actions {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* The list/map split panes flow full-width and stop their inner scroll on phones */
+.police-root .police-nearby-list {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
+/* Hover previews are pointer-only affordances — never on touch/narrow layouts */
+.police-root .police-hover-preview,
+.police-root .police-queue-hover-preview {
+  display: none !important;
+}
+
+/* ============================ 480px — large phone ========================== */
+@media (min-width: 480px) {
+  .police-root .police-stats-grid,
+  .police-root .police-evidence-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .police-root .police-unit-option {
+    grid-template-columns: 1fr auto auto;
+  }
+}
+
+/* ============================ 768px — tablet =============================== */
+@media (min-width: 768px) {
+  .police-root .police-stream-header,
+  .police-root .police-nearby-page-head-actions,
+  .police-root .police-dashboard-head-actions {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .police-root .police-incident-facts,
+  .police-root .police-history-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ============================ 1024px — laptop ============================== */
+@media (min-width: 1024px) {
+  .police-root .police-stats-grid,
+  .police-root .police-evidence-grid,
+  .police-root .police-history-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .police-root .police-detail-layout {
+    grid-template-columns: var(--siara-left-sidebar-width, 260px) minmax(0, 1fr);
+  }
+
+  .police-root .police-nearby-layout {
+    grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+  }
+
+  .police-root .police-verification-card {
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 210px);
+  }
+
+  /* Roomier filter inputs on desktop */
+  .police-root .police-filter-field select {
+    min-width: 128px;
+  }
+
+  .police-root .police-filter-search input {
+    min-width: 180px;
+  }
+
+  /* Restore the list pane's own scroll area on the desktop two-pane layout */
+  .police-root .police-nearby-layout .police-nearby-list {
+    max-height: calc(100vh - 220px);
+    overflow-y: auto;
+    padding-right: 6px;
+  }
 }

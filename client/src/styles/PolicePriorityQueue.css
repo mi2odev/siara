@@ -6,9 +6,10 @@
 }
 
 .siara-pq__header {
+  /* mobile-first: stack title block above the refresh button */
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
 }
 
@@ -56,7 +57,8 @@
   border-radius: 12px;
   padding: 12px 14px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  /* mobile-first: priority badge + body on row 1, actions wrap below */
+  grid-template-columns: auto 1fr;
   gap: 10px 14px;
   align-items: center;
   box-shadow: 0 4px 14px -8px rgba(15, 23, 42, 0.18);
@@ -151,10 +153,16 @@
 }
 
 .siara-pq__actions {
+  /* mobile-first: actions span the full grid width as a button row */
+  grid-column: span 2;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 6px;
   align-items: stretch;
+}
+
+.siara-pq__actions .siara-pq__btn {
+  flex: 1;
 }
 
 .siara-pq__btn {
@@ -216,15 +224,31 @@
   to { background-position: -200% 0; }
 }
 
-@media (max-width: 600px) {
-  .siara-pq__item {
-    grid-template-columns: auto 1fr;
-  }
-  .siara-pq__actions {
-    grid-column: span 2;
+/* ==========================================================================
+   PRIORITY QUEUE — RESPONSIVE SYSTEM (mobile-first)
+   Base rules above target the smallest phone; min-width steps scale up.
+   Breakpoint ladder: 480 / 768 / 1024 / 1280 / 1920 (subset used: 768).
+   - Base: header stacks, item grid is 2-col, actions wrap full-width as a row.
+   - >=768px: restore desktop layout (header row, 3-col item, vertical actions).
+   ========================================================================== */
+
+@media (min-width: 768px) {
+  .siara-pq__header {
     flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
-  .siara-pq__btn {
-    flex: 1;
+
+  .siara-pq__item {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .siara-pq__actions {
+    grid-column: auto;
+    flex-direction: column;
+  }
+
+  .siara-pq__actions .siara-pq__btn {
+    flex: 0 0 auto;
   }
 }

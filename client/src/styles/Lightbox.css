@@ -10,13 +10,16 @@
 .post-media-lightbox {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.9);
   z-index: 1500;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  animation: fbLightboxFadeIn 0.18s ease;
+  /* Frosted dark glass with a soft brand-tinted glow from the top. */
+  background: radial-gradient(125% 120% at 50% 0%, rgba(48, 33, 92, 0.55) 0%, rgba(7, 8, 16, 0.93) 58%);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  animation: fbLightboxFadeIn 0.24s ease;
 }
 
 .post-media-lightbox-content {
@@ -27,29 +30,37 @@
   justify-content: center;
 }
 
+/* ── Shared glass control surface ── */
+.post-media-lightbox-toolbar,
+.post-media-lightbox-close,
+.post-media-lightbox-nav,
+.post-media-lightbox-counter {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(20, 22, 34, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  z-index: 1502;
+}
+
 .post-media-lightbox-toolbar {
   position: fixed;
-  top: 16px;
-  left: 20px;
+  top: 18px;
+  left: 22px;
   display: inline-flex;
   align-items: center;
-  padding: 4px;
   gap: 2px;
-  background: rgba(15, 23, 42, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 5px;
   border-radius: 999px;
-  backdrop-filter: blur(6px);
-  z-index: 1502;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 .post-media-zoom-btn {
-  min-width: 36px;
-  height: 36px;
-  padding: 0 10px;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 12px;
   border: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.88);
+  color: rgba(255, 255, 255, 0.9);
   border-radius: 999px;
   font-size: 18px;
   font-weight: 600;
@@ -62,125 +73,109 @@
 }
 
 .post-media-zoom-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.16);
   color: #ffffff;
 }
 
 .post-media-zoom-btn:active {
-  transform: scale(0.94);
+  transform: scale(0.92);
 }
 
 .post-media-zoom-btn.reset {
-  min-width: 60px;
-  font-size: 12px;
+  min-width: 64px;
+  font-size: 12.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.95);
+  font-variant-numeric: tabular-nums;
 }
 
 .post-media-lightbox-close {
   position: fixed;
-  top: 16px;
-  right: 20px;
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  top: 18px;
+  right: 22px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.62);
-  backdrop-filter: blur(6px);
   color: #ffffff;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 400;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
   cursor: pointer;
-  transition: background 0.16s ease, transform 0.16s ease;
-  z-index: 1502;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .post-media-lightbox-close:hover {
-  background: rgba(220, 38, 38, 0.75);
+  background: rgba(239, 68, 68, 0.85);
+  border-color: rgba(239, 68, 68, 0.55);
+  box-shadow: 0 10px 28px rgba(239, 68, 68, 0.45);
+  transform: rotate(90deg);
 }
 
 .post-media-lightbox-close:active {
-  transform: scale(0.94);
+  transform: rotate(90deg) scale(0.92);
 }
 
 .post-media-lightbox-nav {
   position: fixed;
   top: 50%;
   transform: translateY(-50%);
-  width: 52px;
-  height: 52px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.62);
-  backdrop-filter: blur(6px);
   color: #ffffff;
-  font-size: 28px;
-  font-weight: 500;
+  font-size: 30px;
+  font-weight: 400;
   line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1502;
-  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
   user-select: none;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .post-media-lightbox-nav:hover {
-  background: rgba(124, 58, 237, 0.85);
-  box-shadow: 0 8px 22px rgba(124, 58, 237, 0.4);
+  background: rgba(124, 58, 237, 0.9);
+  border-color: rgba(139, 92, 246, 0.6);
+  box-shadow: 0 12px 30px rgba(124, 58, 237, 0.5);
 }
 
 .post-media-lightbox-nav--prev {
-  left: 22px;
+  left: 24px;
 }
 
 .post-media-lightbox-nav--next {
-  right: 22px;
+  right: 24px;
+}
+
+.post-media-lightbox-nav--prev:hover {
+  transform: translateY(-50%) translateX(-3px);
+}
+
+.post-media-lightbox-nav--next:hover {
+  transform: translateY(-50%) translateX(3px);
 }
 
 .post-media-lightbox-nav:active {
-  transform: translateY(-50%) scale(0.92);
+  transform: translateY(-50%) scale(0.9);
 }
 
 .post-media-lightbox-counter {
   position: fixed;
-  top: 22px;
+  top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 7px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 18px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.62);
-  backdrop-filter: blur(6px);
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  z-index: 1502;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-}
-
-.post-media-lightbox-image {
-  display: block;
-  width: auto;
-  height: auto;
-  max-width: 90vw;
-  max-height: 82vh;
-  object-fit: contain;
-  border-radius: 4px;
-  animation: fbLightboxImageIn 0.22s ease;
-  transform-origin: center center;
-  transition: transform 0.12s ease;
-  user-select: none;
-  pointer-events: none;
-  will-change: transform;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
 }
 
 .post-media-lightbox-stage {
@@ -190,7 +185,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 56px 20px 20px;
+  padding: 76px 24px;
   cursor: default;
   touch-action: none;
   user-select: none;
@@ -204,24 +199,52 @@
   cursor: grabbing;
 }
 
-@keyframes fbLightboxFadeIn {
-  from {
-    opacity: 0;
-  }
+.post-media-lightbox-image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 92vw;
+  max-height: 86vh;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow:
+    0 30px 80px -20px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  animation: fbLightboxImageIn 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center center;
+  transition: transform 0.13s ease;
+  user-select: none;
+  pointer-events: none;
+  will-change: transform;
+}
 
-  to {
-    opacity: 1;
-  }
+@keyframes fbLightboxFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes fbLightboxImageIn {
   from {
     opacity: 0;
-    transform: scale(0.97);
+    transform: scale(0.94);
   }
-
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-media-lightbox,
+  .post-media-lightbox-image {
+    animation: none;
+  }
+  .post-media-lightbox-close:hover,
+  .post-media-lightbox-nav--prev:hover,
+  .post-media-lightbox-nav--next:hover {
+    transform: translateY(-50%);
+  }
+  .post-media-lightbox-close:hover {
+    transform: none;
   }
 }

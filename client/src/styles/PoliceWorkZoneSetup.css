@@ -10,7 +10,7 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(145deg, #eef3fb 0%, #e8eef8 40%, #dfe8f5 100%);
-  padding: 32px 16px;
+  padding: 16px 12px; /* mobile-first: tighter page padding on phones; scaled up below */
 }
 
 .pzs-bg-pattern {
@@ -44,10 +44,11 @@
 /* ---------- Header ---------- */
 .pzs-card-header {
   display: flex;
+  flex-direction: column; /* mobile-first: header stacks; row + space-between restored on min-width */
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 32px 36px 28px;
+  padding: 24px 20px 20px; /* mobile-first padding; desktop padding restored below */
   background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 55%, #2563eb 100%);
   position: relative;
   overflow: hidden;
@@ -151,7 +152,7 @@
 
 /* ---------- Body ---------- */
 .pzs-body {
-  padding: 28px 36px 24px;
+  padding: 22px 20px 18px; /* mobile-first padding; desktop padding restored below */
 }
 
 .pzs-description {
@@ -176,7 +177,7 @@
 
 .pzs-fields-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr; /* mobile-first: single column; two columns restored on min-width */
   gap: 16px;
 }
 
@@ -432,8 +433,8 @@
 /* ---------- Form footer ---------- */
 .pzs-form-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column; /* mobile-first: hint + button stack; row restored on min-width */
+  align-items: stretch;
   gap: 12px;
   padding-top: 4px;
 }
@@ -449,6 +450,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  width: 100%; /* mobile-first: full-width inside stacked footer; auto width restored on min-width */
+  justify-content: center;
   padding: 0 24px;
   height: 44px;
   font-size: 14px;
@@ -492,7 +495,7 @@
 
 /* ---------- Info section ---------- */
 .pzs-info-section {
-  padding: 24px 36px 32px;
+  padding: 18px 20px 24px; /* mobile-first padding; desktop padding restored below */
   background: #f8fafc;
 }
 
@@ -507,7 +510,7 @@
 
 .pzs-info-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr; /* mobile-first: single column; scales to 2 then 4 columns on min-width */
   gap: 12px;
 }
 
@@ -620,43 +623,56 @@
   color: #b45309;
 }
 
-/* ---------- Responsive ---------- */
-@media (max-width: 680px) {
-  .pzs-card-header {
-    padding: 24px 20px 20px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
+/* ============================================================
+   WORK ZONE SETUP — RESPONSIVE SYSTEM (mobile-first)
+   ------------------------------------------------------------
+   Base rules above target the smallest phone (single-column
+   grids, stacked header/footer, full-width button, tight
+   padding). Layout scales UP via min-width on the fixed ladder:
+     480px  — info cards go two-up
+     768px  — desktop reflow: header row, two-up fields,
+              inline footer, auto-width button, info cards 4-up,
+              full desktop padding restored
+   ============================================================ */
 
-  .pzs-body {
-    padding: 22px 20px 18px;
-  }
-
-  .pzs-fields-row {
-    grid-template-columns: 1fr;
-  }
-
-  .pzs-form-footer {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .pzs-submit-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .pzs-info-section {
-    padding: 18px 20px 24px;
-  }
-
+/* 480px — info summary cards become two columns */
+@media (min-width: 480px) {
   .pzs-info-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
 
-@media (max-width: 420px) {
+/* 768px — restore the full desktop layout */
+@media (min-width: 768px) {
+  .pzs-card-header {
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 32px 36px 28px;
+  }
+
+  .pzs-body {
+    padding: 28px 36px 24px;
+  }
+
+  .pzs-fields-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pzs-form-footer {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .pzs-submit-btn {
+    width: auto;
+    justify-content: flex-start;
+  }
+
+  .pzs-info-section {
+    padding: 24px 36px 32px;
+  }
+
   .pzs-info-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(4, 1fr);
   }
 }
