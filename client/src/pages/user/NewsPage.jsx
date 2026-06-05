@@ -30,7 +30,7 @@ import {
   removeReportReaction,
   toggleReportReaction,
 } from '../../services/reportsService'
-import ReportCredibilityBadge from '../../components/reports/ReportCredibilityBadge'
+import { computeReportCredibility } from '../../utils/reportCredibility'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
 import '../../styles/NewsPage.css'
@@ -91,20 +91,6 @@ function formatRelativeTime(value) {
   return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
 }
 
-function formatDateTime(value) {
-  if (!value) return 'Unknown'
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Unknown'
-
-  return date.toLocaleString([], {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 const QUALITY_BADGE_FALLBACKS = {
   officer_verified: { code: 'officer_verified', label: 'Verified by officer', style: 'positive_strong', icon: 'shield_check' },
   ai_verified: { code: 'ai_verified', label: 'AI verified', style: 'positive', icon: 'check_circle' },
@@ -159,22 +145,6 @@ function formatSpamPercent(value) {
   if (percent <= 1.2) percent = percent * 100
   percent = Math.max(0, Math.min(100, percent))
   return Math.round(percent)
-}
-
-function buildReportTags(report) {
-  const tags = []
-
-  if (report?.incidentType) {
-    tags.push(`#${report.incidentType}`)
-  }
-  if (report?.status) {
-    tags.push(`#${report.status}`)
-  }
-  if (Array.isArray(report?.media) && report.media.length > 0) {
-    tags.push(`#${report.media.length}-photo${report.media.length > 1 ? 's' : ''}`)
-  }
-
-  return tags
 }
 
 function getReportAuthorProfile(report) {
@@ -254,7 +224,6 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   const authorName = authorProfile.name
   const authorAvatarUrl = getUserAvatarUrl(authorProfile)
   const authorRoleBadge = getAuthorRoleBadge(authorProfile)
-  const severityClass = getSeverityClass(report?.severity)
   const severityLabel = getSeverityLabel(report?.severity)
   const qualityBadge = deriveQualityBadge(report)
   const spamPercent = formatSpamPercent(report?.spamAnalysis?.spamScore)
@@ -262,13 +231,9 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   const reporterTrustScore = Number(report?.reportedBy?.trustScore)
   const reporterTrustTier = report?.reportedBy?.trustTier || null
   const media = Array.isArray(report?.media) ? report.media : []
-  const visibleMedia = media.slice(0, 3)
-  const remainingMediaCount = Math.max(0, media.length - visibleMedia.length)
-  const tags = buildReportTags(report)
   const description = report?.description || ''
   const shouldShowSeeMore = description.length > 180
   const isVerified = report?.status === 'verified'
-  const statusLabel = report?.status ? report.status.charAt(0).toUpperCase() + report.status.slice(1) : 'Pending'
   const occurredAt = report?.occurredAt || report?.createdAt
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(null)
   const [zoomScale, setZoomScale] = useState(1)
@@ -279,6 +244,9 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [commentError, setCommentError] = useState('')
   const [reactionBusy, setReactionBusy] = useState(false)
+  const [loadedMediaKeys, setLoadedMediaKeys] = useState(() => new Set())
+  const [shareCopied, setShareCopied] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
   const [allComments, setAllComments] = useState(null)
   const [allCommentsLoading, setAllCommentsLoading] = useState(false)
   const [allCommentsError, setAllCommentsError] = useState('')
@@ -519,125 +487,272 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
     setIsDragging(false)
   }
 
-  return (
-    <article className={`pc pc--${report?.severity || 'low'}`}>
+  const credibility = computeReportCredibility(report)
+  // Real ML classifier confidence (0–100) from spamAnalysis.confidence, or null
+  // when the report hasn't been classified yet. Never synthesised.
+  const aiConfidence = confidencePercent
+  const aiReasons = Array.isArray(credibility?.reasons) ? credibility.reasons.slice(0, 3) : []
+  const qualityTone = {
+    positive_strong: 'positive',
+    positive: 'positive',
+    warning: 'warning',
+    muted_warning: 'warning',
+    danger: 'danger',
+    neutral: 'neutral',
+  }[qualityBadge?.style] || 'neutral'
+  // Show every photo on the card. Keep the original index so the lightbox
+  // (which reads media[selectedMediaIndex]) still lines up after filtering.
+  const galleryItems = media
+    .map((item, index) => ({ item, index, key: item.id || `${report.id}-${index}` }))
+    .filter(({ key }) => !hiddenMediaKeys.has(key))
+  const galleryCount = galleryItems.length
+  const galleryVariant =
+    galleryCount === 1 ? '1'
+      : galleryCount === 2 ? '2'
+        : galleryCount === 3 ? '3'
+          : galleryCount === 4 ? '4'
+            : 'many'
+  // A lone photo is the visual focus — show it whole (no crop) over a blurred
+  // fill, so big/wide/tall images are never cut off.
+  const fullBleed = galleryVariant === '1'
+  const markMediaLoaded = (key) =>
+    setLoadedMediaKeys((prev) => (prev.has(key) ? prev : new Set(prev).add(key)))
 
-      {/* ── AUTHOR ROW ── */}
-      <div className="pc-head">
+  const handleShare = async () => {
+    const url = `${window.location.origin}/incident/${report.id}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: report?.title || 'SIARA incident report', url })
+      } else {
+        await navigator.clipboard.writeText(url)
+        setShareCopied(true)
+        window.setTimeout(() => setShareCopied(false), 1800)
+      }
+    } catch {
+      /* share dismissed */
+    }
+  }
+
+  return (
+    <article className={`pcx pcx--${report?.severity || 'low'}`}>
+
+      {/* ── HEADER ── */}
+      <header className="pcx-head">
         <button
           type="button"
-          className={`pc-av${authorAvatarUrl ? ' pc-av--img' : ''}`}
+          className={`pcx-av${authorAvatarUrl ? ' pcx-av--img' : ''}`}
           onClick={handleOpenProfile}
           aria-label={`View ${authorName} profile`}
         >
           {authorAvatarUrl && (
-            <img src={authorAvatarUrl} alt={authorName} className="pc-av-img" loading="lazy" onError={handleAvatarImageError} />
+            <img src={authorAvatarUrl} alt={authorName} className="pcx-av-img" loading="lazy" onError={handleAvatarImageError} />
           )}
-          <span className="pc-av-fb">{getAuthorInitials(authorName)}</span>
+          <span className="pcx-av-fb">{getAuthorInitials(authorName)}</span>
         </button>
 
         <div
-          className="pc-meta"
+          className="pcx-id"
           role="button"
           tabIndex={0}
           onClick={handleOpenProfile}
           onKeyDown={handleOpenProfileKeyDown}
           aria-label={`View ${authorName} profile`}
         >
-          <div className="pc-meta-top">
-            <span className="pc-name">{authorName}</span>
-            {isVerified && <span className="badge badge-verified">Verified</span>}
-            <span className={`badge ${authorRoleBadge.className}`}>{authorRoleBadge.label}</span>
-            {reporterTrustTier && Number.isFinite(reporterTrustScore) && (
-              <span className={`reporter-trust-pill reporter-trust-${reporterTrustTier.style || 'neutral'}`} title={`Trust score ${Math.round(reporterTrustScore)}/100`}>
-                {reporterTrustTier.label} · {Math.round(reporterTrustScore)}
+          <div className="pcx-id-line pcx-id-name">
+            <span className="pcx-name">{authorName}</span>
+            {isVerified && (
+              <span className="pcx-verified" title="Verified account" aria-label="Verified">
+                <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden>
+                  <path fill="currentColor" d="M10 1.4l2.2 1.7 2.8-.3 1 2.6 2.5 1.3-.7 2.8 1 2.7-2.2 1.8-.3 2.8-2.8.3L10 18.6l-2.5-1.5-2.8-.3-.3-2.8-2.2-1.8 1-2.7-.7-2.8L2.3 4.7l1-2.6 2.8.3z"/>
+                  <path fill="#fff" d="M8.7 12.5 5.9 9.8l1.1-1.1 1.7 1.7 3.4-3.4 1.1 1.1z"/>
+                </svg>
               </span>
             )}
           </div>
-          <div className="pc-meta-sub">
-            <span>{formatRelativeTime(report?.createdAt || occurredAt)}</span>
-            <span className="pc-dot">·</span>
-            <span className="pc-loc">{report?.locationLabel || 'Reported location'}</span>
-            {occurredAt && (
+
+          <div className="pcx-id-line pcx-id-meta">
+            <span className={`pcx-role ${authorRoleBadge.className}`}>{authorRoleBadge.label}</span>
+            {reporterTrustTier && Number.isFinite(reporterTrustScore) && (
               <>
-                <span className="pc-dot">·</span>
-                <span className="pc-occ">{formatDateTime(occurredAt)}</span>
+                <span className="pcx-mid-dot" aria-hidden>•</span>
+                <span
+                  className={`pcx-trust pcx-trust--${reporterTrustTier.style || 'neutral'}`}
+                  title={`Trust score ${Math.round(reporterTrustScore)}/100`}
+                >
+                  <span className="pcx-trust-dot" aria-hidden />
+                  {reporterTrustTier.label} · {Math.round(reporterTrustScore)}
+                </span>
               </>
             )}
           </div>
+
+          <div className="pcx-id-line pcx-id-sub">
+            <svg className="pcx-loc-icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden>
+              <path fill="currentColor" d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 3.2 4.5 8 4.5 8s4.5-4.8 4.5-8A4.5 4.5 0 0 0 8 1.5Zm0 6.2A1.7 1.7 0 1 1 8 4.3a1.7 1.7 0 0 1 0 3.4Z"/>
+            </svg>
+            <span className="pcx-loc">{report?.locationLabel || 'Reported location'}</span>
+            <span className="pcx-mid-dot" aria-hidden>•</span>
+            <span className="pcx-time">{formatRelativeTime(report?.createdAt || occurredAt)}</span>
+          </div>
         </div>
 
-        <div className="pc-head-right">
-          {qualityBadge && (
-            <span
-              className={`quality-badge quality-badge-${qualityBadge.style || 'neutral'}`}
-              title={spamPercent != null ? `Spam ${spamPercent}% · Confidence ${confidencePercent ?? '—'}%` : qualityBadge.label}
-            >
-              <span aria-hidden>{QUALITY_BADGE_ICONS[qualityBadge.icon] || ''}</span>
-              <span className="quality-badge-label">{qualityBadge.label}</span>
-              {spamPercent != null && qualityBadge.code !== 'officer_verified' && (
-                <span className="quality-badge-meta">{spamPercent}%</span>
-              )}
-            </span>
-          )}
-          <ReportCredibilityBadge report={report} compact />
-          <span className={`pc-sev pc-sev--${report?.severity || 'low'}`}>{severityLabel}</span>
-          <button className="pc-more-btn" onClick={() => navigate(`/incident/${report.id}`)} title="View details" aria-label="View details">
-            <svg width="3" height="15" viewBox="0 0 3 15" fill="currentColor" aria-hidden>
-              <circle cx="1.5" cy="1.5" r="1.5"/><circle cx="1.5" cy="7.5" r="1.5"/><circle cx="1.5" cy="13.5" r="1.5"/>
-            </svg>
-          </button>
-        </div>
+        <button className="pcx-menu" onClick={() => navigate(`/incident/${report.id}`)} title="View details" aria-label="View details">
+          <svg width="3.5" height="16" viewBox="0 0 3 15" fill="currentColor" aria-hidden>
+            <circle cx="1.5" cy="1.5" r="1.5"/><circle cx="1.5" cy="7.5" r="1.5"/><circle cx="1.5" cy="13.5" r="1.5"/>
+          </svg>
+        </button>
+      </header>
+
+      {/* ── STATUS PILLS ── */}
+      <div className="pcx-status">
+        {qualityBadge && (
+          <span
+            className={`pcx-pill pcx-pill--q-${qualityTone}`}
+            title={spamPercent != null ? `Spam ${spamPercent}% · Confidence ${confidencePercent ?? '—'}%` : qualityBadge.label}
+          >
+            <span className="pcx-pill-ico" aria-hidden>{QUALITY_BADGE_ICONS[qualityBadge.icon] || ''}</span>
+            {qualityBadge.label}
+            {spamPercent != null && qualityBadge.code !== 'officer_verified' && (
+              <span className="pcx-pill-meta">{spamPercent}%</span>
+            )}
+          </span>
+        )}
+        {credibility && credibility.level !== 'unknown' && Number.isFinite(credibility.score) && (
+          <span className={`pcx-pill pcx-pill--cred-${credibility.level}`} title={`Credibility score ${credibility.score}/100`}>
+            <span className="pcx-pill-dot" aria-hidden />
+            {credibility.score} Credibility
+            {credibility.isSpam && <span className="pcx-pill-meta pcx-pill-meta--danger">Spam</span>}
+          </span>
+        )}
+        <span className={`pcx-pill pcx-pill--sev-${report?.severity || 'low'}`}>
+          <span className="pcx-pill-dot" aria-hidden />
+          {severityLabel}
+        </span>
       </div>
 
       {/* ── CONTENT ── */}
-      <div className="pc-body">
-        <h2 className="pc-title">{report?.title || 'Untitled report'}</h2>
-        <p className={`pc-desc${shouldShowSeeMore ? ' is-clamped' : ''}`}>
+      <div className="pcx-content">
+        <h2 className="pcx-title">{report?.title || 'Untitled report'}</h2>
+        <p className={`pcx-desc${shouldShowSeeMore ? ' is-clamped' : ''}`}>
           {description || 'No description provided for this report.'}
         </p>
         {shouldShowSeeMore && (
-          <button className="pc-read-more" onClick={() => navigate(`/incident/${report.id}`)}>
-            Read more
+          <button className="pcx-readmore" onClick={() => navigate(`/incident/${report.id}`)}>
+            <span>Read more</span>
+            <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+              <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
-        )}
-
-        {visibleMedia.length > 0 && (
-          <div className={`pc-media pc-media--${visibleMedia.length > 2 ? 3 : visibleMedia.length}`}>
-            {visibleMedia.map((mediaItem, index) => {
-              const mediaKey = mediaItem.id || `${report.id}-${index}`
-              if (hiddenMediaKeys.has(mediaKey)) return null
-              const isLastVisible = index === visibleMedia.length - 1
-              const showOverlay = remainingMediaCount > 0 && isLastVisible
-              return (
-                <div className={`pc-media-item${showOverlay ? ' pc-media-item--more' : ''}`} key={mediaKey}>
-                  <button
-                    type="button"
-                    className="pc-media-btn"
-                    onClick={() => { setSelectedMediaIndex(index); setZoomScale(1) }}
-                    aria-label="Open photo"
-                  >
-                    <img
-                      className="pc-media-img"
-                      src={mediaItem.url}
-                      alt={report?.title || 'Report photo'}
-                      loading="lazy"
-                      onError={() => setHiddenMediaKeys((prev) => { const n = new Set(prev); n.add(mediaKey); return n })}
-                    />
-                  </button>
-                  {showOverlay && <span className="pc-media-more-label">+{remainingMediaCount}</span>}
-                </div>
-              )
-            })}
-          </div>
         )}
       </div>
 
+      {/* ── MEDIA GALLERY (shows every photo) ── */}
+      {galleryCount > 0 && (
+        <div className={`pcx-gallery pcx-gallery--${galleryVariant}`}>
+          {galleryItems.map(({ item, index, key }) => {
+            const loaded = loadedMediaKeys.has(key)
+            return (
+              <button
+                key={key}
+                type="button"
+                className={`pcx-tile${fullBleed ? ' pcx-tile--contain' : ''}`}
+                onClick={() => { setSelectedMediaIndex(index); setZoomScale(1) }}
+                aria-label={`Open photo ${index + 1} of ${media.length}`}
+              >
+                {fullBleed && (
+                  <img className="pcx-tile-bg" src={item.url} alt="" aria-hidden loading="lazy" />
+                )}
+                {!loaded && <span className="pcx-skeleton" aria-hidden />}
+                <img
+                  className={`pcx-tile-img${loaded ? ' is-loaded' : ''}`}
+                  src={item.url}
+                  alt={report?.title || 'Report photo'}
+                  loading="lazy"
+                  onLoad={() => markMediaLoaded(key)}
+                  onError={() => setHiddenMediaKeys((prev) => { const n = new Set(prev); n.add(key); return n })}
+                />
+                <span className="pcx-tile-overlay" aria-hidden />
+                <span className="pcx-tile-zoom" aria-hidden>
+                  <svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.9">
+                    <circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4" strokeLinecap="round"/>
+                  </svg>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* ── AI INSIGHTS (collapsible) ── */}
+      {(aiReasons.length > 0 || aiConfidence != null) && (
+        <section className={`pcx-ai${aiOpen ? ' is-open' : ''}`} aria-label="AI analysis">
+          <button
+            type="button"
+            className="pcx-ai-toggle"
+            onClick={() => setAiOpen((open) => !open)}
+            aria-expanded={aiOpen}
+            aria-controls={`pcx-ai-panel-${report.id}`}
+          >
+            <span className="pcx-ai-icon" aria-hidden>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+                <path d="M12 2l1.8 4.5L18 8l-4.2 1.5L12 14l-1.8-4.5L6 8l4.2-1.5L12 2zm6.5 9l.9 2.2 2.2.9-2.2.9-.9 2.2-.9-2.2-2.2-.9 2.2-.9.9-2.2zM5 12.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9L2.3 16l1.9-.8.8-1.9z"/>
+              </svg>
+            </span>
+            <span className="pcx-ai-toggle-text">
+              <span className="pcx-ai-title">AI Analysis</span>
+              <span className="pcx-ai-sub">{aiOpen ? 'Hide details' : 'View confidence & findings'}</span>
+            </span>
+            {aiConfidence != null && (
+              <span className={`pcx-ai-chip pcx-ai-chip--${credibility?.level || 'medium'}`}>{aiConfidence}%</span>
+            )}
+            <svg className="pcx-ai-chevron" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+
+          <div className="pcx-ai-panel" id={`pcx-ai-panel-${report.id}`} aria-hidden={!aiOpen}>
+            <div className="pcx-ai-panel-inner">
+              <div className="pcx-ai-panel-body">
+                {aiConfidence != null && (
+                  <div className="pcx-ai-conf">
+                    <span className="pcx-ai-conf-label">Confidence</span>
+                    <span className="pcx-ai-conf-bar">
+                      <span className="pcx-ai-conf-fill" style={{ width: `${Math.max(4, Math.min(100, aiConfidence))}%` }} />
+                    </span>
+                    <span className="pcx-ai-conf-val">{aiConfidence}%</span>
+                  </div>
+                )}
+                {aiReasons.length > 0 && (
+                  <ul className="pcx-ai-list">
+                    {aiReasons.map((reason, idx) => (
+                      <li key={idx} className={`pcx-ai-item pcx-ai-item--${reason.kind}`}>
+                        <span className="pcx-ai-ico" aria-hidden>
+                          {reason.kind === 'positive' ? (
+                            <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.3">
+                              <path d="M3.5 8.4l3 3 6-7" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          ) : (
+                            <svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor">
+                              <path d="M8 1.6 15 14H1L8 1.6Zm0 4.4a.9.9 0 0 0-.9 1l.3 3a.6.6 0 0 0 1.2 0l.3-3a.9.9 0 0 0-.9-1Zm0 6.2a.85.85 0 1 0 0 1.7.85.85 0 0 0 0-1.7Z"/>
+                            </svg>
+                          )}
+                        </span>
+                        {reason.text}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── ACTIONS ── */}
-      <div className="pc-actions">
+      <div className="pcx-actions">
         <button
           type="button"
-          className={`pc-act pc-act--like${viewerHasLiked ? ' on' : ''}`}
+          className={`pcx-act pcx-act--like${viewerHasLiked ? ' on' : ''}`}
           onClick={() => handleToggleReaction('like')}
           disabled={reactionBusy}
           aria-pressed={viewerHasLiked}
@@ -650,7 +765,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
 
         <button
           type="button"
-          className={`pc-act pc-act--saw${viewerSawItToo ? ' on' : ''}`}
+          className={`pcx-act pcx-act--saw${viewerSawItToo ? ' on' : ''}`}
           onClick={() => handleToggleReaction('saw_it_too')}
           disabled={reactionBusy}
           aria-pressed={viewerSawItToo}
@@ -664,7 +779,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
 
         <button
           type="button"
-          className={`pc-act pc-act--cmt${discussionOpen ? ' on' : ''}`}
+          className={`pcx-act pcx-act--cmt${discussionOpen ? ' on' : ''}`}
           onClick={() => {
             setDiscussionMode((prev) => {
               const next = prev === 'closed' ? 'compose' : prev === 'compose' ? 'all' : 'closed'
@@ -683,11 +798,17 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           <span>{commentsCount > 0 ? commentsCount : 'Comment'}</span>
         </button>
 
-        <button type="button" className="pc-view-btn" onClick={() => navigate(`/incident/${report.id}`)}>
-          View details
-          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
-            <path d="M3 8h10M9 4l4 4-4 4"/>
+        <button
+          type="button"
+          className={`pcx-act pcx-act--share${shareCopied ? ' on' : ''}`}
+          onClick={handleShare}
+          aria-label="Share report"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+            <circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/>
+            <path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3" strokeLinecap="round"/>
           </svg>
+          <span>{shareCopied ? 'Copied' : 'Share'}</span>
         </button>
       </div>
 
@@ -813,6 +934,16 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
        </div>
       </div>
 
+      {/* ── FOOTER ── */}
+      <div className="pcx-footer">
+        <button type="button" className="pcx-open" onClick={() => navigate(`/incident/${report.id}`)}>
+          <span className="pcx-open-label">Open Incident</span>
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+            <path d="M3 8h10M9 4l4 4-4 4"/>
+          </svg>
+        </button>
+      </div>
+
       {/* ── LIGHTBOX ── */}
       {activeMedia && createPortal(
         <div className="post-media-lightbox" role="dialog" aria-modal="true" aria-label="Photo preview" onClick={() => setSelectedMediaIndex(null)}>
@@ -869,6 +1000,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
               onTouchEnd={stopPan}
             >
               <img
+                key={selectedMediaIndex}
                 className="post-media-lightbox-image"
                 src={activeMedia.url}
                 alt={report?.title || 'Report image'}
@@ -1687,7 +1819,19 @@ export default function NewsPage() {
               {loadMoreError && <p className="feed-load-more-error">{loadMoreError}</p>}
               {pagination.hasMore ? (
                 <button className="widget-see-more show-more-btn" onClick={handleShowMore} disabled={isLoadingMore}>
-                  {isLoadingMore ? 'Loading more...' : 'Show more'}
+                  {isLoadingMore ? (
+                    <>
+                      <span className="show-more-spinner" aria-hidden />
+                      Loading more
+                    </>
+                  ) : (
+                    <>
+                      Show more
+                      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+                        <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </>
+                  )}
                 </button>
               ) : (
                 <p className="feed-pagination-end">You have reached the end of the current feed.</p>

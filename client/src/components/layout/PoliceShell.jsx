@@ -23,7 +23,7 @@ import NotificationBell from '../notifications/NotificationBell'
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
-import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined'
+import ViewSidebarOutlinedIcon from '@mui/icons-material/ViewSidebarOutlined'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from './PoliceModeTab'
@@ -34,7 +34,6 @@ import '../../styles/DashboardPage.css'
 import '../../styles/PoliceMode.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import { submitSupportMessage } from '../../services/supportMessagesService'
-import { listPoliceIncidents } from '../../services/policeService'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -45,7 +44,6 @@ export default function PoliceShell({
   rightPanelCollapsed = false,
   notificationCount = 0,
   emergencyMode = false,
-  verificationPendingCount = null,
 }) {
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
@@ -69,36 +67,6 @@ export default function PoliceShell({
 
   const isInSupervisorMode = SUPERVISOR_KEYS.has(activeKey)
 
-  // The Verification Queue badge (officer menu) must be consistent on every
-  // officer page. Pages that already load the count pass it as a prop; for the
-  // rest, fetch it here so the number is never missing on some pages.
-  const [fetchedPendingCount, setFetchedPendingCount] = useState(0)
-
-  useEffect(() => {
-    if (verificationPendingCount != null || isInSupervisorMode) {
-      return undefined
-    }
-
-    let cancelled = false
-    listPoliceIncidents({ page: 1, pageSize: 1, status: 'pending' })
-      .then((result) => {
-        if (!cancelled) {
-          setFetchedPendingCount(Number(result?.pagination?.total || 0))
-        }
-      })
-      .catch(() => {
-        // Badge falls back to 0 if the count can't be loaded.
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [verificationPendingCount, isInSupervisorMode])
-
-  const resolvedPendingCount = verificationPendingCount != null
-    ? verificationPendingCount
-    : fetchedPendingCount
-
   const officerMenuGroups = useMemo(() => [
     {
       title: 'OPERATIONS',
@@ -111,7 +79,6 @@ export default function PoliceShell({
           label: 'Verification Queue',
           icon: <PendingActionsOutlinedIcon fontSize="inherit" />,
           path: '/police/verification',
-          badge: resolvedPendingCount,
         },
         { key: 'my-incidents', label: 'My Incidents', icon: <LocalPoliceOutlinedIcon fontSize="inherit" />, path: '/police/my-incidents' },
         { key: 'field-reports', label: 'Field Reports', icon: <EditNoteOutlinedIcon fontSize="inherit" />, path: '/police/field-reports' },
@@ -133,7 +100,7 @@ export default function PoliceShell({
         { key: 'overview', label: 'Overview', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/overview' },
       ],
     },
-  ], [resolvedPendingCount])
+  ], [])
 
   const supervisorMenuGroups = useMemo(() => [
     {
@@ -269,6 +236,15 @@ export default function PoliceShell({
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
+            <button
+              type="button"
+              className="police-mobile-menu-toggle"
+              aria-label="Open operations menu"
+              aria-expanded={showMobileMenu}
+              onClick={() => setShowMobileMenu((prev) => !prev)}
+            >
+              <ViewSidebarOutlinedIcon fontSize="small" />
+            </button>
             <div className="dash-logo-block" onClick={() => navigate(isSupervisor ? '/police/supervisor' : '/police')} role="button" tabIndex={0}>
               <img src={siaraLogo} alt="SIARA" className="dash-logo" />
               {isSupervisor && (
@@ -315,15 +291,6 @@ export default function PoliceShell({
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              className="police-mobile-menu-toggle"
-              aria-label="Open police navigation"
-              aria-expanded={showMobileMenu}
-              onClick={() => setShowMobileMenu((prev) => !prev)}
-            >
-              <MenuOutlinedIcon fontSize="small" />
-            </button>
           </div>
         </div>
       </header>
@@ -380,7 +347,6 @@ export default function PoliceShell({
                   >
                     <span className="police-menu-icon" aria-hidden="true">{item.icon}</span>
                     <span className="police-menu-label">{item.label}</span>
-                    {item.badge > 0 ? <span className="police-menu-badge">{item.badge}</span> : null}
                   </button>
                 ))}
               </div>
@@ -423,7 +389,6 @@ export default function PoliceShell({
                     >
                       <span className="police-menu-icon" aria-hidden="true">{item.icon}</span>
                       <span className="police-menu-label">{item.label}</span>
-                      {item.badge > 0 ? <span className="police-menu-badge">{item.badge}</span> : null}
                     </button>
                   ))}
                 </div>

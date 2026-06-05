@@ -1,5 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 
 import {
   requestPasswordReset,
@@ -10,6 +13,12 @@ import LanguageSelect from '../../components/layout/LanguageSelect'
 import logo from '../../assets/logos/siara-logo.png'
 import '../../styles/LoginPage.css'
 import '../../styles/AuthFlowPage.css'
+
+const RESET_STEPS = [
+  { key: 'request', label: 'Request' },
+  { key: 'verify', label: 'Verify' },
+  { key: 'reset', label: 'New password' },
+]
 
 function getErrorMessage(error) {
   return error.response?.data?.message || error.message || 'Unable to complete this request right now.'
@@ -121,8 +130,10 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  const activeStepIndex = RESET_STEPS.findIndex((item) => item.key === step)
+
   return (
-    <div className="siara-login-root">
+    <div className="siara-login-root siara-auth-flow-page">
       <LanguageSelect floating size="compact" />
       <div className="siara-auth-flow-shell">
         <div className="siara-auth-flow-card">
@@ -137,21 +148,38 @@ export default function ForgotPasswordPage() {
           <h1 className="siara-form-title">Reset your password</h1>
           <p className="siara-form-sub">Request a 6-digit reset code, verify it, then choose a new password.</p>
 
+          <ol className="siara-auth-steps" aria-label="Password reset progress">
+            {RESET_STEPS.map((item, index) => {
+              const state = index < activeStepIndex ? 'is-done' : index === activeStepIndex ? 'is-active' : ''
+              return (
+                <li key={item.key} className={`siara-auth-step ${state}`} aria-current={index === activeStepIndex ? 'step' : undefined}>
+                  <span className="siara-auth-step-dot">
+                    {index < activeStepIndex ? <CheckRoundedIcon fontSize="inherit" /> : index + 1}
+                  </span>
+                  <span className="siara-auth-step-label">{item.label}</span>
+                </li>
+              )
+            })}
+          </ol>
+
           {notice ? <div className="siara-notice-box">{notice}</div> : null}
           {error ? <div className="error-box" role="alert">{error}</div> : null}
 
           {step === 'request' ? (
             <form className="siara-auth-flow-form" onSubmit={handleRequestCode}>
               <label htmlFor="forgot-email" className="field-label">Email</label>
-              <input
-                id="forgot-email"
-                className="siara-input"
-                type="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
+              <div className="input-shell">
+                <span className="input-icon"><MailOutlineRoundedIcon fontSize="inherit" /></span>
+                <input
+                  id="forgot-email"
+                  className="siara-input"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </div>
 
               <button type="submit" className="siara-cta" disabled={loading}>
                 {loading ? 'Sending code...' : 'Send reset code'}
@@ -162,14 +190,17 @@ export default function ForgotPasswordPage() {
           {step === 'verify' ? (
             <form className="siara-auth-flow-form" onSubmit={handleVerifyCode}>
               <label htmlFor="forgot-email-verify" className="field-label">Email</label>
-              <input
-                id="forgot-email-verify"
-                className="siara-input"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
+              <div className="input-shell">
+                <span className="input-icon"><MailOutlineRoundedIcon fontSize="inherit" /></span>
+                <input
+                  id="forgot-email-verify"
+                  className="siara-input"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </div>
 
               <label htmlFor="forgot-code" className="field-label">Reset code</label>
               <input
@@ -181,6 +212,7 @@ export default function ForgotPasswordPage() {
                 value={code}
                 onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
               />
+              <p className="siara-field-hint">Enter the 6-digit code sent to your email.</p>
 
               <button type="submit" className="siara-cta" disabled={loading}>
                 {loading ? 'Verifying code...' : 'Verify code'}
@@ -195,26 +227,32 @@ export default function ForgotPasswordPage() {
           {step === 'reset' ? (
             <form className="siara-auth-flow-form" onSubmit={handleResetPassword}>
               <label htmlFor="forgot-new-password" className="field-label">New password</label>
-              <input
-                id="forgot-new-password"
-                className="siara-input"
-                type="password"
-                autoComplete="new-password"
-                placeholder="At least 8 characters"
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-              />
+              <div className="input-shell">
+                <span className="input-icon"><LockOutlinedIcon fontSize="inherit" /></span>
+                <input
+                  id="forgot-new-password"
+                  className="siara-input"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                />
+              </div>
 
               <label htmlFor="forgot-confirm-password" className="field-label">Confirm password</label>
-              <input
-                id="forgot-confirm-password"
-                className="siara-input"
-                type="password"
-                autoComplete="new-password"
-                placeholder="Confirm your password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-              />
+              <div className="input-shell">
+                <span className="input-icon"><LockOutlinedIcon fontSize="inherit" /></span>
+                <input
+                  id="forgot-confirm-password"
+                  className="siara-input"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                />
+              </div>
 
               <button type="submit" className="siara-cta" disabled={loading}>
                 {loading ? 'Saving password...' : 'Reset password'}
@@ -223,7 +261,7 @@ export default function ForgotPasswordPage() {
           ) : null}
 
           <div className="siara-auth-inline-actions">
-            <Link to="/login" className="link-accent">Back to login</Link>
+            <Link to="/login" className="link-accent">← Back to login</Link>
           </div>
         </div>
       </div>

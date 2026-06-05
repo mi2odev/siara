@@ -14,6 +14,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import InboxRoundedIcon            from '@mui/icons-material/InboxRounded'
 import SearchRoundedIcon           from '@mui/icons-material/SearchRounded'
+import ArrowBackRoundedIcon         from '@mui/icons-material/ArrowBackRounded'
 import RefreshRoundedIcon          from '@mui/icons-material/RefreshRounded'
 import MailOutlineRoundedIcon      from '@mui/icons-material/MailOutlineRounded'
 import HelpOutlineRoundedIcon      from '@mui/icons-material/HelpOutlineRounded'
@@ -165,6 +166,8 @@ export default function AdminInboxPage() {
   const [actionState,  setActionState]  = useState({ id: null, busy: false })
   const [replyDrafts,  setReplyDrafts]  = useState({})
   const [replyStatus,  setReplyStatus]  = useState({})
+  // On phones the list and detail share one column; this toggles between them.
+  const [mobileView,   setMobileView]   = useState('list')
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -248,7 +251,7 @@ export default function AdminInboxPage() {
   const infoCount    = items.filter((i) => i.kind === 'info_response').length
 
   return (
-    <div className="inbox">
+    <div className={`inbox${mobileView === 'list' ? ' inbox--list-mode' : ''}`}>
 
       {/* ── HEADER ─────────────────────────────────────────────── */}
       <header className="inbox__header">
@@ -260,7 +263,7 @@ export default function AdminInboxPage() {
             <h1 className="inbox__title">Support Inbox</h1>
             <p className="inbox__title-meta">
               <strong>{filteredItems.length}</strong> message{filteredItems.length !== 1 ? 's' : ''}
-              {newCount > 0 ? <> · <strong>{newCount}</strong> new</> : null}
+              {newCount > 0 ? <span className="inbox__new-pill">{newCount} new</span> : null}
             </p>
           </div>
         </div>
@@ -367,7 +370,7 @@ export default function AdminInboxPage() {
                     isSel    ? 'inbox__item--active' : '',
                     isUnread ? 'inbox__item--unread' : '',
                   ].filter(Boolean).join(' ')}
-                  onClick={() => setSelectedId(it.id)}
+                  onClick={() => { setSelectedId(it.id); setMobileView('detail') }}
                 >
                   <Avatar name={it.name} isInfo={isInfo} />
                   <div className="inbox__item-main">
@@ -394,6 +397,10 @@ export default function AdminInboxPage() {
 
         {/* ─── DETAIL ──────────────────────────────────────────── */}
         <div className="inbox__detail">
+          <button type="button" className="inbox__back" onClick={() => setMobileView('list')}>
+            <ArrowBackRoundedIcon style={{ fontSize: 16 }} />
+            All messages
+          </button>
           {!selected ? (
             <div className="inbox__empty">
               <ChatBubbleOutlineRoundedIcon className="inbox__empty-icon" />

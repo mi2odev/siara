@@ -35,6 +35,13 @@ export default function App() {
 
     const enhanceHeaders = () => {
       document.querySelectorAll('.siara-dashboard-header .dash-header-inner').forEach((headerInner) => {
+        // The police / supervisor shell has its own mobile drawer toggle
+        // (.police-mobile-menu-toggle). Its header tabs are hidden ghost
+        // spacers, so this injected hamburger would do nothing there — skip it.
+        if (headerInner.closest('.police-root')) {
+          return
+        }
+
         const headerLeft = headerInner.querySelector('.dash-header-left')
         const tabs = headerInner.querySelector('.dash-header-tabs')
 

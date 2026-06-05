@@ -198,6 +198,38 @@ function buildSections(incidentCounts, alertCounts, countsReady) {
 
 /* ─────────────────────────────────────────────────────────────────────── */
 
+/**
+ * Score how well a sidebar link's target matches the current location.
+ * Returns -1 when the link is not a candidate at all, otherwise a higher
+ * score means a better match. The caller highlights the single best-scoring
+ * link, so exactly one item lights up — even on:
+ *   - landing paths with no query    (/admin/incidents → "All Incidents")
+ *   - detail sub-routes              (/admin/incidents/123 → its list link)
+ *   - URLs with extra / reordered query params
+ * which the old exact `location.search ===` check all missed.
+ */
+function matchScore(to, location) {
+  const [path, search] = to.split('?')
+
+  let score = 0
+  if (location.pathname === path) score += 100
+  else if (location.pathname.startsWith(`${path}/`)) score += 50
+  else return -1 // different path entirely → never this link
+
+  if (search) {
+    const linkParams = new URLSearchParams(search)
+    const currentParams = new URLSearchParams(location.search)
+    for (const [key, value] of linkParams) {
+      const current = currentParams.get(key)
+      if (current === value) score += 10
+      else if (current !== null) return -1 // the param is present but differs → not this link
+      // current === null → param absent → neutral, lets the default link win
+    }
+  }
+
+  return score
+}
+
 // initialsFromName / primaryRoleLabel removed — moved into AdminHeader along
 // with the profile chip they fed.
 
@@ -235,14 +267,6 @@ export default function AdminSidebar({ mobileOpen = false } = {}) {
 
   const activeItemRef = useRef(null)
 
-  /* ─── Active match (path + query string) ────────────────────────────── */
-  const isLinkActive = (to) => {
-    const [path, search] = to.split('?')
-    if (path !== location.pathname) return false
-    if (search) return location.search === `?${search}`
-    return !location.search
-  }
-
   /* ─── Fetch + poll badge counts ─────────────────────────────────────── */
   useEffect(() => {
     let cancelled = false
@@ -273,6 +297,25 @@ export default function AdminSidebar({ mobileOpen = false } = {}) {
     () => buildSections(incidentCounts, alertCounts, countsReady),
     [incidentCounts, alertCounts, countsReady],
   )
+
+  /* ─── Resolve the single best-matching link for the current URL ──────── */
+  const activeTo = useMemo(() => {
+    let best = null
+    let bestScore = 0
+    for (const section of sections) {
+      for (const link of section.links) {
+        const score = matchScore(link.to, location)
+        if (score > bestScore) {
+          bestScore = score
+          best = link.to
+        }
+      }
+    }
+    return best
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections, location.pathname, location.search])
+
+  const isLinkActive = (to) => to != null && to === activeTo
 
   const normalizedQuery = query.trim().toLowerCase()
   const filteredSections = useMemo(() => {

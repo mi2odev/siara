@@ -42,6 +42,7 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded'
 import TipsAndUpdatesOutlinedIcon from '@mui/icons-material/TipsAndUpdatesOutlined'
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined'
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded'
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import EnhancedEncryptionOutlinedIcon from '@mui/icons-material/EnhancedEncryptionOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
@@ -50,7 +51,6 @@ import BalanceOutlinedIcon from '@mui/icons-material/BalanceOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
-import LeftQuickInfoLinks from '../../components/layout/LeftQuickInfoLinks'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
@@ -105,6 +105,34 @@ function MapViewportController({ locationCoords, locationType, defaultCenter, de
   return null
 }
 
+/* Relative "when did it happen" quick-picks (most incidents are recent, so this
+   replaces the clunky native calendar for the common case). */
+const TIME_PRESETS = [
+  { key: 'now', label: 'Just now', minutes: 0 },
+  { key: '5m',  label: '5 min ago', minutes: 5 },
+  { key: '15m', label: '15 min ago', minutes: 15 },
+  { key: '30m', label: '30 min ago', minutes: 30 },
+  { key: '1h',  label: '1 hour ago', minutes: 60 },
+  { key: '2h',  label: '2 hours ago', minutes: 120 },
+]
+
+/** Format a Date as a local <input type="datetime-local"> value (YYYY-MM-DDTHH:mm). */
+function toLocalDateTimeValue(date) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+/** Human-friendly summary of a chosen datetime-local value. */
+function formatPickedTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleString('en', {
+    weekday: 'short', day: 'numeric', month: 'short',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
 export default function ReportIncidentPage() {
   /* ═══ ROUTING ═══ */
   const navigate = useNavigate()
@@ -144,7 +172,8 @@ export default function ReportIncidentPage() {
     description: '',           // Optional free-text description (max 500 chars)
     severity: 'medium',        // 'high' | 'medium' | 'low'
     timeOption: 'now',         // 'now' | 'earlier'
-    customTime: '',            // ISO datetime string when timeOption === 'earlier'
+    timePreset: 'now',         // UI selection: 'now' | '5m' | '15m' | '30m' | '1h' | '2h' | 'custom'
+    customTime: '',            // datetime-local string when timeOption === 'earlier'
     media: [],                 // Array of { file, name, type, preview } objects
   })
 
@@ -884,10 +913,8 @@ export default function ReportIncidentPage() {
             </div>
           </div>
 
-          <LeftQuickInfoLinks />
-
           <button className="cancel-btn" onClick={() => navigate('/report')}>
-            <CloseRoundedIcon fontSize="inherit" className="icon-danger" /> Cancel
+            <CloseRoundedIcon fontSize="inherit" /> Cancel report
           </button>
         </aside>
 
@@ -1154,30 +1181,59 @@ export default function ReportIncidentPage() {
 
                 <div className="form-group">
                   <label>When did this happen?</label>
-                  <div className="time-selector">
+                  <div className="time-presets">
+                    {TIME_PRESETS.map((preset) => (
+                      <button
+                        key={preset.key}
+                        type="button"
+                        className={`time-chip ${reportData.timePreset === preset.key ? 'selected' : ''}`}
+                        onClick={() => setReportData(prev => (
+                          preset.key === 'now'
+                            ? { ...prev, timeOption: 'now', timePreset: 'now', customTime: '' }
+                            : {
+                                ...prev,
+                                timeOption: 'earlier',
+                                timePreset: preset.key,
+                                customTime: toLocalDateTimeValue(new Date(Date.now() - preset.minutes * 60000)),
+                              }
+                        ))}
+                      >
+                        {preset.key === 'now' && <span className="time-chip-dot" />}
+                        {preset.label}
+                      </button>
+                    ))}
                     <button
-                      className={`time-btn ${reportData.timeOption === 'now' ? 'selected' : ''}`}
-                      onClick={() => setReportData(prev => ({ ...prev, timeOption: 'now' }))}
+                      type="button"
+                      className={`time-chip time-chip--custom ${reportData.timePreset === 'custom' ? 'selected' : ''}`}
+                      onClick={() => setReportData(prev => ({
+                        ...prev,
+                        timeOption: 'earlier',
+                        timePreset: 'custom',
+                        customTime: prev.customTime || toLocalDateTimeValue(new Date()),
+                      }))}
                     >
-                      <span className="time-icon"><TimerOutlinedIcon fontSize="inherit" /></span>
-                      <span>Now</span>
-                    </button>
-                    <button
-                      className={`time-btn ${reportData.timeOption === 'earlier' ? 'selected' : ''}`}
-                      onClick={() => setReportData(prev => ({ ...prev, timeOption: 'earlier' }))}
-                    >
-                      <span className="time-icon"><AccessTimeRoundedIcon fontSize="inherit" /></span>
-                      <span>Earlier</span>
+                      <CalendarMonthRoundedIcon fontSize="inherit" />
+                      Pick date &amp; time
                     </button>
                   </div>
-                  {reportData.timeOption === 'earlier' && (
+
+                  {reportData.timePreset === 'custom' && (
                     <div className="custom-time-input">
+                      <AccessTimeRoundedIcon fontSize="inherit" className="custom-time-icon" />
                       <input
                         type="datetime-local"
                         value={reportData.customTime}
+                        max={toLocalDateTimeValue(new Date())}
                         onChange={(e) => setReportData(prev => ({ ...prev, customTime: e.target.value }))}
                       />
                     </div>
+                  )}
+
+                  {reportData.timeOption === 'earlier' && reportData.customTime && (
+                    <p className="time-hint">
+                      <TimerOutlinedIcon fontSize="inherit" />
+                      Incident time: <strong>{formatPickedTime(reportData.customTime)}</strong>
+                    </p>
                   )}
                 </div>
               </div>
@@ -1292,7 +1348,7 @@ export default function ReportIncidentPage() {
                   <div className="review-row">
                     <span className="review-label">Time</span>
                     <span className="review-value">
-                      {reportData.timeOption === 'now' ? <><TimerOutlinedIcon fontSize="inherit" /> Now</> : <><AccessTimeRoundedIcon fontSize="inherit" /> {reportData.customTime}</>}
+                      {reportData.timeOption === 'now' ? <><TimerOutlinedIcon fontSize="inherit" /> Just now</> : <><AccessTimeRoundedIcon fontSize="inherit" /> {formatPickedTime(reportData.customTime)}</>}
                     </span>
                   </div>
                   <div className="review-row">

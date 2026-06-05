@@ -2167,3 +2167,103 @@ html { scroll-behavior: smooth; }
     margin-block-end: 4px;
   }
 }
+
+/* ============================================================================
+   SYSTEM OVERVIEW — visual polish (scoped to .admin-overview only)
+   ============================================================================ */
+
+/* KPI tiles: coloured top accent (by tone), softer surface, stronger value */
+.admin-overview .admin-kpi {
+  position: relative;
+  overflow: hidden;
+  padding: 16px 16px 14px;
+  background: linear-gradient(180deg, #ffffff, #fbfcff);
+}
+
+.admin-overview .admin-kpi::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--admin-text-muted);
+}
+
+.admin-overview .admin-kpi--danger::before  { background: var(--admin-danger); }
+.admin-overview .admin-kpi--warning::before { background: var(--admin-warning); }
+.admin-overview .admin-kpi--success::before { background: var(--admin-success); }
+.admin-overview .admin-kpi--info::before    { background: var(--admin-info); }
+.admin-overview .admin-kpi--primary::before { background: var(--admin-primary); }
+
+.admin-overview .admin-kpi:hover {
+  border-color: var(--admin-border-2);
+  box-shadow: 0 10px 24px -16px rgba(15, 23, 42, 0.35);
+  transform: translateY(-2px);
+}
+
+.admin-overview .admin-kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.admin-overview .admin-kpi-value {
+  font-size: 25px;
+  letter-spacing: -0.01em;
+}
+
+/* Card titles get a small accent tick for a more designed feel */
+.admin-overview .admin-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-overview .admin-grid-3 .admin-card-title::before {
+  content: '';
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--admin-primary);
+}
+
+/* Weekly volume → a real little bar chart */
+.admin-overview .admin-chart-placeholder {
+  align-items: flex-end;
+  gap: 6px;
+  padding: 14px 2px 8px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-overview .admin-chart-bar {
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(180deg, #8b5cf6, rgba(124, 58, 237, 0.5));
+  opacity: 1;
+  min-height: 4px;
+  transition: filter var(--admin-transition), transform var(--admin-transition);
+}
+
+.admin-overview .admin-chart-bar:hover {
+  filter: brightness(1.08);
+  transform: scaleY(1.03);
+  transform-origin: bottom;
+}
+
+/* Severity / confidence bars: thicker, fully rounded, with a soft track */
+.admin-overview .admin-progress {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--admin-surface-3);
+}
+
+.admin-overview .admin-progress-fill {
+  border-radius: 999px;
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0));
+}
+
+/* High-severity alert bar: a touch more presence */
+.admin-overview .admin-high-bar {
+  border-radius: var(--admin-radius-lg);
+  padding: 10px 16px;
+}

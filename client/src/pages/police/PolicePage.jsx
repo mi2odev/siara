@@ -568,7 +568,6 @@ export default function PolicePage() {
         activeKey="active-incidents"
         rightPanel={rightPanel}
         notificationCount={stats.unreadAlertsCount}
-        verificationPendingCount={stats.pendingVerificationCount}
         emergencyMode={stats.highPriorityCount >= 3}
       >
         <section className="police-section police-dashboard-overview">
@@ -655,7 +654,6 @@ export default function PolicePage() {
       activeKey="dashboard"
       rightPanel={rightPanel}
       notificationCount={stats.unreadAlertsCount}
-      verificationPendingCount={stats.pendingVerificationCount}
       emergencyMode={stats.highPriorityCount >= 3}
     >
       <div className="police-cc">
