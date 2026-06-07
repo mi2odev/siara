@@ -123,6 +123,7 @@ async function getPriorityQueue({ limit = DEFAULT_LIMIT, includeStatuses = ["pen
       FROM app.accident_reports ar
       WHERE ar.status = ANY ($1::text[])
         AND ar.incident_location IS NOT NULL
+        AND ar.merged_into_report_id IS NULL
         AND COALESCE(ar.latest_predicted_label, 'real') <> 'spam'
       ORDER BY ar.created_at DESC
       LIMIT 200

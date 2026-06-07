@@ -1150,10 +1150,10 @@ async function listReports(query, db = pool, { viewerUserId = null } = {}) {
   if (normalizedQuery.feed === "verified") {
     whereClauses.push("base.status = 'verified'");
   } else {
-    // Hide rejected (confirmed spam / false report), archived (admin-soft-deleted),
-    // and merged (duplicate folded into a primary) reports from every public-facing
-    // feed — the primary report represents the merged incident.
-    whereClauses.push("base.status not in ('rejected', 'archived', 'merged')");
+    // Hide both rejected (confirmed spam / false report) AND archived
+    // (admin-soft-deleted) reports from every public-facing feed. Merged
+    // duplicates stay visible to users — they can still see every report.
+    whereClauses.push("base.status not in ('rejected', 'archived')");
   }
 
   const orderClauses = [];

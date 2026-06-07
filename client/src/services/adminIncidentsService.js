@@ -168,6 +168,27 @@ function normalizeIncidentRow(item) {
     status: item?.status || 'pending',
     openFlagCount: ensureNumber(item?.openFlagCount, 0),
     mergedIntoReportId: item?.mergedIntoReportId || null,
+    mergedChildCount: ensureNumber(item?.mergedChildCount, 0),
+  }
+}
+
+function normalizeMergeGroup(group) {
+  if (!group || !Array.isArray(group.members) || group.members.length <= 1) return null
+  return {
+    primaryReportId: group.primaryReportId || null,
+    memberCount: ensureNumber(group.memberCount, group.members.length),
+    members: group.members.map((member) => ({
+      reportId: member?.reportId || '',
+      displayId: member?.displayId || 'INC-UNKNOWN',
+      role: member?.role === 'primary' ? 'primary' : 'related',
+      title: member?.title || '',
+      incidentType: member?.incidentType || null,
+      severity: ['high', 'medium', 'low'].includes(member?.severity) ? member.severity : null,
+      status: member?.status || null,
+      createdAt: member?.createdAt || null,
+      locationLabel: member?.locationLabel || null,
+      isCurrent: Boolean(member?.isCurrent),
+    })),
   }
 }
 
@@ -273,6 +294,7 @@ function normalizeIncidentDetail(item) {
     mergedIntoReportId: item?.mergedIntoReportId || null,
     mergedAt: item?.mergedAt || null,
     mergeReason: item?.mergeReason || '',
+    mergeGroup: normalizeMergeGroup(item?.mergeGroup),
     openFlagCount: ensureNumber(item?.openFlagCount, 0),
     reporter: {
       id: item?.reporter?.id || null,

@@ -587,6 +587,24 @@ function IncidentRow({ incident, onReview }) {
       <td>
         <div className="iy-id">
           <span className="iy-id__code">{incident.displayId}</span>
+          {incident.mergedChildCount > 0 ? (
+            <span
+              title={`Consolidated report — ${incident.mergedChildCount + 1} reports merged together`}
+              style={{
+                marginTop: 4,
+                display: 'inline-block',
+                fontSize: 10,
+                fontWeight: 700,
+                padding: '2px 7px',
+                borderRadius: 999,
+                background: '#EEF2FF',
+                color: '#4338CA',
+                width: 'fit-content',
+              }}
+            >
+              {incident.mergedChildCount + 1} reports merged
+            </span>
+          ) : null}
         </div>
       </td>
 

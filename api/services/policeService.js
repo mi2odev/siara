@@ -125,6 +125,7 @@ const INCIDENT_BASE_SQL = `
     ar.title,
     ar.description,
     ar.status,
+    ar.merged_into_report_id,
     ar.severity_hint,
     ar.location_label,
     ar.occurred_at,
@@ -1256,7 +1257,9 @@ async function listPoliceIncidents(
     : null;
 
   const values = [];
-  const whereClauses = [];
+  // Police see only the consolidated big report — duplicate children that were
+  // merged into a primary are hidden from every police list.
+  const whereClauses = ["base.merged_into_report_id IS NULL"];
 
   let distanceSelectSql = `NULL::double precision AS distance_meters`;
   let orderBySql = `
@@ -1401,6 +1404,7 @@ async function getIncidentById(officerUserId, reportId, db = pool) {
         FROM base
         CROSS JOIN anchor
         WHERE base.id <> $1::uuid
+          AND base.merged_into_report_id IS NULL
           AND ST_DWithin(base.incident_location, anchor.incident_location, ${NEARBY_DISTANCE_METERS}::double precision)
         ORDER BY distance_meters ASC, COALESCE(base.occurred_at, base.created_at) DESC
         LIMIT 5
@@ -1460,6 +1464,7 @@ async function getPoliceDashboard(officerUserId, db = pool) {
                 )
             )::int AS pending_verification_count
           FROM base
+          WHERE base.merged_into_report_id IS NULL
         `,
         [
           officerContext.workZone?.commune?.id || null,

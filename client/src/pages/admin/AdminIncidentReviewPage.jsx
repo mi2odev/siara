@@ -3,7 +3,6 @@
  * @description Admin page for reviewing a single incident report in a 3-column split layout.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import FancySelect from '../../components/ui/FancySelect'
 import { createPortal } from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CircleMarker, MapContainer, TileLayer, Tooltip } from 'react-leaflet'
@@ -13,7 +12,6 @@ import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import EditRoundedIcon from '@mui/icons-material/EditRounded'
-import MergeRoundedIcon from '@mui/icons-material/MergeRounded'
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded'
 import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined'
@@ -160,8 +158,6 @@ function getDecisionAction(decision) {
       return 'verify'
     case 'change':
       return 'change_severity'
-    case 'merge':
-      return 'merge'
     case 'info':
       return 'request_info'
     case 'flag':
@@ -179,13 +175,14 @@ function getDecisionAction(decision) {
 
 /* Decision tiles displayed in the action grid. Order is intentional:
  *  - Confirm path  (approve, change severity)
- *  - Investigate   (merge, request info, flag)
+ *  - Investigate   (request info, flag)
  *  - Reject path   (archive, reject)
+ * Note: duplicate merging is fully automatic (same place / 6 h), so there is
+ * no manual "Merge with Cluster" action here.
  */
 const DECISION_TILES = [
   { key: 'approve', label: 'Approve & Publish',  hint: 'Verifies the report and publishes it to the public feed.',           tone: 'success'  },
   { key: 'change',  label: 'Change Severity',    hint: 'Override the AI severity. The report stays in its current status.',   tone: 'primary'  },
-  { key: 'merge',   label: 'Merge with Cluster', hint: 'Mark as a duplicate of a nearby incident. Merges its reports too.',   tone: 'primary'  },
   { key: 'info',    label: 'Request More Info',  hint: 'Ask the reporter for clarification. Report stays in the queue.',      tone: 'info'     },
   { key: 'flag',    label: 'Flag for Review',    hint: 'Escalate to another moderator. Records a flag entry on the report.',  tone: 'warning'  },
   { key: 'archive', label: 'Archive',            hint: 'Quiet removal without a verdict (e.g. outdated reports).',            tone: 'neutral'  },
@@ -306,7 +303,6 @@ export default function AdminIncidentReviewPage() {
   const [newSeverity, setNewSeverity] = useState('medium')
   const [actionNote, setActionNote] = useState('')
   const [internalNote, setInternalNote] = useState('')
-  const [mergeTargetReportId, setMergeTargetReportId] = useState('')
   const [rejectReason, setRejectReason] = useState('spam')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [noteSubmitting, setNoteSubmitting] = useState(false)
@@ -459,7 +455,6 @@ export default function AdminIncidentReviewPage() {
         if (!controller.signal.aborted) {
           setIncident(payload)
           setNewSeverity(payload.severity)
-          setMergeTargetReportId(payload.nearbyReports[0]?.reportId || '')
         }
       } catch (requestError) {
         if (!controller.signal.aborted) {
@@ -496,7 +491,6 @@ export default function AdminIncidentReviewPage() {
         action,
         note: actionNote,
         severity: decision === 'change' ? newSeverity : null,
-        mergeTargetReportId: decision === 'merge' ? mergeTargetReportId : null,
         rejectReason: decision === 'reject' ? rejectReason : null,
       })
 
@@ -510,7 +504,6 @@ export default function AdminIncidentReviewPage() {
         setDecision('')
         setActionNote('')
         setRejectReason('spam')
-        setMergeTargetReportId('')
         if (typeof window !== 'undefined') {
           window.scrollTo({ top: 0, behavior: 'smooth' })
         }
@@ -731,8 +724,8 @@ export default function AdminIncidentReviewPage() {
                     {member.isCurrent ? (
                       <span style={{ color: '#4338CA', fontWeight: 600, flexShrink: 0 }}>· current</span>
                     ) : null}
-                    {member.verifiedByPolice ? (
-                      <span style={{ color: '#1E40AF', flexShrink: 0 }}>· verified</span>
+                    {member.severity ? (
+                      <span style={{ color: 'var(--admin-text-muted)', flexShrink: 0 }}>· {member.severity}</span>
                     ) : null}
                     <span style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--admin-text-muted)' }}>
                       {formatDateTime(member.createdAt)}
@@ -1018,15 +1011,6 @@ export default function AdminIncidentReviewPage() {
                     <div style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>
                       {nearby.location} · {formatDistance(nearby.distanceKm)}
                     </div>
-                    {decision === 'merge' ? (
-                      <button
-                        className={`admin-btn admin-btn-sm ${mergeTargetReportId === nearby.reportId ? 'admin-btn-primary' : 'admin-btn-ghost'}`}
-                        style={{ marginTop: 6 }}
-                        onClick={() => setMergeTargetReportId(nearby.reportId)}
-                      >
-                        {mergeTargetReportId === nearby.reportId ? 'Selected Target' : 'Use as Merge Target'}
-                      </button>
-                    ) : null}
                   </div>
                   <span className={`admin-pill ${nearby.severity}`}>{nearby.severity}</span>
                 </div>
@@ -1073,7 +1057,6 @@ export default function AdminIncidentReviewPage() {
             switch (key) {
               case 'approve': return <CheckRoundedIcon fontSize="inherit" />
               case 'change':  return <EditRoundedIcon fontSize="inherit" />
-              case 'merge':   return <MergeRoundedIcon fontSize="inherit" />
               case 'info':    return <HelpOutlineRoundedIcon fontSize="inherit" />
               case 'flag':    return <FlagOutlinedIcon fontSize="inherit" />
               case 'archive': return <ArchiveOutlinedIcon fontSize="inherit" />
@@ -1084,7 +1067,6 @@ export default function AdminIncidentReviewPage() {
 
           const canSubmit = (() => {
             if (!decision || isSubmitting) return false
-            if (decision === 'merge' && !mergeTargetReportId) return false
             if (decision === 'reject' && !rejectReason) return false
             if (decision === 'info' && !actionNote.trim()) return false
             return true
@@ -1384,36 +1366,6 @@ export default function AdminIncidentReviewPage() {
                                 </div>
                               )}
 
-                              {/* Merge */}
-                              {decision === 'merge' && (
-                                <div>
-                                  <label className="admin-form-label" style={{ marginBottom: 6 }}>Merge target</label>
-                                  {incident.nearbyReports.length > 0 && (
-                                    <FancySelect
-                                      value={mergeTargetReportId}
-                                      onChange={setMergeTargetReportId}
-                                      placeholder="Select a nearby report…"
-                                      menuAlign="left"
-                                      options={[
-                                        { value: '', label: 'Select a nearby report…' },
-                                        ...incident.nearbyReports.map((nearby) => ({
-                                          value: nearby.reportId,
-                                          label: `${nearby.displayId} · ${nearby.severity} · ${formatDistance(nearby.distanceKm)}`,
-                                        })),
-                                      ]}
-                                    />
-                                  )}
-                                  <input
-                                    className="admin-input"
-                                    type="text"
-                                    placeholder="Or paste a report ID"
-                                    value={mergeTargetReportId}
-                                    onChange={(e) => setMergeTargetReportId(e.target.value)}
-                                    style={{ width: '100%', marginTop: 6 }}
-                                  />
-                                </div>
-                              )}
-
                               {/* Reject */}
                               {decision === 'reject' && (
                                 <div>
@@ -1462,7 +1414,6 @@ export default function AdminIncidentReviewPage() {
                                   onChange={(e) => setActionNote(e.target.value)}
                                   rows={3}
                                   placeholder={
-                                    decision === 'merge'    ? 'Why is this a duplicate of the target report?' :
                                     decision === 'info'     ? 'What does the reporter need to clarify?' :
                                     decision === 'reject'   ? 'Internal context for this rejection.' :
                                     decision === 'archive'  ? 'Optional note for the audit log.' :

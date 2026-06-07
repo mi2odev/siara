@@ -6,7 +6,6 @@ const {
   dispatchNotificationToAllPlatforms,
 } = require("./notificationOrchestrator");
 const { emitNotificationCreatedToUser } = require("./notificationSocket");
-const { getThreadByReportId } = require("./incidentThreadsService");
 
 const DASHBOARD_TIMEZONE = "Africa/Algiers";
 const INCIDENT_FILTERS = Object.freeze({
@@ -243,7 +242,9 @@ function buildIncidentFilterSql(filterKey) {
     case INCIDENT_FILTERS.archived:
       return `base.status = 'archived'`;
     case INCIDENT_FILTERS.merged:
-      return `(base.status = 'merged' OR base.merged_into_report_id IS NOT NULL)`;
+      // The "Merged" tab shows the consolidated big reports (parents that
+      // absorbed duplicates), never the hidden duplicate children.
+      return `base.merged_child_count > 0`;
     case INCIDENT_FILTERS.community:
       return `base.open_flag_count > 0`;
     case INCIDENT_FILTERS["ai-flagged"]:
@@ -287,6 +288,11 @@ function buildIncidentBaseCte() {
         ar.severity_hint,
         ar.created_at,
         ar.merged_into_report_id,
+        (
+          SELECT count(*)
+          FROM app.accident_reports child
+          WHERE child.merged_into_report_id = ar.id
+        )::int AS merged_child_count,
         ar.ml_status,
         ar.latest_predicted_label,
         ar.latest_spam_score,
@@ -386,6 +392,9 @@ function mapIncidentRow(row, now = new Date()) {
     status: row.status,
     openFlagCount: Number(row.open_flag_count || 0),
     mergedIntoReportId: row.merged_into_report_id || null,
+    // How many duplicate reports this consolidated "big report" contains
+    // (0 = a normal standalone report). Total reports in the group = this + 1.
+    mergedChildCount: Number(row.merged_child_count || 0),
   };
 }
 
@@ -396,10 +405,7 @@ async function fetchIncidentCounts(db = pool) {
       count(*)::int AS all_count,
       count(*) FILTER (WHERE base.status = 'pending')::int AS pending_count,
       count(*) FILTER (WHERE base.status = 'archived')::int AS archived_count,
-      count(*) FILTER (
-        WHERE base.status = 'merged'
-          OR base.merged_into_report_id IS NOT NULL
-      )::int AS merged_count,
+      count(*) FILTER (WHERE base.merged_child_count > 0)::int AS merged_count,
       count(*) FILTER (WHERE base.open_flag_count > 0)::int AS community_count,
       count(*) FILTER (WHERE base.latest_predicted_label = 'spam')::int AS suspicious_count,
       count(*) FILTER (
@@ -412,6 +418,8 @@ async function fetchIncidentCounts(db = pool) {
       )::int AS ai_flagged_count,
       count(*) FILTER (WHERE base.confidence_status = 'completed')::int AS completed_ai_count
     FROM base
+    -- Count only consolidated big reports; duplicate children stay hidden.
+    WHERE base.merged_into_report_id IS NULL
   `);
 
   const row = result.rows[0] || {};
@@ -445,6 +453,9 @@ async function listAdminIncidents(
   const normalizedSortDir = normalizeSortDir(sortDir);
   const values = [];
   const whereClauses = [buildIncidentFilterSql(normalizedFilter)];
+  // Admins/police see only the consolidated "big report" — duplicate children
+  // (folded into a primary) are hidden from every tab.
+  whereClauses.push("base.merged_into_report_id IS NULL");
   const trimmedSearch = String(search || "").trim().toLowerCase();
 
   if (trimmedSearch) {
@@ -490,7 +501,8 @@ async function listAdminIncidents(
           base.sortable_confidence,
           base.open_flag_count,
           base.created_at,
-          base.merged_into_report_id
+          base.merged_into_report_id,
+          base.merged_child_count
         FROM base
         WHERE ${whereClauses.join(" AND ")}
         ORDER BY ${buildOrderBy(normalizedSortField, normalizedSortDir)}
@@ -846,14 +858,62 @@ function buildIncidentTimeline(report, flags, reviewActions) {
     }));
 }
 
+// Resolve the full "big report" group via merged_into_report_id: the kept
+// primary plus every duplicate folded into it. Works whether the given id is
+// the primary or one of its merged children.
+async function fetchMergeGroup(reportId, db = pool) {
+  const result = await db.query(
+    `
+      WITH root AS (
+        SELECT COALESCE(ar.merged_into_report_id, ar.id) AS root_id
+        FROM app.accident_reports ar
+        WHERE ar.id = $1
+      )
+      SELECT
+        ar.id AS report_id,
+        ar.title,
+        ar.incident_type,
+        ar.severity_hint,
+        ar.status,
+        ar.created_at,
+        ar.location_label,
+        (ar.id = (SELECT root_id FROM root)) AS is_primary
+      FROM app.accident_reports ar, root
+      WHERE ar.id = root.root_id
+         OR ar.merged_into_report_id = root.root_id
+      ORDER BY (ar.id = root.root_id) DESC, ar.created_at ASC
+    `,
+    [reportId],
+  );
+  const members = result.rows || [];
+  if (members.length <= 1) return null;
+  const primary = members.find((m) => m.is_primary) || members[0];
+  return {
+    primaryReportId: primary.report_id,
+    memberCount: members.length,
+    members: members.map((member) => ({
+      reportId: member.report_id,
+      displayId: buildDisplayIncidentId(member.report_id),
+      role: member.is_primary ? "primary" : "related",
+      title: member.title || "",
+      incidentType: member.incident_type || null,
+      severity: mapSeverityLabel(member.severity_hint),
+      status: member.status || null,
+      createdAt: member.created_at ? new Date(member.created_at).toISOString() : null,
+      locationLabel: member.location_label || null,
+      isCurrent: member.report_id === reportId,
+    })),
+  };
+}
+
 async function getAdminIncidentDetail(reportId, db = pool) {
   const row = await requireAdminIncidentRow(reportId, db);
-  const [media, nearbyReports, flags, reviewActions, thread] = await Promise.all([
+  const [media, nearbyReports, flags, reviewActions, mergeGroup] = await Promise.all([
     fetchIncidentMedia(reportId, db),
     fetchIncidentNearbyReports(reportId, db),
     fetchIncidentFlags(reportId, db),
     fetchIncidentReviewActions(reportId, db),
-    getThreadByReportId(reportId).catch(() => null),
+    fetchMergeGroup(reportId, db).catch(() => null),
   ]);
 
   const confidenceStatus = normalizeAssessmentStatus(row.confidence_status);
@@ -908,26 +968,8 @@ async function getAdminIncidentDetail(reportId, db = pool) {
     mergedIntoReportId: row.merged_into_report_id || null,
     mergedAt: row.merged_at ? new Date(row.merged_at).toISOString() : null,
     mergeReason: row.merge_reason || "",
-    // Full duplicate group (incident thread): which reports were merged together.
-    mergeGroup: thread && Array.isArray(thread.members) && thread.members.length > 1
-      ? {
-          threadId: thread.threadId,
-          primaryReportId: thread.primaryReportId,
-          memberCount: thread.memberCount,
-          members: thread.members.map((member) => ({
-            reportId: member.reportId,
-            displayId: buildDisplayIncidentId(member.reportId),
-            role: member.role,
-            title: member.title || "",
-            incidentType: member.incidentType || null,
-            severity: mapSeverityLabel(member.severityHint),
-            createdAt: member.createdAt,
-            locationLabel: member.locationLabel || null,
-            verifiedByPolice: Boolean(member.verifiedByPolice),
-            isCurrent: member.reportId === row.report_id,
-          })),
-        }
-      : null,
+    // Full duplicate group: which reports were merged into this big report.
+    mergeGroup,
     openFlagCount: flags.filter((flag) => flag.open).length,
     reporter: {
       id: row.reported_by || null,
