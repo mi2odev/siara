@@ -370,7 +370,6 @@
   background: linear-gradient(90deg, var(--em-violet-soft) 0%, transparent 90%);
   color: var(--em-violet-deep);
   font-weight: 600;
-  box-shadow: inset 3px 0 0 var(--em-violet);
 }
 
 .emergency-menu-icon {
@@ -922,7 +921,6 @@
 .em-unit-cell {
   background: #fff;
   border: 1px solid var(--em-border);
-  border-left-width: 3px;
   padding: 12px 14px;
   border-radius: 8px;
   display: flex;
@@ -931,11 +929,6 @@
   transition: box-shadow 0.15s;
 }
 .em-unit-cell:hover { box-shadow: var(--em-shadow-md); }
-
-.em-unit-cell.available  { border-left-color: var(--em-green); }
-.em-unit-cell.responding { border-left-color: var(--em-amber); }
-.em-unit-cell.busy       { border-left-color: var(--em-red); }
-.em-unit-cell.offline    { border-left-color: var(--em-text-dim); }
 
 .em-unit-label {
   font-size: 11px;

@@ -223,19 +223,6 @@
   transform: translateY(-5px);
 }
 
-.how-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 20px;
-  right: 20px;
-  height: 3px;
-  border-radius: 0 0 4px 4px;
-  background: linear-gradient(90deg, #6366f1, #818cf8);
-  opacity: 0;
-  transition: opacity 0.22s ease;
-}
-.how-card:hover::before { opacity: 1; }
 
 .how-icon {
   width: 52px;
@@ -388,16 +375,6 @@
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
   position: relative;
   overflow: hidden;
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #6366f1, #818cf8);
 }
 
 .stat-card:hover {

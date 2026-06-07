@@ -7,6 +7,7 @@ import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined'
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined'
 import BestTimeToLeaveCompact from './BestTimeToLeaveCompact'
 import '../../styles/RouteOverviewCard.css'
+import { routeOccurrenceRisk, segmentOccurrenceRisk } from '../../utils/occurrenceRisk'
 
 // Right-side panel surfaced only in MapLibre navigation mode.
 //
@@ -102,13 +103,19 @@ export default function RouteOverviewCard({
   const data = useMemo(() => {
     if (!selectedRoute) return null
     const summary = selectedRoute.summary || {}
-    const dangerPercent = Number(summary.danger_percent)
+    // Headline route risk = occurrence model (probability of an accident),
+    // falling back to the severity danger score when occurrence is unavailable.
+    const occ = routeOccurrenceRisk(selectedRoute)
+    const dangerPercent = occ ? occ.percent : Number(summary.danger_percent)
     const riskAvailable =
-      selectedRoute.riskAvailable !== false &&
-      selectedRoute.risk_available !== false &&
-      summary.riskAvailable !== false &&
-      summary.risk_available !== false
-    const tier = tierFromLevel(summary.danger_level, dangerPercent)
+      occ != null ||
+      (selectedRoute.riskAvailable !== false &&
+        selectedRoute.risk_available !== false &&
+        summary.riskAvailable !== false &&
+        summary.risk_available !== false)
+    const tier = occ
+      ? occ.level || tierFromLevel(null, occ.percent)
+      : tierFromLevel(summary.danger_level, dangerPercent)
     return {
       routeType: selectedRoute.route_type || null,
       routeLabel: selectedRoute.route_label || titleCase(selectedRoute.route_type),
@@ -219,23 +226,72 @@ export default function RouteOverviewCard({
         <div className="siara-route-overview__segments">
           <p className="siara-route-overview__why-title">Segment risk summary</p>
           {segmentSummary.map((segment, index) => {
-            const rawPercent = segment?.danger_percent
+            // Prefer the occurrence-model probability for the segment; fall back
+            // to the severity danger score when occurrence data is missing.
+            const segOcc = segmentOccurrenceRisk(segment)
+            const rawPercent = segOcc ? segOcc.percent : segment?.danger_percent
             const percent = Number(rawPercent)
             const hasPercent =
               rawPercent !== null &&
               rawPercent !== undefined &&
               rawPercent !== '' &&
               Number.isFinite(percent)
-            const tier = tierFromLevel(segment?.danger_level, hasPercent ? percent : null)
+            const tier = segOcc
+              ? segOcc.level || tierFromLevel(null, segOcc.percent)
+              : tierFromLevel(segment?.danger_level, hasPercent ? percent : null)
+            const sp = segment?.severity_probabilities
+            const sevVal = (k) => {
+              const n = sp ? Number(sp[`severity_${k}`]) : NaN
+              return Number.isFinite(n) ? n : 0
+            }
+            const sevColors = { 1: '#16a34a', 2: '#f59e0b', 3: '#ea580c', 4: '#b91c1c' }
             return (
               <div
                 key={segment?.segment_id || `segment-${index}`}
-                className="siara-route-overview__segment-row"
+                style={{ marginBottom: 8 }}
               >
-                <span>Segment {index + 1}</span>
-                <strong className={TIER_CLASSES[tier] || 'risk-low'}>
-                  {formatPercent(hasPercent ? percent : null)} {TIER_LABELS[tier] || ''}
-                </strong>
+                <div className="siara-route-overview__segment-row">
+                  <span>Segment {index + 1}</span>
+                  <strong className={TIER_CLASSES[tier] || 'risk-low'}>
+                    {formatPercent(hasPercent ? percent : null)} {TIER_LABELS[tier] || ''}
+                  </strong>
+                </div>
+                {sp ? (
+                  <>
+                    <span
+                      style={{
+                        display: 'flex',
+                        height: 6,
+                        borderRadius: 4,
+                        overflow: 'hidden',
+                        background: '#eef2f7',
+                        margin: '4px 0 2px',
+                      }}
+                    >
+                      {[1, 2, 3, 4].map((k) => (
+                        <span
+                          key={k}
+                          title={`Severity ${k}: ${sevVal(k)}%`}
+                          style={{ width: `${Math.max(0, Math.min(100, sevVal(k)))}%`, background: sevColors[k] }}
+                        />
+                      ))}
+                    </span>
+                    <span
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontSize: 10,
+                        color: '#64748b',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      <span>S1 {sevVal(1)}%</span>
+                      <span>S2 {sevVal(2)}%</span>
+                      <span>S3 {sevVal(3)}%</span>
+                      <span>S4 {sevVal(4)}%</span>
+                    </span>
+                  </>
+                ) : null}
               </div>
             )
           })}

@@ -1388,17 +1388,14 @@ body.has-left-info-open .police-shell-header {
   align-items: center;
   gap: 10px;
   border-radius: 8px;
-  border-left: 3px solid transparent;
 }
 
 .custom-select-option:hover {
   background: #F3F0FF;
-  border-left-color: #E0DBFF;
 }
 
 .custom-select-option.selected {
   background: #EEE9FF;
-  border-left-color: #6A4FF9;
   font-weight: 500;
   color: #6A4FF9;
 }
@@ -2001,17 +1998,6 @@ body.has-left-info-open .police-shell-header {
 .post-card:hover {
   transform: scale(1.01);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.post-card.severity-high-indicator::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: linear-gradient(180deg, #EF4444, #F97316);
-  border-radius: 18px 0 0 18px;
 }
 
 .post-header {
@@ -3101,7 +3087,6 @@ body.has-left-info-open .police-shell-header {
 .alert-item {
   padding: 10px 12px;
   background: #FFFBEB;
-  border-left: 3px solid #F59E0B;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
@@ -3180,16 +3165,6 @@ body.has-left-info-open .police-shell-header {
   box-shadow: 0 4px 20px rgba(15,23,42,0.10);
   border-color: #E0E4EE;
   transform: none;
-}
-
-/* Severity accent stripe */
-.post-card.severity-high-indicator::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, #EF4444, #F97316);
-  border-radius: 14px 0 0 14px;
 }
 
 /* Header */
@@ -3604,20 +3579,6 @@ body.has-left-info-open .police-shell-header {
   border-color: #e2e6ee;
   box-shadow: 0 2px 4px rgba(15,23,42,0.05), 0 12px 30px rgba(15,23,42,0.07);
 }
-
-.pc::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 4px;
-  border-radius: 16px 0 0 16px;
-}
-
-.pc--high::before   { background: #EF4444; }
-.pc--medium::before { background: #F59E0B; }
-.pc--low::before    { background: #10B981; }
 
 /* ── Author row ── */
 /* Mobile-first: avatar + meta on row 1, badges wrap to row 2 (full width).
@@ -4042,37 +4003,6 @@ body.has-left-info-open .police-shell-header {
     0 30px 54px -20px rgba(76, 29, 149, 0.30),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
-
-/* Severity accent strip */
-.pcx::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 4px;
-  z-index: 3;
-}
-.pcx--high::before   { background: linear-gradient(90deg, #EF4444, #F97316); }
-.pcx--medium::before { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
-.pcx--low::before    { background: linear-gradient(90deg, #10B981, #34D399); }
-
-/* Soft severity halo bleeding from the top */
-.pcx::after {
-  content: '';
-  position: absolute;
-  top: -90px;
-  left: 50%;
-  width: 320px;
-  height: 180px;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  filter: blur(46px);
-  opacity: 0.5;
-  pointer-events: none;
-  z-index: 0;
-}
-.pcx--high::after   { background: radial-gradient(circle, rgba(239,68,68,0.22), transparent 70%); }
-.pcx--medium::after { background: radial-gradient(circle, rgba(245,158,11,0.20), transparent 70%); }
-.pcx--low::after    { background: radial-gradient(circle, rgba(16,185,129,0.18), transparent 70%); }
 
 .pcx > * { position: relative; z-index: 1; }
 

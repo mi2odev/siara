@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { segmentOccurrenceRisk } from '../../utils/occurrenceRisk'
 import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded'
 
@@ -111,14 +112,19 @@ export default function CurrentSegmentCard({
 
   const data = useMemo(() => {
     if (!segment) return null
-    const rawDangerPercent = segment.danger_percent
+    // Show the occurrence-model risk (probability of an accident) for the
+    // current segment, falling back to the severity danger score when absent.
+    const segOcc = segmentOccurrenceRisk(segment)
+    const rawDangerPercent = segOcc ? segOcc.percent : segment.danger_percent
     const dangerPercent = Number(rawDangerPercent)
     const hasDangerPercent =
       rawDangerPercent !== null &&
       rawDangerPercent !== undefined &&
       rawDangerPercent !== '' &&
       Number.isFinite(dangerPercent)
-    const tier = tierFromLevel(segment.danger_level, hasDangerPercent ? dangerPercent : null)
+    const tier = segOcc
+      ? segOcc.level || tierFromLevel(null, segOcc.percent)
+      : tierFromLevel(segment.danger_level, hasDangerPercent ? dangerPercent : null)
     const segLabel = segment.segment_label
       || segment.name
       || (segmentIndex != null

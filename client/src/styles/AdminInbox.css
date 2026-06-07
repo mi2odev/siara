@@ -977,18 +977,6 @@
     0 6px 16px -6px rgba(91, 91, 214, 0.14);
 }
 
-/* Subtle indigo glow strip along the top edge */
-.ix-composer::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--ix-accent) 45%, var(--ix-accent) 55%, transparent 100%);
-  opacity: 0;
-  transition: opacity .25s ease;
-}
-
-.ix-composer:focus-within::before { opacity: 0.85; }
 
 .ix-composer__head {
   display: flex;

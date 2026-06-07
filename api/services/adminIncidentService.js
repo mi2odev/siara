@@ -6,6 +6,7 @@ const {
   dispatchNotificationToAllPlatforms,
 } = require("./notificationOrchestrator");
 const { emitNotificationCreatedToUser } = require("./notificationSocket");
+const { getThreadByReportId } = require("./incidentThreadsService");
 
 const DASHBOARD_TIMEZONE = "Africa/Algiers";
 const INCIDENT_FILTERS = Object.freeze({
@@ -847,11 +848,12 @@ function buildIncidentTimeline(report, flags, reviewActions) {
 
 async function getAdminIncidentDetail(reportId, db = pool) {
   const row = await requireAdminIncidentRow(reportId, db);
-  const [media, nearbyReports, flags, reviewActions] = await Promise.all([
+  const [media, nearbyReports, flags, reviewActions, thread] = await Promise.all([
     fetchIncidentMedia(reportId, db),
     fetchIncidentNearbyReports(reportId, db),
     fetchIncidentFlags(reportId, db),
     fetchIncidentReviewActions(reportId, db),
+    getThreadByReportId(reportId).catch(() => null),
   ]);
 
   const confidenceStatus = normalizeAssessmentStatus(row.confidence_status);
@@ -906,6 +908,26 @@ async function getAdminIncidentDetail(reportId, db = pool) {
     mergedIntoReportId: row.merged_into_report_id || null,
     mergedAt: row.merged_at ? new Date(row.merged_at).toISOString() : null,
     mergeReason: row.merge_reason || "",
+    // Full duplicate group (incident thread): which reports were merged together.
+    mergeGroup: thread && Array.isArray(thread.members) && thread.members.length > 1
+      ? {
+          threadId: thread.threadId,
+          primaryReportId: thread.primaryReportId,
+          memberCount: thread.memberCount,
+          members: thread.members.map((member) => ({
+            reportId: member.reportId,
+            displayId: buildDisplayIncidentId(member.reportId),
+            role: member.role,
+            title: member.title || "",
+            incidentType: member.incidentType || null,
+            severity: mapSeverityLabel(member.severityHint),
+            createdAt: member.createdAt,
+            locationLabel: member.locationLabel || null,
+            verifiedByPolice: Boolean(member.verifiedByPolice),
+            isCurrent: member.reportId === row.report_id,
+          })),
+        }
+      : null,
     openFlagCount: flags.filter((flag) => flag.open).length,
     reporter: {
       id: row.reported_by || null,

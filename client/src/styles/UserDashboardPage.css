@@ -789,10 +789,6 @@
 }
 
 /* AI Insight */
-.ud-insight-card {
-  border-left: 3px solid var(--siara-primary, #6366F1);
-}
-
 .ud-insight-list {
   margin: 0;
   padding: 0 0 0 16px;

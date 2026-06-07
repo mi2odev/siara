@@ -155,16 +155,6 @@
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.sv-kpi-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--sv-kpi-color, var(--sv-primary));
-  border-radius: var(--sv-radius) var(--sv-radius) 0 0;
-}
 
 .sv-kpi-card:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);

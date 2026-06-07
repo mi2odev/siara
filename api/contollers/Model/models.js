@@ -515,12 +515,21 @@ function normalizeOverlaySamplePrediction(prediction) {
   // field only when it is still numeric (backward compatibility).
   const confidence = safeNumber(prediction?.data_quality_confidence ?? prediction?.confidence);
   const quality = prediction?.quality == null ? null : String(prediction.quality);
+  // Preserve the multiclass per-severity breakdown so each road segment can show
+  // P(Severity 1..4), not just the aggregate danger score.
+  const severityProbabilities =
+    prediction?.severity_probabilities && typeof prediction.severity_probabilities === "object"
+      ? prediction.severity_probabilities
+      : null;
 
   return {
     danger_percent: percent == null ? 0 : percent,
     danger_level: level,
     confidence: confidence == null ? null : roundNumber(confidence, 2),
     quality,
+    severity_probabilities: severityProbabilities,
+    most_likely_severity: prediction?.most_likely_severity ?? null,
+    expected_severity: prediction?.expected_severity ?? null,
   };
 }
 
@@ -576,6 +585,9 @@ async function scoreRouteSamplesWithOverlay({ sampledPoints, routeHash, timestam
         danger_level: "low",
         confidence: null,
         quality: null,
+        severity_probabilities: null,
+        most_likely_severity: null,
+        expected_severity: null,
       };
 
     sampleRowById.set(item.sample_id, item.row);
@@ -589,6 +601,9 @@ async function scoreRouteSamplesWithOverlay({ sampledPoints, routeHash, timestam
       danger_level: prediction.danger_level,
       confidence: prediction.confidence,
       quality: prediction.quality,
+      severity_probabilities: prediction.severity_probabilities,
+      most_likely_severity: prediction.most_likely_severity,
+      expected_severity: prediction.expected_severity,
     };
   });
 
@@ -651,6 +666,10 @@ function buildRouteGuideSegments({
       path: segmentPath,
       danger_percent: segmentPercent == null ? fallbackPercent : segmentPercent,
       danger_level: segmentLevel || fallbackLevel,
+      // Per-severity breakdown (Sev 1..4) carried from the segment's end sample.
+      severity_probabilities: end.severity_probabilities ?? null,
+      most_likely_severity: end.most_likely_severity ?? null,
+      expected_severity: end.expected_severity ?? null,
       sample_from: i,
       sample_to: i + 1,
     });
@@ -857,6 +876,9 @@ function buildRouteSegmentsFromSamples(samples, fallbackSummary) {
       ],
       danger_percent: segmentPercent == null ? fallbackPercent : segmentPercent,
       danger_level: segmentLevel || fallbackLevel,
+      severity_probabilities: end.severity_probabilities ?? null,
+      most_likely_severity: end.most_likely_severity ?? null,
+      expected_severity: end.expected_severity ?? null,
     });
   }
 
@@ -919,6 +941,9 @@ function buildRouteSegmentsFromIndexedPath({
       path: segmentPath,
       danger_percent: segmentPercent == null ? fallbackPercent : segmentPercent,
       danger_level: segmentLevel || fallbackLevel,
+      severity_probabilities: end.severity_probabilities ?? null,
+      most_likely_severity: end.most_likely_severity ?? null,
+      expected_severity: end.expected_severity ?? null,
       sample_from: i,
       sample_to: i + 1,
     });

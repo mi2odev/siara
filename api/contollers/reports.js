@@ -21,6 +21,7 @@ const { suggestReportFields } = require("../services/reportSuggestionsService");
 const {
   getThreadByReportId,
   linkReportsAsThread,
+  autoMergeReportOnCreate,
 } = require("../services/incidentThreadsService");
 const {
   hasRole: tokenHasRole,
@@ -1149,9 +1150,10 @@ async function listReports(query, db = pool, { viewerUserId = null } = {}) {
   if (normalizedQuery.feed === "verified") {
     whereClauses.push("base.status = 'verified'");
   } else {
-    // Hide both rejected (confirmed spam / false report) AND archived
-    // (admin-soft-deleted) reports from every public-facing feed.
-    whereClauses.push("base.status not in ('rejected', 'archived')");
+    // Hide rejected (confirmed spam / false report), archived (admin-soft-deleted),
+    // and merged (duplicate folded into a primary) reports from every public-facing
+    // feed — the primary report represents the merged incident.
+    whereClauses.push("base.status not in ('rejected', 'archived', 'merged')");
   }
 
   const orderClauses = [];
@@ -1382,6 +1384,23 @@ router.post("/", verifyToken, requireUnbanned, async (req, res, next) => {
     client = null;
 
     queueReportSpamAnalysis(reportId, "report_created");
+
+    // Auto-merge duplicates: fold this report into an incident thread when a
+    // same-type report already exists within 300 m and 6 h. Runs post-commit so
+    // a merge hiccup can never roll back the report itself.
+    autoMergeReportOnCreate({ reportId, createdBy: req.user.userId })
+      .then((thread) => {
+        if (thread && NOTIFICATION_DEBUG_ENABLED) {
+          console.info("[reports] report_auto_merged", {
+            reportId,
+            threadId: thread.threadId,
+            memberCount: thread.memberCount,
+          });
+        }
+      })
+      .catch((error) => {
+        console.warn("[reports] auto_merge_failed", { reportId, message: error.message });
+      });
 
     // Orchestrator-driven fan-out (post-commit so we never notify for rolled-back rows).
     // notifyNearbyUsersForReport only fires for incident_type=accident; gating lives in the service.
