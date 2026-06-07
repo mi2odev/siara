@@ -13,6 +13,7 @@ import NavigationSummaryCard from './NavigationSummaryCard'
 import NavigationDangerAlert from './NavigationDangerAlert'
 import CurrentSegmentCard from './CurrentSegmentCard'
 import RouteOverviewCard from './RouteOverviewCard'
+import { routeOccurrenceRisk, segmentOccurrenceRisk } from '../../utils/occurrenceRisk'
 import { fetchRouteAlerts } from '../../services/routeAlertsService'
 import {
   bearingDegrees,
@@ -137,13 +138,18 @@ function buildRouteGeoJson(route) {
     for (const segment of route.segments) {
       const segPath = pathToLngLat(segment?.path)
       if (segPath.length < 2) continue
+      // Colour segments by the occurrence-model risk (probability of an
+      // accident), falling back to the severity danger score when absent.
+      const segOcc = segmentOccurrenceRisk(segment)
+      const segLevel = segOcc ? segOcc.level : segment?.danger_level || 'low'
+      const segPercent = segOcc ? segOcc.percent : Number(segment?.danger_percent) || 0
       features.push({
         type: 'Feature',
         properties: {
           kind: 'segment',
-          color: riskColor(segment?.danger_level, segment?.danger_percent),
-          dangerPercent: Number(segment?.danger_percent) || 0,
-          dangerLevel: segment?.danger_level || 'low',
+          color: riskColor(segLevel, segPercent),
+          dangerPercent: segPercent,
+          dangerLevel: segLevel || 'low',
         },
         geometry: { type: 'LineString', coordinates: segPath },
       })
@@ -1026,8 +1032,8 @@ export default function MapLibreNavigationView({
           routeType={selectedRoute?.route_label || selectedRoute?.route_type || null}
           distanceRemainingM={distanceRemainingM}
           etaSeconds={etaSeconds}
-          routeRiskPercent={selectedRoute?.summary?.danger_percent}
-          routeRiskLevel={selectedRoute?.summary?.danger_level || null}
+          routeRiskPercent={routeOccurrenceRisk(selectedRoute)?.percent ?? selectedRoute?.summary?.danger_percent}
+          routeRiskLevel={routeOccurrenceRisk(selectedRoute)?.level ?? selectedRoute?.summary?.danger_level ?? null}
           progressFraction={routeProgress?.fraction ?? 0}
           onExit={onExitNavigation}
         />

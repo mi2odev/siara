@@ -3151,6 +3151,56 @@ const SiaraMap = ({
   const expectedSeverity = Number.isFinite(Number(currentRisk?.expected_severity))
     ? Number(currentRisk.expected_severity)
     : null;
+  // Headline risk = the OCCURRENCE model's calibrated probability of an accident
+  // (personalized if a driver profile is applied, else model-only). The big
+  // number, badge and gauge read this; the severity outlook below stays as the
+  // "if it happens, how bad" detail. Falls back to the severity danger score
+  // only while the occurrence result is still loading/unavailable.
+  const occurrenceHeadline = useMemo(() => {
+    const occ = occurrenceRisk;
+    if (!occ) return null;
+    const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+    const personalizedProb =
+      num(occ.personalizedRisk?.score) ??
+      num(occ.personalized?.calibrated_probability) ??
+      num(occ.personalized?.risk_score) ??
+      num(occ.personalized_occurrence_score);
+    const modelProb =
+      num(occ.occurrenceRisk?.calibratedProbability) ??
+      num(occ.occurrenceRisk?.score) ??
+      num(occ.modelOnly?.calibrated_probability) ??
+      num(occ.modelOnly?.risk_score) ??
+      num(occ.global_occurrence_score);
+    const prob = personalizedProb != null ? personalizedProb : modelProb;
+    if (prob == null) return null;
+    const rawLevel =
+      (personalizedProb != null
+        ? occ.personalizedRisk?.riskLevel || occ.personalized?.risk_level || occ.personalized_risk_level
+        : null) ||
+      occ.occurrenceRisk?.riskLevel ||
+      occ.modelOnly?.risk_level ||
+      occ.global_risk_level ||
+      "low";
+    const level = String(rawLevel).toLowerCase();
+    const color =
+      level === "critical" ? "#7f1d1d"
+        : level === "high" ? "#b91c1c"
+          : level === "moderate" || level === "medium" ? "#d97706"
+            : "#15803d";
+    const gaugePct =
+      level === "critical" ? 92 : level === "high" ? 72 : level === "moderate" || level === "medium" ? 45 : 15;
+    const modelVersion =
+      occ.model_version || occ.modelOnly?.model_version || occ.occurrenceRisk?.modelVersion || "occurrence_beta_v1";
+    return {
+      percent: Math.round(Math.max(0, Math.min(1, prob)) * 1000) / 10,
+      level,
+      label: level.charAt(0).toUpperCase() + level.slice(1),
+      color,
+      gaugePct,
+      personalized: personalizedProb != null,
+      modelVersion,
+    };
+  }, [occurrenceRisk]);
   const sentinelReasons = mapSentinelReasons(sentinel?.reasons);
   const sentinelBannerTitle = String(sentinel?.banner?.title || "").trim();
   const sentinelBannerDetail = String(sentinel?.banner?.detail || "").trim();
@@ -4212,16 +4262,28 @@ const SiaraMap = ({
             className="srd-subtitle"
             style={{ fontSize: 12, opacity: 0.85, marginTop: 4, fontWeight: 600 }}
           >
-            Relative danger — severity-informed model
+            {occurrenceHeadline
+              ? "Accident occurrence risk"
+              : "Relative danger — severity-informed model"}
           </div>
           <p style={{ fontSize: 11, opacity: 0.7, marginTop: 2, marginBottom: 8 }}>
-            {currentRisk?.dangerZoneRisk?.warning
-              || "Severity-informed relative danger score. This is not a calibrated accident-occurrence probability."}
-            {currentRisk?.dangerZoneRisk?.modelVersion ? (
+            {occurrenceHeadline ? (
               <>
-                {' '}· Model: <strong>{currentRisk.dangerZoneRisk.modelVersion}</strong>
+                Calibrated probability that an accident occurs here
+                {occurrenceHeadline.personalized ? ", personalized to your driver profile" : ""}.
+                {' '}· Model: <strong>{occurrenceHeadline.modelVersion}</strong>
               </>
-            ) : null}
+            ) : (
+              <>
+                {currentRisk?.dangerZoneRisk?.warning
+                  || "Severity-informed relative danger score. This is not a calibrated accident-occurrence probability."}
+                {currentRisk?.dangerZoneRisk?.modelVersion ? (
+                  <>
+                    {' '}· Model: <strong>{currentRisk.dangerZoneRisk.modelVersion}</strong>
+                  </>
+                ) : null}
+              </>
+            )}
           </p>
           {!hasValidUserLocation && (
             <>
@@ -4255,23 +4317,47 @@ const SiaraMap = ({
             (currentRiskState === "success" || currentRiskState === "refreshing") &&
             currentRisk && (
             <>
-              <div className="srd-risk-hero">
-                <strong className="risk-debug-percent" style={{ color: getDangerColor(currentRisk.danger_level) }}>
-                  {currentRisk.danger_percent}%
-                </strong>
-                <span className="srd-danger-level-badge" style={{ background: getDangerColor(currentRisk.danger_level) + '18', color: getDangerColor(currentRisk.danger_level), border: `1px solid ${getDangerColor(currentRisk.danger_level)}30` }}>
-                  {currentRisk.danger_level}
-                </span>
-              </div>
-              <div className="srd-gauge">
-                <div className="srd-gauge-track" />
-                <div className="srd-gauge-thumb" style={{ left: `calc(${Math.min(100, Math.max(0, currentRisk.danger_percent))}% - 7px)`, borderColor: getDangerColor(currentRisk.danger_level) }} />
-                <div className="srd-gauge-labels">
-                  <span>Low</span>
-                  <span>Medium</span>
-                  <span>High</span>
-                </div>
-              </div>
+              {(() => {
+                const heroColor = occurrenceHeadline
+                  ? occurrenceHeadline.color
+                  : getDangerColor(currentRisk.danger_level);
+                const heroPercent = occurrenceHeadline
+                  ? occurrenceHeadline.percent
+                  : currentRisk.danger_percent;
+                const heroLabel = occurrenceHeadline
+                  ? occurrenceHeadline.label
+                  : currentRisk.danger_level;
+                const gaugeLeft = occurrenceHeadline
+                  ? occurrenceHeadline.gaugePct
+                  : Math.min(100, Math.max(0, Number(currentRisk.danger_percent) || 0));
+                return (
+                  <>
+                    <div className="srd-risk-hero">
+                      <strong className="risk-debug-percent" style={{ color: heroColor }}>
+                        {heroPercent}%
+                      </strong>
+                      <span
+                        className="srd-danger-level-badge"
+                        style={{ background: heroColor + '18', color: heroColor, border: `1px solid ${heroColor}30` }}
+                      >
+                        {heroLabel}
+                      </span>
+                    </div>
+                    <div className="srd-gauge">
+                      <div className="srd-gauge-track" />
+                      <div
+                        className="srd-gauge-thumb"
+                        style={{ left: `calc(${gaugeLeft}% - 7px)`, borderColor: heroColor }}
+                      />
+                      <div className="srd-gauge-labels">
+                        <span>Low</span>
+                        <span>Medium</span>
+                        <span>High</span>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
               {currentRiskError && (
                 <p className="risk-debug-error">{currentRiskError}</p>
               )}

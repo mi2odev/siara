@@ -798,42 +798,72 @@ export default function IncidentDetailPage() {
               {thread && Array.isArray(thread.members) && thread.members.length > 1 ? (
                 <div className="incident-description" style={{ marginBottom: 12 }}>
                   <h2 className="section-title">
-                    {thread.members.length} users reported this
+                    Merged reports ({thread.members.length})
                   </h2>
-                  <p style={{ fontSize: 13, color: '#475569', margin: '4px 0 8px' }}>
-                    Multiple reports were grouped into one incident thread by SIARA.
+                  <p style={{ fontSize: 13, color: '#475569', margin: '4px 0 10px' }}>
+                    SIARA grouped {thread.members.length} reports of the same accident
+                    (within 300&nbsp;m and 6&nbsp;h) into this incident. The original
+                    report is kept; the others are merged duplicates.
                   </p>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {thread.members
-                      .filter((m) => m.reportId !== id)
-                      .slice(0, 6)
-                      .map((m) => (
-                        <li key={`thread-${m.reportId}`}>
-                          <Link
-                            to={`/incident/${m.reportId}`}
+                    {thread.members.map((m) => {
+                      const isCurrent = m.reportId === id
+                      const isPrimary = m.role === 'primary'
+                      const rowInner = (
+                        <>
+                          <span
                             style={{
-                              display: 'flex',
-                              gap: 8,
-                              padding: '6px 10px',
-                              border: '1px solid #E2E8F0',
-                              borderRadius: 8,
-                              textDecoration: 'none',
-                              color: '#0F172A',
-                              fontSize: 12,
+                              flexShrink: 0,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.03em',
+                              padding: '2px 7px',
+                              borderRadius: 999,
+                              background: isPrimary ? '#EEF2FF' : '#F1F5F9',
+                              color: isPrimary ? '#4338CA' : '#64748B',
                             }}
                           >
-                            <span style={{ fontWeight: 700 }}>
-                              {m.title || `Report #${String(m.reportId).slice(0, 8)}`}
-                            </span>
-                            {m.locationLabel ? (
-                              <span style={{ color: '#64748B' }}>· {m.locationLabel}</span>
-                            ) : null}
-                            {m.verifiedByPolice ? (
-                              <span style={{ color: '#1E40AF' }}>· verified</span>
-                            ) : null}
-                          </Link>
+                            {isPrimary ? 'Original' : 'Merged'}
+                          </span>
+                          <span style={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {m.title || `Report #${String(m.reportId).slice(0, 8)}`}
+                          </span>
+                          {isCurrent ? (
+                            <span style={{ color: '#4338CA', fontWeight: 600 }}>· this report</span>
+                          ) : null}
+                          {m.verifiedByPolice ? (
+                            <span style={{ color: '#1E40AF' }}>· police-verified</span>
+                          ) : null}
+                          <span style={{ marginLeft: 'auto', flexShrink: 0, color: '#94A3B8' }}>
+                            {formatTimeAgo(m.createdAt)}
+                          </span>
+                        </>
+                      )
+                      const rowStyle = {
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '7px 10px',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: 8,
+                        textDecoration: 'none',
+                        color: '#0F172A',
+                        fontSize: 12,
+                        background: isCurrent ? '#F8FAFF' : '#FFFFFF',
+                      }
+                      return (
+                        <li key={`thread-${m.reportId}`}>
+                          {isCurrent ? (
+                            <div style={rowStyle}>{rowInner}</div>
+                          ) : (
+                            <Link to={`/incident/${m.reportId}`} style={rowStyle}>
+                              {rowInner}
+                            </Link>
+                          )}
                         </li>
-                      ))}
+                      )
+                    })}
                   </ul>
                 </div>
               ) : null}

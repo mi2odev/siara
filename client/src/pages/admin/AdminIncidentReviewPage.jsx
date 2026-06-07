@@ -676,6 +676,74 @@ export default function AdminIncidentReviewPage() {
           ) : null}
         </div>
 
+        {incident.mergeGroup ? (
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <div>
+                <h3 className="admin-card-title">Merged reports ({incident.mergeGroup.memberCount})</h3>
+                <p className="admin-card-subtitle">
+                  Duplicate reports of the same accident (within 300 m / 6 h), grouped into one incident.
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {incident.mergeGroup.members.map((member) => {
+                const isPrimary = member.role === 'primary'
+                return (
+                  <button
+                    key={`merge-${member.reportId}`}
+                    type="button"
+                    disabled={member.isCurrent}
+                    onClick={() => navigate(`/admin/incidents/${member.reportId}`)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '8px 10px',
+                      border: '1px solid var(--admin-border)',
+                      borderRadius: 8,
+                      background: member.isCurrent ? 'var(--admin-bg-subtle, #f8fafc)' : '#ffffff',
+                      cursor: member.isCurrent ? 'default' : 'pointer',
+                      fontSize: 11.5,
+                    }}
+                  >
+                    <span
+                      style={{
+                        flexShrink: 0,
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.03em',
+                        padding: '2px 7px',
+                        borderRadius: 999,
+                        background: isPrimary ? '#EEF2FF' : '#F1F5F9',
+                        color: isPrimary ? '#4338CA' : '#64748B',
+                      }}
+                    >
+                      {isPrimary ? 'Original' : 'Merged'}
+                    </span>
+                    <span style={{ fontWeight: 600, flexShrink: 0 }}>{member.displayId}</span>
+                    <span style={{ color: 'var(--admin-text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {member.title || 'Untitled report'}
+                    </span>
+                    {member.isCurrent ? (
+                      <span style={{ color: '#4338CA', fontWeight: 600, flexShrink: 0 }}>· current</span>
+                    ) : null}
+                    {member.verifiedByPolice ? (
+                      <span style={{ color: '#1E40AF', flexShrink: 0 }}>· verified</span>
+                    ) : null}
+                    <span style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--admin-text-muted)' }}>
+                      {formatDateTime(member.createdAt)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ) : null}
+
         {incident.media.length > 0 && (
           <div className="admin-card">
             <div className="admin-card-header">

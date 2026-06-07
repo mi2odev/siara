@@ -942,15 +942,10 @@
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--pred-surface);
-  border-left: 3px solid transparent;
   transition: background 0.18s ease;
 }
 
 .pred-activity-item:hover { background: #f1f3f8; }
-.pred-activity-item.high { border-left-color: #ef4444; }
-.pred-activity-item.warning { border-left-color: #f59e0b; }
-.pred-activity-item.success { border-left-color: #10b981; }
-.pred-activity-item.info { border-left-color: #3b82f6; }
 
 .pred-activity-icon { font-size: 13px; flex-shrink: 0; margin-top: 2px; }
 

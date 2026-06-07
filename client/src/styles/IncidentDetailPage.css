@@ -1201,15 +1201,9 @@
    INCIDENT DETAIL PAGE — Visual Redesign
    ============================================================ */
 
-/* ── Severity accent on header block ── */
 .incident-detail-page .incident-header-block {
   padding: 28px 28px 22px;
-  border-left: 4px solid #E2E8F0;
 }
-
-.incident-detail-page .incident-header-block.idp-sev-high   { border-left-color: #DC2626; }
-.incident-detail-page .incident-header-block.idp-sev-medium { border-left-color: #F59E0B; }
-.incident-detail-page .incident-header-block.idp-sev-low    { border-left-color: #10B981; }
 
 /* chips row: type badge + status pill on same line */
 .incident-detail-page .idp-chips-row {
@@ -1353,15 +1347,6 @@
   gap: 8px;
 }
 
-.incident-detail-page .section-title::before {
-  content: '';
-  display: block;
-  width: 3px;
-  height: 16px;
-  background: #7C3AED;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
 
 /* ── Section card spacing ── */
 .incident-detail-page .incident-description,

@@ -2180,15 +2180,6 @@ html { scroll-behavior: smooth; }
   background: linear-gradient(180deg, #ffffff, #fbfcff);
 }
 
-.admin-overview .admin-kpi::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--admin-text-muted);
-}
 
 .admin-overview .admin-kpi--danger::before  { background: var(--admin-danger); }
 .admin-overview .admin-kpi--warning::before { background: var(--admin-warning); }
@@ -2213,19 +2204,10 @@ html { scroll-behavior: smooth; }
   letter-spacing: -0.01em;
 }
 
-/* Card titles get a small accent tick for a more designed feel */
 .admin-overview .admin-card-title {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-
-.admin-overview .admin-grid-3 .admin-card-title::before {
-  content: '';
-  width: 4px;
-  height: 14px;
-  border-radius: 2px;
-  background: var(--admin-primary);
 }
 
 /* Weekly volume → a real little bar chart */

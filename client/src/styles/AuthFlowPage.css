@@ -27,16 +27,6 @@
   padding: 30px 30px 26px;
 }
 
-/* Gradient accent strip along the top edge of the card */
-.siara-auth-flow-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--siara-btn-accent), var(--siara-btn-primary));
-}
 
 /* Brand lockup: logo seated in a soft gradient tile */
 .siara-auth-flow-card .siara-brand img {
