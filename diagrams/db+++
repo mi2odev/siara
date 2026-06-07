@@ -1,23 +1,23 @@
-============================================================================
- db+++   —   Incremental database additions
-============================================================================
- Append-only log of DB changes proposed while building features. Each block
- is additive and safe to re-run (IF NOT EXISTS). There is no migration runner
- in this repo — apply these manually against PostgreSQL/PostGIS when ready.
-============================================================================
+-- ============================================================================
+--  db+++   —   Incremental database additions
+-- ============================================================================
+--  Append-only log of DB changes proposed while building features. Each block
+--  is additive and safe to re-run (IF NOT EXISTS). There is no migration runner
+--  in this repo — apply these manually against PostgreSQL/PostGIS when ready.
+-- ============================================================================
 
 
-----------------------------------------------------------------------------
- 2026-06-04 · Supervisor → Global Operations Map
-----------------------------------------------------------------------------
- The redesigned Global Operations Map derives everything it needs from
- existing tables (app.accident_reports, app.officer_location_updates,
- app.police_profiles, app.police_work_zone_assignments). NO schema change is
- REQUIRED for the shipped feature.
-
- (A) Performance indexes — recommended, fully optional, safe to apply.
-     They speed up the two queries behind the map.
-----------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
+--  2026-06-04 · Supervisor -> Global Operations Map
+-- ----------------------------------------------------------------------------
+--  The redesigned Global Operations Map derives everything it needs from
+--  existing tables (app.accident_reports, app.officer_location_updates,
+--  app.police_profiles, app.police_work_zone_assignments). NO schema change is
+--  REQUIRED for the shipped feature.
+--
+--  (A) Performance indexes — recommended, fully optional, safe to apply.
+--      They speed up the two queries behind the map.
+-- ----------------------------------------------------------------------------
 
 -- Latest-location lookup per officer (the LATERAL "ORDER BY captured_at DESC LIMIT 1").
 CREATE INDEX IF NOT EXISTS idx_officer_location_updates_officer_captured
@@ -33,13 +33,13 @@ CREATE INDEX IF NOT EXISTS idx_accident_reports_assigned_officer
   ON app.accident_reports (assigned_officer_id);
 
 
-----------------------------------------------------------------------------
- (B) FORWARD / OPTIONAL — not used by the current code.
-     Apply later if you want officer operational status and multi-officer
-     dispatch to become authoritative/persistent instead of derived.
-     The map currently DERIVES status (responding / available / stale /
-     off_duty) from is_on_duty + location freshness + active assignments.
-----------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
+--  (B) FORWARD / OPTIONAL — not used by the current code.
+--      Apply later if you want officer operational status and multi-officer
+--      dispatch to become authoritative/persistent instead of derived.
+--      The map currently DERIVES status (responding / available / stale /
+--      off_duty) from is_on_duty + location freshness + active assignments.
+-- ----------------------------------------------------------------------------
 
 -- Richer, explicit officer operational status (beyond the is_on_duty boolean).
 -- DO NOT apply until the officer app actually writes this column, otherwise it
@@ -49,7 +49,7 @@ CREATE INDEX IF NOT EXISTS idx_accident_reports_assigned_officer
 --   ADD COLUMN IF NOT EXISTS operational_status TEXT NOT NULL DEFAULT 'off_duty'
 --     CHECK (operational_status IN ('available','responding','on_break','off_duty'));
 
--- Multi-officer dispatch with lifecycle (acknowledged → en-route → on-scene).
+-- Multi-officer dispatch with lifecycle (acknowledged -> en-route -> on-scene).
 -- Today an incident has a single app.accident_reports.assigned_officer_id; this
 -- table would let several officers be dispatched to one incident and track each
 -- officer's response state for a true operations picture.
@@ -67,3 +67,55 @@ CREATE INDEX IF NOT EXISTS idx_accident_reports_assigned_officer
 -- );
 -- CREATE INDEX IF NOT EXISTS idx_incident_dispatches_incident ON app.incident_dispatches (incident_id);
 -- CREATE INDEX IF NOT EXISTS idx_incident_dispatches_officer  ON app.incident_dispatches (officer_user_id);
+
+
+-- ----------------------------------------------------------------------------
+--  2026-06-07 · Auto-merge of duplicate reports -> one consolidated incident
+-- ----------------------------------------------------------------------------
+--  When an accident is reported within 300 m and 6 h of an existing same-type
+--  report, it is folded into a single "big report": the earliest report is the
+--  primary, later duplicates get app.accident_reports.status = 'merged' with
+--  merged_into_report_id pointing at the primary.
+--    - Users still see every report (incl. duplicates) in the public feed.
+--    - Admins & police only see the primary; children are hidden from their
+--      lists (filtered with merged_into_report_id IS NULL).
+--    - The merge GROUP is rendered from merged_into_report_id (no thread table
+--      needed) on the admin/user detail pages.
+--
+--  The incident_threads tables below back the chaining/primary bookkeeping used
+--  by the auto-merge service and the user-facing "merged reports" panel. They
+--  may already exist (created during Phase 12); these statements are idempotent.
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS app.incident_threads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  primary_report_id UUID NOT NULL REFERENCES app.accident_reports(id) ON DELETE CASCADE,
+  created_by UUID NULL REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  member_count INT NOT NULL DEFAULT 1,
+  notes TEXT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS incident_threads_primary_report_idx
+  ON app.incident_threads(primary_report_id);
+
+CREATE TABLE IF NOT EXISTS app.incident_thread_reports (
+  thread_id UUID NOT NULL REFERENCES app.incident_threads(id) ON DELETE CASCADE,
+  report_id UUID NOT NULL REFERENCES app.accident_reports(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'related' CHECK (role IN ('primary', 'related')),
+  added_by UUID NULL REFERENCES auth.users(id) ON DELETE SET NULL,
+  added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (thread_id, report_id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS incident_thread_reports_unique_report_idx
+  ON app.incident_thread_reports(report_id);
+CREATE INDEX IF NOT EXISTS incident_thread_reports_thread_idx
+  ON app.incident_thread_reports(thread_id);
+
+-- Speeds the admin/police "hide duplicate children" filter and the merge-group
+-- lookup (children of a primary). merged_into_report_id is already indexed by
+-- idx_accident_reports_merged_into_report_id in the base schema; this partial
+-- index targets the "is this a primary / standalone?" scans.
+CREATE INDEX IF NOT EXISTS idx_accident_reports_not_merged
+  ON app.accident_reports (created_at DESC)
+  WHERE merged_into_report_id IS NULL;
