@@ -1,0 +1,306 @@
+/* ================================================ SIARA DATE PICKER
+   Custom date / datetime / time picker styled to the SIARA design system.
+   Self-contained — every var() has a hard-coded fallback so it looks identical
+   inside or outside the .admin-root / supervisor / police scopes. */
+
+.siara-dp {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  font-family: inherit;
+}
+.siara-dp-popover,
+.siara-dp-popover * {
+  box-sizing: border-box;
+}
+
+/* ── Trigger (looks like a styled form input) ── */
+.siara-dp-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 14px;
+  background: var(--admin-surface, #ffffff);
+  border: 1px solid var(--admin-border, rgba(15, 23, 42, 0.12));
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  color: var(--admin-text, #1e293b);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+.siara-dp-trigger:hover {
+  border-color: #7c3aed;
+}
+.siara-dp.is-open .siara-dp-trigger {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.16);
+}
+.siara-dp.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.siara-dp-trigger-icon {
+  display: inline-flex;
+  color: #7c3aed;
+  flex: 0 0 auto;
+}
+.siara-dp-trigger-text {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.siara-dp-trigger-text.is-placeholder {
+  color: var(--admin-text-muted, #94a3b8);
+  font-weight: 500;
+}
+
+/* ── Popover (rendered in a body portal — position:fixed, JS-positioned) ── */
+.siara-dp-popover {
+  position: fixed;
+  z-index: 4000;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  max-width: calc(100vw - 16px);
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 18px 48px -12px rgba(33, 24, 71, 0.32),
+    0 6px 16px rgba(15, 23, 42, 0.08);
+  padding: 14px;
+  transform-origin: top left;
+  animation: siara-dp-pop 170ms cubic-bezier(0.34, 1.18, 0.64, 1);
+}
+.siara-dp-popover.is-flipped {
+  transform-origin: bottom left;
+}
+@keyframes siara-dp-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Calendar header ── */
+.siara-dp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.siara-dp-nav {
+  display: inline-flex;
+  gap: 2px;
+}
+.siara-dp-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--admin-text-secondary, #475569);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+.siara-dp-nav-btn:hover {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+}
+.siara-dp-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--admin-text, #1e293b);
+  letter-spacing: 0.2px;
+}
+.siara-dp-title span {
+  color: #7c3aed;
+}
+
+/* ── Weekdays ── */
+.siara-dp-cal {
+  width: 100%;
+}
+.siara-dp-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  width: 100%;
+  margin-bottom: 4px;
+}
+.siara-dp-weekday {
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--admin-text-muted, #94a3b8);
+  padding: 4px 0;
+}
+
+/* ── Day grid ── */
+.siara-dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  width: 100%;
+  gap: 2px;
+}
+.siara-dp-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 34px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--admin-text, #1e293b);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 130ms ease, color 130ms ease, transform 130ms ease;
+}
+.siara-dp-cell.is-empty {
+  pointer-events: none;
+}
+.siara-dp-cell:hover:not(.is-disabled):not(.is-selected) {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+}
+.siara-dp-cell.is-today:not(.is-selected) {
+  color: #7c3aed;
+  box-shadow: inset 0 0 0 1.5px rgba(124, 58, 237, 0.45);
+}
+.siara-dp-cell.is-selected {
+  background: linear-gradient(135deg, #7a3df0, #1d4ed8);
+  color: #ffffff;
+  box-shadow: 0 6px 14px -4px rgba(124, 58, 237, 0.6);
+}
+.siara-dp-cell.is-disabled {
+  color: var(--admin-text-muted, #cbd5e1);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Time section ── */
+.siara-dp-time.has-divider {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+.siara-dp-time-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--admin-text-secondary, #475569);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.siara-dp-time-label svg { color: #7c3aed; }
+.siara-dp-time-label span {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+.siara-dp-time-cols {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.siara-dp-time-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 132px;
+  overflow-y: auto;
+  padding: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.4) transparent;
+}
+.siara-dp-time-col::-webkit-scrollbar { width: 6px; }
+.siara-dp-time-col::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+.siara-dp-time-col::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.35);
+  border-radius: 6px;
+}
+.siara-dp-time-item {
+  flex: 0 0 auto;
+  min-width: 46px;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--admin-text-secondary, #475569);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.siara-dp-time-item:hover:not(.is-selected) {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+}
+.siara-dp-time-item.is-selected {
+  background: linear-gradient(135deg, #7a3df0, #1d4ed8);
+  color: #ffffff;
+}
+.siara-dp-time-sep {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--admin-text-muted, #94a3b8);
+}
+
+/* ── Footer ── */
+.siara-dp-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+.siara-dp-foot-btn {
+  flex: 1 1 auto;
+  padding: 8px 10px;
+  border: 1px solid var(--admin-border, rgba(15, 23, 42, 0.12));
+  border-radius: 9px;
+  background: var(--admin-surface, #ffffff);
+  color: var(--admin-text-secondary, #475569);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.siara-dp-foot-btn:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.06);
+}
+.siara-dp-foot-btn.is-primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, #7a3df0, #1d4ed8);
+  color: #ffffff;
+  box-shadow: 0 6px 14px -5px rgba(124, 58, 237, 0.6);
+}
+.siara-dp-foot-btn.is-primary:hover {
+  filter: brightness(1.06);
+  color: #ffffff;
+}
+
+@media (max-width: 480px) {
+  .siara-dp-popover { min-width: 260px; }
+}

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet'
 import { useNavigate } from 'react-router-dom'
 
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import LaunchOutlinedIcon from '@mui/icons-material/LaunchOutlined'
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined'
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
@@ -10,12 +11,14 @@ import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import PoliceSortControl from '../../components/police/PoliceSortControl'
 import IncidentCard from '../../components/police/IncidentCard'
 import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import {
   listPoliceIncidents,
   syncPoliceBrowserLocation,
 } from '../../services/policeService'
+import { usePoliceSort, NEARBY_SORT_ACCESSORS, NEARBY_SORT_OPTIONS } from '../../utils/policeSort'
 
 const DEFAULT_MAP_CENTER = { lat: 36.7538, lng: 3.0588 }
 
@@ -112,7 +115,7 @@ export default function PoliceNearbyIncidentsPage() {
       if (syncResult?.coords) {
         setLocationCoords(syncResult.coords)
       }
-    } catch (locationError) {
+    } catch {
       syncResult = {
         ok: false,
         reason: 'temporary_error',
@@ -153,6 +156,13 @@ export default function PoliceNearbyIncidentsPage() {
     [nearbyIncidents, selectedIncidentId],
   )
 
+  const { sorted: sortedNearby, sortKey, setSortKey, sortDir, toggleDir } = usePoliceSort(
+    nearbyIncidents,
+    NEARBY_SORT_ACCESSORS,
+    'distance',
+    'asc',
+  )
+
   const mapCenter = selectedIncident?.location?.lat != null && selectedIncident?.location?.lng != null
     ? [selectedIncident.location.lat, selectedIncident.location.lng]
     : locationCoords
@@ -188,13 +198,23 @@ export default function PoliceNearbyIncidentsPage() {
           </div>
           <div className="police-nearby-page-head-actions">
             <span className="police-nearby-page-radius">Radius 5 km</span>
+            {nearbyIncidents.length > 0 ? (
+              <PoliceSortControl
+                options={NEARBY_SORT_OPTIONS}
+                value={sortKey}
+                direction={sortDir}
+                onChange={setSortKey}
+                onToggleDirection={toggleDir}
+              />
+            ) : null}
             <button
               type="button"
               className="police-action police-action-secondary police-nearby-page-refresh"
               onClick={loadNearby}
               disabled={isLoading}
             >
-              {isLoading ? 'Refreshing...' : 'Refresh location'}
+              <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
+              <span>Refresh</span>
             </button>
           </div>
         </div>
@@ -205,7 +225,7 @@ export default function PoliceNearbyIncidentsPage() {
 
         <div className="police-nearby-layout police-nearby-page-layout">
           <div className="police-nearby-list police-nearby-page-list">
-            {nearbyIncidents.map((incident) => (
+            {sortedNearby.map((incident) => (
               <IncidentCard
                 key={incident.id}
                 incident={incident}

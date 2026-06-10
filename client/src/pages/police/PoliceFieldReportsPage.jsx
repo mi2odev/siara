@@ -14,8 +14,10 @@ import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 
 import PoliceShell from '../../components/layout/PoliceShell'
+import PoliceSortControl from '../../components/police/PoliceSortControl'
 import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import { listPoliceIncidents } from '../../services/policeService'
+import { usePoliceSort, INCIDENT_SORT_ACCESSORS, INCIDENT_SORT_OPTIONS } from '../../utils/policeSort'
 
 function displayLabel(value) {
   return String(value || '')
@@ -76,6 +78,8 @@ export default function PoliceFieldReportsPage() {
   const displayed = statusFilter === 'all'
     ? allReports
     : allReports.filter((r) => r.status === statusFilter)
+
+  const { sorted: sortedDisplayed, sortKey, setSortKey, sortDir, toggleDir } = usePoliceSort(displayed, INCIDENT_SORT_ACCESSORS)
 
   const count = (status) =>
     status === 'all'
@@ -182,24 +186,36 @@ export default function PoliceFieldReportsPage() {
             aria-label="Refresh list"
           >
             <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
+            <span>Refresh</span>
           </button>
         </div>
 
-        {/* ── Status tabs ── */}
-        <div className="pfr-tabs" role="tablist">
-          {FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === f.value}
-              className={`pfr-tab${statusFilter === f.value ? ' pfr-tab--on' : ''}`}
-              onClick={() => setStatusFilter(f.value)}
-            >
-              {f.label}
-              <span className="pfr-tab-count">{count(f.value)}</span>
-            </button>
-          ))}
+        {/* ── Status tabs + sort ── */}
+        <div className="police-tabs-row">
+          <div className="pfr-tabs" role="tablist">
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                role="tab"
+                aria-selected={statusFilter === f.value}
+                className={`pfr-tab${statusFilter === f.value ? ' pfr-tab--on' : ''}`}
+                onClick={() => setStatusFilter(f.value)}
+              >
+                {f.label}
+                <span className="pfr-tab-count">{count(f.value)}</span>
+              </button>
+            ))}
+          </div>
+          {!isLoading && displayed.length > 0 && (
+            <PoliceSortControl
+              options={INCIDENT_SORT_OPTIONS}
+              value={sortKey}
+              direction={sortDir}
+              onChange={setSortKey}
+              onToggleDirection={toggleDir}
+            />
+          )}
         </div>
 
         {/* ── Body ── */}
@@ -217,7 +233,7 @@ export default function PoliceFieldReportsPage() {
 
           {!isLoading && displayed.length > 0 && (
             <div className="pfr-list">
-              {displayed.map((report) => (
+              {sortedDisplayed.map((report) => (
                 <div
                   key={report.id}
                   className={`pfr-row pfr-row--${report.severity || 'low'}`}

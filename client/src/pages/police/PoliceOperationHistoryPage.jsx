@@ -12,10 +12,13 @@ import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
 import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded'
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded'
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import PoliceSortControl from '../../components/police/PoliceSortControl'
 import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
+import { usePoliceSort, HISTORY_SORT_ACCESSORS, HISTORY_SORT_OPTIONS } from '../../utils/policeSort'
 import { AuthContext } from '../../contexts/AuthContext'
 import {
   createManualPoliceHistoryEntry,
@@ -134,6 +137,8 @@ export default function PoliceOperationHistoryPage() {
     [dateFilter, historyItems, typeFilter],
   )
 
+  const { sorted: sortedItems, sortKey, setSortKey, sortDir, toggleDir } = usePoliceSort(filteredItems, HISTORY_SORT_ACCESSORS)
+
   const verifiedCount = historyItems.filter((item) => item.actionType === 'verify_incident').length
   const rejectedCount = historyItems.filter((item) => item.actionType === 'reject_incident').length
   const noteCount = historyItems.filter((item) => item.actionType === 'field_note' || item.actionType === 'manual_log_entry').length
@@ -209,7 +214,8 @@ export default function PoliceOperationHistoryPage() {
               onClick={loadHistory}
               disabled={isLoading || isSubmittingNote}
             >
-              {isLoading ? 'Refreshing…' : 'Refresh'}
+              <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
+              <span>Refresh</span>
             </button>
           </div>
         </div>
@@ -230,6 +236,18 @@ export default function PoliceOperationHistoryPage() {
           <label className="police-filter-field">
             <span>Date</span>
             <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} />
+          </label>
+
+          <label className="police-filter-field">
+            <span>Sort by</span>
+            <PoliceSortControl
+              options={HISTORY_SORT_OPTIONS}
+              value={sortKey}
+              direction={sortDir}
+              onChange={setSortKey}
+              onToggleDirection={toggleDir}
+              label={null}
+            />
           </label>
 
           <button
@@ -271,7 +289,7 @@ export default function PoliceOperationHistoryPage() {
         </div>
 
         <div className="police-history-list">
-          {filteredItems.map((item) => {
+          {sortedItems.map((item) => {
             const tone = actionTone(item.actionType)
             const severity = item.severity || null
             return (

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
 import FancySelect from '../../components/ui/FancySelect'
+import SiaraDatePicker from '../../components/ui/SiaraDatePicker'
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined'
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
@@ -240,23 +241,23 @@ export default function SupervisorAlertCenterPage() {
                 <div className="sv-grid-2" style={{ gap: 12 }}>
                   <div className="sv-form-group">
                     <label className="sv-form-label">Active From</label>
-                    <input
+                    <SiaraDatePicker
                       type="datetime-local"
-                      className="sv-form-input"
                       value={form.startsAt}
                       min={nowLocalIso()}
-                      onChange={(e) => handleChange('startsAt', e.target.value)}
+                      placeholder="Start immediately"
+                      onChange={(v) => handleChange('startsAt', v)}
                     />
                     <span className="sv-form-hint">Leave blank to start immediately</span>
                   </div>
                   <div className="sv-form-group">
                     <label className="sv-form-label">Active Until *</label>
-                    <input
+                    <SiaraDatePicker
                       type="datetime-local"
-                      className="sv-form-input"
                       value={form.endsAt}
                       min={nowLocalIso()}
-                      onChange={(e) => handleChange('endsAt', e.target.value)}
+                      placeholder="Select date & time"
+                      onChange={(v) => handleChange('endsAt', v)}
                     />
                     {errors.endsAt && <span className="sv-form-error">{errors.endsAt}</span>}
                   </div>

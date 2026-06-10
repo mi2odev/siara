@@ -13,6 +13,7 @@ const {
   persistPrediction,
   persistPredictionWithExplanation,
   persistPredictions,
+  snapPointsToRoadSegments,
 } = require("../../services/riskPersistence");
 const {
   safeNumber,
@@ -1834,13 +1835,39 @@ exports.predictRouteGuide = async (req, res) => {
     try {
       const occurrenceUserId =
         req.user?.userId || req.user?.id || req.body?.user_id || req.body?.userId || null;
-      const allSegmentIds = new Set();
+      // Snap each route segment to its nearest DB road segment so the occurrence
+      // model (keyed by road_segment_id) can score guidance-route segments whose
+      // own ids are sampled-point ids (route_<hash>_segN), not road ids.
+      const segmentPoints = [];
       for (const route of responsePayload.routes || []) {
         for (const segment of route?.segments || []) {
-          if (parseNumericRoadSegmentId(segment?.segment_id)) {
-            allSegmentIds.add(String(segment.segment_id));
+          const path = Array.isArray(segment?.path) ? segment.path : null;
+          const mid = path && path.length ? path[Math.floor(path.length / 2)] : null;
+          const lat = Array.isArray(mid) ? Number(mid[0]) : NaN;
+          const lng = Array.isArray(mid) ? Number(mid[1]) : NaN;
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            segmentPoints.push({ segment, lat, lng });
           }
         }
+      }
+      const allSegmentIds = new Set();
+      if (segmentPoints.length > 0) {
+        let snapped = [];
+        try {
+          snapped = await snapPointsToRoadSegments(
+            segmentPoints.map((p) => ({ lat: p.lat, lng: p.lng })),
+          );
+        } catch (snapError) {
+          console.warn("[Node] route occurrence snap failed:", snapError.message);
+          snapped = [];
+        }
+        segmentPoints.forEach((p, i) => {
+          const roadId = snapped[i];
+          if (roadId && parseNumericRoadSegmentId(roadId)) {
+            p.segment.__occRoadId = String(roadId);
+            allSegmentIds.add(String(roadId));
+          }
+        });
       }
       if (allSegmentIds.size > 0) {
         const occurrenceResult = await predictOccurrenceForRouteSegments({
@@ -1860,7 +1887,9 @@ exports.predictRouteGuide = async (req, res) => {
             let highestModel = null;
             let highestPersonalized = null;
             for (const segment of route?.segments || []) {
-              const occurrence = bySegmentId.get(String(segment?.segment_id));
+              const occRoadId = segment?.__occRoadId;
+              if (segment) delete segment.__occRoadId;
+              const occurrence = occRoadId ? bySegmentId.get(String(occRoadId)) : null;
               if (!occurrence) continue;
               segment.occurrence = {
                 modelOnly: occurrence.modelOnly,

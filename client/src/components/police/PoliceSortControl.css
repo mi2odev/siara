@@ -1,0 +1,121 @@
+/* ================================================ POLICE SORT CONTROL
+   Shared "Sort by" dropdown + direction toggle for police list pages.
+   The dropdown styling comes from FancySelect; this only adds the layout
+   and the direction button. */
+
+.police-sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Let the sort menu escape its section card (otherwise the section's
+   overflow:hidden clips the open dropdown). Scoped to sections that actually
+   host the control via :has(). */
+.police-section:has(.police-sort-control),
+.police-dashboard-overview:has(.police-sort-control),
+.police-root .police-section:has(.police-sort-control),
+.police-root .police-dashboard-overview:has(.police-sort-control) {
+  overflow: visible;
+}
+/* Match the dropdown height to the direction button (32px) and keep it compact. */
+.police-sort-control .admin-fancy-select {
+  height: 32px;
+  border-radius: 9px;
+}
+.police-sort-control .admin-fancy-select--sm .admin-fancy-select-control {
+  min-width: 92px;
+}
+
+/* Polished open menu — scoped to the sort control so other FancySelect
+   usages (admin filters, etc.) are unaffected. */
+.police-sort-control .admin-fancy-select-menu {
+  min-width: 172px;
+  margin-top: 4px;
+  padding: 6px;
+  border-radius: 12px;
+  box-shadow:
+    0 16px 40px -14px rgba(33, 24, 71, 0.3),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+}
+.police-sort-control .admin-fancy-select-option {
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.police-sort-control .admin-fancy-select-option.is-active,
+.police-sort-control .admin-fancy-select-option.is-active.is-focus,
+.police-sort-control .admin-fancy-select-option.is-active:hover {
+  background: rgba(124, 58, 237, 0.1);
+  color: #6d28d9;
+}
+.police-sort-control .admin-fancy-select-option-check {
+  color: #7c3aed;
+}
+
+/* Layout helpers used by the pages that host the sort control. */
+.police-page-toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.police-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 0 0 12px;
+  flex-wrap: wrap;
+}
+/* Tabs on the left, sort control pinned to the right, same row. */
+.police-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.police-tabs-row > .pmi-tabs,
+.police-tabs-row > .pfr-tabs {
+  flex: 1 1 auto;
+}
+.police-tabs-row > .police-sort-control {
+  flex: 0 0 auto;
+}
+
+.police-sort-dir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid rgba(124, 58, 237, 0.28);
+  border-radius: 9px;
+  background: rgba(124, 58, 237, 0.08);
+  color: #7c3aed;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+.police-sort-dir:hover {
+  border-color: #7c3aed;
+  background: rgba(124, 58, 237, 0.16);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18);
+}
+.police-sort-dir:focus-visible {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+}
+
+.police-sort-arrow {
+  display: block;
+  color: #7c3aed;
+  transition: transform 200ms cubic-bezier(0.34, 1.18, 0.64, 1);
+}
+.police-sort-arrow.is-desc {
+  transform: rotate(180deg);
+}

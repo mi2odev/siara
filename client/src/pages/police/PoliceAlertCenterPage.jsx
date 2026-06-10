@@ -1,10 +1,13 @@
 import React from 'react'
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded'
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import PoliceSortControl from '../../components/police/PoliceSortControl'
 import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import { listPoliceAlerts, markPoliceAlertRead } from '../../services/policeService'
+import { usePoliceSort, ALERT_SORT_ACCESSORS, ALERT_SORT_OPTIONS } from '../../utils/policeSort'
 
 function displayLabel(value) {
   return String(value || '')
@@ -45,6 +48,8 @@ export default function PoliceAlertCenterPage() {
     () => alerts.find((item) => item.id === selectedAlertId) || alerts[0] || null,
     [alerts, selectedAlertId],
   )
+
+  const { sorted: sortedAlerts, sortKey, setSortKey, sortDir, toggleDir } = usePoliceSort(alerts, ALERT_SORT_ACCESSORS)
 
   const loadAlerts = React.useCallback(async ({ refresh = false } = {}) => {
     if (refresh) {
@@ -137,13 +142,23 @@ export default function PoliceAlertCenterPage() {
             <span className="police-alert-important-note">
               {isRefreshing ? 'Refreshing alerts...' : 'Live targeted alerts'}
             </span>
+            {alerts.length > 0 ? (
+              <PoliceSortControl
+                options={ALERT_SORT_OPTIONS}
+                value={sortKey}
+                direction={sortDir}
+                onChange={setSortKey}
+                onToggleDirection={toggleDir}
+              />
+            ) : null}
             <button
               type="button"
               className="police-action police-action-secondary police-alert-center-refresh"
               onClick={() => loadAlerts({ refresh: true })}
               disabled={isLoading || isRefreshing || Boolean(busyAlertId)}
             >
-              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              <RefreshRoundedIcon fontSize="inherit" className={isLoading || isRefreshing ? 'is-spinning' : ''} />
+              <span>Refresh</span>
             </button>
           </div>
         </div>
@@ -187,7 +202,7 @@ export default function PoliceAlertCenterPage() {
         ) : null}
 
         <div className="police-alert-list">
-          {alerts.map((alert) => {
+          {sortedAlerts.map((alert) => {
             const isRead = Boolean(alert.read)
             const isBusy = busyAlertId === alert.id
             const isSelected = selectedAlert?.id === alert.id
