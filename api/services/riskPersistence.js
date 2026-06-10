@@ -226,6 +226,59 @@ async function findNearestRoadSegmentId(client, lat, lng, maxDistanceMeters = NE
   return result.rows[0]?.id || null;
 }
 
+// Batch-snap a list of {lat, lng} points to their nearest gis.road_segments id.
+// Returns an array aligned to the input (null where no segment is within range).
+// Used by the route guide to give guidance-route segments — whose own ids are
+// sampled-point ids, not road ids — a real road_segment_id so the occurrence
+// model (keyed by road segment) can score them.
+async function snapPointsToRoadSegments(points, maxDistanceMeters = NEAREST_SEGMENT_MAX_DISTANCE_METERS) {
+  const list = Array.isArray(points) ? points : [];
+  const result = new Array(list.length).fill(null);
+  const usable = list
+    .map((p, idx) => ({ idx, lat: safeNumber(p?.lat), lng: safeNumber(p?.lng) }))
+    .filter((p) => p.lat != null && p.lng != null);
+  if (usable.length === 0) {
+    return result;
+  }
+
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      `
+        with pts as (
+          select t.idx, ST_SetSRID(ST_MakePoint(t.lng, t.lat), 4326) as geom
+          from unnest($1::int[], $2::float8[], $3::float8[]) as t(idx, lat, lng)
+        )
+        select pts.idx, nearest.id
+        from pts
+        cross join lateral (
+          select rs.id
+          from gis.road_segments rs
+          where ST_DWithin(rs.geom::geography, pts.geom::geography, $4)
+          order by rs.geom <-> pts.geom
+          limit 1
+        ) nearest
+      `,
+      [
+        usable.map((p) => p.idx),
+        usable.map((p) => p.lat),
+        usable.map((p) => p.lng),
+        maxDistanceMeters,
+      ],
+    );
+    for (const row of res.rows) {
+      const i = Number(row.idx);
+      if (Number.isInteger(i) && i >= 0 && i < result.length) {
+        result[i] = row.id != null ? String(row.id) : null;
+      }
+    }
+  } finally {
+    client.release();
+  }
+
+  return result;
+}
+
 async function findFeatureId(client, roadSegmentId, timestamp) {
   const result = await client.query(
     `
@@ -615,4 +668,5 @@ module.exports = {
   persistPredictionWithExplanation,
   persistPredictions,
   resolveRoadSegment,
+  snapPointsToRoadSegments,
 };

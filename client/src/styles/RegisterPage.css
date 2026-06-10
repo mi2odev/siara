@@ -71,6 +71,22 @@
   color:#4B5563;
 }
 
+/* Register has more fields than login, so let the whole page scroll up/down
+   instead of clipping the card (Google button / footer) at the viewport edge. */
+.siara-login-root:has(.register-form){
+  height:auto;
+  min-height:100vh;
+  overflow-y:auto;
+  align-items:flex-start;
+  padding-top:24px;
+  padding-bottom:24px;
+}
+.siara-login-root:has(.register-form) .siara-login-grid{
+  height:auto;
+  max-height:none;
+  min-height:calc(100vh - 48px);
+}
+
 /* Register card: tuned to fit a typical viewport without feeling cramped.
    Login has fewer fields so it doesn't need this; rules are scoped to the
    register page via :has(). */
@@ -107,12 +123,13 @@
 }
 .siara-login-root:has(.register-form) .agree{
   font-size:12.5px;
-  gap:9px;
+  gap:10px;
   line-height:1.4;
+  padding:8px 10px;
 }
 .siara-login-root:has(.register-form) .agree input[type="checkbox"]{
-  width:17px;
-  height:17px;
+  width:18px;
+  height:18px;
 }
 .siara-login-root:has(.register-form) .siara-cta{
   padding:11px 14px;
@@ -135,6 +152,8 @@
   flex-direction:column;
   gap:4px;
 }
+.register-form .agree:first-of-type{margin-top:8px;}
+.register-form .agree + .agree{margin-top:2px;}
 
 .field-label{
   font-size:12px;
@@ -175,39 +194,54 @@
 .agree{
   display:flex;
   align-items:flex-start;
-  gap:10px;
-  color:var(--siara-subtext);
+  gap:11px;
+  color:var(--siara-text-dark);
   font-size:13px;
+  line-height:1.45;
+  padding:9px 11px;
+  border-radius:12px;
+  border:1px solid transparent;
+  cursor:pointer;
+  transition:background var(--siara-transition-fast),border-color var(--siara-transition-fast);
 }
+.agree:hover{
+  background:rgba(124,58,237,0.05);
+  border-color:rgba(124,58,237,0.14);
+}
+.agree span{flex:1 1 auto;}
 
 .agree input[type="checkbox"]{
-  width:18px;
-  height:18px; /* slightly bigger checkbox */
-  border-radius:999px;
-  border:1px solid rgba(148,163,184,0.9);
+  flex:0 0 auto;
+  margin-top:1px;
+  width:19px;
+  height:19px;
+  border-radius:6px;
+  border:1.5px solid rgba(148,163,184,0.9);
   appearance:none;
   -webkit-appearance:none;
   background:#fff;
   display:inline-block;
   position:relative;
   cursor:pointer;
+  transition:background var(--siara-transition-fast),border-color var(--siara-transition-fast),box-shadow var(--siara-transition-fast);
 }
 
 .agree input[type="checkbox"]:hover{
-  box-shadow:0 0 0 2px rgba(148,163,184,0.35);
+  border-color:#7C3AED;
+  box-shadow:0 0 0 3px rgba(124,58,237,0.12);
 }
 
 .agree input[type="checkbox"]:checked{
-  background:#7C3AED;
-  border-color:#7C3AED;
+  background:linear-gradient(135deg,var(--siara-gradient-start),var(--siara-gradient-end));
+  border-color:transparent;
 }
 
 .agree input[type="checkbox"]:checked::after{
   content:"";
   position:absolute;
-  left:4px;
-  top:1px;
-  width:6px;
+  left:6px;
+  top:2px;
+  width:5px;
   height:10px;
   border:2px solid #fff;
   border-top:none;

@@ -13,8 +13,10 @@ import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 
 import PoliceShell from '../../components/layout/PoliceShell'
+import PoliceSortControl from '../../components/police/PoliceSortControl'
 import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import { listPoliceIncidents } from '../../services/policeService'
+import { usePoliceSort, INCIDENT_SORT_ACCESSORS, INCIDENT_SORT_OPTIONS } from '../../utils/policeSort'
 
 function displayLabel(value) {
   return String(value || '')
@@ -77,12 +79,12 @@ export default function PoliceMyIncidentsPage() {
     ? allIncidents
     : allIncidents.filter((i) => i.status === statusFilter)
 
+  const { sorted: sortedDisplayed, sortKey, setSortKey, sortDir, toggleDir } = usePoliceSort(displayed, INCIDENT_SORT_ACCESSORS)
+
   const count = (status) =>
     status === 'all'
       ? allIncidents.length
       : allIncidents.filter((i) => i.status === status).length
-
-  const pendingCount = count('pending')
 
   const rightPanel = (
     <div className="pmi-right">
@@ -179,24 +181,36 @@ export default function PoliceMyIncidentsPage() {
             aria-label="Refresh list"
           >
             <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
+            <span>Refresh</span>
           </button>
         </div>
 
-        {/* ── Status tabs ── */}
-        <div className="pmi-tabs" role="tablist">
-          {FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === f.value}
-              className={`pmi-tab${statusFilter === f.value ? ' pmi-tab--on' : ''}`}
-              onClick={() => setStatusFilter(f.value)}
-            >
-              {f.label}
-              <span className="pmi-tab-count">{count(f.value)}</span>
-            </button>
-          ))}
+        {/* ── Status tabs + sort ── */}
+        <div className="police-tabs-row">
+          <div className="pmi-tabs" role="tablist">
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                role="tab"
+                aria-selected={statusFilter === f.value}
+                className={`pmi-tab${statusFilter === f.value ? ' pmi-tab--on' : ''}`}
+                onClick={() => setStatusFilter(f.value)}
+              >
+                {f.label}
+                <span className="pmi-tab-count">{count(f.value)}</span>
+              </button>
+            ))}
+          </div>
+          {!isLoading && displayed.length > 0 && (
+            <PoliceSortControl
+              options={INCIDENT_SORT_OPTIONS}
+              value={sortKey}
+              direction={sortDir}
+              onChange={setSortKey}
+              onToggleDirection={toggleDir}
+            />
+          )}
         </div>
 
         {/* ── Body ── */}
@@ -216,7 +230,7 @@ export default function PoliceMyIncidentsPage() {
 
           {!isLoading && displayed.length > 0 && (
             <div className="pmi-list">
-              {displayed.map((incident) => (
+              {sortedDisplayed.map((incident) => (
                 <div
                   key={incident.id}
                   className={`pmi-row pmi-row--${incident.severity || 'low'}`}

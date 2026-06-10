@@ -1,9 +1,12 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import PoliceSortControl from '../../components/police/PoliceSortControl'
 import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
+import { usePoliceSort, INCIDENT_SORT_ACCESSORS, INCIDENT_SORT_OPTIONS } from '../../utils/policeSort'
 import {
   assignSelfToPoliceIncident,
   listPoliceIncidents,
@@ -23,6 +26,7 @@ export default function PoliceVerificationQueuePage() {
   const [queue, setQueue] = React.useState([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState('')
+  const { sorted: sortedQueue, sortKey, setSortKey, sortDir, toggleDir } = usePoliceSort(queue, INCIDENT_SORT_ACCESSORS)
 
   const highPriorityCount = queue.filter((item) => item.severity === 'high').length
   const assignedCount = queue.filter((item) => item.assignedOfficer?.id).length
@@ -94,16 +98,28 @@ export default function PoliceVerificationQueuePage() {
             <h2>Verification Queue</h2>
             <p className="police-shortcuts-hint">Review incoming field reports before they enter active operations.</p>
           </div>
-          <button type="button" className="police-action police-action-secondary police-verification-refresh" onClick={loadQueue}>
-            Refresh
-          </button>
+          <div className="police-page-toolbar-actions">
+            {queue.length > 0 ? (
+              <PoliceSortControl
+                options={INCIDENT_SORT_OPTIONS}
+                value={sortKey}
+                direction={sortDir}
+                onChange={setSortKey}
+                onToggleDirection={toggleDir}
+              />
+            ) : null}
+            <button type="button" className="police-action police-action-secondary police-verification-refresh" onClick={loadQueue} disabled={isLoading}>
+              <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
 
         {error ? <p className="police-meta police-verification-feedback police-verification-feedback-error">{error}</p> : null}
         {isLoading ? <p className="police-meta police-verification-feedback">Loading verification queue...</p> : null}
 
         <div className="police-verification-grid">
-          {queue.map((incident) => (
+          {sortedQueue.map((incident) => (
             <article key={incident.id} className="police-verification-card" data-severity={incident.severity}>
               <div className="police-verification-center">
                 <strong className="police-title police-verification-title">{incident.displayId} · {incident.title || 'Untitled report'}</strong>

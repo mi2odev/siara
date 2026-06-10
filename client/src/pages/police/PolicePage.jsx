@@ -29,9 +29,10 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
+import PoliceSortControl from '../../components/police/PoliceSortControl'
 import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
+import { usePoliceSort, INCIDENT_SORT_ACCESSORS, INCIDENT_SORT_OPTIONS } from '../../utils/policeSort'
 import {
-  formatPoliceDateTime,
   getPoliceDashboard,
   getPoliceWorkZoneOptions,
   listPoliceAlerts,
@@ -268,6 +269,13 @@ export default function PolicePage() {
   const officer = dashboard?.officer || policeMe?.officer
   const workZone = dashboard?.workZone || policeMe?.workZone
   const activeIncidents = dashboard?.activeIncidents || []
+  const {
+    sorted: sortedActiveIncidents,
+    sortKey: activeSortKey,
+    setSortKey: setActiveSortKey,
+    sortDir: activeSortDir,
+    toggleDir: toggleActiveSortDir,
+  } = usePoliceSort(activeIncidents, INCIDENT_SORT_ACCESSORS)
   const nearbyIncidents = dashboard?.nearbyIncidents || []
   const myIncidents = dashboard?.myIncidents || []
   const recentHistory = dashboard?.recentHistory || []
@@ -283,13 +291,6 @@ export default function PolicePage() {
     : []
 
   const highSeverityCount = activeIncidents.filter((item) => item.severity === 'high').length
-  const officerInitials = String(officer?.name || 'Officer')
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase() || 'OF'
 
   const avgAgeMs = computeAverageIncidentAge(activeIncidents)
   const avgResponseLabel = avgAgeMs == null ? '—' : formatDuration(avgAgeMs)
@@ -578,23 +579,34 @@ export default function PolicePage() {
                 Live active incident stream for your current police work zone.
               </p>
             </div>
-            <button
-              type="button"
-              className="police-cc-btn-primary police-cc-refresh-pill"
-              onClick={() => loadDashboard()}
-              title="Refresh"
-              aria-label="Refresh"
-              disabled={isLoading}
-            >
-              <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
-              <span>Refresh</span>
-            </button>
+            <div className="police-page-toolbar-actions">
+              {activeIncidents.length > 0 ? (
+                <PoliceSortControl
+                  options={INCIDENT_SORT_OPTIONS}
+                  value={activeSortKey}
+                  direction={activeSortDir}
+                  onChange={setActiveSortKey}
+                  onToggleDirection={toggleActiveSortDir}
+                />
+              ) : null}
+              <button
+                type="button"
+                className="police-cc-btn-primary police-cc-refresh-pill"
+                onClick={() => loadDashboard()}
+                title="Refresh"
+                aria-label="Refresh"
+                disabled={isLoading}
+              >
+                <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
         </section>
 
         <section className="police-section police-dashboard-incidents-section">
           <div className="police-feed">
-            {activeIncidents.slice(0, 30).map((incident) => (
+            {sortedActiveIncidents.slice(0, 30).map((incident) => (
               <article
                 key={incident.id}
                 className="police-stream-row police-dashboard-incident-card"

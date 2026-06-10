@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
+import PoliceSortControl from '../../components/police/PoliceSortControl'
 import { getPolicePriorityQueue } from '../../services/policeService'
+import { usePoliceSort, QUEUE_SORT_ACCESSORS, QUEUE_SORT_OPTIONS } from '../../utils/policeSort'
 import '../../styles/PolicePriorityQueue.css'
 
 function formatTimeAgo(value) {
@@ -23,6 +26,7 @@ export default function PolicePriorityQueuePage() {
   const [items, setItems] = useState([])
   const [state, setState] = useState('loading')
   const [error, setError] = useState('')
+  const { sorted: sortedItems, sortKey, setSortKey, sortDir, toggleDir } = usePoliceSort(items, QUEUE_SORT_ACCESSORS)
 
   const load = useCallback(async () => {
     setState('loading')
@@ -52,14 +56,26 @@ export default function PolicePriorityQueuePage() {
               and nearby cluster density.
             </p>
           </div>
-          <button
-            type="button"
-            className="siara-pq__refresh"
-            onClick={load}
-            disabled={state === 'loading'}
-          >
-            {state === 'loading' ? 'Loading…' : 'Refresh'}
-          </button>
+          <div className="police-page-toolbar-actions">
+            {state === 'success' && items.length > 0 ? (
+              <PoliceSortControl
+                options={QUEUE_SORT_OPTIONS}
+                value={sortKey}
+                direction={sortDir}
+                onChange={setSortKey}
+                onToggleDirection={toggleDir}
+              />
+            ) : null}
+            <button
+              type="button"
+              className="siara-pq__refresh"
+              onClick={load}
+              disabled={state === 'loading'}
+            >
+              <RefreshRoundedIcon fontSize="inherit" className={state === 'loading' ? 'is-spinning' : ''} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
 
         {state === 'loading' ? (
@@ -83,7 +99,7 @@ export default function PolicePriorityQueuePage() {
 
         {state === 'success' && items.length > 0 ? (
           <ul className="siara-pq__list">
-            {items.map((item) => (
+            {sortedItems.map((item) => (
               <li key={`pq-${item.reportId}`} className="siara-pq__item">
                 <div className={`siara-pq__priority level-${item.priorityLevel}`}>
                   <span className="siara-pq__priority-level">{item.priorityLevel}</span>

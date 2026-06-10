@@ -1350,12 +1350,8 @@
   color: #ffffff !important;
 }
 
-/* Icon-only refresh buttons (square-ish) get a circle shape and SVG sizing */
-.pmi-refresh,
-.pfr-refresh,
+/* Icon-only refresh button (command-center) keeps the circle shape. */
 .police-cc-refresh,
-.police-root .pmi-refresh,
-.police-root .pfr-refresh,
 .police-root .police-cc-refresh {
   width: 36px !important;
   height: 36px !important;
@@ -1364,25 +1360,57 @@
   border-radius: 50% !important;
 }
 
+/* Icon sizing for every refresh button so the leading icon + "Refresh" label
+   render consistently as the blue pill across all police pages. */
+.police-dashboard-refresh svg,
+.police-verification-refresh svg,
+.police-nearby-page-refresh svg,
+.police-alert-center-refresh svg,
+.siara-pq__refresh svg,
+.sv-btn-refresh svg,
 .pmi-refresh svg,
 .pfr-refresh svg,
 .police-cc-refresh svg,
 .police-cc-refresh-pill svg,
+.police-root .police-dashboard-refresh svg,
+.police-root .police-verification-refresh svg,
+.police-root .police-nearby-page-refresh svg,
+.police-root .police-alert-center-refresh svg,
+.police-root .siara-pq__refresh svg,
+.police-root .sv-btn-refresh svg,
 .police-root .pmi-refresh svg,
 .police-root .pfr-refresh svg,
 .police-root .police-cc-refresh svg,
 .police-root .police-cc-refresh-pill svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   color: #ffffff;
   fill: currentColor;
+  flex: 0 0 auto;
 }
 
+.police-dashboard-refresh .is-spinning,
+.police-verification-refresh .is-spinning,
+.police-nearby-page-refresh .is-spinning,
+.police-alert-center-refresh .is-spinning,
+.siara-pq__refresh .is-spinning,
+.sv-btn-refresh .is-spinning,
 .pmi-refresh .is-spinning,
 .pfr-refresh .is-spinning,
 .police-cc-refresh .is-spinning,
-.police-cc-refresh-pill .is-spinning {
-  animation: policeRefreshSpin 0.9s linear infinite;
+.police-cc-refresh-pill .is-spinning,
+.police-root .police-dashboard-refresh .is-spinning,
+.police-root .police-verification-refresh .is-spinning,
+.police-root .police-nearby-page-refresh .is-spinning,
+.police-root .police-alert-center-refresh .is-spinning,
+.police-root .siara-pq__refresh .is-spinning,
+.police-root .sv-btn-refresh .is-spinning,
+.police-root .pmi-refresh .is-spinning,
+.police-root .pfr-refresh .is-spinning,
+.police-root .police-cc-refresh .is-spinning,
+.police-root .police-cc-refresh-pill .is-spinning {
+  animation: policeRefreshSpin 0.9s linear infinite !important;
+  transform-origin: 50% 50% !important;
 }
 
 .police-action:focus-visible,
