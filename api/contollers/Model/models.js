@@ -1773,6 +1773,9 @@ exports.predictRouteGuide = async (req, res) => {
             danger_level: "low",
             confidence: null,
             quality: null,
+            severity_probabilities: null,
+            most_likely_severity: null,
+            expected_severity: null,
           };
 
         return {
@@ -1784,6 +1787,13 @@ exports.predictRouteGuide = async (req, res) => {
           danger_level: prediction.danger_level,
           confidence: prediction.confidence,
           quality: prediction.quality,
+          // Carry the multiclass severity breakdown through so each route
+          // segment exposes P(Sev 1..4) + most-likely/expected severity as
+          // secondary detail. Occurrence is the primary navigation signal;
+          // severity is supplementary. buildRouteGuideSegments reads these.
+          severity_probabilities: prediction.severity_probabilities ?? null,
+          most_likely_severity: prediction.most_likely_severity ?? null,
+          expected_severity: prediction.expected_severity ?? null,
           riskAvailable: true,
           risk_available: true,
         };
