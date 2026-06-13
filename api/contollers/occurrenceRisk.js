@@ -6,11 +6,21 @@ const {
   listUserOccurrenceRiskHistory,
   canViewOccurrenceRisk,
 } = require("../services/occurrenceRiskService");
+const { getForecastZones } = require("../services/forecastZonesService");
 const {
   verifyToken,
   verifyTokenAndAdmin,
   verifyTokenAndPolice,
 } = require("./verifytoken");
+
+function parseBoundsFromQuery(query = {}) {
+  const north = Number(query.north);
+  const south = Number(query.south);
+  const east = Number(query.east);
+  const west = Number(query.west);
+  if (![north, south, east, west].every(Number.isFinite)) return null;
+  return { north, south, east, west };
+}
 
 function rethrowAsHttp(error) {
   if (error?.status && Number.isInteger(error.status)) {
@@ -32,6 +42,33 @@ router.post("/segment", verifyToken, async (req, res, next) => {
       contextOverride: body.context || null,
       persist: body.persist !== false,
       deadline: req.deadline,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    try {
+      rethrowAsHttp(error);
+    } catch (httpError) {
+      return next(httpError);
+    }
+    return next(error);
+  }
+});
+
+// AI "predicted danger zones" for the visible map area. Scores accident
+// hotspots in-bounds with the occurrence model for the forecast time
+// (timestamp or now + hours). Authenticated so the score can be personalized.
+router.get("/forecast-zones", verifyToken, async (req, res, next) => {
+  try {
+    const bounds = parseBoundsFromQuery(req.query || {});
+    if (!bounds) {
+      throw createError(400, "north, south, east and west query params are required");
+    }
+    const result = await getForecastZones({
+      bounds,
+      timestamp: req.query?.timestamp || null,
+      horizonHours: req.query?.hours,
+      zoom: req.query?.zoom,
+      userId: req.user.userId,
     });
     return res.status(200).json(result);
   } catch (error) {
