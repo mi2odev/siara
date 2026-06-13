@@ -39,6 +39,7 @@ const {
   getSupervisorDashboard,
   getSupervisorAnalytics,
   getSupervisorGlobalMap,
+  fetchOnDutyZoneOfficers,
 } = require("../services/supervisorService");
 
 async function requirePoliceSupervisor(req, res, next) {
@@ -110,6 +111,17 @@ router.post("/me/location", verifyTokenAndPolice, async (req, res, next) => {
 router.get("/dashboard", verifyTokenAndPolice, async (req, res, next) => {
   try {
     return res.status(200).json(await getPoliceDashboard(req.user.userId));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// On-duty officers in the caller's own work zone, excluding the caller.
+// Available to any police officer (not just supervisors).
+router.get("/zone-officers", verifyTokenAndPolice, async (req, res, next) => {
+  try {
+    const officers = await fetchOnDutyZoneOfficers(req.user);
+    return res.status(200).json({ officers });
   } catch (error) {
     return next(error);
   }

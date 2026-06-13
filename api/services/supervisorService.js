@@ -334,10 +334,105 @@ async function getSupervisorAnalytics(supervisorUser, query = {}, db = pool) {
   };
 }
 
+// On-duty officers in the caller's own work zone, excluding the caller.
+// Shared by the supervisor "Global Map" officer layer and the police officers
+// map. The caller's zone is their active commune assignment (most specific),
+// falling back to active wilaya, then the default profile zone.
+async function fetchOnDutyZoneOfficers(user, db = pool) {
+  const userId = user?.userId || user?.id;
+  if (!userId) {
+    const error = new Error("Authenticated user required");
+    error.status = 401;
+    throw error;
+  }
+
+  const zoneResult = await db.query(
+    `
+      SELECT
+        COALESCE(act.commune_id, pp.default_commune_id) AS commune_id,
+        COALESCE(act.wilaya_id, pp.default_wilaya_id) AS wilaya_id
+      FROM app.police_profiles pp
+      LEFT JOIN LATERAL (
+        SELECT
+          MAX(CASE WHEN zone_level = 'commune' AND is_active THEN admin_area_id END) AS commune_id,
+          MAX(CASE WHEN zone_level = 'wilaya'  AND is_active THEN admin_area_id END) AS wilaya_id
+        FROM app.police_work_zone_assignments
+        WHERE officer_user_id = pp.user_id
+      ) act ON TRUE
+      WHERE pp.user_id = $1
+      LIMIT 1
+    `,
+    [userId],
+  );
+  const zone = zoneResult.rows[0] || {};
+  const communeId = zone.commune_id != null ? Number(zone.commune_id) : null;
+  const wilayaId = zone.wilaya_id != null ? Number(zone.wilaya_id) : null;
+
+  // No zone configured → nothing scoped to show.
+  if (communeId == null && wilayaId == null) return [];
+
+  const officersResult = await db.query(
+    `
+      SELECT
+        u.id,
+        CONCAT_WS(' ', u.first_name, u.last_name) AS full_name,
+        pp.badge_number,
+        pp.rank,
+        pp.is_on_duty,
+        ST_Y(latest_loc.location::geometry) AS lat,
+        ST_X(latest_loc.location::geometry) AS lng,
+        latest_loc.captured_at,
+        active_commune.name AS commune_name,
+        active_wilaya.name AS wilaya_name
+      FROM app.police_profiles pp
+      JOIN auth.users u ON u.id = pp.user_id
+      LEFT JOIN LATERAL (
+        SELECT *
+        FROM app.officer_location_updates loc
+        WHERE loc.officer_user_id = u.id
+        ORDER BY loc.captured_at DESC, loc.id DESC
+        LIMIT 1
+      ) latest_loc ON TRUE
+      LEFT JOIN app.police_work_zone_assignments wza_commune
+        ON wza_commune.officer_user_id = u.id
+       AND wza_commune.zone_level = 'commune'
+       AND wza_commune.is_active = TRUE
+      LEFT JOIN gis.admin_areas active_commune ON active_commune.id = wza_commune.admin_area_id
+      LEFT JOIN app.police_work_zone_assignments wza_wilaya
+        ON wza_wilaya.officer_user_id = u.id
+       AND wza_wilaya.zone_level = 'wilaya'
+       AND wza_wilaya.is_active = TRUE
+      LEFT JOIN gis.admin_areas active_wilaya ON active_wilaya.id = wza_wilaya.admin_area_id
+      WHERE u.is_active = TRUE
+        AND pp.is_on_duty = TRUE
+        AND u.id <> $1
+        AND (
+          ($2::int IS NOT NULL AND wza_commune.admin_area_id = $2)
+          OR ($2::int IS NULL AND $3::int IS NOT NULL AND wza_wilaya.admin_area_id = $3)
+        )
+      ORDER BY u.first_name ASC
+    `,
+    [userId, communeId, wilayaId],
+  );
+
+  return officersResult.rows.map((row) => ({
+    id: row.id,
+    name: row.full_name || "Officer",
+    badgeNumber: row.badge_number || null,
+    rank: row.rank || null,
+    isOnDuty: Boolean(row.is_on_duty),
+    lat: row.lat == null ? null : Number(row.lat),
+    lng: row.lng == null ? null : Number(row.lng),
+    locationCapturedAt: row.captured_at ? new Date(row.captured_at).toISOString() : null,
+    communeName: row.commune_name || null,
+    wilayaName: row.wilaya_name || null,
+  }));
+}
+
 async function getSupervisorGlobalMap(supervisorUser, db = pool) {
   assertSupervisorUser(supervisorUser);
 
-  const [incidentsResult, officersResult] = await Promise.all([
+  const [incidentsResult, officers] = await Promise.all([
     db.query(
       `
         SELECT
@@ -360,42 +455,9 @@ async function getSupervisorGlobalMap(supervisorUser, db = pool) {
         LIMIT 200
       `,
     ),
-    db.query(
-      `
-        SELECT
-          u.id,
-          CONCAT_WS(' ', u.first_name, u.last_name) AS full_name,
-          pp.badge_number,
-          pp.rank,
-          pp.is_on_duty,
-          ST_Y(latest_loc.location::geometry) AS lat,
-          ST_X(latest_loc.location::geometry) AS lng,
-          latest_loc.captured_at,
-          active_commune.name AS commune_name,
-          active_wilaya.name AS wilaya_name
-        FROM app.police_profiles pp
-        JOIN auth.users u ON u.id = pp.user_id
-        LEFT JOIN LATERAL (
-          SELECT *
-          FROM app.officer_location_updates loc
-          WHERE loc.officer_user_id = u.id
-          ORDER BY loc.captured_at DESC, loc.id DESC
-          LIMIT 1
-        ) latest_loc ON TRUE
-        LEFT JOIN app.police_work_zone_assignments wza_commune
-          ON wza_commune.officer_user_id = u.id
-         AND wza_commune.zone_level = 'commune'
-         AND wza_commune.is_active = TRUE
-        LEFT JOIN gis.admin_areas active_commune ON active_commune.id = wza_commune.admin_area_id
-        LEFT JOIN app.police_work_zone_assignments wza_wilaya
-          ON wza_wilaya.officer_user_id = u.id
-         AND wza_wilaya.zone_level = 'wilaya'
-         AND wza_wilaya.is_active = TRUE
-        LEFT JOIN gis.admin_areas active_wilaya ON active_wilaya.id = wza_wilaya.admin_area_id
-        WHERE u.is_active = TRUE
-        ORDER BY pp.is_on_duty DESC, u.first_name ASC
-      `,
-    ),
+    // Officer layer is scoped to the supervisor's own zone, on-duty only,
+    // excluding the supervisor themselves.
+    fetchOnDutyZoneOfficers(supervisorUser, db),
   ]);
 
   return {
@@ -418,18 +480,7 @@ async function getSupervisorGlobalMap(supervisorUser, db = pool) {
       occurredAt: row.occurred_at ? new Date(row.occurred_at).toISOString() : null,
       createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
     })),
-    officers: officersResult.rows.map((row) => ({
-      id: row.id,
-      name: row.full_name || "Officer",
-      badgeNumber: row.badge_number || null,
-      rank: row.rank || null,
-      isOnDuty: Boolean(row.is_on_duty),
-      lat: row.lat == null ? null : Number(row.lat),
-      lng: row.lng == null ? null : Number(row.lng),
-      locationCapturedAt: row.captured_at ? new Date(row.captured_at).toISOString() : null,
-      communeName: row.commune_name || null,
-      wilayaName: row.wilaya_name || null,
-    })),
+    officers,
   };
 }
 
@@ -437,4 +488,5 @@ module.exports = {
   getSupervisorDashboard,
   getSupervisorAnalytics,
   getSupervisorGlobalMap,
+  fetchOnDutyZoneOfficers,
 };
