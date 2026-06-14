@@ -1,0 +1,30 @@
+# SIARA Flask ML service — pinned Python dependencies.
+#
+# These versions are verified to load every model artifact in this repo.
+#
+# LOAD-BEARING PIN: scikit-learn==1.6.1
+#   The occurrence model (occurrence-model/.../calibrator.joblib) and the
+#   driver-quiz / anomaly models were trained & pickled with scikit-learn 1.6.1.
+#   Newer scikit-learn (>=1.7) removed internal classes such as
+#   `_RemainderColsList`, so joblib.load() raises:
+#       AttributeError: Can't get attribute '_RemainderColsList'
+#   which disables the occurrence model at startup and makes
+#   /risk/occurrence/predict return HTTP 503. Do NOT bump scikit-learn
+#   without re-exporting the model artifacts with the new version.
+#
+# Install into a dedicated venv:
+#   py -3.13 -m venv .venv
+#   .venv\Scripts\activate        (Windows)   |   source .venv/bin/activate (mac/linux)
+#   pip install -r requirements.txt
+
+scikit-learn==1.6.1
+numpy==2.4.4
+scipy==1.17.1
+joblib==1.5.3
+threadpoolctl==3.6.0
+lightgbm==4.6.0
+shap==0.51.0
+pandas==3.0.2
+
+Flask==3.1.3
+requests==2.33.1
