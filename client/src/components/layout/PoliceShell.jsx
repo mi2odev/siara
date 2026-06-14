@@ -19,6 +19,10 @@ import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import TrackChangesOutlinedIcon from '@mui/icons-material/TrackChangesOutlined'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
+import HubOutlinedIcon from '@mui/icons-material/HubOutlined'
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined'
 import NotificationBell from '../notifications/NotificationBell'
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
@@ -521,34 +525,50 @@ export default function PoliceShell({
                       </p>
                       <div className="info-quick-pillars">
                         <article>
+                          <span className="info-quick-pillar-icon"><TrackChangesOutlinedIcon fontSize="inherit" /></span>
                           <h4>Mission</h4>
                           <p>Reduce road risk with fast, evidence-based incident coordination.</p>
                         </article>
                         <article>
+                          <span className="info-quick-pillar-icon"><VisibilityOutlinedIcon fontSize="inherit" /></span>
                           <h4>Vision</h4>
                           <p>Build connected, AI-supported urban safety systems for smarter mobility.</p>
                         </article>
                         <article>
+                          <span className="info-quick-pillar-icon"><HubOutlinedIcon fontSize="inherit" /></span>
                           <h4>Approach</h4>
                           <p>Combine citizen signals, geospatial context, and operational analytics in one workflow.</p>
                         </article>
                       </div>
+                      <p className="info-quick-section-label">Platform capabilities</p>
                       <div className="info-quick-mini-cards">
                         <article>
-                          <h4>Risk Mapping</h4>
-                          <p>Identify hotspots and incident density zones in real time.</p>
+                          <span className="info-quick-mini-icon info-quick-mini-icon--map"><MapOutlinedIcon fontSize="inherit" /></span>
+                          <div className="info-quick-mini-text">
+                            <h4>Risk Mapping</h4>
+                            <p>Identify hotspots and incident density zones in real time.</p>
+                          </div>
                         </article>
                         <article>
-                          <h4>Alert Intelligence</h4>
-                          <p>Prioritize high-impact events using severity and reliability indicators.</p>
+                          <span className="info-quick-mini-icon info-quick-mini-icon--alert"><NotificationsActiveOutlinedIcon fontSize="inherit" /></span>
+                          <div className="info-quick-mini-text">
+                            <h4>Alert Intelligence</h4>
+                            <p>Prioritize high-impact events using severity and reliability indicators.</p>
+                          </div>
                         </article>
                         <article>
-                          <h4>Response Coordination</h4>
-                          <p>Support faster field decisions with one shared operational view.</p>
+                          <span className="info-quick-mini-icon info-quick-mini-icon--team"><GroupsOutlinedIcon fontSize="inherit" /></span>
+                          <div className="info-quick-mini-text">
+                            <h4>Response Coordination</h4>
+                            <p>Support faster field decisions with one shared operational view.</p>
+                          </div>
                         </article>
                         <article>
-                          <h4>Performance Tracking</h4>
-                          <p>Measure verification and response outcomes to improve continuously.</p>
+                          <span className="info-quick-mini-icon info-quick-mini-icon--insight"><InsightsOutlinedIcon fontSize="inherit" /></span>
+                          <div className="info-quick-mini-text">
+                            <h4>Performance Tracking</h4>
+                            <p>Measure verification and response outcomes to improve continuously.</p>
+                          </div>
                         </article>
                       </div>
                     </div>
@@ -568,16 +588,50 @@ export default function PoliceShell({
                       <p className="info-quick-lead">
                         SIARA provides a clear operational pipeline from report intake to validated alert delivery.
                       </p>
-                      <ol className="info-quick-steps info-quick-steps-pro">
-                        <li><strong>Incident Intake</strong><span>Capture reports with location, media, and contextual metadata.</span></li>
-                        <li><strong>Data Validation</strong><span>Normalize and verify incoming records for analysis readiness.</span></li>
-                        <li><strong>Risk Assessment</strong><span>Estimate urgency and confidence using AI-assisted scoring.</span></li>
-                        <li><strong>Operational Review</strong><span>Authorized teams validate incidents and assign response priorities.</span></li>
-                        <li><strong>Alert Distribution</strong><span>Deliver relevant alerts to users and operational stakeholders.</span></li>
+                      <ol className="info-quick-timeline">
+                        <li>
+                          <span className="info-quick-step-marker"><EditNoteOutlinedIcon fontSize="inherit" /></span>
+                          <div className="info-quick-step-body">
+                            <strong>Incident Intake</strong>
+                            <span>Capture reports with location, media, and contextual metadata.</span>
+                          </div>
+                        </li>
+                        <li>
+                          <span className="info-quick-step-marker"><FactCheckOutlinedIcon fontSize="inherit" /></span>
+                          <div className="info-quick-step-body">
+                            <strong>Data Validation</strong>
+                            <span>Normalize and verify incoming records for analysis readiness.</span>
+                          </div>
+                        </li>
+                        <li>
+                          <span className="info-quick-step-marker"><PsychologyOutlinedIcon fontSize="inherit" /></span>
+                          <div className="info-quick-step-body">
+                            <strong>Risk Assessment</strong>
+                            <span>Estimate urgency and confidence using AI-assisted scoring.</span>
+                          </div>
+                        </li>
+                        <li>
+                          <span className="info-quick-step-marker"><LocalPoliceOutlinedIcon fontSize="inherit" /></span>
+                          <div className="info-quick-step-body">
+                            <strong>Operational Review</strong>
+                            <span>Authorized teams validate incidents and assign response priorities.</span>
+                          </div>
+                        </li>
+                        <li>
+                          <span className="info-quick-step-marker"><CampaignOutlinedIcon fontSize="inherit" /></span>
+                          <div className="info-quick-step-body">
+                            <strong>Alert Distribution</strong>
+                            <span>Deliver relevant alerts to users and operational stakeholders.</span>
+                          </div>
+                        </li>
                       </ol>
-                      <p className="info-quick-tech">
-                        <strong>Technology stack:</strong> AI risk scoring, geospatial mapping, real-time events, and verification workflow.
-                      </p>
+                      <p className="info-quick-section-label">Technology stack</p>
+                      <div className="info-quick-chips">
+                        <span className="info-quick-chip"><PsychologyOutlinedIcon fontSize="inherit" /> AI risk scoring</span>
+                        <span className="info-quick-chip"><MapOutlinedIcon fontSize="inherit" /> Geospatial mapping</span>
+                        <span className="info-quick-chip"><NotificationsActiveOutlinedIcon fontSize="inherit" /> Real-time events</span>
+                        <span className="info-quick-chip"><GpsFixedOutlinedIcon fontSize="inherit" /> Verification workflow</span>
+                      </div>
                     </div>
                   </>
                 ) : null}

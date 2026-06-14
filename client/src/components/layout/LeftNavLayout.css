@@ -1,0 +1,71 @@
+/* ================================================ LEFT NAV LAYOUT
+   Gives standalone pages the standard left sidebar (profile card + shared nav)
+   alongside their own content, matching the main app pages. */
+
+.lnl-root {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 420px at 100% -80px, rgba(139, 92, 246, 0.10), transparent 58%),
+    radial-gradient(900px 360px at -120px -100px, rgba(59, 130, 246, 0.08), transparent 52%),
+    #f5f6fb;
+}
+
+.lnl-grid {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 20px;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 20px 16px 36px;
+  align-items: start;
+}
+
+.lnl-sidebar {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.lnl-sidebar::-webkit-scrollbar { width: 6px; }
+.lnl-sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+.lnl-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  user-select: none;
+}
+
+.lnl-main {
+  min-width: 0;
+}
+
+/* Neutralise the standalone pages' own full-viewport roots so they sit cleanly
+   inside the main column (their inner cards/shell are preserved). */
+.lnl-main > .info-page-root,
+.lnl-main > .siara-ds-page,
+.lnl-main > .siara-zp__page {
+  min-height: 0;
+  background: transparent;
+  padding: 0;
+}
+
+@media (max-width: 1024px) {
+  .lnl-grid {
+    grid-template-columns: 1fr;
+  }
+  .lnl-sidebar {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}

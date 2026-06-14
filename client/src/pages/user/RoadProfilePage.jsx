@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 
 import RoadSafetyProfileCard from '../../components/road/RoadSafetyProfileCard'
 import { getZoneProfile } from '../../services/zoneProfileService'
+import LeftNavLayout from '../../components/layout/LeftNavLayout'
 import '../../styles/RoadSafetyProfile.css'
 
 export default function RoadProfilePage() {
@@ -56,6 +57,7 @@ export default function RoadProfilePage() {
   }
 
   return (
+    <LeftNavLayout activeKey="map">
     <div className="siara-zp__page">
       <div className="siara-zp__page-header">
         <h1 className="siara-zp__page-title">Road / zone safety profile</h1>
@@ -128,5 +130,6 @@ export default function RoadProfilePage() {
         </p>
       ) : null}
     </div>
+    </LeftNavLayout>
   )
 }

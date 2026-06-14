@@ -1,6 +1,13 @@
 import React from 'react'
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
+import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined'
+import CarCrashOutlinedIcon from '@mui/icons-material/CarCrashOutlined'
+import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
+import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import PoliceOfficerPanel from '../../components/police/PoliceOfficerPanel'
@@ -13,6 +20,23 @@ function displayLabel(value) {
   return String(value || '')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function renderAlertTypeIcon(type) {
+  switch (String(type || '').toLowerCase()) {
+    case 'weather':
+      return <CloudOutlinedIcon fontSize="inherit" />
+    case 'accident':
+      return <CarCrashOutlinedIcon fontSize="inherit" />
+    case 'traffic':
+      return <TrafficOutlinedIcon fontSize="inherit" />
+    case 'roadworks':
+      return <ConstructionOutlinedIcon fontSize="inherit" />
+    case 'danger':
+      return <WarningAmberOutlinedIcon fontSize="inherit" />
+    default:
+      return <CampaignOutlinedIcon fontSize="inherit" />
+  }
 }
 
 function formatAlertWindow(alert) {
@@ -180,27 +204,6 @@ export default function PoliceAlertCenterPage() {
           </p>
         ) : null}
 
-        {!error && selectedAlert ? (
-          <section className="police-section" aria-live="polite">
-            <div className="police-alert-item-head">
-              <h3>{selectedAlert.title}</h3>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span className={`police-badge ${selectedAlert.severity}`}>{displayLabel(selectedAlert.severity)}</span>
-                {selectedAlert.expired ? <span className="police-badge neutral">Expired</span> : null}
-              </div>
-            </div>
-
-            <p>{selectedAlert.description || 'No description provided.'}</p>
-
-            <div className="police-alert-item-meta">
-              <span>Type: <strong>{displayLabel(selectedAlert.alertType)}</strong></span>
-              <span>Status: <strong>{selectedAlert.expired ? 'Expired' : displayLabel(selectedAlert.status)}</strong></span>
-              <span>Issued: <strong>{selectedAlert.createdAtLabel}</strong></span>
-              <span>Window: <strong>{formatAlertWindow(selectedAlert)}</strong></span>
-            </div>
-          </section>
-        ) : null}
-
         <div className="police-alert-list">
           {sortedAlerts.map((alert) => {
             const isRead = Boolean(alert.read)
@@ -215,19 +218,37 @@ export default function PoliceAlertCenterPage() {
               >
                 <div className="police-alert-item-main">
                   <div className="police-alert-item-head">
-                    <h3>{alert.title}</h3>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className="police-alert-item-title">
+                      <span className={`police-alert-type-icon police-alert-type-icon--${severity}`} aria-hidden="true">
+                        {renderAlertTypeIcon(alert.alertType)}
+                      </span>
+                      <div className="police-alert-item-titletext">
+                        <h3>{alert.title}</h3>
+                        <span className="police-alert-type-label">{displayLabel(alert.alertType)}</span>
+                      </div>
+                    </div>
+                    <div className="police-alert-item-badges">
+                      {!isRead ? <span className="police-alert-unread-dot" title="Unread" aria-label="Unread" /> : null}
                       <span className={`police-badge ${severity}`}>{displayLabel(alert.severity)}</span>
                       {alert.expired ? <span className="police-badge neutral">Expired</span> : null}
                     </div>
                   </div>
 
-                  <p>{alert.description || 'No description provided.'}</p>
+                  <p className="police-alert-desc">{alert.description || 'No description provided.'}</p>
 
                   <div className="police-alert-item-meta">
-                    <span>Type: <strong>{displayLabel(alert.alertType)}</strong></span>
-                    <span>Status: <strong>{alert.expired ? 'Expired' : displayLabel(alert.status)}</strong></span>
-                    <time dateTime={alert.createdAt}>{alert.createdAtLabel}</time>
+                    <span className="police-alert-meta-cell">
+                      <span className="police-alert-meta-label">Status</span>
+                      <strong>{alert.expired ? 'Expired' : displayLabel(alert.status)}</strong>
+                    </span>
+                    <span className="police-alert-meta-cell">
+                      <span className="police-alert-meta-label">Issued</span>
+                      <strong>{alert.createdAtLabel}</strong>
+                    </span>
+                    <span className="police-alert-meta-cell">
+                      <span className="police-alert-meta-label">Active window</span>
+                      <strong>{formatAlertWindow(alert)}</strong>
+                    </span>
                   </div>
                 </div>
 
@@ -238,7 +259,7 @@ export default function PoliceAlertCenterPage() {
                     disabled={isBusy || isRefreshing}
                     onClick={() => handleOpenAlert(alert)}
                   >
-                    {isBusy ? 'Opening...' : isRead ? 'Open' : 'Read'}
+                    {isBusy ? 'Opening...' : isRead ? 'Open' : 'Mark read'}
                   </button>
                 </div>
               </article>

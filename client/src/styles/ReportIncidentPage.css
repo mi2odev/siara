@@ -713,36 +713,59 @@
 .title-input {
   width: 100%;
   padding: 14px 18px;
-  border: 2px solid var(--report-border);
-  border-radius: 10px;
+  border: 1.5px solid var(--report-border);
+  border-radius: 12px;
   font-size: 1rem;
   color: var(--report-text);
-  background: #ffffff;
-  transition: border-color 0.2s ease;
+  background: #f8fafc;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.title-input::placeholder,
+.desc-input::placeholder {
+  color: #94a3b8;
 }
 
 .title-input:focus {
   outline: none;
   border-color: var(--report-accent);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+}
+
+/* Description field wrapper — counter sits inside the textarea frame */
+.desc-field {
+  position: relative;
 }
 
 .desc-input {
   width: 100%;
-  padding: 14px 18px;
-  border: 2px solid var(--report-border);
-  border-radius: 10px;
+  padding: 14px 18px 34px;
+  border: 1.5px solid var(--report-border);
+  border-radius: 12px;
   font-size: 0.95rem;
+  line-height: 1.6;
   color: var(--report-text);
-  background: #ffffff;
+  background: #f8fafc;
   resize: vertical;
-  min-height: 100px;
+  min-height: 132px;
   font-family: inherit;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .desc-input:focus {
   outline: none;
   border-color: var(--report-accent);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+}
+
+.desc-field .input-meta {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  margin-top: 0;
+  pointer-events: none;
 }
 
 .input-meta {
@@ -753,8 +776,14 @@
 }
 
 .char-count {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
   color: var(--report-muted);
+}
+
+.char-count.is-near-limit {
+  color: #d97706;
+  font-weight: 600;
 }
 
 .input-error {
@@ -764,27 +793,50 @@
 
 /* Writing Tips */
 .writing-tips {
-  background: rgba(99, 102, 241, 0.05);
-  border: 1px solid rgba(99, 102, 241, 0.15);
-  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.06), rgba(99, 102, 241, 0.03));
+  border: 1px solid rgba(99, 102, 241, 0.16);
+  border-radius: 12px;
   padding: 14px 16px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .tips-title {
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--report-accent);
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .writing-tips ul {
   margin: 0;
-  padding-left: 20px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
   font-size: 0.85rem;
   color: var(--report-muted);
-  line-height: 1.6;
+  line-height: 1.5;
+}
+
+.writing-tips li {
+  position: relative;
+  padding-left: 24px;
+}
+
+.writing-tips li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.14);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236366F1' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 /* Severity Selector */

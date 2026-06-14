@@ -82,6 +82,11 @@ export async function getUserSettings() {
   }
 }
 
+export async function getMyActivityTimeline(limit = 30) {
+  const response = await userRequest.get('/auth/activity', { params: { limit } })
+  return Array.isArray(response.data?.events) ? response.data.events : []
+}
+
 export async function getUserPrivacyVisibility(userId) {
   const response = await userRequest.get(`/auth/users/${userId}/privacy`)
   return {

@@ -57,6 +57,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { createReport, uploadReportMedia } from '../../services/reportsService'
 import ReportSuggestionCard from '../../components/reports/ReportSuggestionCard'
+import DateTimePicker from '../../components/ui/DateTimePicker'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/ReportIncidentPage.css'
 import '../../styles/DashboardPage.css'
@@ -1109,16 +1110,20 @@ export default function ReportIncidentPage() {
 
                 <div className="form-group">
                   <label>Description <span className="optional">(optional)</span></label>
-                  <textarea
-                    className="desc-input"
-                    placeholder="Describe what you observed. Stay factual and objective."
-                    value={reportData.description}
-                    onChange={(e) => setReportData(prev => ({ ...prev, description: e.target.value.slice(0, 500) }))}
-                    maxLength={500}
-                    rows={4}
-                  />
-                  <div className="input-meta">
-                    <span className="char-count">{reportData.description.length}/500</span>
+                  <div className="desc-field">
+                    <textarea
+                      className="desc-input"
+                      placeholder="Describe what you observed. Stay factual and objective."
+                      value={reportData.description}
+                      onChange={(e) => setReportData(prev => ({ ...prev, description: e.target.value.slice(0, 500) }))}
+                      maxLength={500}
+                      rows={4}
+                    />
+                    <div className="input-meta">
+                      <span className={`char-count ${reportData.description.length >= 450 ? 'is-near-limit' : ''}`}>
+                        {reportData.description.length}/500
+                      </span>
+                    </div>
                   </div>
                   <div className="writing-tips">
                     <span className="tips-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TipsAndUpdatesOutlinedIcon fontSize="inherit" className="icon-info" /> Tips</span>
@@ -1219,12 +1224,10 @@ export default function ReportIncidentPage() {
 
                   {reportData.timePreset === 'custom' && (
                     <div className="custom-time-input">
-                      <AccessTimeRoundedIcon fontSize="inherit" className="custom-time-icon" />
-                      <input
-                        type="datetime-local"
+                      <DateTimePicker
                         value={reportData.customTime}
                         max={toLocalDateTimeValue(new Date())}
-                        onChange={(e) => setReportData(prev => ({ ...prev, customTime: e.target.value }))}
+                        onChange={(next) => setReportData(prev => ({ ...prev, customTime: next }))}
                       />
                     </div>
                   )}
