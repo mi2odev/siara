@@ -246,7 +246,6 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   const [reactionBusy, setReactionBusy] = useState(false)
   const [loadedMediaKeys, setLoadedMediaKeys] = useState(() => new Set())
   const [shareCopied, setShareCopied] = useState(false)
-  const [aiOpen, setAiOpen] = useState(false)
   const [allComments, setAllComments] = useState(null)
   const [allCommentsLoading, setAllCommentsLoading] = useState(false)
   const [allCommentsError, setAllCommentsError] = useState('')
@@ -488,10 +487,6 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   }
 
   const credibility = computeReportCredibility(report)
-  // Real ML classifier confidence (0–100) from spamAnalysis.confidence, or null
-  // when the report hasn't been classified yet. Never synthesised.
-  const aiConfidence = confidencePercent
-  const aiReasons = Array.isArray(credibility?.reasons) ? credibility.reasons.slice(0, 3) : []
   const qualityTone = {
     positive_strong: 'positive',
     positive: 'positive',
@@ -681,71 +676,6 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
             )
           })}
         </div>
-      )}
-
-      {/* ── AI INSIGHTS (collapsible) ── */}
-      {(aiReasons.length > 0 || aiConfidence != null) && (
-        <section className={`pcx-ai${aiOpen ? ' is-open' : ''}`} aria-label="AI analysis">
-          <button
-            type="button"
-            className="pcx-ai-toggle"
-            onClick={() => setAiOpen((open) => !open)}
-            aria-expanded={aiOpen}
-            aria-controls={`pcx-ai-panel-${report.id}`}
-          >
-            <span className="pcx-ai-icon" aria-hidden>
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
-                <path d="M12 2l1.8 4.5L18 8l-4.2 1.5L12 14l-1.8-4.5L6 8l4.2-1.5L12 2zm6.5 9l.9 2.2 2.2.9-2.2.9-.9 2.2-.9-2.2-2.2-.9 2.2-.9.9-2.2zM5 12.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9L2.3 16l1.9-.8.8-1.9z"/>
-              </svg>
-            </span>
-            <span className="pcx-ai-toggle-text">
-              <span className="pcx-ai-title">AI Analysis</span>
-              <span className="pcx-ai-sub">{aiOpen ? 'Hide details' : 'View confidence & findings'}</span>
-            </span>
-            {aiConfidence != null && (
-              <span className={`pcx-ai-chip pcx-ai-chip--${credibility?.level || 'medium'}`}>{aiConfidence}%</span>
-            )}
-            <svg className="pcx-ai-chevron" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-              <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-
-          <div className="pcx-ai-panel" id={`pcx-ai-panel-${report.id}`} aria-hidden={!aiOpen}>
-            <div className="pcx-ai-panel-inner">
-              <div className="pcx-ai-panel-body">
-                {aiConfidence != null && (
-                  <div className="pcx-ai-conf">
-                    <span className="pcx-ai-conf-label">Confidence</span>
-                    <span className="pcx-ai-conf-bar">
-                      <span className="pcx-ai-conf-fill" style={{ width: `${Math.max(4, Math.min(100, aiConfidence))}%` }} />
-                    </span>
-                    <span className="pcx-ai-conf-val">{aiConfidence}%</span>
-                  </div>
-                )}
-                {aiReasons.length > 0 && (
-                  <ul className="pcx-ai-list">
-                    {aiReasons.map((reason, idx) => (
-                      <li key={idx} className={`pcx-ai-item pcx-ai-item--${reason.kind}`}>
-                        <span className="pcx-ai-ico" aria-hidden>
-                          {reason.kind === 'positive' ? (
-                            <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.3">
-                              <path d="M3.5 8.4l3 3 6-7" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          ) : (
-                            <svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor">
-                              <path d="M8 1.6 15 14H1L8 1.6Zm0 4.4a.9.9 0 0 0-.9 1l.3 3a.6.6 0 0 0 1.2 0l.3-3a.9.9 0 0 0-.9-1Zm0 6.2a.85.85 0 1 0 0 1.7.85.85 0 0 0 0-1.7Z"/>
-                            </svg>
-                          )}
-                        </span>
-                        {reason.text}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
       )}
 
       {/* ── ACTIONS ── */}
@@ -1653,7 +1583,6 @@ export default function NewsPage() {
                   event.currentTarget.src = profileAvatar
                 }
               }} />
-              <span className="verified-badge">V</span>
             </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>

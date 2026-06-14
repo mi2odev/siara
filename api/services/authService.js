@@ -1130,7 +1130,7 @@ async function syncGoogleUserRecord(client, userId, payload) {
     `
       update auth.users
       set
-        avatar_url = coalesce($2, avatar_url),
+        avatar_url = coalesce(nullif(avatar_url, ''), $2),
         auth_provider = case
           when auth_provider is null or auth_provider = '' then $3
           else auth_provider
@@ -1334,12 +1334,221 @@ async function updateEmailPreferences(userId, input = {}, db = pool) {
   return result.rows[0] || null;
 }
 
+function relativeTimeLabel(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) {
+    return "Recently";
+  }
+
+  const seconds = Math.round((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "Just now";
+
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
+
+  const weeks = Math.round(days / 7);
+  if (weeks < 5) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
+
+  const months = Math.round(days / 30);
+  if (months < 12) return `${months} month${months > 1 ? "s" : ""} ago`;
+
+  const years = Math.round(days / 365);
+  return `${years} year${years > 1 ? "s" : ""} ago`;
+}
+
+function humanizeIncidentType(value) {
+  const normalized = normalizeOptionalString(value);
+  if (!normalized) return "Incident";
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1).replace(/_/g, " ");
+}
+
+/**
+ * Build a real, unified activity timeline for a user from their reports (and
+ * the lifecycle of each: AI classification, officer verification/resolution,
+ * admin review), the alert rules they created, and the times those alerts were
+ * triggered. Returns newest-first, each event with an ISO `at` and a
+ * human-friendly relative `timeLabel`.
+ */
+async function fetchUserActivityTimeline(userId, { limit = 30 } = {}, db = pool) {
+  const safeLimit = Math.max(1, Math.min(60, Number(limit) || 30));
+  const events = [];
+
+  const reportsResult = await db.query(
+    `
+      select
+        id, title, incident_type, location_label,
+        created_at, reviewed_at, review_verdict,
+        verified_at, resolved_at,
+        latest_classified_at, latest_predicted_label, latest_ml_confidence
+      from app.accident_reports
+      where reported_by = $1
+      order by created_at desc
+      limit 40
+    `,
+    [userId],
+  );
+
+  for (const row of reportsResult.rows) {
+    const label = normalizeOptionalString(row.title) || humanizeIncidentType(row.incident_type);
+    const where = row.location_label ? ` · ${row.location_label}` : "";
+
+    events.push({
+      kind: "report_created",
+      at: row.created_at,
+      title: "Report created",
+      description: `${label}${where}`,
+    });
+
+    if (row.latest_classified_at) {
+      const predicted = String(row.latest_predicted_label || "").toLowerCase();
+      const isSpam = predicted.includes("spam") || predicted.includes("fake");
+      const confidence = row.latest_ml_confidence != null
+        ? ` (${Math.round(Number(row.latest_ml_confidence) * 100)}% confidence)`
+        : "";
+
+      events.push({
+        kind: isSpam ? "ai_flag" : "ai_validation",
+        at: row.latest_classified_at,
+        title: "AI validation",
+        description: isSpam
+          ? `Flagged for review${confidence}`
+          : `Classified as legitimate${confidence}`,
+      });
+    }
+
+    if (row.verified_at) {
+      events.push({
+        kind: "report_verified",
+        at: row.verified_at,
+        title: "Report verified",
+        description: `${label} was confirmed by an officer`,
+      });
+    }
+
+    if (row.resolved_at) {
+      events.push({
+        kind: "report_resolved",
+        at: row.resolved_at,
+        title: "Report resolved",
+        description: `${label} was marked resolved`,
+      });
+    }
+
+    if (row.reviewed_at && row.review_verdict) {
+      const verdict = String(row.review_verdict).toLowerCase();
+      if (verdict === "confirmed_spam") {
+        events.push({
+          kind: "report_rejected",
+          at: row.reviewed_at,
+          title: "Report flagged",
+          description: `${label} was flagged as spam in review`,
+        });
+      } else if (verdict === "confirmed_legit") {
+        events.push({
+          kind: "report_verified",
+          at: row.reviewed_at,
+          title: "Report confirmed",
+          description: `${label} was confirmed legitimate in review`,
+        });
+      }
+    }
+  }
+
+  const alertsResult = await db.query(
+    `
+      select id, name, created_at
+      from app.alert_rules
+      where user_id = $1
+      order by created_at desc
+      limit 20
+    `,
+    [userId],
+  );
+
+  for (const row of alertsResult.rows) {
+    events.push({
+      kind: "alert_created",
+      at: row.created_at,
+      title: "Alert created",
+      description: normalizeOptionalString(row.name) || "New alert rule",
+    });
+  }
+
+  const triggersResult = await db.query(
+    `
+      select t.matched_at, t.message_preview, r.name as alert_name
+      from app.alert_trigger_log t
+      join app.alert_rules r on r.id = t.alert_id
+      where r.user_id = $1
+      order by t.matched_at desc
+      limit 20
+    `,
+    [userId],
+  );
+
+  for (const row of triggersResult.rows) {
+    events.push({
+      kind: "alert_triggered",
+      at: row.matched_at,
+      title: "Alert triggered",
+      description: normalizeOptionalString(row.message_preview)
+        || `${normalizeOptionalString(row.alert_name) || "An alert"} matched a new incident`,
+    });
+  }
+
+  const tripsResult = await db.query(
+    `
+      select
+        origin_name, destination_name,
+        started_at, arrived_at, created_at,
+        distance_km, route_type
+      from app.travel_histories
+      where user_id = $1
+      order by coalesce(arrived_at, started_at, created_at) desc
+      limit 20
+    `,
+    [userId],
+  );
+
+  for (const row of tripsResult.rows) {
+    const from = normalizeOptionalString(row.origin_name) || "Your location";
+    const to = normalizeOptionalString(row.destination_name) || "Destination";
+    const distance = row.distance_km != null
+      ? ` · ${Number(row.distance_km).toFixed(1)} km`
+      : "";
+
+    events.push({
+      kind: "trip",
+      at: row.arrived_at || row.started_at || row.created_at,
+      title: row.arrived_at ? "Trip completed" : "Trip taken",
+      description: `${from} → ${to}${distance}`,
+    });
+  }
+
+  events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+  return events.slice(0, safeLimit).map((event) => ({
+    kind: event.kind,
+    title: event.title,
+    description: event.description,
+    at: event.at ? new Date(event.at).toISOString() : null,
+    timeLabel: relativeTimeLabel(event.at),
+  }));
+}
+
 module.exports = {
   EMAIL_VERIFICATION_REQUIRED_CODE,
   JWT_COOKIE_NAME,
   clearSessionCookie,
   confirmEmailVerification,
   fetchEmailPreferences,
+  fetchUserActivityTimeline,
   fetchUserByEmail,
   fetchUserById,
   getCookieOptions,
