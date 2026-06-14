@@ -1,7 +1,7 @@
 const router = require("express").Router();
 
 
-const jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken"); 
 const createError = require('http-errors');
 const connection = require('../db');
 const { query } = require("../utils/promiseQuery.js");
