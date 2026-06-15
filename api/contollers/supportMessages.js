@@ -17,7 +17,7 @@ const publicRouter = require("express").Router();
 const adminRouter = require("express").Router();
 
 const pool = require("../db");
-const {
+const { 
   resolveOptionalAuthenticatedUser,
   verifyTokenAndAdmin,
 } = require("./verifytoken");

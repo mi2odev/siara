@@ -31,6 +31,7 @@ import BestTimeToLeavePanel from "./BestTimeToLeavePanel";
 import HeatmapClusterDetailPanel from "./HeatmapClusterDetailPanel";
 import { HEATMAP_LEGEND_COLORS } from "./heatmapVisuals";
 import { explainRoute } from "../../services/riskExplanationService";
+import { completeTravelHistory } from "../../services/travelHistoryService";
 import "../../styles/AccidentHeatmap.css";
 import "../../styles/MapDestinationConfirmCard.css";
 import "../../styles/Navigation.css";
@@ -2596,7 +2597,59 @@ const SiaraMap = ({
     };
   }, []);
 
+  // Records a finished guided trip in the user's travel history. Guards against
+  // partial state (no route/origin/destination) and never throws — a failed
+  // save must not interrupt the user leaving navigation.
+  const savedTripStartRef = useRef(null);
+  const saveCompletedTrip = ({ origin, destination, selectedRoute, startedAt }) => {
+    if (!origin || !destination || !selectedRoute || !startedAt) {
+      return;
+    }
+
+    const originLat = Number(origin.lat);
+    const originLng = Number(origin.lng);
+    const destLat = Number(destination.lat ?? destination.latitude);
+    const destLng = Number(destination.lng ?? destination.longitude);
+    if (
+      !Number.isFinite(originLat) || !Number.isFinite(originLng)
+      || !Number.isFinite(destLat) || !Number.isFinite(destLng)
+    ) {
+      return;
+    }
+
+    // Avoid double-saving the same trip if exit fires more than once.
+    if (savedTripStartRef.current === startedAt) {
+      return;
+    }
+    savedTripStartRef.current = startedAt;
+
+    completeTravelHistory({
+      origin: { lat: originLat, lng: originLng, name: origin.name || null },
+      destination: {
+        lat: destLat,
+        lng: destLng,
+        name: destination.name || destination.full_name || null,
+      },
+      selectedRoute,
+      selectedRouteType: selectedRoute.route_type || selectedRoute.route_label || null,
+      startedAt,
+      arrivedAt: new Date().toISOString(),
+    }).catch((error) => {
+      // Non-blocking: log for diagnostics, but the user still exits cleanly.
+      console.warn("[travel-history] save_failed", error?.message || error);
+    });
+  };
+
   const exitNavigation = () => {
+    // Persist the trip to "My Travel History" before clearing nav state.
+    // Fire-and-forget: saving history must never block or fail the exit.
+    saveCompletedTrip({
+      origin: routeScoringOrigin,
+      destination: activeNavigationDestination,
+      selectedRoute: activeNavigationRoute,
+      startedAt: activeNavigationStartedAt,
+    });
+
     // Invalidate any in-flight route response so it can't toggle guidance
     // back on or surface an error after the user has left navigation.
     routeRequestIdRef.current += 1;

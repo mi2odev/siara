@@ -119,3 +119,41 @@ CREATE INDEX IF NOT EXISTS incident_thread_reports_thread_idx
 CREATE INDEX IF NOT EXISTS idx_accident_reports_not_merged
   ON app.accident_reports (created_at DESC)
   WHERE merged_into_report_id IS NULL;
+
+
+-- ----------------------------------------------------------------------------
+--  2026-06-14 · Allow 'resolved' (+ admin lifecycle) report statuses
+-- ----------------------------------------------------------------------------
+--  The base-schema accident_reports_status_check only permitted
+--    pending, verified, rejected, flagged, merged, archived
+--  so "Resolve Incident" (status = 'resolved') threw a check-constraint
+--  violation. Widen the constraint to the union of every status the API
+--  persists (policeService PERSISTABLE_REPORT_STATUS + reports.js
+--  ALLOWED_STATUSES). All previously-allowed values are kept, so existing rows
+--  stay valid. Applied via migrations/20260614_accident_reports_status_resolved.sql.
+
+ALTER TABLE app.accident_reports
+  DROP CONSTRAINT IF EXISTS accident_reports_status_check;
+
+ALTER TABLE app.accident_reports
+  ADD CONSTRAINT accident_reports_status_check
+  CHECK (status IN (
+    'pending', 'under_review', 'verified', 'dispatched',
+    'rejected', 'resolved', 'flagged', 'merged', 'archived'
+  ));
+
+
+-- ----------------------------------------------------------------------------
+--  2026-06-14 · Profile "Timeline" activity feed — supporting index
+-- ----------------------------------------------------------------------------
+--  The profile page Timeline tab is now functional, backed by
+--  GET /api/auth/activity (authService.fetchUserActivityTimeline). It pulls a
+--  user's recent reports + lifecycle, their alert rules, and alert triggers.
+--  The report query filters by reported_by and orders by created_at DESC; this
+--  composite index turns that into a single index scan. The alert-rule and
+--  alert-trigger queries already have covering indexes. No data change.
+--  Applied via migrations/20260614_user_activity_timeline_indexes.sql.
+
+CREATE INDEX IF NOT EXISTS idx_accident_reports_reported_by_created_at
+  ON app.accident_reports (reported_by, created_at DESC);
+//////////////////////////////////////////////////////////////////

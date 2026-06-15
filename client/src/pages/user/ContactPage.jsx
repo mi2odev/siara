@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import '../../styles/InfoPages.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
+import LeftNavLayout from '../../components/layout/LeftNavLayout'
 import { submitSupportMessage } from '../../services/supportMessagesService'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -63,6 +64,7 @@ export default function ContactPage() {
   }
 
   return (
+    <LeftNavLayout activeKey="contact">
     <div className="info-page-root">
       <main className="info-page-shell">
         <header className="info-page-head info-page-head-plain">
@@ -166,5 +168,6 @@ export default function ContactPage() {
         </section>
       </main>
     </div>
+    </LeftNavLayout>
   )
 }

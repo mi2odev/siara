@@ -3163,6 +3163,118 @@
   line-height: 1.5;
 }
 
+/* ── History tab ─────────────────────────────────────────── */
+.pm-history-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pm-history-count {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.pm-history-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #4f46e5;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.pm-history-sort:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.pm-history-sort svg {
+  font-size: 16px;
+}
+
+.pm-history-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pm-history-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #eef1f6;
+  border-radius: 12px;
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pm-history-row:hover {
+  border-color: #e2e8f0;
+  box-shadow: 0 6px 18px -12px rgba(15, 23, 42, 0.25);
+}
+
+.pm-history-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 18px;
+}
+
+.pm-history-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.pm-history-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pm-history-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pm-history-time {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.pm-history-desc {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
 /* ── Responsive tweaks ───────────────────────────────────── */
 @media (max-width: 640px) {
   .pm-profile-body {
@@ -3230,4 +3342,210 @@
     max-width: var(--siara-page-max, 1600px);
     margin-inline: auto;
   }
+}
+
+/* ============================================================================
+   PROFESSIONAL REFRESH — refined & premium (Linear / Stripe aesthetic)
+   Scoped to .siara-profile-root so it layers cleanly over the base styles
+   without changing any markup or behaviour. Goal: one accent, hairline
+   borders, soft layered depth, crisp type, generous rhythm.
+   ============================================================================ */
+.siara-profile-root {
+  --pro-accent: #4f46e5;
+  --pro-accent-strong: #4338ca;
+  --pro-ink: #0b1220;
+  --pro-muted: #667085;
+  --pro-surface: #ffffff;
+  --pro-border: rgba(15, 23, 42, 0.07);
+  --pro-border-strong: rgba(15, 23, 42, 0.11);
+  --pro-radius: 18px;
+  --pro-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 28px -16px rgba(16, 24, 40, 0.16);
+  --pro-shadow-lg: 0 1px 2px rgba(16, 24, 40, 0.05), 0 26px 50px -24px rgba(16, 24, 40, 0.26);
+  background: #f5f6fb;
+}
+
+/* ── Unified premium card surface ───────────────────────────────────────── */
+.siara-profile-root .pm-card,
+.siara-profile-root .user-card,
+.siara-profile-root .prf-r-card,
+.siara-profile-root .profile-completion-card {
+  background: var(--pro-surface);
+  border: 1px solid var(--pro-border);
+  border-radius: var(--pro-radius);
+  box-shadow: var(--pro-shadow);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.siara-profile-root .pm-card:hover {
+  border-color: var(--pro-border-strong);
+  box-shadow: var(--pro-shadow-lg);
+}
+
+.siara-profile-root .prf-r-card:hover,
+.siara-profile-root .user-card:hover {
+  border-color: var(--pro-border-strong);
+  box-shadow: var(--pro-shadow-lg);
+  transform: translateY(-2px);
+}
+
+/* Header bar: hairline + softer float */
+.siara-profile-root .profile-header-inner {
+  border: 1px solid var(--pro-border);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 10px 24px -18px rgba(16, 24, 40, 0.3);
+}
+
+/* ── Profile header card: refined cover + avatar + chips ────────────────── */
+.siara-profile-root .pm-profile-banner {
+  height: 116px;
+  background:
+    radial-gradient(140% 130% at 10% -20%, rgba(124, 58, 237, 0.55), transparent 55%),
+    radial-gradient(130% 120% at 100% 0%, rgba(56, 189, 248, 0.22), transparent 52%),
+    linear-gradient(118deg, #312e81 0%, #4338ca 46%, #6d28d9 100%);
+  position: relative;
+}
+.siara-profile-root .pm-profile-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1.5px);
+  background-size: 15px 15px;
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 85%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 85%);
+  pointer-events: none;
+}
+
+.siara-profile-root .pm-profile-body {
+  gap: 20px;
+  padding: 16px 24px 20px;
+}
+
+.siara-profile-root .pm-profile-avatar {
+  width: 96px;
+  height: 96px;
+  margin-top: -62px;
+  border: 4px solid #ffffff;
+  box-shadow: 0 14px 32px -12px rgba(15, 23, 42, 0.42), 0 0 0 1px rgba(15, 23, 42, 0.04);
+}
+
+.siara-profile-root .pm-profile-name {
+  font-size: 23px;
+  letter-spacing: -0.02em;
+  color: var(--pro-ink);
+}
+
+.siara-profile-root .pm-profile-bio {
+  font-size: 13.5px;
+  color: var(--pro-muted);
+}
+
+.siara-profile-root .pm-profile-meta {
+  gap: 8px 10px;
+}
+.siara-profile-root .pm-meta-item {
+  padding: 5px 11px;
+  background: #f8fafc;
+  border: 1px solid var(--pro-border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+.siara-profile-root .pm-meta-item svg {
+  color: var(--pro-accent);
+}
+
+/* ── Stats: clean dark figures, hairline dividers (one-accent rule) ─────── */
+.siara-profile-root .pm-profile-stats {
+  background: #fcfcff;
+  border-top: 1px solid var(--pro-border);
+}
+.siara-profile-root .pm-stat {
+  padding: 18px 8px;
+}
+.siara-profile-root .pm-stat strong {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  color: var(--pro-ink);
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+.siara-profile-root .pm-stat span {
+  color: #98a2b3;
+  letter-spacing: 0.1em;
+}
+.siara-profile-root .pm-stat:not(:last-child)::after {
+  background: var(--pro-border);
+  top: 20px;
+  bottom: 20px;
+}
+.siara-profile-root .pm-stat:hover {
+  background: rgba(79, 70, 229, 0.045);
+}
+
+/* ── Buttons: solid accent with a quiet top sheen (Stripe-like) ─────────── */
+.siara-profile-root .pm-btn-primary,
+.siara-profile-root .btn-edit-profile {
+  background-color: var(--pro-accent);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0));
+  border-radius: 12px;
+  font-weight: 650;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.16), 0 10px 20px -12px rgba(79, 70, 229, 0.65);
+}
+.siara-profile-root .pm-btn-primary:hover,
+.siara-profile-root .btn-edit-profile:hover {
+  filter: none;
+  background-color: var(--pro-accent-strong);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(16, 24, 40, 0.18), 0 14px 26px -12px rgba(79, 70, 229, 0.7);
+}
+
+/* ── Activity tabs: refined segmented control (white active pill) ───────── */
+.siara-profile-root .pm-activity-tabs {
+  background: #eef1f7;
+  border: 1px solid var(--pro-border);
+}
+.siara-profile-root .pm-tab {
+  color: var(--pro-muted);
+}
+.siara-profile-root .pm-tab:hover:not(.pm-tab--active) {
+  color: var(--pro-ink);
+  background: rgba(255, 255, 255, 0.6);
+}
+.siara-profile-root .pm-tab--active,
+.siara-profile-root .pm-tab--active:hover {
+  background: #ffffff;
+  color: var(--pro-accent);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.1), 0 3px 8px -3px rgba(16, 24, 40, 0.16);
+}
+
+/* ── Left user card + avatar ring: softened, premium ────────────────────── */
+.siara-profile-root .user-card {
+  padding: 26px 22px;
+}
+.siara-profile-root .user-card-avatar img,
+.siara-profile-root .profile-avatar-initials {
+  border: 3px solid #ffffff;
+  box-shadow: 0 14px 30px -12px rgba(15, 23, 42, 0.42), 0 0 0 1px var(--pro-border);
+}
+.siara-profile-root .user-card-name {
+  letter-spacing: -0.01em;
+  color: var(--pro-ink);
+}
+
+/* ── Right rail labels + trust gauge polish ─────────────────────────────── */
+.siara-profile-root .prf-r-label {
+  color: #98a2b3;
+  letter-spacing: 0.1em;
+}
+.siara-profile-root .prf-gauge-num {
+  color: var(--pro-accent);
+  letter-spacing: -0.02em;
+}
+
+/* List dividers to the unified hairline tone */
+.siara-profile-root .pm-row {
+  border-bottom-color: var(--pro-border);
+}
+.siara-profile-root .pm-row:hover {
+  background: #f8f9ff;
 }
