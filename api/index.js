@@ -58,7 +58,10 @@ const {
   getRiskForecast24h,
 } = require("./contollers/Model/models");
 const { generateRiskExplanation } = require("./services/riskExplanationService");
-const { generateRouteExplanation } = require("./services/routeExplanationService");
+const {
+  generateRouteExplanation,
+  streamRouteExplanation,
+} = require("./services/routeExplanationService");
 const { findRouteAlerts } = require("./services/routeAlertsService");
 const { getZoneProfile } = require("./services/zoneProfileService");
 const { withRiskDeadline } = require("./services/riskTimeouts");
@@ -456,6 +459,72 @@ app.post("/api/risk/route/explain", async (req, res) => {
       comparison: null,
       source: "fallback",
     });
+  }
+});
+
+// Streaming variant of the route explanation. Streams Ollama tokens back as
+// Server-Sent Events so the client never waits on a single blocking response —
+// the same pattern the driver-quiz explainer uses. Events: `meta` (comparison +
+// reasons), `chunk` (prose tokens), `done` (final summary).
+app.post("/api/risk/route/explain/stream", async (req, res) => {
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const selectedRoute =
+    body.selectedRoute && typeof body.selectedRoute === "object" ? body.selectedRoute : null;
+
+  if (!selectedRoute) {
+    return res.status(400).json({ ok: false, error: "selectedRoute is required" });
+  }
+
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
+
+  // Detect a real client disconnect via the RESPONSE stream. Do NOT use
+  // req.on("close") here: body-parser fully consumes the request body before we
+  // start streaming, so the request stream emits "close" immediately and would
+  // abort the generation before the first token is ever written.
+  let clientGone = false;
+  res.on("close", () => {
+    clientGone = true;
+  });
+
+  const writeSse = (event, data) => {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
+    for await (const ev of streamRouteExplanation({
+      selectedRoute,
+      alternatives: Array.isArray(body.alternatives) ? body.alternatives : [],
+      destination:
+        body.destination && typeof body.destination === "object" ? body.destination : null,
+      timestamp: body.timestamp || null,
+      heatmapClustersNearRoute: Array.isArray(body.heatmapClustersNearRoute)
+        ? body.heatmapClustersNearRoute
+        : [],
+      nearbyReports: Array.isArray(body.nearbyReports) ? body.nearbyReports : [],
+    })) {
+      if (clientGone || res.writableEnded) break;
+      writeSse(ev.event, ev.data);
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[explain-route] stream failure", error);
+    }
+    if (!res.writableEnded) {
+      writeSse("done", {
+        ok: true,
+        summary:
+          "SIARA could not generate a detailed route explanation right now. The selected route is still based on the latest risk analysis.",
+        reasons: [],
+        comparison: null,
+        source: "fallback",
+      });
+    }
+  } finally {
+    if (!res.writableEnded) res.end();
   }
 });
 

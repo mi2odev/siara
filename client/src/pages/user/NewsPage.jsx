@@ -19,7 +19,12 @@ import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownR
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
-import { getUserRoles } from '../../utils/roleUtils'
+import {
+  getUserRoles,
+  isPoliceOfficerUser,
+  isPoliceSupervisorUser,
+  isEmergencyServiceUser,
+} from '../../utils/roleUtils'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
 import {
@@ -139,11 +144,10 @@ function formatSpamPercent(value) {
   if (value == null) return null
   const numeric = Number(value)
   if (!Number.isFinite(numeric)) return null
-  // Backend already converts 0..1 to 0..100 in spamAnalysis.spamScore. If the
-  // value drifts above 100 (legacy), clamp; if below 1.2 (raw decimal), scale.
-  let percent = numeric
-  if (percent <= 1.2) percent = percent * 100
-  percent = Math.max(0, Math.min(100, percent))
+  // spamAnalysis.spamScore / confidence are already 0..100 (normalised in
+  // reports.js). Just clamp + round — re-scaling here inflated low values
+  // (e.g. a genuine 0.5% score was shown as 50%).
+  const percent = Math.max(0, Math.min(100, numeric))
   return Math.round(percent)
 }
 
@@ -191,18 +195,42 @@ function getReportAuthorProfile(report) {
 
 function getAuthorRoleBadge(profile) {
   const normalizedRoles = getUserRoles(profile)
-  const isAdmin = normalizedRoles.includes('admin')
-  const isPolice = normalizedRoles.includes('police') || normalizedRoles.includes('policeofficer')
 
-  if (isAdmin) {
+  if (normalizedRoles.includes('admin')) {
     return { className: 'badge-admin', label: 'Admin' }
   }
 
-  if (isPolice) {
+  if (isPoliceSupervisorUser(profile)) {
+    return { className: 'badge-police', label: 'Police Supervisor' }
+  }
+
+  if (isPoliceOfficerUser(profile)) {
     return { className: 'badge-police', label: 'Police' }
   }
 
+  if (isEmergencyServiceUser(profile)) {
+    return { className: 'badge-police', label: 'Emergency' }
+  }
+
   return { className: 'badge-citoyen', label: 'Citizen' }
+}
+
+// Police, supervisors, admins and emergency services are institutional sources,
+// so the citizen "trust ladder" (New/normal → Trusted, with a 0–100 score)
+// doesn't apply to them. Show a clean "Official reporter" badge instead.
+function getReporterTrustBadge(profile, baseTier) {
+  const normalizedRoles = getUserRoles(profile)
+  const isOfficial =
+    normalizedRoles.includes('admin') ||
+    isPoliceOfficerUser(profile) ||
+    isPoliceSupervisorUser(profile) ||
+    isEmergencyServiceUser(profile)
+
+  if (isOfficial) {
+    return { tier: { label: 'Official reporter', style: 'positive' }, official: true }
+  }
+
+  return { tier: baseTier, official: false }
 }
 
 function mergeReports(previousReports, nextReports) {
@@ -229,11 +257,13 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   const spamPercent = formatSpamPercent(report?.spamAnalysis?.spamScore)
   const confidencePercent = formatSpamPercent(report?.spamAnalysis?.confidence)
   const reporterTrustScore = Number(report?.reportedBy?.trustScore)
-  const reporterTrustTier = report?.reportedBy?.trustTier || null
+  const { tier: reporterTrustTier, official: reporterIsOfficial } = getReporterTrustBadge(
+    authorProfile,
+    report?.reportedBy?.trustTier || null,
+  )
   const media = Array.isArray(report?.media) ? report.media : []
   const description = report?.description || ''
   const shouldShowSeeMore = description.length > 180
-  const isVerified = report?.status === 'verified'
   const occurredAt = report?.occurredAt || report?.createdAt
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(null)
   const [zoomScale, setZoomScale] = useState(1)
@@ -379,9 +409,12 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   }
 
   const handleAvatarImageError = (event) => {
-    const avatarButton = event.currentTarget.closest('.pc-av')
+    // The avatar button uses the `pcx-av` classes — the old `pc-av` selector
+    // never matched, so a broken avatar image was left in place (showing its
+    // clipped alt text) instead of falling back to the initials.
+    const avatarButton = event.currentTarget.closest('.pcx-av')
     if (!avatarButton) return
-    avatarButton.classList.remove('pc-av--img')
+    avatarButton.classList.remove('pcx-av--img')
     event.currentTarget.remove()
   }
 
@@ -555,27 +588,26 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
         >
           <div className="pcx-id-line pcx-id-name">
             <span className="pcx-name">{authorName}</span>
-            {isVerified && (
-              <span className="pcx-verified" title="Verified account" aria-label="Verified">
-                <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden>
-                  <path fill="currentColor" d="M10 1.4l2.2 1.7 2.8-.3 1 2.6 2.5 1.3-.7 2.8 1 2.7-2.2 1.8-.3 2.8-2.8.3L10 18.6l-2.5-1.5-2.8-.3-.3-2.8-2.2-1.8 1-2.7-.7-2.8L2.3 4.7l1-2.6 2.8.3z"/>
-                  <path fill="#fff" d="M8.7 12.5 5.9 9.8l1.1-1.1 1.7 1.7 3.4-3.4 1.1 1.1z"/>
-                </svg>
-              </span>
-            )}
           </div>
 
           <div className="pcx-id-line pcx-id-meta">
             <span className={`pcx-role ${authorRoleBadge.className}`}>{authorRoleBadge.label}</span>
-            {reporterTrustTier && Number.isFinite(reporterTrustScore) && (
+            {reporterTrustTier && (reporterIsOfficial || Number.isFinite(reporterTrustScore)) && (
               <>
                 <span className="pcx-mid-dot" aria-hidden>•</span>
                 <span
                   className={`pcx-trust pcx-trust--${reporterTrustTier.style || 'neutral'}`}
-                  title={`Trust score ${Math.round(reporterTrustScore)}/100`}
+                  title={
+                    reporterIsOfficial
+                      ? 'Official reporter — institutional account'
+                      : `Trust score ${Math.round(reporterTrustScore)}/100`
+                  }
                 >
                   <span className="pcx-trust-dot" aria-hidden />
-                  {reporterTrustTier.label} · {Math.round(reporterTrustScore)}
+                  {reporterTrustTier.label}
+                  {!reporterIsOfficial && Number.isFinite(reporterTrustScore)
+                    ? ` · ${Math.round(reporterTrustScore)}`
+                    : ''}
                 </span>
               </>
             )}
@@ -591,39 +623,71 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           </div>
         </div>
 
+        {/* Status pills — sit beside the identity meta on desktop and drop to
+            their own row on mobile (placement handled by .pcx-head grid areas). */}
+        <div className="pcx-status">
+          {qualityBadge && (
+            <span
+              className={`pcx-pill pcx-pill--q-${qualityTone}`}
+              title={spamPercent != null ? `Spam ${spamPercent}% · Confidence ${confidencePercent ?? '—'}%` : qualityBadge.label}
+            >
+              <span className="pcx-pill-ico" aria-hidden>{QUALITY_BADGE_ICONS[qualityBadge.icon] || ''}</span>
+              {qualityBadge.label}
+              {/* Positive AI badge shows the model's confidence; the spam score is
+                  only meaningful (and only shown) on the negative/warning badges. */}
+              {qualityBadge.code === 'ai_verified' && confidencePercent != null && (
+                <span className="pcx-pill-meta">{confidencePercent}%</span>
+              )}
+              {['probably_spam', 'needs_review', 'out_of_context', 'invalid_location'].includes(qualityBadge.code)
+                && spamPercent != null && (
+                <span className="pcx-pill-meta pcx-pill-meta--danger">{spamPercent}%</span>
+              )}
+            </span>
+          )}
+          {credibility && credibility.level !== 'unknown' && Number.isFinite(credibility.score) && (
+            <span className="pcx-cred">
+              <span
+                className={`pcx-pill pcx-pill--cred-${credibility.level}`}
+                tabIndex={0}
+                aria-describedby={`cred-tip-${report.id}`}
+              >
+                <span className="pcx-pill-dot" aria-hidden />
+                {credibility.score} Credibility
+                {credibility.isSpam && <span className="pcx-pill-meta pcx-pill-meta--danger">Spam</span>}
+              </span>
+              <span className="pcx-cred-tip" id={`cred-tip-${report.id}`} role="tooltip">
+                <span className="pcx-cred-tip__title">Why this score?</span>
+                <span className="pcx-cred-tip__score">
+                  {credibility.score}/100 · {credibility.level} credibility
+                </span>
+                {credibility.reasons && credibility.reasons.length > 0 ? (
+                  <ul className="pcx-cred-tip__list">
+                    {credibility.reasons.map((reason, i) => (
+                      <li key={i} className={`pcx-cred-tip__item is-${reason.kind}`}>
+                        {reason.text}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="pcx-cred-tip__empty">
+                    Based on the overall signals of this report.
+                  </span>
+                )}
+              </span>
+            </span>
+          )}
+          <span className={`pcx-pill pcx-pill--sev-${report?.severity || 'low'}`}>
+            <span className="pcx-pill-dot" aria-hidden />
+            {severityLabel}
+          </span>
+        </div>
+
         <button className="pcx-menu" onClick={() => navigate(`/incident/${report.id}`)} title="View details" aria-label="View details">
           <svg width="3.5" height="16" viewBox="0 0 3 15" fill="currentColor" aria-hidden>
             <circle cx="1.5" cy="1.5" r="1.5"/><circle cx="1.5" cy="7.5" r="1.5"/><circle cx="1.5" cy="13.5" r="1.5"/>
           </svg>
         </button>
       </header>
-
-      {/* ── STATUS PILLS ── */}
-      <div className="pcx-status">
-        {qualityBadge && (
-          <span
-            className={`pcx-pill pcx-pill--q-${qualityTone}`}
-            title={spamPercent != null ? `Spam ${spamPercent}% · Confidence ${confidencePercent ?? '—'}%` : qualityBadge.label}
-          >
-            <span className="pcx-pill-ico" aria-hidden>{QUALITY_BADGE_ICONS[qualityBadge.icon] || ''}</span>
-            {qualityBadge.label}
-            {spamPercent != null && qualityBadge.code !== 'officer_verified' && (
-              <span className="pcx-pill-meta">{spamPercent}%</span>
-            )}
-          </span>
-        )}
-        {credibility && credibility.level !== 'unknown' && Number.isFinite(credibility.score) && (
-          <span className={`pcx-pill pcx-pill--cred-${credibility.level}`} title={`Credibility score ${credibility.score}/100`}>
-            <span className="pcx-pill-dot" aria-hidden />
-            {credibility.score} Credibility
-            {credibility.isSpam && <span className="pcx-pill-meta pcx-pill-meta--danger">Spam</span>}
-          </span>
-        )}
-        <span className={`pcx-pill pcx-pill--sev-${report?.severity || 'low'}`}>
-          <span className="pcx-pill-dot" aria-hidden />
-          {severityLabel}
-        </span>
-      </div>
 
       {/* ── CONTENT ── */}
       <div className="pcx-content">

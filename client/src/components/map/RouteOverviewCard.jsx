@@ -187,44 +187,65 @@ export default function RouteOverviewCard({
       </div>
 
       <div className="siara-route-overview__why">
-        <p className="siara-route-overview__why-title">Why this route?</p>
-        {!data.riskAvailable ? (
-          <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
-            {data.riskMessage}
-          </p>
-        ) : explanationLoading && !summary ? (
-          <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
-            Analysing risk factors…
-          </p>
-        ) : summary ? (
-          <p className="siara-route-overview__why-text">{summary}</p>
-        ) : explanationError ? (
-          <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
-            {explanationError}
-          </p>
-        ) : (
-          <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
-            SIARA selected this route based on the available route risk,
-            distance, ETA and segment danger data.
-          </p>
-        )}
-        {reasons.length > 0 ? (
-          <ul className="siara-route-overview__why-list">
-            {reasons.slice(0, 4).map((reason, idx) => {
-              const key = reason?.id || `${reason?.type || 'reason'}-${idx}`
-              return (
-                <li key={key} className="siara-route-overview__why-item">
-                  {reason?.label || reason?.detail || 'Risk factor'}
-                </li>
-              )
-            })}
-          </ul>
-        ) : null}
+        <div className="siara-route-overview__why-head">
+          <p className="siara-route-overview__why-title">Why this route?</p>
+          {source === 'ollama' ? (
+            <span className="siara-route-overview__ai-chip">
+              <AutoAwesomeOutlinedIcon fontSize="inherit" aria-hidden="true" />
+              AI explanation
+            </span>
+          ) : null}
+        </div>
+        <div className="siara-route-overview__why-panel">
+          {!data.riskAvailable ? (
+            <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
+              {data.riskMessage}
+            </p>
+          ) : explanationLoading && !summary ? (
+            <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
+              Analysing risk factors…
+            </p>
+          ) : summary ? (
+            <p className="siara-route-overview__why-text">{summary}</p>
+          ) : explanationError ? (
+            <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
+              {explanationError}
+            </p>
+          ) : (
+            <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
+              SIARA selected this route based on the available route risk,
+              distance, ETA and segment danger data.
+            </p>
+          )}
+          {reasons.length > 0 ? (
+            <ul className="siara-route-overview__why-list">
+              {reasons.slice(0, 4).map((reason, idx) => {
+                const key = reason?.id || `${reason?.type || 'reason'}-${idx}`
+                return (
+                  <li key={key} className="siara-route-overview__why-item">
+                    {reason?.label || reason?.detail || 'Risk factor'}
+                  </li>
+                )
+              })}
+            </ul>
+          ) : null}
+          {typeof onGenerateAiExplanation === 'function' && source !== 'ollama' ? (
+            <button
+              type="button"
+              className="siara-route-overview__ai-button"
+              onClick={onGenerateAiExplanation}
+              disabled={aiGenerating}
+            >
+              <AutoAwesomeOutlinedIcon fontSize="inherit" aria-hidden="true" />
+              {aiGenerating ? 'Calling Ollama…' : 'Generate AI explanation'}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {segmentSummary.length > 0 ? (
         <div className="siara-route-overview__segments">
-          <p className="siara-route-overview__why-title">Segment risk summary</p>
+          <p className="siara-route-overview__section-label">Segment risk summary</p>
           {segmentSummary.map((segment, index) => {
             // Prefer the occurrence-model probability for the segment; fall back
             // to the severity danger score when occurrence data is missing.
@@ -248,13 +269,13 @@ export default function RouteOverviewCard({
             return (
               <div
                 key={segment?.segment_id || `segment-${index}`}
-                style={{ marginBottom: 8 }}
+                className="siara-route-overview__segment"
               >
                 <div className="siara-route-overview__segment-row">
                   <span>Segment {index + 1}</span>
-                  <strong className={TIER_CLASSES[tier] || 'risk-low'}>
+                  <span className={`siara-route-overview__segment-risk ${TIER_CLASSES[tier] || 'risk-low'}`}>
                     {formatPercent(hasPercent ? percent : null)} {TIER_LABELS[tier] || ''}
-                  </strong>
+                  </span>
                 </div>
                 {sp ? (
                   <>
@@ -299,36 +320,41 @@ export default function RouteOverviewCard({
       ) : null}
 
       {altChips.length > 0 && typeof onChangeRouteType === 'function' ? (
-        <div className="siara-route-overview__alts" role="group" aria-label="Route alternatives">
-          {altChips.map((route) => {
-            const rawAltPercent = route?.summary?.danger_percent
-            const altPercent = Number(rawAltPercent)
-            const altHasPercent =
-              rawAltPercent !== null &&
-              rawAltPercent !== undefined &&
-              rawAltPercent !== '' &&
-              Number.isFinite(altPercent)
-            return (
-              <button
-                key={route.route_type}
-                type="button"
-                className="siara-route-overview__alt-btn"
-                onClick={() => onChangeRouteType(route.route_type)}
-              >
-                <span className="siara-route-overview__alt-icon" aria-hidden="true">
-                  {(() => {
-                    const Icon = ALT_ICONS[route.route_type] || RouteOutlinedIcon
-                    const altColor = route.route_type === 'safest' ? 'icon-security' : ''
-                    return <Icon fontSize="inherit" className={altColor} />
-                  })()}
-                </span>
-                {route.route_label || titleCase(route.route_type)}
-                <small>
-                  {altHasPercent ? `${Math.round(altPercent)}% risk` : 'unknown risk'}
-                </small>
-              </button>
-            )
-          })}
+        <div className="siara-route-overview__alts-section">
+          <p className="siara-route-overview__section-label">Switch route</p>
+          <div className="siara-route-overview__alts" role="group" aria-label="Route alternatives">
+            {altChips.map((route) => {
+              const rawAltPercent = route?.summary?.danger_percent
+              const altPercent = Number(rawAltPercent)
+              const altHasPercent =
+                rawAltPercent !== null &&
+                rawAltPercent !== undefined &&
+                rawAltPercent !== '' &&
+                Number.isFinite(altPercent)
+              return (
+                <button
+                  key={route.route_type}
+                  type="button"
+                  className="siara-route-overview__alt-btn"
+                  onClick={() => onChangeRouteType(route.route_type)}
+                >
+                  <span className="siara-route-overview__alt-icon" aria-hidden="true">
+                    {(() => {
+                      const Icon = ALT_ICONS[route.route_type] || RouteOutlinedIcon
+                      const altColor = route.route_type === 'safest' ? 'icon-security' : ''
+                      return <Icon fontSize="inherit" className={altColor} />
+                    })()}
+                  </span>
+                  <span className="siara-route-overview__alt-name">
+                    {route.route_label || titleCase(route.route_type)}
+                  </span>
+                  <span className="siara-route-overview__alt-risk">
+                    {altHasPercent ? `${Math.round(altPercent)}% risk` : 'unknown risk'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       ) : null}
 
@@ -339,25 +365,6 @@ export default function RouteOverviewCard({
         routeIdentity={selectedRoute?.route_identity || selectedRoute?.route_id || data.routeType || ''}
         onSelectTimestamp={onSelectDepartureTimestamp}
       />
-
-      {typeof onGenerateAiExplanation === 'function' && source !== 'ollama' ? (
-        <button
-          type="button"
-          className="siara-route-overview__ai-button"
-          onClick={onGenerateAiExplanation}
-          disabled={aiGenerating}
-        >
-          <AutoAwesomeOutlinedIcon fontSize="inherit" aria-hidden="true" />
-          {aiGenerating ? 'Calling Ollama…' : 'Generate AI explanation'}
-        </button>
-      ) : null}
-
-      {source === 'ollama' ? (
-        <div className="siara-route-overview__ai-chip">
-          <AutoAwesomeOutlinedIcon fontSize="inherit" aria-hidden="true" />
-          AI explanation
-        </div>
-      ) : null}
     </aside>
   )
 }

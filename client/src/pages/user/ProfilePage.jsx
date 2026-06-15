@@ -383,7 +383,12 @@ export default function ProfilePage(){
     || currentUser.email
     || currentUser.phone
     || 'SIARA User'
-  const profileAvatarUrl = getUserAvatarUrl(currentUser) || headerAvatarUrl || ''
+  // Only fall back to the logged-in user's (header) avatar on your OWN profile.
+  // When viewing someone else who has no picture, never substitute your avatar —
+  // show their initials instead.
+  const profileAvatarUrl = isExternalProfileView
+    ? getUserAvatarUrl(currentUser)
+    : getUserAvatarUrl(currentUser) || headerAvatarUrl || ''
   const profileInitials = getInitialsFromName(displayName) || '?'
   const bio = String(currentUser.bio || '').trim() || 'No bio added yet.'
   // For own profile, always prefer the fresh AuthContext user.location which is kept

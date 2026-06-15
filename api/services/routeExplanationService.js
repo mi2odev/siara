@@ -354,6 +354,193 @@ const callOllama = async (prompt) => {
   return typeof raw === "string" ? raw.trim() : "";
 };
 
+// Build the deterministic context (comparison + reasons + prompt + headline
+// risk fields) shared by both the blocking and streaming explanation paths.
+// Returns { selected: null } when no route is selected.
+const buildRouteContext = ({
+  selectedRoute,
+  alternatives,
+  destination,
+  timestamp,
+  heatmapClustersNearRoute,
+  nearbyReports,
+} = {}) => {
+  const selected = selectedRoute && typeof selectedRoute === "object" ? selectedRoute : null;
+  const altList = Array.isArray(alternatives) && alternatives.length > 0
+    ? alternatives
+    : selected
+      ? [selected]
+      : [];
+
+  if (!selected) return { selected: null };
+
+  const comparison = buildComparison(selected, altList);
+
+  const reasons = [
+    ...buildClusterReasons(selected, altList, heatmapClustersNearRoute),
+    ...buildSegmentReasons(selected, altList),
+    ...buildReportReasons(nearbyReports),
+    ...buildTimeReasons(timestamp),
+  ];
+
+  const tradeoff = buildTradeoffReason(selected, comparison);
+  if (tradeoff) reasons.push(tradeoff);
+
+  const prompt = buildPrompt({
+    selected: summaryOf(selected) || selected,
+    comparison,
+    reasons,
+    destination,
+    timestamp,
+  });
+
+  const recommendedRouteType = String(selected?.route_type || "").toLowerCase() || null;
+  const recommendedRiskPercent = safeNumber(selected?.summary?.danger_percent);
+  const recommendedRiskLevel =
+    selected?.summary?.danger_level || normaliseLevel(null, recommendedRiskPercent);
+
+  return {
+    selected,
+    comparison,
+    reasons,
+    prompt,
+    recommendedRouteType,
+    recommendedRiskLevel,
+    recommendedRiskPercent: roundTo(recommendedRiskPercent, 1),
+  };
+};
+
+// Stream tokens from Ollama's /api/generate (stream:true emits NDJSON lines,
+// each `{ response, done }`). The axios `timeout` only bounds the initial
+// connection — the streaming body reads freely — so a dead Ollama fails fast
+// while a slow generation is never cut off mid-stream. Mirrors the quiz
+// explainer's connect/read split, which is why the quiz never times out.
+const streamOllamaGenerate = async function* (prompt) {
+  const baseUrl = (process.env.OLLAMA_BASE_URL || DEFAULT_OLLAMA_BASE_URL).replace(/\/+$/, "");
+  const model = process.env.OLLAMA_EXPLAIN_MODEL || DEFAULT_OLLAMA_MODEL;
+  const connectTimeoutMs = Number(process.env.OLLAMA_CONNECT_TIMEOUT_MS) || 15000;
+
+  const response = await axios.post(
+    `${baseUrl}/api/generate`,
+    {
+      model,
+      prompt,
+      stream: true,
+      options: {
+        temperature: 0.3,
+        num_predict: 200,
+      },
+    },
+    {
+      responseType: "stream",
+      timeout: connectTimeoutMs,
+      headers: { "Content-Type": "application/json" },
+    },
+  );
+
+  let buffer = "";
+  for await (const chunk of response.data) {
+    buffer += chunk.toString("utf8");
+    let nl;
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line) continue;
+      let obj;
+      try {
+        obj = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      const piece = typeof obj.response === "string" ? obj.response : "";
+      if (piece) yield piece;
+      if (obj.done) return;
+    }
+  }
+
+  const tail = buffer.trim();
+  if (tail) {
+    try {
+      const obj = JSON.parse(tail);
+      if (typeof obj.response === "string" && obj.response) yield obj.response;
+    } catch {
+      /* ignore trailing partial */
+    }
+  }
+};
+
+// Async generator yielding SSE-shaped events: a `meta` event (comparison +
+// reasons, so the UI can render the structured part immediately), `chunk`
+// events as Ollama streams prose, and a final `done` event with the sanitised
+// summary. Falls back to the deterministic template on any failure.
+const streamRouteExplanation = async function* (params = {}) {
+  const ctx = buildRouteContext(params);
+
+  if (!ctx.selected) {
+    yield {
+      event: "done",
+      data: {
+        ok: true,
+        summary: "No route is currently selected, so SIARA cannot explain the recommendation yet.",
+        reasons: [],
+        comparison: null,
+        source: "fallback",
+      },
+    };
+    return;
+  }
+
+  const {
+    selected,
+    comparison,
+    reasons,
+    prompt,
+    recommendedRouteType,
+    recommendedRiskLevel,
+    recommendedRiskPercent,
+  } = ctx;
+
+  const meta = { reasons, comparison, recommendedRouteType, recommendedRiskLevel, recommendedRiskPercent };
+  yield { event: "meta", data: meta };
+
+  let acc = "";
+  let ok = true;
+  const startedAt = Date.now();
+
+  try {
+    if (isDev()) {
+      console.debug("[explain-route] streaming ollama", {
+        model: process.env.OLLAMA_EXPLAIN_MODEL || DEFAULT_OLLAMA_MODEL,
+      });
+    }
+    for await (const piece of streamOllamaGenerate(prompt)) {
+      acc += piece;
+      yield { event: "chunk", data: { content: piece } };
+    }
+  } catch (error) {
+    ok = false;
+    if (isDev()) {
+      console.warn("[explain-route] stream ollama_unavailable", {
+        message: error?.message,
+        code: error?.code,
+      });
+    }
+  }
+
+  const text = sanitiseExplanation(acc);
+  if (text && ok) {
+    if (isDev()) {
+      console.debug("[explain-route] stream success", { ms: Date.now() - startedAt, chars: text.length });
+    }
+    yield { event: "done", data: { ok: true, summary: text, source: "ollama", ...meta } };
+  } else {
+    yield {
+      event: "done",
+      data: { ok: true, summary: buildTemplateSummary(selected, comparison), source: "fallback", ...meta },
+    };
+  }
+};
+
 const generateRouteExplanation = async ({
   selectedRoute,
   alternatives,
@@ -402,11 +589,26 @@ const generateRouteExplanation = async ({
   let source = "fallback";
 
   try {
+    if (isDev()) {
+      console.debug("[explain-route] calling ollama", {
+        baseUrl: (process.env.OLLAMA_BASE_URL || DEFAULT_OLLAMA_BASE_URL).replace(/\/+$/, ""),
+        model: process.env.OLLAMA_EXPLAIN_MODEL || DEFAULT_OLLAMA_MODEL,
+      });
+    }
+    const startedAt = Date.now();
     const raw = await callOllama(prompt);
     const text = sanitiseExplanation(raw);
     if (text) {
       summary = text;
       source = "ollama";
+      if (isDev()) {
+        console.debug("[explain-route] ollama success", {
+          ms: Date.now() - startedAt,
+          chars: text.length,
+        });
+      }
+    } else if (isDev()) {
+      console.warn("[explain-route] ollama returned empty text, using template fallback");
     }
   } catch (error) {
     if (isDev()) {
@@ -439,4 +641,5 @@ const generateRouteExplanation = async ({
 
 module.exports = {
   generateRouteExplanation,
+  streamRouteExplanation,
 };

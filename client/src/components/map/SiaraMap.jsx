@@ -30,7 +30,7 @@ import RouteComparisonPanel from "./RouteComparisonPanel";
 import BestTimeToLeavePanel from "./BestTimeToLeavePanel";
 import HeatmapClusterDetailPanel from "./HeatmapClusterDetailPanel";
 import { HEATMAP_LEGEND_COLORS } from "./heatmapVisuals";
-import { explainRoute } from "../../services/riskExplanationService";
+import { explainRouteStream } from "../../services/riskExplanationService";
 import { completeTravelHistory } from "../../services/travelHistoryService";
 import "../../styles/AccidentHeatmap.css";
 import "../../styles/MapDestinationConfirmCard.css";
@@ -1534,12 +1534,11 @@ const SiaraMap = ({
   const nearbyLastOriginRef = useRef(null);
   const nearbyRequestIdRef = useRef(0);
   const [nearbyManualRefreshTick, setNearbyManualRefreshTick] = useState(0);
-  // In-memory cache + in-flight map for the "Why this route?" explanation.
-  // The auto-fetch effect was removed; the cache is now only used by the
-  // manual "Generate AI explanation" button and the local template effect
-  // (which reads the cache so an AI response sticks across re-renders).
+  // In-memory cache for the "Why this route?" explanation. The auto-fetch
+  // effect was removed; the cache is now only used by the manual "Generate AI
+  // explanation" button and the local template effect (which reads the cache so
+  // a streamed AI response sticks across re-renders).
   const routeExplanationCacheRef = useRef(new Map());
-  const routeExplanationInflightRef = useRef(new Map());
   const [helpOpen, setHelpOpen] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
   const [explanationOpen, setExplanationOpen] = useState(false);
@@ -1712,16 +1711,17 @@ const SiaraMap = ({
       return undefined;
     }
 
+    // Key on the STABLE route identity only (route + type + destination).
+    // Deliberately excludes routeAnalysisTimestampIso and danger_percent:
+    // during live navigation those refresh every prediction cycle, and if they
+    // were part of the key the template effect below would miss the cached AI
+    // result and wipe it with the generic template seconds after it appears.
     const cacheKey = [
       guidedRoute?.route_identity || guidedRoute?.route_id || "route",
       guidedRoute?.route_type || "type",
       guidedRoute?.destination?.lat != null
         ? `${Number(guidedRoute.destination.lat).toFixed(4)},${Number(guidedRoute.destination.lng).toFixed(4)}`
         : "no-dest",
-      routeAnalysisTimestampIso || "no-ts",
-      Number.isFinite(Number(guidedRoute?.summary?.danger_percent))
-        ? Math.round(Number(guidedRoute.summary.danger_percent))
-        : "na",
     ].join("|");
 
     // If the user already triggered the AI explanation for this route, that
@@ -2513,20 +2513,25 @@ const SiaraMap = ({
       heatmapClustersNearRoute: clustersNearRoute,
     };
 
+    // Key on the STABLE route identity only (route + type + destination).
+    // Deliberately excludes routeAnalysisTimestampIso and danger_percent:
+    // during live navigation those refresh every prediction cycle, and if they
+    // were part of the key the template effect below would miss the cached AI
+    // result and wipe it with the generic template seconds after it appears.
     const cacheKey = [
       guidedRoute?.route_identity || guidedRoute?.route_id || "route",
       guidedRoute?.route_type || "type",
       guidedRoute?.destination?.lat != null
         ? `${Number(guidedRoute.destination.lat).toFixed(4)},${Number(guidedRoute.destination.lng).toFixed(4)}`
         : "no-dest",
-      routeAnalysisTimestampIso || "no-ts",
-      Number.isFinite(Number(guidedRoute?.summary?.danger_percent))
-        ? Math.round(Number(guidedRoute.summary.danger_percent))
-        : "na",
     ].join("|");
 
-    // Watchdog so the AI button can never get stuck on "Generating…".
-    const FRONTEND_MAX_WAIT_MS = 12000;
+    // Watchdog so the AI button can never get stuck on "Generating…". With
+    // streaming this should never fire in practice — tokens start arriving in a
+    // few seconds — but it guarantees the connection is torn down if Ollama
+    // stalls entirely. Generous because a cold model load + full generation can
+    // legitimately take ~30s.
+    const FRONTEND_MAX_WAIT_MS = 90000;
     const controller = new AbortController();
     let timedOut = false;
     const watchdog = window.setTimeout(() => {
@@ -2534,21 +2539,61 @@ const SiaraMap = ({
       try { controller.abort(); } catch { /* ignore */ }
     }, FRONTEND_MAX_WAIT_MS);
 
+    // Accumulates streamed prose. `meta` arrives first (comparison + reasons),
+    // then `chunk` tokens, then `done` with the final sanitised summary.
+    let acc = "";
+    let metaPart = null;
+    const applyLive = (source) => {
+      setRouteExplanation({
+        ok: true,
+        summary: acc,
+        reasons: metaPart?.reasons || [],
+        comparison: metaPart?.comparison || null,
+        recommendedRouteType: metaPart?.recommendedRouteType || guidedRoute?.route_type || "",
+        recommendedRiskLevel: metaPart?.recommendedRiskLevel || null,
+        recommendedRiskPercent: metaPart?.recommendedRiskPercent ?? null,
+        source,
+      });
+    };
+
     setRouteExplanationAiGenerating(true);
     try {
-      // Dedupe: reuse an in-flight identical request if present.
-      const existing = routeExplanationInflightRef.current.get(cacheKey);
-      const promise = existing || explainRoute(payload, { signal: controller.signal });
-      if (!existing) routeExplanationInflightRef.current.set(cacheKey, promise);
-      const response = await promise;
-      if (response && response.ok !== false) {
-        routeExplanationCacheRef.current.set(cacheKey, response);
-        setRouteExplanation(response);
-        setRouteExplanationError("");
+      const finalPayload = await explainRouteStream(payload, {
+        signal: controller.signal,
+        onMeta: (meta) => {
+          metaPart = meta;
+          // Flip source to "ollama" right away so the button becomes the live
+          // "AI explanation" view and tokens stream into the summary.
+          applyLive("ollama");
+        },
+        onChunk: ({ content }) => {
+          acc += content || "";
+          applyLive("ollama");
+        },
+        onDone: (data) => {
+          if (data && data.ok !== false) {
+            routeExplanationCacheRef.current.set(cacheKey, data);
+            setRouteExplanation(data);
+            setRouteExplanationError("");
+          }
+        },
+      });
+      // Safety net: if the stream ended without an explicit done event but we
+      // accumulated text, persist what we have.
+      if (!finalPayload && acc.trim()) {
+        const fallback = {
+          ok: true,
+          summary: acc.trim(),
+          reasons: metaPart?.reasons || [],
+          comparison: metaPart?.comparison || null,
+          source: "ollama",
+        };
+        routeExplanationCacheRef.current.set(cacheKey, fallback);
+        setRouteExplanation(fallback);
       }
     } catch (error) {
       if (DEV) {
-        console.warn("[explain-route] manual AI fetch failed", {
+        console.warn("[explain-route] manual AI stream failed", {
           message: error?.message,
           timedOut,
         });
@@ -2556,7 +2601,6 @@ const SiaraMap = ({
       // Don't overwrite the template — the user still sees a useful summary.
     } finally {
       window.clearTimeout(watchdog);
-      routeExplanationInflightRef.current.delete(cacheKey);
       setRouteExplanationAiGenerating(false);
     }
   };

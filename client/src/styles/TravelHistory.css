@@ -11,6 +11,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  height: 100%;
   padding: 14px;
   border: 1px solid #E2E8F0;
   border-radius: 12px;
@@ -31,11 +32,19 @@
 }
 
 .ud-travel-destination {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
   color: #0F172A;
-  line-height: 1.3;
+  line-height: 1.35;
   margin: 0;
+  /* Long mixed-script addresses are clamped to two lines so every card is the
+   * same height and the grid stays even. Full address is in the detail modal. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  min-height: 2.7em;
 }
 
 .ud-travel-date {
@@ -68,9 +77,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 4px;
+  margin-top: auto;
   padding-top: 10px;
-  border-top: 1px dashed #E2E8F0;
+  border-top: 1px solid #EEF2F7;
 }
 
 .ud-travel-stars {
@@ -98,13 +107,17 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 10px;
+  padding: 3px 10px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   background: #DCFCE7;
   color: #166534;
   border: 1px solid #BBF7D0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-start;
+  text-transform: capitalize;
 }
 
 .th-risk-badge.medium {

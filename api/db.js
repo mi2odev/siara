@@ -23,7 +23,7 @@ const parsedDatabaseUrl = (() => {
   }
   try {
     return new URL(process.env.DATABASE_URL);
-  } catch (_error) {
+  } catch (_error) { 
     return null;
   }
 })();

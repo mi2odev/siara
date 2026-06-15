@@ -4014,10 +4014,22 @@ body.has-left-info-open .police-shell-header {
 .pcx-head {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "av id menu"
+    "status status status";
   align-items: center;
   gap: 0.75rem;
   padding: 1.125rem 1.125rem 0.625rem;
+  /* Lift the header (and its credibility tooltip) above the sibling content
+     layer — every .pcx > * sits at z-index:1, so without this the content's
+     divider lines paint over the tooltip. */
+  position: relative;
+  z-index: 5;
 }
+.pcx-head > .pcx-av { grid-area: av; }
+.pcx-head > .pcx-id { grid-area: id; }
+.pcx-head > .pcx-menu { grid-area: menu; }
+.pcx-head > .pcx-status { grid-area: status; }
 
 .pcx-av {
   position: relative;
@@ -4153,8 +4165,11 @@ body.has-left-info-open .police-shell-header {
 .pcx-status {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
-  padding: 0.125rem 1.125rem 0.875rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .pcx-pill {
@@ -4231,6 +4246,98 @@ body.has-left-info-open .police-shell-header {
 .pcx-pill--cred-high   { color: #047857; background: rgba(16,185,129,0.10);  border-color: rgba(16,185,129,0.26); }
 .pcx-pill--cred-medium { color: #B45309; background: rgba(245,158,11,0.12);  border-color: rgba(245,158,11,0.26); }
 .pcx-pill--cred-low    { color: #DC2626; background: rgba(239,68,68,0.10);   border-color: rgba(239,68,68,0.26); }
+
+/* Credibility hover tooltip — explains how the score was derived. */
+.pcx-cred {
+  position: relative;
+  display: inline-flex;
+}
+.pcx-cred > .pcx-pill {
+  width: 100%;
+  cursor: help;
+}
+.pcx-cred-tip {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%) translateY(0.25rem);
+  z-index: 60;
+  width: 16rem;
+  max-width: 80vw;
+  padding: 0.75rem 0.875rem;
+  background: #0F172A;
+  color: #E2E8F0;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  box-shadow: 0 18px 38px -14px rgba(15, 23, 42, 0.6);
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+.pcx-cred:hover .pcx-cred-tip,
+.pcx-cred:focus-within .pcx-cred-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.pcx-cred-tip::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 0.375rem solid transparent;
+  border-bottom-color: #0F172A;
+}
+.pcx-cred-tip__title {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+.pcx-cred-tip__score {
+  display: block;
+  font-size: 0.6875rem;
+  color: #94A3B8;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  text-transform: capitalize;
+}
+.pcx-cred-tip__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.pcx-cred-tip__item {
+  position: relative;
+  padding-left: 1rem;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+}
+.pcx-cred-tip__item::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 700;
+}
+.pcx-cred-tip__item.is-positive { color: #BBF7D0; }
+.pcx-cred-tip__item.is-positive::before { content: "+"; color: #4ADE80; }
+.pcx-cred-tip__item.is-negative { color: #FECACA; }
+.pcx-cred-tip__item.is-negative::before { content: "\2212"; color: #F87171; }
+.pcx-cred-tip__empty {
+  font-size: 0.6875rem;
+  color: #CBD5E1;
+}
 
 /* Severity tones */
 .pcx-pill--sev-high {
@@ -4682,8 +4789,35 @@ body.has-left-info-open .police-shell-header {
 
 /* ── Tablet / desktop scale-up ── */
 @media (min-width: 768px) {
-  .pcx-head    { padding: 1.375rem 1.375rem 0.75rem; }
-  .pcx-status  { padding: 0.125rem 1.375rem 1rem; }
+  .pcx-head {
+    padding: 1.375rem 1.375rem 0.75rem;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "av id status menu";
+  }
+  .pcx-status {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+  /* All five header chips — identity role + trust and the three status badges —
+     share one width and height so the row reads as a uniform set. */
+  .pcx-status .pcx-pill,
+  .pcx-id-meta .pcx-role,
+  .pcx-id-meta .pcx-trust {
+    flex: 0 0 8rem;
+    width: 8rem;
+    box-sizing: border-box;
+    justify-content: center;
+    font-size: 0.5625rem;
+    line-height: 1.1;
+    padding: 0.375rem 0.5rem;
+    overflow: hidden;
+  }
+  .pcx-id-meta { gap: 0.5rem; }
+  .pcx-id-meta .pcx-mid-dot { display: none; }
+  /* The credibility chip is wrapped (for its hover tooltip), so size the
+     wrapper to the same slot as the bare pills. */
+  .pcx-status .pcx-cred { flex: 0 0 8rem; }
   .pcx-content { padding: 0 1.375rem; }
   .pcx-gallery      { margin: 1rem 1.375rem 0; }
   .pcx-gallery--1    { grid-template-rows: 430px; }
