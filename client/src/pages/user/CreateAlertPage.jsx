@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Circle, MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import FancySelect from '../../components/ui/FancySelect'
+import TimeField from '../../components/ui/TimeField'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -677,17 +678,17 @@ export default function CreateAlertPage() {
             <div className="step-panel create-alert-type-step">
               <div className="step-header">
                 <h1>What type of alert do you want to create?</h1>
-                <p>Select the category that best matches your alert.</p>
+                <p>Select one or more categories that match your alert.</p>
               </div>
 
               <div className="type-grid">
                 {ALERT_TYPES.map((type) => (
                   <div
                     key={type.id}
-                    className={`type-card ${alertData.types[0] === type.id ? 'selected' : ''}`}
-                    onClick={() => setAlertData((prev) => ({ ...prev, types: [type.id] }))}
+                    className={`type-card ${alertData.types.includes(type.id) ? 'selected' : ''}`}
+                    onClick={() => toggleInList('types', type.id)}
                   >
-                    <div className="type-check">{alertData.types[0] === type.id ? <CheckRoundedIcon fontSize="inherit" /> : ''}</div>
+                    <div className="type-check">{alertData.types.includes(type.id) ? <CheckRoundedIcon fontSize="inherit" /> : ''}</div>
                     <span className="type-icon">{renderTypeIcon(type.id)}</span>
                     <span className="type-label">{type.label}</span>
                     <span className="type-desc">{type.desc}</span>
@@ -801,7 +802,7 @@ export default function CreateAlertPage() {
                       <input
                         type="range"
                         min="1"
-                        max="50"
+                        max="100"
                         value={alertData.zoneRadius}
                         onChange={(event) =>
                           setAlertData((prev) => ({ ...prev, zoneRadius: Number(event.target.value) }))
@@ -900,18 +901,16 @@ export default function CreateAlertPage() {
                 <div className="custom-time">
                   <div className="time-input">
                     <label>From</label>
-                    <input
-                      type="time"
+                    <TimeField
                       value={alertData.timeStart}
-                      onChange={(event) => setAlertData((prev) => ({ ...prev, timeStart: event.target.value }))}
+                      onChange={(next) => setAlertData((prev) => ({ ...prev, timeStart: next }))}
                     />
                   </div>
                   <div className="time-input">
                     <label>To</label>
-                    <input
-                      type="time"
+                    <TimeField
                       value={alertData.timeEnd}
-                      onChange={(event) => setAlertData((prev) => ({ ...prev, timeEnd: event.target.value }))}
+                      onChange={(next) => setAlertData((prev) => ({ ...prev, timeEnd: next }))}
                     />
                   </div>
                 </div>

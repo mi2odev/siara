@@ -2,9 +2,10 @@ import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined
 import NotificationBell from '../../components/notifications/NotificationBell'
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
 import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined'
+import SwapVertRoundedIcon from '@mui/icons-material/SwapVertRounded'
+import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined'
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined'
-import ThumbUpOutlinedIcon from '@mui/icons-material/ThumbUpOutlined'
 import DirectionsCarOutlinedIcon from '@mui/icons-material/DirectionsCarOutlined'
 import EditRoundedIcon from '@mui/icons-material/EditRounded'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
@@ -34,7 +35,7 @@ import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
-import { getCurrentUser, getUserPrivacyVisibility, getUserSettings } from '../../services/authService'
+import { getCurrentUser, getMyActivityTimeline, getUserPrivacyVisibility, getUserSettings } from '../../services/authService'
 import { listReports } from '../../services/reportsService'
 import { fetchAlerts, fetchAlertsForUser } from '../../services/alertService'
 import {
@@ -163,6 +164,22 @@ function isSameUser(leftUser, rightUser) {
   return false
 }
 
+/* Maps an activity-timeline event kind to its dot color + icon. */
+const TIMELINE_EVENT_STYLES = {
+  report_created: { color: '#EF4444', icon: <DirectionsCarOutlinedIcon fontSize="inherit" /> },
+  ai_validation: { color: '#10B981', icon: <SmartToyOutlinedIcon fontSize="inherit" /> },
+  ai_flag: { color: '#F59E0B', icon: <SmartToyOutlinedIcon fontSize="inherit" /> },
+  report_verified: { color: '#10B981', icon: <CheckRoundedIcon fontSize="inherit" /> },
+  report_resolved: { color: '#3B82F6', icon: <CheckRoundedIcon fontSize="inherit" /> },
+  report_rejected: { color: '#EF4444', icon: <NotificationsActiveOutlinedIcon fontSize="inherit" /> },
+  alert_created: { color: '#8B5CF6', icon: <NotificationsOutlinedIcon fontSize="inherit" /> },
+  alert_triggered: { color: '#8B5CF6', icon: <NotificationsActiveOutlinedIcon fontSize="inherit" /> },
+  trip: { color: '#0EA5E9', icon: <RouteOutlinedIcon fontSize="inherit" /> },
+}
+const TIMELINE_EVENT_DEFAULT_STYLE = { color: '#64748B', icon: <EditRoundedIcon fontSize="inherit" /> }
+
+const HISTORY_SORT_STORAGE_KEY = 'siara_profile_history_sort'
+
 export default function ProfilePage(){
   /* ═══ STATE ═══ */
   const navigate = useNavigate()
@@ -180,6 +197,17 @@ export default function ProfilePage(){
   const [driverQuizHistory, setDriverQuizHistory] = useState([])
   const [driverQuizLoading, setDriverQuizLoading] = useState(false)
   const [driverQuizError, setDriverQuizError] = useState('')
+  const [timelineEvents, setTimelineEvents] = useState([])
+  const [timelineLoading, setTimelineLoading] = useState(false)
+  const [timelineError, setTimelineError] = useState('')
+  // History sort direction, persisted so the user's choice is remembered.
+  const [historySortDir, setHistorySortDir] = useState(() => {
+    try {
+      return localStorage.getItem(HISTORY_SORT_STORAGE_KEY) === 'asc' ? 'asc' : 'desc'
+    } catch {
+      return 'desc'
+    }
+  })
   const [showQuiz, setShowQuiz] = useState(false)
   const [quizReloadKey, setQuizReloadKey] = useState(0)
   const [activeTab, setActiveTab] = useState('alerts')       // Currently selected activity tab
@@ -488,6 +516,29 @@ export default function ProfilePage(){
     return [...zoneCounts.entries()].sort((left, right) => right[1] - left[1])[0][0]
   }, [myAlerts, myReports])
 
+  const toggleHistorySort = () => {
+    setHistorySortDir((prev) => {
+      const next = prev === 'desc' ? 'asc' : 'desc'
+      try {
+        localStorage.setItem(HISTORY_SORT_STORAGE_KEY, next)
+      } catch {
+        /* localStorage unavailable — keep in-memory only */
+      }
+      return next
+    })
+  }
+
+  // History reuses the activity feed, re-sorted by the saved direction.
+  const historyEvents = useMemo(() => {
+    const list = [...timelineEvents]
+    list.sort((left, right) => {
+      const leftTime = left.at ? new Date(left.at).getTime() : 0
+      const rightTime = right.at ? new Date(right.at).getTime() : 0
+      return historySortDir === 'asc' ? leftTime - rightTime : rightTime - leftTime
+    })
+    return list
+  }, [timelineEvents, historySortDir])
+
   const recentTriggeredAlerts = useMemo(() => {
     const results = []
 
@@ -633,6 +684,38 @@ export default function ProfilePage(){
       ignore = true
     }
   }, [currentUser?.id, currentUser?.userId, currentUser?.user_id, isExternalProfileView, shouldHideActivityForViewer])
+
+  /* ═══ ACTIVITY TIMELINE (own profile only) ═══ */
+  useEffect(() => {
+    if (isExternalProfileView || shouldHideActivityForViewer) {
+      setTimelineEvents([])
+      setTimelineLoading(false)
+      setTimelineError('')
+      return
+    }
+
+    let ignore = false
+    setTimelineLoading(true)
+    setTimelineError('')
+
+    ;(async () => {
+      try {
+        const events = await getMyActivityTimeline(30)
+        if (!ignore) setTimelineEvents(events)
+      } catch {
+        if (!ignore) {
+          setTimelineError('Unable to load your timeline right now.')
+          setTimelineEvents([])
+        }
+      } finally {
+        if (!ignore) setTimelineLoading(false)
+      }
+    })()
+
+    return () => {
+      ignore = true
+    }
+  }, [currentUser?.id, currentUser?.email, isExternalProfileView, shouldHideActivityForViewer, quizReloadKey])
 
   /* ═══ KEYBOARD NAVIGATION FOR TABS ═══ */
   // Implements WAI-ARIA roving tabIndex pattern:
@@ -1002,7 +1085,9 @@ export default function ProfilePage(){
                         >
                           <span className="pm-row-icon pm-row-icon--report" aria-hidden="true">
                             <svg viewBox="0 0 20 20" fill="none">
-                              <path d="M10 2a8 8 0 1 0 0 16A8 8 0 0 0 10 2Zm0 4v5m0 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                              <path d="M11 2.5H6.5A1.5 1.5 0 0 0 5 4v12a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 15 16V6.5L11 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                              <path d="M11 2.5V6a1 1 0 0 0 1 1h3" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                              <path d="M7.75 11h4.5M7.75 13.5h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                             </svg>
                           </span>
                           <div className="pm-row-main">
@@ -1022,39 +1107,101 @@ export default function ProfilePage(){
 
               {/* History tab */}
               {activeTab === 'history' && (
-                <div className="pm-empty">
-                  <span className="pm-empty-icon" aria-hidden="true">&#128202;</span>
-                  <p className="pm-empty-title">History coming soon</p>
-                  <p className="pm-empty-sub">Your full activity history will appear here.</p>
-                </div>
+                timelineLoading ? (
+                  <div className="pm-empty">
+                    <span className="pm-empty-icon" aria-hidden="true">&#8987;</span>
+                    <p className="pm-empty-title">Loading your history…</p>
+                  </div>
+                ) : timelineError ? (
+                  <div className="pm-empty">
+                    <span className="pm-empty-icon" aria-hidden="true">&#9888;</span>
+                    <p className="pm-empty-title">Couldn’t load history</p>
+                    <p className="pm-empty-sub">{timelineError}</p>
+                  </div>
+                ) : historyEvents.length === 0 ? (
+                  <div className="pm-empty">
+                    <span className="pm-empty-icon" aria-hidden="true">&#128202;</span>
+                    <p className="pm-empty-title">No history yet</p>
+                    <p className="pm-empty-sub">Your reports, alerts, and their updates will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="pm-history">
+                    <div className="pm-history-toolbar">
+                      <span className="pm-history-count">{historyEvents.length} events</span>
+                      <button
+                        type="button"
+                        className="pm-history-sort"
+                        onClick={toggleHistorySort}
+                        title="Toggle sort order"
+                      >
+                        <SwapVertRoundedIcon fontSize="inherit" />
+                        {historySortDir === 'desc' ? 'Newest first' : 'Oldest first'}
+                      </button>
+                    </div>
+
+                    <ul className="pm-history-list">
+                      {historyEvents.map((event, i) => {
+                        const style = TIMELINE_EVENT_STYLES[event.kind] || TIMELINE_EVENT_DEFAULT_STYLE
+                        return (
+                          <li key={`${event.kind}-${event.at || i}`} className="pm-history-row">
+                            <span className="pm-history-icon" style={{ background: style.color }}>
+                              {style.icon}
+                            </span>
+                            <div className="pm-history-body">
+                              <div className="pm-history-row-head">
+                                <h4 className="pm-history-title">{event.title}</h4>
+                                <span className="pm-history-time">{event.timeLabel}</span>
+                              </div>
+                              <p className="pm-history-desc">{event.description}</p>
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )
               )}
 
               {/* Timeline tab */}
               {activeTab === 'timeline' && (
-                <div className="pm-timeline">
-                  {[
-                    { icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />, title: 'New report created', description: 'Multi-vehicle collision on East-West Highway', time: '2 hours ago', color: '#EF4444' },
-                    { icon: <SmartToyOutlinedIcon fontSize="inherit" />, title: 'AI Validation',       description: 'Your report has been verified and confirmed by AI', time: '3 hours ago', color: '#10B981' },
-                    { icon: <NotificationsOutlinedIcon fontSize="inherit" />, title: 'Alert Triggered',     description: '2,340 users were notified of your report', time: '1 day ago', color: '#8B5CF6' },
-                    { icon: <ThumbUpOutlinedIcon fontSize="inherit" />, title: 'Reaction Received',   description: '15 users found your report helpful', time: '2 days ago', color: '#3B82F6' },
-                    { icon: <DirectionsCarOutlinedIcon fontSize="inherit" />, title: 'Report Submitted',    description: 'Slowdown on Rue Didouche Mourad', time: '3 days ago', color: '#EF4444' },
-                    { icon: <EditRoundedIcon fontSize="inherit" />, title: 'Profile Updated',     description: 'Profile photo and bio updated', time: '5 days ago', color: '#64748B' },
-                    { icon: <CheckRoundedIcon fontSize="inherit" />,  title: 'Report Verified',     description: 'Accuracy rate: 95%', time: '1 week ago', color: '#10B981' },
-                  ].map((event, i) => (
-                    <div key={i} className="pm-timeline-event">
-                      <div className="pm-timeline-dot" style={{ background: event.color }}>
-                        <span>{event.icon}</span>
-                      </div>
-                      <div className="pm-timeline-content">
-                        <div className="pm-timeline-header">
-                          <h4 className="pm-timeline-title">{event.title}</h4>
-                          <span className="pm-timeline-time">{event.time}</span>
+                timelineLoading ? (
+                  <div className="pm-empty">
+                    <span className="pm-empty-icon" aria-hidden="true">&#8987;</span>
+                    <p className="pm-empty-title">Loading your timeline…</p>
+                  </div>
+                ) : timelineError ? (
+                  <div className="pm-empty">
+                    <span className="pm-empty-icon" aria-hidden="true">&#9888;</span>
+                    <p className="pm-empty-title">Couldn’t load timeline</p>
+                    <p className="pm-empty-sub">{timelineError}</p>
+                  </div>
+                ) : timelineEvents.length === 0 ? (
+                  <div className="pm-empty">
+                    <span className="pm-empty-icon" aria-hidden="true">&#128202;</span>
+                    <p className="pm-empty-title">No activity yet</p>
+                    <p className="pm-empty-sub">Your reports, alerts, and their updates will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="pm-timeline">
+                    {timelineEvents.map((event, i) => {
+                      const style = TIMELINE_EVENT_STYLES[event.kind] || TIMELINE_EVENT_DEFAULT_STYLE
+                      return (
+                        <div key={`${event.kind}-${event.at || i}`} className="pm-timeline-event">
+                          <div className="pm-timeline-dot" style={{ background: style.color }}>
+                            <span>{style.icon}</span>
+                          </div>
+                          <div className="pm-timeline-content">
+                            <div className="pm-timeline-header">
+                              <h4 className="pm-timeline-title">{event.title}</h4>
+                              <span className="pm-timeline-time">{event.timeLabel}</span>
+                            </div>
+                            <p className="pm-timeline-desc">{event.description}</p>
+                          </div>
                         </div>
-                        <p className="pm-timeline-desc">{event.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      )
+                    })}
+                  </div>
+                )
               )}
 
             </div>

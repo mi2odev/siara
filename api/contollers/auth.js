@@ -13,6 +13,7 @@ const {
   clearSessionCookie,
   confirmEmailVerification,
   fetchEmailPreferences,
+  fetchUserActivityTimeline,
   loginUser,
   loginWithGoogle,
   mapUser,
@@ -657,6 +658,17 @@ router.get("/settings", verifyToken, async (req, res, next) => {
   try {
     const settings = await fetchUserSettings(req.user.userId);
     return res.status(200).json(settings);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/activity", verifyToken, async (req, res, next) => {
+  try {
+    const events = await fetchUserActivityTimeline(req.user.userId, {
+      limit: req.query.limit,
+    });
+    return res.status(200).json({ events });
   } catch (error) {
     return next(error);
   }

@@ -7,6 +7,7 @@ import {
   updateDangerSubscription,
 } from '../../services/dangerSubscriptionsService'
 import DangerSubscriptionForm from '../../components/alerts/DangerSubscriptionForm'
+import LeftNavLayout from '../../components/layout/LeftNavLayout'
 import '../../styles/DangerSubscriptions.css'
 
 function thresholdLabel(value) {
@@ -92,6 +93,7 @@ export default function DangerSubscriptionsPage() {
   }
 
   return (
+    <LeftNavLayout activeKey="alerts">
     <div className="siara-ds-page">
       <div className="siara-ds-page__header">
         <div>
@@ -184,5 +186,6 @@ export default function DangerSubscriptionsPage() {
         </div>
       ) : null}
     </div>
+    </LeftNavLayout>
   )
 }
