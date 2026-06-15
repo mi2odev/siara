@@ -664,9 +664,7 @@ export default function NotificationsPage() {
                 className="profile-avatar-large"
                 loading="lazy"
                 onError={(e) => { if (e.currentTarget.src !== profileAvatar) e.currentTarget.src = profileAvatar }}
-              />
-              <span className="verified-badge"><CheckRoundedIcon fontSize="inherit" /></span>
-            </div>
+              />            </div>
             <div className="profile-info">
               <p className="profile-name">{displayName}</p>
               <span className={`role-badge ${roleClass}`}>{roleLabel}</span>

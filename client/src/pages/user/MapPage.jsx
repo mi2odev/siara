@@ -1255,9 +1255,7 @@ export default function MapPage() {
           {/* ── Profile card ── */}
           <div className="card profile-summary map-profile-summary">
             <div className="profile-avatar-container map-profile-avatar-container">
-              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large map-profile-avatar-large" loading="lazy" />
-              <span className="verified-badge map-profile-verified-badge">V</span>
-            </div>
+              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large map-profile-avatar-large" loading="lazy" />            </div>
             <div className="profile-info map-profile-info">
               <p className="profile-name map-profile-name">{profileName}</p>
               <span className={`role-badge ${roleClass}`}>{roleLabel}</span>

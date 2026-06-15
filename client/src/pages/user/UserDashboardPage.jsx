@@ -13,7 +13,6 @@ import DirectionsCarOutlinedIcon from '@mui/icons-material/DirectionsCarOutlined
 import CarCrashOutlinedIcon from '@mui/icons-material/CarCrashOutlined'
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
 import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined'
-import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import StarRoundedIcon from '@mui/icons-material/StarRounded'
 import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
@@ -319,9 +318,7 @@ export default function UserDashboardPage() {
         <aside className="sidebar-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
-              <span className="verified-badge"><CheckRoundedIcon fontSize="inherit" /></span>
-            </div>
+              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />            </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
               <span className={`role-badge ${roleBadgeClass}`}>{roleBadgeLabel}</span>

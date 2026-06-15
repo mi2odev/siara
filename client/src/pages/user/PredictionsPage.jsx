@@ -18,7 +18,6 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
-import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
 import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined'
 import TrafficOutlinedIcon from '@mui/icons-material/TrafficOutlined'
@@ -204,9 +203,7 @@ export default function PredictionsPage() {
           {/* Profile Summary */}
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
-              <span className="verified-badge"><CheckRoundedIcon fontSize="inherit" /></span>
-            </div>
+              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />            </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
               <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
