@@ -19,9 +19,9 @@ function pickSpamScorePercent(report) {
     safeNumber(report?.latestSpamScore) ??
     safeNumber(report?.latest_spam_score)
   if (raw == null) return null
-  if (raw <= 1.2) return raw * 100
-  if (raw > 100) return 100
-  return raw
+  // spamAnalysis.spamScore is already normalised server-side to 0..100. Only
+  // clamp — re-scaling here wrongly turned a 0.5% score into 50%.
+  return Math.max(0, Math.min(100, raw))
 }
 
 function pickPredictedLabel(report) {
@@ -52,7 +52,12 @@ function hasMedia(report) {
 }
 
 function reporterTrustScore(report) {
+  // The feed payload exposes the reporter's trust score at reportedBy.trustScore
+  // (see reports.js mapReportRow). The older paths below never matched, so the
+  // ±10 trust adjustment silently never applied.
   return (
+    safeNumber(report?.reportedBy?.trustScore) ??
+    safeNumber(report?.reportedBy?.trust_score) ??
     safeNumber(report?.reporterTrustScore) ??
     safeNumber(report?.reporter?.trustScore) ??
     safeNumber(report?.reporter_trust_score)
@@ -68,9 +73,14 @@ function sawItTooCount(report) {
 }
 
 function hasValidLocation(report) {
-  const lat = safeNumber(report?.lat ?? report?.latitude)
-  const lng = safeNumber(report?.lng ?? report?.longitude)
+  // Coordinates live under report.location.{lat,lng} in the feed payload
+  // (reports.js). Reading top-level lat/lng made EVERY report look location-
+  // invalid, so the score was always penalised and the "Location appears
+  // invalid" reason showed on every card.
+  const lat = safeNumber(report?.location?.lat ?? report?.lat ?? report?.latitude)
+  const lng = safeNumber(report?.location?.lng ?? report?.lng ?? report?.longitude)
   if (lat == null || lng == null) return false
+  if (lat === 0 && lng === 0) return false
   if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return false
   return true
 }

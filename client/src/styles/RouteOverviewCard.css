@@ -66,8 +66,15 @@
   border-top: 0;
 }
 
-.siara-route-overview__label {
+/* Shared micro-label used for every section heading in the card, so the panel
+ * reads as one consistent, professional list of sections. */
+.siara-route-overview__label,
+.siara-route-overview__section-label {
+  margin: 0;
   font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: #64748B;
 }
 
@@ -105,6 +112,7 @@
   letter-spacing: 0.04em;
 }
 .siara-route-overview__stat.risk-low strong { color: #166534; }
+.siara-route-overview__stat.risk-medium strong { color: #92400E; }
 .siara-route-overview__stat.risk-moderate strong { color: #92400E; }
 .siara-route-overview__stat.risk-high strong { color: #9A3412; }
 .siara-route-overview__stat.risk-extreme strong { color: #7F1D1D; }
@@ -115,15 +123,38 @@
   border-top: 1px solid #F1F5F9;
 }
 
+.siara-route-overview__why-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
 .siara-route-overview__why-title {
-  margin: 0 0 4px;
-  font-size: 12px;
+  margin: 0;
+  font-size: 11px;
   font-weight: 700;
-  color: #0F172A;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748B;
+}
+
+/* Grouped panel that ties the AI explanation, its reason bullets and the
+ * generate button together. Soft violet tint echoes the AI chip colour — no
+ * accent bars, just a full tinted container. */
+.siara-route-overview__why-panel {
+  background: #F5F3FF;
+  border: 1px solid #ECE9FE;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .siara-route-overview__why-text {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 12px;
   line-height: 1.5;
   color: #1E293B;
@@ -156,52 +187,65 @@
   color: #94A3B8;
 }
 
-.siara-route-overview__alts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.siara-route-overview__alts-section {
   padding-top: 8px;
   margin-top: 8px;
   border-top: 1px solid #F1F5F9;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.siara-route-overview__alts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .siara-route-overview__alt-btn {
-  flex: 1 1 calc(50% - 6px);
-  background: #F1F5F9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: #F8FAFC;
   border: 1px solid #E2E8F0;
   border-radius: 10px;
-  padding: 6px 8px;
-  font-size: 11px;
+  padding: 8px 10px;
+  font-size: 12px;
   font-weight: 600;
   color: #0F172A;
   cursor: pointer;
   text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   transition: background 120ms ease, border-color 120ms ease;
 }
 
 .siara-route-overview__alt-btn:hover,
 .siara-route-overview__alt-btn:focus-visible {
-  background: #E2E8F0;
+  background: #F1F5F9;
   border-color: #CBD5E1;
 }
 
-.siara-route-overview__alt-btn small {
-  font-weight: 500;
+.siara-route-overview__alt-name {
+  flex: 1;
+}
+
+.siara-route-overview__alt-risk {
+  font-weight: 600;
   color: #64748B;
-  font-size: 10px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .siara-route-overview__alt-icon {
-  font-size: 13px;
+  font-size: 15px;
+  line-height: 1;
+  display: inline-flex;
 }
 
 .siara-route-overview__ai-button {
-  margin-top: 10px;
+  margin-top: 2px;
   width: 100%;
-  background: linear-gradient(135deg, #1E293B, #334155);
+  background: linear-gradient(135deg, #6D28D9, #4F46E5);
   color: #F8FAFC;
   border: 0;
   border-radius: 10px;
@@ -224,7 +268,6 @@
 }
 
 .siara-route-overview__ai-chip {
-  margin-top: 10px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -234,6 +277,8 @@
   background: #EDE9FE;
   color: #6D28D9;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .siara-route-overview__segments {
@@ -241,7 +286,12 @@
   margin-top: 8px;
   border-top: 1px solid #F1F5F9;
   display: grid;
-  gap: 7px;
+  gap: 8px;
+}
+
+.siara-route-overview__segment {
+  display: grid;
+  gap: 4px;
 }
 
 .siara-route-overview__segment-row {
@@ -255,23 +305,27 @@
   background: #F8FAFC;
 }
 
-.siara-route-overview__segment-row span {
+.siara-route-overview__segment-row > span:first-child {
   color: #475569;
   font-size: 11px;
   font-weight: 600;
 }
 
-.siara-route-overview__segment-row strong {
-  color: #0F172A;
-  font-size: 12px;
+/* Risk presented as a tinted pill — consistent with the rest of SIARA's risk
+ * badges, and cleaner than bare coloured text. */
+.siara-route-overview__segment-risk {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
   white-space: nowrap;
 }
-
-.siara-route-overview__segment-row strong.risk-low { color: #166534; }
-.siara-route-overview__segment-row strong.risk-moderate { color: #92400E; }
-.siara-route-overview__segment-row strong.risk-high { color: #9A3412; }
-.siara-route-overview__segment-row strong.risk-extreme { color: #7F1D1D; }
-.siara-route-overview__segment-row strong.risk-unknown { color: #475569; }
+.siara-route-overview__segment-risk.risk-low { background: #DCFCE7; color: #166534; }
+.siara-route-overview__segment-risk.risk-medium { background: #FEF3C7; color: #92400E; }
+.siara-route-overview__segment-risk.risk-moderate { background: #FEF3C7; color: #92400E; }
+.siara-route-overview__segment-risk.risk-high { background: #FFEDD5; color: #9A3412; }
+.siara-route-overview__segment-risk.risk-extreme { background: #FEE2E2; color: #7F1D1D; }
+.siara-route-overview__segment-risk.risk-unknown { background: #F1F5F9; color: #475569; }
 
 /* Best-time-to-leave (compact) — embedded inside RouteOverviewCard. */
 .siara-best-time-compact {
@@ -310,12 +364,37 @@
   flex: 1;
 }
 
+/* Circular expand/collapse affordance — a real button look instead of a bare
+ * caret. Sits inside the header button, so hover is driven from the header. */
 .siara-best-time-compact__chevron {
-  font-size: 10px;
-  color: #64748B;
-  transition: transform 160ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+  flex-shrink: 0;
+  transition: transform 180ms ease, background 120ms ease, color 120ms ease,
+    border-color 120ms ease;
 }
-.siara-best-time-compact__chevron--open { transform: rotate(180deg); }
+.siara-best-time-compact__header:hover .siara-best-time-compact__chevron,
+.siara-best-time-compact__header:focus-visible .siara-best-time-compact__chevron {
+  background: #E2E8F0;
+  border-color: #CBD5E1;
+  color: #1E293B;
+}
+.siara-best-time-compact__chevron--open {
+  transform: rotate(180deg);
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #1D4ED8;
+}
+.siara-best-time-compact__chevron svg {
+  display: block;
+}
 
 .siara-best-time-compact__teaser {
   margin: 2px 0 0;
@@ -416,7 +495,7 @@
 
 .siara-best-time-compact__use-btn {
   align-self: flex-start;
-  background: #1E293B;
+  background: #2563EB;
   color: #F8FAFC;
   border: 0;
   border-radius: 8px;
@@ -426,7 +505,7 @@
   cursor: pointer;
 }
 .siara-best-time-compact__use-btn:hover:not(:disabled) {
-  background: #0F172A;
+  background: #1D4ED8;
 }
 .siara-best-time-compact__use-btn:disabled {
   background: #94A3B8;
