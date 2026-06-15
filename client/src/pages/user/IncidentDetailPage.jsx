@@ -14,7 +14,6 @@ import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
-import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import NotificationBell from '../../components/notifications/NotificationBell'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
@@ -692,9 +691,7 @@ export default function IncidentDetailPage() {
         <aside className="incident-sidebar-left al-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
-              <span className="verified-badge"><CheckRoundedIcon fontSize="inherit" /></span>
-            </div>
+              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />            </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
               <span className={`role-badge ${roleClass}`}>{roleLabel}</span>

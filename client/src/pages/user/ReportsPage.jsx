@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
 import NotificationBell from '../../components/notifications/NotificationBell'
 
@@ -360,9 +359,7 @@ export default function ReportsPage() {
         <aside className="al-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />
-              <span className="verified-badge"><CheckRoundedIcon fontSize="inherit" /></span>
-            </div>
+              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />            </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
               <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
