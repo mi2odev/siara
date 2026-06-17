@@ -6,6 +6,7 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
 import PendingActionsOutlinedIcon from '@mui/icons-material/PendingActionsOutlined'
 import LocalPoliceOutlinedIcon from '@mui/icons-material/LocalPoliceOutlined'
+import AssignmentIndOutlinedIcon from '@mui/icons-material/AssignmentIndOutlined'
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'
@@ -85,6 +86,7 @@ export default function PoliceShell({
           path: '/police/verification',
         },
         { key: 'my-incidents', label: 'My Incidents', icon: <LocalPoliceOutlinedIcon fontSize="inherit" />, path: '/police/my-incidents' },
+        { key: 'assigned-incidents', label: 'Assigned Incidents', icon: <AssignmentIndOutlinedIcon fontSize="inherit" />, path: '/police/assigned-incidents' },
         { key: 'field-reports', label: 'Field Reports', icon: <EditNoteOutlinedIcon fontSize="inherit" />, path: '/police/field-reports' },
         { key: 'alert-center', label: 'Alert Center', icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />, path: '/police/alerts' },
         { key: 'operation-history', label: 'Operation History', icon: <HistoryOutlinedIcon fontSize="inherit" />, path: '/police/history' },

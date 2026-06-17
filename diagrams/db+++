@@ -156,4 +156,30 @@ ALTER TABLE app.accident_reports
 
 CREATE INDEX IF NOT EXISTS idx_accident_reports_reported_by_created_at
   ON app.accident_reports (reported_by, created_at DESC);
+
+
+-- ----------------------------------------------------------------------------
+--  2026-06-17 · Fix: officers never got the "incident assigned" notification
+-- ----------------------------------------------------------------------------
+--  uq_notifications_user_report_channel (from 20260317_realtime_web_notifications)
+--  enforced ONE notification per (user_id, report_id, channel). That fit the old
+--  trigger-only pipeline, but the notificationOrchestrator now writes several
+--  event types for the same report to the same user over its lifecycle
+--  (POLICE_WORK_ZONE_INCIDENT -> POLICE_INCIDENT_ASSIGNED -> ...). Its
+--  insertNotificationRow does a bare INSERT, so the SECOND notification per report
+--  (usually the assignment) hit the unique index, threw, and was swallowed by the
+--  assign flow's .catch() — the officer was silently never notified.
+--
+--  Replace the broad unique index with a PARTIAL one scoped to the trigger's own
+--  event type so the trigger keeps its per-report dedup while every orchestrator
+--  event is free to coexist. The trigger's ON CONFLICT is repointed at the
+--  partial index (predicate restated). Applied via
+--  migrations/20260617_fix_notification_unique_index.sql (also CREATE OR REPLACEs
+--  app.create_notifications_from_report() — see that file for the full body).
+
+DROP INDEX IF EXISTS app.uq_notifications_user_report_channel;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_notifications_zone_alert_user_report
+  ON app.notifications (user_id, report_id, channel)
+  WHERE event_type = 'INCIDENT_REPORTED_IN_ZONE';
 //////////////////////////////////////////////////////////////////
