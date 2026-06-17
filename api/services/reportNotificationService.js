@@ -343,7 +343,7 @@ async function createNotificationsForReport(reportId, db = pool) {
             on matching_alerts.alert_id = inserted_logs.alert_id
           where matching_alerts.user_id = notification_candidates.user_id
         )
-        on conflict (user_id, report_id, channel) do nothing
+        on conflict (user_id, report_id, channel) where event_type = 'INCIDENT_REPORTED_IN_ZONE' do nothing
         returning *
       )
       select
