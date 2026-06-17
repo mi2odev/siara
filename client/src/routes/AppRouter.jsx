@@ -26,6 +26,7 @@ import PredictionsPage from "../pages/user/PredictionsPage";
 import PoliceAlertCenterPage from "../pages/police/PoliceAlertCenterPage";
 import PolicePage from "../pages/police/PolicePage";
 import PoliceAIInsightsPage from "../pages/police/PoliceAIInsightsPage";
+import PoliceAssignedIncidentsPage from "../pages/police/PoliceAssignedIncidentsPage";
 import PoliceFieldReportsPage from "../pages/police/PoliceFieldReportsPage";
 import PoliceIncidentDetailPage from "../pages/police/PoliceIncidentDetailPage";
 import PoliceMyIncidentsPage from "../pages/police/PoliceMyIncidentsPage";
@@ -119,6 +120,7 @@ export default function AppRouter() {
               <Route path="police/field-reports" element={<PoliceFieldReportsPage />} />
               <Route path="police/insights" element={<PoliceAIInsightsPage />} />
               <Route path="police/my-incidents" element={<PoliceMyIncidentsPage />} />
+              <Route path="police/assigned-incidents" element={<PoliceAssignedIncidentsPage />} />
               <Route path="police/nearby" element={<PoliceNearbyIncidentsPage />} />
               <Route path="police/history" element={<PoliceOperationHistoryPage />} />
               <Route path="police/verification" element={<PoliceVerificationQueuePage />} />

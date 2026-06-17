@@ -73,7 +73,7 @@ const ALERT_TYPE_VALUES = new Set([
   "advisory",
 ]);
 const TARGET_TYPE_VALUES = new Set(["officer", "role", "zone"]);
-const INCIDENT_SCOPE_VALUES = new Set(["active", "nearby", "my", "field_reports", "all"]);
+const INCIDENT_SCOPE_VALUES = new Set(["active", "nearby", "my", "assigned", "field_reports", "all"]);
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
@@ -1137,6 +1137,29 @@ function applyIncidentScope({
       (
         base.reported_by = $${userParam}::uuid
         OR base.assigned_officer_id = $${userParam}::uuid
+        OR EXISTS (
+          SELECT 1
+          FROM app.incident_assignments my_assignments
+          WHERE my_assignments.report_id = base.id
+            AND my_assignments.officer_user_id = $${userParam}::uuid
+            AND my_assignments.status = 'active'
+        )
+      )
+    `);
+
+    return { locationRequired: false };
+  }
+
+  if (scope === "assigned") {
+    // Assigned-only view: incidents the officer is the current assignee of, or
+    // holds an active assignment row for. Unlike "my", this deliberately omits
+    // incidents the officer merely reported.
+    values.push(officerUserId);
+    const userParam = values.length;
+
+    whereClauses.push(`
+      (
+        base.assigned_officer_id = $${userParam}::uuid
         OR EXISTS (
           SELECT 1
           FROM app.incident_assignments my_assignments
