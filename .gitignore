@@ -8,6 +8,10 @@ __pycache__/
 # Environment / secrets — never commit these
 .env
 *.env
+.env.*
+*.local-backup
+!.env.example
+!*.env.example
 
 # Large ML artifacts
 *.pt

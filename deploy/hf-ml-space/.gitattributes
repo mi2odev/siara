@@ -1,0 +1,6 @@
+# Hugging Face Spaces uses git-LFS for large files. Model artifacts MUST be
+# LFS-tracked or the push will be rejected / the build will be missing them.
+*.joblib filter=lfs diff=lfs merge=lfs -text
+*.pt filter=lfs diff=lfs merge=lfs -text
+*.pth filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text

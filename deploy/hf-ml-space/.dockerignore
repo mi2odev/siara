@@ -1,0 +1,43 @@
+# Build context = the assembled Space folder. The assembler only copies the
+# files the ML service actually needs, so most of this is belt-and-suspenders to
+# guarantee a lean image even if extra files land in the folder.
+
+# --- Secrets: NEVER bake into the image ---
+.env
+.env.*
+*.env
+
+# --- Phase-1 ONLY: keep torch weights out of the image ---
+# best_fakeddit_model.pt is added in Phase 2. To bake it in later, DELETE the
+# two lines below and rebuild (and install torch/CLIP via requirements.txt).
+**/*.pt
+**/*.pth
+
+# --- Python caches ---
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# --- Deploy metadata / docs not needed at runtime ---
+.git/
+.gitattributes
+.gitignore
+.dockerignore
+Dockerfile
+*.md
+
+# --- Node backend (should not be here, but exclude if copied by mistake) ---
+**/node_modules/
+*.js
+*.ts
+
+# --- Redundant / unused model artifacts (NOT loaded by ml_service.py) ---
+siara_multiclass_severity_artifacts_fixed/calibrated_lightgbm_multiclass.joblib
+siara_multiclass_severity_artifacts_fixed/siara_multiclass_bundle.joblib
+siara_multiclass_severity_artifacts_fixed/siara_multiclass_severity_model.joblib
+occurrence-model/occurrence_betav1_final/model.joblib
+occurrence-model/occurrence_betav1_final/preprocessor.joblib
+occurrence-model/occurrence_betav1_final/calibration_curve.png
+danger-zone-model/siara_v1_artifacts/siara_bundle.joblib
+danger-zone-model/siara_v1_artifacts/siara_severe_model.joblib
+danger-zone-model/siara_v1_artifacts/base_lightgbm.joblib

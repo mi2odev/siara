@@ -5,6 +5,10 @@ const axios = require("axios");
 const pool = require("../db");
 
 const DEFAULT_ML_SERVICE_BASE_URL = process.env.ML_SERVICE_BASE_URL || "http://localhost:8000";
+// Optional bearer token for a remote/private ML service (private HF Space).
+// Unset for localhost dev -> no header added, behavior unchanged.
+const ML_SERVICE_TOKEN = process.env.ML_SERVICE_TOKEN || "";
+const ML_AUTH_HEADERS = ML_SERVICE_TOKEN ? { Authorization: `Bearer ${ML_SERVICE_TOKEN}` } : {};
 const DEFAULT_REPORT_SPAM_MODEL_PATH =
   process.env.REPORT_SPAM_MODEL_PATH || path.join(__dirname, "..", "anomaly-detection", "best_fakeddit_model.pt");
 const DEFAULT_REPORT_SPAM_MODEL_NAME = process.env.REPORT_SPAM_MODEL_NAME || "fakeddit-clip";
@@ -409,6 +413,7 @@ async function callSpamClassifier({ text, imageUrl }) {
     },
     {
       timeout: DEFAULT_REPORT_SPAM_TIMEOUT_MS,
+      headers: ML_AUTH_HEADERS,
     },
   );
 
@@ -441,6 +446,7 @@ async function callReportValidator({
     },
     {
       timeout: DEFAULT_REPORT_SPAM_TIMEOUT_MS,
+      headers: ML_AUTH_HEADERS,
     },
   );
 

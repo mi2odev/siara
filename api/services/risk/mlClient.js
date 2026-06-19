@@ -14,9 +14,18 @@ const ML_SERVICE_BASE_URL =
 const TIMEOUT_MS = Number(process.env.ML_SERVICE_TIMEOUT_MS || 15000);
 const STREAM_TIMEOUT_MS = Number(process.env.ML_SERVICE_STREAM_TIMEOUT_MS || 300000);
 
+// Optional bearer token for a remote/private ML service (e.g. a private Hugging
+// Face Space). When ML_SERVICE_TOKEN is unset (localhost dev), no header is
+// added and behavior is unchanged.
+const ML_SERVICE_TOKEN = process.env.ML_SERVICE_TOKEN || "";
+const ML_AUTH_HEADERS = ML_SERVICE_TOKEN
+  ? { Authorization: `Bearer ${ML_SERVICE_TOKEN}` }
+  : {};
+
 async function postToFlask(path, body, deadline = null) {
   return axios.post(`${ML_SERVICE_BASE_URL}${path}`, body, {
     timeout: flaskTimeoutFor(deadline, TIMEOUT_MS),
+    headers: ML_AUTH_HEADERS,
   });
 }
 
@@ -32,6 +41,7 @@ async function postToFlaskStream(path, body) {
     validateStatus: () => true,
     headers: {
       Accept: "text/event-stream",
+      ...ML_AUTH_HEADERS,
     },
   });
 }
