@@ -607,7 +607,7 @@ app.use((err, req, res, next) => {
 });
 
 
-httpServer.listen(process.env.PORT_NUM || 5000, () => {
+httpServer.listen(process.env.PORT || process.env.PORT_NUM || 5000, () => {
   console.log("Backend server is running !!");
 });
 
