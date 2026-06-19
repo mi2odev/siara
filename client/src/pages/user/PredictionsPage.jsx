@@ -219,7 +219,7 @@ export default function PredictionsPage() {
           <div className="card pred-model-sidebar">
             <h3 className="card-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><PsychologyOutlinedIcon fontSize="inherit" /> AI Model</h3>
             <div className="pred-model-rows">
-              <div className="pred-model-row"><span>Version</span><span className="pred-model-val">v1.2</span></div>
+              <div className="pred-model-row"><span>Version</span><span className="pred-model-val">v1.0</span></div>
               <div className="pred-model-row"><span>Algorithm</span><span className="pred-model-val">LightGBM + CatBoost</span></div>
               <div className="pred-model-row"><span>Last Update</span><span className="pred-model-val">Today</span></div>
               <div className="pred-model-row"><span>Status</span><span className="pred-model-val green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><FiberManualRecordIcon fontSize="inherit" /> Active</span></div>
@@ -459,7 +459,7 @@ export default function PredictionsPage() {
             <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><BoltOutlinedIcon fontSize="inherit" /> Model Status</h3>
             <div className="pred-status-row">
               <span className="pred-status-label">Version</span>
-              <span className="pred-status-value">SIARA v1.2</span>
+              <span className="pred-status-value">SIARA v1.0</span>
             </div>
             <div className="pred-status-row">
               <span className="pred-status-label">Algorithm</span>

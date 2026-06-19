@@ -16,6 +16,7 @@ import {
   getPoliceWorkZoneOptions,
   listPoliceAlerts,
 } from '../../services/policeService'
+import { fetchCommunes } from '../../services/alertService'
 import '../../styles/SupervisorMode.css'
 
 const SEVERITIES = ['low', 'medium', 'high']
@@ -56,7 +57,9 @@ export default function SupervisorAlertCenterPage() {
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState(null)
 
-  const [wilayas, setWilayas] = useState([])
+  // Communes of the supervisor's own wilaya — the zone options for a broadcast.
+  const [communes, setCommunes] = useState([])
+  const [workWilaya, setWorkWilaya] = useState({ id: null, name: '' })
   const [pastAlerts, setPastAlerts] = useState([])
   const [loadingAlerts, setLoadingAlerts] = useState(true)
 
@@ -66,18 +69,34 @@ export default function SupervisorAlertCenterPage() {
   }
 
   const loadData = useCallback(async () => {
-    try {
-      const [zoneOpts, alertsResult] = await Promise.all([
-        getPoliceWorkZoneOptions(),
-        listPoliceAlerts({ pageSize: 20 }),
-      ])
-      setWilayas(zoneOpts.wilayas || [])
-      setPastAlerts(alertsResult.items || [])
-    } catch {
-      // non-critical
-    } finally {
-      setLoadingAlerts(false)
+    // Each source is resolved independently so one failure never blanks the form.
+    const [zoneOpts, alertsResult] = await Promise.all([
+      getPoliceWorkZoneOptions().catch(() => null),
+      listPoliceAlerts({ pageSize: 20 }).catch(() => ({ items: [] })),
+    ])
+    setPastAlerts(alertsResult.items || [])
+
+    // The supervisor broadcasts within the wilaya they work in, so the zone
+    // dropdown lists that wilaya's communes (e.g. all communes of Constantine).
+    const workWilayaId = zoneOpts?.selectedWilayaId || null
+    const workWilayaName = workWilayaId
+      ? ((zoneOpts?.wilayas || []).find((w) => Number(w.id) === Number(workWilayaId))?.name || '')
+      : ''
+    setWorkWilaya({ id: workWilayaId, name: workWilayaName })
+
+    let communeOptions = zoneOpts?.communes || []
+    if (workWilayaId && communeOptions.length === 0) {
+      communeOptions = await fetchCommunes(workWilayaId).catch(() => [])
     }
+    setCommunes(communeOptions)
+
+    // Default the zone to the commune this supervisor is assigned to, if any.
+    const workCommuneId = zoneOpts?.selectedCommuneId
+    if (workCommuneId && communeOptions.some((c) => Number(c.id) === Number(workCommuneId))) {
+      setForm((prev) => (prev.adminAreaId ? prev : { ...prev, adminAreaId: Number(workCommuneId) }))
+    }
+
+    setLoadingAlerts(false)
   }, [])
 
   useEffect(() => {
@@ -225,14 +244,19 @@ export default function SupervisorAlertCenterPage() {
                 </div>
 
                 <div className="sv-form-group">
-                  <label className="sv-form-label">Zone (Wilaya)</label>
+                  <label className="sv-form-label">
+                    Zone{workWilaya.name ? ` (${workWilaya.name})` : ''}
+                  </label>
                   <FancySelect
                     value={form.adminAreaId}
                     onChange={(value) => handleChange('adminAreaId', value)}
                     menuAlign="left"
                     options={[
-                      { value: '', label: 'Select wilaya...' },
-                      ...wilayas.map((w) => ({ value: w.id, label: w.name })),
+                      { value: '', label: 'Select commune...' },
+                      ...(workWilaya.id
+                        ? [{ value: workWilaya.id, label: `All of ${workWilaya.name} (whole wilaya)` }]
+                        : []),
+                      ...communes.map((c) => ({ value: c.id, label: c.name })),
                     ]}
                   />
                   {errors.adminAreaId && <span className="sv-form-error">{errors.adminAreaId}</span>}

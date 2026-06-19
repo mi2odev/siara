@@ -22,8 +22,10 @@ import { respondToInfoRequest } from '../../services/reportsService'
 import NotificationBell from '../../components/notifications/NotificationBell'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
 import FeedSidebarNav from '../../components/layout/FeedSidebarNav'
+import PoliceShell from '../../components/layout/PoliceShell'
 import GlobalHeaderSearch from '../../components/search/GlobalHeaderSearch'
-import { getUserRoles } from '../../utils/roleUtils'
+import { getUserRoles, isAnyPoliceUser } from '../../utils/roleUtils'
+import { useUiModeStore } from '../../stores/uiModeStore'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import '../../styles/DashboardPage.css'
 import '../../styles/NewsPage.css'
@@ -115,6 +117,18 @@ function getNotificationTarget(notification) {
   return notification.data?.reportUrl || notification.data?.mapUrl || '/notifications'
 }
 
+// Operational-alert notifications append the admin-authored description onto the
+// body sentence. Split it back out so the card can surface it as its own line
+// (and avoid showing the same text twice).
+function splitOperationalAlertBody(notification) {
+  const body = notification.body || ''
+  const description = (notification.data?.description || '').trim()
+  if (description && body.endsWith(description)) {
+    return { lead: body.slice(0, body.length - description.length).trim(), description }
+  }
+  return { lead: body, description: description || null }
+}
+
 export default function NotificationsPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -152,6 +166,11 @@ export default function NotificationsPage() {
   const userAvatarUrl = getUserAvatarUrl(user)
   const profileAvatarUrl = userAvatarUrl || profileAvatar
   const profileInitials = getInitialsFromName(displayName)
+
+  // Police users who reached this page from police mode keep the police shell
+  // instead of dropping back into the citizen layout.
+  const uiMode = useUiModeStore((state) => state.mode)
+  const showPoliceShell = isAnyPoliceUser(user) && uiMode !== 'normal'
 
   useEffect(() => {
     if (!isAuthenticated || hasLoaded) {
@@ -311,6 +330,10 @@ export default function NotificationsPage() {
     // navigate to read it.
     const isSupportReply = notification.eventType === 'SUPPORT_MESSAGE_REPLY'
 
+    // Operational alerts carry an admin-authored description we surface as a
+    // distinct line beneath the auto-built summary sentence.
+    const { lead: bodyLead, description: alertDescription } = splitOperationalAlertBody(notification)
+
     return (
       <div
         key={notification.id}
@@ -357,7 +380,10 @@ export default function NotificationsPage() {
               </span>
             ) : null}
           </div>
-          <div className="notif-item-body">{notification.body}</div>
+          <div className="notif-item-body">{bodyLead}</div>
+          {alertDescription ? (
+            <div className="notif-item-desc">{alertDescription}</div>
+          ) : null}
           {(notification.data?.zoneName || notification.data?.locationLabel) ? (
             <span className="notif-item-zone">
               {notification.data?.zoneName || notification.data?.locationLabel}
@@ -600,8 +626,7 @@ export default function NotificationsPage() {
     )
   }
 
-  return (
-    <div className="notifications-page">
+  const headerBlock = (
       <header className="siara-dashboard-header">
         <div className="dash-header-inner">
           <div className="dash-header-left">
@@ -649,13 +674,108 @@ export default function NotificationsPage() {
           </div>
         </div>
       </header>
+  )
 
-      <div className="notif-grid">
+  // Filters + summary. Shown in the citizen left sidebar, or tucked under the
+  // police navigation (sidebarExtra) when in police mode.
+  const filterPanel = (
+    <>
+      {/* Notification filters card */}
+      <div className="card notif-filters-card">
+        <div className="card-header">
+          <h3 className="card-title">Filters</h3>
+          <span className="notif-filter-count-pill">{filteredNotifications.length}</span>
+        </div>
 
-        {/* ── LEFT SIDEBAR — same style as Feed page ── */}
+        <div className="filter-section">
+          <label className="filter-label">Status</label>
+          <div className="notif-filter-pill-row">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'unread', label: 'Unread' },
+              { key: 'read', label: 'Read' },
+            ].map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`notif-pill-btn${statusFilter === item.key ? ' active' : ''}`}
+                onClick={() => setStatusFilter(item.key)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="filter-section">
+          <label className="filter-label">Priority</label>
+          <div className="notif-filter-pill-row">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'high', label: 'High' },
+              { key: 'medium', label: 'Med' },
+              { key: 'normal', label: 'Low' },
+            ].map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`notif-pill-btn${priorityFilter === item.key ? ' active' : ''}`}
+                onClick={() => setPriorityFilter(item.key)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="filter-section">
+          <label className="filter-label">Time</label>
+          <div className="notif-filter-pill-row">
+            {[
+              { key: 'all', label: 'All time' },
+              { key: 'today', label: 'Today' },
+              { key: 'week', label: '7 days' },
+            ].map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`notif-pill-btn${timeFilter === item.key ? ' active' : ''}`}
+                onClick={() => setTimeFilter(item.key)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Summary stats card */}
+      <div className="card notif-stats-card">
+        <h3 className="card-title">Summary</h3>
+        <div className="notif-stat-row">
+          <span className="notif-stat-label">Unread</span>
+          <span className="notif-stat-value">{unreadCount}</span>
+        </div>
+        <div className="notif-stat-row">
+          <span className="notif-stat-label">Visible</span>
+          <span className="notif-stat-value">{filteredNotifications.length}</span>
+        </div>
+        <div className="notif-stat-row">
+          <span className="notif-stat-label">Total</span>
+          <span className="notif-stat-value">{notifications.length}</span>
+        </div>
+      </div>
+    </>
+  )
+
+  const gridBlock = (
+      <div className={`notif-grid${showPoliceShell ? ' notif-grid--embedded' : ''}`}>
+
+        {/* ── LEFT SIDEBAR — citizen layout only. In police mode the filters
+            move under the police nav (see sidebarExtra below). ── */}
+        {!showPoliceShell && (
         <aside className="sidebar-left notif-sidebar-left">
 
-          {/* Profile card — identical to feed page */}
           <div className="card profile-summary">
             <div className="profile-avatar-container">
               <img
@@ -676,93 +796,10 @@ export default function NotificationsPage() {
           {/* Shared nav — same as feed page, with "notifications" active */}
           <FeedSidebarNav activeKey="notifications" triggerPanel={contactTrigger} />
 
-          {/* Notification filters card */}
-          <div className="card notif-filters-card">
-            <div className="card-header">
-              <h3 className="card-title">Filters</h3>
-              <span className="notif-filter-count-pill">{filteredNotifications.length}</span>
-            </div>
-
-            <div className="filter-section">
-              <label className="filter-label">Status</label>
-              <div className="notif-filter-pill-row">
-                {[
-                  { key: 'all', label: 'All' },
-                  { key: 'unread', label: 'Unread' },
-                  { key: 'read', label: 'Read' },
-                ].map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={`notif-pill-btn${statusFilter === item.key ? ' active' : ''}`}
-                    onClick={() => setStatusFilter(item.key)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="filter-section">
-              <label className="filter-label">Priority</label>
-              <div className="notif-filter-pill-row">
-                {[
-                  { key: 'all', label: 'All' },
-                  { key: 'high', label: 'High' },
-                  { key: 'medium', label: 'Med' },
-                  { key: 'normal', label: 'Low' },
-                ].map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={`notif-pill-btn${priorityFilter === item.key ? ' active' : ''}`}
-                    onClick={() => setPriorityFilter(item.key)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="filter-section">
-              <label className="filter-label">Time</label>
-              <div className="notif-filter-pill-row">
-                {[
-                  { key: 'all', label: 'All time' },
-                  { key: 'today', label: 'Today' },
-                  { key: 'week', label: '7 days' },
-                ].map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={`notif-pill-btn${timeFilter === item.key ? ' active' : ''}`}
-                    onClick={() => setTimeFilter(item.key)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Summary stats card */}
-          <div className="card notif-stats-card">
-            <h3 className="card-title">Summary</h3>
-            <div className="notif-stat-row">
-              <span className="notif-stat-label">Unread</span>
-              <span className="notif-stat-value">{unreadCount}</span>
-            </div>
-            <div className="notif-stat-row">
-              <span className="notif-stat-label">Visible</span>
-              <span className="notif-stat-value">{filteredNotifications.length}</span>
-            </div>
-            <div className="notif-stat-row">
-              <span className="notif-stat-label">Total</span>
-              <span className="notif-stat-value">{notifications.length}</span>
-            </div>
-          </div>
+          {filterPanel}
 
         </aside>
+        )}
 
         {/* ── CENTER ── */}
         <main className="notif-center">
@@ -840,6 +877,7 @@ export default function NotificationsPage() {
             const priorityColor = getPriorityColor(selectedNotification.priority)
 
             const isSupportReply = selectedNotification.eventType === 'SUPPORT_MESSAGE_REPLY'
+            const { lead: headerLead, description: headerDescription } = splitOperationalAlertBody(selectedNotification)
 
             return (
               <>
@@ -860,7 +898,13 @@ export default function NotificationsPage() {
                   <p className="nd-timestamp" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     <AccessTimeOutlinedIcon fontSize="inherit" /> {formatDateTime(selectedNotification.createdAt)}
                   </p>
-                  <p className="nd-body">{selectedNotification.body}</p>
+                  <p className="nd-body">{headerLead}</p>
+                  {headerDescription ? (
+                    <div className="nd-alert-desc">
+                      <span className="nd-alert-desc-label">Description</span>
+                      <p className="nd-alert-desc-text">{headerDescription}</p>
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* ── Card 2: Support reply thread OR incident details ── */}
@@ -1195,6 +1239,29 @@ export default function NotificationsPage() {
         </aside>
 
       </div>
+  )
+
+  if (showPoliceShell) {
+    return (
+      <PoliceShell
+        activeKey={null}
+        forceMode={uiMode}
+        rightPanelCollapsed
+        sidebarExtra={(
+          <div className="police-sidebar-filters">
+            {filterPanel}
+          </div>
+        )}
+      >
+        {gridBlock}
+      </PoliceShell>
+    )
+  }
+
+  return (
+    <div className="notifications-page">
+      {headerBlock}
+      {gridBlock}
     </div>
   )
 }

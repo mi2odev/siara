@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 
 import { NotificationProvider } from './contexts/NotificationContext'
+import AppErrorBoundary from './components/common/AppErrorBoundary'
 import AppRouter from './routes/AppRouter'
 import { registerPushServiceWorker } from './services/pushService'
 import './App.css'
@@ -127,7 +128,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <NotificationProvider>
-        <AppRouter />
+        <AppErrorBoundary>
+          <AppRouter />
+        </AppErrorBoundary>
       </NotificationProvider>
     </BrowserRouter>
   )

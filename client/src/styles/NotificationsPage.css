@@ -24,6 +24,22 @@
   gap: 0;
 }
 
+/* Rendered inside the PoliceShell (police mode): the shell owns the left nav
+   (with the filters tucked under it) + header, so the grid is just the list and
+   the detail panel — the detail sits at the right edge (no empty gutter). */
+.notif-grid--embedded {
+  grid-template-columns: minmax(0, 1fr) 360px;
+  height: calc(100vh - 104px);
+}
+
+/* Filters tucked under the police navigation menu. */
+.police-sidebar-extra {
+  margin-top: 12px;
+}
+.police-sidebar-filters .card {
+  margin-bottom: 12px;
+}
+
 /* ══════════════════════════════════════════════════════
    LEFT SIDEBAR — feed-page style
    ══════════════════════════════════════════════════════ */
@@ -270,6 +286,16 @@
   -webkit-box-orient: vertical;
   margin-bottom: 5px;
 }
+.notif-item-desc {
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.5;
+  background: #f8fafc;
+  padding: 7px 10px;
+  border-radius: 7px;
+  margin-bottom: 6px;
+  white-space: pre-wrap;
+}
 .notif-item-zone {
   display: inline-flex;
   align-items: center;
@@ -425,6 +451,29 @@
   background: #fff;
   border-radius: 10px;
   border: 1px solid #e9d5ff;
+}
+.nd-alert-desc {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+.nd-alert-desc-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+.nd-alert-desc-text {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 /* ── Card 2: incident details ────────────────────────── */

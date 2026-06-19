@@ -47,6 +47,95 @@ async function getPushRegistration() {
   return registration || navigator.serviceWorker.ready
 }
 
+// Service-worker registration without requiring PushManager — enough to render
+// a local system notification (used to mirror every in-app notification as a
+// desktop/system one while the app is open).
+async function getServiceWorkerRegistration() {
+  if (!isServiceWorkerSupported()) {
+    return null
+  }
+
+  const registration = await registerPushServiceWorker()
+  return registration || navigator.serviceWorker.ready
+}
+
+function buildSystemNotificationUrl(notification) {
+  const data = notification?.data || {}
+  const reportId = notification?.reportId || data.reportId || null
+  const base = data.reportUrl
+    || data.mapUrl
+    || (reportId ? `/incident/${reportId}` : '/notifications')
+
+  try {
+    const resolved = new URL(base, window.location.origin)
+    if (notification?.id) {
+      resolved.searchParams.set('notification', notification.id)
+    }
+    return `${resolved.pathname}${resolved.search}${resolved.hash}`
+  } catch (_error) {
+    return '/notifications'
+  }
+}
+
+// Asks for browser notification permission once (no-op if already decided).
+export async function ensureSystemNotificationPermission() {
+  if (!hasWindow() || !('Notification' in window)) {
+    return 'unsupported'
+  }
+
+  if (Notification.permission !== 'default') {
+    return Notification.permission
+  }
+
+  try {
+    return await Notification.requestPermission()
+  } catch (_error) {
+    return Notification.permission
+  }
+}
+
+// Renders a system/desktop notification for a single in-app notification via
+// the service worker. Safe to call for every live notification — it silently
+// no-ops when unsupported or permission isn't granted.
+export async function showSystemNotification(notification) {
+  if (!notification || !hasWindow() || !('Notification' in window)) {
+    return false
+  }
+
+  if (Notification.permission !== 'granted') {
+    return false
+  }
+
+  const registration = await getServiceWorkerRegistration().catch(() => null)
+  if (!registration || typeof registration.showNotification !== 'function') {
+    return false
+  }
+
+  const data = notification.data || {}
+  const priority = Number(notification.priority ?? 2)
+
+  try {
+    await registration.showNotification(notification.title || 'SIARA', {
+      body: notification.body || '',
+      icon: '/siara-push-icon.svg',
+      badge: '/siara-push-badge.svg',
+      tag: notification.id || `siara-${notification.createdAt || ''}`,
+      renotify: false,
+      requireInteraction: priority <= 1,
+      data: {
+        notificationId: notification.id || null,
+        url: buildSystemNotificationUrl(notification),
+        eventType: notification.eventType || null,
+        reportId: notification.reportId || data.reportId || null,
+        zoneName: data.zoneName || data.locationLabel || null,
+      },
+    })
+    return true
+  } catch (_error) {
+    return false
+  }
+}
+
 function urlBase64ToUint8Array(value) {
   const normalized = String(value || '')
     .replace(/-/g, '+')

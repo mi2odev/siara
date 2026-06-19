@@ -29,7 +29,7 @@ function primaryRoleLabel(roles) {
   if (!Array.isArray(roles) || roles.length === 0) return 'Admin'
   const normalized = roles.map((role) => String(role).toLowerCase())
   if (normalized.includes('admin') || normalized.includes('super_admin') || normalized.includes('super admin')) {
-    return 'Super Admin'
+    return 'Admin'
   }
   if (normalized.includes('supervisor')) return 'Supervisor'
   if (normalized.some((r) => r.startsWith('police'))) return 'Police'
@@ -97,10 +97,10 @@ export default function AdminHeader({ mobileNavOpen = false, onToggleMobileNav }
             <strong>System</strong>
             <span className="admin-header-status-meta">Operational</span>
           </span>
-          <span className="admin-header-status-item" title="AI Model v0.3 online">
+          <span className="admin-header-status-item" title="AI Model v1.0 online">
             <span className="admin-header-status-dot green" />
             <strong>AI</strong>
-            <span className="admin-header-status-meta">v0.3 online</span>
+            <span className="admin-header-status-meta">v1.0 online</span>
           </span>
         </div>
 

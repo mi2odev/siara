@@ -294,6 +294,9 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
   const visibleComments = allComments || commentsPreview
   const currentUserId = currentUser?.id || currentUser?.userId || null
   const isAdmin = Array.isArray(currentUser?.roles) && currentUser.roles.includes('admin')
+  // The reporter can't "confirm" their own report, so hide the Saw-it action.
+  const isOwnReport = Boolean(currentUserId && authorProfile?.id
+    && String(currentUserId) === String(authorProfile.id))
 
   const handleToggleReaction = async (reactionType) => {
     if (!currentUserId) {
@@ -683,9 +686,11 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
         </div>
 
         <button className="pcx-menu" onClick={() => navigate(`/incident/${report.id}`)} title="View details" aria-label="View details">
-          <svg width="3.5" height="16" viewBox="0 0 3 15" fill="currentColor" aria-hidden>
-            <circle cx="1.5" cy="1.5" r="1.5"/><circle cx="1.5" cy="7.5" r="1.5"/><circle cx="1.5" cy="13.5" r="1.5"/>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="12" r="3"/>
           </svg>
+          <span className="pcx-menu-label">View details</span>
         </button>
       </header>
 
@@ -757,19 +762,21 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           <span>{likesCount > 0 ? likesCount : 'Like'}</span>
         </button>
 
-        <button
-          type="button"
-          className={`pcx-act pcx-act--saw${viewerSawItToo ? ' on' : ''}`}
-          onClick={() => handleToggleReaction('saw_it_too')}
-          disabled={reactionBusy}
-          aria-pressed={viewerSawItToo}
-        >
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-            <ellipse cx="10" cy="10" rx="8.5" ry="5.5"/>
-            <circle cx="10" cy="10" r="2.5" fill={viewerSawItToo ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5"/>
-          </svg>
-          <span>{sawItTooCount > 0 ? sawItTooCount : 'Saw it'}</span>
-        </button>
+        {!isOwnReport && (
+          <button
+            type="button"
+            className={`pcx-act pcx-act--saw${viewerSawItToo ? ' on' : ''}`}
+            onClick={() => handleToggleReaction('saw_it_too')}
+            disabled={reactionBusy}
+            aria-pressed={viewerSawItToo}
+          >
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+              <ellipse cx="10" cy="10" rx="8.5" ry="5.5"/>
+              <circle cx="10" cy="10" r="2.5" fill={viewerSawItToo ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5"/>
+            </svg>
+            <span>{sawItTooCount > 0 ? sawItTooCount : 'Saw it'}</span>
+          </button>
+        )}
 
         <button
           type="button"

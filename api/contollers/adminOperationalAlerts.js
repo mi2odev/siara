@@ -4,6 +4,7 @@ const {
   cancelOperationalAlert,
   createOperationalAlert,
   createOperationalAlertFromTemplate,
+  deleteOperationalAlert,
   getOperationalAlertById,
   listOperationalAlertTemplates,
   listOperationalAlerts,
@@ -98,6 +99,15 @@ router.post("/operational-alerts/:id/cancel", verifyTokenAndAdmin, async (req, r
   try {
     const item = await cancelOperationalAlert(req.params.id, req.body?.note, req.user.userId);
     return res.status(200).json({ item });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.delete("/operational-alerts/:id", verifyTokenAndAdmin, async (req, res, next) => {
+  try {
+    const result = await deleteOperationalAlert(req.params.id);
+    return res.status(200).json(result);
   } catch (error) {
     return next(error);
   }

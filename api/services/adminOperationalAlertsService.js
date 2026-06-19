@@ -717,6 +717,7 @@ async function fetchOperationalAlertNotificationContext(alertId, db = pool) {
       SELECT
         oa.id,
         oa.title,
+        oa.description,
         oa.alert_type,
         oa.severity,
         oa.status,
@@ -747,6 +748,7 @@ async function fetchOperationalAlertNotificationContext(alertId, db = pool) {
   return {
     id: row.id,
     title: row.title,
+    description: row.description || "",
     alertType: row.alert_type,
     severity: row.severity,
     status: row.status,
@@ -767,8 +769,22 @@ async function createOperationalAlertNotifications(alert, eventType, db = pool) 
     return [];
   }
 
-  const result = await db.query(
-    `
+  // Audience scope decides the recipient set:
+  //  - all_users            -> broadcast to every account
+  //  - users_in_zone        -> users with an active alert rule watching this zone
+  //  - subscribed_users_only-> same subscriber set (no separate bucket yet)
+  // The subscriber CTE is the default for anything that isn't an explicit
+  // all-users broadcast.
+  const recipientsCte = alert.audienceScope === "all_users"
+    ? `
+      WITH recipients AS (
+        SELECT u.id AS user_id
+        FROM auth.users u
+        -- $1 (admin_area_id) is unused for a broadcast but must be referenced
+        -- so Postgres can still infer its type for the shared parameter list.
+        WHERE $1::bigint IS NOT NULL
+      ),`
+    : `
       WITH recipients AS (
         SELECT DISTINCT ar.user_id
         FROM app.alert_rules ar
@@ -777,7 +793,11 @@ async function createOperationalAlertNotifications(alert, eventType, db = pool) 
         WHERE ar.status = 'active'
           AND az.zone_type = 'admin_area'
           AND az.admin_area_id = $1::bigint
-      ),
+      ),`;
+
+  const result = await db.query(
+    `
+      ${recipientsCte}
       inserted AS (
         INSERT INTO app.notifications (
           user_id,
@@ -1724,6 +1744,42 @@ async function cancelOperationalAlert(alertId, note, actorUserId, db = pool) {
   }
 }
 
+async function deleteOperationalAlert(alertId, db = pool) {
+  const normalizedAlertId = normalizeUuid(alertId, "id", { required: true });
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // 404s if the alert doesn't exist.
+    await fetchExistingOperationalAlertRow(normalizedAlertId, client);
+
+    // Remove dependent rows explicitly so the delete succeeds regardless of the
+    // FK on-delete behaviour. police_operation_history (SET NULL) and
+    // operational_alert_targets (CASCADE) are handled by their own constraints.
+    await client.query(
+      `DELETE FROM app.notifications WHERE operational_alert_id = $1`,
+      [normalizedAlertId],
+    );
+    await client.query(
+      `DELETE FROM app.operational_alert_events WHERE alert_id = $1`,
+      [normalizedAlertId],
+    );
+    await client.query(
+      `DELETE FROM app.operational_alerts WHERE id = $1`,
+      [normalizedAlertId],
+    );
+
+    await client.query("COMMIT");
+    return { id: normalizedAlertId, deleted: true };
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   buildOperationalAlertDisplayId,
   createOperationalAlert,
@@ -1737,4 +1793,5 @@ module.exports = {
   normalizeTab,
   updateOperationalAlert,
   cancelOperationalAlert,
+  deleteOperationalAlert,
 };

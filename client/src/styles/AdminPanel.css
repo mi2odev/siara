@@ -175,6 +175,14 @@
 }
 
 /* ================================================ HEADER */
+/* Keep Leaflet's internal panes/controls (which default to z-index up to 1000)
+   below the fixed header (z-index 40) so they don't bleed over the top chrome
+   when the page scrolls under it. */
+.admin-root .leaflet-pane,
+.admin-root .leaflet-top,
+.admin-root .leaflet-bottom,
+.admin-root .leaflet-control { z-index: 1; }
+
 .admin-header {
   position: fixed; top: 0; left: var(--admin-sidebar-w); right: 0;
   height: var(--admin-header-h);
