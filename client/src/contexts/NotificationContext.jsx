@@ -4,6 +4,10 @@ import { useLocation } from 'react-router-dom'
 import NotificationToasts from '../components/notifications/NotificationToasts'
 import { createNotificationSocket } from '../services/notificationSocket'
 import {
+  ensureSystemNotificationPermission,
+  showSystemNotification,
+} from '../services/pushService'
+import {
   fetchNotifications,
   fetchUnreadNotificationCount,
   markAllNotificationsRead as markAllNotificationsReadRequest,
@@ -81,6 +85,10 @@ export function NotificationProvider({ children }) {
         }
       })
 
+    // Ask once for system-notification permission so every live notification
+    // can also surface as a desktop/system notification (mirrors the in-app feed).
+    ensureSystemNotificationPermission().catch(() => {})
+
     const socket = createNotificationSocket(token)
     socketRef.current = socket
 
@@ -95,6 +103,8 @@ export function NotificationProvider({ children }) {
       if (liveNotification?.id && result.isNew && !toastHistoryRef.current.has(liveNotification.id)) {
         toastHistoryRef.current.add(liveNotification.id)
         enqueueToast(liveNotification)
+        // Also raise a system/desktop notification for the same alert.
+        showSystemNotification(liveNotification).catch(() => {})
       }
 
       if (liveNotification?.id) {

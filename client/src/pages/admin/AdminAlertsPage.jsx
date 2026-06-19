@@ -19,6 +19,7 @@ import {
   cancelAdminOperationalAlert,
   createAdminOperationalAlert,
   createAdminOperationalAlertFromTemplate,
+  deleteAdminOperationalAlert,
   fetchAdminOperationalAlert,
   fetchAdminOperationalAlerts,
   fetchOperationalAlertTemplates,
@@ -179,6 +180,7 @@ export default function AdminAlertsPage() {
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [cancelTarget, setCancelTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   const templateTabActive = currentTab === 'templates'
@@ -480,6 +482,25 @@ export default function AdminAlertsPage() {
     }
   }
 
+  async function handleDeleteAlert() {
+    if (!deleteTarget) {
+      return
+    }
+
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      await deleteAdminOperationalAlert(deleteTarget.id)
+      setDeleteTarget(null)
+      await refreshAlerts(page)
+    } catch (requestError) {
+      setError(requestError)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <>
       {emergencyMode && (
@@ -594,6 +615,35 @@ export default function AdminAlertsPage() {
                 type="button"
               >
                 {isSubmitting ? 'Cancelling...' : 'Confirm Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal">
+            <h3 className="admin-modal-title">Delete operational alert?</h3>
+            <p className="admin-modal-desc">
+              <strong>{deleteTarget.title}</strong> will be permanently removed, along with its
+              history and any notifications sent for it. This cannot be undone.
+            </p>
+            <div className="admin-modal-actions">
+              <button
+                className="admin-btn admin-btn-ghost"
+                onClick={() => setDeleteTarget(null)}
+                type="button"
+              >
+                Keep Alert
+              </button>
+              <button
+                className="admin-btn admin-btn-danger"
+                onClick={handleDeleteAlert}
+                disabled={isSubmitting}
+                type="button"
+              >
+                {isSubmitting ? 'Deleting...' : 'Confirm Delete'}
               </button>
             </div>
           </div>
@@ -1111,6 +1161,14 @@ export default function AdminAlertsPage() {
                               Cancel
                             </button>
                           )}
+                          <button
+                            className="admin-btn admin-btn-sm admin-btn-danger"
+                            onClick={() => setDeleteTarget(alert)}
+                            disabled={isSubmitting}
+                            type="button"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </td>
                     </tr>

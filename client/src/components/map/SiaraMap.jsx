@@ -1025,6 +1025,14 @@ const FlyToUser = ({
     const target = normalizePosition(userPosition);
     if (!target) return;
 
+    // On the zones layer the view is driven by FocusAlertZone (fit to the
+    // selected alert zone). Following the live location here would fly the map
+    // back to the user on every GPS update and push the zone borders off-screen.
+    if (mapLayer === "zones") {
+      lastRequestVersionRef.current = locationRequestVersion;
+      return;
+    }
+
     const requestChanged = locationRequestVersion !== lastRequestVersionRef.current;
     const shouldRecenter =
       followUser || !hasCenteredRef.current || requestChanged;
@@ -1158,7 +1166,12 @@ const FocusAlertZone = ({ mapLayer, selectedAlertZone }) => {
     const radius = Number(selectedAlertZone?.zone?.radiusM);
     const zoneCenter = normalizeAlertZoneCenter(selectedAlertZone);
     if (zoneCenter && Number.isFinite(radius) && radius > 0) {
-      const bounds = L.circle(zoneCenter, { radius }).getBounds();
+      // Derive the bounding box from center + radius directly. Do NOT use
+      // L.circle(...).getBounds(): Circle.getBounds() calls this._map.layerPointToLatLng()
+      // and the circle here is detached (never added to a map), so this._map is
+      // undefined and it throws. toBounds(sizeInMeters) needs no map; a circle of
+      // radius R fits in a 2R x 2R box.
+      const bounds = L.latLng(zoneCenter).toBounds(radius * 2);
       map.fitBounds(bounds.pad(0.22), {
         padding: [24, 24],
         maxZoom: 12,
@@ -3824,9 +3837,13 @@ const SiaraMap = ({
             </>
           )}
 
-          {mapLayer === "zones" && alertZones.length > 0 && (
-            <Pane name="alert-zone-layer" style={{ zIndex: 650 }}>
-              {alertZones.map((alertZone) => {
+          {/* Render zone borders in Leaflet's default overlayPane. A custom pane
+              created after map init does not reliably receive the zoom-animation
+              transform, which left the paths drawn but positioned off-screen. The
+              overlayPane is wired up at init and paints correctly. There are no
+              report markers on the zones tab, so z-index ordering is moot here. */}
+          {mapLayer === "zones" && alertZones.length > 0
+              ? alertZones.map((alertZone) => {
                 const isSelected = alertZone.id === selectedAlertZoneId;
                 const zoneGeometry = normalizeAlertZoneGeometry(alertZone);
                 const zoneCenter = normalizeAlertZoneCenter(alertZone);
@@ -3914,9 +3931,8 @@ const SiaraMap = ({
                     </Popup>
                   </GeoJSON>
                 );
-              })}
-            </Pane>
-          )}
+                })
+              : null}
 
           <Pane name="risk-layer" style={{ zIndex: 9999 }}>
             {guidedRoutes

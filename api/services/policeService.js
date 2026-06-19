@@ -3290,32 +3290,55 @@ async function resolveAlertRecipients(
     return [normalizedTargetUserId];
   }
 
+  const requestedRole = targetType === "role"
+    ? normalizeString(targetRole, "targetRole", { required: true, maxLength: 100 })
+    : "police";
+  // Normalize like the rest of the service (strip non-letters) so 'police',
+  // 'police_officer', 'police officer' all collapse to the same key.
+  const normalizedRequestedRole = requestedRole.toLowerCase().replace(/[^a-z]/g, "");
+  const POLICE_OFFICER_ROLE_KEYS = ["police", "policeofficer", "policesupervisor"];
+
   const values = [];
-  const whereClauses = [
-    `
+  const whereClauses = [];
+
+  if (POLICE_OFFICER_ROLE_KEYS.includes(normalizedRequestedRole)) {
+    // A generic "police officers" target matches any officer in the police
+    // family regardless of how their role row is spelled.
+    whereClauses.push(`
       EXISTS (
         SELECT 1
         FROM auth.user_roles role_rows
         JOIN auth.roles role_names
           ON role_names.id = role_rows.role_id
         WHERE role_rows.user_id = pp.user_id
-          AND LOWER(role_names.name) = LOWER($1::text)
+          AND regexp_replace(LOWER(role_names.name), '[^a-z]', '', 'g')
+              IN ('police', 'policeofficer', 'policesupervisor')
       )
-    `,
-  ];
-
-  values.push(
-    targetType === "role"
-      ? normalizeString(targetRole, "targetRole", { required: true, maxLength: 100 })
-      : "police",
-  );
-
-  if (!isAdmin) {
-    values.push(supervisorUser.userId);
-    whereClauses.push(`pp.supervisor_user_id = $${values.length}::uuid`);
+    `);
+  } else {
+    values.push(requestedRole);
+    whereClauses.push(`
+      EXISTS (
+        SELECT 1
+        FROM auth.user_roles role_rows
+        JOIN auth.roles role_names
+          ON role_names.id = role_rows.role_id
+        WHERE role_rows.user_id = pp.user_id
+          AND regexp_replace(LOWER(role_names.name), '[^a-z]', '', 'g')
+              = regexp_replace(LOWER($${values.length}::text), '[^a-z]', '', 'g')
+      )
+    `);
   }
 
-  if (adminAreaId) {
+  // Zone/role broadcasts reach every officer with the role in the selected
+  // zone — they are scoped by the admin area below, not by which supervisor
+  // each officer reports to. (Individual "officer" targets are still
+  // permission-checked earlier via canSupervisorManageOfficer.)
+
+  // Only the "All Officers in Zone" target filters by work zone. "All Police
+  // Officers" reaches every officer with the role regardless of their zone
+  // (the alert still records the admin area for context).
+  if (targetType === "zone" && adminAreaId) {
     values.push(adminAreaId);
     whereClauses.push(`
       EXISTS (
@@ -3326,8 +3349,14 @@ async function resolveAlertRecipients(
         WHERE zone_assignments.officer_user_id = pp.user_id
           AND zone_assignments.is_active = TRUE
           AND (
+            -- officer assigned exactly to the selected area
             zone_assignments.admin_area_id = $${values.length}::bigint
+            -- selected area is a wilaya; officer is assigned to one of its communes
             OR assigned_areas.parent_id = $${values.length}::bigint
+            -- selected area is a commune; officer covers the whole parent wilaya
+            OR zone_assignments.admin_area_id = (
+              SELECT parent_id FROM gis.admin_areas WHERE id = $${values.length}::bigint
+            )
           )
       )
     `);

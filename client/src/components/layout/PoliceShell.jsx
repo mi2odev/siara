@@ -31,6 +31,7 @@ import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import ViewSidebarOutlinedIcon from '@mui/icons-material/ViewSidebarOutlined'
 
 import { AuthContext } from '../../contexts/AuthContext'
+import { useUiModeStore } from '../../stores/uiModeStore'
 import PoliceModeTab from './PoliceModeTab'
 import GlobalHeaderSearch from '../search/GlobalHeaderSearch'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
@@ -49,9 +50,16 @@ export default function PoliceShell({
   rightPanelCollapsed = false,
   notificationCount = 0,
   emergencyMode = false,
+  // When set, forces officer/supervisor chrome regardless of activeKey. Used by
+  // shared pages (e.g. notifications) rendered inside the shell.
+  forceMode = null,
+  // Optional extra content rendered under the desktop navigation menu (e.g. the
+  // notifications page tucks its filters here).
+  sidebarExtra = null,
 }) {
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
+  const setUiMode = useUiModeStore((state) => state.setMode)
   const isSupervisor = Array.isArray(user?.roles)
     ? user.roles.map((r) => String(r || '').trim().toLowerCase().replace(/[\s_-]+/g, '')).includes('policesupervisor')
     : false
@@ -70,7 +78,13 @@ export default function PoliceShell({
     'supervisor-alerts', 'operational-analytics', 'global-map',
   ]), [])
 
-  const isInSupervisorMode = SUPERVISOR_KEYS.has(activeKey)
+  const isInSupervisorMode = forceMode ? forceMode === 'supervisor' : SUPERVISOR_KEYS.has(activeKey)
+
+  // Remember the current police sub-mode so shared pages reached from here
+  // (e.g. the notifications page) stay in police mode instead of the citizen UI.
+  useEffect(() => {
+    setUiMode(isInSupervisorMode ? 'supervisor' : 'officer')
+  }, [isInSupervisorMode, setUiMode])
 
   const officerMenuGroups = useMemo(() => [
     {
@@ -401,6 +415,9 @@ export default function PoliceShell({
               </section>
             ))}
           </nav>
+          {sidebarExtra ? (
+            <div className="police-sidebar-extra">{sidebarExtra}</div>
+          ) : null}
         </aside>
 
         <main className="police-center">

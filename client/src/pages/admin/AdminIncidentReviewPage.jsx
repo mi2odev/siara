@@ -181,7 +181,7 @@ function getDecisionAction(decision) {
  * no manual "Merge with Cluster" action here.
  */
 const DECISION_TILES = [
-  { key: 'approve', label: 'Approve & Publish',  hint: 'Verifies the report and publishes it to the public feed.',           tone: 'success'  },
+  { key: 'approve', label: 'Approve',  hint: 'Verifies the report and publishes it to the public feed.',           tone: 'success'  },
   { key: 'change',  label: 'Change Severity',    hint: 'Override the AI severity. The report stays in its current status.',   tone: 'primary'  },
   { key: 'info',    label: 'Request More Info',  hint: 'Ask the reporter for clarification. Report stays in the queue.',      tone: 'info'     },
   { key: 'flag',    label: 'Flag for Review',    hint: 'Escalate to another moderator. Records a flag entry on the report.',  tone: 'warning'  },
@@ -220,7 +220,7 @@ function computeAiRecommendation(incident) {
   if (aiStatus === 'completed' && (aiConf ?? 0) >= 85 && (spamScore ?? 0) < 30) {
     return {
       action: 'approve',
-      label: 'Approve & Publish',
+      label: 'Approve',
       tone: 'success',
       explanation: `High AI confidence (${Math.round(aiConf)}%) and clean spam signals — safe to publish.`,
     }

@@ -58,6 +58,48 @@ function formatIncidentType(value) {
     .replace(/\b\w/g, (m) => m.toUpperCase())
 }
 
+// Reports placed by tapping the map carry a generic label instead of a real
+// address — for those we surface the raw coordinates as a fallback location.
+function isGenericLocation(location) {
+  const v = String(location || '').trim().toLowerCase()
+  return !v || v === 'unknown location' || v.startsWith('position selected')
+}
+
+function formatCoords(coordinates) {
+  const lat = coordinates?.lat
+  const lng = coordinates?.lng
+  if (typeof lat !== 'number' || typeof lng !== 'number') return null
+  const ns = lat >= 0 ? 'N' : 'S'
+  const ew = lng >= 0 ? 'E' : 'W'
+  return `${Math.abs(lat).toFixed(4)}°${ns}, ${Math.abs(lng).toFixed(4)}°${ew}`
+}
+
+// Reverse-geocode a coordinate to a "commune, wilaya" label via OpenStreetMap
+// Nominatim (same source the report flow uses). Cached per rounded coordinate so
+// the list never fires the same lookup twice.
+const geoNameCache = new Map()
+async function reverseGeocodeName(lat, lng) {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return null
+  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`
+  if (geoNameCache.has(key)) return geoNameCache.get(key)
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&zoom=14&addressdetails=1`,
+      { headers: { Accept: 'application/json' } },
+    )
+    if (!res.ok) throw new Error(`geocode ${res.status}`)
+    const data = await res.json()
+    const a = data?.address || {}
+    const commune = String(a.city || a.town || a.village || a.municipality || a.county || '').trim()
+    const wilaya = String(a.state || '').trim()
+    const name = [commune, wilaya].filter(Boolean).join(', ') || null
+    geoNameCache.set(key, name)
+    return name
+  } catch {
+    return null
+  }
+}
+
 function formatDateTime(value) {
   if (!value) return EMPTY
   const d = new Date(value)
@@ -567,6 +609,26 @@ function TabsRow({ tabs, activeKey, counts, onSelect }) {
    ROW
    ══════════════════════════════════════════════════════════════════ */
 
+// For map-tapped reports (no street address) resolve and show the commune/wilaya
+// name from the coordinates. Falls back to the raw coordinates only if the
+// lookup fails.
+function GenericLocationName({ coordinates }) {
+  const [state, setState] = useState({ loading: true, name: null })
+  useEffect(() => {
+    let active = true
+    setState({ loading: true, name: null })
+    reverseGeocodeName(coordinates?.lat, coordinates?.lng).then((name) => {
+      if (active) setState({ loading: false, name })
+    })
+    return () => { active = false }
+  }, [coordinates?.lat, coordinates?.lng])
+
+  if (state.loading) return <span className="iy-loc-coords">Locating…</span>
+  const text = state.name || formatCoords(coordinates)
+  if (!text) return null
+  return <span className="iy-loc-coords">{text}</span>
+}
+
 function IncidentRow({ incident, onReview }) {
   const flagged = incident.pendingSpamReview || incident.predictedLabel === 'spam'
 
@@ -616,6 +678,9 @@ function IncidentRow({ incident, onReview }) {
       {/* Location */}
       <td>
         <span className="iy-loc" title={incident.location}>{incident.location}</span>
+        {isGenericLocation(incident.location) ? (
+          <GenericLocationName coordinates={incident.coordinates} />
+        ) : null}
       </td>
 
       {/* Severity */}

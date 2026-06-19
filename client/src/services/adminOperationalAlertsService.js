@@ -202,6 +202,18 @@ export async function cancelAdminOperationalAlert(id, note = null) {
   }
 }
 
+export async function deleteAdminOperationalAlert(id) {
+  try {
+    const response = await userRequest.delete(`/admin/operational-alerts/${id}`)
+    return {
+      id: response.data?.id || id,
+      deleted: Boolean(response.data?.deleted),
+    }
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to delete operational alert')
+  }
+}
+
 export async function fetchOperationalAlertTemplates(options = {}) {
   try {
     const response = await userRequest.get('/admin/operational-alert-templates', {
