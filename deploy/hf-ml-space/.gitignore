@@ -1,0 +1,11 @@
+# Keep secrets and caches out of the Hugging Face Space git repo.
+.env
+.env.*
+*.env
+__pycache__/
+*.pyc
+*.pyo
+
+# Local assembler output (do not commit the staged build into THIS repo;
+# it is pushed to the Space remote instead).
+space-build/

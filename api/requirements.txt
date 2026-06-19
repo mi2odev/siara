@@ -28,3 +28,8 @@ pandas==3.0.2
 
 Flask==3.1.3
 requests==2.33.1
+
+# Production WSGI server (Docker / Hugging Face Spaces). Run with ONE worker —
+# the LightGBM severity model alone is ~700 MB resident, so extra workers would
+# multiply memory. Use --threads for limited concurrency instead.
+gunicorn==23.0.0

@@ -38,7 +38,18 @@ ANOMALY_DETECTION_DIR = os.path.join(BASE_DIR, "anomaly-detection")
 if ANOMALY_DETECTION_DIR not in sys.path:
     sys.path.append(ANOMALY_DETECTION_DIR)
 
-from report_spam_model import classify_report_payload
+# report_spam_model imports torch + OpenAI CLIP + Pillow at module top level and
+# its weights file (best_fakeddit_model.pt) is an optional Phase-2 artifact. Guard
+# the import so a lightweight deployment WITHOUT those heavy deps (or without the
+# .pt) still boots — the /report-spam/classify route returns HTTP 503
+# "unavailable" when classify_report_payload is None. Once torch/CLIP and the .pt
+# are present (Phase 2), this import succeeds and the endpoint works unchanged.
+try:
+    from report_spam_model import classify_report_payload
+    _SPAM_IMPORT_ERROR = None
+except Exception as _spam_import_exc:  # ImportError (torch/clip/PIL) or load error
+    classify_report_payload = None
+    _SPAM_IMPORT_ERROR = repr(_spam_import_exc)
 from report_validator import validate_report as siara_validate_report
 from services.quiz_explainer import (
     build_template_explanation,
@@ -1821,6 +1832,20 @@ def report_spam_classify():
     if not image_url and not image_path:
         return jsonify({"error": "image_url or image_path is required"}), 400
 
+    if classify_report_payload is None:
+        # report_spam_model failed to import (torch/CLIP/Pillow not installed, e.g.
+        # the lightweight Phase-1 image). Surface as "unavailable" instead of 500.
+        return (
+            jsonify(
+                {
+                    "error": "Spam classification model is unavailable",
+                    "details": _SPAM_IMPORT_ERROR
+                    or "report_spam_model dependencies (torch/CLIP) are not installed in this deployment.",
+                }
+            ),
+            503,
+        )
+
     try:
         result = classify_report_payload(
             text=text,
@@ -1840,6 +1865,34 @@ def report_spam_classify():
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
         return jsonify({"error": "Spam classification failed", "details": str(exc)}), 500
+
+
+@app.route("/", methods=["GET"])
+@app.route("/health", methods=["GET"])
+def health():
+    """Liveness/readiness probe for Docker / Hugging Face Spaces.
+
+    Always returns 200 once the process is up (the two mandatory models —
+    driver-quiz and danger-zone severity — are loaded at import, so the process
+    would not be running otherwise). The `models` block reports which OPTIONAL
+    models are active so a degraded deployment is visible at a glance.
+    """
+    return (
+        jsonify(
+            {
+                "status": "ok",
+                "service": "siara-ml",
+                "models": {
+                    "driver_quiz": True,
+                    "danger_severity": True,
+                    "sentinel": bool(SENTINEL_ENABLED),
+                    "occurrence": bool(OCCURRENCE_ENABLED),
+                    "report_spam": classify_report_payload is not None,
+                },
+            }
+        ),
+        200,
+    )
 
 
 # Quick test snippet:
