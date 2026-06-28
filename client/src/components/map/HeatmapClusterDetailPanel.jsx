@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import { getHeatmapClusterDetail } from '../../services/heatmapClusterService'
@@ -28,6 +29,7 @@ function severityClass(bucket) {
 }
 
 export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
+  const { t } = useTranslation(['map', 'common'])
   const [state, setState] = useState('idle')
   const [error, setError] = useState('')
   const [detail, setDetail] = useState(null)
@@ -45,7 +47,7 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
     const lat = Number(cluster?.lat ?? cluster?.latitude)
     const lng = Number(cluster?.lng ?? cluster?.lon ?? cluster?.longitude)
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setError('Invalid cluster location.')
+      setError(t('heatmapClusterDetailPanel.invalidLocation'))
       setState('error')
       return undefined
     }
@@ -63,14 +65,14 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
         setState('success')
       } catch (err) {
         if (cancelled) return
-        setError(err?.message || 'Could not load cluster details')
+        setError(err?.message || t('heatmapClusterDetailPanel.loadError'))
         setState('error')
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [open, cluster])
+  }, [open, cluster, t])
 
   const severityCounts = detail?.severityCounts || cluster?.severityCounts || null
   const totalReports = detail?.reportCount ?? cluster?.reportCount ?? 0
@@ -97,7 +99,7 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
       className="siara-cluster-panel-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Accident cluster details"
+      aria-label={t('heatmapClusterDetailPanel.ariaLabel')}
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose?.()
       }}
@@ -107,12 +109,12 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
           <span className="siara-cluster-panel__icon" aria-hidden="true">
             <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" />
           </span>
-          <h3 className="siara-cluster-panel__title">Why is this place dangerous?</h3>
+          <h3 className="siara-cluster-panel__title">{t('heatmapClusterDetailPanel.title')}</h3>
           <button
             type="button"
             className="siara-cluster-panel__close"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('common:actions.close')}
           >
             ×
           </button>
@@ -136,21 +138,21 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
 
             <div className="siara-cluster-panel__metrics">
               <div className="siara-cluster-panel__metric">
-                <span className="siara-cluster-panel__metric-label">Reports</span>
+                <span className="siara-cluster-panel__metric-label">{t('heatmapClusterDetailPanel.metrics.reports')}</span>
                 <span className="siara-cluster-panel__metric-value">{detail.reportCount}</span>
-                <span className="siara-cluster-panel__metric-sub">in this zone</span>
+                <span className="siara-cluster-panel__metric-sub">{t('heatmapClusterDetailPanel.metrics.inThisZone')}</span>
               </div>
               <div className="siara-cluster-panel__metric">
-                <span className="siara-cluster-panel__metric-label">Police-verified</span>
+                <span className="siara-cluster-panel__metric-label">{t('heatmapClusterDetailPanel.metrics.policeVerified')}</span>
                 <span className="siara-cluster-panel__metric-value">{detail.verifiedCount}</span>
                 <span className="siara-cluster-panel__metric-sub">
                   {detail.reportCount > 0
-                    ? `${Math.round((detail.verifiedCount / detail.reportCount) * 100)}% of reports`
+                    ? t('heatmapClusterDetailPanel.metrics.percentOfReports', { pct: Math.round((detail.verifiedCount / detail.reportCount) * 100) })
                     : '—'}
                 </span>
               </div>
               <div className="siara-cluster-panel__metric">
-                <span className="siara-cluster-panel__metric-label">Peak window</span>
+                <span className="siara-cluster-panel__metric-label">{t('heatmapClusterDetailPanel.metrics.peakWindow')}</span>
                 <span className="siara-cluster-panel__metric-value">
                   {detail.peakHourRange
                     ? `${String(detail.peakHourRange.startHour).padStart(2, '0')}:00–${String(detail.peakHourRange.endHour).padStart(2, '0')}:00`
@@ -158,18 +160,18 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
                 </span>
                 <span className="siara-cluster-panel__metric-sub">
                   {detail.peakHourRange
-                    ? `${detail.peakHourRange.reportCount} reports in window`
-                    : 'not enough data'}
+                    ? t('heatmapClusterDetailPanel.metrics.reportsInWindow', { count: detail.peakHourRange.reportCount })
+                    : t('heatmapClusterDetailPanel.metrics.notEnoughData')}
                 </span>
               </div>
               <div className="siara-cluster-panel__metric">
-                <span className="siara-cluster-panel__metric-label">Latest</span>
+                <span className="siara-cluster-panel__metric-label">{t('heatmapClusterDetailPanel.metrics.latest')}</span>
                 <span className="siara-cluster-panel__metric-value">
                   {detail.latestReportAt
                     ? new Date(detail.latestReportAt).toLocaleDateString()
                     : '—'}
                 </span>
-                <span className="siara-cluster-panel__metric-sub">most recent report</span>
+                <span className="siara-cluster-panel__metric-sub">{t('heatmapClusterDetailPanel.metrics.mostRecentReport')}</span>
               </div>
             </div>
 
@@ -200,7 +202,7 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
 
             {Array.isArray(detail.commonReportTypes) && detail.commonReportTypes.length > 0 ? (
               <div className="siara-cluster-panel__severity-legend">
-                Common types:&nbsp;
+                {t('heatmapClusterDetailPanel.commonTypes')}&nbsp;
                 {detail.commonReportTypes.map((t, idx) => (
                   <span key={`type-${t.type}-${idx}`}>
                     {t.label || t.type} ({t.count}){idx < detail.commonReportTypes.length - 1 ? ',' : ''}
@@ -218,15 +220,15 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
                 textDecoration: 'none',
               }}
             >
-              View full zone safety profile <ArrowForwardRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', ml: 0.25 }} />
+              {t('heatmapClusterDetailPanel.viewFullProfile')} <ArrowForwardRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', ml: 0.25 }} />
             </Link>
 
             <h4 className="siara-cluster-panel__reports-title">
-              Reports in this zone ({detail.reports.length})
+              {t('heatmapClusterDetailPanel.reportsInZone', { count: detail.reports.length })}
             </h4>
             {detail.reports.length === 0 ? (
               <p className="siara-cluster-panel__empty">
-                No individual reports could be loaded for this cluster.
+                {t('heatmapClusterDetailPanel.noReports')}
               </p>
             ) : (
               <>
@@ -239,7 +241,7 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
                           className="siara-cluster-panel__report"
                         >
                           <span className="siara-cluster-panel__report-title">
-                            {report.title || `Report #${report.id}`}
+                            {report.title || t('heatmapClusterDetailPanel.reportFallback', { id: report.id })}
                           </span>
                           <span className="siara-cluster-panel__report-meta">
                             <span
@@ -249,7 +251,7 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
                             </span>
                             {report.verifiedByPolice ? (
                               <span className="siara-cluster-panel__report-pill siara-cluster-panel__report-pill--verified">
-                                Police-verified
+                                {t('heatmapClusterDetailPanel.policeVerifiedBadge')}
                               </span>
                             ) : null}
                             <span>{formatDateTime(report.createdAt)}</span>
@@ -281,8 +283,8 @@ export default function HeatmapClusterDetailPanel({ open, cluster, onClose }) {
                     onClick={() => setShowAllReports((v) => !v)}
                   >
                     {showAllReports
-                      ? 'Show fewer'
-                      : `View all ${detail.reports.length} reports`}
+                      ? t('heatmapClusterDetailPanel.showFewer')
+                      : t('heatmapClusterDetailPanel.viewAllReports', { count: detail.reports.length })}
                   </button>
                 ) : null}
               </>

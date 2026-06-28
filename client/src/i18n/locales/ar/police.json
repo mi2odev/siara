@@ -1,0 +1,827 @@
+{
+  "policeModeTab": {
+    "switchToPolice": "التبديل إلى وضع الشرطة",
+    "switchToNormal": "التبديل إلى الوضع العادي"
+  },
+  "policeShell": {
+    "menu": {
+      "groups": {
+        "operations": "العمليات",
+        "analytics": "التحليلات",
+        "info": "معلومات",
+        "supervisor": "المشرف"
+      },
+      "items": {
+        "dashboard": "لوحة التحكم",
+        "activeIncidents": "الحوادث النشطة",
+        "nearbyIncidents": "الحوادث القريبة",
+        "verificationQueue": "قائمة التحقق",
+        "myIncidents": "حوادثي",
+        "assignedIncidents": "الحوادث المسندة",
+        "fieldReports": "تقارير الميدان",
+        "alertCenter": "مركز التنبيهات",
+        "operationHistory": "سجل العمليات",
+        "aiInsights": "رؤى الذكاء الاصطناعي",
+        "contact": "تواصل معنا",
+        "about": "حول",
+        "overview": "نظرة عامة",
+        "commandCenter": "مركز القيادة",
+        "incidentCoordination": "تنسيق الحوادث",
+        "officerMonitoring": "مراقبة الضباط",
+        "supervisorAlerts": "تنبيهات المشرف",
+        "analytics": "التحليلات",
+        "globalMap": "الخريطة الشاملة"
+      }
+    },
+    "aria": {
+      "openOperationsMenu": "فتح قائمة العمليات",
+      "policeModeSwitch": "تبديل وضع الشرطة",
+      "userProfile": "الملف الشخصي",
+      "userAvatar": "صورة المستخدم",
+      "closePoliceNav": "إغلاق قائمة الشرطة",
+      "quickInfoPanel": "لوحة المعلومات السريعة",
+      "closeContactForm": "إغلاق نموذج التواصل",
+      "closeAboutPanel": "إغلاق لوحة حول",
+      "closeOverviewPanel": "إغلاق لوحة النظرة العامة",
+      "supportInfo": "معلومات الدعم"
+    },
+    "supervisorBadge": "مشرف",
+    "tabs": {
+      "feed": "التغذية",
+      "report": "البلاغ",
+      "dashboardTab": "لوحة التحكم"
+    },
+    "switchToNormalMode": "التبديل إلى الوضع العادي",
+    "searchPlaceholder": "ابحث عن حادث، طريق، منطقة...",
+    "dropdown": {
+      "myProfile": "ملفي الشخصي"
+    },
+    "operationsMenu": "قائمة العمليات",
+    "modeSwitch": {
+      "officer": "ضابط",
+      "supervisor": "المشرف الميداني"
+    },
+    "contact": {
+      "kicker": "الدعم",
+      "title": "تواصل مع SIARA",
+      "subtitle": "شاركنا طلبك وسيتواصل معك فريقنا في أقرب وقت.",
+      "nameLabel": "الاسم",
+      "emailLabel": "البريد الإلكتروني",
+      "messageLabel": "الرسالة",
+      "sending": "جارٍ الإرسال…",
+      "sendMessage": "إرسال الرسالة",
+      "emailDirectly": "مراسلتنا مباشرة",
+      "errors": {
+        "invalidName": "الرجاء إدخال اسم صحيح.",
+        "invalidEmail": "الرجاء إدخال عنوان بريد إلكتروني صحيح.",
+        "shortMessage": "يجب أن تحتوي الرسالة على 10 أحرف على الأقل."
+      },
+      "successMessage": "شكراً لك. سنرد عليك في أقرب وقت ممكن.",
+      "submitError": "تعذّر إرسال رسالتك. الرجاء المحاولة مجدداً.",
+      "side": {
+        "responseWindowTitle": "نافذة الاستجابة",
+        "responseWindowBody": "تُراجَع معظم الطلبات في غضون يوم عمل واحد.",
+        "bestForTitle": "الأنسب لهذا النموذج",
+        "bestForBody": "دعم الحساب، تعليقات المنصة، الشراكات، وأسئلة سير العمل المتعلقة بالحوادث.",
+        "directContactTitle": "تواصل مباشر"
+      }
+    },
+    "about": {
+      "kicker": "نظرة عامة",
+      "title": "حول SIARA",
+      "brandCaption": "منصة الذكاء المروري لسلامة الطرق",
+      "lead": "SIARA منصة ذكاء مروري تجمع بين البلاغات الفورية والخرائط ورؤى الذكاء الاصطناعي لتحسين الاستجابة للحوادث.",
+      "pillars": {
+        "missionTitle": "المهمة",
+        "missionBody": "تقليل مخاطر الطرق من خلال تنسيق سريع للحوادث قائم على الأدلة.",
+        "visionTitle": "الرؤية",
+        "visionBody": "بناء أنظمة سلامة حضرية متصلة ومدعومة بالذكاء الاصطناعي لتنقّل أذكى.",
+        "approachTitle": "المنهجية",
+        "approachBody": "دمج إشارات المواطنين والسياق الجغرافي المكاني والتحليلات التشغيلية في سير عمل واحد."
+      },
+      "platformCapabilities": "إمكانيات المنصة",
+      "capabilities": {
+        "riskMappingTitle": "رسم خرائط المخاطر",
+        "riskMappingBody": "تحديد البقع الساخنة ومناطق كثافة الحوادث في الوقت الفعلي.",
+        "alertIntelligenceTitle": "ذكاء التنبيهات",
+        "alertIntelligenceBody": "تحديد أولويات الأحداث عالية التأثير باستخدام مؤشرات الخطورة والموثوقية.",
+        "responseCoordinationTitle": "تنسيق الاستجابة",
+        "responseCoordinationBody": "دعم القرارات الميدانية الأسرع من خلال عرض تشغيلي مشترك.",
+        "performanceTrackingTitle": "تتبع الأداء",
+        "performanceTrackingBody": "قياس نتائج التحقق والاستجابة للتحسين المستمر."
+      }
+    },
+    "overview": {
+      "kicker": "تدفق الخدمة",
+      "title": "نظرة عامة على سير عمل SIARA",
+      "lead": "توفّر SIARA مسار عمل تشغيلي واضح من استقبال البلاغات إلى تسليم التنبيهات المؤكَّدة.",
+      "steps": {
+        "incidentIntakeTitle": "استقبال الحوادث",
+        "incidentIntakeBody": "التقاط البلاغات مع الموقع والوسائط والبيانات السياقية.",
+        "dataValidationTitle": "التحقق من البيانات",
+        "dataValidationBody": "توحيد السجلات الواردة والتحقق منها لتجهيزها للتحليل.",
+        "riskAssessmentTitle": "تقييم المخاطر",
+        "riskAssessmentBody": "تقدير مستوى الاستعجال والثقة باستخدام نظام تسجيل بمساعدة الذكاء الاصطناعي.",
+        "operationalReviewTitle": "المراجعة التشغيلية",
+        "operationalReviewBody": "تتحقق الفرق المخوّلة من الحوادث وتحدد أولويات الاستجابة.",
+        "alertDistributionTitle": "توزيع التنبيهات",
+        "alertDistributionBody": "إرسال التنبيهات ذات الصلة إلى المستخدمين والجهات التشغيلية المعنية."
+      },
+      "techStack": "التقنيات المستخدمة",
+      "chips": {
+        "aiRiskScoring": "تسجيل المخاطر بالذكاء الاصطناعي",
+        "geospatialMapping": "الرسم الجغرافي المكاني",
+        "realtimeEvents": "الأحداث الفورية",
+        "verificationWorkflow": "سير عمل التحقق"
+      }
+    }
+  },
+  "incidentCard": {
+    "actions": {
+      "view": "عرض",
+      "viewAriaWithId": "عرض {{id}}",
+      "viewAria": "عرض الحادث"
+    },
+    "untitledIncident": "حادث بدون عنوان",
+    "reportedBy": "بواسطة {{name}}"
+  },
+  "policeOfficerPanel": {
+    "officerTitle": "الضابط",
+    "onDuty": "في الخدمة",
+    "offDuty": "خارج الخدمة",
+    "defaultName": "الضابط",
+    "defaultRank": "ضابط شرطة",
+    "badge": "الشارة",
+    "badgePending": "قيد المراجعة",
+    "workZoneTitle": "منطقة العمل",
+    "wilaya": "الولاية",
+    "commune": "البلدية",
+    "notSet": "غير محدد"
+  },
+  "policeSortControl": {
+    "sort": "ترتيب",
+    "ariaAscending": "ترتيب تصاعدي — التبديل إلى تنازلي",
+    "ariaDescending": "ترتيب تنازلي — التبديل إلى تصاعدي",
+    "titleAscending": "تصاعدي",
+    "titleDescending": "تنازلي"
+  },
+  "policeAIInsightsPage": {
+    "contextSnapshot": "لمحة سياقية",
+    "topCommune": "البلدية الأكثر نشاطاً",
+    "highPriority": "أولوية عالية",
+    "unreadAlerts": "تنبيهات غير مقروءة",
+    "pendingVerify": "قيد التحقق",
+    "errorLoadFailed": "فشل تحميل تحليلات الذكاء الاصطناعي.",
+    "loadingInsights": "جارٍ تحميل تحليلات الذكاء الاصطناعي…",
+    "title": "تحليلات الذكاء الاصطناعي",
+    "subtitle": "تحليلات تشغيلية مبسّطة مستمدة من عقد الشرطة الحي.",
+    "statActiveIncidents": "الحوادث النشطة",
+    "statActiveIncidentsHint": "ضغط المنطقة",
+    "statHighPriority": "أولوية عالية",
+    "statHighPriorityHint": "مراقبة التصعيد",
+    "statTopZone": "أعلى منطقة",
+    "statTopZoneHint": "أعلى حجم حوادث",
+    "statNearbyResults": "نتائج قريبة",
+    "statNearbyResultsHint": "نطاق 5 كم",
+    "statusPressure": "الضغط حسب الحالة",
+    "colStatus": "الحالة",
+    "colCount": "العدد",
+    "topCommunes": "أبرز البلديات",
+    "colCommune": "البلدية",
+    "colIncidents": "الحوادث",
+    "noClusteringData": "لا تتوفر بيانات تجميع الحوادث بعد.",
+    "sourceChannels": "قنوات المصدر",
+    "noSourceData": "لا تتوفر بيانات قنوات المصدر."
+  },
+  "policeAlertCenterPage": {
+    "window": {
+      "immediate": "فوري",
+      "range": "من {{start}} إلى {{end}}",
+      "until": "حتى {{end}}",
+      "from": "من {{start}}"
+    },
+    "error": {
+      "loadFailed": "فشل تحميل تنبيهات الشرطة.",
+      "markReadFailed": "فشل وضع علامة مقروء على التنبيه.",
+      "unableToLoad": "تعذّر تحميل التنبيهات"
+    },
+    "summary": {
+      "title": "ملخص التنبيهات",
+      "total": "إجمالي التنبيهات",
+      "highSeverity": "خطورة مرتفعة",
+      "unread": "غير مقروء"
+    },
+    "heading": "مركز التنبيهات",
+    "status": {
+      "refreshing": "جارٍ تحديث التنبيهات...",
+      "live": "تنبيهات مستهدفة مباشرة",
+      "loadingFeed": "جارٍ تحميل قائمة التنبيهات...",
+      "refreshingFeed": "جارٍ تحديث قائمة التنبيهات..."
+    },
+    "actions": {
+      "refresh": "تحديث",
+      "opening": "جارٍ الفتح...",
+      "open": "فتح",
+      "markRead": "وضع علامة مقروء"
+    },
+    "badge": {
+      "unread": "غير مقروء",
+      "expired": "منتهي الصلاحية"
+    },
+    "alert": {
+      "noDescription": "لم يتم تقديم وصف."
+    },
+    "meta": {
+      "status": "الحالة",
+      "issued": "صدر في",
+      "activeWindow": "الفترة الفعّالة"
+    },
+    "empty": {
+      "heading": "لا توجد تنبيهات مهمة",
+      "body": "لا توجد تنبيهات موجَّهة للمشرف قيد الانتظار حالياً."
+    }
+  },
+  "policeAssignedIncidentsPage": {
+    "filters": {
+      "all": "الكل",
+      "pending": "قيد المراجعة",
+      "underReview": "قيد الفحص",
+      "verified": "مؤكَّد",
+      "dispatched": "تم الإرسال",
+      "resolved": "تم الحل"
+    },
+    "officerCard": {
+      "title": "الضابط",
+      "onDuty": "في الخدمة",
+      "offDuty": "خارج الخدمة",
+      "defaultName": "ضابط",
+      "defaultRank": "ضابط شرطة",
+      "badge": "الشارة",
+      "badgePending": "قيد المراجعة"
+    },
+    "workZoneCard": {
+      "title": "منطقة العمل",
+      "wilaya": "الولاية",
+      "commune": "البلدية",
+      "notSet": "غير محدد"
+    },
+    "summaryCard": {
+      "title": "حسب الحالة",
+      "total": "{{count}} إجمالاً"
+    },
+    "heading": "الحوادث المُسنَدة",
+    "subheading": "القضايا المُسنَدة إليك",
+    "refreshTitle": "تحديث القائمة",
+    "refreshLabel": "تحديث",
+    "loading": "جارٍ تحميل الحوادث…",
+    "empty": "لا توجد حوادث مُسنَدة إليك",
+    "errorLoad": "فشل تحميل الحوادث.",
+    "untitledIncident": "حادث بدون عنوان",
+    "reportedBy": "بواسطة {{name}}",
+    "viewAriaLabel": "عرض {{id}}",
+    "viewButton": "عرض"
+  },
+  "policeFieldReportsPage": {
+    "filters": {
+      "all": "الكل",
+      "pending": "قيد المراجعة",
+      "underReview": "قيد الفحص",
+      "verified": "مؤكَّد",
+      "resolved": "تم الحل"
+    },
+    "officer": {
+      "title": "الضابط",
+      "onDuty": "في الخدمة",
+      "offDuty": "خارج الخدمة",
+      "defaultName": "ضابط",
+      "defaultRank": "ضابط شرطة",
+      "badge": "الشارة",
+      "badgePending": "قيد المراجعة"
+    },
+    "workZone": {
+      "title": "منطقة العمل",
+      "wilaya": "الولاية",
+      "commune": "البلدية",
+      "notSet": "غير محدد"
+    },
+    "summary": {
+      "title": "حسب الحالة",
+      "total": "{{count}} إجمالاً",
+      "officerNotes_one": "ملاحظة ضابط واحدة",
+      "officerNotes_other": "{{count}} ملاحظات ضابط"
+    },
+    "heading": "تقارير الميدان",
+    "subheading": "بلاغات المواطنين والضباط المتاحة للمراجعة",
+    "refresh": "تحديث",
+    "loading": "جارٍ تحميل تقارير الميدان…",
+    "emptyState": "لا توجد بلاغات تطابق هذا الفلتر",
+    "errorLoad": "تعذّر تحميل تقارير الميدان.",
+    "untitledReport": "بلاغ بدون عنوان",
+    "noteCount_one": "ملاحظة واحدة",
+    "noteCount_other": "{{count}} ملاحظات",
+    "view": "عرض",
+    "viewAriaLabel": "عرض {{id}}"
+  },
+  "policeIncidentDetailPage": {
+    "errors": {
+      "loadFailed": "فشل تحميل الحادث.",
+      "noteEmpty": "لا يمكن أن تكون الملاحظة فارغة.",
+      "updateNoteFailed": "فشل تحديث الملاحظة.",
+      "deleteNoteFailed": "فشل حذف الملاحظة.",
+      "actionFailed": "فشل الإجراء."
+    },
+    "confirmDeleteNote": "هل تريد حذف هذه الملاحظة الميدانية؟ لا يمكن التراجع عن هذا الإجراء.",
+    "success": {
+      "rejected": "تم رفض الحادث. جارٍ العودة إلى لوحة التحكم…",
+      "resolved": "تم حل الحادث. جارٍ العودة إلى لوحة التحكم…",
+      "verified": "تم التحقق من الحادث بنجاح.",
+      "backup": "تم طلب الدعم."
+    },
+    "dialog": {
+      "rejectLabel": "رفض الحادث",
+      "rejectMessage": "سيُعلَّم الحادث بوصفه مرفوضًا وسيُزال من قائمة الانتظار النشطة. لا يمكن التراجع عن هذا الإجراء.",
+      "resolveLabel": "حل الحادث",
+      "resolveMessage": "سيُعلَّم الحادث بوصفه محلولًا وسيُغلق الملف."
+    },
+    "severity": "الخطورة",
+    "status": "الحالة",
+    "quickActions": "إجراءات سريعة",
+    "terminalBanner": "الحادث {{status}} — لا تتوفر إجراءات إضافية.",
+    "alreadyVerified": "تم التحقق مسبقًا",
+    "actions": {
+      "verifying": "جارٍ التحقق…",
+      "verify": "التحقق من الحادث",
+      "requesting": "جارٍ الطلب…",
+      "requestBackup": "طلب دعم",
+      "resolving": "جارٍ الحل…",
+      "resolve": "حل الحادث",
+      "rejecting": "جارٍ الرفض…",
+      "reject": "رفض الحادث"
+    },
+    "addFieldNote": "إضافة ملاحظة ميدانية",
+    "fieldNotePlaceholder": "اكتب ملاحظتك الميدانية…",
+    "saveNote": "حفظ الملاحظة",
+    "activityTimeline": "الجدول الزمني للنشاط",
+    "noActivity": "لم يُسجَّل أي نشاط بعد.",
+    "incidentDetail": "تفاصيل الحادث",
+    "loadingData": "جارٍ تحميل بيانات الحادث…",
+    "incidentIntelligence": "معلومات الحادث",
+    "intel": {
+      "incidentType": "نوع الحادث",
+      "sourceChannel": "قناة المصدر",
+      "wilaya": "الولاية",
+      "commune": "البلدية",
+      "reportedBy": "أبلغ عنه",
+      "assignedTo": "مُعيَّن إلى",
+      "unassigned": "غير مُعيَّن",
+      "location": "الموقع",
+      "occurred": "وقع في"
+    },
+    "evidence": "الأدلة",
+    "noMediaEvidence": "لا توجد أدلة وسائط مرفقة بهذا البلاغ.",
+    "viewFullSize": "عرض بالحجم الكامل",
+    "mediaUnavailable": "غير متاح",
+    "fieldNotes": "الملاحظات الميدانية",
+    "noFieldNotes": "لا توجد ملاحظات ميدانية مسجلة بعد. أضف ملاحظة من اللوحة اليمنى.",
+    "officerFallback": "ضابط",
+    "you": "أنت",
+    "notes": {
+      "saving": "جارٍ الحفظ…",
+      "removing": "جارٍ الحذف…"
+    },
+    "location": "الموقع",
+    "lightbox": {
+      "zoomIn": "تكبير",
+      "zoomOut": "تصغير",
+      "reset": "إعادة تعيين",
+      "prevPhoto": "الصورة السابقة",
+      "nextPhoto": "الصورة التالية",
+      "evidenceAlt": "دليل"
+    }
+  },
+  "policeMyIncidentsPage": {
+    "filters": {
+      "all": "الكل",
+      "pending": "قيد المراجعة",
+      "underReview": "قيد الفحص",
+      "verified": "مؤكَّد",
+      "dispatched": "تم الإرسال",
+      "resolved": "تم الحل"
+    },
+    "officerCard": {
+      "title": "الضابط",
+      "onDuty": "في الخدمة",
+      "offDuty": "خارج الخدمة",
+      "defaultName": "الضابط",
+      "defaultRank": "ضابط شرطة",
+      "badge": "الشارة",
+      "badgePending": "قيد المراجعة"
+    },
+    "workZoneCard": {
+      "title": "منطقة العمل",
+      "wilaya": "الولاية",
+      "commune": "البلدية",
+      "notSet": "غير محدد"
+    },
+    "summaryCard": {
+      "title": "حسب الحالة",
+      "total": "{{count}} إجمالاً"
+    },
+    "heading": "حوادثي",
+    "subheading": "القضايا المسندة إليك أو التي أبلغت عنها",
+    "refresh": {
+      "title": "تحديث القائمة",
+      "ariaLabel": "تحديث القائمة",
+      "label": "تحديث"
+    },
+    "errors": {
+      "loadFailed": "فشل تحميل الحوادث."
+    },
+    "loading": "جارٍ تحميل الحوادث…",
+    "empty": "لا توجد حوادث تطابق هذا الفلتر",
+    "incidentRow": {
+      "untitled": "حادث بدون عنوان",
+      "reportedBy": "بواسطة {{name}}",
+      "view": "عرض",
+      "viewAriaLabel": "عرض {{id}}"
+    }
+  },
+  "policeNearbyIncidentsPage": {
+    "title": "الحوادث القريبة",
+    "subtitle": "الحوادث الحية المرصودة حول موقعك الأخير ضمن نطاق استجابة بقطر 5 كيلومترات.",
+    "radiusLabel": "نطاق 5 كم",
+    "loadingNearby": "جارٍ تحميل الحوادث القريبة…",
+    "errorLoadFailed": "فشل تحميل الحوادث القريبة.",
+    "nearby": "قريب",
+    "fieldNoteCount_one": "{{count}} ملاحظة",
+    "fieldNoteCount_other": "{{count}} ملاحظات",
+    "nearbyPanel": {
+      "title": "ملخص القريب",
+      "searchRadius": "نطاق البحث",
+      "incidentsFound": "الحوادث المرصودة",
+      "highSeverity": "خطورة عالية",
+      "location": "الموقع",
+      "selected": "المحدد"
+    },
+    "actions": {
+      "openCase": "فتح الملف",
+      "openCaseAria": "فتح الملف {{id}}",
+      "continue": "متابعة",
+      "continueAria": "متابعة {{id}} في التحقق"
+    },
+    "emptyState": {
+      "locationUnavailableTitle": "الموقع غير متاح",
+      "noIncidentsTitle": "لا توجد حوادث قريبة",
+      "locationUnavailableDesc": "لا يوجد موقع صالح للاستخدام للضابط بعد، لذا لا يمكن احتساب الحوادث القريبة.",
+      "noIncidentsDesc": "لا توجد حوادث نشطة حاليًا ضمن نطاق 5 كيلومترات من موقعك الصالح الأخير."
+    },
+    "map": {
+      "focusTitle": "تركيز الخريطة",
+      "noSelection": "لا يوجد تحديد",
+      "yourPosition": "موقعك"
+    },
+    "locationState": {
+      "locating": "جارٍ تحديد موقع جهازك…",
+      "usingFallback": "يتم استخدام موقع اختبار احتياطي لعدم توفر نظام GPS. الموقع الاحتياطي مخصص للاختبار المحلي فقط ولم يُرسَل كموقع حي للشرطة.",
+      "usingFallbackUploaded": "يتم استخدام موقع اختبار احتياطي لعدم توفر نظام GPS (تم رفعه للاختبار).",
+      "usingLastKnown": "يتم استخدام آخر موقع معروف بينما موقع الجهاز غير مستقر.",
+      "permissionDeniedRequired": "تم رفض إذن الموقع. ستبقى الحوادث القريبة فارغة حتى يصبح موقع صالح متاحًا.",
+      "permissionDeniedFallback": "تم رفض إذن الموقع، لذا تستخدم الحوادث القريبة آخر موقع محفوظ صالح لديك.",
+      "locationUnavailableRequired": "الموقع غير متاح. فعّل خدمات الموقع وأعد التحميل لعرض الحوادث القريبة.",
+      "nearbyLoadedCached": "تم تحميل الحوادث القريبة باستخدام موقعك المحفوظ مؤخرًا.",
+      "nearbyLoadedCurrent": "تم تحميل الحوادث القريبة من موقع جهازك الحالي.",
+      "locationUnavailable": "الموقع غير متاح مؤقتًا."
+    }
+  },
+  "policeOperationHistoryPage": {
+    "officerFallback": "ضابط",
+    "title": "سجل العمليات",
+    "hint": "الجدول الزمني للإجراءات الشرطية المهمة. تحديثات الموقع مخفية للتركيز على القرارات.",
+    "loadingActions": "جارٍ تحميل الإجراءات الشرطية المهمة…",
+    "actionTypes": {
+      "all": "جميع الإجراءات",
+      "verify_incident": "حادث مؤكَّد",
+      "reject_incident": "بلاغ مرفوض",
+      "assign_self": "تعيين الذات",
+      "request_backup": "طلب دعم",
+      "update_status": "تغيير الحالة",
+      "field_note": "ملاحظة ميدانية",
+      "mark_alert_read": "تنبيه تم الإشعار به",
+      "manual_log_entry": "ملاحظة يدوية"
+    },
+    "actionLabels": {
+      "verify_incident": "حادث مؤكَّد",
+      "reject_incident": "بلاغ مرفوض",
+      "assign_self": "تعيين الذات",
+      "request_backup": "طلب دعم",
+      "update_status": "تغيير الحالة",
+      "field_note": "تمت إضافة ملاحظة ميدانية",
+      "mark_alert_read": "تم الإشعار بالتنبيه",
+      "manual_log_entry": "ملاحظة يدوية",
+      "default": "إجراء شرطي"
+    },
+    "panel": {
+      "title": "ملخص السجل",
+      "totalActions": "إجمالي الإجراءات",
+      "visible": "المرئية",
+      "verified": "المؤكَّدة",
+      "rejected": "المرفوضة",
+      "notes": "الملاحظات"
+    },
+    "errors": {
+      "loadFailed": "فشل تحميل سجل العمليات.",
+      "emptyNote": "أدخل ملاحظة إجراء قصيرة قبل الحفظ.",
+      "saveFailed": "فشل حفظ الإجراء اليدوي."
+    },
+    "messages": {
+      "manualActionSaved": "تم حفظ الإجراء اليدوي."
+    },
+    "filters": {
+      "actionType": "نوع الإجراء",
+      "date": "التاريخ",
+      "sortBy": "ترتيب حسب",
+      "clearFilters": "مسح الفلاتر"
+    },
+    "manualNote": {
+      "label": "ملاحظة إجراء يدوي",
+      "placeholder": "أضف إجراءً ميدانياً قصيراً أو ملاحظة تشغيلية",
+      "saving": "جارٍ الحفظ…",
+      "addNote": "إضافة ملاحظة"
+    },
+    "timeline": {
+      "title": "الجدول الزمني للنشاط",
+      "count": "{{visible}} من {{total}} إجراء"
+    },
+    "itemMeta": {
+      "officer": "الضابط:",
+      "incident": "الحادث:",
+      "alert": "التنبيه:",
+      "status": "الحالة:"
+    },
+    "actions": {
+      "openIncident": "فتح الحادث"
+    },
+    "empty": {
+      "title": "لا توجد إجراءات",
+      "description": "تحديثات الموقع مخفية هنا حتى يظل الجدول الزمني مركّزاً على الإجراءات الشرطية المهمة."
+    }
+  },
+  "policePage": {
+    "time": {
+      "unknown": "غير معروف",
+      "justNow": "الآن",
+      "minutesAgo": "منذ {{count}} دقيقة",
+      "hoursAgo": "منذ {{count}} ساعة",
+      "daysAgo": "منذ {{count}} يوم"
+    },
+    "duration": {
+      "lessThanMinute": "أقل من دقيقة",
+      "minutes": "{{count}} دقيقة",
+      "hours": "{{count}} ساعة",
+      "days": "{{count}} يوم"
+    },
+    "activity": {
+      "verifyIncident": "وثّق الضابط الحادث",
+      "rejectIncident": "رفض الضابط البلاغ",
+      "assignSelf": "تولّى الضابط القضية بنفسه",
+      "requestBackup": "طُلب الدعم",
+      "updateStatus": "تم تحديث الحالة",
+      "fieldNote": "تمت إضافة ملاحظة ميدانية",
+      "markAlertRead": "تم الإقرار بالتنبيه",
+      "manualLogEntry": "إدخال يدوي في السجل",
+      "officerFallback": "ضابط"
+    },
+    "errors": {
+      "loadDashboard": "فشل تحميل لوحة تحكم الشرطة.",
+      "loadAccidents": "فشل تحميل الحوادث",
+      "loadZoneOptions": "فشل تحميل خيارات المنطقة",
+      "updateWorkZone": "فشل تحديث منطقة العمل"
+    },
+    "map": {
+      "reportedLocation": "الموقع المُبلَّغ عنه",
+      "openFullMap": "فتح الخريطة الكاملة",
+      "fullMap": "الخريطة الكاملة",
+      "fullMapAriaLabel": "الخريطة الكاملة",
+      "operationsMap": "خريطة العمليات",
+      "markersCount": "{{count}} علامة",
+      "markersCount_one": "علامة واحدة",
+      "markersCount_other": "{{count}} علامات",
+      "closeFullMap": "إغلاق الخريطة الكاملة"
+    },
+    "incident": {
+      "defaultTitle": "حادث",
+      "untitled": "حادث بدون عنوان",
+      "noDescription": "لا يوجد وصف.",
+      "unknownLocation": "موقع غير معروف",
+      "locationLabel": "الموقع",
+      "statusLabel": "الحالة",
+      "openCase": "فتح القضية",
+      "view": "عرض",
+      "startReview": "بدء المراجعة",
+      "viewAriaLabel": "عرض الحادث {{id}}"
+    },
+    "kpi": {
+      "activeIncidents": "الحوادث النشطة",
+      "activeIncidentsHint": "مفتوح في المنطقة",
+      "highSeverity": "حوادث عالية الخطورة",
+      "highSeverityHint": "خطورة مرتفعة الآن",
+      "pendingVerification": "قيد التحقق",
+      "pendingVerificationHint": "في انتظار القرار",
+      "avgIncidentAge": "متوسط عمر الحوادث",
+      "avgIncidentAgeHint": "عبر القضايا النشطة"
+    },
+    "quickActions": {
+      "verificationQueue": "طابور التحقق",
+      "verificationQueueHint": "مراجعة البلاغات المعلّقة",
+      "allIncidents": "جميع الحوادث",
+      "allIncidentsHint": "البث النشط المباشر",
+      "myAssigned": "المُسنَدة إليّ",
+      "myAssignedHint": "القضايا المُسنَدة إليّ",
+      "nearbyIncidents": "الحوادث القريبة",
+      "nearbyIncidentsHint": "في نطاق 5 كم"
+    },
+    "zoneModal": {
+      "changeBtn": "تغيير",
+      "ariaLabel": "تغيير منطقة العمل",
+      "title": "تغيير منطقة العمل",
+      "loadingOptions": "جارٍ تحميل الخيارات…",
+      "wilayaLabel": "الولاية",
+      "wilayaPlaceholder": "— اختر الولاية —",
+      "communeLabel": "البلدية",
+      "communePlaceholder": "— اختر البلدية —",
+      "saving": "جارٍ الحفظ…"
+    },
+    "liveStats": {
+      "title": "الإحصائيات المباشرة",
+      "activeIncidents": "الحوادث النشطة",
+      "highPriority": "أولوية عالية",
+      "unreadAlerts": "التنبيهات غير المقروءة",
+      "pendingVerify": "قيد التحقق"
+    },
+    "activeStream": {
+      "title": "بث الحوادث النشطة",
+      "subtitle": "بث مباشر للحوادث النشطة في منطقة عمل الشرطة الحالية."
+    },
+    "toolbar": {
+      "refresh": "تحديث"
+    },
+    "empty": {
+      "noActiveIncidents": "لا توجد حوادث نشطة",
+      "noActiveIncidentsDesc": "لا توجد حوادث شرطية نشطة في منطقة العمل الحالية.",
+      "noHighSeverity": "لا توجد حوادث عالية الخطورة حالياً.",
+      "noActiveAlerts": "لا توجد تنبيهات نشطة.",
+      "noActivity": "لا يوجد نشاط حتى الآن.",
+      "noActiveIncidentsShort": "لا توجد حوادث نشطة.",
+      "noAccidents": "لا توجد حوادث مسجلة في منطقة عملك."
+    },
+    "commandCenter": {
+      "title": "مركز القيادة",
+      "subtitle": "العمليات المباشرة لـ {{zone}}",
+      "assignedZone": "منطقتك المُعيَّنة",
+      "liveSynced": "مباشر · تمت المزامنة {{time}}",
+      "refreshTitle": "تحديث لوحة التحكم"
+    },
+    "aria": {
+      "operationalMetrics": "المقاييس التشغيلية",
+      "priorityIncidents": "الحوادث ذات الأولوية",
+      "mapOverview": "نظرة عامة على الخريطة",
+      "quickActions": "الإجراءات السريعة",
+      "importantAlerts": "التنبيهات المهمة",
+      "activityFeed": "تغذية النشاط",
+      "recentIncidents": "الحوادث الأخيرة",
+      "allAccidents": "جميع الحوادث"
+    },
+    "sections": {
+      "priorityIncidents": "الحوادث ذات الأولوية",
+      "openStream": "فتح البث",
+      "mapOverview": "نظرة عامة على الخريطة",
+      "quickActions": "الإجراءات السريعة",
+      "alerts": "التنبيهات",
+      "openCenter": "فتح المركز",
+      "activity": "النشاط",
+      "fullHistory": "السجل الكامل",
+      "recentIncidents": "الحوادث الأخيرة",
+      "stream": "البث",
+      "allAccidents": "جميع الحوادث"
+    },
+    "severity": {
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض"
+    },
+    "alert": {
+      "defaultTitle": "تنبيه"
+    },
+    "table": {
+      "id": "المعرّف",
+      "incident": "الحادث",
+      "type": "النوع",
+      "severity": "الخطورة",
+      "location": "الموقع",
+      "status": "الحالة",
+      "time": "الوقت"
+    }
+  },
+  "policePriorityQueuePage": {
+    "title": "قائمة الأولويات",
+    "subtitle": "الحوادث مرتبة حسب الخطورة، والحداثة، وتأكيدات المجتمع، وكثافة التجمعات القريبة.",
+    "refresh": "تحديث",
+    "errorLoad": "فشل تحميل قائمة الأولويات",
+    "empty": "لا توجد حوادث معلقة تحتاج إلى فرز في الوقت الحالي. ستظهر البلاغات ذات الأولوية العالية الجديدة هنا فور تقديمها.",
+    "confirmations_one": "تأكيد واحد",
+    "confirmations_other": "{{count}} تأكيدات",
+    "reportsWithin500m_one": "بلاغ واحد في نطاق 500م",
+    "reportsWithin500m_other": "{{count}} بلاغات في نطاق 500م",
+    "open": "فتح",
+    "publicView": "العرض العام",
+    "timeAgo": {
+      "justNow": "الآن",
+      "minutesAgo_one": "منذ دقيقة واحدة",
+      "minutesAgo_other": "منذ {{count}} دقائق",
+      "hoursAgo_one": "منذ ساعة واحدة",
+      "hoursAgo_other": "منذ {{count}} ساعات",
+      "daysAgo_one": "منذ يوم واحد",
+      "daysAgo_other": "منذ {{count}} أيام"
+    }
+  },
+  "policeVerificationQueuePage": {
+    "title": "قائمة التحقق",
+    "subtitle": "راجع البلاغات الميدانية الواردة قبل إدراجها في العمليات النشطة.",
+    "refresh": "تحديث",
+    "loadingQueue": "جارٍ تحميل قائمة التحقق…",
+    "errorLoadQueue": "فشل تحميل قائمة التحقق.",
+    "errorUpdateItem": "فشل تحديث عنصر القائمة.",
+    "queueMetrics": "إحصائيات القائمة",
+    "awaitingReview": "في انتظار المراجعة",
+    "urgentReports": "البلاغات العاجلة",
+    "assigned": "المُسنَدة",
+    "untitledReport": "بلاغ بدون عنوان",
+    "noDescription": "لا يوجد وصف إضافي.",
+    "location": "الموقع",
+    "notProvided": "غير محدد",
+    "reported": "تاريخ الإبلاغ",
+    "unknownTime": "وقت غير معروف",
+    "reporter": "المُبلِّغ",
+    "approve": "موافقة",
+    "decline": "رفض",
+    "takeCase": "تولّي القضية",
+    "details": "التفاصيل",
+    "emptyQueue": "لا توجد حوادث معلّقة في قائمة التحقق."
+  },
+  "policeWorkZoneSetupPage": {
+    "eyebrow": "إعداد مساحة عمل الشرطة",
+    "title": "اختر منطقة عملك",
+    "subtitle": "إعداد تسجيل الدخول الأول لـ {{name}}",
+    "stepLabel": "الخطوة 1 من 1",
+    "description": "اختر الولاية والبلدية الفعّالتين قبل الدخول إلى وضع الشرطة. يمكنك تحديث منطقتك الفعّالة لاحقاً إذا تغيّرت مهمتك.",
+    "wilaya": {
+      "label": "الولاية",
+      "placeholder": "اختر الولاية",
+      "empty": "لم يتم العثور على أي ولاية",
+      "searchPlaceholder": "البحث عن ولاية…"
+    },
+    "commune": {
+      "label": "البلدية",
+      "placeholder": "اختر البلدية",
+      "placeholderNoWilaya": "اختر الولاية أولاً",
+      "empty": "لم يتم العثور على أي بلدية",
+      "emptyNoWilaya": "اختر ولاية أولاً",
+      "searchPlaceholder": "البحث عن بلدية…"
+    },
+    "loadingZoneOptions": "جارٍ تحميل خيارات المنطقة…",
+    "formHint": "كلا الحقلين مطلوبان لتفعيل مساحة العمل.",
+    "savingLabel": "جارٍ الحفظ…",
+    "saveButton": "حفظ منطقة العمل",
+    "assignmentSummary": "ملخص المهمة الحالية",
+    "infoCards": {
+      "notSelected": "غير محدد",
+      "activeBadge": "نشط",
+      "wilaya": {
+        "category": "الولاية",
+        "sub": "الولاية الفعّالة"
+      },
+      "commune": {
+        "category": "البلدية",
+        "sub": "البلدية الفعّالة"
+      },
+      "officer": {
+        "category": "الضابط"
+      },
+      "badge": {
+        "category": "الشارة",
+        "pending": "قيد المراجعة",
+        "sub": "التعريف"
+      }
+    },
+    "defaults": {
+      "officer": "الضابط",
+      "policeOfficer": "ضابط شرطة"
+    },
+    "errors": {
+      "failedLoadOptions": "فشل تحميل خيارات منطقة العمل.",
+      "failedLoadCommunes": "فشل تحميل البلديات.",
+      "bothRequired": "يرجى اختيار ولاية وبلدية معاً قبل المتابعة.",
+      "failedSave": "فشل حفظ منطقة العمل."
+    }
+  }
+}

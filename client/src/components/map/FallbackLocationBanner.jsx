@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined'
 
@@ -40,12 +41,15 @@ export default function FallbackLocationBanner({
   isFallback,
   isLoading = false,
   errorMessage = '',
-  label = 'Using fallback test location because GPS is unavailable.',
+  label,
   onRetry,
   style,
   compact = false,
 }) {
+  const { t } = useTranslation(['map', 'common'])
   if (!isFallback) return null
+
+  const resolvedLabel = label !== undefined ? label : t('fallbackLocationBanner.defaultLabel')
 
   const composedStyle = compact
     ? { ...BANNER_BASE_STYLE, padding: '6px 10px', fontSize: 12, ...style }
@@ -55,7 +59,7 @@ export default function FallbackLocationBanner({
     <div role="status" aria-live="polite" style={composedStyle}>
       <WarningAmberOutlinedIcon fontSize="inherit" aria-hidden="true" />
       <div style={{ flex: 1, lineHeight: 1.25 }}>
-        <div>{label}</div>
+        <div>{resolvedLabel}</div>
         {errorMessage ? (
           <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>{errorMessage}</div>
         ) : null}
@@ -68,7 +72,7 @@ export default function FallbackLocationBanner({
           style={{ ...BUTTON_STYLE, opacity: isLoading ? 0.7 : 1 }}
         >
           <RefreshOutlinedIcon fontSize="inherit" aria-hidden="true" />
-          {isLoading ? 'Retrying…' : 'Retry GPS'}
+          {isLoading ? t('fallbackLocationBanner.retrying') : t('fallbackLocationBanner.retryGps')}
         </button>
       ) : null}
     </div>

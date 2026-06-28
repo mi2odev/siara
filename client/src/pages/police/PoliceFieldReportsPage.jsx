@@ -1,5 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
@@ -41,19 +42,20 @@ function getInitials(name) {
     .toUpperCase()
 }
 
-const FILTERS = [
-  { value: 'all',          label: 'All' },
-  { value: 'pending',      label: 'Pending' },
-  { value: 'under_review', label: 'Under Review' },
-  { value: 'verified',     label: 'Verified' },
-  { value: 'resolved',     label: 'Resolved' },
-]
-
 export default function PoliceFieldReportsPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation(['police', 'common'])
   const { policeMe } = usePoliceAccess()
   const officer  = policeMe?.officer
   const workZone = policeMe?.workZone
+
+  const FILTERS = [
+    { value: 'all',          label: t('policeFieldReportsPage.filters.all') },
+    { value: 'pending',      label: t('policeFieldReportsPage.filters.pending') },
+    { value: 'under_review', label: t('policeFieldReportsPage.filters.underReview') },
+    { value: 'verified',     label: t('policeFieldReportsPage.filters.verified') },
+    { value: 'resolved',     label: t('policeFieldReportsPage.filters.resolved') },
+  ]
 
   const [allReports, setAllReports]     = React.useState([])
   const [statusFilter, setStatusFilter] = React.useState('all')
@@ -67,11 +69,11 @@ export default function PoliceFieldReportsPage() {
       const res = await listPoliceIncidents({ scope: 'field_reports', page: 1, pageSize: 50 })
       setAllReports(res.items)
     } catch (e) {
-      setError(e.message || 'Failed to load field reports.')
+      setError(e.message || t('policeFieldReportsPage.errorLoad'))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [t])
 
   React.useEffect(() => { load() }, [load])
 
@@ -94,10 +96,10 @@ export default function PoliceFieldReportsPage() {
       {/* Officer card */}
       <div className="pfr-right-card">
         <div className="pfr-right-card-head">
-          <span className="pfr-right-card-title">Officer</span>
+          <span className="pfr-right-card-title">{t('policeFieldReportsPage.officer.title')}</span>
           <span className={`pfr-duty-badge pfr-duty-badge--${officer?.isOnDuty ? 'on' : 'off'}`}>
             <span className="pfr-duty-dot" />
-            {officer?.isOnDuty ? 'On Duty' : 'Off Duty'}
+            {officer?.isOnDuty ? t('policeFieldReportsPage.officer.onDuty') : t('policeFieldReportsPage.officer.offDuty')}
           </span>
         </div>
         <div className="pfr-officer-row">
@@ -106,15 +108,15 @@ export default function PoliceFieldReportsPage() {
             : <span className="pfr-officer-avatar">{getInitials(officer?.name)}</span>
           }
           <div className="pfr-officer-meta">
-            <strong>{officer?.name || 'Officer'}</strong>
-            <span>{officer?.rank || 'Police Officer'}</span>
+            <strong>{officer?.name || t('policeFieldReportsPage.officer.defaultName')}</strong>
+            <span>{officer?.rank || t('policeFieldReportsPage.officer.defaultRank')}</span>
           </div>
         </div>
         <div className="pfr-detail-rows">
           <div className="pfr-detail-row">
             <BadgeOutlinedIcon fontSize="inherit" />
-            <span>Badge</span>
-            <strong>{officer?.badgeNumber || 'Pending'}</strong>
+            <span>{t('policeFieldReportsPage.officer.badge')}</span>
+            <strong>{officer?.badgeNumber || t('policeFieldReportsPage.officer.badgePending')}</strong>
           </div>
         </div>
       </div>
@@ -122,18 +124,18 @@ export default function PoliceFieldReportsPage() {
       {/* Work zone card */}
       <div className="pfr-right-card">
         <div className="pfr-right-card-head">
-          <span className="pfr-right-card-title">Work Zone</span>
+          <span className="pfr-right-card-title">{t('policeFieldReportsPage.workZone.title')}</span>
         </div>
         <div className="pfr-detail-rows">
           <div className="pfr-detail-row">
             <PlaceOutlinedIcon fontSize="inherit" />
-            <span>Wilaya</span>
-            <strong>{workZone?.wilaya?.name || 'Not set'}</strong>
+            <span>{t('policeFieldReportsPage.workZone.wilaya')}</span>
+            <strong>{workZone?.wilaya?.name || t('policeFieldReportsPage.workZone.notSet')}</strong>
           </div>
           <div className="pfr-detail-row">
             <PlaceOutlinedIcon fontSize="inherit" />
-            <span>Commune</span>
-            <strong>{workZone?.commune?.name || 'Not set'}</strong>
+            <span>{t('policeFieldReportsPage.workZone.commune')}</span>
+            <strong>{workZone?.commune?.name || t('policeFieldReportsPage.workZone.notSet')}</strong>
           </div>
         </div>
       </div>
@@ -141,8 +143,8 @@ export default function PoliceFieldReportsPage() {
       {/* Status summary */}
       <div className="pfr-right-card pfr-right-card--summary">
         <div className="pfr-right-card-head">
-          <span className="pfr-right-card-title">By Status</span>
-          <span className="pfr-right-total">{allReports.length} total</span>
+          <span className="pfr-right-card-title">{t('policeFieldReportsPage.summary.title')}</span>
+          <span className="pfr-right-total">{t('policeFieldReportsPage.summary.total', { count: allReports.length })}</span>
         </div>
         {FILTERS.filter((f) => f.value !== 'all').map((f) => (
           <button
@@ -159,7 +161,7 @@ export default function PoliceFieldReportsPage() {
         {totalNotes > 0 && (
           <div className="pfr-summary-notes">
             <DescriptionOutlinedIcon fontSize="inherit" />
-            {totalNotes} officer note{totalNotes !== 1 ? 's' : ''}
+            {t('policeFieldReportsPage.summary.officerNotes', { count: totalNotes })}
           </div>
         )}
       </div>
@@ -174,19 +176,19 @@ export default function PoliceFieldReportsPage() {
         {/* ── Header ── */}
         <div className="pfr-head">
           <div>
-            <h2 className="pfr-heading">Field Reports</h2>
-            <p className="pfr-sub">Citizen and officer reports available for review</p>
+            <h2 className="pfr-heading">{t('policeFieldReportsPage.heading')}</h2>
+            <p className="pfr-sub">{t('policeFieldReportsPage.subheading')}</p>
           </div>
           <button
             type="button"
             className="pfr-refresh"
             onClick={load}
             disabled={isLoading}
-            title="Refresh list"
-            aria-label="Refresh list"
+            title={t('policeFieldReportsPage.refresh')}
+            aria-label={t('policeFieldReportsPage.refresh')}
           >
             <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
-            <span>Refresh</span>
+            <span>{t('policeFieldReportsPage.refresh')}</span>
           </button>
         </div>
 
@@ -222,12 +224,12 @@ export default function PoliceFieldReportsPage() {
         <div className="pfr-body">
           {error && <p className="pfr-error">{error}</p>}
 
-          {isLoading && <p className="pfr-loading">Loading field reports…</p>}
+          {isLoading && <p className="pfr-loading">{t('policeFieldReportsPage.loading')}</p>}
 
           {!isLoading && !error && displayed.length === 0 && (
             <div className="pfr-empty">
               <span className="pfr-empty-icon"><ArticleOutlinedIcon fontSize="inherit" /></span>
-              <p>No reports match this filter</p>
+              <p>{t('policeFieldReportsPage.emptyState')}</p>
             </div>
           )}
 
@@ -259,7 +261,7 @@ export default function PoliceFieldReportsPage() {
                       )}
                     </div>
 
-                    <p className="pfr-title">{report.title || 'Untitled report'}</p>
+                    <p className="pfr-title">{report.title || t('policeFieldReportsPage.untitledReport')}</p>
 
                     {report.description && (
                       <p className="pfr-desc">{report.description}</p>
@@ -279,7 +281,7 @@ export default function PoliceFieldReportsPage() {
                       {report.fieldNoteCount > 0 && (
                         <span className="pfr-notes">
                           <DescriptionOutlinedIcon fontSize="inherit" />
-                          {report.fieldNoteCount} note{report.fieldNoteCount !== 1 ? 's' : ''}
+                          {t('policeFieldReportsPage.noteCount', { count: report.fieldNoteCount })}
                         </span>
                       )}
                     </div>
@@ -289,10 +291,10 @@ export default function PoliceFieldReportsPage() {
                     type="button"
                     className="pfr-view"
                     onClick={(e) => { e.stopPropagation(); navigate(`/police/incident/${report.id}`) }}
-                    aria-label={`View ${report.displayId}`}
+                    aria-label={t('policeFieldReportsPage.viewAriaLabel', { id: report.displayId })}
                   >
                     <VisibilityOutlinedIcon fontSize="inherit" />
-                    View
+                    {t('policeFieldReportsPage.view')}
                   </button>
                 </div>
               ))}

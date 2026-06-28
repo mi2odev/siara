@@ -36,6 +36,7 @@ import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
 import QueryStatsOutlinedIcon from '@mui/icons-material/QueryStatsOutlined'
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
+import { useTranslation } from 'react-i18next'
 
 import { getOccurrenceBetaV1Metrics } from '../../services/adminModelsService'
 
@@ -127,12 +128,12 @@ const PatternLabel = ({ from, to }) => (
 /** Tab definitions. The 'occurrence' tab is backed by real backend data
  * (GET /api/admin/models/occurrence-beta-v1); the other four still use the
  * severity-flavored mock data above and should be migrated separately. */
-const tabs = [
-  { key: 'performance', label: 'Model Performance' },
-  { key: 'confusion', label: 'Confusion Matrix' },
-  { key: 'confidence', label: 'Confidence Analysis' },
-  { key: 'overrides', label: 'Override Log' },
-  { key: 'occurrence', label: 'Occurrence Model (Beta)' },
+const tabKeys = [
+  { key: 'performance' },
+  { key: 'confusion' },
+  { key: 'confidence' },
+  { key: 'overrides' },
+  { key: 'occurrence' },
 ]
 
 function formatPct(value, digits = 2) {
@@ -149,6 +150,8 @@ function formatNumber(value, digits = 4) {
    COMPONENT
    ═══════════════════════════════════════════════════════════════ */
 export default function AdminAIMonitoringPage() {
+  const { t } = useTranslation(['admin', 'common'])
+
   /* URL-driven tab state — defaults to 'performance' */
   const [searchParams, setSearchParams] = useSearchParams()
   const currentTab = searchParams.get('tab') || 'performance'
@@ -184,12 +187,12 @@ export default function AdminAIMonitoringPage() {
       {/* ═══ PAGE HEADER — model name, re-train & download actions ═══ */}
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">AI & Model Supervision</h1>
-          <p className="admin-page-subtitle">{modelInfo.name} — Last trained {modelInfo.lastTrained}</p>
+          <h1 className="admin-page-title">{t('adminAIMonitoringPage.title')}</h1>
+          <p className="admin-page-subtitle">{modelInfo.name} — {t('adminAIMonitoringPage.lastTrained', { date: modelInfo.lastTrained })}</p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="admin-btn admin-btn-ghost">Re-train Model</button>
-          <button className="admin-btn admin-btn-ghost">Download Report</button>
+          <button className="admin-btn admin-btn-ghost">{t('adminAIMonitoringPage.retrainModel')}</button>
+          <button className="admin-btn admin-btn-ghost">{t('adminAIMonitoringPage.downloadReport')}</button>
         </div>
       </div>
 
@@ -197,18 +200,18 @@ export default function AdminAIMonitoringPage() {
       {modelInfo.drift > 0.5 && (
         <div className="admin-high-bar">
           <span className="high-dot"></span>
-          <span className="high-text">Model drift detected: {modelInfo.drift}% — Consider re-training</span>
+          <span className="high-text">{t('adminAIMonitoringPage.driftAlert', { drift: modelInfo.drift })}</span>
         </div>
       )}
 
       {/* ═══ TAB BAR — Performance | Confusion | Confidence | Overrides ═══ */}
       <div className="admin-tabs" style={{ marginBottom: 14 }}>
-        {tabs.map(t => (
-          <button key={t.key}
-            className={`admin-tab ${currentTab === t.key ? 'active' : ''}`}
-            onClick={() => setSearchParams({ tab: t.key })}
+        {tabKeys.map(tab => (
+          <button key={tab.key}
+            className={`admin-tab ${currentTab === tab.key ? 'active' : ''}`}
+            onClick={() => setSearchParams({ tab: tab.key })}
           >
-            {t.label}
+            {t(`adminAIMonitoringPage.tabs.${tab.key}`)}
           </button>
         ))}
       </div>
@@ -219,11 +222,11 @@ export default function AdminAIMonitoringPage() {
           {/* ── Key metric KPI cards (5 columns) ── */}
           <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginBottom: 14 }}>
             {[
-              { label: 'Accuracy', value: `${modelInfo.accuracy}%`, color: 'var(--admin-success)' },
-              { label: 'Precision', value: `${modelInfo.precision}%`, color: 'var(--admin-primary)' },
-              { label: 'Recall', value: `${modelInfo.recall}%`, color: 'var(--admin-primary)' },
-              { label: 'F1 Score', value: `${modelInfo.f1}%`, color: 'var(--admin-primary)' },
-              { label: 'Model Drift', value: `${modelInfo.drift}%`, color: modelInfo.drift > 1 ? 'var(--admin-danger)' : 'var(--admin-success)' },
+              { label: t('adminAIMonitoringPage.kpi.accuracy'), value: `${modelInfo.accuracy}%`, color: 'var(--admin-success)' },
+              { label: t('adminAIMonitoringPage.kpi.precision'), value: `${modelInfo.precision}%`, color: 'var(--admin-primary)' },
+              { label: t('adminAIMonitoringPage.kpi.recall'), value: `${modelInfo.recall}%`, color: 'var(--admin-primary)' },
+              { label: t('adminAIMonitoringPage.kpi.f1Score'), value: `${modelInfo.f1}%`, color: 'var(--admin-primary)' },
+              { label: t('adminAIMonitoringPage.kpi.modelDrift'), value: `${modelInfo.drift}%`, color: modelInfo.drift > 1 ? 'var(--admin-danger)' : 'var(--admin-success)' },
             ].map(m => (
               <div className="admin-kpi" key={m.label}>
                 <div className="admin-kpi-body">
@@ -237,14 +240,14 @@ export default function AdminAIMonitoringPage() {
           {/* ── False Positives & False Negatives — side-by-side cards ── */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
             <div className="admin-card">
-              <h3 className="admin-card-title" style={{ color: 'var(--admin-danger)' }}>False Positives</h3>
-              <p className="admin-card-subtitle">AI over-predicted severity</p>
+              <h3 className="admin-card-title" style={{ color: 'var(--admin-danger)' }}>{t('adminAIMonitoringPage.falsePositives.title')}</h3>
+              <p className="admin-card-subtitle">{t('adminAIMonitoringPage.falsePositives.subtitle')}</p>
               <div style={{ marginTop: 10 }}>
                 {falsePositives.map((fp, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--admin-border)' }}>
                     <PatternLabel from={fp.from} to={fp.to} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600 }}>{fp.count} cases</span>
+                      <span style={{ fontSize: 11, fontWeight: 600 }}>{t('adminAIMonitoringPage.cases', { count: fp.count })}</span>
                       <span style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>{fp.pct}%</span>
                     </div>
                   </div>
@@ -252,14 +255,14 @@ export default function AdminAIMonitoringPage() {
               </div>
             </div>
             <div className="admin-card">
-              <h3 className="admin-card-title" style={{ color: 'var(--admin-warning)' }}>False Negatives</h3>
-              <p className="admin-card-subtitle">AI under-predicted severity</p>
+              <h3 className="admin-card-title" style={{ color: 'var(--admin-warning)' }}>{t('adminAIMonitoringPage.falseNegatives.title')}</h3>
+              <p className="admin-card-subtitle">{t('adminAIMonitoringPage.falseNegatives.subtitle')}</p>
               <div style={{ marginTop: 10 }}>
                 {falseNegatives.map((fn, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--admin-border)' }}>
                     <PatternLabel from={fn.from} to={fn.to} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600 }}>{fn.count} cases</span>
+                      <span style={{ fontSize: 11, fontWeight: 600 }}>{t('adminAIMonitoringPage.cases', { count: fn.count })}</span>
                       <span style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>{fn.pct}%</span>
                     </div>
                   </div>
@@ -270,13 +273,13 @@ export default function AdminAIMonitoringPage() {
 
           {/* ── Model metadata card (name, dataset, last trained, drift) ── */}
           <div className="admin-card">
-            <h3 className="admin-card-title">Model Information</h3>
+            <h3 className="admin-card-title">{t('adminAIMonitoringPage.modelInfo.title')}</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 12 }}>
               {[
-                { label: 'Model Name', value: modelInfo.name },
-                { label: 'Training Dataset', value: modelInfo.dataset },
-                { label: 'Last Trained', value: modelInfo.lastTrained },
-                { label: 'Drift Status', value: modelInfo.driftStatus },
+                { label: t('adminAIMonitoringPage.modelInfo.modelName'), value: modelInfo.name },
+                { label: t('adminAIMonitoringPage.modelInfo.trainingDataset'), value: modelInfo.dataset },
+                { label: t('adminAIMonitoringPage.modelInfo.lastTrained'), value: modelInfo.lastTrained },
+                { label: t('adminAIMonitoringPage.modelInfo.driftStatus'), value: modelInfo.driftStatus },
               ].map(item => (
                 <div className="admin-mini-stat" key={item.label}>
                   <span className="admin-mini-stat-label">{item.label}</span>
@@ -291,12 +294,12 @@ export default function AdminAIMonitoringPage() {
       {/* ═══ TAB: CONFUSION MATRIX — 3×3 actual vs predicted ═══ */}
       {currentTab === 'confusion' && (
         <div className="admin-card">
-          <h3 className="admin-card-title">Confusion Matrix</h3>
-          <p className="admin-card-subtitle">Actual (rows) vs Predicted (columns) — Last 30 days</p>
+          <h3 className="admin-card-title">{t('adminAIMonitoringPage.confusionMatrix.title')}</h3>
+          <p className="admin-card-subtitle">{t('adminAIMonitoringPage.confusionMatrix.subtitle')}</p>
           <table className="admin-matrix" style={{ marginTop: 16 }}>
             <thead>
               <tr>
-                <th>Actual ↓ / Predicted →</th>
+                <th>{t('adminAIMonitoringPage.confusionMatrix.axisLabel')}</th>
                 {matrixLabels.map(l => <th key={l}>{l}</th>)}
               </tr>
             </thead>
@@ -327,11 +330,11 @@ export default function AdminAIMonitoringPage() {
           <div style={{ marginTop: 16, display: 'flex', gap: 18, fontSize: 11, color: 'var(--admin-text-muted)' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <SquareRoundedIcon fontSize="inherit" className="icon-success icon-soft" />
-              Diagonal = correct predictions
+              {t('adminAIMonitoringPage.confusionMatrix.diagonalLegend')}
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <SquareRoundedIcon fontSize="inherit" className="icon-danger icon-soft" />
-              Off-diagonal = misclassifications (highlighted when &gt; 10)
+              {t('adminAIMonitoringPage.confusionMatrix.offDiagonalLegend')}
             </span>
           </div>
         </div>
@@ -364,10 +367,10 @@ export default function AdminAIMonitoringPage() {
         })
 
         const kpis = [
-          { label: 'Mean Confidence', value: '78.2%', icon: TrendingUpOutlinedIcon, tone: 'success', hint: '+1.4% vs last 30 days' },
-          { label: 'Median', value: '81.4%', icon: QueryStatsOutlinedIcon, tone: 'primary', hint: 'P50 of all predictions' },
-          { label: 'Below 50% Threshold', value: `${belowThresholdCount}`, icon: WarningAmberOutlinedIcon, tone: 'warning', hint: `${belowThresholdPct}% of predictions` },
-          { label: 'High Confidence (≥70%)', value: `${aboveHighCount}`, icon: InsightsOutlinedIcon, tone: 'success', hint: `${aboveHighPct}% of predictions` },
+          { label: t('adminAIMonitoringPage.confidence.meanConfidence'), value: '78.2%', icon: TrendingUpOutlinedIcon, tone: 'success', hint: t('adminAIMonitoringPage.confidence.meanConfidenceHint') },
+          { label: t('adminAIMonitoringPage.confidence.median'), value: '81.4%', icon: QueryStatsOutlinedIcon, tone: 'primary', hint: t('adminAIMonitoringPage.confidence.medianHint') },
+          { label: t('adminAIMonitoringPage.confidence.belowThreshold'), value: `${belowThresholdCount}`, icon: WarningAmberOutlinedIcon, tone: 'warning', hint: t('adminAIMonitoringPage.confidence.pctOfPredictions', { pct: belowThresholdPct }) },
+          { label: t('adminAIMonitoringPage.confidence.highConfidence'), value: `${aboveHighCount}`, icon: InsightsOutlinedIcon, tone: 'success', hint: t('adminAIMonitoringPage.confidence.pctOfPredictions', { pct: aboveHighPct }) },
         ]
         const toneColor = (tone) => ({
           success: 'var(--admin-success)',
@@ -401,15 +404,15 @@ export default function AdminAIMonitoringPage() {
             <div className="admin-card">
               <div className="admin-card-header">
                 <div>
-                  <h3 className="admin-card-title">Confidence Distribution</h3>
-                  <p className="admin-card-subtitle">AI confidence across {totalPredictions.toLocaleString()} predictions (last 30 days)</p>
+                  <h3 className="admin-card-title">{t('adminAIMonitoringPage.confidence.distributionTitle')}</h3>
+                  <p className="admin-card-subtitle">{t('adminAIMonitoringPage.confidence.distributionSubtitle', { total: totalPredictions.toLocaleString() })}</p>
                 </div>
                 <div style={{ display: 'flex', gap: 14, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
                   {[
-                    { label: 'Very low', color: 'var(--admin-danger)' },
-                    { label: 'Low', color: 'var(--admin-warning)' },
-                    { label: 'Moderate', color: 'var(--admin-primary)' },
-                    { label: 'High', color: 'var(--admin-success)' },
+                    { label: t('adminAIMonitoringPage.confidence.legend.veryLow'), color: 'var(--admin-danger)' },
+                    { label: t('adminAIMonitoringPage.confidence.legend.low'), color: 'var(--admin-warning)' },
+                    { label: t('adminAIMonitoringPage.confidence.legend.moderate'), color: 'var(--admin-primary)' },
+                    { label: t('adminAIMonitoringPage.confidence.legend.high'), color: 'var(--admin-success)' },
                   ].map((l) => (
                     <span key={l.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                       <span style={{ width: 9, height: 9, borderRadius: 2, background: l.color, display: 'inline-block' }} />
@@ -445,7 +448,7 @@ export default function AdminAIMonitoringPage() {
                         padding: '6px 10px',
                       }}
                       formatter={(value, _name, item) => [
-                        `${value} predictions (${item.payload.pct.toFixed(1)}%)`,
+                        t('adminAIMonitoringPage.confidence.tooltipValue', { count: value, pct: item.payload.pct.toFixed(1) }),
                         item.payload.range,
                       ]}
                       labelFormatter={() => ''}
@@ -455,7 +458,7 @@ export default function AdminAIMonitoringPage() {
                       stroke="var(--admin-warning)"
                       strokeDasharray="4 3"
                       label={{
-                        value: 'Decision threshold (50%)',
+                        value: t('adminAIMonitoringPage.confidence.decisionThreshold'),
                         position: 'top',
                         fill: 'var(--admin-warning)',
                         fontSize: 10.5,
@@ -483,7 +486,7 @@ export default function AdminAIMonitoringPage() {
                 gap: 8,
               }}>
                 <InsightsOutlinedIcon fontSize="inherit" sx={{ color: 'var(--admin-primary)' }} />
-                {aboveHighPct}% of predictions land in high-confidence bands (≥70%) — model is producing decisive outputs.
+                {t('adminAIMonitoringPage.confidence.insightText', { pct: aboveHighPct })}
               </div>
             </div>
           </>
@@ -494,7 +497,7 @@ export default function AdminAIMonitoringPage() {
       {currentTab === 'occurrence' && (
         <>
           {occurrenceLoading && (
-            <div className="admin-card">Loading occurrence model metrics…</div>
+            <div className="admin-card">{t('adminAIMonitoringPage.occurrence.loading')}</div>
           )}
           {occurrenceError && !occurrenceLoading && (
             <div className="admin-high-bar">
@@ -516,21 +519,25 @@ export default function AdminAIMonitoringPage() {
             return (
               <>
                 <div className="admin-card" style={{ marginBottom: 12 }}>
-                  <h3 className="admin-card-title">Accident Occurrence Prediction</h3>
+                  <h3 className="admin-card-title">{t('adminAIMonitoringPage.occurrence.cardTitle')}</h3>
                   <p className="admin-card-subtitle">
-                    Version <strong>{occurrenceData.model_name}</strong>
-                    {' · '}Algorithm <strong>{occurrenceData.algorithm}</strong>
-                    {' · '}Calibration <strong>{occurrenceData.calibration_method}</strong>
-                    {' · '}Time window {occurrenceData.time_window_hours}h
-                    {' · '}Decision threshold {occurrenceData.decision_threshold}
+                    {t('adminAIMonitoringPage.occurrence.version')} <strong>{occurrenceData.model_name}</strong>
+                    {' · '}
+                    {t('adminAIMonitoringPage.occurrence.algorithm')} <strong>{occurrenceData.algorithm}</strong>
+                    {' · '}
+                    {t('adminAIMonitoringPage.occurrence.calibration')} <strong>{occurrenceData.calibration_method}</strong>
+                    {' · '}
+                    {t('adminAIMonitoringPage.occurrence.timeWindow', { hours: occurrenceData.time_window_hours })}
+                    {' · '}
+                    {t('adminAIMonitoringPage.occurrence.decisionThreshold', { value: occurrenceData.decision_threshold })}
                   </p>
                   {!live.enabled && (
                     <div className="admin-high-bar" style={{ marginTop: 10 }}>
                       <span className="high-dot"></span>
                       <span className="high-text">
-                        Flask occurrence model is NOT loaded
+                        {t('adminAIMonitoringPage.occurrence.notLoaded')}
                         {live.load_error ? ` — ${live.load_error}` : ''}.
-                        Predictions endpoint will return 503.
+                        {t('adminAIMonitoringPage.occurrence.notLoadedSuffix')}
                       </span>
                     </div>
                   )}
@@ -557,9 +564,13 @@ export default function AdminAIMonitoringPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                   <div className="admin-card">
-                    <h3 className="admin-card-title">Precision / Recall at Top-K</h3>
+                    <h3 className="admin-card-title">{t('adminAIMonitoringPage.occurrence.precisionRecallTitle')}</h3>
                     <table className="admin-table" style={{ marginTop: 8 }}>
-                      <thead><tr><th>Top</th><th>Precision</th><th>Recall</th></tr></thead>
+                      <thead><tr>
+                        <th>{t('adminAIMonitoringPage.occurrence.tableTopK')}</th>
+                        <th>{t('adminAIMonitoringPage.occurrence.tablePrecision')}</th>
+                        <th>{t('adminAIMonitoringPage.occurrence.tableRecall')}</th>
+                      </tr></thead>
                       <tbody>
                         {[
                           { k: '1%', p: calibrated.precision_at_top_1pct, r: calibrated.recall_at_top_1pct },
@@ -578,23 +589,27 @@ export default function AdminAIMonitoringPage() {
 
                   <div className="admin-card">
                     <h3 className="admin-card-title">
-                      Confusion Matrix
+                      {t('adminAIMonitoringPage.confusionMatrix.title')}
                       {cm.threshold != null && (
                         <span style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginLeft: 6 }}>
-                          (threshold {cm.threshold})
+                          {t('adminAIMonitoringPage.occurrence.cmThreshold', { threshold: cm.threshold })}
                         </span>
                       )}
                     </h3>
                     <table className="admin-matrix" style={{ marginTop: 8 }}>
-                      <thead><tr><th></th><th>Pred. 0</th><th>Pred. 1</th></tr></thead>
+                      <thead><tr>
+                        <th></th>
+                        <th>{t('adminAIMonitoringPage.occurrence.pred0')}</th>
+                        <th>{t('adminAIMonitoringPage.occurrence.pred1')}</th>
+                      </tr></thead>
                       <tbody>
                         <tr>
-                          <td style={{ fontWeight: 600 }}>Actual 0</td>
+                          <td style={{ fontWeight: 600 }}>{t('adminAIMonitoringPage.occurrence.actual0')}</td>
                           <td className="matrix-diag" style={{ background: 'rgba(34,197,94,0.18)', fontWeight: 700 }}>{cm.tn ?? '—'}</td>
                           <td style={{ background: 'rgba(239,68,68,0.10)' }}>{cm.fp ?? '—'}</td>
                         </tr>
                         <tr>
-                          <td style={{ fontWeight: 600 }}>Actual 1</td>
+                          <td style={{ fontWeight: 600 }}>{t('adminAIMonitoringPage.occurrence.actual1')}</td>
                           <td style={{ background: 'rgba(239,68,68,0.10)' }}>{cm.fn ?? '—'}</td>
                           <td className="matrix-diag" style={{ background: 'rgba(34,197,94,0.18)', fontWeight: 700 }}>{cm.tp ?? '—'}</td>
                         </tr>
@@ -604,9 +619,15 @@ export default function AdminAIMonitoringPage() {
                 </div>
 
                 <div className="admin-card" style={{ marginBottom: 12 }}>
-                  <h3 className="admin-card-title">Model Comparison (validation)</h3>
+                  <h3 className="admin-card-title">{t('adminAIMonitoringPage.occurrence.modelComparisonTitle')}</h3>
                   <table className="admin-table" style={{ marginTop: 8 }}>
-                    <thead><tr><th>Model</th><th>PR-AUC</th><th>ROC-AUC</th><th>Brier</th><th>Fit (s)</th></tr></thead>
+                    <thead><tr>
+                      <th>{t('adminAIMonitoringPage.occurrence.compModel')}</th>
+                      <th>PR-AUC</th>
+                      <th>ROC-AUC</th>
+                      <th>Brier</th>
+                      <th>{t('adminAIMonitoringPage.occurrence.compFitSeconds')}</th>
+                    </tr></thead>
                     <tbody>
                       {comparison.map((row) => (
                         <tr key={row.model_name}>
@@ -623,26 +644,26 @@ export default function AdminAIMonitoringPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                   <div className="admin-card">
-                    <h3 className="admin-card-title">Risk Thresholds</h3>
+                    <h3 className="admin-card-title">{t('adminAIMonitoringPage.occurrence.riskThresholdsTitle')}</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
-                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">Moderate</span><span className="admin-mini-stat-value">{thresholds.moderate}</span></div>
-                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">High</span><span className="admin-mini-stat-value">{thresholds.high}</span></div>
-                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">Critical</span><span className="admin-mini-stat-value">{thresholds.critical}</span></div>
-                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">Explanation</span><span className="admin-mini-stat-value">{occurrenceData.explanation_source?.toUpperCase()}</span></div>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">{t('adminAIMonitoringPage.occurrence.thresholdModerate')}</span><span className="admin-mini-stat-value">{thresholds.moderate}</span></div>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">{t('adminAIMonitoringPage.occurrence.thresholdHigh')}</span><span className="admin-mini-stat-value">{thresholds.high}</span></div>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">{t('adminAIMonitoringPage.occurrence.thresholdCritical')}</span><span className="admin-mini-stat-value">{thresholds.critical}</span></div>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">{t('adminAIMonitoringPage.occurrence.thresholdExplanation')}</span><span className="admin-mini-stat-value">{occurrenceData.explanation_source?.toUpperCase()}</span></div>
                     </div>
                   </div>
                   <div className="admin-card">
-                    <h3 className="admin-card-title">Weather Coverage (training)</h3>
+                    <h3 className="admin-card-title">{t('adminAIMonitoringPage.occurrence.weatherCoverageTitle')}</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
-                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">Available rate</span><span className="admin-mini-stat-value">{formatPct(weatherRate)}</span></div>
-                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">Cache hit rate</span><span className="admin-mini-stat-value">{formatPct(cacheRate)}</span></div>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">{t('adminAIMonitoringPage.occurrence.weatherAvailableRate')}</span><span className="admin-mini-stat-value">{formatPct(weatherRate)}</span></div>
+                      <div className="admin-mini-stat"><span className="admin-mini-stat-label">{t('adminAIMonitoringPage.occurrence.weatherCacheHitRate')}</span><span className="admin-mini-stat-value">{formatPct(cacheRate)}</span></div>
                     </div>
                   </div>
                 </div>
 
                 {occurrenceData.calibrationCurveUrl && (
                   <div className="admin-card" style={{ marginBottom: 12 }}>
-                    <h3 className="admin-card-title">Calibration curve — LightGBM + isotonic</h3>
+                    <h3 className="admin-card-title">{t('adminAIMonitoringPage.occurrence.calibrationCurveTitle')}</h3>
                     <img
                       src={occurrenceData.calibrationCurveUrl}
                       alt="Calibration curve for occurrence_beta_v1"
@@ -673,20 +694,20 @@ export default function AdminAIMonitoringPage() {
         <div className="admin-card">
           <div className="admin-card-header">
             <div>
-              <h3 className="admin-card-title">Manual Override Log</h3>
-              <p className="admin-card-subtitle">All admin severity overrides — who, what, why</p>
+              <h3 className="admin-card-title">{t('adminAIMonitoringPage.overrideLog.title')}</h3>
+              <p className="admin-card-subtitle">{t('adminAIMonitoringPage.overrideLog.subtitle')}</p>
             </div>
-            <button className="admin-btn admin-btn-ghost">Export Log</button>
+            <button className="admin-btn admin-btn-ghost">{t('adminAIMonitoringPage.overrideLog.exportLog')}</button>
           </div>
           <div className="admin-table-wrapper" style={{ marginTop: 10 }}>
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Incident</th>
-                  <th>Admin</th>
-                  <th>Original / New</th>
-                  <th>Reason</th>
-                  <th>Timestamp</th>
+                  <th>{t('adminAIMonitoringPage.overrideLog.colIncident')}</th>
+                  <th>{t('adminAIMonitoringPage.overrideLog.colAdmin')}</th>
+                  <th>{t('adminAIMonitoringPage.overrideLog.colOriginalNew')}</th>
+                  <th>{t('adminAIMonitoringPage.overrideLog.colReason')}</th>
+                  <th>{t('adminAIMonitoringPage.overrideLog.colTimestamp')}</th>
                 </tr>
               </thead>
               <tbody>

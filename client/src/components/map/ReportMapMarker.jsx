@@ -1,9 +1,11 @@
 import React, { memo, useMemo } from 'react'
 import { Marker, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
+import { useTranslation } from 'react-i18next'
 
 import '../../styles/ReportMapMarker.css'
 import { normalizeReportType } from './reportTypeMeta'
+import i18n from '../../i18n/index.js'
 
 const SEVERITY_HINT_TO_LEVEL = {
   1: 'low',
@@ -38,12 +40,12 @@ const TypeIcon = ({ type }) => (
 )
 
 const TYPE_META = {
-  accident: { svg: ICON_SVG.accident, label: 'Accident' },
-  traffic: { svg: ICON_SVG.traffic, label: 'Traffic' },
-  danger: { svg: ICON_SVG.danger, label: 'Danger' },
-  weather: { svg: ICON_SVG.weather, label: 'Weather' },
-  roadworks: { svg: ICON_SVG.roadworks, label: 'Roadworks' },
-  other: { svg: ICON_SVG.other, label: 'Other' },
+  accident: { svg: ICON_SVG.accident, labelKey: 'map:reportMapMarker.type.accident' },
+  traffic: { svg: ICON_SVG.traffic, labelKey: 'map:reportMapMarker.type.traffic' },
+  danger: { svg: ICON_SVG.danger, labelKey: 'map:reportMapMarker.type.danger' },
+  weather: { svg: ICON_SVG.weather, labelKey: 'map:reportMapMarker.type.weather' },
+  roadworks: { svg: ICON_SVG.roadworks, labelKey: 'map:reportMapMarker.type.roadworks' },
+  other: { svg: ICON_SVG.other, labelKey: 'map:reportMapMarker.type.other' },
 }
 
 const SEVERITY_COLORS = {
@@ -76,22 +78,22 @@ function truncateText(value, maxLength) {
 }
 
 function formatRelativeTime(value) {
-  if (!value) return 'Unknown time'
+  if (!value) return i18n.t('map:reportMapMarker.time.unknown')
 
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Unknown time'
+  if (Number.isNaN(date.getTime())) return i18n.t('map:reportMapMarker.time.unknown')
 
   const diffMs = Date.now() - date.getTime()
   const diffMinutes = Math.max(0, Math.round(diffMs / 60000))
 
-  if (diffMinutes < 1) return 'Just now'
-  if (diffMinutes < 60) return `${diffMinutes} min ago`
+  if (diffMinutes < 1) return i18n.t('map:reportMapMarker.time.justNow')
+  if (diffMinutes < 60) return i18n.t('map:reportMapMarker.time.minutesAgo', { count: diffMinutes })
 
   const diffHours = Math.round(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours} h ago`
+  if (diffHours < 24) return i18n.t('map:reportMapMarker.time.hoursAgo', { count: diffHours })
 
   const diffDays = Math.round(diffHours / 24)
-  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  return i18n.t('map:reportMapMarker.time.daysAgo', { count: diffDays })
 }
 
 function getReportSeverity(report) {
@@ -137,7 +139,7 @@ function buildMarkerHtml({ report }) {
   const severity = getReportSeverity(report)
   const typeMeta = TYPE_META[reportType]
   const pinColor = SEVERITY_COLORS[severity] || SEVERITY_COLORS.low
-  const title = escapeHtml(report?.title || typeMeta.label)
+  const title = escapeHtml(report?.title || i18n.t(typeMeta.labelKey))
 
   return `
     <div class="siara-report-pin siara-report-pin--${severity}" style="--pin-color:${pinColor}" aria-label="${title}">
@@ -159,13 +161,14 @@ function buildMarkerHtml({ report }) {
 }
 
 function ReportHoverCard({ report }) {
+  const { t } = useTranslation(['map', 'common'])
   const reportType = getReportType(report)
   const severity = getReportSeverity(report)
   const typeMeta = TYPE_META[reportType]
   const media = getReportMedia(report).slice(0, 3)
   const description = truncateText(report?.description, 110)
-  const title = truncateText(report?.title || `${typeMeta.label} report`, 64)
-  const locationLabel = truncateText(report?.locationLabel || 'Reported location', 56)
+  const title = truncateText(report?.title || t('reportMapMarker.titleFallback', { type: t(typeMeta.labelKey) }), 64)
+  const locationLabel = truncateText(report?.locationLabel || t('reportMapMarker.reportedLocation'), 56)
   const relativeTime = formatRelativeTime(report?.occurredAt || report?.createdAt)
 
   return (
@@ -200,10 +203,10 @@ function ReportHoverCard({ report }) {
 
       <div className="siara-report-tooltip__meta-row">
         <span className={`siara-report-tooltip__badge siara-report-tooltip__badge--${severity}`}>
-          {severity}
+          {t(`reportMapMarker.severity.${severity}`)}
         </span>
         <span className="siara-report-tooltip__badge siara-report-tooltip__badge--type">
-          {typeMeta.label}
+          {t(typeMeta.labelKey)}
         </span>
       </div>
 

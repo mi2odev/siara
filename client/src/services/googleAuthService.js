@@ -1,3 +1,10 @@
+// Public Google OAuth client ID. This is NOT a secret — it is shipped to every
+// browser by design and is already published in client/.env.example. Keeping a
+// committed default here means Google sign-in keeps working in builds/deploys
+// that don't carry a local .env (which is gitignored). Override per-environment
+// with VITE_GOOGLE_CLIENT_ID when a different OAuth client is needed.
+const DEFAULT_GOOGLE_CLIENT_ID = '426680744492-pesf948u29q064s9t4anvqo513pidii8.apps.googleusercontent.com'
+
 let googleScriptPromise = null
 
 function logInfo(event, details) {
@@ -18,6 +25,7 @@ export function getGoogleClientId() {
   return (
     import.meta.env.VITE_GOOGLE_CLIENT_ID
     || import.meta.env.VITE_GOOGLE_AUTH_CLIENT_ID
+    || DEFAULT_GOOGLE_CLIENT_ID
     || ''
   ).trim()
 }

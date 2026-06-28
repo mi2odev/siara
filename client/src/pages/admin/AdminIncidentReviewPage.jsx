@@ -20,6 +20,8 @@ import BrokenImageOutlinedIcon from '@mui/icons-material/BrokenImageOutlined'
 import FormatQuoteRoundedIcon from '@mui/icons-material/FormatQuoteRounded'
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
 
+import { useTranslation } from 'react-i18next'
+
 import {
   fetchAdminIncident,
   fetchAdminIncidents,
@@ -94,10 +96,10 @@ function formatPercent(value, digits = 2) {
   return typeof value === 'number' ? `${value.toFixed(digits)}%` : EMPTY_TEXT
 }
 
-function formatMlStatus(value) {
+function formatMlStatus(value, t) {
   const normalized = String(value || '').trim()
   if (!normalized) {
-    return 'Not started'
+    return t('adminIncidentReviewPage.mlStatus.notStarted')
   }
 
   return normalized
@@ -105,12 +107,14 @@ function formatMlStatus(value) {
     .replace(/\b\w/g, (match) => match.toUpperCase())
 }
 
-function formatPredictedLabel(value) {
+function formatPredictedLabel(value, t) {
   if (!value) {
-    return 'Unclassified'
+    return t('adminIncidentReviewPage.predictedLabel.unclassified')
   }
 
-  return value === 'spam' ? 'Spam' : 'Real'
+  return value === 'spam'
+    ? t('adminIncidentReviewPage.predictedLabel.spam')
+    : t('adminIncidentReviewPage.predictedLabel.real')
 }
 
 function getConfidenceFillClass(confidence) {
@@ -129,27 +133,27 @@ function getConfidenceFillClass(confidence) {
   return 'danger'
 }
 
-function getConfidenceLabel(incident) {
+function getConfidenceLabel(incident, t) {
   if (typeof incident?.aiAssessment?.confidence === 'number' && incident.aiAssessment.status === 'completed') {
     return `${incident.aiAssessment.confidence}%`
   }
 
   if (incident?.aiAssessment?.status === 'pending') {
-    return 'Pending AI'
+    return t('adminIncidentReviewPage.aiAssessment.pendingAi')
   }
 
   if (incident?.aiAssessment?.status === 'failed') {
-    return 'AI failed'
+    return t('adminIncidentReviewPage.aiAssessment.aiFailed')
   }
 
   return EMPTY_TEXT
 }
 
-function getAssessmentStatusLabel(status) {
-  if (status === 'completed') return 'Completed'
-  if (status === 'pending') return 'Pending'
-  if (status === 'failed') return 'Failed'
-  return 'Not available'
+function getAssessmentStatusLabel(status, t) {
+  if (status === 'completed') return t('adminIncidentReviewPage.aiAssessment.statusCompleted')
+  if (status === 'pending') return t('adminIncidentReviewPage.aiAssessment.statusPending')
+  if (status === 'failed') return t('adminIncidentReviewPage.aiAssessment.statusFailed')
+  return t('adminIncidentReviewPage.aiAssessment.statusNotAvailable')
 }
 
 function getDecisionAction(decision) {
@@ -180,29 +184,33 @@ function getDecisionAction(decision) {
  * Note: duplicate merging is fully automatic (same place / 6 h), so there is
  * no manual "Merge with Cluster" action here.
  */
-const DECISION_TILES = [
-  { key: 'approve', label: 'Approve',  hint: 'Verifies the report and publishes it to the public feed.',           tone: 'success'  },
-  { key: 'change',  label: 'Change Severity',    hint: 'Override the AI severity. The report stays in its current status.',   tone: 'primary'  },
-  { key: 'info',    label: 'Request More Info',  hint: 'Ask the reporter for clarification. Report stays in the queue.',      tone: 'info'     },
-  { key: 'flag',    label: 'Flag for Review',    hint: 'Escalate to another moderator. Records a flag entry on the report.',  tone: 'warning'  },
-  { key: 'archive', label: 'Archive',            hint: 'Quiet removal without a verdict (e.g. outdated reports).',            tone: 'neutral'  },
-  { key: 'reject',  label: 'Reject',             hint: 'Mark as confirmed spam / false report. Requires a reason.',           tone: 'danger'   },
-]
+function getDecisionTiles(t) {
+  return [
+    { key: 'approve', label: t('adminIncidentReviewPage.decisionTiles.approve.label'),         hint: t('adminIncidentReviewPage.decisionTiles.approve.hint'),         tone: 'success'  },
+    { key: 'change',  label: t('adminIncidentReviewPage.decisionTiles.change.label'),           hint: t('adminIncidentReviewPage.decisionTiles.change.hint'),           tone: 'primary'  },
+    { key: 'info',    label: t('adminIncidentReviewPage.decisionTiles.info.label'),             hint: t('adminIncidentReviewPage.decisionTiles.info.hint'),             tone: 'info'     },
+    { key: 'flag',    label: t('adminIncidentReviewPage.decisionTiles.flag.label'),             hint: t('adminIncidentReviewPage.decisionTiles.flag.hint'),             tone: 'warning'  },
+    { key: 'archive', label: t('adminIncidentReviewPage.decisionTiles.archive.label'),          hint: t('adminIncidentReviewPage.decisionTiles.archive.hint'),          tone: 'neutral'  },
+    { key: 'reject',  label: t('adminIncidentReviewPage.decisionTiles.reject.label'),           hint: t('adminIncidentReviewPage.decisionTiles.reject.hint'),           tone: 'danger'   },
+  ]
+}
 
-const REJECT_REASONS = [
-  { value: 'spam',                  label: 'Spam' },
-  { value: 'duplicate',             label: 'Duplicate' },
-  { value: 'off_topic',             label: 'Off-topic' },
-  { value: 'false_report',          label: 'False report' },
-  { value: 'insufficient_evidence', label: 'Insufficient evidence' },
-  { value: 'wrong_location',        label: 'Wrong location' },
-  { value: 'other',                 label: 'Other' },
-]
+function getRejectReasons(t) {
+  return [
+    { value: 'spam',                  label: t('adminIncidentReviewPage.rejectReasons.spam') },
+    { value: 'duplicate',             label: t('adminIncidentReviewPage.rejectReasons.duplicate') },
+    { value: 'off_topic',             label: t('adminIncidentReviewPage.rejectReasons.offTopic') },
+    { value: 'false_report',          label: t('adminIncidentReviewPage.rejectReasons.falseReport') },
+    { value: 'insufficient_evidence', label: t('adminIncidentReviewPage.rejectReasons.insufficientEvidence') },
+    { value: 'wrong_location',        label: t('adminIncidentReviewPage.rejectReasons.wrongLocation') },
+    { value: 'other',                 label: t('adminIncidentReviewPage.rejectReasons.other') },
+  ]
+}
 
 const TERMINAL_INCIDENT_STATUSES = new Set(['verified', 'rejected', 'archived', 'merged'])
 
 /** Compute the AI-suggested decision based on the incident's signals. */
-function computeAiRecommendation(incident) {
+function computeAiRecommendation(incident, t) {
   if (!incident) return null
   const aiConf = typeof incident?.aiAssessment?.confidence === 'number' ? incident.aiAssessment.confidence : null
   const aiStatus = incident?.aiAssessment?.status
@@ -212,32 +220,32 @@ function computeAiRecommendation(incident) {
   if (predicted === 'spam' && (spamScore ?? 0) >= 60) {
     return {
       action: 'reject',
-      label: 'Reject as spam',
+      label: t('adminIncidentReviewPage.aiRec.rejectAsSpam'),
       tone: 'danger',
-      explanation: `Spam classifier flagged this report (score ${Math.round(spamScore)}%).`,
+      explanation: t('adminIncidentReviewPage.aiRec.spamExplanation', { score: Math.round(spamScore) }),
     }
   }
   if (aiStatus === 'completed' && (aiConf ?? 0) >= 85 && (spamScore ?? 0) < 30) {
     return {
       action: 'approve',
-      label: 'Approve',
+      label: t('adminIncidentReviewPage.aiRec.approve'),
       tone: 'success',
-      explanation: `High AI confidence (${Math.round(aiConf)}%) and clean spam signals — safe to publish.`,
+      explanation: t('adminIncidentReviewPage.aiRec.approveExplanation', { confidence: Math.round(aiConf) }),
     }
   }
   if (aiStatus === 'completed' && aiConf != null && aiConf >= 40 && aiConf < 85) {
     return {
       action: 'info',
-      label: 'Request More Info',
+      label: t('adminIncidentReviewPage.aiRec.requestMoreInfo'),
       tone: 'info',
-      explanation: `AI confidence is moderate (${Math.round(aiConf)}%) — ask the reporter for clarification before deciding.`,
+      explanation: t('adminIncidentReviewPage.aiRec.infoExplanation', { confidence: Math.round(aiConf) }),
     }
   }
   return {
     action: null,
-    label: 'Manual review needed',
+    label: t('adminIncidentReviewPage.aiRec.manualReviewNeeded'),
     tone: 'neutral',
-    explanation: 'AI signals are unclear or unavailable — review the evidence manually.',
+    explanation: t('adminIncidentReviewPage.aiRec.manualExplanation'),
   }
 }
 
@@ -245,6 +253,7 @@ function computeAiRecommendation(incident) {
  * fails to load. Clicking opens the parent's lightbox. */
 function EvidenceThumb({ src, alt, uploadedAt, onClick }) {
   const [failed, setFailed] = useState(false)
+  const { t } = useTranslation(['admin'])
 
   return (
     <button
@@ -274,7 +283,7 @@ function EvidenceThumb({ src, alt, uploadedAt, onClick }) {
         {failed || !src ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, color: 'var(--admin-text-muted)' }}>
             <BrokenImageOutlinedIcon fontSize="small" />
-            <span style={{ fontSize: 10 }}>Not available</span>
+            <span style={{ fontSize: 10 }}>{t('adminIncidentReviewPage.evidence.notAvailable')}</span>
           </div>
         ) : (
           <img
@@ -294,6 +303,7 @@ function EvidenceThumb({ src, alt, uploadedAt, onClick }) {
 }
 
 export default function AdminIncidentReviewPage() {
+  const { t } = useTranslation(['admin', 'common'])
   const { id } = useParams()
   const navigate = useNavigate()
   const [incident, setIncident] = useState(null)
@@ -560,9 +570,9 @@ export default function AdminIncidentReviewPage() {
   if (loading) {
     return (
       <div className="admin-card">
-        <h2 className="admin-card-title">Loading incident...</h2>
+        <h2 className="admin-card-title">{t('adminIncidentReviewPage.loading.title')}</h2>
         <p className="admin-card-subtitle" style={{ marginTop: 6 }}>
-          Fetching the latest incident details and moderation history.
+          {t('adminIncidentReviewPage.loading.subtitle')}
         </p>
       </div>
     )
@@ -571,13 +581,13 @@ export default function AdminIncidentReviewPage() {
   if (error && !incident) {
     return (
       <div className="admin-card">
-        <h2 className="admin-card-title">Incident unavailable</h2>
+        <h2 className="admin-card-title">{t('adminIncidentReviewPage.errorState.title')}</h2>
         <p className="admin-card-subtitle" style={{ marginTop: 6 }}>
-          {error.message || 'Unable to load this incident report.'}
+          {error.message || t('adminIncidentReviewPage.errorState.subtitle')}
         </p>
         <div style={{ marginTop: 12 }}>
           <button className="admin-btn admin-btn-primary" onClick={() => navigate('/admin/incidents')}>
-            Back to Queue
+            {t('adminIncidentReviewPage.backToQueue')}
           </button>
         </div>
       </div>
@@ -593,7 +603,7 @@ export default function AdminIncidentReviewPage() {
     <div className="admin-review-split">
       <div className="admin-review-left">
         <button className="admin-btn admin-btn-ghost" onClick={() => navigate('/admin/incidents')} style={{ marginBottom: 10, fontSize: 11 }}>
-          <ArrowBackRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle' }} /> Back to Queue
+          <ArrowBackRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle' }} /> {t('adminIncidentReviewPage.backToQueue')}
         </button>
 
         {error && (
@@ -604,9 +614,9 @@ export default function AdminIncidentReviewPage() {
               background: 'rgba(239, 68, 68, 0.05)',
             }}
           >
-            <h3 className="admin-card-title">Action failed</h3>
+            <h3 className="admin-card-title">{t('adminIncidentReviewPage.actionFailed.title')}</h3>
             <p className="admin-card-subtitle" style={{ marginTop: 6 }}>
-              {error.message || 'Please try again.'}
+              {error.message || t('adminIncidentReviewPage.actionFailed.subtitle')}
             </p>
           </div>
         )}
@@ -634,35 +644,35 @@ export default function AdminIncidentReviewPage() {
             alignItems: 'flex-start',
           }}>
             <FormatQuoteRoundedIcon fontSize="small" sx={{ color: 'var(--admin-primary)', opacity: 0.6, mt: '-2px', transform: 'scaleX(-1)' }} />
-            <span>{incident.description || 'No additional description was provided for this report.'}</span>
+            <span>{incident.description || t('adminIncidentReviewPage.report.noDescription')}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Status</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.report.status')}</span>
               <span className="admin-mini-stat-value">{incident.status}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Reported</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.report.reported')}</span>
               <span className="admin-mini-stat-value">{formatDateTime(incident.createdAt)}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Severity Source</span>
-              <span className="admin-mini-stat-value">{incident.severitySource === 'ai' ? 'AI assessment' : 'Report hint'}</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.report.severitySource')}</span>
+              <span className="admin-mini-stat-value">{incident.severitySource === 'ai' ? t('adminIncidentReviewPage.report.severitySourceAi') : t('adminIncidentReviewPage.report.severitySourceHint')}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Open Flags</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.report.openFlags')}</span>
               <span className="admin-mini-stat-value">{incident.openFlagCount}</span>
             </div>
           </div>
           {incident.mergedIntoReportId ? (
             <div className="admin-internal-note">
-              <div className="admin-internal-note-label">Merge</div>
+              <div className="admin-internal-note-label">{t('adminIncidentReviewPage.merge.label')}</div>
               <div style={{ fontSize: 11, color: 'var(--admin-text-secondary)' }}>
-                Merged into {incident.mergedIntoReportId} on {formatDateTime(incident.mergedAt)}
+                {t('adminIncidentReviewPage.merge.mergedInto', { reportId: incident.mergedIntoReportId, date: formatDateTime(incident.mergedAt) })}
               </div>
               {incident.mergeReason ? (
                 <div style={{ marginTop: 4, fontSize: 11, color: 'var(--admin-text-secondary)' }}>
-                  Reason: {incident.mergeReason}
+                  {t('adminIncidentReviewPage.merge.reason', { reason: incident.mergeReason })}
                 </div>
               ) : null}
             </div>
@@ -673,9 +683,9 @@ export default function AdminIncidentReviewPage() {
           <div className="admin-card">
             <div className="admin-card-header">
               <div>
-                <h3 className="admin-card-title">Merged reports ({incident.mergeGroup.memberCount})</h3>
+                <h3 className="admin-card-title">{t('adminIncidentReviewPage.mergeGroup.title', { count: incident.mergeGroup.memberCount })}</h3>
                 <p className="admin-card-subtitle">
-                  Duplicate reports of the same accident (within 300 m / 6 h), grouped into one incident.
+                  {t('adminIncidentReviewPage.mergeGroup.subtitle')}
                 </p>
               </div>
             </div>
@@ -715,14 +725,14 @@ export default function AdminIncidentReviewPage() {
                         color: isPrimary ? '#4338CA' : '#64748B',
                       }}
                     >
-                      {isPrimary ? 'Original' : 'Merged'}
+                      {isPrimary ? t('adminIncidentReviewPage.mergeGroup.roleOriginal') : t('adminIncidentReviewPage.mergeGroup.roleMerged')}
                     </span>
                     <span style={{ fontWeight: 600, flexShrink: 0 }}>{member.displayId}</span>
                     <span style={{ color: 'var(--admin-text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {member.title || 'Untitled report'}
+                      {member.title || t('adminIncidentReviewPage.mergeGroup.untitledReport')}
                     </span>
                     {member.isCurrent ? (
-                      <span style={{ color: '#4338CA', fontWeight: 600, flexShrink: 0 }}>· current</span>
+                      <span style={{ color: '#4338CA', fontWeight: 600, flexShrink: 0 }}>· {t('adminIncidentReviewPage.mergeGroup.current')}</span>
                     ) : null}
                     {member.severity ? (
                       <span style={{ color: 'var(--admin-text-muted)', flexShrink: 0 }}>· {member.severity}</span>
@@ -741,8 +751,8 @@ export default function AdminIncidentReviewPage() {
           <div className="admin-card">
             <div className="admin-card-header">
               <div>
-                <h3 className="admin-card-title">Evidence ({incident.media.length})</h3>
-                <p className="admin-card-subtitle">Click any thumbnail to view full-size</p>
+                <h3 className="admin-card-title">{t('adminIncidentReviewPage.evidence.title', { count: incident.media.length })}</h3>
+                <p className="admin-card-subtitle">{t('adminIncidentReviewPage.evidence.clickHint')}</p>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -750,8 +760,8 @@ export default function AdminIncidentReviewPage() {
                 <EvidenceThumb
                   key={mediaItem.id || index}
                   src={normalizeAvatarUrl(mediaItem.url)}
-                  alt={`Evidence ${index + 1}`}
-                  uploadedAt={mediaItem.uploadedAt ? formatDateOnly(mediaItem.uploadedAt) : `Evidence ${index + 1}`}
+                  alt={t('adminIncidentReviewPage.evidence.altText', { index: index + 1 })}
+                  uploadedAt={mediaItem.uploadedAt ? formatDateOnly(mediaItem.uploadedAt) : t('adminIncidentReviewPage.evidence.altText', { index: index + 1 })}
                   onClick={() => setLightboxIndex(index)}
                 />
               ))}
@@ -760,48 +770,48 @@ export default function AdminIncidentReviewPage() {
         )}
 
         <div className="admin-card">
-          <h3 className="admin-card-title">Reporter Profile</h3>
+          <h3 className="admin-card-title">{t('adminIncidentReviewPage.reporter.title')}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Reporter</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.reporter.name')}</span>
               <span className="admin-mini-stat-value">{incident.reporter.name}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Reporter Trust</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.reporter.trust')}</span>
               <span className="admin-mini-stat-value">
                 {typeof incident.reporter.reporterScore === 'number'
                   ? `${incident.reporter.reporterScore.toFixed(1)}%`
-                  : 'Not provided'}
+                  : t('adminIncidentReviewPage.reporter.notProvided')}
               </span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Total Reports</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.reporter.totalReports')}</span>
               <span className="admin-mini-stat-value">{incident.reporter.totalReports}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Joined</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.reporter.joined')}</span>
               <span className="admin-mini-stat-value">{formatDateOnly(incident.reporter.joinedAt)}</span>
             </div>
           </div>
         </div>
 
         <div className="admin-card">
-          <h3 className="admin-card-title">AI Assessment</h3>
+          <h3 className="admin-card-title">{t('adminIncidentReviewPage.aiAssessment.title')}</h3>
           <div style={{ marginTop: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11.5 }}>
-              <span style={{ color: 'var(--admin-text-muted)' }}>Status</span>
-              <span style={{ fontWeight: 600 }}>{getAssessmentStatusLabel(incident.aiAssessment.status)}</span>
+              <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminIncidentReviewPage.aiAssessment.status')}</span>
+              <span style={{ fontWeight: 600 }}>{getAssessmentStatusLabel(incident.aiAssessment.status, t)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11.5 }}>
-              <span style={{ color: 'var(--admin-text-muted)' }}>Severity</span>
+              <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminIncidentReviewPage.aiAssessment.severity')}</span>
               <span style={{ fontWeight: 600 }}>
                 {incident.severitySource === 'ai'
-                  ? `AI ${incident.severity}`
-                  : `Report hint (${incident.severity})`}
+                  ? t('adminIncidentReviewPage.aiAssessment.severityAi', { severity: incident.severity })
+                  : t('adminIncidentReviewPage.aiAssessment.severityHint', { severity: incident.severity })}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11.5 }}>
-              <span style={{ color: 'var(--admin-text-muted)' }}>Confidence</span>
+              <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminIncidentReviewPage.aiAssessment.confidence')}</span>
               {typeof incident.aiAssessment.confidence === 'number' && incident.aiAssessment.status === 'completed' ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div className="admin-progress" style={{ width: 60 }}>
@@ -813,22 +823,22 @@ export default function AdminIncidentReviewPage() {
                   <span style={{ fontWeight: 600, fontSize: 11 }}>{incident.aiAssessment.confidence}%</span>
                 </div>
               ) : (
-                <span style={{ fontWeight: 600 }}>{getConfidenceLabel(incident)}</span>
+                <span style={{ fontWeight: 600 }}>{getConfidenceLabel(incident, t)}</span>
               )}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11.5 }}>
-              <span style={{ color: 'var(--admin-text-muted)' }}>Latest Update</span>
+              <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminIncidentReviewPage.aiAssessment.latestUpdate')}</span>
               <span style={{ fontWeight: 600 }}>{formatDateTime(incident.aiAssessment.assessedAt)}</span>
             </div>
             {incident.aiAssessment.modelVersionId ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11.5 }}>
-                <span style={{ color: 'var(--admin-text-muted)' }}>Model Version</span>
+                <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminIncidentReviewPage.aiAssessment.modelVersion')}</span>
                 <span style={{ fontWeight: 600 }}>{incident.aiAssessment.modelVersionId.slice(0, 8)}</span>
               </div>
             ) : null}
             {incident.aiAssessment.status !== 'completed' ? (
               <div style={{ marginTop: 10, padding: '8px 10px', background: 'var(--admin-surface-2)', borderRadius: 6, color: 'var(--admin-text-secondary)', fontSize: 11 }}>
-                AI verification is not fully active yet for incident reports, so severity falls back to the report hint until a completed assessment exists.
+                {t('adminIncidentReviewPage.aiAssessment.notActiveNote')}
               </div>
             ) : null}
           </div>
@@ -836,7 +846,7 @@ export default function AdminIncidentReviewPage() {
 
         {incident.flags.length > 0 && (
           <div className="admin-card">
-            <h3 className="admin-card-title">Community Flags</h3>
+            <h3 className="admin-card-title">{t('adminIncidentReviewPage.communityFlags.title')}</h3>
             <div style={{ marginTop: 8 }}>
               {openFlags.length > 0 ? openFlags.map((flag) => (
                 <div key={flag.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--admin-border)' }}>
@@ -849,14 +859,14 @@ export default function AdminIncidentReviewPage() {
                   ) : null}
                 </div>
               )) : (
-                <p style={{ fontSize: 11, color: 'var(--admin-text-muted)' }}>All community flags have been resolved.</p>
+                <p style={{ fontSize: 11, color: 'var(--admin-text-muted)' }}>{t('adminIncidentReviewPage.communityFlags.allResolved')}</p>
               )}
             </div>
           </div>
         )}
 
         <div className="admin-card">
-          <h3 className="admin-card-title">Timeline</h3>
+          <h3 className="admin-card-title">{t('adminIncidentReviewPage.timeline.title')}</h3>
           <div className="admin-audit-log" style={{ marginTop: 8, maxHeight: 'none' }}>
             {incident.timeline.map((entry) => (
               <div className="admin-audit-entry" key={entry.id}>
@@ -872,12 +882,12 @@ export default function AdminIncidentReviewPage() {
         <div className="admin-card">
           <div className="admin-card-header">
             <div>
-              <h3 className="admin-card-title">Incident Location</h3>
+              <h3 className="admin-card-title">{t('adminIncidentReviewPage.location.title')}</h3>
               <p className="admin-card-subtitle">{incident.location}</p>
             </div>
             {incident.coordinates.lat != null && incident.coordinates.lng != null && (
               <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={() => setIsMapFullscreen(true)}>
-                Open Full Map
+                {t('adminIncidentReviewPage.location.openFullMap')}
               </button>
             )}
           </div>
@@ -941,59 +951,59 @@ export default function AdminIncidentReviewPage() {
               color: 'var(--admin-text-muted)',
               fontSize: 12,
             }}>
-              No coordinates provided for this incident
+              {t('adminIncidentReviewPage.location.noCoordinates')}
             </div>
           )}
         </div>
 
         <div className="admin-card">
-          <h3 className="admin-card-title">Spam Analysis</h3>
+          <h3 className="admin-card-title">{t('adminIncidentReviewPage.spamAnalysis.title')}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Predicted Label</span>
-              <span className="admin-mini-stat-value">{formatPredictedLabel(incident.spamAnalysis.predictedLabel)}</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.spamAnalysis.predictedLabel')}</span>
+              <span className="admin-mini-stat-value">{formatPredictedLabel(incident.spamAnalysis.predictedLabel, t)}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">ML Status</span>
-              <span className="admin-mini-stat-value">{formatMlStatus(incident.spamAnalysis.status)}</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.spamAnalysis.mlStatus')}</span>
+              <span className="admin-mini-stat-value">{formatMlStatus(incident.spamAnalysis.status, t)}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Spam Score</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.spamAnalysis.spamScore')}</span>
               <span className="admin-mini-stat-value">{formatPercent(incident.spamAnalysis.spamScore)}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">ML Confidence</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.spamAnalysis.mlConfidence')}</span>
               <span className="admin-mini-stat-value">{formatPercent(incident.spamAnalysis.confidence)}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Model Version</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.spamAnalysis.modelVersion')}</span>
               <span className="admin-mini-stat-value">{incident.spamAnalysis.modelVersion || EMPTY_TEXT}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Classified At</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.spamAnalysis.classifiedAt')}</span>
               <span className="admin-mini-stat-value">{formatDateTime(incident.spamAnalysis.classifiedAt)}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Review Verdict</span>
-              <span className="admin-mini-stat-value">{incident.spamAnalysis.reviewVerdict || 'Pending'}</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.spamAnalysis.reviewVerdict')}</span>
+              <span className="admin-mini-stat-value">{incident.spamAnalysis.reviewVerdict || t('adminIncidentReviewPage.spamAnalysis.pendingVerdict')}</span>
             </div>
             <div className="admin-mini-stat">
-              <span className="admin-mini-stat-label">Reviewed By</span>
+              <span className="admin-mini-stat-label">{t('adminIncidentReviewPage.spamAnalysis.reviewedBy')}</span>
               <span className="admin-mini-stat-value">{incident.spamAnalysis.reviewedBy || EMPTY_TEXT}</span>
             </div>
           </div>
           {incident.spamAnalysis.pendingReview ? (
             <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: 6, border: '1px solid rgba(245, 158, 11, 0.2)', color: 'var(--admin-warning)', fontSize: 11 }}>
-              This report is classified as suspicious and is waiting for manual review.
+              {t('adminIncidentReviewPage.spamAnalysis.suspiciousNote')}
             </div>
           ) : null}
           {incident.spamAnalysis.reviewNotes ? (
             <div className="admin-internal-note" style={{ marginTop: 10 }}>
-              <div className="admin-internal-note-label">Review Notes</div>
+              <div className="admin-internal-note-label">{t('adminIncidentReviewPage.spamAnalysis.reviewNotes')}</div>
               <div style={{ fontSize: 11, color: 'var(--admin-text-secondary)' }}>{incident.spamAnalysis.reviewNotes}</div>
               {incident.spamAnalysis.reviewedAt ? (
                 <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
-                  Reviewed at {formatDateTime(incident.spamAnalysis.reviewedAt)}
+                  {t('adminIncidentReviewPage.spamAnalysis.reviewedAt', { date: formatDateTime(incident.spamAnalysis.reviewedAt) })}
                 </div>
               ) : null}
             </div>
@@ -1001,7 +1011,7 @@ export default function AdminIncidentReviewPage() {
         </div>
 
         <div className="admin-card">
-          <h3 className="admin-card-title">Nearby Reports</h3>
+          <h3 className="admin-card-title">{t('adminIncidentReviewPage.nearbyReports.title')}</h3>
           {incident.nearbyReports.length > 0 ? (
             <div style={{ marginTop: 8 }}>
               {incident.nearbyReports.map((nearby) => (
@@ -1017,13 +1027,13 @@ export default function AdminIncidentReviewPage() {
               ))}
             </div>
           ) : (
-            <p style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 8 }}>No nearby reports found</p>
+            <p style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 8 }}>{t('adminIncidentReviewPage.nearbyReports.none')}</p>
           )}
           {incident.nearbyReports.length >= 2 && (
             <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: 6, border: '1px solid rgba(245, 158, 11, 0.2)' }}>
               <span style={{ fontSize: 10.5, color: 'var(--admin-warning)', fontWeight: 600 }}>
                 <WarningAmberRoundedIcon fontSize="inherit" className="icon-warning" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                Cluster detected · {incident.nearbyReports.length + 1} incidents within 5 km
+                {t('adminIncidentReviewPage.nearbyReports.clusterDetected', { count: incident.nearbyReports.length + 1 })}
               </span>
             </div>
           )}
@@ -1033,9 +1043,11 @@ export default function AdminIncidentReviewPage() {
       <div className="admin-review-right">
         {(() => {
           const isTerminal = TERMINAL_INCIDENT_STATUSES.has(incident.status)
-          const aiRec = computeAiRecommendation(incident)
+          const aiRec = computeAiRecommendation(incident, t)
           const infoPending = incident.infoRequest?.pending
-          const selectedTile = DECISION_TILES.find((t) => t.key === decision)
+          const DECISION_TILES = getDecisionTiles(t)
+          const REJECT_REASONS = getRejectReasons(t)
+          const selectedTile = DECISION_TILES.find((tile) => tile.key === decision)
 
           const TONE_TO_COLOR = {
             success: 'var(--admin-success)',
@@ -1087,9 +1099,9 @@ export default function AdminIncidentReviewPage() {
               }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                   <div style={{ minWidth: 0 }}>
-                    <h3 className="admin-card-title" style={{ margin: 0, fontSize: 14 }}>Decision Engine</h3>
+                    <h3 className="admin-card-title" style={{ margin: 0, fontSize: 14 }}>{t('adminIncidentReviewPage.decisionEngine.title')}</h3>
                     <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--admin-text-muted)' }}>
-                      Pick an action — every choice is audited.
+                      {t('adminIncidentReviewPage.decisionEngine.subtitle')}
                     </p>
                   </div>
                   <span className={`admin-pill ${incident.status}`}>{incident.status}</span>
@@ -1113,16 +1125,16 @@ export default function AdminIncidentReviewPage() {
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, color: 'var(--admin-text)', textTransform: 'capitalize' }}>
-                      Already {incident.status}
+                      {t('adminIncidentReviewPage.decisionEngine.alreadyStatus', { status: incident.status })}
                     </div>
                     {incident.rejectReason && (
                       <div style={{ fontSize: 11, marginTop: 2 }}>
-                        Reason: <strong>{incident.rejectReason.replace(/_/g, ' ')}</strong>
+                        {t('adminIncidentReviewPage.decisionEngine.rejectReasonDisplay', { reason: incident.rejectReason.replace(/_/g, ' ') })}
                       </div>
                     )}
                     {incident.status === 'archived' && (
                       <div style={{ fontSize: 11, marginTop: 2 }}>
-                        Hidden from public feeds. Unarchive to return it to the review queue.
+                        {t('adminIncidentReviewPage.decisionEngine.archivedNote')}
                       </div>
                     )}
                   </div>
@@ -1134,7 +1146,7 @@ export default function AdminIncidentReviewPage() {
                       disabled={isSubmitting}
                       style={{ flexShrink: 0, fontSize: 12, padding: '6px 12px' }}
                     >
-                      {isSubmitting ? 'Unarchiving…' : 'Unarchive'}
+                      {isSubmitting ? t('adminIncidentReviewPage.decisionEngine.unarchiving') : t('adminIncidentReviewPage.decisionEngine.unarchive')}
                     </button>
                   )}
                 </div>
@@ -1149,9 +1161,9 @@ export default function AdminIncidentReviewPage() {
                 }}>
                   <HelpOutlineRoundedIcon fontSize="inherit" style={{ marginTop: 2 }} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700 }}>Awaiting reporter response</div>
+                    <div style={{ fontWeight: 700 }}>{t('adminIncidentReviewPage.infoRequest.awaitingResponse')}</div>
                     <div style={{ fontSize: 10.5, marginTop: 1, opacity: 0.9, color: 'var(--admin-text-secondary)' }}>
-                      Asked {formatDateTime(incident.infoRequest.requestedAt)}
+                      {t('adminIncidentReviewPage.infoRequest.asked', { date: formatDateTime(incident.infoRequest.requestedAt) })}
                     </div>
                     {incident.infoRequest?.message ? (
                       <div style={{ fontSize: 11, marginTop: 4, color: 'var(--admin-text)', whiteSpace: 'pre-wrap' }}>
@@ -1171,9 +1183,9 @@ export default function AdminIncidentReviewPage() {
                 }}>
                   <CheckRoundedIcon fontSize="inherit" style={{ marginTop: 2 }} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700 }}>Reporter responded</div>
+                    <div style={{ fontWeight: 700 }}>{t('adminIncidentReviewPage.infoRequest.reporterResponded')}</div>
                     <div style={{ fontSize: 10.5, marginTop: 1, opacity: 0.9, color: 'var(--admin-text-secondary)' }}>
-                      Answered {formatDateTime(incident.infoRequest.respondedAt)}
+                      {t('adminIncidentReviewPage.infoRequest.answered', { date: formatDateTime(incident.infoRequest.respondedAt) })}
                     </div>
                     <div style={{ fontSize: 11, marginTop: 4, color: 'var(--admin-text)', whiteSpace: 'pre-wrap' }}>
                       "{incident.infoRequest.response}"
@@ -1200,7 +1212,7 @@ export default function AdminIncidentReviewPage() {
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: TONE_TO_COLOR[aiRec.tone], lineHeight: 1.2 }}>
-                      AI suggestion
+                      {t('adminIncidentReviewPage.decisionEngine.aiSuggestion')}
                     </div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--admin-text)', marginTop: 1 }}>
                       {aiRec.label}
@@ -1227,7 +1239,7 @@ export default function AdminIncidentReviewPage() {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      Use it
+                      {t('adminIncidentReviewPage.decisionEngine.useIt')}
                     </button>
                   )}
                 </div>
@@ -1316,7 +1328,7 @@ export default function AdminIncidentReviewPage() {
                                 padding: '4px 8px', borderRadius: 999,
                                 color: color, border: `1px solid ${color}55`,
                                 flexShrink: 0,
-                              }}>Change</span>
+                              }}>{t('adminIncidentReviewPage.decisionEngine.changeTileLabel')}</span>
                             ) : (
                               <ArrowForwardRoundedIcon
                                 fontSize="inherit"
@@ -1344,7 +1356,7 @@ export default function AdminIncidentReviewPage() {
                               {/* Change Severity */}
                               {decision === 'change' && (
                                 <div>
-                                  <label className="admin-form-label" style={{ marginBottom: 6 }}>New severity</label>
+                                  <label className="admin-form-label" style={{ marginBottom: 6 }}>{t('adminIncidentReviewPage.form.newSeverity')}</label>
                                   <div style={{ display: 'flex', gap: 6 }}>
                                     {['low', 'medium', 'high'].map((sev) => (
                                       <button
@@ -1369,7 +1381,7 @@ export default function AdminIncidentReviewPage() {
                               {/* Reject */}
                               {decision === 'reject' && (
                                 <div>
-                                  <label className="admin-form-label" style={{ marginBottom: 6 }}>Rejection reason</label>
+                                  <label className="admin-form-label" style={{ marginBottom: 6 }}>{t('adminIncidentReviewPage.form.rejectionReason')}</label>
                                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                                     {REJECT_REASONS.map((reason) => {
                                       const checked = rejectReason === reason.value
@@ -1400,12 +1412,13 @@ export default function AdminIncidentReviewPage() {
                               <div>
                                 <label className="admin-form-label" style={{ marginBottom: 6 }}>
                                   {decision === 'info'
-                                    ? 'Message to the reporter '
+                                    ? t('adminIncidentReviewPage.form.noteLabel.messageToReporter')
                                     : decision === 'reject'
-                                      ? 'Internal note '
-                                      : 'Reviewer note '}
+                                      ? t('adminIncidentReviewPage.form.noteLabel.internalNote')
+                                      : t('adminIncidentReviewPage.form.noteLabel.reviewerNote')}
+                                  {' '}
                                   <span style={{ color: 'var(--admin-text-muted)', fontWeight: 400 }}>
-                                    {decision === 'info' ? '(required)' : '(optional)'}
+                                    {decision === 'info' ? t('adminIncidentReviewPage.form.noteLabel.required') : t('adminIncidentReviewPage.form.noteLabel.optional')}
                                   </span>
                                 </label>
                                 <textarea
@@ -1414,12 +1427,12 @@ export default function AdminIncidentReviewPage() {
                                   onChange={(e) => setActionNote(e.target.value)}
                                   rows={3}
                                   placeholder={
-                                    decision === 'info'     ? 'What does the reporter need to clarify?' :
-                                    decision === 'reject'   ? 'Internal context for this rejection.' :
-                                    decision === 'archive'  ? 'Optional note for the audit log.' :
-                                    decision === 'flag'     ? 'Why are you escalating this report?' :
-                                    decision === 'change'   ? 'Why is the severity being overridden?' :
-                                                              'Reviewer note (optional)'
+                                    decision === 'info'     ? t('adminIncidentReviewPage.form.notePlaceholder.info') :
+                                    decision === 'reject'   ? t('adminIncidentReviewPage.form.notePlaceholder.reject') :
+                                    decision === 'archive'  ? t('adminIncidentReviewPage.form.notePlaceholder.archive') :
+                                    decision === 'flag'     ? t('adminIncidentReviewPage.form.notePlaceholder.flag') :
+                                    decision === 'change'   ? t('adminIncidentReviewPage.form.notePlaceholder.change') :
+                                                              t('adminIncidentReviewPage.form.notePlaceholder.default')
                                   }
                                   style={{ width: '100%' }}
                                 />
@@ -1434,7 +1447,7 @@ export default function AdminIncidentReviewPage() {
                                   onClick={cancelDecision}
                                   disabled={isSubmitting}
                                 >
-                                  Cancel
+                                  {t('common:actions.cancel')}
                                 </button>
                                 <button
                                   type="button"
@@ -1443,9 +1456,9 @@ export default function AdminIncidentReviewPage() {
                                   disabled={!canSubmit}
                                   style={{ flex: 1, justifyContent: 'center', height: 32 }}
                                 >
-                                  {isSubmitting ? 'Submitting…' : (
+                                  {isSubmitting ? t('adminIncidentReviewPage.form.submitting') : (
                                     <>
-                                      Confirm: {tile.label}
+                                      {t('adminIncidentReviewPage.form.confirmAction', { label: tile.label })}
                                       <ArrowForwardRoundedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', ml: 0.5 }} />
                                     </>
                                   )}
@@ -1463,9 +1476,9 @@ export default function AdminIncidentReviewPage() {
         })()}
 
         <div className="admin-card">
-          <h3 className="admin-card-title">Internal Notes</h3>
+          <h3 className="admin-card-title">{t('adminIncidentReviewPage.internalNotes.title')}</h3>
           <div style={{ marginTop: 8, maxHeight: 150, overflowY: 'auto' }}>
-            {incident.notes.length === 0 && <p style={{ fontSize: 10.5, color: 'var(--admin-text-muted)' }}>No notes yet</p>}
+            {incident.notes.length === 0 && <p style={{ fontSize: 10.5, color: 'var(--admin-text-muted)' }}>{t('adminIncidentReviewPage.internalNotes.noNotes')}</p>}
             {incident.notes.map((note) => (
               <div key={note.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--admin-border)', fontSize: 11 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
@@ -1480,14 +1493,14 @@ export default function AdminIncidentReviewPage() {
             <input
               className="admin-input"
               type="text"
-              placeholder="Add internal note..."
+              placeholder={t('adminIncidentReviewPage.internalNotes.placeholder')}
               value={internalNote}
               onChange={(event) => setInternalNote(event.target.value)}
               onKeyDown={(event) => event.key === 'Enter' && addNote()}
               style={{ flex: 1, height: 30, fontSize: 11 }}
             />
             <button className="admin-btn admin-btn-sm admin-btn-primary" onClick={addNote} disabled={noteSubmitting}>
-              {noteSubmitting ? 'Saving...' : 'Add'}
+              {noteSubmitting ? t('adminIncidentReviewPage.internalNotes.saving') : t('adminIncidentReviewPage.internalNotes.add')}
             </button>
           </div>
         </div>
@@ -1498,7 +1511,7 @@ export default function AdminIncidentReviewPage() {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Incident map"
+        aria-label={t('adminIncidentReviewPage.fullscreenMap.ariaLabel')}
         onClick={() => setIsMapFullscreen(false)}
         style={{
           position: 'fixed',
@@ -1551,10 +1564,10 @@ export default function AdminIncidentReviewPage() {
             <button
               className="admin-btn admin-btn-sm admin-btn-ghost"
               onClick={() => setIsMapFullscreen(false)}
-              aria-label="Close map"
+              aria-label={t('adminIncidentReviewPage.fullscreenMap.closeAriaLabel')}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
             >
-              <CloseRoundedIcon fontSize="inherit" /> Close
+              <CloseRoundedIcon fontSize="inherit" /> {t('common:actions.close')}
             </button>
           </div>
           <div style={{ flex: 1, position: 'relative' }}>
@@ -1626,7 +1639,7 @@ export default function AdminIncidentReviewPage() {
               >
                 <Tooltip direction="top" offset={[0, -8]} permanent opacity={1}>
                   <div style={{ fontSize: 11, fontWeight: 700 }}>
-                    {incident.displayId} · current
+                    {incident.displayId} · {t('adminIncidentReviewPage.mergeGroup.current')}
                   </div>
                 </Tooltip>
               </CircleMarker>
@@ -1659,16 +1672,16 @@ export default function AdminIncidentReviewPage() {
                   border: '3px solid #fff',
                   boxShadow: '0 0 0 1px rgba(15, 23, 42, 0.15)',
                 }} />
-                <span><strong style={{ color: 'var(--admin-text)' }}>Current</strong> ({incident.severity})</span>
+                <span><strong style={{ color: 'var(--admin-text)' }}>{t('adminIncidentReviewPage.fullscreenMap.legendCurrent')}</strong> ({incident.severity})</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: '#ef4444', border: '1.5px solid #fff' }} />
                 <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: '#f59e0b', border: '1.5px solid #fff' }} />
                 <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: '#22c55e', border: '1.5px solid #fff' }} />
                 <span>
-                  Others — {mapIncidentsLoading
-                    ? 'loading…'
-                    : `${Math.max(0, mapIncidents.filter((r) => r.reportId !== incident.reportId).length)} incidents`}
+                  {t('adminIncidentReviewPage.fullscreenMap.legendOthers')} — {mapIncidentsLoading
+                    ? t('adminIncidentReviewPage.fullscreenMap.loadingOthers')
+                    : t('adminIncidentReviewPage.fullscreenMap.othersCount', { count: Math.max(0, mapIncidents.filter((r) => r.reportId !== incident.reportId).length) })}
                 </span>
               </div>
             </div>
@@ -1683,20 +1696,20 @@ export default function AdminIncidentReviewPage() {
         className="post-media-lightbox"
         role="dialog"
         aria-modal="true"
-        aria-label="Evidence preview"
+        aria-label={t('adminIncidentReviewPage.lightbox.ariaLabel')}
         onClick={() => setLightboxIndex(null)}
       >
         <div className="post-media-lightbox-content" onClick={(event) => event.stopPropagation()}>
           <div className="post-media-lightbox-toolbar">
-            <button type="button" className="post-media-zoom-btn" onClick={zoomOut} aria-label="Zoom out">−</button>
-            <button type="button" className="post-media-zoom-btn reset" onClick={zoomReset} aria-label="Reset zoom">{Math.round(zoomScale * 100)}%</button>
-            <button type="button" className="post-media-zoom-btn" onClick={zoomIn} aria-label="Zoom in">+</button>
+            <button type="button" className="post-media-zoom-btn" onClick={zoomOut} aria-label={t('adminIncidentReviewPage.lightbox.zoomOut')}>−</button>
+            <button type="button" className="post-media-zoom-btn reset" onClick={zoomReset} aria-label={t('adminIncidentReviewPage.lightbox.resetZoom')}>{Math.round(zoomScale * 100)}%</button>
+            <button type="button" className="post-media-zoom-btn" onClick={zoomIn} aria-label={t('adminIncidentReviewPage.lightbox.zoomIn')}>+</button>
           </div>
           <button
             type="button"
             className="post-media-lightbox-close"
             onClick={() => setLightboxIndex(null)}
-            aria-label="Close evidence preview"
+            aria-label={t('adminIncidentReviewPage.lightbox.closeAriaLabel')}
           >×</button>
 
           {totalMedia > 1 && (
@@ -1709,7 +1722,7 @@ export default function AdminIncidentReviewPage() {
                   setZoomScale(1)
                   setLightboxIndex((prev) => (prev == null ? 0 : (prev - 1 + totalMedia) % totalMedia))
                 }}
-                aria-label="Previous evidence"
+                aria-label={t('adminIncidentReviewPage.lightbox.prevEvidence')}
               >‹</button>
               <button
                 type="button"
@@ -1719,7 +1732,7 @@ export default function AdminIncidentReviewPage() {
                   setZoomScale(1)
                   setLightboxIndex((prev) => (prev == null ? 0 : (prev + 1) % totalMedia))
                 }}
-                aria-label="Next evidence"
+                aria-label={t('adminIncidentReviewPage.lightbox.nextEvidence')}
               >›</button>
               <span className="post-media-lightbox-counter">
                 {lightboxIndex + 1} / {totalMedia}
@@ -1742,7 +1755,7 @@ export default function AdminIncidentReviewPage() {
             <img
               className="post-media-lightbox-image"
               src={activeMediaUrl}
-              alt={`Evidence ${lightboxIndex + 1}`}
+              alt={t('adminIncidentReviewPage.evidence.altText', { index: lightboxIndex + 1 })}
               style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})` }}
             />
           </div>

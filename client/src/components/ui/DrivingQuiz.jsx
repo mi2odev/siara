@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import PsychologyOutlinedIcon from '@mui/icons-material/PsychologyOutlined'
 import SentimentVeryDissatisfiedOutlinedIcon from '@mui/icons-material/SentimentVeryDissatisfiedOutlined'
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
@@ -165,13 +166,13 @@ const STORAGE_KEY = 'siara_quiz_completed'
 const ANSWERS_KEY = 'siara_quiz_answers'
 const STREAM_MODEL_ENDPOINT = 'http://localhost:5000/api/model/predict/stream'
 
-const STREAM_STATUS_LABELS = {
-  starting: 'Preparing explanation...',
-  loading_model: 'Loading local language model...',
-  generating: 'Generating explanation...',
-  finalizing: 'Finalizing response...',
-  fallback: 'Using deterministic fallback explanation...',
-  done: 'Explanation ready.',
+const STREAM_STATUS_KEYS = {
+  starting: 'drivingQuiz.stream.starting',
+  loading_model: 'drivingQuiz.stream.loadingModel',
+  generating: 'drivingQuiz.stream.generating',
+  finalizing: 'drivingQuiz.stream.finalizing',
+  fallback: 'drivingQuiz.stream.fallback',
+  done: 'drivingQuiz.stream.done',
 }
 
 const avg = (list) => {
@@ -241,6 +242,7 @@ const readSseStream = async (response, onEvent) => {
 }
 
 export default function DrivingQuiz({ onComplete, forceShow = false }) {
+  const { t } = useTranslation(['pages', 'common'])
   const [isVisible, setIsVisible] = useState(false)
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
@@ -378,10 +380,10 @@ function getImpact(xai, feature) {
     // Human-friendly explanation
     text:
       v > 0
-        ? 'pushed risk higher'
+        ? t('drivingQuiz.impact.pushedHigher')
         : v < 0
-        ? 'helped reduce risk'
-        : 'no noticeable impact'
+        ? t('drivingQuiz.impact.reducedRisk')
+        : t('drivingQuiz.impact.noImpact')
   }
 }
 
@@ -411,7 +413,7 @@ const getDisplayText = (feature, impact) => {
   if (!impact) return ''
 
   if (PROTECTIVE_TRAITS.has(feature) && impact.direction === 'pushes_higher') {
-    return 'limited protective effect'
+    return t('drivingQuiz.impact.limitedProtective')
   }
 
   return impact.text
@@ -461,7 +463,7 @@ const getDisplayText = (feature, impact) => {
     setAdvice(null)
     setExplanationText('')
     setStructuredExplanation(null)
-    setStreamStatus(STREAM_STATUS_LABELS.starting)
+    setStreamStatus(STREAM_STATUS_KEYS.starting)
     setStreamFallback(false)
 
     try {
@@ -482,7 +484,7 @@ const getDisplayText = (feature, impact) => {
 
       await readSseStream(response, (event, data) => {
         if (event === 'status') {
-          const nextStatus = data?.message || STREAM_STATUS_LABELS[data?.status] || 'Working on explanation...'
+          const nextStatus = data?.message || STREAM_STATUS_KEYS[data?.status] || 'drivingQuiz.stream.working'
           setStreamStatus(nextStatus)
           if (data?.fallback) {
             setStreamFallback(true)
@@ -517,7 +519,7 @@ const getDisplayText = (feature, impact) => {
           setExplanationText(finalExplanation)
           setStructuredExplanation(data?.structured_explanation || finalData?.structured_explanation || null)
           setStreamFallback(Boolean(data?.fallback))
-          setStreamStatus(STREAM_STATUS_LABELS.done)
+          setStreamStatus(STREAM_STATUS_KEYS.done)
 
           if (finalData) {
             setPrediction(finalData.risk_label)
@@ -580,8 +582,8 @@ const getDisplayText = (feature, impact) => {
       })
 
     } catch (error) {
-      setSubmitError(error.message || 'Could not get live model explanation')
-      setStreamStatus('Live explanation stream failed. Please retry.')
+      setSubmitError(error.message || t('drivingQuiz.errors.modelExplanationFailed'))
+      setStreamStatus('drivingQuiz.errors.streamFailed')
     } finally {
       setIsSubmitting(false)
     }
@@ -675,11 +677,11 @@ const getDisplayText = (feature, impact) => {
           <div className="quiz-header-left">
             <span className="quiz-logo"><DirectionsCarOutlinedIcon fontSize="inherit" /></span>
             <div className="quiz-title-group">
-              <h2 className="quiz-title">Driver Profile Assessment</h2>
-              <p className="quiz-subtitle">Answer questions, then we send scores to model service</p>
+              <h2 className="quiz-title">{t('drivingQuiz.title')}</h2>
+              <p className="quiz-subtitle">{t('drivingQuiz.subtitle')}</p>
             </div>
           </div>
-          <button className="quiz-close-btn" onClick={handleSkip} aria-label="Skip quiz">
+          <button className="quiz-close-btn" onClick={handleSkip} aria-label={t('drivingQuiz.skipQuizAria')}>
             X
           </button>
         </div>
@@ -689,7 +691,7 @@ const getDisplayText = (feature, impact) => {
             <div className="quiz-progress-fill" style={{ width: `${progress}%` }} />
           </div>
           <div className="quiz-progress-info">
-            <span className="quiz-progress-text">{answeredCount} of {totalQuestions} questions</span>
+            <span className="quiz-progress-text">{t('drivingQuiz.progress', { answered: answeredCount, total: totalQuestions })}</span>
             <span className="quiz-progress-percent">{Math.round(progress)}%</span>
           </div>
         </div>
@@ -698,13 +700,13 @@ const getDisplayText = (feature, impact) => {
           <div className="quiz-content">
             <div className="quiz-section-header">
               <span className="quiz-section-icon">{currentSection.icon}</span>
-              <span className="quiz-section-title">{currentSection.title}</span>
-              <span className="quiz-section-counter">Section {currentSectionIndex + 1}/{QUIZ_SECTIONS.length}</span>
+              <span className="quiz-section-title">{t(`drivingQuiz.sections.${currentSection.id}.title`)}</span>
+              <span className="quiz-section-counter">{t('drivingQuiz.sectionCounter', { current: currentSectionIndex + 1, total: QUIZ_SECTIONS.length })}</span>
             </div>
 
             <div className={`quiz-question-card ${isAnimating ? 'animating' : ''}`}>
-              <div className="quiz-question-number">Question {currentQuestionIndex + 1} of {currentSection.questions.length}</div>
-              <p className="quiz-question-text">{currentQuestion.text}</p>
+              <div className="quiz-question-number">{t('drivingQuiz.questionCounter', { current: currentQuestionIndex + 1, total: currentSection.questions.length })}</div>
+              <p className="quiz-question-text">{t(`drivingQuiz.sections.${currentSection.id}.q${currentQuestion.id}`)}</p>
             </div>
 
             <div className="quiz-answers">
@@ -717,7 +719,7 @@ const getDisplayText = (feature, impact) => {
                   style={{ '--answer-color': option.color }}
                 >
                   <span className="answer-indicator" style={{ backgroundColor: option.color }} />
-                  <span className="answer-label">{option.label}</span>
+                  <span className="answer-label">{t(`drivingQuiz.answers.${option.label.toLowerCase().replace(' ', '_')}`)}</span>
                   <span className="answer-value">{option.value}</span>
                 </button>
               ))}
@@ -725,22 +727,22 @@ const getDisplayText = (feature, impact) => {
 
             <div className="quiz-nav">
               <button className="quiz-nav-btn quiz-nav-back" onClick={goBack} disabled={currentSectionIndex === 0 && currentQuestionIndex === 0}>
-                Back
+                {t('common:actions.back')}
               </button>
               <button className="quiz-nav-btn quiz-nav-skip" onClick={handleSkip}>
-                Skip for now
+                {t('drivingQuiz.skipForNow')}
               </button>
             </div>
           </div>
         ) : (
           <div className="quiz-results">
             <div className="results-header">
-              <h3 className="results-title">Model Result</h3>
-              {isSubmitting && <div className="results-message"><p>{streamStatus || 'Preparing explanation...'}</p></div>}
+              <h3 className="results-title">{t('drivingQuiz.results.title')}</h3>
+              {isSubmitting && <div className="results-message"><p>{streamStatus ? t(streamStatus) : t('drivingQuiz.stream.starting')}</p></div>}
               {prediction && <div className="results-overall-score" style={{ color: getRiskLevel(riskPercent)?.color || '#000' }}>{pretty(prediction)}</div>}
               {prediction && typeof riskPercent === 'number' && (
                 <div className="results-message">
-                  <p>Risk score: {riskPercent.toFixed(2)}% ({pretty(prediction)})</p>
+                  <p>{t('drivingQuiz.results.riskScore', { score: riskPercent.toFixed(2), label: pretty(prediction) })}</p>
                 </div>
               )}
               {!isSubmitting && submitError && <div className="results-message"><p>{submitError}</p></div>}
@@ -754,7 +756,7 @@ const getDisplayText = (feature, impact) => {
                   </div>
                   <p className="results-siara-summary-desc">{persistedResult.resultDescription}</p>
                   <p className="results-siara-summary-reco">{persistedResult.recommendationDescription}</p>
-                  <p className="results-siara-summary-meta">Saved to your SIARA profile.</p>
+                  <p className="results-siara-summary-meta">{t('drivingQuiz.results.savedToProfile')}</p>
                 </div>
               )}
             </div>
@@ -788,7 +790,7 @@ const getDisplayText = (feature, impact) => {
             alignItems: 'center',
             gap: 6
           }}
-          title={`SHAP: ${impact.value.toFixed(4)} (${impact.text})`}
+          title={t('drivingQuiz.impact.shapTooltip', { value: impact.value.toFixed(4), text: impact.text })}
         >
           <span>{impact.arrow}</span>
           <span>{getDisplayText(key, impact)}</span>
@@ -825,13 +827,13 @@ const getDisplayText = (feature, impact) => {
             )}
             {!isSubmitting && prediction && (
               <button className="quiz-finish-btn" onClick={handleClose}>
-                Continue
+                {t('drivingQuiz.results.continue')}
               </button>
             )}
 
             {!isSubmitting && submitError && (
               <button className="quiz-finish-btn" onClick={() => submitPrediction(answers)}>
-                Retry
+                {t('common:actions.retry')}
               </button>
             )}
           </div>

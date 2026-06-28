@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded'
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded'
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded'
+import { useTranslation } from 'react-i18next'
 import TimeField from './TimeField'
 import './DateTimePicker.css'
 
@@ -15,11 +16,6 @@ import './DateTimePicker.css'
  *   - max      : optional same-format upper bound (future dates are disabled)
  *   - onChange : (next "YYYY-MM-DDTHH:MM" string) => void
  */
-const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
 
 function pad(value) {
   return String(value).padStart(2, '0')
@@ -53,12 +49,38 @@ function buildCalendar(viewDate) {
 }
 
 export default function DateTimePicker({ value, max, onChange }) {
+  const { t } = useTranslation(['pages', 'common'])
   const [open, setOpen] = useState(false)
   const selected = useMemo(() => parseValue(value), [value])
   const [viewDate, setViewDate] = useState(() => startOfDay(selected))
   const rootRef = useRef(null)
 
   const maxDate = max ? parseValue(max) : null
+
+  const WEEKDAYS = [
+    t('dateTimePicker.weekdays.mo'),
+    t('dateTimePicker.weekdays.tu'),
+    t('dateTimePicker.weekdays.we'),
+    t('dateTimePicker.weekdays.th'),
+    t('dateTimePicker.weekdays.fr'),
+    t('dateTimePicker.weekdays.sa'),
+    t('dateTimePicker.weekdays.su'),
+  ]
+
+  const MONTHS = [
+    t('dateTimePicker.months.january'),
+    t('dateTimePicker.months.february'),
+    t('dateTimePicker.months.march'),
+    t('dateTimePicker.months.april'),
+    t('dateTimePicker.months.may'),
+    t('dateTimePicker.months.june'),
+    t('dateTimePicker.months.july'),
+    t('dateTimePicker.months.august'),
+    t('dateTimePicker.months.september'),
+    t('dateTimePicker.months.october'),
+    t('dateTimePicker.months.november'),
+    t('dateTimePicker.months.december'),
+  ]
 
   useEffect(() => {
     if (open) setViewDate(startOfDay(parseValue(value)))
@@ -122,7 +144,7 @@ export default function DateTimePicker({ value, max, onChange }) {
         weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
       })
-    : 'Select date & time'
+    : t('dateTimePicker.selectDateTime')
 
   const today = startOfDay(new Date())
 
@@ -142,13 +164,13 @@ export default function DateTimePicker({ value, max, onChange }) {
       {open && (
         <div className="dt-popover" role="dialog">
           <div className="dt-cal-header">
-            <button type="button" className="dt-nav" onClick={() => jumpMonth(-1)} aria-label="Previous month">
+            <button type="button" className="dt-nav" onClick={() => jumpMonth(-1)} aria-label={t('dateTimePicker.prevMonth')}>
               <ChevronLeftRoundedIcon fontSize="inherit" />
             </button>
             <span className="dt-cal-title">
               {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
             </span>
-            <button type="button" className="dt-nav" onClick={() => jumpMonth(1)} aria-label="Next month">
+            <button type="button" className="dt-nav" onClick={() => jumpMonth(1)} aria-label={t('dateTimePicker.nextMonth')}>
               <ChevronRightRoundedIcon fontSize="inherit" />
             </button>
           </div>
@@ -184,7 +206,7 @@ export default function DateTimePicker({ value, max, onChange }) {
           </div>
 
           <div className="dt-time-row">
-            <span className="dt-time-label">Time</span>
+            <span className="dt-time-label">{t('dateTimePicker.timeLabel')}</span>
             <TimeField
               value={`${pad(selected.getHours())}:${pad(selected.getMinutes())}`}
               onChange={setTime}
@@ -192,9 +214,9 @@ export default function DateTimePicker({ value, max, onChange }) {
           </div>
 
           <div className="dt-footer">
-            <button type="button" className="dt-footer-btn" onClick={goToday}>Now</button>
+            <button type="button" className="dt-footer-btn" onClick={goToday}>{t('dateTimePicker.now')}</button>
             <button type="button" className="dt-footer-btn dt-footer-btn--primary" onClick={() => setOpen(false)}>
-              Done
+              {t('dateTimePicker.done')}
             </button>
           </div>
         </div>

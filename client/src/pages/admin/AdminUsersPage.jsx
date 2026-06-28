@@ -10,6 +10,7 @@
  *   - Details modal showing report stats, driver quiz, occurrence risk
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import FancySelect from '../../components/ui/FancySelect'
 import { useSearchParams } from 'react-router-dom'
 import ArrowUpwardRoundedIcon from '@mui/icons-material/ArrowUpwardRounded'
@@ -114,23 +115,23 @@ const ACTION_CHIP_VARIANTS = {
 }
 const actionChipStyle = (variant) => ({ ...ACTION_CHIP_BASE, ...ACTION_CHIP_VARIANTS[variant] })
 
-const FILTER_TABS = [
-  { key: 'all', label: 'All Users', countKey: 'all' },
-  { key: 'active', label: 'Active', countKey: 'active' },
-  { key: 'trusted', label: 'Trusted', countKey: 'trusted' },
-  { key: 'at-risk', label: 'At Risk', countKey: 'atRisk' },
-  { key: 'banned', label: 'Banned', countKey: 'banned' },
-  { key: 'police', label: 'Police', countKey: 'police' },
-  { key: 'supervisor', label: 'Supervisor', countKey: 'supervisor' },
-  { key: 'admin', label: 'Admins', countKey: 'admin' },
+const FILTER_TAB_KEYS = [
+  { key: 'all', countKey: 'all' },
+  { key: 'active', countKey: 'active' },
+  { key: 'trusted', countKey: 'trusted' },
+  { key: 'at-risk', countKey: 'atRisk' },
+  { key: 'banned', countKey: 'banned' },
+  { key: 'police', countKey: 'police' },
+  { key: 'supervisor', countKey: 'supervisor' },
+  { key: 'admin', countKey: 'admin' },
 ]
 
-const SORT_OPTIONS = [
-  { value: 'trust_asc', label: 'Trust ascending (riskiest first)' },
-  { value: 'trust_desc', label: 'Trust descending (most trusted first)' },
-  { value: 'reports_desc', label: 'Most reports first' },
-  { value: 'created_desc', label: 'Newest accounts' },
-  { value: 'last_active_desc', label: 'Recently active' },
+const SORT_OPTION_KEYS = [
+  'trust_asc',
+  'trust_desc',
+  'reports_desc',
+  'created_desc',
+  'last_active_desc',
 ]
 
 const PAGE_SIZE = 20
@@ -216,6 +217,18 @@ const initialCounts = {
 }
 
 export default function AdminUsersPage() {
+  const { t } = useTranslation(['admin', 'common'])
+
+  const FILTER_TABS = FILTER_TAB_KEYS.map((tab) => ({
+    ...tab,
+    label: t(`adminUsersPage.tabs.${tab.key.replace('-', '_')}`),
+  }))
+
+  const SORT_OPTIONS = SORT_OPTION_KEYS.map((key) => ({
+    value: key,
+    label: t(`adminUsersPage.sort.${key}`),
+  }))
+
   const [searchParams, setSearchParams] = useSearchParams()
   const currentTab = searchParams.get('filter') || 'all'
 
@@ -287,7 +300,7 @@ export default function AdminUsersPage() {
       if (updated) setDetailsUser(updated)
       triggerReload()
     } catch (err) {
-      setActionError(err?.message || 'Failed to update user roles')
+      setActionError(err?.message || t('adminUsersPage.errors.failedUpdateRoles'))
     } finally {
       setRolesSaving(false)
     }
@@ -333,7 +346,7 @@ export default function AdminUsersPage() {
       })
       .catch((err) => {
         if (cancelled) return
-        setError(err?.message || 'Failed to load users')
+        setError(err?.message || t('adminUsersPage.errors.failedLoadUsers'))
         setUsers([])
       })
       .finally(() => {
@@ -371,7 +384,7 @@ export default function AdminUsersPage() {
         if (refreshed) setDetailsUser(refreshed)
       }
     } catch (err) {
-      setActionError(err?.message || 'Failed to update user status')
+      setActionError(err?.message || t('adminUsersPage.errors.failedUpdateStatus'))
     } finally {
       setBusyUserId(null)
     }
@@ -417,12 +430,12 @@ export default function AdminUsersPage() {
     if (!warnModalUser) return
     const trimmedReason = warnReason.trim()
     if (!trimmedReason) {
-      setActionError('A reason is required so the user knows what the warning is for.')
+      setActionError(t('adminUsersPage.errors.warnReasonRequired'))
       return
     }
     const warningExpiresAt = resolveWarningExpiresAt()
     if (warningExpiresAt === undefined) {
-      setActionError('Pick a future date/time for the custom warning expiry.')
+      setActionError(t('adminUsersPage.errors.pickFutureWarnDate'))
       return
     }
     setWarnSubmitting(true)
@@ -481,7 +494,7 @@ export default function AdminUsersPage() {
     if (!banModalUser) return
     const bannedUntil = resolveBannedUntil()
     if (bannedUntil === undefined) {
-      setActionError('Pick a future date/time for the custom ban.')
+      setActionError(t('adminUsersPage.errors.pickFutureBanDate'))
       return
     }
     setBanSubmitting(true)
@@ -501,7 +514,7 @@ export default function AdminUsersPage() {
       await updateAdminUserRoles(user.id, nextRoles)
       triggerReload()
     } catch (err) {
-      setActionError(err?.message || 'Failed to promote user')
+      setActionError(err?.message || t('adminUsersPage.errors.failedPromote'))
     } finally {
       setBusyUserId(null)
     }
@@ -517,11 +530,11 @@ export default function AdminUsersPage() {
       const updated = await recalculateAdminUserTrust(user.id)
       const newScore = updated?.trustScore == null ? null : Math.round(Number(updated.trustScore))
       if (newScore == null) {
-        setActionMessage(`Trust score recalculated for ${label}.`)
+        setActionMessage(t('adminUsersPage.trustRecalc.done', { label }))
       } else if (previousScore != null && previousScore !== newScore) {
-        setActionMessage(`Trust score for ${label} recalculated: ${previousScore} → ${newScore}.`)
+        setActionMessage(t('adminUsersPage.trustRecalc.changed', { label, previousScore, newScore }))
       } else {
-        setActionMessage(`Trust score for ${label} recalculated — unchanged at ${newScore}.`)
+        setActionMessage(t('adminUsersPage.trustRecalc.unchanged', { label, newScore }))
       }
       // Update only this user's row in place so the table doesn't refetch and
       // re-sort, which would make the row jump and the change hard to see.
@@ -541,7 +554,7 @@ export default function AdminUsersPage() {
         triggerReload()
       }
     } catch (err) {
-      setActionError(err?.message || 'Failed to recalculate trust score')
+      setActionError(err?.message || t('adminUsersPage.errors.failedRecalc'))
     } finally {
       setBusyUserId(null)
     }
@@ -554,7 +567,7 @@ export default function AdminUsersPage() {
       const detailed = await fetchAdminUserDetails(user.id)
       if (detailed) setDetailsUser(detailed)
     } catch (err) {
-      setActionError(err?.message || 'Failed to load user details')
+      setActionError(err?.message || t('adminUsersPage.errors.failedLoadDetails'))
     } finally {
       setDetailsLoading(false)
     }
@@ -575,14 +588,14 @@ export default function AdminUsersPage() {
     <>
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">User Governance</h1>
-          <p className="admin-page-subtitle">Trust scoring, risk assessment and user management</p>
+          <h1 className="admin-page-title">{t('adminUsersPage.title')}</h1>
+          <p className="admin-page-subtitle">{t('adminUsersPage.subtitle')}</p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <input
             className="admin-input"
             type="text"
-            placeholder="Search name, email, ID…"
+            placeholder={t('adminUsersPage.searchPlaceholder')}
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             style={{ width: 240, height: 32, fontSize: 11.5 }}
@@ -591,7 +604,7 @@ export default function AdminUsersPage() {
             value={sort}
             onChange={setSort}
             options={SORT_OPTIONS}
-            label="Sort by"
+            label={t('adminUsersPage.sortBy')}
             icon={(
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                 <path d="M3 6h18M6 12h12M10 18h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -670,23 +683,23 @@ export default function AdminUsersPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Role</th>
-                <th>Trust</th>
-                <th>Reports</th>
-                <th>False Ratio</th>
-                <th>Risk</th>
-                <th>Status</th>
-                <th>Last Active</th>
-                <th>Actions</th>
+                <th>{t('adminUsersPage.table.id')}</th>
+                <th>{t('adminUsersPage.table.name')}</th>
+                <th>{t('adminUsersPage.table.role')}</th>
+                <th>{t('adminUsersPage.table.trust')}</th>
+                <th>{t('adminUsersPage.table.reports')}</th>
+                <th>{t('adminUsersPage.table.falseRatio')}</th>
+                <th>{t('adminUsersPage.table.risk')}</th>
+                <th>{t('adminUsersPage.table.status')}</th>
+                <th>{t('adminUsersPage.table.lastActive')}</th>
+                <th>{t('adminUsersPage.table.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
                   <td colSpan={10} style={{ textAlign: 'center', padding: 24, color: 'var(--admin-text-muted)' }}>
-                    Loading users…
+                    {t('adminUsersPage.loadingUsers')}
                   </td>
                 </tr>
               )}
@@ -700,7 +713,7 @@ export default function AdminUsersPage() {
               {!loading && !error && users.length === 0 && (
                 <tr>
                   <td colSpan={10} style={{ textAlign: 'center', padding: 32, color: 'var(--admin-text-muted)' }}>
-                    No users match the current filters.
+                    {t('adminUsersPage.noUsers')}
                   </td>
                 </tr>
               )}
@@ -773,7 +786,7 @@ export default function AdminUsersPage() {
                     <td style={{ width: 240, whiteSpace: 'nowrap' }}>
                       <div className="admin-user-actions">
                         {/* Moderation icon group */}
-                        <div className="admin-user-actions-group" role="group" aria-label="Moderation" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <div className="admin-user-actions-group" role="group" aria-label={t('adminUsersPage.actions.moderationGroup')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {user.status !== 'banned' && (
                             <button
                               type="button"
@@ -781,8 +794,8 @@ export default function AdminUsersPage() {
                               style={actionChipStyle('warn')}
                               onClick={() => openWarnModal(user)}
                               disabled={isBusy}
-                              title="Warn user…"
-                              aria-label="Warn user"
+                              title={t('adminUsersPage.actions.warnTitle')}
+                              aria-label={t('adminUsersPage.actions.warnTitle')}
                             >
                               <IconWarn />
                             </button>
@@ -794,8 +807,8 @@ export default function AdminUsersPage() {
                               style={actionChipStyle('ban')}
                               onClick={() => openBanModal(user)}
                               disabled={isBusy}
-                              title="Ban user…"
-                              aria-label="Ban user"
+                              title={t('adminUsersPage.actions.banTitle')}
+                              aria-label={t('adminUsersPage.actions.banTitle')}
                             >
                               <IconBan />
                             </button>
@@ -810,16 +823,16 @@ export default function AdminUsersPage() {
                                 // ones we confirm first because is_active flips back on
                                 // and the user can sign in again immediately.
                                 const isPerm = user.isPermanentlyBanned || (!user.bannedUntil && user.moderationStatus === 'banned')
-                                if (isPerm && !window.confirm(`Lift the permanent ban on ${user.name}? They will be able to sign in again immediately.`)) {
+                                if (isPerm && !window.confirm(t('adminUsersPage.actions.confirmLiftPermBan', { name: user.name }))) {
                                   return
                                 }
                                 runStatusUpdate(user, 'active')
                               }}
                               disabled={isBusy}
                               title={user.bannedUntil
-                                ? `Unban now (current ban ends ${new Date(user.bannedUntil).toLocaleString()})`
-                                : 'Lift permanent ban'}
-                              aria-label="Unban user"
+                                ? t('adminUsersPage.actions.unbanTitleTemp', { date: new Date(user.bannedUntil).toLocaleString() })
+                                : t('adminUsersPage.actions.unbanTitlePerm')}
+                              aria-label={t('adminUsersPage.actions.unbanUser')}
                             >
                               <IconUnban />
                             </button>
@@ -831,8 +844,8 @@ export default function AdminUsersPage() {
                               style={actionChipStyle('promote')}
                               onClick={() => promoteToTrusted(user)}
                               disabled={isBusy}
-                              title="Promote to Trusted reporter"
-                              aria-label="Promote to Trusted reporter"
+                              title={t('adminUsersPage.actions.promoteTitle')}
+                              aria-label={t('adminUsersPage.actions.promoteTitle')}
                             >
                               <IconPromote />
                             </button>
@@ -843,8 +856,8 @@ export default function AdminUsersPage() {
                             style={actionChipStyle('neutral')}
                             onClick={() => recalcTrust(user)}
                             disabled={isBusy}
-                            title="Recalculate trust score"
-                            aria-label="Recalculate trust score"
+                            title={t('adminUsersPage.actions.recalcTitle')}
+                            aria-label={t('adminUsersPage.actions.recalcTitle')}
                           >
                             <IconRecalc />
                           </button>
@@ -858,7 +871,7 @@ export default function AdminUsersPage() {
                           disabled={isBusy}
                         >
                           <VisibilityRoundedIcon className="siara-eye-dot" fontSize="inherit" />
-                          Details
+                          {t('adminUsersPage.actions.details')}
                         </button>
                       </div>
                     </td>
@@ -878,7 +891,7 @@ export default function AdminUsersPage() {
           color: 'var(--admin-text-muted)',
         }}>
           <span>
-            Showing {showingFrom}–{showingTo} of {pagination.total || users.length}
+            {t('adminUsersPage.pagination.showing', { from: showingFrom, to: showingTo, total: pagination.total || users.length })}
           </span>
           <div style={{ display: 'flex', gap: 4 }}>
             <button
@@ -886,14 +899,14 @@ export default function AdminUsersPage() {
               onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
               disabled={offset === 0 || loading}
             >
-              <ArrowBackRoundedIcon fontSize="inherit" /> Prev
+              <ArrowBackRoundedIcon fontSize="inherit" /> {t('adminUsersPage.pagination.prev')}
             </button>
             <button
               className="admin-btn admin-btn-sm admin-btn-ghost"
               onClick={() => setOffset(offset + PAGE_SIZE)}
               disabled={!pagination.hasMore || loading}
             >
-              Next <ArrowForwardRoundedIcon fontSize="inherit" />
+              {t('adminUsersPage.pagination.next')} <ArrowForwardRoundedIcon fontSize="inherit" />
             </button>
           </div>
         </div>
@@ -922,14 +935,14 @@ export default function AdminUsersPage() {
             const trustColor = trustClass === 'success' ? 'var(--admin-success)' : trustClass === 'warning' ? 'var(--admin-warning)' : 'var(--admin-danger)'
             const stats = detailsUser.reportStats || {}
             const reportTiles = [
-              { label: 'Total', value: stats.totalReports ?? 0 },
-              { label: 'Verified', value: stats.verifiedReports ?? 0, color: 'var(--admin-success)' },
-              { label: 'Resolved', value: stats.resolvedReports ?? 0, color: 'var(--admin-primary)' },
-              { label: 'Suspicious', value: stats.suspiciousReports ?? 0, color: 'var(--admin-warning)' },
-              { label: 'Spam', value: stats.spamReports ?? 0, color: 'var(--admin-danger)' },
-              { label: 'Out of Context', value: stats.outOfContextReports ?? 0 },
-              { label: 'Invalid Location', value: stats.invalidLocationReports ?? 0 },
-              { label: 'Rejected', value: stats.rejectedReports ?? 0 },
+              { label: t('adminUsersPage.reportTiles.total'), value: stats.totalReports ?? 0 },
+              { label: t('adminUsersPage.reportTiles.verified'), value: stats.verifiedReports ?? 0, color: 'var(--admin-success)' },
+              { label: t('adminUsersPage.reportTiles.resolved'), value: stats.resolvedReports ?? 0, color: 'var(--admin-primary)' },
+              { label: t('adminUsersPage.reportTiles.suspicious'), value: stats.suspiciousReports ?? 0, color: 'var(--admin-warning)' },
+              { label: t('adminUsersPage.reportTiles.spam'), value: stats.spamReports ?? 0, color: 'var(--admin-danger)' },
+              { label: t('adminUsersPage.reportTiles.outOfContext'), value: stats.outOfContextReports ?? 0 },
+              { label: t('adminUsersPage.reportTiles.invalidLocation'), value: stats.invalidLocationReports ?? 0 },
+              { label: t('adminUsersPage.reportTiles.rejected'), value: stats.rejectedReports ?? 0 },
             ]
             const falseRatio = stats.falseRatio ?? 0
             const falseRatioColor = falseRatio <= 15 ? 'var(--admin-success)' : falseRatio <= 40 ? 'var(--admin-warning)' : 'var(--admin-danger)'
@@ -978,12 +991,12 @@ export default function AdminUsersPage() {
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--admin-text)' }}>
-                        {detailsUser.name || 'Unnamed user'}
+                        {detailsUser.name || t('adminUsersPage.unnamedUser')}
                       </h2>
                       <span className={`admin-pill ${detailsUser.status}`}>{detailsUser.status}</span>
                       {detailsUser.emailVerifiedAt && (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, color: 'var(--admin-success)', fontWeight: 600 }}>
-                          <VerifiedRoundedIcon fontSize="inherit" /> Verified
+                          <VerifiedRoundedIcon fontSize="inherit" /> {t('adminUsersPage.verified')}
                         </span>
                       )}
                     </div>
@@ -1001,7 +1014,7 @@ export default function AdminUsersPage() {
                   <button
                     className="admin-btn admin-btn-icon admin-btn-ghost"
                     onClick={closeDetails}
-                    aria-label="Close"
+                    aria-label={t('common:actions.close')}
                   >
                     <CloseRoundedIcon fontSize="inherit" />
                   </button>
@@ -1009,7 +1022,7 @@ export default function AdminUsersPage() {
 
                 {detailsLoading && (
                   <p style={{ padding: '12px 22px', margin: 0, fontSize: 12, color: 'var(--admin-text-muted)' }}>
-                    Loading details…
+                    {t('adminUsersPage.loadingDetails')}
                   </p>
                 )}
 
@@ -1030,10 +1043,10 @@ export default function AdminUsersPage() {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--admin-text-muted)' }}>
-                          Trust Score
+                          {t('adminUsersPage.detail.trustScore')}
                         </span>
                         <span className={`admin-pill ${detailsUser.riskTier?.code || 'low'}`}>
-                          Risk: {detailsUser.riskTier?.label || '—'}
+                          {t('adminUsersPage.detail.riskLabel', { label: detailsUser.riskTier?.label || '—' })}
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
@@ -1049,35 +1062,35 @@ export default function AdminUsersPage() {
                         {detailsUser.trustTier?.label || '—'}
                       </div>
                       <div style={{ fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
-                        Updated {detailsUser.trustLastUpdatedAt ? formatRelative(detailsUser.trustLastUpdatedAt) : '—'}
+                        {t('adminUsersPage.detail.trustUpdated', { time: detailsUser.trustLastUpdatedAt ? formatRelative(detailsUser.trustLastUpdatedAt) : '—' })}
                       </div>
                     </div>
 
                     {/* Account meta grid */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, alignContent: 'start' }}>
                       <div className="admin-mini-stat">
-                        <span className="admin-mini-stat-label">Auth Provider</span>
+                        <span className="admin-mini-stat-label">{t('adminUsersPage.detail.authProvider')}</span>
                         <span className="admin-mini-stat-value" style={{ textTransform: 'capitalize' }}>{detailsUser.authProvider || '—'}</span>
                       </div>
                       <div className="admin-mini-stat">
-                        <span className="admin-mini-stat-label">Email Verified</span>
+                        <span className="admin-mini-stat-label">{t('adminUsersPage.detail.emailVerified')}</span>
                         <span className="admin-mini-stat-value" style={{ color: detailsUser.emailVerifiedAt ? 'var(--admin-success)' : 'var(--admin-text-muted)' }}>
-                          {detailsUser.emailVerifiedAt ? 'Yes' : 'No'}
+                          {detailsUser.emailVerifiedAt ? t('adminUsersPage.detail.yes') : t('adminUsersPage.detail.no')}
                         </span>
                       </div>
                       <div className="admin-mini-stat">
-                        <span className="admin-mini-stat-label">Joined</span>
+                        <span className="admin-mini-stat-label">{t('adminUsersPage.detail.joined')}</span>
                         <span className="admin-mini-stat-value">
                           {detailsUser.createdAt ? new Date(detailsUser.createdAt).toLocaleDateString() : '—'}
                         </span>
                       </div>
                       <div className="admin-mini-stat">
-                        <span className="admin-mini-stat-label">Last Active</span>
+                        <span className="admin-mini-stat-label">{t('adminUsersPage.detail.lastActive')}</span>
                         <span className="admin-mini-stat-value">{formatRelative(detailsUser.lastActiveAt)}</span>
                       </div>
                       {/* Moderation history — counts pulled from app.user_moderation_actions */}
                       <div className="admin-mini-stat">
-                        <span className="admin-mini-stat-label">Times Banned</span>
+                        <span className="admin-mini-stat-label">{t('adminUsersPage.detail.timesBanned')}</span>
                         <span
                           className="admin-mini-stat-value"
                           style={{
@@ -1087,19 +1100,19 @@ export default function AdminUsersPage() {
                             fontVariantNumeric: 'tabular-nums',
                           }}
                           title={detailsUser.moderationHistory?.lastBannedAt
-                            ? `Last banned ${formatRelative(detailsUser.moderationHistory.lastBannedAt)}`
-                            : 'Never banned'}
+                            ? t('adminUsersPage.detail.lastBanned', { time: formatRelative(detailsUser.moderationHistory.lastBannedAt) })
+                            : t('adminUsersPage.detail.neverBanned')}
                         >
                           {detailsUser.moderationHistory?.banCount || 0}
                           {detailsUser.moderationHistory?.lastBannedAt ? (
                             <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--admin-text-muted)', marginLeft: 6 }}>
-                              · last {formatRelative(detailsUser.moderationHistory.lastBannedAt)}
+                              · {t('adminUsersPage.detail.lastTime', { time: formatRelative(detailsUser.moderationHistory.lastBannedAt) })}
                             </span>
                           ) : null}
                         </span>
                       </div>
                       <div className="admin-mini-stat">
-                        <span className="admin-mini-stat-label">Times Warned</span>
+                        <span className="admin-mini-stat-label">{t('adminUsersPage.detail.timesWarned')}</span>
                         <span
                           className="admin-mini-stat-value"
                           style={{
@@ -1109,22 +1122,22 @@ export default function AdminUsersPage() {
                             fontVariantNumeric: 'tabular-nums',
                           }}
                           title={detailsUser.moderationHistory?.lastWarnedAt
-                            ? `Last warned ${formatRelative(detailsUser.moderationHistory.lastWarnedAt)}`
-                            : 'Never warned'}
+                            ? t('adminUsersPage.detail.lastWarned', { time: formatRelative(detailsUser.moderationHistory.lastWarnedAt) })
+                            : t('adminUsersPage.detail.neverWarned')}
                         >
                           {detailsUser.moderationHistory?.warnCount || 0}
                           {detailsUser.moderationHistory?.lastWarnedAt ? (
                             <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--admin-text-muted)', marginLeft: 6 }}>
-                              · last {formatRelative(detailsUser.moderationHistory.lastWarnedAt)}
+                              · {t('adminUsersPage.detail.lastTime', { time: formatRelative(detailsUser.moderationHistory.lastWarnedAt) })}
                             </span>
                           ) : null}
                         </span>
                       </div>
                       <div className="admin-mini-stat" style={{ gridColumn: '1 / -1' }}>
-                        <span className="admin-mini-stat-label">Current Roles</span>
+                        <span className="admin-mini-stat-label">{t('adminUsersPage.detail.currentRoles')}</span>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
                           {(detailsUser.roles || []).length === 0 ? (
-                            <span style={{ fontSize: 11.5, color: 'var(--admin-text-muted)' }}>None</span>
+                            <span style={{ fontSize: 11.5, color: 'var(--admin-text-muted)' }}>{t('adminUsersPage.detail.noRoles')}</span>
                           ) : (
                             (detailsUser.roles || []).map((roleName) => (
                               <span key={roleName} className={`admin-pill ${roleName.toLowerCase()}`}>
@@ -1140,7 +1153,7 @@ export default function AdminUsersPage() {
                   {/* ── Report activity ── */}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <h3 className="admin-card-title">Report Activity</h3>
+                      <h3 className="admin-card-title">{t('adminUsersPage.detail.reportActivity')}</h3>
                       <div style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -1151,7 +1164,7 @@ export default function AdminUsersPage() {
                         fontSize: 11,
                         fontWeight: 600,
                       }}>
-                        <span style={{ color: 'var(--admin-text-muted)' }}>False ratio</span>
+                        <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminUsersPage.detail.falseRatio')}</span>
                         <span style={{ color: falseRatioColor, fontVariantNumeric: 'tabular-nums' }}>
                           {formatPercent(falseRatio, 1)}
                         </span>
@@ -1175,42 +1188,42 @@ export default function AdminUsersPage() {
                   {/* ── Driver behavior + Occurrence risk ── */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <div style={{ padding: 14, border: '1px solid var(--admin-border)', borderRadius: 10, background: 'var(--admin-surface-2)' }}>
-                      <h3 className="admin-card-title">Driver Behavior</h3>
+                      <h3 className="admin-card-title">{t('adminUsersPage.detail.driverBehavior')}</h3>
                       {detailsUser.driverQuiz?.lastCompletedAt ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, fontSize: 12 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--admin-text-muted)' }}>Risk score</span>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminUsersPage.detail.riskScore')}</span>
                             <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                               {formatScore(detailsUser.driverQuiz.latestRiskScore)} / 100
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--admin-text-muted)' }}>Result</span>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminUsersPage.detail.result')}</span>
                             <span style={{ fontWeight: 600 }}>
                               {detailsUser.driverQuiz.latestResultTitle || detailsUser.driverQuiz.latestResultLabel || '—'}
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--admin-text-muted)' }}>Attempts</span>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminUsersPage.detail.attempts')}</span>
                             <span style={{ fontWeight: 600 }}>{detailsUser.driverQuiz.completedAttemptsCount}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--admin-text-muted)' }}>Last completed</span>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminUsersPage.detail.lastCompleted')}</span>
                             <span>{formatRelative(detailsUser.driverQuiz.lastCompletedAt)}</span>
                           </div>
                         </div>
                       ) : (
                         <p style={{ marginTop: 10, fontSize: 11.5, color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>
-                          No driver quiz completed yet.
+                          {t('adminUsersPage.detail.noQuiz')}
                         </p>
                       )}
                     </div>
                     <div style={{ padding: 14, border: '1px solid var(--admin-border)', borderRadius: 10, background: 'var(--admin-surface-2)' }}>
-                      <h3 className="admin-card-title">Latest Occurrence Risk</h3>
+                      <h3 className="admin-card-title">{t('adminUsersPage.detail.occurrenceRisk')}</h3>
                       {detailsUser.occurrenceRisk?.latestAt ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, fontSize: 12 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--admin-text-muted)' }}>Personalized</span>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminUsersPage.detail.personalized')}</span>
                             <span style={{ fontWeight: 700 }}>
                               {formatOccurrence(detailsUser.occurrenceRisk.latestPersonalizedScore)}
                               <span style={{ marginLeft: 6, fontSize: 10.5, color: 'var(--admin-text-muted)', textTransform: 'capitalize' }}>
@@ -1219,7 +1232,7 @@ export default function AdminUsersPage() {
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--admin-text-muted)' }}>Global</span>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminUsersPage.detail.global')}</span>
                             <span style={{ fontWeight: 700 }}>
                               {formatOccurrence(detailsUser.occurrenceRisk.latestGlobalScore)}
                               <span style={{ marginLeft: 6, fontSize: 10.5, color: 'var(--admin-text-muted)', textTransform: 'capitalize' }}>
@@ -1228,13 +1241,13 @@ export default function AdminUsersPage() {
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: 'var(--admin-text-muted)' }}>Recorded</span>
+                            <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminUsersPage.detail.recorded')}</span>
                             <span>{formatRelative(detailsUser.occurrenceRisk.latestAt)}</span>
                           </div>
                         </div>
                       ) : (
                         <p style={{ marginTop: 10, fontSize: 11.5, color: 'var(--admin-text-muted)', fontStyle: 'italic' }}>
-                          No occurrence-risk prediction yet.
+                          {t('adminUsersPage.detail.noOccurrenceRisk')}
                         </p>
                       )}
                     </div>
@@ -1243,16 +1256,16 @@ export default function AdminUsersPage() {
                   {/* ── Account Type editor ── */}
                   <div style={{ padding: 16, border: '1px solid var(--admin-border)', borderRadius: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-                      <h3 className="admin-card-title">Account Type</h3>
+                      <h3 className="admin-card-title">{t('adminUsersPage.detail.accountType')}</h3>
                       {rolesDirty && (
                         <span style={{ fontSize: 10.5, color: 'var(--admin-warning)', fontWeight: 600 }}>
-                          Unsaved changes
+                          {t('adminUsersPage.detail.unsavedChanges')}
                         </span>
                       )}
                     </div>
 
                     {availableRoles.length === 0 ? (
-                      <p style={{ fontSize: 12, color: 'var(--admin-text-muted)', marginTop: 10 }}>No roles available.</p>
+                      <p style={{ fontSize: 12, color: 'var(--admin-text-muted)', marginTop: 10 }}>{t('adminUsersPage.detail.noRolesAvailable')}</p>
                     ) : (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
                         {availableRoles.map((role) => {
@@ -1299,18 +1312,18 @@ export default function AdminUsersPage() {
                         onClick={saveRoles}
                         disabled={!rolesDirty || rolesSaving || editingRoles.size === 0}
                       >
-                        {rolesSaving ? 'Saving…' : 'Save Roles'}
+                        {rolesSaving ? t('adminUsersPage.detail.saving') : t('adminUsersPage.detail.saveRoles')}
                       </button>
                       <button
                         className="admin-btn admin-btn-sm admin-btn-ghost"
                         onClick={() => setEditingRoles(new Set(detailsUser.roles || []))}
                         disabled={!rolesDirty || rolesSaving}
                       >
-                        Reset
+                        {t('adminUsersPage.detail.resetRoles')}
                       </button>
                       {editingRoles.size === 0 && (
                         <span style={{ fontSize: 10.5, color: 'var(--admin-warning)', marginLeft: 'auto' }}>
-                          At least one role is required.
+                          {t('adminUsersPage.detail.roleRequired')}
                         </span>
                       )}
                     </div>
@@ -1319,7 +1332,7 @@ export default function AdminUsersPage() {
                   {/* ── Recent reports ── */}
                   {Array.isArray(detailsUser.recentReports) && detailsUser.recentReports.length > 0 && (
                     <div>
-                      <h3 className="admin-card-title" style={{ marginBottom: 8 }}>Recent Reports</h3>
+                      <h3 className="admin-card-title" style={{ marginBottom: 8 }}>{t('adminUsersPage.detail.recentReports')}</h3>
                       <div style={{ border: '1px solid var(--admin-border)', borderRadius: 8, overflow: 'hidden' }}>
                         {detailsUser.recentReports.map((report, index) => (
                           <div
@@ -1336,12 +1349,12 @@ export default function AdminUsersPage() {
                           >
                             <div style={{ minWidth: 0, flex: 1 }}>
                               <div style={{ fontWeight: 600, color: 'var(--admin-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {report.title || '(untitled)'}
+                                {report.title || t('adminUsersPage.detail.untitled')}
                               </div>
                               <div style={{ fontSize: 10.5, color: 'var(--admin-text-muted)', marginTop: 2 }}>
                                 {formatRelative(report.createdAt)}
                                 {report.latestPredictedLabel ? ` · ${report.latestPredictedLabel}` : ''}
-                                {report.reviewVerdict ? ` · verdict: ${report.reviewVerdict}` : ''}
+                                {report.reviewVerdict ? ` · ${t('adminUsersPage.detail.verdict', { verdict: report.reviewVerdict })}` : ''}
                               </div>
                             </div>
                             <span className={`admin-pill ${report.status}`}>{report.status}</span>
@@ -1362,18 +1375,18 @@ export default function AdminUsersPage() {
         const previewExpires = resolveWarningExpiresAt()
         const previewLabel =
           warnDuration === 'ack'
-            ? 'Stays visible until the user dismisses it'
+            ? t('adminUsersPage.warn.previewAck')
             : previewExpires === undefined
-              ? 'Pick a future date/time'
+              ? t('adminUsersPage.warn.pickFuture')
               : previewExpires === null
-                ? 'Until acknowledged'
-                : `Auto-clears on ${new Date(previewExpires).toLocaleString()}`
+                ? t('adminUsersPage.warn.untilAcknowledged')
+                : t('adminUsersPage.warn.autoClearsOn', { date: new Date(previewExpires).toLocaleString() })
         const presets = [
-          { key: 'ack', label: 'Until acknowledged' },
-          { key: '7d', label: '7 days' },
-          { key: '30d', label: '30 days' },
-          { key: '90d', label: '90 days' },
-          { key: 'custom', label: 'Custom date…' },
+          { key: 'ack', label: t('adminUsersPage.warn.presets.ack') },
+          { key: '7d', label: t('adminUsersPage.warn.presets.7d') },
+          { key: '30d', label: t('adminUsersPage.warn.presets.30d') },
+          { key: '90d', label: t('adminUsersPage.warn.presets.90d') },
+          { key: 'custom', label: t('adminUsersPage.warn.presets.custom') },
         ]
         return (
           <div
@@ -1400,25 +1413,25 @@ export default function AdminUsersPage() {
               }}>
                 <div>
                   <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--admin-warning)' }}>
-                    Warn user
+                    {t('adminUsersPage.warn.title')}
                   </h2>
                   <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'var(--admin-text-muted)' }}>
                     {warnModalUser.name} · {warnModalUser.email || warnModalUser.phone || '—'}
                   </p>
                 </div>
-                <button className="admin-btn admin-btn-icon admin-btn-ghost" onClick={closeWarnModal} aria-label="Close">×</button>
+                <button className="admin-btn admin-btn-icon admin-btn-ghost" onClick={closeWarnModal} aria-label={t('common:actions.close')}>×</button>
               </div>
 
               <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 6 }}>
-                    Reason (shown to the user)
+                    {t('adminUsersPage.warn.reasonLabel')}
                   </label>
                   <textarea
                     className="admin-textarea"
                     value={warnReason}
                     onChange={(e) => setWarnReason(e.target.value)}
-                    placeholder="e.g. Posted an unverified incident with missing details"
+                    placeholder={t('adminUsersPage.warn.reasonPlaceholder')}
                     disabled={warnSubmitting}
                     rows={3}
                     style={{ width: '100%', fontSize: 12, resize: 'vertical' }}
@@ -1427,7 +1440,7 @@ export default function AdminUsersPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 8 }}>
-                    Auto-clear after
+                    {t('adminUsersPage.warn.autoClearAfter')}
                   </label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {presets.map((preset) => {
@@ -1459,7 +1472,7 @@ export default function AdminUsersPage() {
                 {warnDuration === 'custom' && (
                   <div>
                     <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 6 }}>
-                      Clear on
+                      {t('adminUsersPage.warn.clearOn')}
                     </label>
                     <input
                       type="datetime-local"
@@ -1480,9 +1493,9 @@ export default function AdminUsersPage() {
                   fontSize: 11.5,
                   color: 'var(--admin-warning)',
                 }}>
-                  <strong>How it shows:</strong> {previewLabel}
+                  <strong>{t('adminUsersPage.warn.howItShows')}</strong> {previewLabel}
                   <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
-                    A yellow banner appears at the top of every page for this user. They can still post and comment.
+                    {t('adminUsersPage.warn.bannerNote')}
                   </div>
                 </div>
               </div>
@@ -1495,14 +1508,14 @@ export default function AdminUsersPage() {
                 justifyContent: 'flex-end',
               }}>
                 <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={closeWarnModal} disabled={warnSubmitting}>
-                  Cancel
+                  {t('common:actions.cancel')}
                 </button>
                 <button
                   className="admin-btn admin-btn-sm admin-btn-warning"
                   onClick={confirmWarn}
                   disabled={warnSubmitting || !warnReason.trim() || (warnDuration === 'custom' && !warnCustomUntil)}
                 >
-                  {warnSubmitting ? 'Sending…' : 'Send warning'}
+                  {warnSubmitting ? t('adminUsersPage.warn.sending') : t('adminUsersPage.warn.sendWarning')}
                 </button>
               </div>
             </div>
@@ -1514,18 +1527,18 @@ export default function AdminUsersPage() {
       {banModalUser && (() => {
         const previewUntil = resolveBannedUntil()
         const previewLabel = banDuration === 'permanent'
-          ? 'Permanent (user cannot log in ever again)'
+          ? t('adminUsersPage.ban.previewPermanent')
           : previewUntil === undefined
-            ? 'Pick a future date/time'
+            ? t('adminUsersPage.ban.pickFuture')
             : new Date(previewUntil).toLocaleString()
         const presets = [
-          { key: '1h', label: '1 hour' },
-          { key: '24h', label: '24 hours' },
-          { key: '7d', label: '7 days' },
-          { key: '30d', label: '30 days' },
-          { key: '6mo', label: '6 months' },
-          { key: 'custom', label: 'Custom date…' },
-          { key: 'permanent', label: 'Permanent' },
+          { key: '1h', label: t('adminUsersPage.ban.presets.1h') },
+          { key: '24h', label: t('adminUsersPage.ban.presets.24h') },
+          { key: '7d', label: t('adminUsersPage.ban.presets.7d') },
+          { key: '30d', label: t('adminUsersPage.ban.presets.30d') },
+          { key: '6mo', label: t('adminUsersPage.ban.presets.6mo') },
+          { key: 'custom', label: t('adminUsersPage.ban.presets.custom') },
+          { key: 'permanent', label: t('adminUsersPage.ban.presets.permanent') },
         ]
         return (
           <div
@@ -1552,19 +1565,19 @@ export default function AdminUsersPage() {
               }}>
                 <div>
                   <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--admin-danger)' }}>
-                    Ban user
+                    {t('adminUsersPage.ban.title')}
                   </h2>
                   <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'var(--admin-text-muted)' }}>
                     {banModalUser.name} · {banModalUser.email || banModalUser.phone || '—'}
                   </p>
                 </div>
-                <button className="admin-btn admin-btn-icon admin-btn-ghost" onClick={closeBanModal} aria-label="Close">×</button>
+                <button className="admin-btn admin-btn-icon admin-btn-ghost" onClick={closeBanModal} aria-label={t('common:actions.close')}>×</button>
               </div>
 
               <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 8 }}>
-                    Ban duration
+                    {t('adminUsersPage.ban.durationLabel')}
                   </label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {presets.map((preset) => {
@@ -1601,7 +1614,7 @@ export default function AdminUsersPage() {
                 {banDuration === 'custom' && (
                   <div>
                     <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 6 }}>
-                      Ban until
+                      {t('adminUsersPage.ban.banUntil')}
                     </label>
                     <input
                       type="datetime-local"
@@ -1616,13 +1629,13 @@ export default function AdminUsersPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--admin-text-muted)', marginBottom: 6 }}>
-                    Reason (shown to the user)
+                    {t('adminUsersPage.ban.reasonLabel')}
                   </label>
                   <textarea
                     className="admin-textarea"
                     value={banReason}
                     onChange={(e) => setBanReason(e.target.value)}
-                    placeholder="e.g. Repeatedly posted false incidents"
+                    placeholder={t('adminUsersPage.ban.reasonPlaceholder')}
                     disabled={banSubmitting}
                     rows={3}
                     style={{ width: '100%', fontSize: 12, resize: 'vertical' }}
@@ -1637,10 +1650,10 @@ export default function AdminUsersPage() {
                   fontSize: 11.5,
                   color: banDuration === 'permanent' ? 'var(--admin-danger)' : 'var(--admin-text-secondary)',
                 }}>
-                  <strong>{banDuration === 'permanent' ? 'Permanent ban' : 'Effective until'}:</strong> {previewLabel}
+                  <strong>{banDuration === 'permanent' ? t('adminUsersPage.ban.permanentBan') : t('adminUsersPage.ban.effectiveUntil')}:</strong> {previewLabel}
                   {banDuration !== 'permanent' && (
                     <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
-                      User can still log in to see the ban notice but cannot post or comment until then.
+                      {t('adminUsersPage.ban.canLoginNote')}
                     </div>
                   )}
                 </div>
@@ -1654,14 +1667,14 @@ export default function AdminUsersPage() {
                 justifyContent: 'flex-end',
               }}>
                 <button className="admin-btn admin-btn-sm admin-btn-ghost" onClick={closeBanModal} disabled={banSubmitting}>
-                  Cancel
+                  {t('common:actions.cancel')}
                 </button>
                 <button
                   className="admin-btn admin-btn-sm admin-btn-danger"
                   onClick={confirmBan}
                   disabled={banSubmitting || (banDuration === 'custom' && !banCustomUntil)}
                 >
-                  {banSubmitting ? 'Banning…' : (banDuration === 'permanent' ? 'Ban permanently' : 'Apply ban')}
+                  {banSubmitting ? t('adminUsersPage.ban.banning') : (banDuration === 'permanent' ? t('adminUsersPage.ban.banPermanently') : t('adminUsersPage.ban.applyBan'))}
                 </button>
               </div>
             </div>

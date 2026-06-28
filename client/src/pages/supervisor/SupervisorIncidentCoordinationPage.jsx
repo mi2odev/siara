@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import FancySelect from '../../components/ui/FancySelect'
@@ -12,10 +13,10 @@ import {
 } from '../../services/policeService'
 import '../../styles/SupervisorMode.css'
 
-function severityLabel(hint) {
-  if (hint >= 4) return 'High'
-  if (hint === 3) return 'Medium'
-  return 'Low'
+function severityLabel(hint, t) {
+  if (hint >= 4) return t('supervisorIncidentCoordinationPage.severity.high')
+  if (hint === 3) return t('supervisorIncidentCoordinationPage.severity.medium')
+  return t('supervisorIncidentCoordinationPage.severity.low')
 }
 
 function severityClass(hint) {
@@ -28,17 +29,18 @@ function statusLabel(status) {
   return String(status || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function formatRelative(value) {
+function formatRelative(value, t) {
   if (!value) return '—'
   const diff = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000))
-  if (diff < 1) return 'Just now'
-  if (diff < 60) return `${diff}m ago`
+  if (diff < 1) return t('supervisorIncidentCoordinationPage.time.justNow')
+  if (diff < 60) return t('supervisorIncidentCoordinationPage.time.minutesAgo', { count: diff })
   const h = Math.floor(diff / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
+  if (h < 24) return t('supervisorIncidentCoordinationPage.time.hoursAgo', { count: h })
+  return t('supervisorIncidentCoordinationPage.time.daysAgo', { count: Math.floor(h / 24) })
 }
 
 export default function SupervisorIncidentCoordinationPage() {
+  const { t } = useTranslation(['supervisor', 'common'])
   const navigate = useNavigate()
 
   const [incidents, setIncidents] = useState([])
@@ -67,11 +69,11 @@ export default function SupervisorIncidentCoordinationPage() {
       setIncidents(incResult.items || [])
       setError(null)
     } catch (err) {
-      setError(err.message || 'Failed to load coordination data')
+      setError(err.message || t('supervisorIncidentCoordinationPage.errors.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   const loadAssignableOfficers = useCallback(async (incidentId) => {
     if (!incidentId) return
@@ -83,13 +85,13 @@ export default function SupervisorIncidentCoordinationPage() {
     } catch (err) {
       setOfficersError((prev) => ({
         ...prev,
-        [incidentId]: err.message || 'Failed to load officers',
+        [incidentId]: err.message || t('supervisorIncidentCoordinationPage.errors.loadOfficersFailed'),
       }))
       setOfficersByIncident((prev) => ({ ...prev, [incidentId]: [] }))
     } finally {
       setOfficersLoading((prev) => ({ ...prev, [incidentId]: false }))
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     load()
@@ -111,12 +113,12 @@ export default function SupervisorIncidentCoordinationPage() {
     setAssigning((prev) => ({ ...prev, [incidentId]: true }))
     try {
       await assignIncidentToOfficer(incidentId, { officerUserId: officerId })
-      showToast('Officer assigned successfully')
+      showToast(t('supervisorIncidentCoordinationPage.toast.assignSuccess'))
       await load()
       await loadAssignableOfficers(incidentId)
       setSelectedOfficer((prev) => ({ ...prev, [incidentId]: '' }))
     } catch (err) {
-      showToast(err.message || 'Assignment failed', 'error')
+      showToast(err.message || t('supervisorIncidentCoordinationPage.toast.assignFailed'), 'error')
     } finally {
       setAssigning((prev) => ({ ...prev, [incidentId]: false }))
     }
@@ -126,12 +128,12 @@ export default function SupervisorIncidentCoordinationPage() {
     const distance =
       off.distanceLabel
       || (off.distanceMeters == null
-        ? 'Location unavailable'
+        ? t('supervisorIncidentCoordinationPage.officer.locationUnavailable')
         : off.distanceMeters < 1000
-          ? `${Math.round(off.distanceMeters)} m away`
-          : `${(off.distanceMeters / 1000).toFixed(1)} km away`)
+          ? t('supervisorIncidentCoordinationPage.officer.metersAway', { meters: Math.round(off.distanceMeters) })
+          : t('supervisorIncidentCoordinationPage.officer.kmAway', { km: (off.distanceMeters / 1000).toFixed(1) }))
     const badge = off.badgeNumber ? ` (${off.badgeNumber})` : ''
-    const dutyTag = off.isOnDuty ? '' : ' — Off duty'
+    const dutyTag = off.isOnDuty ? '' : ` — ${t('supervisorIncidentCoordinationPage.officer.offDuty')}`
     return `${off.name}${badge} — ${distance}${dutyTag}`
   }
 
@@ -157,12 +159,12 @@ export default function SupervisorIncidentCoordinationPage() {
       <div className="supervisor-page">
         <div className="sv-page-header">
           <div className="sv-page-title-block">
-            <span className="sv-page-eyebrow">Supervisor — Operations</span>
-            <h1 className="sv-page-title">Incident Coordination</h1>
-            <p className="sv-page-subtitle">Assign and coordinate officer responses to active incidents</p>
+            <span className="sv-page-eyebrow">{t('supervisorIncidentCoordinationPage.eyebrow')}</span>
+            <h1 className="sv-page-title">{t('supervisorIncidentCoordinationPage.title')}</h1>
+            <p className="sv-page-subtitle">{t('supervisorIncidentCoordinationPage.subtitle')}</p>
           </div>
           <div className="sv-page-actions">
-            <button className="sv-btn sv-btn-ghost sv-btn-refresh" onClick={load} disabled={loading}><RefreshRoundedIcon fontSize="inherit" /> Refresh</button>
+            <button className="sv-btn sv-btn-ghost sv-btn-refresh" onClick={load} disabled={loading}><RefreshRoundedIcon fontSize="inherit" /> {t('supervisorIncidentCoordinationPage.actions.refresh')}</button>
           </div>
         </div>
 
@@ -173,7 +175,7 @@ export default function SupervisorIncidentCoordinationPage() {
           <input
             className="sv-search-input"
             type="search"
-            placeholder="Search incidents..."
+            placeholder={t('supervisorIncidentCoordinationPage.filters.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -184,7 +186,7 @@ export default function SupervisorIncidentCoordinationPage() {
                 className={`sv-filter-btn ${statusFilter === s ? 'active' : ''}`}
                 onClick={() => setStatusFilter(s)}
               >
-                {s === 'all' ? 'All Statuses' : statusLabel(s)}
+                {s === 'all' ? t('supervisorIncidentCoordinationPage.filters.allStatuses') : statusLabel(s)}
               </button>
             ))}
           </div>
@@ -195,26 +197,26 @@ export default function SupervisorIncidentCoordinationPage() {
                 className={`sv-filter-btn ${severityFilter === s ? 'active' : ''}`}
                 onClick={() => setSeverityFilter(s)}
               >
-                {s === 'all' ? 'All Severity' : s.charAt(0).toUpperCase() + s.slice(1)}
+                {s === 'all' ? t('supervisorIncidentCoordinationPage.filters.allSeverity') : severityLabel(s === 'high' ? 4 : s === 'medium' ? 3 : 1, t)}
               </button>
             ))}
           </div>
         </div>
 
         {loading ? (
-          <div className="sv-loading"><div className="sv-loading-spinner" /><span>Loading incidents...</span></div>
+          <div className="sv-loading"><div className="sv-loading-spinner" /><span>{t('supervisorIncidentCoordinationPage.loadingIncidents')}</span></div>
         ) : filteredIncidents.length === 0 ? (
           <div className="sv-section">
             <div className="sv-empty">
               <span className="sv-empty-icon"><AssignmentOutlinedIcon fontSize="inherit" /></span>
-              No incidents match the current filters
+              {t('supervisorIncidentCoordinationPage.emptyState')}
             </div>
           </div>
         ) : (
           <div className="sv-section">
             <div className="sv-section-head">
               <h2 className="sv-section-title">
-                Active Incidents
+                {t('supervisorIncidentCoordinationPage.activeIncidents')}
                 <span className="sv-badge sv-badge-primary" style={{ marginLeft: 8 }}>
                   {filteredIncidents.length}
                 </span>
@@ -224,13 +226,13 @@ export default function SupervisorIncidentCoordinationPage() {
               <table className="sv-table">
                 <thead>
                   <tr>
-                    <th>Incident</th>
-                    <th>Location</th>
-                    <th>Severity</th>
-                    <th>Status</th>
-                    <th>Assigned To</th>
-                    <th>Reported</th>
-                    <th>Assign Officer</th>
+                    <th>{t('supervisorIncidentCoordinationPage.table.incident')}</th>
+                    <th>{t('supervisorIncidentCoordinationPage.table.location')}</th>
+                    <th>{t('supervisorIncidentCoordinationPage.table.severity')}</th>
+                    <th>{t('supervisorIncidentCoordinationPage.table.status')}</th>
+                    <th>{t('supervisorIncidentCoordinationPage.table.assignedTo')}</th>
+                    <th>{t('supervisorIncidentCoordinationPage.table.reported')}</th>
+                    <th>{t('supervisorIncidentCoordinationPage.table.assignOfficer')}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -252,7 +254,7 @@ export default function SupervisorIncidentCoordinationPage() {
                         </td>
                         <td>
                           <span className={`sv-badge sv-badge-${sev}`}>
-                            {severityLabel(inc.severityHint)}
+                            {severityLabel(inc.severityHint, t)}
                           </span>
                         </td>
                         <td>
@@ -262,11 +264,11 @@ export default function SupervisorIncidentCoordinationPage() {
                         </td>
                         <td style={{ fontSize: 12 }}>
                           {inc.assignedOfficer?.name || (
-                            <span style={{ color: 'var(--sv-text-muted)', fontStyle: 'italic' }}>Unassigned</span>
+                            <span style={{ color: 'var(--sv-text-muted)', fontStyle: 'italic' }}>{t('supervisorIncidentCoordinationPage.table.unassigned')}</span>
                           )}
                         </td>
                         <td style={{ fontSize: 11, color: 'var(--sv-text-muted)' }}>
-                          {formatRelative(inc.occurredAt || inc.createdAt)}
+                          {formatRelative(inc.occurredAt || inc.createdAt, t)}
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -284,14 +286,14 @@ export default function SupervisorIncidentCoordinationPage() {
                               if (isOfficersLoading || list == null) {
                                 return (
                                   <span style={{ fontSize: 11, color: 'var(--sv-text-muted)' }}>
-                                    Loading…
+                                    {t('common:actions.loading')}
                                   </span>
                                 )
                               }
                               if (list.length === 0) {
                                 return (
                                   <span style={{ fontSize: 11, color: 'var(--sv-text-muted)' }}>
-                                    No officers in your commune
+                                    {t('supervisorIncidentCoordinationPage.officer.noneInCommune')}
                                   </span>
                                 )
                               }
@@ -303,7 +305,7 @@ export default function SupervisorIncidentCoordinationPage() {
                                   }
                                   menuAlign="left"
                                   options={[
-                                    { value: '', label: 'Select officer...' },
+                                    { value: '', label: t('supervisorIncidentCoordinationPage.officer.selectPlaceholder') },
                                     ...list.map((off) => ({
                                       value: off.id,
                                       label: renderOfficerOption(off),
@@ -317,7 +319,7 @@ export default function SupervisorIncidentCoordinationPage() {
                               onClick={() => handleAssign(inc.id)}
                               disabled={!selectedOfficer[inc.id] || assigning[inc.id]}
                             >
-                              {assigning[inc.id] ? '...' : 'Assign'}
+                              {assigning[inc.id] ? '...' : t('supervisorIncidentCoordinationPage.actions.assign')}
                             </button>
                           </div>
                         </td>
@@ -327,7 +329,7 @@ export default function SupervisorIncidentCoordinationPage() {
                             style={{ fontSize: 11, padding: '4px 10px' }}
                             onClick={() => navigate(`/police/incident/${inc.id}`)}
                           >
-                            View
+                            {t('supervisorIncidentCoordinationPage.actions.view')}
                           </button>
                         </td>
                       </tr>

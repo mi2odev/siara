@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import StarRoundedIcon from '@mui/icons-material/StarRounded'
 import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded'
 import {
@@ -53,10 +54,10 @@ function formatRiskLabel(level, percent) {
   return text ? `${percentText} (${text})` : percentText
 }
 
-function StarRow({ value, onChange, disabled }) {
+function StarRow({ value, onChange, disabled, t }) {
   const stars = [1, 2, 3, 4, 5]
   return (
-    <div className="th-star-row" role="radiogroup" aria-label="Trip rating">
+    <div className="th-star-row" role="radiogroup" aria-label={t('travelHistoryDetailModal.tripRatingAriaLabel')}>
       {stars.map((star) => {
         const filled = Number(value) >= star
         return (
@@ -80,6 +81,7 @@ function StarRow({ value, onChange, disabled }) {
 }
 
 export default function TravelHistoryDetailModal({ tripId, open, onClose, onRatingUpdated }) {
+  const { t } = useTranslation(['pages', 'common'])
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -105,7 +107,7 @@ export default function TravelHistoryDetailModal({ tripId, open, onClose, onRati
       })
       .catch((err) => {
         if (cancelled) return
-        setError(err.message || 'Failed to load trip details')
+        setError(err.message || t('travelHistoryDetailModal.errorLoadFailed'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -130,79 +132,79 @@ export default function TravelHistoryDetailModal({ tripId, open, onClose, onRati
       setError('')
       setSavedMessage('')
       await updateTravelHistoryRating(detail.id, rating, feedback)
-      setSavedMessage('Saved')
+      setSavedMessage(t('travelHistoryDetailModal.saved'))
       onRatingUpdated?.(detail.id, { rating, feedbackText: feedback })
     } catch (err) {
-      setError(err.message || 'Failed to update rating')
+      setError(err.message || t('travelHistoryDetailModal.errorUpdateFailed'))
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <div className="th-modal-overlay" role="dialog" aria-modal="true" aria-label="Trip details">
+    <div className="th-modal-overlay" role="dialog" aria-modal="true" aria-label={t('travelHistoryDetailModal.tripDetails')}>
       <div className="th-modal-backdrop" onClick={onClose} />
       <div className="th-modal-panel">
         <header className="th-modal-header">
           <div>
             <h3 className="th-modal-title">
-              {detail?.destination?.name || 'Trip details'}
+              {detail?.destination?.name || t('travelHistoryDetailModal.tripDetails')}
             </h3>
             <p className="th-modal-sub">
-              {detail?.origin?.name ? `From ${detail.origin.name}` : 'Saved trip'}
+              {detail?.origin?.name ? t('travelHistoryDetailModal.fromOrigin', { name: detail.origin.name }) : t('travelHistoryDetailModal.savedTrip')}
             </p>
           </div>
-          <button type="button" className="th-modal-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="th-modal-close" onClick={onClose} aria-label={t('common:actions.close')}>
             ×
           </button>
         </header>
 
         <div className="th-modal-body">
           {loading ? (
-            <p className="ud-forecast-caption">Loading trip details…</p>
+            <p className="ud-forecast-caption">{t('travelHistoryDetailModal.loadingTripDetails')}</p>
           ) : error ? (
             <p className="ud-forecast-caption" role="alert">{error}</p>
           ) : !detail ? (
-            <p className="ud-forecast-caption">Trip not found.</p>
+            <p className="ud-forecast-caption">{t('travelHistoryDetailModal.tripNotFound')}</p>
           ) : (
             <>
               <div className="th-summary-grid">
                 <div className="th-summary-item">
-                  <span className="th-summary-label">From</span>
+                  <span className="th-summary-label">{t('travelHistoryDetailModal.labelFrom')}</span>
                   <strong className="th-summary-value">
                     {detail.origin?.name || `${detail.origin?.lat?.toFixed(4)}, ${detail.origin?.lng?.toFixed(4)}`}
                   </strong>
                 </div>
                 <div className="th-summary-item">
-                  <span className="th-summary-label">To</span>
+                  <span className="th-summary-label">{t('travelHistoryDetailModal.labelTo')}</span>
                   <strong className="th-summary-value">
                     {detail.destination?.name || `${detail.destination?.lat?.toFixed(4)}, ${detail.destination?.lng?.toFixed(4)}`}
                   </strong>
                 </div>
                 <div className="th-summary-item">
-                  <span className="th-summary-label">Started</span>
+                  <span className="th-summary-label">{t('travelHistoryDetailModal.labelStarted')}</span>
                   <strong className="th-summary-value">{formatDateTime(detail.startedAt)}</strong>
                 </div>
                 <div className="th-summary-item">
-                  <span className="th-summary-label">Arrived</span>
+                  <span className="th-summary-label">{t('travelHistoryDetailModal.labelArrived')}</span>
                   <strong className="th-summary-value">{formatDateTime(detail.arrivedAt)}</strong>
                 </div>
                 <div className="th-summary-item">
-                  <span className="th-summary-label">Duration</span>
+                  <span className="th-summary-label">{t('travelHistoryDetailModal.labelDuration')}</span>
                   <strong className="th-summary-value">{formatDuration(detail.durationSeconds)}</strong>
                 </div>
                 <div className="th-summary-item">
-                  <span className="th-summary-label">Distance</span>
+                  <span className="th-summary-label">{t('travelHistoryDetailModal.labelDistance')}</span>
                   <strong className="th-summary-value">{formatDistance(detail.distanceKm)}</strong>
                 </div>
                 <div className="th-summary-item">
-                  <span className="th-summary-label">Route type</span>
+                  <span className="th-summary-label">{t('travelHistoryDetailModal.labelRouteType')}</span>
                   <strong className="th-summary-value">
                     {detail.routeType || routeSnapshot.route_type || '—'}
                   </strong>
                 </div>
                 <div className="th-summary-item">
-                  <span className="th-summary-label">Overall risk</span>
+                  <span className="th-summary-label">{t('travelHistoryDetailModal.labelOverallRisk')}</span>
                   <strong className={`th-risk-badge ${riskTone(detail.overallRiskLevel, detail.overallRiskPercent)}`}>
                     {formatRiskLabel(detail.overallRiskLevel, detail.overallRiskPercent)}
                   </strong>
@@ -210,12 +212,12 @@ export default function TravelHistoryDetailModal({ tripId, open, onClose, onRati
               </div>
 
               <div className="th-rating-block">
-                <div className="th-rating-label">Your rating</div>
-                <StarRow value={rating} onChange={setRating} disabled={saving} />
+                <div className="th-rating-label">{t('travelHistoryDetailModal.yourRating')}</div>
+                <StarRow value={rating} onChange={setRating} disabled={saving} t={t} />
                 <textarea
                   className="th-feedback-textarea"
                   rows={3}
-                  placeholder="Share feedback about this trip (optional)"
+                  placeholder={t('travelHistoryDetailModal.feedbackPlaceholder')}
                   value={feedback}
                   onChange={(event) => setFeedback(event.target.value)}
                   disabled={saving}
@@ -227,7 +229,7 @@ export default function TravelHistoryDetailModal({ tripId, open, onClose, onRati
                     onClick={handleSaveRating}
                     disabled={saving || (rating == null && !feedback)}
                   >
-                    {saving ? 'Saving…' : 'Save rating'}
+                    {saving ? t('travelHistoryDetailModal.saving') : t('travelHistoryDetailModal.saveRating')}
                   </button>
                   {savedMessage && (
                     <span className="th-rating-saved">{savedMessage}</span>
@@ -245,7 +247,7 @@ export default function TravelHistoryDetailModal({ tripId, open, onClose, onRati
                     className="ud-link-btn"
                     onClick={() => setReplayOpen((prev) => !prev)}
                   >
-                    {replayOpen ? 'Hide replay' : 'Replay trip'}
+                    {replayOpen ? t('travelHistoryDetailModal.hideReplay') : t('travelHistoryDetailModal.replayTrip')}
                   </button>
                 </div>
                 {replayOpen ? <RouteReplayMap trip={detail} /> : null}
@@ -253,21 +255,21 @@ export default function TravelHistoryDetailModal({ tripId, open, onClose, onRati
 
               <div className="th-segments-block">
                 <h4 className="ud-mini-title" style={{ marginBottom: 8 }}>
-                  Road segments ({segments.length})
+                  {t('travelHistoryDetailModal.roadSegments', { count: segments.length })}
                 </h4>
                 {segments.length === 0 ? (
-                  <p className="ud-forecast-caption">No segment data was captured for this trip.</p>
+                  <p className="ud-forecast-caption">{t('travelHistoryDetailModal.noSegmentData')}</p>
                 ) : (
                   <div className="ud-table-wrapper">
                     <table className="ud-table">
                       <thead>
                         <tr>
-                          <th>#</th>
-                          <th>Segment</th>
-                          <th>Distance</th>
-                          <th>Risk</th>
-                          <th>Window</th>
-                          <th>Time</th>
+                          <th>{t('travelHistoryDetailModal.colIndex')}</th>
+                          <th>{t('travelHistoryDetailModal.colSegment')}</th>
+                          <th>{t('travelHistoryDetailModal.colDistance')}</th>
+                          <th>{t('travelHistoryDetailModal.colRisk')}</th>
+                          <th>{t('travelHistoryDetailModal.colWindow')}</th>
+                          <th>{t('travelHistoryDetailModal.colTime')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -289,8 +291,8 @@ export default function TravelHistoryDetailModal({ tripId, open, onClose, onRati
                             segment?.name ||
                             segment?.ref ||
                             (segment?.segment_id != null
-                              ? `Segment ${segment.segment_id}`
-                              : `Segment ${segment?.index || index + 1}`)
+                              ? t('travelHistoryDetailModal.segmentId', { id: segment.segment_id })
+                              : t('travelHistoryDetailModal.segmentIndex', { index: segment?.index || index + 1 }))
                           return (
                             <tr key={`${segment?.segment_id || segment?.index || index}`}>
                               <td className="ud-road-rank">{segment?.index || index + 1}</td>

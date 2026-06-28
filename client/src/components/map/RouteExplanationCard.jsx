@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined'
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
 import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
@@ -87,6 +88,7 @@ export default function RouteExplanationCard({
   details = '',
   onRetry,
 }) {
+  const { t } = useTranslation(['map', 'common'])
   const [showDetails, setShowDetails] = useState(false)
 
   const tier = useMemo(
@@ -96,7 +98,7 @@ export default function RouteExplanationCard({
 
   const recommendedLabel = recommendedRouteType
     ? recommendedRouteType.charAt(0).toUpperCase() + recommendedRouteType.slice(1)
-    : 'Recommended'
+    : t('routeExplanationCard.recommended')
 
   if (loading) {
     return (
@@ -104,18 +106,18 @@ export default function RouteExplanationCard({
         className="siara-route-explanation"
         role="status"
         aria-live="polite"
-        aria-label="Calculating route explanation"
+        aria-label={t('routeExplanationCard.ariaCalculating')}
       >
         <div className="siara-route-explanation__header">
           <span className="siara-route-explanation__icon" aria-hidden="true">
             <ExploreOutlinedIcon fontSize="inherit" />
           </span>
-          <h4 className="siara-route-explanation__title">Why this route?</h4>
+          <h4 className="siara-route-explanation__title">{t('routeExplanationCard.title')}</h4>
         </div>
         <div className="siara-route-explanation__skeleton" />
         <div className="siara-route-explanation__skeleton siara-route-explanation__skeleton--short" />
         <div className="siara-route-explanation__skeleton" />
-        <p className="siara-route-explanation__hint">Analysing risk factors…</p>
+        <p className="siara-route-explanation__hint">{t('routeExplanationCard.analysingHint')}</p>
       </div>
     )
   }
@@ -125,13 +127,13 @@ export default function RouteExplanationCard({
       <div
         className="siara-route-explanation"
         role="alert"
-        aria-label="Route explanation error"
+        aria-label={t('routeExplanationCard.ariaError')}
       >
         <div className="siara-route-explanation__header">
           <span className="siara-route-explanation__icon" aria-hidden="true">
             <ExploreOutlinedIcon fontSize="inherit" />
           </span>
-          <h4 className="siara-route-explanation__title">Why this route?</h4>
+          <h4 className="siara-route-explanation__title">{t('routeExplanationCard.title')}</h4>
         </div>
         <p className="siara-route-explanation__error">{error}</p>
         {onRetry ? (
@@ -140,7 +142,7 @@ export default function RouteExplanationCard({
             className="siara-route-explanation__toggle"
             onClick={onRetry}
           >
-            Retry explanation
+            {t('routeExplanationCard.retryExplanation')}
           </button>
         ) : null}
       </div>
@@ -157,15 +159,15 @@ export default function RouteExplanationCard({
 
   if (!hasSummary && !hasReasons && !hasComparison) {
     return (
-      <div className="siara-route-explanation" aria-label="No route explanation">
+      <div className="siara-route-explanation" aria-label={t('routeExplanationCard.ariaEmpty')}>
         <div className="siara-route-explanation__header">
           <span className="siara-route-explanation__icon" aria-hidden="true">
             <ExploreOutlinedIcon fontSize="inherit" />
           </span>
-          <h4 className="siara-route-explanation__title">Why this route?</h4>
+          <h4 className="siara-route-explanation__title">{t('routeExplanationCard.title')}</h4>
         </div>
         <p className="siara-route-explanation__hint">
-          No risk explanation available for this route yet.
+          {t('routeExplanationCard.emptyHint')}
         </p>
       </div>
     )
@@ -175,13 +177,13 @@ export default function RouteExplanationCard({
     <section
       className="siara-route-explanation"
       role="region"
-      aria-label="Route recommendation explanation"
+      aria-label={t('routeExplanationCard.ariaRegion')}
     >
       <div className="siara-route-explanation__header">
         <span className="siara-route-explanation__icon" aria-hidden="true">
           <ExploreOutlinedIcon fontSize="inherit" />
         </span>
-        <h4 className="siara-route-explanation__title">Why this route?</h4>
+        <h4 className="siara-route-explanation__title">{t('routeExplanationCard.title')}</h4>
         <span className={`siara-route-explanation__badge risk-${tier}`}>
           {recommendedLabel}
         </span>
@@ -192,13 +194,13 @@ export default function RouteExplanationCard({
       ) : null}
 
       {hasComparison ? (
-        <div className="siara-route-explanation__compare" aria-label="Route risk comparison">
+        <div className="siara-route-explanation__compare" aria-label={t('routeExplanationCard.ariaComparison')}>
           <div className="siara-route-explanation__compare-cell">
-            <span className="siara-route-explanation__compare-label">Fastest</span>
+            <span className="siara-route-explanation__compare-label">{t('routeExplanationCard.fastest')}</span>
             <span className="siara-route-explanation__compare-value">
               {formatRiskPercent(comparison.fastestRisk)}
             </span>
-            <span className="siara-route-explanation__compare-sub">risk</span>
+            <span className="siara-route-explanation__compare-sub">{t('routeExplanationCard.risk')}</span>
           </div>
           <div
             className={`siara-route-explanation__compare-cell ${
@@ -207,11 +209,11 @@ export default function RouteExplanationCard({
                 : ''
             }`}
           >
-            <span className="siara-route-explanation__compare-label">Balanced</span>
+            <span className="siara-route-explanation__compare-label">{t('routeExplanationCard.balanced')}</span>
             <span className="siara-route-explanation__compare-value">
               {formatRiskPercent(comparison.balancedRisk)}
             </span>
-            <span className="siara-route-explanation__compare-sub">risk</span>
+            <span className="siara-route-explanation__compare-sub">{t('routeExplanationCard.risk')}</span>
           </div>
           <div
             className={`siara-route-explanation__compare-cell ${
@@ -220,14 +222,14 @@ export default function RouteExplanationCard({
                 : ''
             }`}
           >
-            <span className="siara-route-explanation__compare-label">Safest</span>
+            <span className="siara-route-explanation__compare-label">{t('routeExplanationCard.safest')}</span>
             <span className="siara-route-explanation__compare-value">
               {formatRiskPercent(comparison.safestRisk)}
             </span>
             <span className="siara-route-explanation__compare-sub">
               {Number.isFinite(Number(comparison.safestExtraMinutes))
                 ? `+${formatMinutes(comparison.safestExtraMinutes)}`
-                : 'risk'}
+                : t('routeExplanationCard.risk')}
             </span>
           </div>
         </div>
@@ -247,7 +249,7 @@ export default function RouteExplanationCard({
                 </span>
                 <div className="siara-route-explanation__reason-body">
                   <span className="siara-route-explanation__reason-label">
-                    {reason?.label || 'Risk factor'}
+                    {reason?.label || t('routeExplanationCard.riskFactor')}
                   </span>
                   {reason?.detail ? (
                     <span className="siara-route-explanation__reason-detail">
@@ -276,7 +278,7 @@ export default function RouteExplanationCard({
             onClick={() => setShowDetails(prev => !prev)}
             aria-expanded={showDetails}
           >
-            {showDetails ? 'Hide details' : 'View details'}
+            {showDetails ? t('routeExplanationCard.hideDetails') : t('routeExplanationCard.viewDetails')}
           </button>
           {showDetails ? (
             <div className="siara-route-explanation__details">{details}</div>

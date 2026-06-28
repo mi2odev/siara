@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { getGoogleClientId, loadGoogleIdentityScript } from '../../services/googleAuthService'
 
@@ -13,6 +14,7 @@ export default function GoogleAuthButton({
   onCredential,
   onError,
 }) {
+  const { t } = useTranslation(['auth', 'common'])
   const containerRef = useRef(null)
   const isInitializedRef = useRef(false)
   const promptAvailableRef = useRef(false)
@@ -27,7 +29,7 @@ export default function GoogleAuthButton({
     if (!containerRef.current) {
       console.warn('[google-auth] Missing render container for Google button')
       setOfficialRendered(false)
-      setFallbackReason('Google render container is missing.')
+      setFallbackReason(t('googleAuthButton.errorContainerMissing'))
       return undefined
     }
 
@@ -50,7 +52,7 @@ export default function GoogleAuthButton({
         if (!googleId) {
           console.error('[google-auth] GIS script loaded but google.accounts.id is unavailable')
           setOfficialRendered(false)
-          setFallbackReason('Google Identity Services is unavailable after script load.')
+          setFallbackReason(t('googleAuthButton.errorGisUnavailable'))
           return
         }
 
@@ -63,7 +65,7 @@ export default function GoogleAuthButton({
               const idToken = typeof credential === 'string' ? credential.trim() : ''
 
               if (!idToken) {
-                const error = buildError('Google login did not return a credential.')
+                const error = buildError(t('googleAuthButton.errorEmptyCredential'))
                 console.error('[google-auth] Empty GIS credential received')
                 onError?.(error)
                 return
@@ -111,13 +113,13 @@ export default function GoogleAuthButton({
             } else {
               console.error('[google-auth] renderButton completed but no visible GIS button was inserted')
               setOfficialRendered(false)
-              setFallbackReason('Google button could not be rendered.')
+              setFallbackReason(t('googleAuthButton.errorButtonNotRendered'))
             }
           })
         } catch (error) {
           console.error('[google-auth] renderButton failed', error)
           setOfficialRendered(false)
-          setFallbackReason(error?.message || 'Google button rendering failed.')
+          setFallbackReason(error?.message || t('googleAuthButton.errorRenderFailed'))
           onError?.(buildError(error))
         }
       })
@@ -127,7 +129,7 @@ export default function GoogleAuthButton({
           return
         }
         setOfficialRendered(false)
-        setFallbackReason(error?.message || 'Unable to load Google Identity Services.')
+        setFallbackReason(error?.message || t('googleAuthButton.errorScriptLoadFailed'))
         onError?.(buildError(error))
       })
 
@@ -152,7 +154,7 @@ export default function GoogleAuthButton({
     }
 
     if (!window.google?.accounts?.id || !isInitializedRef.current || !promptAvailableRef.current) {
-      const error = buildError('Google Identity Services is not ready yet. Check the browser console for details.')
+      const error = buildError(t('googleAuthButton.errorGisNotReady'))
       console.error('[google-auth] Fallback click failed because GIS is not initialized')
       onError?.(error)
       return
@@ -195,7 +197,7 @@ export default function GoogleAuthButton({
             <span className="siara-google-fallback__icon" aria-hidden="true">
               G
             </span>
-            <span>Continue with Google</span>
+            <span>{t('googleAuthButton.continueWithGoogle')}</span>
           </button>
         ) : null}
       </div>
@@ -203,7 +205,7 @@ export default function GoogleAuthButton({
       {fallbackReason ? (
         <div className="siara-google-auth-note" role="status">
           {fallbackReason === MISSING_CLIENT_ID_MESSAGE
-            ? 'Google sign-in is not configured yet in the frontend environment.'
+            ? t('googleAuthButton.errorNotConfigured')
             : fallbackReason}
         </div>
       ) : null}

@@ -1,0 +1,1339 @@
+{
+  "adminContextPanel": {
+    "liveIntelligence": "Live Intelligence",
+    "reviewQueueActive": "Review Queue Active",
+    "pendingReviewOldest": "{{count}} incident pending review. Oldest in queue: {{location}}.",
+    "pendingReviewOldest_one": "{{count}} incident pending review. Oldest in queue: {{location}}.",
+    "pendingReviewOldest_other": "{{count}} incidents pending review. Oldest in queue: {{location}}.",
+    "noIncidentsPending": "No incidents are currently waiting in the review queue.",
+    "reviewOldestIncident": "Review Oldest Incident",
+    "openQueue": "Open Queue",
+    "queueLoad": "Queue Load",
+    "pendingReviews": "Pending Reviews",
+    "communityFlagged": "Community Flagged",
+    "aiHighRisk": "AI High Risk",
+    "workflowSnapshot": "Workflow Snapshot",
+    "mergedReports": "Merged Reports",
+    "archivedReports": "Archived Reports",
+    "completedAiAssessments": "Completed AI Assessments",
+    "moderationGuidance": "Moderation Guidance",
+    "severityHintsTitle": "Severity hints remain the fallback",
+    "severityHintsBody": "Incident reports use the user-submitted severity hint until a completed AI assessment exists.",
+    "reporterScoreTitle": "Reporter score is intentionally blank",
+    "reporterScoreBody": "Trust and reporter reputation are not implemented yet, so moderation views show a dash instead of fake scoring."
+  },
+  "adminHeader": {
+    "skipToContent": "Skip to content",
+    "nav": {
+      "close": "Close navigation",
+      "open": "Open navigation"
+    },
+    "breadcrumb": {
+      "label": "Breadcrumb",
+      "detail": "Detail"
+    },
+    "roles": {
+      "admin": "Admin",
+      "supervisor": "Supervisor",
+      "police": "Police"
+    },
+    "routes": {
+      "overview": "System Overview",
+      "incidents": "Incident Management",
+      "alerts": "Alert Operations",
+      "zones": "Risk & Zones",
+      "ai": "AI Supervision",
+      "users": "User Governance",
+      "analytics": "Analytics",
+      "system": "Configuration",
+      "inbox": "Support Inbox"
+    },
+    "status": {
+      "label": "System status",
+      "production": "Production",
+      "systemOperationalTitle": "System Operational",
+      "system": "System",
+      "operational": "Operational",
+      "aiOnlineTitle": "AI Model v1.0 online",
+      "ai": "AI",
+      "aiVersion": "v1.0 online"
+    },
+    "profile": {
+      "title": "{{name}} · {{role}}"
+    }
+  },
+  "adminLayout": {
+    "closeNavigation": "Close navigation"
+  },
+  "adminSidebar": {
+    "supervisionCentre": "Supervision Centre",
+    "searchPlaceholder": "Search navigation…",
+    "searchAriaLabel": "Search admin sidebar",
+    "clearSearch": "Clear search",
+    "noLinksMatch": "No links match \"{{query}}\".",
+    "sections": {
+      "overview": "Overview",
+      "incidents": "Incident Management",
+      "alerts": "Alert Operations",
+      "zones": "Risk & Zones",
+      "ai": "AI & Model Supervision",
+      "users": "User Governance",
+      "analytics": "Data & Analytics",
+      "inbox": "Support Inbox",
+      "system": "System"
+    },
+    "links": {
+      "systemOverview": "System Overview",
+      "allIncidents": "All Incidents",
+      "pendingReview": "Pending Review",
+      "suspectedSpam": "Suspected Spam",
+      "manualSpamReview": "Manual Spam Review",
+      "aiFlaggedHighRisk": "AI-Flagged High Risk",
+      "communityFlagged": "Community Flagged",
+      "mergedIncidents": "Merged Incidents",
+      "archived": "Archived",
+      "allAlerts": "All Alerts",
+      "activeAlerts": "Active Alerts",
+      "scheduledAlerts": "Scheduled Alerts",
+      "expiringExpired": "Expiring / Expired",
+      "emergencyBroadcast": "Emergency Broadcast",
+      "alertTemplates": "Alert Templates",
+      "zoneMap": "Zone Map",
+      "zoneManagement": "Zone Management",
+      "wilayaRiskRanking": "Wilaya Risk Ranking",
+      "zoneThresholds": "Zone Thresholds",
+      "modelPerformance": "Model Performance",
+      "confidenceAnalysis": "Confidence Analysis",
+      "confusionMatrix": "Confusion Matrix",
+      "overrideLogs": "Override Logs",
+      "occurrenceModelBeta": "Occurrence Model (Beta)",
+      "allUsers": "All Users",
+      "activeUsers": "Active",
+      "topContributors": "Top Contributors",
+      "atRisk": "At Risk",
+      "banned": "Banned",
+      "admins": "Admins",
+      "hourlyHeatmap": "Hourly Heatmap",
+      "severityDistribution": "Severity Distribution",
+      "dangerousRoads": "Dangerous Roads",
+      "correlations": "Correlations",
+      "sevenDayPrediction": "7-Day Prediction",
+      "allInbox": "All Inbox",
+      "contactMessages": "Contact Messages",
+      "infoRequestReplies": "Info-Request Replies",
+      "severityRules": "Severity Rules",
+      "notificationLogic": "Notification Logic",
+      "geofencing": "Geo-fencing",
+      "general": "General"
+    }
+  },
+  "adminAIMonitoringPage": {
+    "title": "AI & Model Supervision",
+    "lastTrained": "Last trained {{date}}",
+    "retrainModel": "Re-train Model",
+    "downloadReport": "Download Report",
+    "driftAlert": "Model drift detected: {{drift}}% — Consider re-training",
+    "tabs": {
+      "performance": "Model Performance",
+      "confusion": "Confusion Matrix",
+      "confidence": "Confidence Analysis",
+      "overrides": "Override Log",
+      "occurrence": "Occurrence Model (Beta)"
+    },
+    "kpi": {
+      "accuracy": "Accuracy",
+      "precision": "Precision",
+      "recall": "Recall",
+      "f1Score": "F1 Score",
+      "modelDrift": "Model Drift"
+    },
+    "falsePositives": {
+      "title": "False Positives",
+      "subtitle": "AI over-predicted severity"
+    },
+    "falseNegatives": {
+      "title": "False Negatives",
+      "subtitle": "AI under-predicted severity"
+    },
+    "cases_one": "{{count}} case",
+    "cases_other": "{{count}} cases",
+    "modelInfo": {
+      "title": "Model Information",
+      "modelName": "Model Name",
+      "trainingDataset": "Training Dataset",
+      "lastTrained": "Last Trained",
+      "driftStatus": "Drift Status"
+    },
+    "confusionMatrix": {
+      "title": "Confusion Matrix",
+      "subtitle": "Actual (rows) vs Predicted (columns) — Last 30 days",
+      "axisLabel": "Actual ↓ / Predicted →",
+      "diagonalLegend": "Diagonal = correct predictions",
+      "offDiagonalLegend": "Off-diagonal = misclassifications (highlighted when > 10)"
+    },
+    "confidence": {
+      "meanConfidence": "Mean Confidence",
+      "meanConfidenceHint": "+1.4% vs last 30 days",
+      "median": "Median",
+      "medianHint": "P50 of all predictions",
+      "belowThreshold": "Below 50% Threshold",
+      "highConfidence": "High Confidence (≥70%)",
+      "pctOfPredictions": "{{pct}}% of predictions",
+      "distributionTitle": "Confidence Distribution",
+      "distributionSubtitle": "AI confidence across {{total}} predictions (last 30 days)",
+      "legend": {
+        "veryLow": "Very low",
+        "low": "Low",
+        "moderate": "Moderate",
+        "high": "High"
+      },
+      "tooltipValue": "{{count}} predictions ({{pct}}%)",
+      "decisionThreshold": "Decision threshold (50%)",
+      "insightText": "{{pct}}% of predictions land in high-confidence bands (≥70%) — model is producing decisive outputs."
+    },
+    "occurrence": {
+      "loading": "Loading occurrence model metrics…",
+      "cardTitle": "Accident Occurrence Prediction",
+      "version": "Version",
+      "algorithm": "Algorithm",
+      "calibration": "Calibration",
+      "timeWindow": "Time window {{hours}}h",
+      "decisionThreshold": "Decision threshold {{value}}",
+      "notLoaded": "Flask occurrence model is NOT loaded",
+      "notLoadedSuffix": " Predictions endpoint will return 503.",
+      "precisionRecallTitle": "Precision / Recall at Top-K",
+      "tableTopK": "Top",
+      "tablePrecision": "Precision",
+      "tableRecall": "Recall",
+      "cmThreshold": "(threshold {{threshold}})",
+      "pred0": "Pred. 0",
+      "pred1": "Pred. 1",
+      "actual0": "Actual 0",
+      "actual1": "Actual 1",
+      "modelComparisonTitle": "Model Comparison (validation)",
+      "compModel": "Model",
+      "compFitSeconds": "Fit (s)",
+      "riskThresholdsTitle": "Risk Thresholds",
+      "thresholdModerate": "Moderate",
+      "thresholdHigh": "High",
+      "thresholdCritical": "Critical",
+      "thresholdExplanation": "Explanation",
+      "weatherCoverageTitle": "Weather Coverage (training)",
+      "weatherAvailableRate": "Available rate",
+      "weatherCacheHitRate": "Cache hit rate",
+      "calibrationCurveTitle": "Calibration curve — LightGBM + isotonic"
+    },
+    "overrideLog": {
+      "title": "Manual Override Log",
+      "subtitle": "All admin severity overrides — who, what, why",
+      "exportLog": "Export Log",
+      "colIncident": "Incident",
+      "colAdmin": "Admin",
+      "colOriginalNew": "Original / New",
+      "colReason": "Reason",
+      "colTimestamp": "Timestamp"
+    }
+  },
+  "adminAlertsPage": {
+    "tabs": {
+      "all": "All Alerts",
+      "active": "Active",
+      "scheduled": "Scheduled",
+      "expired": "Expiring / Expired",
+      "emergency": "Emergency",
+      "templates": "Templates"
+    },
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "audience": {
+      "usersInZone": "Users in Zone",
+      "allUsers": "All Users",
+      "subscribedOnly": "Subscribed Users Only"
+    },
+    "alertType": {
+      "incident": "Incident",
+      "weather": "Weather",
+      "roadwork": "Roadwork",
+      "closure": "Road Closure",
+      "emergency": "Emergency",
+      "advisory": "Advisory"
+    },
+    "emergencyBanner": "EMERGENCY MODE READY - New alerts default to high-severity emergency settings until you publish or reset the composer",
+    "resetComposer": "Reset →",
+    "error": {
+      "unavailable": "Alert operations unavailable",
+      "loadFailed": "Failed to load operational alerts.",
+      "saveFailed": "Unable to save this alert."
+    },
+    "emergencyConfirm": {
+      "title": "Enable Emergency Mode?",
+      "description": "This switches the composer into emergency defaults for the next operational alert. Nothing is published until you save an alert.",
+      "confirm": "Confirm Activation"
+    },
+    "cancelModal": {
+      "title": "Cancel operational alert?",
+      "description": "will be marked as cancelled and an audit event will be recorded.",
+      "cancelling": "Cancelling...",
+      "confirm": "Confirm Cancel"
+    },
+    "deleteModal": {
+      "title": "Delete operational alert?",
+      "description": "will be permanently removed, along with its history and any notifications sent for it. This cannot be undone.",
+      "deleting": "Deleting...",
+      "confirm": "Confirm Delete"
+    },
+    "keepAlert": "Keep Alert",
+    "pageTitle": "Alert Operations",
+    "pageSubtitle": "Manage geo-based alerts, emergency broadcasts and official notifications",
+    "searchPlaceholder": "Search title, zone, or type...",
+    "emergencyModeLabel": "Emergency Mode",
+    "newAlert": "+ New Alert",
+    "form": {
+      "titleEdit": "Edit Operational Alert",
+      "titleFromTemplate": "Create Alert From Template",
+      "titleCreate": "Create New Alert",
+      "subtitleFromTemplate": "Template defaults are prefilled and can be adjusted before publishing.",
+      "subtitleCreate": "Target a wilaya or commune, choose the lifecycle window, then publish.",
+      "fieldTitle": "Title",
+      "titlePlaceholder": "Alert title...",
+      "wilayaLabel": "Wilaya",
+      "loadingWilayas": "Loading wilayas...",
+      "selectWilaya": "Select wilaya...",
+      "communeLabel": "Commune (optional)",
+      "selectWilayaFirst": "Select wilaya first...",
+      "loadingCommunes": "Loading communes...",
+      "wilayaWideAlert": "Use wilaya-wide alert",
+      "severityLabel": "Severity",
+      "typeLabel": "Type",
+      "audienceLabel": "Audience Scope",
+      "startsAtLabel": "Starts At",
+      "endsAtLabel": "Ends At",
+      "deliveryChannels": "Delivery Channels",
+      "channelPush": "Push",
+      "channelEmail": "Email",
+      "channelSms": "SMS",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Explain the alert impact, guidance, and timing...",
+      "notifyOnStart": "Notify on start",
+      "notifyOnExpire": "Notify on expire",
+      "saving": "Saving...",
+      "publishing": "Publishing...",
+      "saveChanges": "Save Changes",
+      "publishAlert": "Publish Alert"
+    },
+    "validation": {
+      "titleRequired": "Title is required.",
+      "selectZone": "Select a wilaya or commune for this alert.",
+      "datetimeRequired": "Start and end datetimes are required.",
+      "endAfterStart": "End time must be after the start time."
+    },
+    "templates": {
+      "loading": "Loading alert templates...",
+      "noMatch": "No templates match your current search.",
+      "empty": "No operational alert templates are available yet.",
+      "defaultDuration": "Default duration: {{duration}}",
+      "type": "Type: {{type}}",
+      "useTemplate": "Use Template →"
+    },
+    "table": {
+      "heading": "Operational Alerts",
+      "refreshing": "Refreshing active lifecycle data...",
+      "countSummary_one": "{{total}} alert in this view",
+      "countSummary_other": "{{total}} alerts in this view",
+      "colId": "ID",
+      "colTitle": "Title",
+      "colZone": "Zone",
+      "colSeverity": "Severity",
+      "colType": "Type",
+      "colTrigger": "Trigger",
+      "colDuration": "Duration",
+      "colAudience": "Audience",
+      "colStatus": "Status",
+      "colActions": "Actions",
+      "emptyEmergency": "No emergency operational alerts were found.",
+      "emptyGeneric": "No operational alerts match this view yet.",
+      "loadingAlerts": "Loading operational alerts..."
+    },
+    "pagination": {
+      "showing": "Showing {{returned}} of {{total}} alerts",
+      "previous": "← Previous",
+      "pageOf": "Page {{page}} / {{totalPages}}",
+      "next": "Next →"
+    }
+  },
+  "adminAnalyticsPage": {
+    "title": "Advanced Analytics",
+    "subtitle": "Data-driven insights — Incident patterns, risk correlations & predictions",
+    "periodLabel": "Period",
+    "exportPdf": "Export PDF",
+    "loadingAnalytics": "Loading analytics…",
+    "noIncidentsInPeriod": "No incidents in this period yet.",
+    "errors": {
+      "loadFailed": "Failed to load analytics"
+    },
+    "warnings": {
+      "partialDataLabel": "Partial data:",
+      "partialDataBody": "the following sections timed out and were skipped — {{sections}}.",
+      "partialDataHint": " Apply the GiST indexes in db+ (idx_road_segments_geom_gist, idx_accident_reports_location_gist) so spatial joins use an index, then refresh."
+    },
+    "period": {
+      "last30days": "Last 30 days",
+      "last90days": "Last 90 days",
+      "last6months": "Last 6 months",
+      "lastYear": "Last year"
+    },
+    "tabs": {
+      "heatmap": "Hourly Heatmap",
+      "severity": "Severity Distribution",
+      "roads": "Dangerous Roads",
+      "correlations": "Correlations",
+      "predictions": "7-Day Prediction"
+    },
+    "kpi": {
+      "totalIncidents": "Total Incidents",
+      "vsPrevPeriod": "vs prev period",
+      "avgPerDay": "Avg. per Day",
+      "reportsInPrevWindow": "{{count}} reports in previous window",
+      "peakHour": "Peak Hour",
+      "incidentsInBand": "{{count}} incidents in this band",
+      "mostDangerousRoad": "Most Dangerous Road",
+      "incidentsCount": "{{count}} incidents"
+    },
+    "heatmap": {
+      "title": "Incidents by Hour & Day",
+      "subtitle": "Color intensity indicates incident volume. Hover any cell for the exact count.",
+      "busiestHour": "Busiest hour",
+      "busiestDay": "Busiest day",
+      "peakSingleCell": "Peak single cell",
+      "cellTooltip": "{{day}} {{hour}}:00 — {{count}} incidents",
+      "legendLow": "Low",
+      "legendHigh": "High"
+    },
+    "severity": {
+      "title": "Severity Distribution",
+      "subtitle": "Share of incidents per AI-classified severity tier",
+      "topTier": "Top tier",
+      "total": "Total"
+    },
+    "roads": {
+      "title": "Top Dangerous Roads",
+      "subtitle": "Ranked by incident count",
+      "spatialNote": "Reports are spatially matched to the nearest road segment within 75 m.",
+      "noRoadsFound": "No incidents are mapped to a known road segment in this window.",
+      "colRank": "Rank",
+      "colRoad": "Road",
+      "colIncidents": "Incidents",
+      "colSeverity": "Severity",
+      "colRoadClass": "Road Class",
+      "colVisual": "Visual",
+      "unknownClass": "unknown"
+    },
+    "correlations": {
+      "roadTypeTitle": "Road Type Correlation",
+      "roadTypeSubtitle": "Incident distribution by road category",
+      "weatherTitle": "Weather Correlation",
+      "weatherSubtitle": "Incident distribution by weather conditions",
+      "weatherNotWired": "Not wired up yet",
+      "weatherNotWiredDesc": "Live reports in app.accident_reports don't capture a weather snapshot at submit time. Wire that in to populate this chart.",
+      "timeOfDayTitle": "Incidents by Time of Day",
+      "timeOfDaySubtitle": "4 fixed bands — the peak band is highlighted in violet.",
+      "pctOfTotal": "{{pct}}% of total"
+    },
+    "predictions": {
+      "title": "7-Day Trend & Prediction",
+      "subtitle": "Solid bars · actual reports per day. Outlined bars · naive lag-7 forecast (same weekday last week).",
+      "noRecentIncidents": "No incidents have been reported recently.",
+      "actualAvg": "Actual avg",
+      "predictedAvg": "Predicted avg",
+      "perDay": "/ day",
+      "forecastChange": "Forecast change",
+      "tooltipReports": "{{count}} reports",
+      "actual": "Actual",
+      "predicted": "Predicted",
+      "avgLabel": "Avg {{avg}}",
+      "legendActual": "Actual (last 7 days)",
+      "legendPredicted": "Predicted (next 7 days)",
+      "aboutForecastTitle": "About the forecast",
+      "aboutForecastBody": "The prediction series is a simple lag-7 baseline — each future day reuses the count seen on the same weekday in the actual window. Swap this in for a real forecaster (e.g. the occurrence model) once a training pipeline is wired up."
+    }
+  },
+  "adminInboxPage": {
+    "title": "Support Inbox",
+    "messageCount_one": "message",
+    "messageCount_other": "messages",
+    "newCount_one": "{{count}} new",
+    "newCount_other": "{{count}} new",
+    "refreshing": "Refreshing",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search name, email, subject or body…",
+    "tabs": {
+      "all": "All",
+      "contact": "Contact",
+      "infoReplies": "Info replies"
+    },
+    "statusLabel": "Status",
+    "statusFilter": {
+      "all": "All",
+      "new": "New",
+      "read": "Read",
+      "replied": "Replied",
+      "archived": "Archived"
+    },
+    "loadError": "Failed to load: {{message}}",
+    "unknownError": "Unknown error",
+    "noMessagesMatch": "No messages match your filters.",
+    "clearFiltersHint": "Try clearing the search or status filter.",
+    "unknownSender": "Unknown",
+    "allMessages": "All messages",
+    "noMessageSelected": "No message selected",
+    "noMessageSelectedHint": "Choose a thread from the list to read the full conversation and respond.",
+    "kindChip": {
+      "infoReply": "Info reply",
+      "contact": "Contact"
+    },
+    "statusChip": {
+      "new": "New",
+      "read": "Read",
+      "replied": "Replied",
+      "archived": "Archived"
+    },
+    "unknownReporter": "Unknown reporter",
+    "reportLabel": "Report",
+    "repliedAt": "Replied {{time}}",
+    "conversation": "Conversation",
+    "adminQuestion": "Admin · Question",
+    "reporterAnswer": "Reporter · Answer",
+    "actions": "Actions",
+    "openIncident": "Open incident",
+    "emailReporter": "Email reporter",
+    "markedAsRead": "Marked as read",
+    "markAsRead": "Mark as read",
+    "archive": "Archive",
+    "infoReplyHint": "The reporter has provided the requested information. Review the answer above and act on the related incident.",
+    "unknownSenderFull": "Unknown sender",
+    "message": "Message",
+    "replySent": "Reply sent",
+    "writeReply": "Write a reply",
+    "inAppNotification": "In-app notification",
+    "anonymousEmailOnly": "Anonymous — email only",
+    "alreadyRepliedNotice": "A reply was already sent. A new message will create a follow-up notification.",
+    "replyPlaceholder": "Write a thoughtful reply to {{name}}…",
+    "theSender": "the sender",
+    "emailInstead": "Email instead",
+    "sending": "Sending…",
+    "sendReply": "Send reply",
+    "manageThread": "Manage thread",
+    "markAsReplied": "Mark as replied"
+  },
+  "adminIncidentReviewPage": {
+    "loading": {
+      "title": "Loading incident...",
+      "subtitle": "Fetching the latest incident details and moderation history."
+    },
+    "errorState": {
+      "title": "Incident unavailable",
+      "subtitle": "Unable to load this incident report."
+    },
+    "backToQueue": "Back to Queue",
+    "actionFailed": {
+      "title": "Action failed",
+      "subtitle": "Please try again."
+    },
+    "report": {
+      "noDescription": "No additional description was provided for this report.",
+      "status": "Status",
+      "reported": "Reported",
+      "severitySource": "Severity Source",
+      "severitySourceAi": "AI assessment",
+      "severitySourceHint": "Report hint",
+      "openFlags": "Open Flags"
+    },
+    "merge": {
+      "label": "Merge",
+      "mergedInto": "Merged into {{reportId}} on {{date}}",
+      "reason": "Reason: {{reason}}"
+    },
+    "mergeGroup": {
+      "title": "Merged reports ({{count}})",
+      "subtitle": "Duplicate reports of the same accident (within 300 m / 6 h), grouped into one incident.",
+      "roleOriginal": "Original",
+      "roleMerged": "Merged",
+      "untitledReport": "Untitled report",
+      "current": "current"
+    },
+    "evidence": {
+      "title": "Evidence ({{count}})",
+      "clickHint": "Click any thumbnail to view full-size",
+      "notAvailable": "Not available",
+      "altText": "Evidence {{index}}"
+    },
+    "reporter": {
+      "title": "Reporter Profile",
+      "name": "Reporter",
+      "trust": "Reporter Trust",
+      "notProvided": "Not provided",
+      "totalReports": "Total Reports",
+      "joined": "Joined"
+    },
+    "aiAssessment": {
+      "title": "AI Assessment",
+      "status": "Status",
+      "severity": "Severity",
+      "severityAi": "AI {{severity}}",
+      "severityHint": "Report hint ({{severity}})",
+      "confidence": "Confidence",
+      "latestUpdate": "Latest Update",
+      "modelVersion": "Model Version",
+      "notActiveNote": "AI verification is not fully active yet for incident reports, so severity falls back to the report hint until a completed assessment exists.",
+      "pendingAi": "Pending AI",
+      "aiFailed": "AI failed",
+      "statusCompleted": "Completed",
+      "statusPending": "Pending",
+      "statusFailed": "Failed",
+      "statusNotAvailable": "Not available"
+    },
+    "communityFlags": {
+      "title": "Community Flags",
+      "allResolved": "All community flags have been resolved."
+    },
+    "timeline": {
+      "title": "Timeline"
+    },
+    "location": {
+      "title": "Incident Location",
+      "openFullMap": "Open Full Map",
+      "noCoordinates": "No coordinates provided for this incident"
+    },
+    "spamAnalysis": {
+      "title": "Spam Analysis",
+      "predictedLabel": "Predicted Label",
+      "mlStatus": "ML Status",
+      "spamScore": "Spam Score",
+      "mlConfidence": "ML Confidence",
+      "modelVersion": "Model Version",
+      "classifiedAt": "Classified At",
+      "reviewVerdict": "Review Verdict",
+      "pendingVerdict": "Pending",
+      "reviewedBy": "Reviewed By",
+      "suspiciousNote": "This report is classified as suspicious and is waiting for manual review.",
+      "reviewNotes": "Review Notes",
+      "reviewedAt": "Reviewed at {{date}}"
+    },
+    "mlStatus": {
+      "notStarted": "Not started"
+    },
+    "predictedLabel": {
+      "unclassified": "Unclassified",
+      "spam": "Spam",
+      "real": "Real"
+    },
+    "nearbyReports": {
+      "title": "Nearby Reports",
+      "none": "No nearby reports found",
+      "clusterDetected": "Cluster detected · {{count}} incidents within 5 km"
+    },
+    "decisionEngine": {
+      "title": "Decision Engine",
+      "subtitle": "Pick an action — every choice is audited.",
+      "alreadyStatus": "Already {{status}}",
+      "rejectReasonDisplay": "Reason: {{reason}}",
+      "archivedNote": "Hidden from public feeds. Unarchive to return it to the review queue.",
+      "unarchiving": "Unarchiving…",
+      "unarchive": "Unarchive",
+      "aiSuggestion": "AI suggestion",
+      "useIt": "Use it",
+      "changeTileLabel": "Change"
+    },
+    "decisionTiles": {
+      "approve": {
+        "label": "Approve",
+        "hint": "Verifies the report and publishes it to the public feed."
+      },
+      "change": {
+        "label": "Change Severity",
+        "hint": "Override the AI severity. The report stays in its current status."
+      },
+      "info": {
+        "label": "Request More Info",
+        "hint": "Ask the reporter for clarification. Report stays in the queue."
+      },
+      "flag": {
+        "label": "Flag for Review",
+        "hint": "Escalate to another moderator. Records a flag entry on the report."
+      },
+      "archive": {
+        "label": "Archive",
+        "hint": "Quiet removal without a verdict (e.g. outdated reports)."
+      },
+      "reject": {
+        "label": "Reject",
+        "hint": "Mark as confirmed spam / false report. Requires a reason."
+      }
+    },
+    "rejectReasons": {
+      "spam": "Spam",
+      "duplicate": "Duplicate",
+      "offTopic": "Off-topic",
+      "falseReport": "False report",
+      "insufficientEvidence": "Insufficient evidence",
+      "wrongLocation": "Wrong location",
+      "other": "Other"
+    },
+    "infoRequest": {
+      "awaitingResponse": "Awaiting reporter response",
+      "asked": "Asked {{date}}",
+      "reporterResponded": "Reporter responded",
+      "answered": "Answered {{date}}"
+    },
+    "form": {
+      "newSeverity": "New severity",
+      "rejectionReason": "Rejection reason",
+      "noteLabel": {
+        "messageToReporter": "Message to the reporter",
+        "internalNote": "Internal note",
+        "reviewerNote": "Reviewer note",
+        "required": "(required)",
+        "optional": "(optional)"
+      },
+      "notePlaceholder": {
+        "info": "What does the reporter need to clarify?",
+        "reject": "Internal context for this rejection.",
+        "archive": "Optional note for the audit log.",
+        "flag": "Why are you escalating this report?",
+        "change": "Why is the severity being overridden?",
+        "default": "Reviewer note (optional)"
+      },
+      "submitting": "Submitting…",
+      "confirmAction": "Confirm: {{label}}"
+    },
+    "internalNotes": {
+      "title": "Internal Notes",
+      "noNotes": "No notes yet",
+      "placeholder": "Add internal note...",
+      "saving": "Saving...",
+      "add": "Add"
+    },
+    "fullscreenMap": {
+      "ariaLabel": "Incident map",
+      "closeAriaLabel": "Close map",
+      "legendCurrent": "Current",
+      "legendOthers": "Others",
+      "loadingOthers": "loading…",
+      "othersCount": "{{count}} incidents"
+    },
+    "lightbox": {
+      "ariaLabel": "Evidence preview",
+      "zoomOut": "Zoom out",
+      "resetZoom": "Reset zoom",
+      "zoomIn": "Zoom in",
+      "closeAriaLabel": "Close evidence preview",
+      "prevEvidence": "Previous evidence",
+      "nextEvidence": "Next evidence"
+    },
+    "aiRec": {
+      "rejectAsSpam": "Reject as spam",
+      "spamExplanation": "Spam classifier flagged this report (score {{score}}%).",
+      "approve": "Approve",
+      "approveExplanation": "High AI confidence ({{confidence}}%) and clean spam signals — safe to publish.",
+      "requestMoreInfo": "Request More Info",
+      "infoExplanation": "AI confidence is moderate ({{confidence}}%) — ask the reporter for clarification before deciding.",
+      "manualReviewNeeded": "Manual review needed",
+      "manualExplanation": "AI signals are unclear or unavailable — review the evidence manually."
+    }
+  },
+  "adminIncidentsPage": {
+    "title": "Incident Management",
+    "tabs": {
+      "all": "All",
+      "pending": "Pending",
+      "suspicious": "Suspected Spam",
+      "pending-review": "Manual Review",
+      "ai-flagged": "AI-Flagged",
+      "community": "Community",
+      "merged": "Merged",
+      "archived": "Archived"
+    },
+    "meta": {
+      "incidents": "incidents",
+      "inFilter": "in {{filter}}",
+      "suspicious": "suspicious",
+      "manualReview": "manual review"
+    },
+    "searchPlaceholder": "Search ID, title, location, reporter…",
+    "exportCsv": "Export CSV",
+    "sortMenu": {
+      "label": "Sort:",
+      "sortBy": "Sort by",
+      "newestFirst": "Newest first",
+      "oldestFirst": "Oldest first",
+      "severityHighLow": "Severity · High → Low",
+      "severityLowHigh": "Severity · Low → High",
+      "idAZ": "ID · A → Z",
+      "idZA": "ID · Z → A",
+      "userAZ": "User · A → Z",
+      "userZA": "User · Z → A"
+    },
+    "columns": {
+      "id": "ID",
+      "type": "Type",
+      "location": "Location",
+      "severity": "Severity",
+      "spamAnalysis": "Spam Analysis",
+      "aiConfidence": "AI Confidence",
+      "reporter": "Reporter",
+      "reported": "Reported",
+      "status": "Status",
+      "action": "Action"
+    },
+    "loadingIncidents": "Loading incidents…",
+    "emptyState": {
+      "title": "No incidents found",
+      "aiNotActive": "AI verification is not active yet for incident reports.",
+      "suspicious": "No reports are currently classified as suspected spam.",
+      "pendingReview": "No spam-classified reports are waiting for manual review.",
+      "community": "No reports currently have open community flags.",
+      "merged": "No merged incidents were found.",
+      "archived": "No archived incidents were found.",
+      "pending": "No pending incidents are waiting for review.",
+      "default": "No incidents match the current filters."
+    },
+    "error": {
+      "unableToLoad": "Unable to load incidents.",
+      "tryAgain": "Please try again."
+    },
+    "footer": {
+      "showing": "Showing {{shown}} of {{total}} incidents",
+      "suspicious": "suspicious",
+      "awaitingReview": "awaiting manual review"
+    },
+    "locating": "Locating…",
+    "mergedTitle": "Consolidated report — {{count}} reports merged together",
+    "mergedBadge": "{{count}} reports merged",
+    "pendingReviewLabel": "Pending review",
+    "mlStatus": {
+      "notStarted": "Not started"
+    },
+    "predictedLabel": {
+      "unclassified": "Unclassified",
+      "spam": "Spam",
+      "real": "Real"
+    },
+    "spam": {
+      "spamScore": "Spam score",
+      "mlConfidence": "ML confidence",
+      "model": "Model"
+    },
+    "aiConfidence": {
+      "pending": "Pending AI",
+      "failed": "AI failed"
+    },
+    "reporter": {
+      "notProvided": "Not provided"
+    },
+    "flags_one": "{{count}} flag",
+    "flags_other": "{{count}} flags",
+    "reviewButton": "Review"
+  },
+  "adminOverviewPage": {
+    "timeRange": {
+      "lastHour": "Last hour",
+      "last24h": "Last 24h",
+      "last7days": "Last 7 days",
+      "last30days": "Last 30 days"
+    },
+    "error": {
+      "title": "Overview unavailable",
+      "description": "Failed to load the admin overview."
+    },
+    "pageTitle": "System Overview",
+    "pageSubtitle": "National Risk Supervision - Real-time",
+    "refreshing": "Refreshing...",
+    "rangeLabel": "Range",
+    "openSpamQueue": "Open Spam Queue",
+    "loading": {
+      "title": "Loading overview...",
+      "description": "Pulling real incident, AI, and spam-classification data from the backend."
+    },
+    "kpi": {
+      "incidents": "{{range}} Incidents",
+      "pendingReview": "Pending Review",
+      "aiConfidence": "AI Confidence",
+      "highRiskZones": "High Risk Zones",
+      "activeAlerts": "Active Alerts",
+      "reportsPerMin": "Reports/min"
+    },
+    "spam": {
+      "sectionLabel": "Spam Triage",
+      "suspectedSpam": "Suspected Spam Reports",
+      "liveQueueCount": "Live admin queue count",
+      "pendingManualReview": "Pending Manual Review",
+      "pendingManualReviewHint": "Spam-labelled, not yet reviewed",
+      "spamRate": "Spam Rate",
+      "spamRateHint": "{{suspicious}} of {{all}} reports",
+      "noReports": "No reports yet"
+    },
+    "trend": {
+      "noChange": "No change",
+      "up": "Up {{value}}",
+      "down": "Down {{value}}"
+    },
+    "predictedLabel": {
+      "unclassified": "Unclassified",
+      "spam": "Spam",
+      "real": "Real"
+    },
+    "mlStatus": {
+      "notStarted": "Not started"
+    },
+    "confidence": {
+      "pending": "Pending AI",
+      "failed": "AI failed"
+    },
+    "reviewQueue": {
+      "title": "Review Queue",
+      "subtitle": "Pending and flagged incidents across all time · {{count}} open",
+      "openButton": "Review Spam Queue",
+      "empty": "No pending or flagged incidents are waiting in the review queue."
+    },
+    "table": {
+      "id": "ID",
+      "location": "Location",
+      "severity": "Severity",
+      "spamAnalysis": "Spam Analysis",
+      "aiConfidence": "AI Confidence",
+      "review": "Review",
+      "sinceReported": "Since Reported",
+      "action": "Action",
+      "pendingReview": "Pending review",
+      "scoreRow": "Score {{score}} · ML {{ml}} · {{version}}",
+      "awaitingReview": "Awaiting review",
+      "reviewButton": "Review"
+    },
+    "charts": {
+      "weeklyVolume": "Weekly Incident Volume",
+      "severityDistribution": "Severity Distribution",
+      "topRiskZones": "Top Risk Zones",
+      "zoneIncidents": "{{count}} incidents",
+      "noZoneActivity": "No zone activity was found for this time range."
+    },
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    }
+  },
+  "adminSystemSettingsPage": {
+    "tabs": {
+      "severity": "Severity Rules",
+      "notifications": "Notification Logic",
+      "geofencing": "Geo-fencing",
+      "general": "General"
+    },
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "archive": {
+      "days": "{{count}} days",
+      "oneYear": "1 year",
+      "never": "Never"
+    },
+    "retention": {
+      "oneYear": "1 year",
+      "twoYears": "2 years",
+      "fiveYears": "5 years",
+      "indefinite": "Indefinite"
+    },
+    "errors": {
+      "loadFailed": "Failed to load settings",
+      "saveFailed": "Failed to save settings",
+      "resetFailed": "Failed to reset settings"
+    },
+    "messages": {
+      "saved": "Settings saved.",
+      "reset": "Settings reset to defaults."
+    },
+    "confirmReset": "Reset every system setting to its default? Stored overrides will be lost.",
+    "newRuleName": "New rule",
+    "newZoneName": "New zone",
+    "neverEdited": "Never edited",
+    "lastEdited": "Last edited {{date}}",
+    "title": "System Settings",
+    "subtitle": "Configure severity rules, notifications, geo-fencing and system behavior",
+    "resetting": "Resetting…",
+    "resetToDefaults": "Reset to Defaults",
+    "unsavedChanges": "unsaved changes",
+    "loadingSettings": "Loading settings…",
+    "chips": {
+      "totalRules": "Total rules",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "channels": "Channels",
+      "active": "Active",
+      "totalZones": "Total zones",
+      "totalCoverage": "Total coverage",
+      "systemStatus": "System status",
+      "autoApprove": "Auto-approve",
+      "apiRateLimit": "API rate limit"
+    },
+    "severityRules": {
+      "title": "Auto-Classification Severity Rules",
+      "subtitle": "When the AI's confidence in the matched rule clears its threshold, the report is auto-assigned the chosen severity.",
+      "addRule": "Add Rule",
+      "colRuleName": "Rule Name",
+      "colAutoSeverity": "Auto Severity",
+      "colMinConfidence": "Min. Confidence",
+      "colEnabled": "Enabled",
+      "empty": "No rules defined. Click Add Rule to create one.",
+      "save": "Save Severity Rules"
+    },
+    "colActions": "Actions",
+    "ariaToggleRule": "Toggle {{name}}",
+    "ariaDeleteRule": "Delete rule",
+    "unsavedChangesHint": "Unsaved changes",
+    "discard": "Discard",
+    "saving": "Saving…",
+    "notificationChannels": {
+      "title": "Notification Channels",
+      "subtitle": "Configure how alerts reach end users. The minimum severity filter applies per channel.",
+      "minSeverity": "Min. severity",
+      "save": "Save Notification Settings"
+    },
+    "ariaToggleChannel": "Toggle {{name}}",
+    "geofenceRules": {
+      "title": "Geo-fence Rules",
+      "subtitle": "Define circular boundaries (center + radius) for targeted alert delivery. Clicks on event tags toggle them.",
+      "addZone": "Add Zone",
+      "colName": "Name",
+      "colLatitude": "Latitude",
+      "colLongitude": "Longitude",
+      "colRadius": "Radius",
+      "colEventTypes": "Event Types",
+      "colActive": "Active",
+      "empty": "No geo-fence zones defined. Click Add Zone to create one.",
+      "save": "Save Geo-fence Rules"
+    },
+    "ariaToggleZone": "Toggle zone {{name}}",
+    "ariaDeleteZone": "Delete zone",
+    "status": {
+      "maintenance": "Maintenance",
+      "operational": "Operational"
+    },
+    "autoApproveOn": "On (≥ 95%)",
+    "autoApproveOff": "Off",
+    "systemControls": {
+      "title": "System Controls",
+      "subtitle": "Toggle platform-wide behavior. Maintenance mode disables every public-facing endpoint until you turn it back off.",
+      "autoApproveTitle": "Auto-Approve High Confidence Reports",
+      "autoApproveDesc": "Automatically approve reports with AI confidence above 95%",
+      "maintenanceModeTitle": "Maintenance Mode",
+      "maintenanceModeDesc": "Disable public-facing features for maintenance"
+    },
+    "ariaToggleAutoApprove": "Toggle auto-approve",
+    "ariaToggleMaintenanceMode": "Toggle maintenance mode",
+    "dataRetention": {
+      "title": "Data Retention",
+      "subtitle": "When records older than the threshold are archived or pruned.",
+      "incidentArchiveAfter": "Incident Archive After",
+      "auditLogRetention": "Audit Log Retention"
+    },
+    "apiConfig": {
+      "title": "API Configuration",
+      "subtitle": "Server-side limits applied to every authenticated request.",
+      "rateLimit": "Rate Limit",
+      "maxUploadSize": "Max Upload Size"
+    },
+    "generalSettings": {
+      "save": "Save General Settings"
+    }
+  },
+  "adminUsersPage": {
+    "title": "User Governance",
+    "subtitle": "Trust scoring, risk assessment and user management",
+    "searchPlaceholder": "Search name, email, ID…",
+    "sortBy": "Sort by",
+    "tabs": {
+      "all": "All Users",
+      "active": "Active",
+      "trusted": "Trusted",
+      "at_risk": "At Risk",
+      "banned": "Banned",
+      "police": "Police",
+      "supervisor": "Supervisor",
+      "admin": "Admins"
+    },
+    "sort": {
+      "trust_asc": "Trust ascending (riskiest first)",
+      "trust_desc": "Trust descending (most trusted first)",
+      "reports_desc": "Most reports first",
+      "created_desc": "Newest accounts",
+      "last_active_desc": "Recently active"
+    },
+    "table": {
+      "id": "ID",
+      "name": "Name",
+      "role": "Role",
+      "trust": "Trust",
+      "reports": "Reports",
+      "falseRatio": "False Ratio",
+      "risk": "Risk",
+      "status": "Status",
+      "lastActive": "Last Active",
+      "actions": "Actions"
+    },
+    "loadingUsers": "Loading users…",
+    "noUsers": "No users match the current filters.",
+    "actions": {
+      "moderationGroup": "Moderation",
+      "warnTitle": "Warn user…",
+      "banTitle": "Ban user…",
+      "unbanUser": "Unban user",
+      "unbanTitleTemp": "Unban now (current ban ends {{date}})",
+      "unbanTitlePerm": "Lift permanent ban",
+      "confirmLiftPermBan": "Lift the permanent ban on {{name}}? They will be able to sign in again immediately.",
+      "promoteTitle": "Promote to Trusted reporter",
+      "recalcTitle": "Recalculate trust score",
+      "details": "Details"
+    },
+    "pagination": {
+      "showing": "Showing {{from}}–{{to}} of {{total}}",
+      "prev": "Prev",
+      "next": "Next"
+    },
+    "loadingDetails": "Loading details…",
+    "unnamedUser": "Unnamed user",
+    "verified": "Verified",
+    "trustRecalc": {
+      "done": "Trust score recalculated for {{label}}.",
+      "changed": "Trust score for {{label}} recalculated: {{previousScore}} → {{newScore}}.",
+      "unchanged": "Trust score for {{label}} recalculated — unchanged at {{newScore}}."
+    },
+    "errors": {
+      "failedLoadUsers": "Failed to load users",
+      "failedUpdateStatus": "Failed to update user status",
+      "failedUpdateRoles": "Failed to update user roles",
+      "failedPromote": "Failed to promote user",
+      "failedRecalc": "Failed to recalculate trust score",
+      "failedLoadDetails": "Failed to load user details",
+      "warnReasonRequired": "A reason is required so the user knows what the warning is for.",
+      "pickFutureWarnDate": "Pick a future date/time for the custom warning expiry.",
+      "pickFutureBanDate": "Pick a future date/time for the custom ban."
+    },
+    "detail": {
+      "trustScore": "Trust Score",
+      "riskLabel": "Risk: {{label}}",
+      "trustUpdated": "Updated {{time}}",
+      "authProvider": "Auth Provider",
+      "emailVerified": "Email Verified",
+      "yes": "Yes",
+      "no": "No",
+      "joined": "Joined",
+      "lastActive": "Last Active",
+      "timesBanned": "Times Banned",
+      "timesWarned": "Times Warned",
+      "lastBanned": "Last banned {{time}}",
+      "lastWarned": "Last warned {{time}}",
+      "neverBanned": "Never banned",
+      "neverWarned": "Never warned",
+      "lastTime": "last {{time}}",
+      "currentRoles": "Current Roles",
+      "noRoles": "None",
+      "reportActivity": "Report Activity",
+      "falseRatio": "False ratio",
+      "driverBehavior": "Driver Behavior",
+      "riskScore": "Risk score",
+      "result": "Result",
+      "attempts": "Attempts",
+      "lastCompleted": "Last completed",
+      "noQuiz": "No driver quiz completed yet.",
+      "occurrenceRisk": "Latest Occurrence Risk",
+      "personalized": "Personalized",
+      "global": "Global",
+      "recorded": "Recorded",
+      "noOccurrenceRisk": "No occurrence-risk prediction yet.",
+      "accountType": "Account Type",
+      "unsavedChanges": "Unsaved changes",
+      "noRolesAvailable": "No roles available.",
+      "saving": "Saving…",
+      "saveRoles": "Save Roles",
+      "resetRoles": "Reset",
+      "roleRequired": "At least one role is required.",
+      "recentReports": "Recent Reports",
+      "untitled": "(untitled)",
+      "verdict": "verdict: {{verdict}}"
+    },
+    "reportTiles": {
+      "total": "Total",
+      "verified": "Verified",
+      "resolved": "Resolved",
+      "suspicious": "Suspicious",
+      "spam": "Spam",
+      "outOfContext": "Out of Context",
+      "invalidLocation": "Invalid Location",
+      "rejected": "Rejected"
+    },
+    "warn": {
+      "title": "Warn user",
+      "previewAck": "Stays visible until the user dismisses it",
+      "pickFuture": "Pick a future date/time",
+      "untilAcknowledged": "Until acknowledged",
+      "autoClearsOn": "Auto-clears on {{date}}",
+      "presets": {
+        "ack": "Until acknowledged",
+        "7d": "7 days",
+        "30d": "30 days",
+        "90d": "90 days",
+        "custom": "Custom date…"
+      },
+      "reasonLabel": "Reason (shown to the user)",
+      "reasonPlaceholder": "e.g. Posted an unverified incident with missing details",
+      "autoClearAfter": "Auto-clear after",
+      "clearOn": "Clear on",
+      "howItShows": "How it shows:",
+      "bannerNote": "A yellow banner appears at the top of every page for this user. They can still post and comment.",
+      "sending": "Sending…",
+      "sendWarning": "Send warning"
+    },
+    "ban": {
+      "title": "Ban user",
+      "previewPermanent": "Permanent (user cannot log in ever again)",
+      "pickFuture": "Pick a future date/time",
+      "presets": {
+        "1h": "1 hour",
+        "24h": "24 hours",
+        "7d": "7 days",
+        "30d": "30 days",
+        "6mo": "6 months",
+        "custom": "Custom date…",
+        "permanent": "Permanent"
+      },
+      "durationLabel": "Ban duration",
+      "banUntil": "Ban until",
+      "reasonLabel": "Reason (shown to the user)",
+      "reasonPlaceholder": "e.g. Repeatedly posted false incidents",
+      "permanentBan": "Permanent ban",
+      "effectiveUntil": "Effective until",
+      "canLoginNote": "User can still log in to see the ban notice but cannot post or comment until then.",
+      "banning": "Banning…",
+      "banPermanently": "Ban permanently",
+      "applyBan": "Apply ban"
+    }
+  },
+  "adminZonesPage": {
+    "title": "Risk Zones & Geo Management",
+    "subtitle": "{{count}} monitored wilaya zones",
+    "refreshed": "refreshed {{time}}",
+    "periodLabel": "Period",
+    "metricLabel": "Metric",
+    "exportZones": "Export Zones",
+    "rebuilding": "Rebuilding...",
+    "rebuildSummary": "Rebuild Summary",
+    "errorTitle": "Zone intelligence unavailable",
+    "errorFallback": "Please try again.",
+    "tabs": {
+      "map": "Zone Map",
+      "table": "Zone Management",
+      "ranking": "Wilaya Ranking",
+      "thresholds": "Threshold Config"
+    },
+    "period": {
+      "24h": "24h",
+      "7d": "7 days",
+      "30d": "30 days"
+    },
+    "metric": {
+      "composite": "Composite",
+      "model": "Model",
+      "reports": "Reports",
+      "alerts": "Alerts"
+    },
+    "metricTitle": {
+      "composite": "Composite risk score",
+      "model": "Model weighted score",
+      "reports": "Report score",
+      "alerts": "Alert score"
+    },
+    "mapTab": {
+      "title": "Zone Intelligence Map",
+      "subtitle": "Polygon-first wilaya risk view colored by {{metric}}"
+    },
+    "statLabel": {
+      "high": "High",
+      "selectedMetric": "Selected Metric"
+    },
+    "riskLevel": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "mapEmpty": "No polygon summary is available yet for this period.",
+    "mapLoading": "Loading wilaya polygons and risk summaries...",
+    "tooltip": {
+      "risk": "Risk"
+    },
+    "detail": {
+      "finalScore": "Final score",
+      "modelWeighted": "Model Weighted",
+      "recentReports": "Recent Reports",
+      "activeAlerts": "Active Alerts",
+      "confidenceAvg": "Confidence Avg",
+      "trendVsPrevious": "Trend vs previous",
+      "topRoad": "Top road",
+      "topRoadRisk": "Top road risk",
+      "zoneBreakdown": "Zone breakdown",
+      "compositeScore": "Composite score",
+      "reportScore": "Report score",
+      "alertScore": "Alert score",
+      "verifiedPendingFlagged": "Verified / Pending / Flagged",
+      "selectedZoneDetails": "Selected zone details",
+      "loadingDetails": "Loading zone details...",
+      "topRoads": "Top roads",
+      "scheduledAlerts": "Scheduled alerts",
+      "noRoads": "No model-covered roads in this period",
+      "clickPrompt": "Click a zone to inspect its road and alert signals.",
+      "selectPrompt": "Select a wilaya polygon to inspect its risk signals."
+    },
+    "tableTab": {
+      "title": "Zone Management",
+      "subtitle": "Real wilaya summaries from the current polygon cache",
+      "colZone": "Zone",
+      "colRisk": "Risk",
+      "colScore": "Score",
+      "colModel": "Model",
+      "colReports": "Reports",
+      "colAlerts": "Alerts",
+      "colTopRoad": "Top Road",
+      "colTrend": "Trend",
+      "colAction": "Action",
+      "viewBtn": "View"
+    },
+    "rankingTab": {
+      "title": "Wilaya Risk Ranking",
+      "subtitle": "Sorted by composite risk score with current report and alert pressure",
+      "colRank": "Rank",
+      "colWilaya": "Wilaya",
+      "colRiskLevel": "Risk Level",
+      "colFinalScore": "Final Score",
+      "colModelScore": "Model Score",
+      "colReports": "Reports",
+      "colActiveAlerts": "Active Alerts",
+      "colTrend": "Trend"
+    },
+    "thresholdsTab": {
+      "title": "Threshold Config",
+      "subtitle": "Current V1 score bands and composite weighting used to color the zone map",
+      "band": "{{level}} band",
+      "weightModel": "Model score",
+      "weightReport": "Report score",
+      "weightAlert": "Alert score",
+      "weightIncident": "Incident history"
+    }
+  },
+  "serviceControlPage": {
+    "placeholder": "ServiceControlPage (placeholder)"
+  }
+}

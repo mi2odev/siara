@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { BrowserRouter } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { NotificationProvider } from './contexts/NotificationContext'
 import AppErrorBoundary from './components/common/AppErrorBoundary'
@@ -8,6 +9,8 @@ import { registerPushServiceWorker } from './services/pushService'
 import './App.css'
 
 export default function App() {
+  const { t } = useTranslation(['pages', 'common'])
+
   useEffect(() => {
     registerPushServiceWorker().catch((error) => {
       console.warn('[push] service_worker_registration_failed', error)
@@ -53,7 +56,7 @@ export default function App() {
         const toggleButton = document.createElement('button')
         toggleButton.type = 'button'
         toggleButton.className = 'dash-hamburger-btn'
-        toggleButton.setAttribute('aria-label', 'Toggle navigation menu')
+        toggleButton.setAttribute('aria-label', t('app.toggleNavMenu'))
         toggleButton.setAttribute('aria-expanded', 'false')
         toggleButton.innerHTML = '<span></span><span></span><span></span>'
 
@@ -123,7 +126,7 @@ export default function App() {
       document.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('resize', handleResize)
     }
-  }, [])
+  }, [t])
 
   return (
     <BrowserRouter>

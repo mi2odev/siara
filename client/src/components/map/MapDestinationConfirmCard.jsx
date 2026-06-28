@@ -1,4 +1,5 @@
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
+import { useTranslation } from 'react-i18next'
 
 function formatCoordinate(value) {
   const num = Number(value)
@@ -16,11 +17,13 @@ export default function MapDestinationConfirmCard({
   starting = false,
   startError = "",
 }) {
+  const { t } = useTranslation(['map', 'common'])
+
   if (!open || !destination) return null
 
   const lat = Number(destination.lat)
   const lng = Number(destination.lng)
-  const fallbackLabel = `Selected point: ${formatCoordinate(lat)}, ${formatCoordinate(lng)}`
+  const fallbackLabel = t('mapDestinationConfirmCard.fallbackLabel', { lat: formatCoordinate(lat), lng: formatCoordinate(lng) })
   const showName = !loading && destinationName && destinationName.length > 0
   const label = showName ? destinationName : fallbackLabel
 
@@ -29,30 +32,30 @@ export default function MapDestinationConfirmCard({
       className="siara-map-destination-card"
       role="dialog"
       aria-modal="false"
-      aria-label="Confirm destination"
+      aria-label={t('mapDestinationConfirmCard.ariaLabel')}
     >
       <div className="siara-map-destination-card__header">
         <span className="siara-map-destination-card__pin" aria-hidden="true">
           <LocationOnOutlinedIcon fontSize="inherit" />
         </span>
-        <h4 className="siara-map-destination-card__title">Start your travel with SIARA?</h4>
+        <h4 className="siara-map-destination-card__title">{t('mapDestinationConfirmCard.title')}</h4>
       </div>
       <p className="siara-map-destination-card__label" title={label}>
-        {loading ? "Looking up place name…" : label}
+        {loading ? t('mapDestinationConfirmCard.lookingUpPlace') : label}
       </p>
       {starting ? (
         <p className="siara-map-destination-card__hint">
-          Calculating SIARA route risk…
+          {t('mapDestinationConfirmCard.calculatingRouteRisk')}
         </p>
       ) : !loading && !showName ? (
         <p className="siara-map-destination-card__hint">
           {error
-            ? "Could not look up a place name, but you can still travel using the coordinates."
-            : "No street name found for this point — coordinates will be used."}
+            ? t('mapDestinationConfirmCard.hintNameError')
+            : t('mapDestinationConfirmCard.hintNoName')}
         </p>
       ) : (
         <p className="siara-map-destination-card__hint">
-          SIARA will calculate road risk and guide you using the safest route.
+          {t('mapDestinationConfirmCard.hintDefault')}
         </p>
       )}
       {!starting && startError ? (
@@ -64,7 +67,7 @@ export default function MapDestinationConfirmCard({
           className="siara-map-destination-card__btn siara-map-destination-card__btn--secondary"
           onClick={onCancel}
         >
-          Cancel
+          {t('common:actions.cancel')}
         </button>
         <button
           type="button"
@@ -78,10 +81,10 @@ export default function MapDestinationConfirmCard({
                 className="siara-map-destination-card__spinner"
                 aria-hidden="true"
               />
-              Calculating route…
+              {t('mapDestinationConfirmCard.calculatingRoute')}
             </>
           ) : (
-            "Start travel"
+            t('mapDestinationConfirmCard.startTravel')
           )}
         </button>
       </div>

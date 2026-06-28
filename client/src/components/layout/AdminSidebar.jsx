@@ -21,6 +21,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded'
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
@@ -84,7 +85,7 @@ const DEFAULT_ALERT_COUNTS = Object.freeze({
 })
 
 /* Section structure — a single key identifies each section for persistence. */
-function buildSections(incidentCounts, alertCounts, countsReady) {
+function buildSections(incidentCounts, alertCounts, countsReady, t) {
   const incidentBadge = (key, type = '') => ({
     badge: countsReady ? String(incidentCounts[key] ?? 0) : null,
     badgeType: type,
@@ -97,100 +98,100 @@ function buildSections(incidentCounts, alertCounts, countsReady) {
   return [
     {
       key: 'overview',
-      label: 'Overview',
+      label: t('adminSidebar.sections.overview'),
       links: [
-        { to: '/admin/overview', icon: <DashboardOutlinedIcon fontSize="inherit" />, text: 'System Overview' },
+        { to: '/admin/overview', icon: <DashboardOutlinedIcon fontSize="inherit" />, text: t('adminSidebar.links.systemOverview') },
       ],
     },
     {
       key: 'incidents',
-      label: 'Incident Management',
+      label: t('adminSidebar.sections.incidents'),
       links: [
-        { to: '/admin/incidents?filter=all',            icon: <AllInboxOutlinedIcon fontSize="inherit" />,           text: 'All Incidents',         ...incidentBadge('all') },
-        { to: '/admin/incidents?filter=pending',        icon: <PendingActionsOutlinedIcon fontSize="inherit" />,     text: 'Pending Review',        ...incidentBadge('pending', 'warning') },
-        { to: '/admin/incidents?filter=suspicious',     icon: <ReportGmailerrorredOutlinedIcon fontSize="inherit" />,text: 'Suspected Spam',        ...incidentBadge('suspicious', 'warning') },
-        { to: '/admin/incidents?filter=pending-review', icon: <GavelOutlinedIcon fontSize="inherit" />,              text: 'Manual Spam Review',    ...incidentBadge('pending-review', 'warning') },
-        { to: '/admin/incidents?filter=ai-flagged',     icon: <SmartToyOutlinedIcon fontSize="inherit" />,           text: 'AI-Flagged High Risk',  ...incidentBadge('ai-flagged', 'danger') },
-        { to: '/admin/incidents?filter=community',      icon: <GroupsOutlinedIcon fontSize="inherit" />,             text: 'Community Flagged',     ...incidentBadge('community', 'warning') },
-        { to: '/admin/incidents?filter=merged',         icon: <MergeTypeOutlinedIcon fontSize="inherit" />,          text: 'Merged Incidents',      ...incidentBadge('merged') },
-        { to: '/admin/incidents?filter=archived',       icon: <Inventory2OutlinedIcon fontSize="inherit" />,         text: 'Archived',              ...incidentBadge('archived') },
+        { to: '/admin/incidents?filter=all',            icon: <AllInboxOutlinedIcon fontSize="inherit" />,           text: t('adminSidebar.links.allIncidents'),        ...incidentBadge('all') },
+        { to: '/admin/incidents?filter=pending',        icon: <PendingActionsOutlinedIcon fontSize="inherit" />,     text: t('adminSidebar.links.pendingReview'),       ...incidentBadge('pending', 'warning') },
+        { to: '/admin/incidents?filter=suspicious',     icon: <ReportGmailerrorredOutlinedIcon fontSize="inherit" />,text: t('adminSidebar.links.suspectedSpam'),       ...incidentBadge('suspicious', 'warning') },
+        { to: '/admin/incidents?filter=pending-review', icon: <GavelOutlinedIcon fontSize="inherit" />,              text: t('adminSidebar.links.manualSpamReview'),    ...incidentBadge('pending-review', 'warning') },
+        { to: '/admin/incidents?filter=ai-flagged',     icon: <SmartToyOutlinedIcon fontSize="inherit" />,           text: t('adminSidebar.links.aiFlaggedHighRisk'),   ...incidentBadge('ai-flagged', 'danger') },
+        { to: '/admin/incidents?filter=community',      icon: <GroupsOutlinedIcon fontSize="inherit" />,             text: t('adminSidebar.links.communityFlagged'),    ...incidentBadge('community', 'warning') },
+        { to: '/admin/incidents?filter=merged',         icon: <MergeTypeOutlinedIcon fontSize="inherit" />,          text: t('adminSidebar.links.mergedIncidents'),     ...incidentBadge('merged') },
+        { to: '/admin/incidents?filter=archived',       icon: <Inventory2OutlinedIcon fontSize="inherit" />,         text: t('adminSidebar.links.archived'),            ...incidentBadge('archived') },
       ],
     },
     {
       key: 'alerts',
-      label: 'Alert Operations',
+      label: t('adminSidebar.sections.alerts'),
       links: [
-        { to: '/admin/alerts?tab=all',       icon: <InboxOutlinedIcon fontSize="inherit" />,                text: 'All Alerts',          ...alertBadge('all') },
-        { to: '/admin/alerts?tab=active',    icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />,  text: 'Active Alerts',       ...alertBadge('active', 'success') },
-        { to: '/admin/alerts?tab=scheduled', icon: <ScheduleOutlinedIcon fontSize="inherit" />,             text: 'Scheduled Alerts',    ...alertBadge('scheduled', 'info') },
-        { to: '/admin/alerts?tab=expired',   icon: <HistoryToggleOffOutlinedIcon fontSize="inherit" />,     text: 'Expiring / Expired',  ...alertBadge('expired') },
-        { to: '/admin/alerts?tab=emergency', icon: <CampaignOutlinedIcon fontSize="inherit" />,             text: 'Emergency Broadcast', ...alertBadge('emergency', 'danger') },
-        { to: '/admin/alerts?tab=templates', icon: <DescriptionOutlinedIcon fontSize="inherit" />,          text: 'Alert Templates',     ...alertBadge('templates', 'info') },
+        { to: '/admin/alerts?tab=all',       icon: <InboxOutlinedIcon fontSize="inherit" />,                text: t('adminSidebar.links.allAlerts'),         ...alertBadge('all') },
+        { to: '/admin/alerts?tab=active',    icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />,  text: t('adminSidebar.links.activeAlerts'),      ...alertBadge('active', 'success') },
+        { to: '/admin/alerts?tab=scheduled', icon: <ScheduleOutlinedIcon fontSize="inherit" />,             text: t('adminSidebar.links.scheduledAlerts'),   ...alertBadge('scheduled', 'info') },
+        { to: '/admin/alerts?tab=expired',   icon: <HistoryToggleOffOutlinedIcon fontSize="inherit" />,     text: t('adminSidebar.links.expiringExpired'),   ...alertBadge('expired') },
+        { to: '/admin/alerts?tab=emergency', icon: <CampaignOutlinedIcon fontSize="inherit" />,             text: t('adminSidebar.links.emergencyBroadcast'),...alertBadge('emergency', 'danger') },
+        { to: '/admin/alerts?tab=templates', icon: <DescriptionOutlinedIcon fontSize="inherit" />,          text: t('adminSidebar.links.alertTemplates'),    ...alertBadge('templates', 'info') },
       ],
     },
     {
       key: 'zones',
-      label: 'Risk & Zones',
+      label: t('adminSidebar.sections.zones'),
       links: [
-        { to: '/admin/zones?tab=map',        icon: <WhatshotOutlinedIcon fontSize="inherit" />,        text: 'Zone Map' },
-        { to: '/admin/zones?tab=table',      icon: <EditLocationAltOutlinedIcon fontSize="inherit" />, text: 'Zone Management' },
-        { to: '/admin/zones?tab=ranking',    icon: <LeaderboardOutlinedIcon fontSize="inherit" />,     text: 'Wilaya Risk Ranking' },
-        { to: '/admin/zones?tab=thresholds', icon: <TuneOutlinedIcon fontSize="inherit" />,            text: 'Zone Thresholds' },
+        { to: '/admin/zones?tab=map',        icon: <WhatshotOutlinedIcon fontSize="inherit" />,        text: t('adminSidebar.links.zoneMap') },
+        { to: '/admin/zones?tab=table',      icon: <EditLocationAltOutlinedIcon fontSize="inherit" />, text: t('adminSidebar.links.zoneManagement') },
+        { to: '/admin/zones?tab=ranking',    icon: <LeaderboardOutlinedIcon fontSize="inherit" />,     text: t('adminSidebar.links.wilayaRiskRanking') },
+        { to: '/admin/zones?tab=thresholds', icon: <TuneOutlinedIcon fontSize="inherit" />,            text: t('adminSidebar.links.zoneThresholds') },
       ],
     },
     {
       key: 'ai',
-      label: 'AI & Model Supervision',
+      label: t('adminSidebar.sections.ai'),
       links: [
-        { to: '/admin/ai?tab=performance', icon: <TrendingUpOutlinedIcon fontSize="inherit" />,   text: 'Model Performance' },
-        { to: '/admin/ai?tab=confidence',  icon: <InsightsOutlinedIcon fontSize="inherit" />,     text: 'Confidence Analysis' },
-        { to: '/admin/ai?tab=confusion',   icon: <GridOnOutlinedIcon fontSize="inherit" />,       text: 'Confusion Matrix' },
-        { to: '/admin/ai?tab=overrides',   icon: <ManageHistoryOutlinedIcon fontSize="inherit" />, text: 'Override Logs' },
-        { to: '/admin/ai?tab=occurrence',  icon: <ScienceOutlinedIcon fontSize="inherit" />,      text: 'Occurrence Model (Beta)' },
+        { to: '/admin/ai?tab=performance', icon: <TrendingUpOutlinedIcon fontSize="inherit" />,   text: t('adminSidebar.links.modelPerformance') },
+        { to: '/admin/ai?tab=confidence',  icon: <InsightsOutlinedIcon fontSize="inherit" />,     text: t('adminSidebar.links.confidenceAnalysis') },
+        { to: '/admin/ai?tab=confusion',   icon: <GridOnOutlinedIcon fontSize="inherit" />,       text: t('adminSidebar.links.confusionMatrix') },
+        { to: '/admin/ai?tab=overrides',   icon: <ManageHistoryOutlinedIcon fontSize="inherit" />, text: t('adminSidebar.links.overrideLogs') },
+        { to: '/admin/ai?tab=occurrence',  icon: <ScienceOutlinedIcon fontSize="inherit" />,      text: t('adminSidebar.links.occurrenceModelBeta') },
       ],
     },
     {
       key: 'users',
-      label: 'User Governance',
+      label: t('adminSidebar.sections.users'),
       links: [
-        { to: '/admin/users?filter=all',        icon: <PeopleOutlinedIcon fontSize="inherit" />,              text: 'All Users' },
-        { to: '/admin/users?filter=active',     icon: <TaskAltOutlinedIcon fontSize="inherit" />,             text: 'Active' },
-        { to: '/admin/users?filter=trusted',    icon: <WorkspacePremiumOutlinedIcon fontSize="inherit" />,    text: 'Top Contributors' },
-        { to: '/admin/users?filter=at-risk',    icon: <WarningAmberOutlinedIcon fontSize="inherit" />,        text: 'At Risk' },
-        { to: '/admin/users?filter=banned',     icon: <BlockOutlinedIcon fontSize="inherit" />,               text: 'Banned' },
-        { to: '/admin/users?filter=police',     icon: <LocalPoliceOutlinedIcon fontSize="inherit" />,         text: 'Police' },
-        { to: '/admin/users?filter=supervisor', icon: <ShieldOutlinedIcon fontSize="inherit" />,              text: 'Supervisor' },
-        { to: '/admin/users?filter=admin',      icon: <AdminPanelSettingsOutlinedIcon fontSize="inherit" />,  text: 'Admins' },
+        { to: '/admin/users?filter=all',        icon: <PeopleOutlinedIcon fontSize="inherit" />,              text: t('adminSidebar.links.allUsers') },
+        { to: '/admin/users?filter=active',     icon: <TaskAltOutlinedIcon fontSize="inherit" />,             text: t('adminSidebar.links.activeUsers') },
+        { to: '/admin/users?filter=trusted',    icon: <WorkspacePremiumOutlinedIcon fontSize="inherit" />,    text: t('adminSidebar.links.topContributors') },
+        { to: '/admin/users?filter=at-risk',    icon: <WarningAmberOutlinedIcon fontSize="inherit" />,        text: t('adminSidebar.links.atRisk') },
+        { to: '/admin/users?filter=banned',     icon: <BlockOutlinedIcon fontSize="inherit" />,               text: t('adminSidebar.links.banned') },
+        { to: '/admin/users?filter=police',     icon: <LocalPoliceOutlinedIcon fontSize="inherit" />,         text: t('common:nav.police') },
+        { to: '/admin/users?filter=supervisor', icon: <ShieldOutlinedIcon fontSize="inherit" />,              text: t('common:nav.supervisor') },
+        { to: '/admin/users?filter=admin',      icon: <AdminPanelSettingsOutlinedIcon fontSize="inherit" />,  text: t('adminSidebar.links.admins') },
       ],
     },
     {
       key: 'analytics',
-      label: 'Data & Analytics',
+      label: t('adminSidebar.sections.analytics'),
       links: [
-        { to: '/admin/analytics?tab=heatmap',      icon: <AnalyticsOutlinedIcon fontSize="inherit" />,         text: 'Hourly Heatmap' },
-        { to: '/admin/analytics?tab=severity',     icon: <DonutLargeOutlinedIcon fontSize="inherit" />,        text: 'Severity Distribution' },
-        { to: '/admin/analytics?tab=roads',        icon: <AltRouteOutlinedIcon fontSize="inherit" />,          text: 'Dangerous Roads' },
-        { to: '/admin/analytics?tab=correlations', icon: <ScatterPlotOutlinedIcon fontSize="inherit" />,       text: 'Correlations' },
-        { to: '/admin/analytics?tab=predictions',  icon: <OnlinePredictionOutlinedIcon fontSize="inherit" />,  text: '7-Day Prediction' },
+        { to: '/admin/analytics?tab=heatmap',      icon: <AnalyticsOutlinedIcon fontSize="inherit" />,         text: t('adminSidebar.links.hourlyHeatmap') },
+        { to: '/admin/analytics?tab=severity',     icon: <DonutLargeOutlinedIcon fontSize="inherit" />,        text: t('adminSidebar.links.severityDistribution') },
+        { to: '/admin/analytics?tab=roads',        icon: <AltRouteOutlinedIcon fontSize="inherit" />,          text: t('adminSidebar.links.dangerousRoads') },
+        { to: '/admin/analytics?tab=correlations', icon: <ScatterPlotOutlinedIcon fontSize="inherit" />,       text: t('adminSidebar.links.correlations') },
+        { to: '/admin/analytics?tab=predictions',  icon: <OnlinePredictionOutlinedIcon fontSize="inherit" />,  text: t('adminSidebar.links.sevenDayPrediction') },
       ],
     },
     {
       key: 'inbox',
-      label: 'Support Inbox',
+      label: t('adminSidebar.sections.inbox'),
       links: [
-        { to: '/admin/inbox',           icon: <MarkunreadMailboxOutlinedIcon fontSize="inherit" />, text: 'All Inbox' },
-        { to: '/admin/inbox?show=support', icon: <InboxOutlinedIcon fontSize="inherit" />,         text: 'Contact Messages' },
-        { to: '/admin/inbox?show=info',    icon: <AllInboxOutlinedIcon fontSize="inherit" />,      text: 'Info-Request Replies' },
+        { to: '/admin/inbox',              icon: <MarkunreadMailboxOutlinedIcon fontSize="inherit" />, text: t('adminSidebar.links.allInbox') },
+        { to: '/admin/inbox?show=support', icon: <InboxOutlinedIcon fontSize="inherit" />,            text: t('adminSidebar.links.contactMessages') },
+        { to: '/admin/inbox?show=info',    icon: <AllInboxOutlinedIcon fontSize="inherit" />,         text: t('adminSidebar.links.infoRequestReplies') },
       ],
     },
     {
       key: 'system',
-      label: 'System',
+      label: t('adminSidebar.sections.system'),
       links: [
-        { to: '/admin/system?tab=severity',      icon: <RuleOutlinedIcon fontSize="inherit" />,                    text: 'Severity Rules' },
-        { to: '/admin/system?tab=notifications', icon: <NotificationsNoneOutlinedIcon fontSize="inherit" />,       text: 'Notification Logic' },
-        { to: '/admin/system?tab=geofencing',    icon: <MyLocationOutlinedIcon fontSize="inherit" />,              text: 'Geo-fencing' },
-        { to: '/admin/system?tab=general',       icon: <SettingsApplicationsOutlinedIcon fontSize="inherit" />,    text: 'General' },
+        { to: '/admin/system?tab=severity',      icon: <RuleOutlinedIcon fontSize="inherit" />,                    text: t('adminSidebar.links.severityRules') },
+        { to: '/admin/system?tab=notifications', icon: <NotificationsNoneOutlinedIcon fontSize="inherit" />,       text: t('adminSidebar.links.notificationLogic') },
+        { to: '/admin/system?tab=geofencing',    icon: <MyLocationOutlinedIcon fontSize="inherit" />,              text: t('adminSidebar.links.geofencing') },
+        { to: '/admin/system?tab=general',       icon: <SettingsApplicationsOutlinedIcon fontSize="inherit" />,    text: t('adminSidebar.links.general') },
       ],
     },
   ]
@@ -256,6 +257,7 @@ function persistCollapsed(state) {
 
 export default function AdminSidebar({ mobileOpen = false } = {}) {
   const location = useLocation()
+  const { t } = useTranslation(['admin', 'common'])
   // AuthContext is no longer consumed here — profile + logout moved to AdminHeader.
 
   const [incidentCounts, setIncidentCounts] = useState(DEFAULT_INCIDENT_COUNTS)
@@ -294,8 +296,9 @@ export default function AdminSidebar({ mobileOpen = false } = {}) {
 
   /* ─── Section list (memoised, filtered by search) ───────────────────── */
   const sections = useMemo(
-    () => buildSections(incidentCounts, alertCounts, countsReady),
-    [incidentCounts, alertCounts, countsReady],
+    () => buildSections(incidentCounts, alertCounts, countsReady, t),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [incidentCounts, alertCounts, countsReady, t],
   )
 
   /* ─── Resolve the single best-matching link for the current URL ──────── */
@@ -379,7 +382,7 @@ export default function AdminSidebar({ mobileOpen = false } = {}) {
       {/* ─── Brand ─── */}
       <div className="siara-sb-brand">
         <img src={siaraLogo} alt="SIARA" className="siara-sb-brand-logo" />
-        <span className="siara-sb-brand-sub">Supervision Centre</span>
+        <span className="siara-sb-brand-sub">{t('adminSidebar.supervisionCentre')}</span>
       </div>
 
       {/* ─── Search ─── */}
@@ -388,17 +391,17 @@ export default function AdminSidebar({ mobileOpen = false } = {}) {
         <input
           type="search"
           className="siara-sb-search-input"
-          placeholder="Search navigation…"
+          placeholder={t('adminSidebar.searchPlaceholder')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          aria-label="Search admin sidebar"
+          aria-label={t('adminSidebar.searchAriaLabel')}
         />
         {isSearching && (
           <button
             type="button"
             className="siara-sb-search-clear"
             onClick={() => setQuery('')}
-            aria-label="Clear search"
+            aria-label={t('adminSidebar.clearSearch')}
           >×</button>
         )}
       </div>
@@ -407,7 +410,7 @@ export default function AdminSidebar({ mobileOpen = false } = {}) {
       <div className="siara-sb-scroll">
         {showEmptyState ? (
           <div className="siara-sb-empty">
-            No links match <strong>"{query}"</strong>.
+            {t('adminSidebar.noLinksMatch', { query })}
           </div>
         ) : (
           filteredSections.map((section) => {

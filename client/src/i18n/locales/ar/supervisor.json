@@ -1,0 +1,381 @@
+{
+  "supervisorAlertCenterPage": {
+    "eyebrow": "المشرف الميداني — مركز التنبيهات",
+    "title": "تنبيهات المشرف الميداني",
+    "subtitle": "بث التنبيهات التشغيلية والتحذيرات للضباط الميدانيين",
+    "createAlertTitle": "إنشاء تنبيه",
+    "labelAlertTitle": "عنوان التنبيه",
+    "placeholderAlertTitle": "مثال: تجنّب المنطقة أ — ازدحام شديد",
+    "labelMessage": "الرسالة",
+    "placeholderMessage": "أدخل تعليمات مفصّلة أو سياقاً للضباط الميدانيين…",
+    "labelSeverity": "الخطورة",
+    "labelAlertType": "نوع التنبيه",
+    "labelTargetAudience": "الفئة المستهدفة",
+    "targetAllOfficersInZone": "جميع الضباط في المنطقة",
+    "targetAllPoliceOfficers": "جميع ضباط الشرطة",
+    "labelZone": "المنطقة",
+    "labelZoneWithWilaya": "المنطقة ({{wilaya}})",
+    "optionSelectCommune": "اختر البلدية…",
+    "optionAllOfWilaya": "كامل ولاية {{wilaya}}",
+    "labelActiveFrom": "نشط من",
+    "placeholderStartImmediately": "ابدأ فوراً",
+    "hintStartImmediately": "اتركه فارغاً للبدء فوراً",
+    "labelActiveUntil": "نشط حتى *",
+    "placeholderSelectDateTime": "اختر التاريخ والوقت",
+    "btnSending": "جارٍ الإرسال…",
+    "btnBroadcast": "بث التنبيه للضباط",
+    "recentAlertsTitle": "التنبيهات الأخيرة الواردة",
+    "noRecentAlerts": "لا توجد تنبيهات حديثة",
+    "badgeRead": "مقروء",
+    "guidelinesTitle": "إرشادات التنبيه",
+    "guidelineHighLabel": "مرتفع",
+    "guidelineHighDesc": "تهديد فوري، حادث كبير، منطقة خطر نشطة. يستلزم استجابة عاجلة.",
+    "guidelineMediumLabel": "متوسط",
+    "guidelineMediumDesc": "خطر كبير، احتمالية وقوع حادث بالقرب من مسار محدد.",
+    "guidelineAdvisoryLabel": "إرشاد",
+    "guidelineAdvisoryDesc": "إرشادات عامة، تحديثات المنطقة، ازدحام مروري، أشغال الطريق.",
+    "errorTitleRequired": "العنوان مطلوب",
+    "errorMessageRequired": "الرسالة مطلوبة",
+    "errorZoneRequired": "المنطقة مطلوبة",
+    "errorEndTimeRequired": "وقت الانتهاء مطلوب",
+    "errorEndTimeAfterStart": "يجب أن يكون وقت الانتهاء بعد وقت البدء",
+    "toastAlertSent": "تم إرسال التنبيه للضباط بنجاح",
+    "toastAlertFailed": "فشل إرسال التنبيه",
+    "timeJustNow": "الآن",
+    "timeMinutesAgo": "منذ {{count}} د",
+    "timeHoursAgo": "منذ {{count}} س",
+    "timeDaysAgo": "منذ {{count}} ي"
+  },
+  "supervisorAnalyticsPage": {
+    "eyebrow": "المشرف الميداني — الاستراتيجية",
+    "title": "التحليلات التشغيلية",
+    "subtitle": "إحصائيات حل الحوادث، وعبء عمل الضباط، ومقاييس الاستجابة",
+    "daysFilter": "{{count}} أيام",
+    "errorLoadAnalytics": "فشل تحميل التحليلات",
+    "computingAnalytics": "جارٍ حساب التحليلات…",
+    "noTrendData": "لا توجد بيانات اتجاه",
+    "trendBarTitle": "{{date}}: {{count}} حوادث",
+    "noData": "لا توجد بيانات",
+    "noZoneData": "لا توجد بيانات للمنطقة",
+    "noWorkloadData": "لا توجد بيانات لعبء العمل",
+    "kpi": {
+      "totalIncidents": "إجمالي الحوادث",
+      "lastDays": "آخر {{count}} أيام",
+      "resolutionRate": "معدل الحل",
+      "resolvedCount": "{{count}} تم حلها",
+      "avgResponseTime": "متوسط وقت الاستجابة",
+      "reportToVerified": {
+        "before": "البلاغ",
+        "after": "مؤكَّد"
+      },
+      "avgResolution": "متوسط الحل",
+      "reportToResolved": {
+        "before": "البلاغ",
+        "after": "تم الحل"
+      }
+    },
+    "sections": {
+      "dailyTrend": "الاتجاه اليومي — آخر {{count}} أيام",
+      "incidentsByStatus": "الحوادث حسب الحالة",
+      "incidentsBySeverity": "الحوادث حسب الخطورة",
+      "busiestZones": "المناطق الأكثر نشاطاً",
+      "officerWorkload": "توزيع عبء عمل الضباط"
+    },
+    "status": {
+      "pending": "قيد المراجعة",
+      "underReview": "قيد الفحص",
+      "verified": "مؤكَّد",
+      "dispatched": "تم الإرسال",
+      "resolved": "تم الحل",
+      "rejected": "مرفوض"
+    },
+    "severity": {
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض"
+    },
+    "table": {
+      "officer": "الضابط",
+      "activeIncidents": "الحوادث النشطة",
+      "totalHandled": "إجمالي المعالَجة",
+      "workload": "عبء العمل"
+    }
+  },
+  "supervisorDashboardPage": {
+    "eyebrow": "نظرة عامة على القيادة",
+    "title": "لوحة تحكم المشرف الميداني",
+    "subtitle": "الحالة التشغيلية في الوقت الفعلي",
+    "updated": "تم التحديث {{time}}",
+    "refresh": "تحديث",
+    "errors": {
+      "loadFailed": "فشل تحميل لوحة التحكم"
+    },
+    "time": {
+      "justNow": "الآن",
+      "minutesAgo": "منذ {{count}} دقيقة",
+      "hoursAgo": "منذ {{count}} ساعة",
+      "daysAgo": "منذ {{count}} يوم"
+    },
+    "duration": {
+      "lessThanMinute": "أقل من دقيقة",
+      "minutes": "{{count}} د",
+      "hours": "{{count}} س"
+    },
+    "severity": {
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض"
+    },
+    "activity": {
+      "defaultOfficer": "ضابط",
+      "defaultReport": "حادثًا",
+      "verifyIncident": "قام {{officer}} بالتحقق من {{report}}",
+      "rejectIncident": "رفض {{officer}} {{report}}",
+      "assignSelf": "عيّن {{officer}} نفسه لـ {{report}}",
+      "requestBackup": "طلب {{officer}} دعمًا لـ {{report}}",
+      "updateStatus": "قام {{officer}} بتحديث حالة {{report}}",
+      "fieldNote": "أضاف {{officer}} ملاحظة ميدانية على {{report}}",
+      "markAlertRead": "أكّد {{officer}} استلام تنبيه",
+      "manualLogEntry": "سجّل {{officer}} إدخالًا يدويًا",
+      "assignOfficer": "عيّن المشرف الميداني ضابطًا لـ {{report}}",
+      "default": "قام {{officer}} بإجراء"
+    },
+    "kpi": {
+      "activeIncidents": {
+        "label": "الحوادث النشطة",
+        "sub": "غير محلولة في النظام"
+      },
+      "high": {
+        "label": "مرتفع",
+        "sub": "خطورة مرتفعة"
+      },
+      "pendingVerification": {
+        "label": "قيد التحقق",
+        "sub": "في انتظار إجراء الضابط"
+      },
+      "activeOfficers": {
+        "label": "الضباط النشطون",
+        "sub": "في الخدمة حاليًا"
+      },
+      "avgResponse": {
+        "label": "متوسط وقت الاستجابة",
+        "sub": "البلاغ",
+        "sub2": "مؤكَّد (30 يومًا)"
+      }
+    },
+    "highSeverity": {
+      "title": "الحوادث ذات الخطورة المرتفعة",
+      "coordinate": "تنسيق",
+      "empty": "لا توجد حوادث ذات خطورة مرتفعة"
+    },
+    "incident": {
+      "unknownLocation": "موقع غير معروف"
+    },
+    "officerStatus": {
+      "title": "حالة الضباط",
+      "monitor": "مراقبة",
+      "onDuty": "في الخدمة",
+      "offDuty": "خارج الخدمة",
+      "total": "إجمالي الضباط"
+    },
+    "quickActions": {
+      "title": "إجراءات سريعة",
+      "incidentCoordination": "تنسيق الحوادث",
+      "monitorOfficers": "مراقبة الضباط",
+      "sendAlert": "إرسال تنبيه",
+      "operationsMap": "خريطة العمليات",
+      "analytics": "التحليلات",
+      "verificationQueue": "قائمة انتظار التحقق"
+    },
+    "activityFeed": {
+      "title": "تغذية النشاط المباشر",
+      "fullHistory": "السجل الكامل",
+      "empty": "لا يوجد نشاط حديث"
+    }
+  },
+  "supervisorIncidentCoordinationPage": {
+    "eyebrow": "المشرف الميداني — العمليات",
+    "title": "تنسيق الحوادث",
+    "subtitle": "تعيين وتنسيق استجابات الضباط للحوادث النشطة",
+    "actions": {
+      "refresh": "تحديث",
+      "assign": "تعيين",
+      "view": "عرض"
+    },
+    "filters": {
+      "searchPlaceholder": "البحث عن الحوادث...",
+      "allStatuses": "جميع الحالات",
+      "allSeverity": "جميع مستويات الخطورة"
+    },
+    "loadingIncidents": "جارٍ تحميل الحوادث...",
+    "emptyState": "لا توجد حوادث تطابق المرشحات الحالية",
+    "activeIncidents": "الحوادث النشطة",
+    "table": {
+      "incident": "الحادث",
+      "location": "الموقع",
+      "severity": "الخطورة",
+      "status": "الحالة",
+      "assignedTo": "مُعيَّن إلى",
+      "reported": "تم الإبلاغ",
+      "assignOfficer": "تعيين ضابط",
+      "unassigned": "غير مُعيَّن"
+    },
+    "severity": {
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض"
+    },
+    "time": {
+      "justNow": "الآن",
+      "minutesAgo": "منذ {{count}} د",
+      "hoursAgo": "منذ {{count}} س",
+      "daysAgo": "منذ {{count}} ي"
+    },
+    "officer": {
+      "locationUnavailable": "الموقع غير متاح",
+      "metersAway": "على بُعد {{meters}} م",
+      "kmAway": "على بُعد {{km}} كم",
+      "offDuty": "خارج الخدمة",
+      "noneInCommune": "لا يوجد ضباط في بلديتك",
+      "selectPlaceholder": "اختر ضابطاً..."
+    },
+    "errors": {
+      "loadFailed": "فشل تحميل بيانات التنسيق",
+      "loadOfficersFailed": "فشل تحميل قائمة الضباط"
+    },
+    "toast": {
+      "assignSuccess": "تم تعيين الضابط بنجاح",
+      "assignFailed": "فشل التعيين"
+    }
+  },
+  "supervisorOfficerMonitoringPage": {
+    "time": {
+      "never": "أبدًا",
+      "justNow": "الآن للتو",
+      "minutesAgo_one": "منذ {{count}} دقيقة",
+      "minutesAgo_other": "منذ {{count}} دقائق",
+      "hoursAgo_one": "منذ {{count}} ساعة",
+      "hoursAgo_other": "منذ {{count}} ساعات",
+      "daysAgo_one": "منذ {{count}} يوم",
+      "daysAgo_other": "منذ {{count}} أيام"
+    },
+    "detail": {
+      "title": "ملف الضابط",
+      "badge": "الشارة رقم {{number}}",
+      "status": "الحالة",
+      "workZone": "منطقة العمل",
+      "noZoneSet": "لم يتم تحديد منطقة",
+      "lastLocation": "آخر موقع",
+      "unknown": "غير معروف",
+      "contact": "التواصل"
+    },
+    "status": {
+      "onDuty": "في الخدمة",
+      "offDuty": "خارج الخدمة"
+    },
+    "eyebrow": "المشرف الميداني — المراقبة",
+    "pageTitle": "مراقبة الضباط",
+    "subtitle": "تتبّع توافر الضباط وعبء العمل والحالة التشغيلية",
+    "subtitleWithCommune": "عرض الضباط في بلديتك المخصصة — {{commune}}",
+    "actions": {
+      "refresh": "تحديث"
+    },
+    "errors": {
+      "loadFailed": "فشل تحميل قائمة الضباط"
+    },
+    "kpi": {
+      "total": "إجمالي الضباط",
+      "onDuty": "في الخدمة",
+      "offDuty": "خارج الخدمة"
+    },
+    "filters": {
+      "searchPlaceholder": "ابحث باسم الضابط أو الشارة أو البريد الإلكتروني...",
+      "all": "جميع الضباط"
+    },
+    "loading": "جارٍ تحميل الضباط…",
+    "empty": "لا يوجد ضباط يطابقون الفلاتر الحالية",
+    "card": {
+      "noBadge": "بدون شارة",
+      "noZone": "لا توجد منطقة",
+      "lastSeen": "آخر ظهور"
+    }
+  },
+  "supervisorOperationsMapPage": {
+    "eyebrow": "المشرف الميداني — المراقبة",
+    "title": "خريطة العمليات الشاملة",
+    "subtitle": "مواقع الحوادث والضباط في الوقت الفعلي عبر جميع المناطق",
+    "updatedAt": "تم التحديث {{time}}",
+    "actions": {
+      "fit": "ملاءمة"
+    },
+    "errors": {
+      "loadFailed": "فشل تحميل بيانات الخريطة"
+    },
+    "kpi": {
+      "activeIncidents": "الحوادث النشطة",
+      "highSeverity": "{{count}} خطورة عالية",
+      "unassigned": "غير مُعيَّن",
+      "highSeverityUncovered": "{{count}} خطورة عالية غير مغطاة",
+      "onDuty": "في الخدمة",
+      "respondingNow": "{{count}} يستجيب الآن",
+      "signalLost": "فُقد الإشارة",
+      "noPingThreshold": "لا إشارة > 15 دقيقة"
+    },
+    "toolbar": {
+      "layers": "الطبقات",
+      "incidentsCount": "الحوادث ({{count}})",
+      "officersCount": "الضباط ({{count}})",
+      "assignmentLinks": "روابط التعيين",
+      "severity": "الخطورة",
+      "coverage": "التغطية",
+      "duty": "الخدمة"
+    },
+    "filter": {
+      "all": "الكل",
+      "unassigned": "غير مُعيَّن",
+      "assigned": "مُعيَّن",
+      "onDuty": "في الخدمة",
+      "offDuty": "خارج الخدمة"
+    },
+    "loadingMapData": "جارٍ تحميل بيانات الخريطة…",
+    "severity": {
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض"
+    },
+    "officerStatus": {
+      "responding": "يستجيب",
+      "available": "متاح",
+      "stale": "فُقد الإشارة",
+      "off": "خارج الخدمة"
+    },
+    "popup": {
+      "nearest": "الأقرب: {{name}} · {{km}} كم",
+      "viewDetails": "عرض التفاصيل",
+      "assignedCount": "{{count}} مُعيَّن",
+      "badgeNumber": "شارة #{{number}}",
+      "lastPing": "آخر إشارة {{time}}"
+    },
+    "legend": {
+      "incidents": "الحوادث",
+      "officers": "الضباط"
+    },
+    "tabs": {
+      "incidents": "الحوادث",
+      "officers": "الضباط"
+    },
+    "empty": {
+      "noIncidents": "لا توجد حوادث تطابق هذه المرشحات.",
+      "noOfficers": "لا يوجد ضباط يطابقون هذه المرشحات."
+    },
+    "list": {
+      "assignedCount": "{{count}} مُعيَّن"
+    },
+    "time": {
+      "justNow": "الآن",
+      "minutesAgo": "منذ {{count}} د",
+      "hoursAgo": "منذ {{count}} س",
+      "daysAgo": "منذ {{count}} ي"
+    }
+  }
+}

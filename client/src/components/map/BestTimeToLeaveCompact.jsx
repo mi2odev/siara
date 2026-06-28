@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { fetchDepartureOptions } from '../../services/departureOptionsService'
 
 const OFFSETS_MIN = [0, 30, 60, 120]
@@ -52,6 +53,7 @@ export default function BestTimeToLeaveCompact({
   onSelectTimestamp,
   routeIdentity = '',
 }) {
+  const { t } = useTranslation(['map', 'common'])
   const [state, setState] = useState('idle')
   const [error, setError] = useState('')
   const [options, setOptions] = useState([])
@@ -123,7 +125,7 @@ export default function BestTimeToLeaveCompact({
       ) {
         return
       }
-      setError(err?.message || 'Could not check departure times.')
+      setError(err?.message || t('bestTimeToLeaveCompact.errorDefault'))
       setState('error')
     } finally {
       if (abortRef.current === controller) {
@@ -165,26 +167,32 @@ export default function BestTimeToLeaveCompact({
     ? tierFromLevel(nowOption.riskLevel, nowOption.riskPercent)
     : 'unknown'
   const teaser = (() => {
-    if (!expanded && state === 'idle') return 'Expand to compare departure times.'
-    if (state === 'loading') return 'Checking departure times...'
-    if (state === 'error') return error || 'Could not check departure times.'
-    if (!nowOption) return 'No departure data yet.'
+    if (!expanded && state === 'idle') return t('bestTimeToLeaveCompact.teaserIdle')
+    if (state === 'loading') return t('bestTimeToLeaveCompact.teaserLoading')
+    if (state === 'error') return error || t('bestTimeToLeaveCompact.errorDefault')
+    if (!nowOption) return t('bestTimeToLeaveCompact.noDataYet')
     if (bestOption && bestOption.timestamp !== nowOption.timestamp) {
-      return `Now: ${nowTier} | Best at ${formatClock(bestOption.timestamp)}`
+      return t('bestTimeToLeaveCompact.teaserWithBest', {
+        tier: nowTier,
+        bestTime: formatClock(bestOption.timestamp),
+      })
     }
-    return `Now: ${nowTier} (${formatRiskPercent(nowOption.riskPercent)})`
+    return t('bestTimeToLeaveCompact.teaserNow', {
+      tier: nowTier,
+      percent: formatRiskPercent(nowOption.riskPercent),
+    })
   })()
 
   return (
-    <section className="siara-best-time-compact" aria-label="Best time to leave">
+    <section className="siara-best-time-compact" aria-label={t('bestTimeToLeaveCompact.title')}>
       <button
         type="button"
         className="siara-best-time-compact__header"
         onClick={() => setExpanded((prev) => !prev)}
         aria-expanded={expanded}
       >
-        <span className="siara-best-time-compact__icon" aria-hidden="true">Time</span>
-        <span className="siara-best-time-compact__title">Best time to leave</span>
+        <span className="siara-best-time-compact__icon" aria-hidden="true">{t('bestTimeToLeaveCompact.iconLabel')}</span>
+        <span className="siara-best-time-compact__title">{t('bestTimeToLeaveCompact.title')}</span>
         <span
           className={`siara-best-time-compact__chevron${
             expanded ? ' siara-best-time-compact__chevron--open' : ''
@@ -216,14 +224,14 @@ export default function BestTimeToLeaveCompact({
             onClick={() => runQuery({ force: true })}
             disabled={state === 'loading' || !origin || !destination}
           >
-            {state === 'loading' ? 'Checking...' : 'Refresh'}
+            {state === 'loading' ? t('bestTimeToLeaveCompact.checking') : t('bestTimeToLeaveCompact.refresh')}
           </button>
           {state === 'loading' ? (
-            <p className="siara-best-time-compact__hint">Checking safer departure times...</p>
+            <p className="siara-best-time-compact__hint">{t('bestTimeToLeaveCompact.checkingSafer')}</p>
           ) : state === 'error' ? (
             <p className="siara-best-time-compact__error" role="alert">{error}</p>
           ) : options.length === 0 ? (
-            <p className="siara-best-time-compact__hint">No departure options available.</p>
+            <p className="siara-best-time-compact__hint">{t('bestTimeToLeaveCompact.noOptions')}</p>
           ) : (
             <ul className="siara-best-time-compact__list">
               {options.map((opt) => {
@@ -257,7 +265,7 @@ export default function BestTimeToLeaveCompact({
                       }}
                       disabled={failed}
                     >
-                      Use this departure
+                      {t('bestTimeToLeaveCompact.useDeparture')}
                     </button>
                   </li>
                 )

@@ -30,6 +30,8 @@ import PriorityHighRoundedIcon from '@mui/icons-material/PriorityHighRounded'
  *   - All data is mock/static for prototype purposes
  */
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../contexts/AuthContext'
 import PoliceModeTab from '../../components/layout/PoliceModeTab'
@@ -52,24 +54,24 @@ import profileAvatar from '../../assets/logos/siara-logo1.png' // Using logo as 
 
 function toTitleCase(value) {
   const normalized = String(value || '').trim()
-  if (!normalized) return 'User'
+  if (!normalized) return i18n.t('settings:profilePage.defaults.user')
   return normalized.charAt(0).toUpperCase() + normalized.slice(1)
 }
 
 function formatJoinDate(value) {
-  if (!value) return 'Recently'
+  if (!value) return i18n.t('settings:profilePage.defaults.recently')
 
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Recently'
+  if (Number.isNaN(date.getTime())) return i18n.t('settings:profilePage.defaults.recently')
 
   return date.toLocaleDateString([], { month: 'short', year: 'numeric' })
 }
 
 function formatReportTime(value) {
-  if (!value) return 'Unknown time'
+  if (!value) return i18n.t('settings:profilePage.defaults.unknownTime')
 
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Unknown time'
+  if (Number.isNaN(date.getTime())) return i18n.t('settings:profilePage.defaults.unknownTime')
 
   return date.toLocaleString([], {
     month: 'short',
@@ -124,7 +126,7 @@ function isOwnedByUser(report, userIdentity) {
 }
 
 function formatAlertTime(value) {
-  if (!value) return 'Never triggered'
+  if (!value) return i18n.t('settings:profilePage.defaults.neverTriggered')
 
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return String(value)
@@ -182,6 +184,7 @@ const HISTORY_SORT_STORAGE_KEY = 'siara_profile_history_sort'
 
 export default function ProfilePage(){
   /* ═══ STATE ═══ */
+  const { t } = useTranslation(['settings', 'common'])
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useContext(AuthContext)
@@ -246,7 +249,7 @@ export default function ProfilePage(){
       })
       .catch((error) => {
         if (cancelled) return
-        setDriverQuizError(error?.message || 'Failed to load driver quiz profile')
+        setDriverQuizError(error?.message || t('profilePage.errors.quizLoad'))
       })
       .finally(() => {
         if (!cancelled) setDriverQuizLoading(false)
@@ -382,7 +385,7 @@ export default function ProfilePage(){
     || [currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ')
     || currentUser.email
     || currentUser.phone
-    || 'SIARA User'
+    || t('profilePage.defaults.siaraUser')
   // Only fall back to the logged-in user's (header) avatar on your OWN profile.
   // When viewing someone else who has no picture, never substitute your avatar —
   // show their initials instead.
@@ -390,16 +393,17 @@ export default function ProfilePage(){
     ? getUserAvatarUrl(currentUser)
     : getUserAvatarUrl(currentUser) || headerAvatarUrl || ''
   const profileInitials = getInitialsFromName(displayName) || '?'
-  const bio = String(currentUser.bio || '').trim() || 'No bio added yet.'
+  const bio = String(currentUser.bio || '').trim() || t('profilePage.defaults.noBio')
   // For own profile, always prefer the fresh AuthContext user.location which is kept
   // up-to-date by saveSettings in SettingsPage. profileUser may be stale after an update.
-  const locationLabel = (isViewingOwnProfile ? (user?.location || user?.city) : null)
+  const locationRaw = (isViewingOwnProfile ? (user?.location || user?.city) : null)
     || currentUser.city
     || currentUser.location
     || currentUser.address
-    || 'Location not set'
+    || ''
+  const locationLabel = locationRaw || t('profilePage.defaults.locationNotSet')
   const joinLabel = formatJoinDate(currentUser.createdAt || currentUser.created_at)
-  const contactLabel = currentUser.email || currentUser.phone || 'No contact info'
+  const contactLabel = currentUser.email || currentUser.phone || t('profilePage.defaults.noContactInfo')
   const reportsCount = currentUser.reportCount ?? currentUser.reports_count
   const alertsCount = currentUser.alertsCount ?? currentUser.alerts_count
   const verificationRateRaw = Number(currentUser.verificationRate ?? currentUser.verification_rate)
@@ -421,10 +425,10 @@ export default function ProfilePage(){
   )
 
   const tabLabels = {
-    alerts: <><NotificationsOutlinedIcon fontSize="inherit" /> Alerts</>,
-    reports: <><NotificationsActiveOutlinedIcon fontSize="inherit" /> Reports</>,
-    history: <><BarChartOutlinedIcon fontSize="inherit" /> History</>,
-    timeline: <><TimerOutlinedIcon fontSize="inherit" /> Timeline</>,
+    alerts: <><NotificationsOutlinedIcon fontSize="inherit" /> {t('profilePage.tabs.alerts')}</>,
+    reports: <><NotificationsActiveOutlinedIcon fontSize="inherit" /> {t('profilePage.tabs.reports')}</>,
+    history: <><BarChartOutlinedIcon fontSize="inherit" /> {t('profilePage.tabs.history')}</>,
+    timeline: <><TimerOutlinedIcon fontSize="inherit" /> {t('profilePage.tabs.timeline')}</>,
   }
 
   const reportMetrics = useMemo(() => {
@@ -491,12 +495,12 @@ export default function ProfilePage(){
   const trustScoreGeneratedAt = currentUser.trustScoreGeneratedAt || currentUser.trust_score_generated_at || null
   const trustScoreSource = currentUser.trustScoreSource || currentUser.trust_score_source || null
   const trustGeneratedLabel = trustScoreGeneratedAt
-    ? `Last synced ${formatAlertTime(trustScoreGeneratedAt)}`
+    ? t('profilePage.trustScore.lastSynced', { time: formatAlertTime(trustScoreGeneratedAt) })
     : trustScoreSource === 'derived'
-      ? 'Derived from reviewed reports (sync pending)'
+      ? t('profilePage.trustScore.derived')
       : reviewedReportsCount > 0
-        ? 'Reviewed reports found'
-        : 'No reviewed reports yet'
+        ? t('profilePage.trustScore.reviewedFound')
+        : t('profilePage.trustScore.noReviewed')
   const trustScoreDashOffset = 314 - (314 * trustScore) / 100
 
   const topActiveZone = useMemo(() => {
@@ -515,11 +519,11 @@ export default function ProfilePage(){
     })
 
     if (zoneCounts.size === 0) {
-      return 'No zone yet'
+      return t('profilePage.defaults.noZone')
     }
 
     return [...zoneCounts.entries()].sort((left, right) => right[1] - left[1])[0][0]
-  }, [myAlerts, myReports])
+  }, [myAlerts, myReports, t])
 
   const toggleHistorySort = () => {
     setHistorySortDir((prev) => {
@@ -548,7 +552,7 @@ export default function ProfilePage(){
     const results = []
 
     myAlerts.forEach((alert, alertIndex) => {
-      const location = alert?.area?.name || alert?.zone?.displayName || alert?.name || 'Monitored area'
+      const location = alert?.area?.name || alert?.zone?.displayName || alert?.name || t('profilePage.defaults.monitoredArea')
       const fallbackSeverity = String(
         alert?.severity
           || (Array.isArray(alert?.severityLevels) ? alert.severityLevels[0] : 'medium')
@@ -585,11 +589,11 @@ export default function ProfilePage(){
     return results
       .sort((left, right) => (right.matchedAt || 0) - (left.matchedAt || 0))
       .slice(0, 3)
-  }, [myAlerts])
+  }, [myAlerts, t])
 
   const isEmailVerified = Boolean(currentUser?.email_verified || currentUser?.email_verified_at)
   const hasPhoneVerified = Boolean(String(currentUser?.phone || '').trim())
-  const hasLocationSet = locationLabel !== 'Location not set'
+  const hasLocationSet = Boolean(locationRaw)
 
   useEffect(() => {
     if (!tabs.includes(activeTab)) {
@@ -629,7 +633,7 @@ export default function ProfilePage(){
         setMyReports(ownedReports)
       } catch {
         if (!ignore) {
-          setReportsError('Unable to load your reports right now.')
+          setReportsError(t('profilePage.errors.reportsLoad'))
           setMyReports([])
         }
       } finally {
@@ -656,7 +660,7 @@ export default function ProfilePage(){
     if (isExternalProfileView && !targetUserId) {
       setMyAlerts([])
       setAlertsLoading(false)
-      setAlertsError('Unable to resolve profile alerts.')
+      setAlertsError(t('profilePage.errors.alertsResolve'))
       return
     }
 
@@ -675,7 +679,7 @@ export default function ProfilePage(){
         }
       } catch {
         if (!ignore) {
-          setAlertsError('Unable to load your alerts right now.')
+          setAlertsError(t('profilePage.errors.alertsLoad'))
           setMyAlerts([])
         }
       } finally {
@@ -709,7 +713,7 @@ export default function ProfilePage(){
         if (!ignore) setTimelineEvents(events)
       } catch {
         if (!ignore) {
-          setTimelineError('Unable to load your timeline right now.')
+          setTimelineError(t('profilePage.errors.timelineLoad'))
           setTimelineEvents([])
         }
       } finally {
@@ -778,12 +782,12 @@ export default function ProfilePage(){
               <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">
-              <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
-              <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
-              <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
-              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
-              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <button className="dash-tab" onClick={() => navigate('/news')}>{t('profilePage.nav.feed')}</button>
+              <button className="dash-tab" onClick={() => navigate('/map')}>{t('common:nav.map')}</button>
+              <button className="dash-tab" onClick={() => navigate('/alerts')}>{t('common:nav.alerts')}</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>{t('profilePage.nav.report')}</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>{t('profilePage.nav.dashboard')}</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>{t('common:nav.predictions')}</button>
               <PoliceModeTab user={user} />
             </nav>
           </div>
@@ -792,26 +796,26 @@ export default function ProfilePage(){
               navigate={navigate}
               query={headerSearchQuery}
               setQuery={setHeaderSearchQuery}
-              placeholder="Search for an incident, a road, a wilaya…"
-              ariaLabel="Search"
+              placeholder={t('profilePage.search.placeholder')}
+              ariaLabel={t('common:actions.search')}
               currentUser={user}
             />
           </div>
           <div className="dash-header-right">
             <NotificationBell />
             <div className="dash-avatar-wrapper">
-              <button className={`dash-avatar ${headerAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+              <button className={`dash-avatar ${headerAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label={t('profilePage.header.userProfileAriaLabel')}>
                 {headerAvatarUrl ? (
-                  <img src={headerAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                  <img src={headerAvatarUrl} alt={t('profilePage.header.userAvatarAlt')} className="dash-avatar-image" loading="lazy" />
                 ) : headerInitials}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>{t('profilePage.dropdown.myProfile')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>{t('common:nav.settings')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>{t('common:nav.notifications')}</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>{t('common:nav.logout')}</button>
                 </div>
               )}
             </div>
@@ -828,7 +832,7 @@ export default function ProfilePage(){
               type="button"
               className="user-card-avatar profile-avatar-trigger"
               onClick={openAvatarPreview}
-              aria-label={`Open ${displayName} profile photo`}
+              aria-label={t('profilePage.avatar.openAriaLabel', { name: displayName })}
             >
               {profileAvatarUrl && !avatarFailed
                 ? <img src={profileAvatarUrl} alt={displayName} loading="lazy" onError={() => setAvatarFailed(true)} />
@@ -842,7 +846,7 @@ export default function ProfilePage(){
                 className="btn-edit-profile"
                 onClick={() => navigate('/settings', { state: { openSection: 'profile' } })}
               >
-                <EditRoundedIcon fontSize="inherit" /> Edit Profile
+                <EditRoundedIcon fontSize="inherit" /> {t('profilePage.editProfile')}
               </button>
             )}
           </div>
@@ -862,7 +866,7 @@ export default function ProfilePage(){
                 type="button"
                 className="pm-profile-avatar"
                 onClick={openAvatarPreview}
-                aria-label={`View ${displayName} profile photo`}
+                aria-label={t('profilePage.avatar.viewAriaLabel', { name: displayName })}
               >
                 {profileAvatarUrl && !avatarFailed
                   ? <img src={profileAvatarUrl} alt={displayName} loading="lazy" onError={() => setAvatarFailed(true)} />
@@ -885,7 +889,7 @@ export default function ProfilePage(){
                       <rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.4"/>
                       <path d="M5 1.5V4M11 1.5V4M2 7h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
                     </svg>
-                    Joined {joinLabel}
+                    {t('profilePage.meta.joined', { date: joinLabel })}
                   </span>
                   <span className="pm-meta-item">
                     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -901,15 +905,15 @@ export default function ProfilePage(){
             <div className="pm-profile-stats">
               <div className="pm-stat">
                 <strong>{effectiveAlertsCount}</strong>
-                <span>Alerts</span>
+                <span>{t('common:nav.alerts')}</span>
               </div>
               <div className="pm-stat">
                 <strong>{effectiveReportsCount}</strong>
-                <span>Reports</span>
+                <span>{t('common:nav.reports')}</span>
               </div>
               <div className="pm-stat">
                 <strong>{displayVerificationRate}%</strong>
-                <span>Verified</span>
+                <span>{t('profilePage.stats.verified')}</span>
               </div>
             </div>
           </section>
@@ -919,27 +923,27 @@ export default function ProfilePage(){
             <section className="pm-card pm-quiz">
               <div className="pm-quiz-head">
                 <div className="pm-quiz-head-text">
-                  <h2 className="pm-quiz-title">Driver Behavior Profile</h2>
-                  <p className="pm-quiz-subtitle">Personalized driving risk assessment</p>
+                  <h2 className="pm-quiz-title">{t('profilePage.quiz.title')}</h2>
+                  <p className="pm-quiz-subtitle">{t('profilePage.quiz.subtitle')}</p>
                 </div>
                 <button
                   type="button"
                   className="pm-btn-primary"
                   onClick={() => setShowQuiz(true)}
                 >
-                  {driverQuizProfile ? 'Retake quiz' : 'Take quiz'}
+                  {driverQuizProfile ? t('profilePage.quiz.retake') : t('profilePage.quiz.take')}
                 </button>
               </div>
 
               {driverQuizLoading && (
-                <p className="pm-quiz-state">Loading your latest result…</p>
+                <p className="pm-quiz-state">{t('profilePage.quiz.loadingResult')}</p>
               )}
               {driverQuizError && !driverQuizLoading && (
                 <p className="pm-quiz-state pm-quiz-state--error">{driverQuizError}</p>
               )}
               {!driverQuizLoading && !driverQuizError && !driverQuizProfile && (
                 <p className="pm-quiz-state">
-                  You haven&apos;t completed the SIARA driver quiz yet. Take it to receive a personalized driving profile.
+                  {t('profilePage.quiz.noQuizYet')}
                 </p>
               )}
               {!driverQuizLoading && !driverQuizError && driverQuizProfile && (
@@ -949,10 +953,10 @@ export default function ProfilePage(){
                       {driverQuizProfile.latestRiskScore == null ? '--' : Math.round(Number(driverQuizProfile.latestRiskScore))}
                     </span>
                     <span className="pm-quiz-score-max">/100</span>
-                    <span className="pm-quiz-score-label">Risk</span>
+                    <span className="pm-quiz-score-label">{t('profilePage.quiz.riskLabel')}</span>
                   </div>
                   <div className="pm-quiz-detail">
-                    <h3 className="pm-quiz-detail-title">{driverQuizProfile.latestResultTitle || 'Driver profile'}</h3>
+                    <h3 className="pm-quiz-detail-title">{driverQuizProfile.latestResultTitle || t('profilePage.quiz.driverProfile')}</h3>
                     {driverQuizProfile.latestResultDescription && (
                       <p className="pm-quiz-detail-desc">{driverQuizProfile.latestResultDescription}</p>
                     )}
@@ -961,7 +965,7 @@ export default function ProfilePage(){
                     )}
                     {driverQuizProfile.lastCompletedAt && (
                       <span className="pm-quiz-detail-meta">
-                        Last completed {new Date(driverQuizProfile.lastCompletedAt).toLocaleDateString()}
+                        {t('profilePage.quiz.lastCompleted', { date: new Date(driverQuizProfile.lastCompletedAt).toLocaleDateString() })}
                       </span>
                     )}
                   </div>
@@ -983,7 +987,7 @@ export default function ProfilePage(){
                   aria-selected={activeTab === tabKey}
                   tabIndex={activeTab === tabKey ? 0 : -1}
                 >
-                  {{ alerts: 'Alerts', reports: 'Reports', history: 'History', timeline: 'Timeline' }[tabKey]}
+                  {{ alerts: t('profilePage.tabs.alerts'), reports: t('profilePage.tabs.reports'), history: t('profilePage.tabs.history'), timeline: t('profilePage.tabs.timeline') }[tabKey]}
                 </button>
               ))}
             </div>
@@ -995,19 +999,19 @@ export default function ProfilePage(){
                 shouldHideActivityForViewer ? (
                   <div className="pm-empty">
                     <span className="pm-empty-icon" aria-hidden="true">&#128274;</span>
-                    <p className="pm-empty-title">Activity is private</p>
-                    <p className="pm-empty-sub">This account is private. Alerts are hidden from other users.</p>
+                    <p className="pm-empty-title">{t('profilePage.activity.privateTitle')}</p>
+                    <p className="pm-empty-sub">{t('profilePage.activity.privateAlertsSubtitle')}</p>
                   </div>
                 ) : alertsLoading ? (
-                  <div className="pm-empty"><p className="pm-empty-title">Loading alerts…</p></div>
+                  <div className="pm-empty"><p className="pm-empty-title">{t('profilePage.activity.loadingAlerts')}</p></div>
                 ) : alertsError ? (
                   <div className="pm-empty"><p className="pm-empty-title pm-empty-title--error">{alertsError}</p></div>
                 ) : myAlerts.length === 0 ? (
                   <div className="pm-empty">
                     <span className="pm-empty-icon" aria-hidden="true">&#128276;</span>
-                    <p className="pm-empty-title">No saved alerts yet</p>
-                    <p className="pm-empty-sub">Create a new alert to monitor your important zones.</p>
-                    <button className="pm-btn-primary" onClick={() => navigate('/alerts/create')}>Create Alert</button>
+                    <p className="pm-empty-title">{t('profilePage.activity.noAlertsTitle')}</p>
+                    <p className="pm-empty-sub">{t('profilePage.activity.noAlertsSub')}</p>
+                    <button className="pm-btn-primary" onClick={() => navigate('/alerts/create')}>{t('profilePage.activity.createAlert')}</button>
                   </div>
                 ) : (
                   <ul className="pm-list">
@@ -1017,7 +1021,7 @@ export default function ProfilePage(){
                         : status === 'paused' ? 'pm-chip--amber'
                         : 'pm-chip--gray'
                       const subParts = [
-                        alert.area?.name || alert.zone?.displayName || 'Monitored area',
+                        alert.area?.name || alert.zone?.displayName || t('profilePage.defaults.monitoredArea'),
                         alert.area?.wilaya,
                       ].filter(Boolean)
                       return (
@@ -1035,7 +1039,7 @@ export default function ProfilePage(){
                             </svg>
                           </span>
                           <div className="pm-row-main">
-                            <span className="pm-row-title">{alert.name || 'Saved alert'}</span>
+                            <span className="pm-row-title">{alert.name || t('profilePage.activity.savedAlert')}</span>
                             <span className="pm-row-sub">{subParts.join(' · ')}</span>
                           </div>
                           <div className="pm-row-right">
@@ -1054,19 +1058,19 @@ export default function ProfilePage(){
                 shouldHideActivityForViewer ? (
                   <div className="pm-empty">
                     <span className="pm-empty-icon" aria-hidden="true">&#128274;</span>
-                    <p className="pm-empty-title">Reports are private</p>
-                    <p className="pm-empty-sub">This account is private. Report history is hidden from other users.</p>
+                    <p className="pm-empty-title">{t('profilePage.activity.privateReportsTitle')}</p>
+                    <p className="pm-empty-sub">{t('profilePage.activity.privateReportsSub')}</p>
                   </div>
                 ) : reportsLoading ? (
-                  <div className="pm-empty"><p className="pm-empty-title">Loading reports…</p></div>
+                  <div className="pm-empty"><p className="pm-empty-title">{t('profilePage.activity.loadingReports')}</p></div>
                 ) : reportsError ? (
                   <div className="pm-empty"><p className="pm-empty-title pm-empty-title--error">{reportsError}</p></div>
                 ) : myReports.length === 0 ? (
                   <div className="pm-empty">
                     <span className="pm-empty-icon" aria-hidden="true">&#128221;</span>
-                    <p className="pm-empty-title">No reports found yet</p>
-                    <p className="pm-empty-sub">Create your first incident report to see it here.</p>
-                    <button className="pm-btn-primary" onClick={() => navigate('/report')}>Create Report</button>
+                    <p className="pm-empty-title">{t('profilePage.activity.noReportsTitle')}</p>
+                    <p className="pm-empty-sub">{t('profilePage.activity.noReportsSub')}</p>
+                    <button className="pm-btn-primary" onClick={() => navigate('/report')}>{t('profilePage.activity.createReport')}</button>
                   </div>
                 ) : (
                   <ul className="pm-list">
@@ -1077,7 +1081,7 @@ export default function ProfilePage(){
                         : 'pm-chip--gray'
                       const subParts = [
                         toTitleCase(report.incidentType || report.incident_type || 'incident'),
-                        report.locationLabel || report.location?.label || 'Location not set',
+                        report.locationLabel || report.location?.label || t('profilePage.defaults.locationNotSet'),
                       ].filter(Boolean)
                       return (
                         <li
@@ -1096,7 +1100,7 @@ export default function ProfilePage(){
                             </svg>
                           </span>
                           <div className="pm-row-main">
-                            <span className="pm-row-title">{report.title || 'Untitled report'}</span>
+                            <span className="pm-row-title">{report.title || t('profilePage.activity.untitledReport')}</span>
                             <span className="pm-row-sub">{subParts.join(' · ')}</span>
                           </div>
                           <div className="pm-row-right">
@@ -1115,32 +1119,32 @@ export default function ProfilePage(){
                 timelineLoading ? (
                   <div className="pm-empty">
                     <span className="pm-empty-icon" aria-hidden="true">&#8987;</span>
-                    <p className="pm-empty-title">Loading your history…</p>
+                    <p className="pm-empty-title">{t('profilePage.history.loading')}</p>
                   </div>
                 ) : timelineError ? (
                   <div className="pm-empty">
                     <span className="pm-empty-icon" aria-hidden="true">&#9888;</span>
-                    <p className="pm-empty-title">Couldn’t load history</p>
+                    <p className="pm-empty-title">{t('profilePage.history.errorTitle')}</p>
                     <p className="pm-empty-sub">{timelineError}</p>
                   </div>
                 ) : historyEvents.length === 0 ? (
                   <div className="pm-empty">
                     <span className="pm-empty-icon" aria-hidden="true">&#128202;</span>
-                    <p className="pm-empty-title">No history yet</p>
-                    <p className="pm-empty-sub">Your reports, alerts, and their updates will appear here.</p>
+                    <p className="pm-empty-title">{t('profilePage.history.emptyTitle')}</p>
+                    <p className="pm-empty-sub">{t('profilePage.history.emptySub')}</p>
                   </div>
                 ) : (
                   <div className="pm-history">
                     <div className="pm-history-toolbar">
-                      <span className="pm-history-count">{historyEvents.length} events</span>
+                      <span className="pm-history-count">{t('profilePage.history.eventCount', { count: historyEvents.length })}</span>
                       <button
                         type="button"
                         className="pm-history-sort"
                         onClick={toggleHistorySort}
-                        title="Toggle sort order"
+                        title={t('profilePage.history.toggleSort')}
                       >
                         <SwapVertRoundedIcon fontSize="inherit" />
-                        {historySortDir === 'desc' ? 'Newest first' : 'Oldest first'}
+                        {historySortDir === 'desc' ? t('profilePage.history.newestFirst') : t('profilePage.history.oldestFirst')}
                       </button>
                     </div>
 
@@ -1172,19 +1176,19 @@ export default function ProfilePage(){
                 timelineLoading ? (
                   <div className="pm-empty">
                     <span className="pm-empty-icon" aria-hidden="true">&#8987;</span>
-                    <p className="pm-empty-title">Loading your timeline…</p>
+                    <p className="pm-empty-title">{t('profilePage.timeline.loading')}</p>
                   </div>
                 ) : timelineError ? (
                   <div className="pm-empty">
                     <span className="pm-empty-icon" aria-hidden="true">&#9888;</span>
-                    <p className="pm-empty-title">Couldn’t load timeline</p>
+                    <p className="pm-empty-title">{t('profilePage.timeline.errorTitle')}</p>
                     <p className="pm-empty-sub">{timelineError}</p>
                   </div>
                 ) : timelineEvents.length === 0 ? (
                   <div className="pm-empty">
                     <span className="pm-empty-icon" aria-hidden="true">&#128202;</span>
-                    <p className="pm-empty-title">No activity yet</p>
-                    <p className="pm-empty-sub">Your reports, alerts, and their updates will appear here.</p>
+                    <p className="pm-empty-title">{t('profilePage.timeline.emptyTitle')}</p>
+                    <p className="pm-empty-sub">{t('profilePage.timeline.emptySub')}</p>
                   </div>
                 ) : (
                   <div className="pm-timeline">
@@ -1218,7 +1222,7 @@ export default function ProfilePage(){
         <aside className="profile-sidebar-right">
           {/* ── Trust Score ── */}
           <div className="prf-r-card">
-            <p className="prf-r-label">Trust Score</p>
+            <p className="prf-r-label">{t('profilePage.trustScore.label')}</p>
             <div className="prf-gauge-wrap">
               <svg className="prf-gauge-svg" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="50" fill="none" stroke="#f1f5f9" strokeWidth="10"/>
@@ -1238,59 +1242,59 @@ export default function ProfilePage(){
               </div>
             </div>
             <ul className="prf-factors">
-              <li><span className="prf-factor-dot prf-factor-dot--ok" />{legitReportsCount} reports confirmed legit</li>
-              <li><span className="prf-factor-dot prf-factor-dot--warn" />{spamReportsCount} reports confirmed spam</li>
-              <li><span className="prf-factor-dot prf-factor-dot--ok" />{reviewedReportsCount} reports reviewed</li>
+              <li><span className="prf-factor-dot prf-factor-dot--ok" />{t('profilePage.trustScore.legitReports', { count: legitReportsCount })}</li>
+              <li><span className="prf-factor-dot prf-factor-dot--warn" />{t('profilePage.trustScore.spamReports', { count: spamReportsCount })}</li>
+              <li><span className="prf-factor-dot prf-factor-dot--ok" />{t('profilePage.trustScore.reviewedReports', { count: reviewedReportsCount })}</li>
               <li><span className="prf-factor-dot prf-factor-dot--info" />{trustGeneratedLabel}</li>
             </ul>
           </div>
 
           {/* ── Contribution Impact ── */}
           <div className="prf-r-card">
-            <p className="prf-r-label">Contribution Impact</p>
+            <p className="prf-r-label">{t('profilePage.impact.label')}</p>
             <div className="prf-impact-grid">
               <div className="prf-impact-cell">
                 <strong>{alertMetrics.triggered.toLocaleString()}</strong>
-                <span>alert matches</span>
+                <span>{t('profilePage.impact.alertMatches')}</span>
               </div>
               <div className="prf-impact-cell">
                 <strong>{reportMetrics.aiRate}%</strong>
-                <span>AI validated</span>
+                <span>{t('profilePage.impact.aiValidated')}</span>
               </div>
               <div className="prf-impact-zone">
                 <span className="prf-impact-zone-val">{topActiveZone}</span>
-                <span className="prf-impact-zone-lbl">most active zone</span>
+                <span className="prf-impact-zone-lbl">{t('profilePage.impact.mostActiveZone')}</span>
               </div>
             </div>
           </div>
 
           {/* ── Recent Alerts ── */}
           <div className="prf-r-card">
-            <p className="prf-r-label">Recent Triggered Alerts</p>
+            <p className="prf-r-label">{t('profilePage.recentAlerts.label')}</p>
             <ul className="prf-alert-list">
               {recentTriggeredAlerts.length > 0 ? recentTriggeredAlerts.map((alert) => (
                 <li key={alert.id} className="prf-alert-row">
                   <span className={`prf-alert-dot prf-alert-dot--${alert.severity || 'low'}`} />
                   <div className="prf-alert-info">
                     <span className="prf-alert-loc">{alert.location}</span>
-                    <span className="prf-alert-sub">{alert.subtitle || 'Recently triggered'}</span>
+                    <span className="prf-alert-sub">{alert.subtitle || t('profilePage.recentAlerts.recentlyTriggered')}</span>
                   </div>
                 </li>
               )) : (
-                <li className="prf-alert-row prf-alert-row--empty">No recent triggers yet</li>
+                <li className="prf-alert-row prf-alert-row--empty">{t('profilePage.recentAlerts.noRecentTriggers')}</li>
               )}
             </ul>
           </div>
 
           {/* ── Account Health ── */}
           <div className="prf-r-card">
-            <p className="prf-r-label">Account Health</p>
+            <p className="prf-r-label">{t('profilePage.accountHealth.label')}</p>
             <ul className="prf-health-list">
               {[
-                { ok: isEmailVerified,   label: 'Email verified' },
-                { ok: hasPhoneVerified,  label: 'Phone verified' },
-                { ok: hasLocationSet,    label: 'Location set' },
-                { ok: profileVisibility !== 'private', label: `Visibility: ${profileVisibility}` },
+                { ok: isEmailVerified,   label: t('profilePage.accountHealth.emailVerified') },
+                { ok: hasPhoneVerified,  label: t('profilePage.accountHealth.phoneVerified') },
+                { ok: hasLocationSet,    label: t('profilePage.accountHealth.locationSet') },
+                { ok: profileVisibility !== 'private', label: t('profilePage.accountHealth.visibility', { value: profileVisibility }) },
               ].map(({ ok, label }) => (
                 <li key={label} className={`prf-health-item${ok ? '' : ' prf-health-item--warn'}`}>
                   <span className="prf-health-icon">{ok
@@ -1305,11 +1309,11 @@ export default function ProfilePage(){
       </div>
 
       {isAvatarPreviewOpen && (
-        <div className="profile-avatar-preview-overlay" role="dialog" aria-modal="true" aria-label="Profile photo preview" onClick={closeAvatarPreview}>
-          <button type="button" className="profile-avatar-preview-close" onClick={closeAvatarPreview} aria-label="Close profile photo preview">×</button>
+        <div className="profile-avatar-preview-overlay" role="dialog" aria-modal="true" aria-label={t('profilePage.avatar.previewAriaLabel')} onClick={closeAvatarPreview}>
+          <button type="button" className="profile-avatar-preview-close" onClick={closeAvatarPreview} aria-label={t('profilePage.avatar.closePreviewAriaLabel')}>×</button>
           <div className="profile-avatar-preview-modal" onClick={(event) => event.stopPropagation()}>
             {profileAvatarUrl && !avatarFailed
-              ? <img src={profileAvatarUrl} alt={`${displayName} profile`} className="profile-avatar-preview-image" loading="lazy" onError={() => setAvatarFailed(true)} />
+              ? <img src={profileAvatarUrl} alt={t('profilePage.avatar.profileAlt', { name: displayName })} className="profile-avatar-preview-image" loading="lazy" onError={() => setAvatarFailed(true)} />
               : <span className="profile-avatar-initials profile-avatar-initials--preview">{profileInitials}</span>
             }
           </div>

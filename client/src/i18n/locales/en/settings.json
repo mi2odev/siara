@@ -27,5 +27,136 @@
     "phone": "Phone",
     "language": "Language"
   },
-  "saved": "Saved"
+  "saved": "Saved",
+  "profilePage": {
+    "nav": {
+      "feed": "Feed",
+      "report": "Report",
+      "dashboard": "Dashboard"
+    },
+    "search": {
+      "placeholder": "Search for an incident, a road, a wilaya…"
+    },
+    "header": {
+      "userProfileAriaLabel": "User profile",
+      "userAvatarAlt": "User avatar"
+    },
+    "dropdown": {
+      "myProfile": "My Profile"
+    },
+    "avatar": {
+      "openAriaLabel": "Open {{name}} profile photo",
+      "viewAriaLabel": "View {{name}} profile photo",
+      "previewAriaLabel": "Profile photo preview",
+      "closePreviewAriaLabel": "Close profile photo preview",
+      "profileAlt": "{{name}} profile"
+    },
+    "editProfile": "Edit Profile",
+    "meta": {
+      "joined": "Joined {{date}}"
+    },
+    "stats": {
+      "verified": "Verified"
+    },
+    "tabs": {
+      "alerts": "Alerts",
+      "reports": "Reports",
+      "history": "History",
+      "timeline": "Timeline"
+    },
+    "quiz": {
+      "title": "Driver Behavior Profile",
+      "subtitle": "Personalized driving risk assessment",
+      "take": "Take quiz",
+      "retake": "Retake quiz",
+      "loadingResult": "Loading your latest result…",
+      "noQuizYet": "You haven't completed the SIARA driver quiz yet. Take it to receive a personalized driving profile.",
+      "riskLabel": "Risk",
+      "driverProfile": "Driver profile",
+      "lastCompleted": "Last completed {{date}}"
+    },
+    "activity": {
+      "privateTitle": "Activity is private",
+      "privateAlertsSubtitle": "This account is private. Alerts are hidden from other users.",
+      "loadingAlerts": "Loading alerts…",
+      "noAlertsTitle": "No saved alerts yet",
+      "noAlertsSub": "Create a new alert to monitor your important zones.",
+      "createAlert": "Create Alert",
+      "savedAlert": "Saved alert",
+      "privateReportsTitle": "Reports are private",
+      "privateReportsSub": "This account is private. Report history is hidden from other users.",
+      "loadingReports": "Loading reports…",
+      "noReportsTitle": "No reports found yet",
+      "noReportsSub": "Create your first incident report to see it here.",
+      "createReport": "Create Report",
+      "untitledReport": "Untitled report"
+    },
+    "history": {
+      "loading": "Loading your history…",
+      "errorTitle": "Couldn't load history",
+      "emptyTitle": "No history yet",
+      "emptySub": "Your reports, alerts, and their updates will appear here.",
+      "eventCount_one": "{{count}} event",
+      "eventCount_other": "{{count}} events",
+      "toggleSort": "Toggle sort order",
+      "newestFirst": "Newest first",
+      "oldestFirst": "Oldest first"
+    },
+    "timeline": {
+      "loading": "Loading your timeline…",
+      "errorTitle": "Couldn't load timeline",
+      "emptyTitle": "No activity yet",
+      "emptySub": "Your reports, alerts, and their updates will appear here."
+    },
+    "trustScore": {
+      "label": "Trust Score",
+      "legitReports_one": "{{count}} report confirmed legit",
+      "legitReports_other": "{{count}} reports confirmed legit",
+      "spamReports_one": "{{count}} report confirmed spam",
+      "spamReports_other": "{{count}} reports confirmed spam",
+      "reviewedReports_one": "{{count}} report reviewed",
+      "reviewedReports_other": "{{count}} reports reviewed",
+      "lastSynced": "Last synced {{time}}",
+      "derived": "Derived from reviewed reports (sync pending)",
+      "reviewedFound": "Reviewed reports found",
+      "noReviewed": "No reviewed reports yet"
+    },
+    "impact": {
+      "label": "Contribution Impact",
+      "alertMatches": "alert matches",
+      "aiValidated": "AI validated",
+      "mostActiveZone": "most active zone"
+    },
+    "recentAlerts": {
+      "label": "Recent Triggered Alerts",
+      "recentlyTriggered": "Recently triggered",
+      "noRecentTriggers": "No recent triggers yet"
+    },
+    "accountHealth": {
+      "label": "Account Health",
+      "emailVerified": "Email verified",
+      "phoneVerified": "Phone verified",
+      "locationSet": "Location set",
+      "visibility": "Visibility: {{value}}"
+    },
+    "defaults": {
+      "siaraUser": "SIARA User",
+      "noBio": "No bio added yet.",
+      "locationNotSet": "Location not set",
+      "noContactInfo": "No contact info",
+      "noZone": "No zone yet",
+      "monitoredArea": "Monitored area",
+      "user": "User",
+      "recently": "Recently",
+      "unknownTime": "Unknown time",
+      "neverTriggered": "Never triggered"
+    },
+    "errors": {
+      "quizLoad": "Failed to load driver quiz profile",
+      "reportsLoad": "Unable to load your reports right now.",
+      "alertsResolve": "Unable to resolve profile alerts.",
+      "alertsLoad": "Unable to load your alerts right now.",
+      "timelineLoad": "Unable to load your timeline right now."
+    }
+  }
 }

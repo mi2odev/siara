@@ -1,6 +1,7 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 
 import { isAnyPoliceUser } from '../../utils/roleUtils'
 import { useUiModeStore } from '../../stores/uiModeStore'
@@ -8,15 +9,18 @@ import { useUiModeStore } from '../../stores/uiModeStore'
 export default function PoliceModeTab({
   user,
   className = 'dash-tab dash-tab-police',
-  policeLabel = 'Switch to Police Mode',
-  basicLabel = 'Switch to Normal Mode',
+  policeLabel,
+  basicLabel,
   policePath = '/police',
   basicPath = '/dashboard',
   buttonStyle,
 }) {
+  const { t } = useTranslation(['police', 'common'])
   const navigate = useNavigate()
   const location = useLocation()
   const setUiMode = useUiModeStore((state) => state.setMode)
+  const resolvedPoliceLabel = policeLabel ?? t('policeModeTab.switchToPolice')
+  const resolvedBasicLabel = basicLabel ?? t('policeModeTab.switchToNormal')
   const [portalTarget, setPortalTarget] = React.useState(null)
 
   React.useEffect(() => {
@@ -57,7 +61,7 @@ export default function PoliceModeTab({
         navigate(isPoliceMode ? basicPath : policePath)
       }}
     >
-      {isPoliceMode ? basicLabel : policeLabel}
+      {isPoliceMode ? resolvedBasicLabel : resolvedPoliceLabel}
     </button>
   )
 

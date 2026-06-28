@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
 import FancySelect from '../../components/ui/FancySelect'
 import SiaraDatePicker from '../../components/ui/SiaraDatePicker'
@@ -21,19 +22,15 @@ import '../../styles/SupervisorMode.css'
 
 const SEVERITIES = ['low', 'medium', 'high']
 const ALERT_TYPES = ['advisory', 'emergency', 'incident', 'weather', 'roadwork', 'closure']
-const TARGET_TYPES = [
-  { value: 'zone', label: 'All Officers in Zone' },
-  { value: 'role', label: 'All Police Officers' },
-]
 
-function formatRelative(value) {
+function formatRelative(value, t) {
   if (!value) return '—'
   const diff = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000))
-  if (diff < 1) return 'Just now'
-  if (diff < 60) return `${diff}m ago`
+  if (diff < 1) return t('supervisorAlertCenterPage.timeJustNow')
+  if (diff < 60) return t('supervisorAlertCenterPage.timeMinutesAgo', { count: diff })
   const h = Math.floor(diff / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
+  if (h < 24) return t('supervisorAlertCenterPage.timeHoursAgo', { count: h })
+  return t('supervisorAlertCenterPage.timeDaysAgo', { count: Math.floor(h / 24) })
 }
 
 function severityClass(sev) {
@@ -52,6 +49,7 @@ const INITIAL_FORM = {
 }
 
 export default function SupervisorAlertCenterPage() {
+  const { t } = useTranslation(['supervisor', 'common'])
   const [form, setForm] = useState(INITIAL_FORM)
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
@@ -62,6 +60,11 @@ export default function SupervisorAlertCenterPage() {
   const [workWilaya, setWorkWilaya] = useState({ id: null, name: '' })
   const [pastAlerts, setPastAlerts] = useState([])
   const [loadingAlerts, setLoadingAlerts] = useState(true)
+
+  const TARGET_TYPES = [
+    { value: 'zone', label: t('supervisorAlertCenterPage.targetAllOfficersInZone') },
+    { value: 'role', label: t('supervisorAlertCenterPage.targetAllPoliceOfficers') },
+  ]
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
@@ -105,12 +108,12 @@ export default function SupervisorAlertCenterPage() {
 
   const validate = () => {
     const next = {}
-    if (!form.title.trim()) next.title = 'Title is required'
-    if (!form.description.trim()) next.description = 'Message is required'
-    if (!form.adminAreaId) next.adminAreaId = 'Zone is required'
-    if (!form.endsAt) next.endsAt = 'End time is required'
+    if (!form.title.trim()) next.title = t('supervisorAlertCenterPage.errorTitleRequired')
+    if (!form.description.trim()) next.description = t('supervisorAlertCenterPage.errorMessageRequired')
+    if (!form.adminAreaId) next.adminAreaId = t('supervisorAlertCenterPage.errorZoneRequired')
+    if (!form.endsAt) next.endsAt = t('supervisorAlertCenterPage.errorEndTimeRequired')
     if (form.endsAt && form.startsAt && new Date(form.endsAt) <= new Date(form.startsAt)) {
-      next.endsAt = 'End time must be after start time'
+      next.endsAt = t('supervisorAlertCenterPage.errorEndTimeAfterStart')
     }
     setErrors(next)
     return Object.keys(next).length === 0
@@ -140,11 +143,11 @@ export default function SupervisorAlertCenterPage() {
         startsAt: form.startsAt || undefined,
         endsAt: form.endsAt,
       })
-      showToast('Alert sent to officers successfully', 'success')
+      showToast(t('supervisorAlertCenterPage.toastAlertSent'), 'success')
       setForm(INITIAL_FORM)
       await loadData()
     } catch (err) {
-      showToast(err.message || 'Failed to send alert', 'error')
+      showToast(err.message || t('supervisorAlertCenterPage.toastAlertFailed'), 'error')
     } finally {
       setSubmitting(false)
     }
@@ -156,14 +159,32 @@ export default function SupervisorAlertCenterPage() {
     return now.toISOString().slice(0, 16)
   }
 
+  const guidelines = [
+    {
+      icon: <NotificationsActiveOutlinedIcon fontSize="inherit" className="icon-danger" />,
+      label: t('supervisorAlertCenterPage.guidelineHighLabel'),
+      desc: t('supervisorAlertCenterPage.guidelineHighDesc'),
+    },
+    {
+      icon: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" />,
+      label: t('supervisorAlertCenterPage.guidelineMediumLabel'),
+      desc: t('supervisorAlertCenterPage.guidelineMediumDesc'),
+    },
+    {
+      icon: <RecordVoiceOverOutlinedIcon fontSize="inherit" className="icon-info" />,
+      label: t('supervisorAlertCenterPage.guidelineAdvisoryLabel'),
+      desc: t('supervisorAlertCenterPage.guidelineAdvisoryDesc'),
+    },
+  ]
+
   return (
     <PoliceShell activeKey="supervisor-alerts" rightPanelCollapsed>
       <div className="supervisor-page">
         <div className="sv-page-header">
           <div className="sv-page-title-block">
-            <span className="sv-page-eyebrow">Supervisor — Alert Center</span>
-            <h1 className="sv-page-title">Supervisor Alerts</h1>
-            <p className="sv-page-subtitle">Broadcast operational alerts and warnings to field officers</p>
+            <span className="sv-page-eyebrow">{t('supervisorAlertCenterPage.eyebrow')}</span>
+            <h1 className="sv-page-title">{t('supervisorAlertCenterPage.title')}</h1>
+            <p className="sv-page-subtitle">{t('supervisorAlertCenterPage.subtitle')}</p>
           </div>
         </div>
 
@@ -173,16 +194,16 @@ export default function SupervisorAlertCenterPage() {
             <div className="sv-section-head">
               <h2 className="sv-section-title">
                 <span className="sv-section-title-icon"><CampaignOutlinedIcon fontSize="inherit" /></span>
-                Create Alert
+                {t('supervisorAlertCenterPage.createAlertTitle')}
               </h2>
             </div>
             <div className="sv-section-body">
               <form onSubmit={handleSubmit} noValidate>
                 <div className="sv-form-group">
-                  <label className="sv-form-label">Alert Title</label>
+                  <label className="sv-form-label">{t('supervisorAlertCenterPage.labelAlertTitle')}</label>
                   <input
                     className="sv-form-input"
-                    placeholder="e.g., Avoid Zone A — severe congestion"
+                    placeholder={t('supervisorAlertCenterPage.placeholderAlertTitle')}
                     value={form.title}
                     onChange={(e) => handleChange('title', e.target.value)}
                     maxLength={200}
@@ -191,11 +212,11 @@ export default function SupervisorAlertCenterPage() {
                 </div>
 
                 <div className="sv-form-group">
-                  <label className="sv-form-label">Message</label>
+                  <label className="sv-form-label">{t('supervisorAlertCenterPage.labelMessage')}</label>
                   <textarea
                     className="sv-form-textarea"
                     rows={4}
-                    placeholder="Provide detailed instructions or context for field officers..."
+                    placeholder={t('supervisorAlertCenterPage.placeholderMessage')}
                     value={form.description}
                     onChange={(e) => handleChange('description', e.target.value)}
                     maxLength={2000}
@@ -204,7 +225,7 @@ export default function SupervisorAlertCenterPage() {
                 </div>
 
                 <div className="sv-form-group">
-                  <label className="sv-form-label">Severity</label>
+                  <label className="sv-form-label">{t('supervisorAlertCenterPage.labelSeverity')}</label>
                   <div className="sv-severity-selector">
                     {SEVERITIES.map((sev) => (
                       <button
@@ -221,19 +242,19 @@ export default function SupervisorAlertCenterPage() {
 
                 <div className="sv-grid-2" style={{ gap: 12 }}>
                   <div className="sv-form-group">
-                    <label className="sv-form-label">Alert Type</label>
+                    <label className="sv-form-label">{t('supervisorAlertCenterPage.labelAlertType')}</label>
                     <FancySelect
                       value={form.alertType}
                       onChange={(value) => handleChange('alertType', value)}
                       menuAlign="left"
-                      options={ALERT_TYPES.map((t) => ({
-                        value: t,
-                        label: t.charAt(0).toUpperCase() + t.slice(1),
+                      options={ALERT_TYPES.map((tp) => ({
+                        value: tp,
+                        label: tp.charAt(0).toUpperCase() + tp.slice(1),
                       }))}
                     />
                   </div>
                   <div className="sv-form-group">
-                    <label className="sv-form-label">Target Audience</label>
+                    <label className="sv-form-label">{t('supervisorAlertCenterPage.labelTargetAudience')}</label>
                     <FancySelect
                       value={form.targetType}
                       onChange={(value) => handleChange('targetType', value)}
@@ -245,16 +266,18 @@ export default function SupervisorAlertCenterPage() {
 
                 <div className="sv-form-group">
                   <label className="sv-form-label">
-                    Zone{workWilaya.name ? ` (${workWilaya.name})` : ''}
+                    {workWilaya.name
+                      ? t('supervisorAlertCenterPage.labelZoneWithWilaya', { wilaya: workWilaya.name })
+                      : t('supervisorAlertCenterPage.labelZone')}
                   </label>
                   <FancySelect
                     value={form.adminAreaId}
                     onChange={(value) => handleChange('adminAreaId', value)}
                     menuAlign="left"
                     options={[
-                      { value: '', label: 'Select commune...' },
+                      { value: '', label: t('supervisorAlertCenterPage.optionSelectCommune') },
                       ...(workWilaya.id
-                        ? [{ value: workWilaya.id, label: `All of ${workWilaya.name} (whole wilaya)` }]
+                        ? [{ value: workWilaya.id, label: t('supervisorAlertCenterPage.optionAllOfWilaya', { wilaya: workWilaya.name }) }]
                         : []),
                       ...communes.map((c) => ({ value: c.id, label: c.name })),
                     ]}
@@ -264,23 +287,23 @@ export default function SupervisorAlertCenterPage() {
 
                 <div className="sv-grid-2" style={{ gap: 12 }}>
                   <div className="sv-form-group">
-                    <label className="sv-form-label">Active From</label>
+                    <label className="sv-form-label">{t('supervisorAlertCenterPage.labelActiveFrom')}</label>
                     <SiaraDatePicker
                       type="datetime-local"
                       value={form.startsAt}
                       min={nowLocalIso()}
-                      placeholder="Start immediately"
+                      placeholder={t('supervisorAlertCenterPage.placeholderStartImmediately')}
                       onChange={(v) => handleChange('startsAt', v)}
                     />
-                    <span className="sv-form-hint">Leave blank to start immediately</span>
+                    <span className="sv-form-hint">{t('supervisorAlertCenterPage.hintStartImmediately')}</span>
                   </div>
                   <div className="sv-form-group">
-                    <label className="sv-form-label">Active Until *</label>
+                    <label className="sv-form-label">{t('supervisorAlertCenterPage.labelActiveUntil')}</label>
                     <SiaraDatePicker
                       type="datetime-local"
                       value={form.endsAt}
                       min={nowLocalIso()}
-                      placeholder="Select date & time"
+                      placeholder={t('supervisorAlertCenterPage.placeholderSelectDateTime')}
                       onChange={(v) => handleChange('endsAt', v)}
                     />
                     {errors.endsAt && <span className="sv-form-error">{errors.endsAt}</span>}
@@ -294,7 +317,7 @@ export default function SupervisorAlertCenterPage() {
                     disabled={submitting}
                     style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
                   >
-                    {submitting ? 'Sending...' : <><CampaignOutlinedIcon fontSize="inherit" /> Broadcast Alert to Officers</>}
+                    {submitting ? t('supervisorAlertCenterPage.btnSending') : <><CampaignOutlinedIcon fontSize="inherit" /> {t('supervisorAlertCenterPage.btnBroadcast')}</>}
                   </button>
                 </div>
               </form>
@@ -306,7 +329,7 @@ export default function SupervisorAlertCenterPage() {
             <div className="sv-section-head">
               <h2 className="sv-section-title">
                 <span className="sv-section-title-icon"><AssignmentOutlinedIcon fontSize="inherit" /></span>
-                Recent Alerts Received
+                {t('supervisorAlertCenterPage.recentAlertsTitle')}
               </h2>
             </div>
             <div className="sv-section-body">
@@ -315,7 +338,7 @@ export default function SupervisorAlertCenterPage() {
               ) : pastAlerts.length === 0 ? (
                 <div className="sv-empty">
                   <span className="sv-empty-icon"><NotificationsOffOutlinedIcon fontSize="inherit" /></span>
-                  No recent alerts
+                  {t('supervisorAlertCenterPage.noRecentAlerts')}
                 </div>
               ) : (
                 <div className="sv-incident-list">
@@ -333,10 +356,10 @@ export default function SupervisorAlertCenterPage() {
                           {(alert.severity || 'medium').charAt(0).toUpperCase() + (alert.severity || '').slice(1)}
                         </span>
                         <span style={{ fontSize: 11, color: 'var(--sv-text-muted)' }}>
-                          {formatRelative(alert.createdAt)}
+                          {formatRelative(alert.createdAt, t)}
                         </span>
                         {alert.read && (
-                          <span style={{ fontSize: 10, color: 'var(--sv-low)', display: 'inline-flex', alignItems: 'center', gap: 2 }}><CheckRoundedIcon fontSize="inherit" /> Read</span>
+                          <span style={{ fontSize: 10, color: 'var(--sv-low)', display: 'inline-flex', alignItems: 'center', gap: 2 }}><CheckRoundedIcon fontSize="inherit" /> {t('supervisorAlertCenterPage.badgeRead')}</span>
                         )}
                       </div>
                     </div>
@@ -352,16 +375,12 @@ export default function SupervisorAlertCenterPage() {
           <div className="sv-section-head">
             <h2 className="sv-section-title">
               <span className="sv-section-title-icon"><TipsAndUpdatesOutlinedIcon fontSize="inherit" className="icon-info" /></span>
-              Alert Guidelines
+              {t('supervisorAlertCenterPage.guidelinesTitle')}
             </h2>
           </div>
           <div className="sv-section-body">
             <div className="sv-grid-3">
-              {[
-                { icon: <NotificationsActiveOutlinedIcon fontSize="inherit" className="icon-danger" />, label: 'High', desc: 'Immediate threat, major accident, danger zone active. Requires urgent response.' },
-                { icon: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'Medium', desc: 'Significant risk, accident probability near a specific route.' },
-                { icon: <RecordVoiceOverOutlinedIcon fontSize="inherit" className="icon-info" />, label: 'Advisory', desc: 'General guidance, zone updates, traffic congestion, roadwork.' },
-              ].map((g) => (
+              {guidelines.map((g) => (
                 <div key={g.label} style={{
                   padding: '16px',
                   background: 'var(--sv-bg)',

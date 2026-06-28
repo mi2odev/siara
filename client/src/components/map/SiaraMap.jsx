@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import FancySelect from "../ui/FancySelect";
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
@@ -1437,6 +1438,7 @@ const SiaraMap = ({
   riskPanelTarget = null,
   guideControlsTarget = null,
 }) => {
+  const { t } = useTranslation(['map', 'common']);
   const markers = useMemo(() => {
     if (Array.isArray(reportMarkers)) {
       return reportMarkers;
@@ -2416,7 +2418,7 @@ const SiaraMap = ({
     if (!query) {
       setDestinationSearchState("idle");
       setDestinationResults([]);
-      setDestinationSearchError("Type a destination first.");
+      setDestinationSearchError(t('siaraMap.guideControls.typeDestinationFirst'));
       return;
     }
 
@@ -2446,7 +2448,7 @@ const SiaraMap = ({
       setDestinationResults(normalized);
       setDestinationSearchState("success");
       if (normalized.length === 0) {
-        setDestinationSearchError("No destination found for that query.");
+        setDestinationSearchError(t('siaraMap.guideControls.noDestinationFound'));
       }
     } catch (error) {
       setDestinationSearchState("error");
@@ -2625,7 +2627,7 @@ const SiaraMap = ({
     if (!timestampIso) return;
     if (guidanceActive) {
       const proceed = window.confirm(
-        "Use this departure time and recalculate route?",
+        t('siaraMap.confirm.recalculateRoute'),
       );
       if (!proceed) return;
     }
@@ -3076,7 +3078,7 @@ const SiaraMap = ({
     }
 
     const destination = {
-      name: pendingMapDestinationName || "Selected destination",
+      name: pendingMapDestinationName || t('siaraMap.tooltips.selectedDestination'),
       lat: pendingMapDestination.lat,
       lng: pendingMapDestination.lng,
     };
@@ -3412,7 +3414,7 @@ const SiaraMap = ({
       setExplanationLoading(false);
       setExplanationText("");
       setExplanationSource("");
-      setExplanationError("No risk prediction is available yet.");
+      setExplanationError(t('siaraMap.explain.noRiskPrediction'));
       return;
     }
 
@@ -3492,7 +3494,7 @@ const SiaraMap = ({
         setExplanationSource(response.source || "fallback");
       } else {
         setExplanationError(
-          "SIARA could not generate an explanation right now. Please try again.",
+          t('siaraMap.explain.couldNotGenerate'),
         );
       }
     } catch (error) {
@@ -3574,22 +3576,22 @@ const SiaraMap = ({
     [currentRisk?.danger_percent, currentRiskNowBaseline?.danger_percent, selectedTimestampPreview],
   );
   const locationStatusText = hasValidUserLocation
-    ? `Location live${locationUpdatedAt ? ` • ${formatRelativeUpdateAge(locationUpdatedAt)}` : ""}`
-    : "Location unavailable";
+    ? `${t('siaraMap.status.locationLive')}${locationUpdatedAt ? ` • ${formatRelativeUpdateAge(locationUpdatedAt)}` : ""}`
+    : t('siaraMap.status.locationUnavailable');
   const riskUpdatedText = currentRiskUpdatedAt
-    ? `Risk updated ${formatRelativeUpdateAge(currentRiskUpdatedAt)}`
-    : "Risk not updated yet";
+    ? `${t('siaraMap.status.riskUpdated')} ${formatRelativeUpdateAge(currentRiskUpdatedAt)}`
+    : t('siaraMap.status.riskNotUpdated');
   const routesUpdatedText = routesUpdatedAt
-    ? `Routes updated ${formatRelativeUpdateAge(routesUpdatedAt)}`
-    : "Routes not updated yet";
+    ? `${t('siaraMap.status.routesUpdated')} ${formatRelativeUpdateAge(routesUpdatedAt)}`
+    : t('siaraMap.status.routesNotUpdated');
   const nearbyUpdatedText = nearbyUpdatedAt
-    ? `Nearby updated ${formatRelativeUpdateAge(nearbyUpdatedAt)}`
-    : "Nearby not updated yet";
+    ? `${t('siaraMap.status.nearbyUpdated')} ${formatRelativeUpdateAge(nearbyUpdatedAt)}`
+    : t('siaraMap.status.nearbyNotUpdated');
   const navigationUpdatedText = guidedRoute
     ? routesUpdatedText
     : mapLayer === "nearbyRoads"
       ? nearbyUpdatedText
-      : "Navigation ready";
+      : t('siaraMap.status.navigationReady');
   // Per-source attribution (weather / darkness / historical / road) is not
   // yet implemented end-to-end on the backend. We surface a single
   // "Coming soon" notice instead of four fake buttons so the UI does not
@@ -3658,35 +3660,35 @@ const SiaraMap = ({
       <div className="siara-map-error-stack">
         {tileError && (
           <div className="siara-map-error">
-            Tile layer error: {tileError}
+            {t('siaraMap.errors.tileLayer', { error: tileError })}
           </div>
         )}
         {overlayError && (
           <div className="siara-map-error">
-            Overlay error: {overlayError}
+            {t('siaraMap.errors.overlay', { error: overlayError })}
           </div>
         )}
         {nearbyRoutesError && (
           <div className="siara-map-error">
-            Nearby routes error: {nearbyRoutesError}{" "}
+            {t('siaraMap.errors.nearbyRoutes', { error: nearbyRoutesError })}{" "}
             <button
               type="button"
               className="siara-inline-link"
               onClick={() => setNearbyManualRefreshTick((value) => value + 1)}
               style={{ marginLeft: 6 }}
             >
-              Retry
+              {t('common:actions.retry')}
             </button>
           </div>
         )}
         {guidedRouteError && (
           <div className="siara-map-error">
-            Guidance error: {guidedRouteError}
+            {t('siaraMap.errors.guidance', { error: guidedRouteError })}
           </div>
         )}
         {routeExplainState === "error" && (
           <div className="siara-map-error">
-            Explain error: {routeExplainError}
+            {t('siaraMap.errors.explain', { error: routeExplainError })}
           </div>
         )}
         {nearbyRouteWarnings.map((warningText, index) => (
@@ -3760,7 +3762,7 @@ const SiaraMap = ({
       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       eventHandlers={{
-        tileerror: () => setTileError("Unable to fetch OpenStreetMap tiles."),
+        tileerror: () => setTileError(t('siaraMap.errors.tileLoad')),
         load: () => setTileError(""),
       }}
     />
@@ -3793,7 +3795,7 @@ const SiaraMap = ({
               }}
             >
               <Tooltip direction="top" sticky>
-                {pendingMapDestinationName || "Selected destination"}
+                {pendingMapDestinationName || t('siaraMap.tooltips.selectedDestination')}
               </Tooltip>
             </CircleMarker>
           )}
@@ -3881,12 +3883,12 @@ const SiaraMap = ({
                         <div className="siara-zone-popup">
                           <strong className="siara-zone-popup-title">{alertZone.name}</strong>
                           <span className="siara-zone-popup-subtitle">
-                            {alertZone.zone?.displayName || alertZone.area?.name || "Alert zone"}
+                            {alertZone.zone?.displayName || alertZone.area?.name || t('siaraMap.alertZone.defaultName')}
                           </span>
-                          <div className="siara-zone-popup-row"><span>Severity</span><strong>{alertZone.severity}</strong></div>
-                          <div className="siara-zone-popup-row"><span>Schedule</span><strong>{alertZone.timeWindow}</strong></div>
-                          <div className="siara-zone-popup-row"><span>Triggers</span><strong>{alertZone.triggerCount}</strong></div>
-                          <div className="siara-zone-popup-row"><span>Last trigger</span><strong>{alertZone.lastTriggered || "Never"}</strong></div>
+                          <div className="siara-zone-popup-row"><span>{t('siaraMap.alertZone.severity')}</span><strong>{alertZone.severity}</strong></div>
+                          <div className="siara-zone-popup-row"><span>{t('siaraMap.alertZone.schedule')}</span><strong>{alertZone.timeWindow}</strong></div>
+                          <div className="siara-zone-popup-row"><span>{t('siaraMap.alertZone.triggers')}</span><strong>{alertZone.triggerCount}</strong></div>
+                          <div className="siara-zone-popup-row"><span>{t('siaraMap.alertZone.lastTrigger')}</span><strong>{alertZone.lastTriggered || t('siaraMap.alertZone.never')}</strong></div>
                         </div>
                       </Popup>
                     </Circle>
@@ -3921,12 +3923,12 @@ const SiaraMap = ({
                       <div className="siara-zone-popup">
                         <strong className="siara-zone-popup-title">{alertZone.name}</strong>
                         <span className="siara-zone-popup-subtitle">
-                          {alertZone.zone?.displayName || alertZone.area?.name || "Alert zone"}
+                          {alertZone.zone?.displayName || alertZone.area?.name || t('siaraMap.alertZone.defaultName')}
                         </span>
-                        <div className="siara-zone-popup-row"><span>Severity</span><strong>{alertZone.severity}</strong></div>
-                        <div className="siara-zone-popup-row"><span>Schedule</span><strong>{alertZone.timeWindow}</strong></div>
-                        <div className="siara-zone-popup-row"><span>Triggers</span><strong>{alertZone.triggerCount}</strong></div>
-                        <div className="siara-zone-popup-row"><span>Last trigger</span><strong>{alertZone.lastTriggered || "Never"}</strong></div>
+                        <div className="siara-zone-popup-row"><span>{t('siaraMap.alertZone.severity')}</span><strong>{alertZone.severity}</strong></div>
+                        <div className="siara-zone-popup-row"><span>{t('siaraMap.alertZone.schedule')}</span><strong>{alertZone.timeWindow}</strong></div>
+                        <div className="siara-zone-popup-row"><span>{t('siaraMap.alertZone.triggers')}</span><strong>{alertZone.triggerCount}</strong></div>
+                        <div className="siara-zone-popup-row"><span>{t('siaraMap.alertZone.lastTrigger')}</span><strong>{alertZone.lastTriggered || t('siaraMap.alertZone.never')}</strong></div>
                       </div>
                     </Popup>
                   </GeoJSON>
@@ -4034,7 +4036,7 @@ const SiaraMap = ({
                     }}
                   >
                     <Tooltip direction="top">
-                      {isFallbackPosition ? "Fallback test start" : "Start"}
+                      {isFallbackPosition ? t('siaraMap.tooltips.fallbackStart') : t('siaraMap.tooltips.start')}
                     </Tooltip>
                   </CircleMarker>
                 )}
@@ -4050,7 +4052,7 @@ const SiaraMap = ({
                     }}
                   >
                     <Tooltip direction="top">
-                      {guidedRoute?.destination?.name || "Destination"}
+                      {guidedRoute?.destination?.name || t('siaraMap.tooltips.destination')}
                     </Tooltip>
                   </CircleMarker>
                 )}
@@ -4061,7 +4063,7 @@ const SiaraMap = ({
               nearbyRoutes.flatMap((route) => {
                 const destinationPos = normalizePosition(route?.destination);
                 const destinationName =
-                  route?.destination?.name || route?.destination?.id || "Nearby route";
+                  route?.destination?.name || route?.destination?.id || t('siaraMap.tooltips.nearbyRoute');
                 const isFallbackRoute =
                   route?.routing_source === "straight_line" || route?.route_warning === "osrm_failed";
                 const routePercent = Number(route?.summary?.danger_percent);
@@ -4243,7 +4245,7 @@ const SiaraMap = ({
               }}
             >
               <Tooltip direction="top">
-                {isFallbackPosition ? "Fallback test location" : "You are here"}
+                {isFallbackPosition ? t('siaraMap.tooltips.fallbackLocation') : t('siaraMap.tooltips.youAreHere')}
               </Tooltip>
             </CircleMarker>
           )}
@@ -4255,7 +4257,7 @@ const SiaraMap = ({
           {heatClustersState === "loading" ? (
             <div className="accident-heat-status" role="status">
               <span className="accident-heat-status__spinner" aria-hidden="true" />
-              Loading accident heatmap…
+              {t('siaraMap.heatmap.loading')}
             </div>
           ) : null}
           {heatClustersState === "error" ? (
@@ -4263,39 +4265,39 @@ const SiaraMap = ({
               className="accident-heat-status accident-heat-status--error"
               role="alert"
             >
-              {heatClustersError || "Could not load accident heatmap."}
+              {heatClustersError || t('siaraMap.heatmap.error')}
             </div>
           ) : null}
           {heatClustersState === "success" && heatClusters.length === 0 ? (
             <div className="accident-heat-status" role="status">
-              No accident reports in this area for the selected period.
+              {t('siaraMap.heatmap.noReports')}
             </div>
           ) : null}
-          <div className="accident-heat-legend" role="region" aria-label="Heatmap legend">
-            <p className="accident-heat-legend__title">Accident heatmap</p>
+          <div className="accident-heat-legend" role="region" aria-label={t('siaraMap.heatmap.legendLabel')}>
+            <p className="accident-heat-legend__title">{t('siaraMap.heatmap.legendTitle')}</p>
             <p className="accident-heat-legend__sub">
-              Circle size = number of reports. Rings = severity mix.
+              {t('siaraMap.heatmap.legendSub')}
             </p>
             <div className="accident-heat-legend__row">
               <span
                 className="accident-heat-legend__dot"
                 style={{ background: HEATMAP_LEGEND_COLORS.high }}
               />
-              <span>High</span>
+              <span>{t('siaraMap.heatmap.high')}</span>
             </div>
             <div className="accident-heat-legend__row">
               <span
                 className="accident-heat-legend__dot"
                 style={{ background: HEATMAP_LEGEND_COLORS.medium }}
               />
-              <span>Medium</span>
+              <span>{t('siaraMap.heatmap.medium')}</span>
             </div>
             <div className="accident-heat-legend__row">
               <span
                 className="accident-heat-legend__dot"
                 style={{ background: HEATMAP_LEGEND_COLORS.low }}
               />
-              <span>Low</span>
+              <span>{t('siaraMap.heatmap.low')}</span>
             </div>
           </div>
         </>
@@ -4339,8 +4341,8 @@ const SiaraMap = ({
           <LocationOnOutlinedIcon fontSize="inherit" />
           <span>
             {locationStatus === "locating"
-              ? "Locating your device..."
-              : "Enable location for live risk and navigation."}
+              ? t('siaraMap.location.locating')
+              : t('siaraMap.location.enableHint')}
           </span>
           {typeof requestLocation === "function" &&
             locationStatus !== "locating" && (
@@ -4350,7 +4352,7 @@ const SiaraMap = ({
                 onClick={requestLocation}
                 style={{ marginLeft: 6 }}
               >
-                Enable
+                {t('siaraMap.location.enableBtn')}
               </button>
             )}
         </div>
@@ -4363,7 +4365,7 @@ const SiaraMap = ({
           <div className="srd-header">
             <div className="srd-title-row">
               <span className="srd-live-dot" />
-              <h4>Current SIARA risk</h4>
+              <h4>{t('siaraMap.riskPanel.title')}</h4>
             </div>
             <div className="siara-status-pills">
               <span className="siara-status-pill">{locationStatusText}</span>
@@ -4376,23 +4378,24 @@ const SiaraMap = ({
             style={{ fontSize: 12, opacity: 0.85, marginTop: 4, fontWeight: 600 }}
           >
             {occurrenceHeadline
-              ? "Accident occurrence risk"
-              : "Relative danger — severity-informed model"}
+              ? t('siaraMap.riskPanel.occurrenceSubtitle')
+              : t('siaraMap.riskPanel.dangerSubtitle')}
           </div>
           <p style={{ fontSize: 11, opacity: 0.7, marginTop: 2, marginBottom: 8 }}>
             {occurrenceHeadline ? (
               <>
-                Calibrated probability that an accident occurs here
-                {occurrenceHeadline.personalized ? ", personalized to your driver profile" : ""}.
-                {' '}· Model: <strong>{occurrenceHeadline.modelVersion}</strong>
+                {occurrenceHeadline.personalized
+                  ? t('siaraMap.riskPanel.occurrenceDescPersonalized')
+                  : t('siaraMap.riskPanel.occurrenceDesc')}
+                {' '}· {t('siaraMap.riskPanel.model')}: <strong>{occurrenceHeadline.modelVersion}</strong>
               </>
             ) : (
               <>
                 {currentRisk?.dangerZoneRisk?.warning
-                  || "Severity-informed relative danger score. This is not a calibrated accident-occurrence probability."}
+                  || t('siaraMap.riskPanel.dangerDesc')}
                 {currentRisk?.dangerZoneRisk?.modelVersion ? (
                   <>
-                    {' '}· Model: <strong>{currentRisk.dangerZoneRisk.modelVersion}</strong>
+                    {' '}· {t('siaraMap.riskPanel.model')}: <strong>{currentRisk.dangerZoneRisk.modelVersion}</strong>
                   </>
                 ) : null}
               </>
@@ -4400,8 +4403,8 @@ const SiaraMap = ({
           </p>
           {!hasValidUserLocation && (
             <>
-              <p>Location is required for SIARA risk prediction.</p>
-              {locationStatus === "locating" && <p>Locating your device...</p>}
+              <p>{t('siaraMap.riskPanel.locationRequired')}</p>
+              {locationStatus === "locating" && <p>{t('siaraMap.location.locating')}</p>}
               {(locationStatus === "prompt" || locationStatus === "unknown") &&
                 typeof requestLocation === "function" && (
                   <button
@@ -4409,22 +4412,21 @@ const SiaraMap = ({
                     className="siara-guide-btn siara-guide-btn-primary"
                     onClick={requestLocation}
                   >
-                    Enable location
+                    {t('siaraMap.location.enableBtn')}
                   </button>
                 )}
               {locationStatus === "denied" && (
                 <p>
-                  Location access is blocked. Enable location permissions in your browser settings,
-                  then refresh this page.
+                  {t('siaraMap.location.denied')}
                 </p>
               )}
               {locationError && <p className="risk-debug-error">{locationError}</p>}
             </>
           )}
-          {hasValidUserLocation && locationAccuracyText && <p className="srd-accuracy"><LocationOnOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />accuracy: {locationAccuracyText}</p>}
+          {hasValidUserLocation && locationAccuracyText && <p className="srd-accuracy"><LocationOnOutlinedIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />{t('siaraMap.riskPanel.accuracy')}: {locationAccuracyText}</p>}
           {hasValidUserLocation && locationWarning && <p className="risk-debug-error">{locationWarning}</p>}
-          {hasValidUserLocation && currentRiskState === "idle" && <p>Loading current risk...</p>}
-          {hasValidUserLocation && currentRiskState === "loading" && <p>Loading current risk...</p>}
+          {hasValidUserLocation && currentRiskState === "idle" && <p>{t('siaraMap.riskPanel.loadingRisk')}</p>}
+          {hasValidUserLocation && currentRiskState === "loading" && <p>{t('siaraMap.riskPanel.loadingRisk')}</p>}
           {hasValidUserLocation && !currentRisk && currentRiskState === "error" && <p className="risk-debug-error">{currentRiskError}</p>}
           {hasValidUserLocation &&
             (currentRiskState === "success" || currentRiskState === "refreshing") &&
@@ -4463,9 +4465,9 @@ const SiaraMap = ({
                         style={{ left: `calc(${gaugeLeft}% - 7px)`, borderColor: heroColor }}
                       />
                       <div className="srd-gauge-labels">
-                        <span>Low</span>
-                        <span>Medium</span>
-                        <span>High</span>
+                        <span>{t('siaraMap.riskPanel.gaugeLow')}</span>
+                        <span>{t('siaraMap.riskPanel.gaugeMedium')}</span>
+                        <span>{t('siaraMap.riskPanel.gaugeHigh')}</span>
                       </div>
                     </div>
                   </>
@@ -4474,19 +4476,19 @@ const SiaraMap = ({
               {currentRiskError && (
                 <p className="risk-debug-error">{currentRiskError}</p>
               )}
-              {currentRiskState === "refreshing" && <p className="srd-refreshing">Refreshing…</p>}
+              {currentRiskState === "refreshing" && <p className="srd-refreshing">{t('siaraMap.riskPanel.refreshing')}</p>}
               <div className="siara-badge-row">
-                <span className="siara-compact-badge">Confidence: {compactConfidenceLabel}</span>
-                <span className="siara-compact-badge">Data quality: {compactQualityLabel}</span>
+                <span className="siara-compact-badge">{t('siaraMap.riskPanel.confidence')}: {compactConfidenceLabel}</span>
+                <span className="siara-compact-badge">{t('siaraMap.riskPanel.dataQuality')}: {compactQualityLabel}</span>
                 <button
                   type="button"
                   className="siara-inline-link"
                   onClick={handleExplainRiskClick}
                   disabled={explanationLoading}
                 >
-                  {explanationOpen ? "Hide" : "Why?"}
+                  {explanationOpen ? t('siaraMap.riskPanel.hide') : t('siaraMap.riskPanel.why')}
                 </button>
-                <MuiTooltip title="Confidence details">
+                <MuiTooltip title={t('siaraMap.riskPanel.confidenceDetails')}>
                   <IconButton
                     type="button"
                     style={{
@@ -4505,16 +4507,16 @@ const SiaraMap = ({
                       flexShrink: 0,
                     }}
                     onClick={() => setHelpOpen((prev) => !prev)}
-                    aria-label="Show confidence details"
+                    aria-label={t('siaraMap.riskPanel.showConfidenceDetails')}
                   >
                     <QuestionMarkIcon style={{ fontSize: 13 }} />
                   </IconButton>
                 </MuiTooltip>
               </div>
               {severityProbabilities && (
-                <div className="siara-occurrence-card" role="group" aria-label="Severity outlook">
+                <div className="siara-occurrence-card" role="group" aria-label={t('siaraMap.severity.outlookLabel')}>
                   <div className="siara-occurrence-card__title">
-                    Severity outlook{severityConfidenceLabel ? ` · ${severityConfidenceLabel} confidence` : ""}
+                    {t('siaraMap.severity.outlookTitle')}{severityConfidenceLabel ? ` · ${severityConfidenceLabel} ${t('siaraMap.riskPanel.confidence').toLowerCase()}` : ""}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
                     {[1, 2, 3, 4].map((k) => {
@@ -4527,7 +4529,7 @@ const SiaraMap = ({
                           key={k}
                           style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: isTop ? 700 : 400 }}
                         >
-                          <span style={{ width: 38, fontSize: 11, color: "#475569" }}>Sev {k}</span>
+                          <span style={{ width: 38, fontSize: 11, color: "#475569" }}>{t('siaraMap.severity.sevLabel')} {k}</span>
                           <span
                             style={{
                               position: "relative",
@@ -4558,7 +4560,7 @@ const SiaraMap = ({
                   </div>
                   {expectedSeverity != null && (
                     <p className="siara-occurrence-card__line" style={{ marginTop: 6 }}>
-                      Most likely: Severity {mostLikelySeverity} · Expected: {expectedSeverity} / 4
+                      {t('siaraMap.severity.mostLikely')}: {t('siaraMap.severity.sevLabel')} {mostLikelySeverity} · {t('siaraMap.severity.expected')}: {expectedSeverity} / 4
                     </p>
                   )}
                 </div>
@@ -4566,10 +4568,10 @@ const SiaraMap = ({
               {(occurrenceRiskLoading || occurrenceRisk || occurrenceRiskError) && (
                 <div className="siara-occurrence-card" role="status">
                   <div className="siara-occurrence-card__title">
-                    Occurrence Risk
+                    {t('siaraMap.occurrenceCard.title')}
                   </div>
                   {occurrenceRiskLoading && (
-                    <p className="siara-occurrence-card__line">Computing occurrence risk...</p>
+                    <p className="siara-occurrence-card__line">{t('siaraMap.occurrenceCard.computing')}</p>
                   )}
                   {!occurrenceRiskLoading && occurrenceRiskError && (
                     <p className="siara-occurrence-card__line siara-occurrence-card__error">
@@ -4665,20 +4667,20 @@ const SiaraMap = ({
                         <>
                           <div className="siara-occurrence-card__section">
                             <div className="siara-occurrence-card__section-title">
-                              Occurrence risk — road/time model
+                              {t('siaraMap.occurrenceCard.roadModelTitle')}
                             </div>
                             <div className="siara-occurrence-card__row">
-                              <span>{showAsProbability ? 'Calibrated probability' : 'Score'}</span>
+                              <span>{showAsProbability ? t('siaraMap.occurrenceCard.calibratedProbability') : t('siaraMap.occurrenceCard.score')}</span>
                               <strong style={{ color: occurrenceRiskColor(modelLevel) }}>
                                 {Math.round((modelProbability || 0) * 100)}% ·{' '}
                                 {occurrenceRiskLabel(modelLevel)}
                               </strong>
                             </div>
                             <div className="siara-occurrence-card__meta">
-                              Model: <strong>{modelVersion}</strong> · source: {scoringSource}
+                              {t('siaraMap.occurrenceCard.modelLabel')}: <strong>{modelVersion}</strong> · source: {scoringSource}
                             </div>
                             <div className="siara-occurrence-card__meta" style={{ fontSize: 11, opacity: 0.75 }}>
-                              Trained occurrence model output. Treat as relative operational risk per hour bucket — not a calibrated probability — until calibration is shipped.
+                              {t('siaraMap.occurrenceCard.modelNote')}
                             </div>
                             {Array.isArray(modelOnlyBlock?.top_factors)
                               && modelOnlyBlock.top_factors.length > 0 && (
@@ -4709,10 +4711,10 @@ const SiaraMap = ({
 
                           <div className="siara-occurrence-card__section">
                             <div className="siara-occurrence-card__section-title">
-                              Personalized risk — adjusted by driver profile
+                              {t('siaraMap.occurrenceCard.personalizedTitle')}
                             </div>
                             <div className="siara-occurrence-card__row">
-                              <span>{showAsProbability ? 'Calibrated probability' : 'Score'}</span>
+                              <span>{showAsProbability ? t('siaraMap.occurrenceCard.calibratedProbability') : t('siaraMap.occurrenceCard.score')}</span>
                               <strong style={{ color: occurrenceRiskColor(personalizedLevel) }}>
                                 {Math.round((personalizedProbability || 0) * 100)}% ·{' '}
                                 {occurrenceRiskLabel(personalizedLevel)}
@@ -4725,11 +4727,11 @@ const SiaraMap = ({
                                       ? ` · Δ ${behaviorDelta > 0 ? '+' : ''}${Math.round(behaviorDelta * 100)}pp`
                                       : ''
                                   }${driverScore != null ? ` · score ${Math.round(driverScore)}/100` : ''}`
-                                : 'No driver behavior profile is available yet. Complete the driver quiz to personalize this risk.'}
+                                : t('siaraMap.occurrenceCard.noDriverProfile')}
                             </div>
                             {(driverTitle || driverLabel) && (
                               <div className="siara-occurrence-card__meta">
-                                Latest quiz: {driverTitle || driverLabel}
+                                {t('siaraMap.occurrenceCard.latestQuiz')}: {driverTitle || driverLabel}
                               </div>
                             )}
                             <div className="siara-occurrence-card__meta">
@@ -4753,7 +4755,7 @@ const SiaraMap = ({
                 <div className="siara-explain-card" role="status">
                   {explanationLoading && (
                     <p className="siara-explain-card__text">
-                      SIARA is preparing an explanation...
+                      {t('siaraMap.explain.preparing')}
                     </p>
                   )}
                   {!explanationLoading && explanationError && (
@@ -4773,8 +4775,8 @@ const SiaraMap = ({
                           }`}
                         >
                           {explanationSource === "ollama"
-                            ? "AI explanation"
-                            : "Generated from available factors"}
+                            ? t('siaraMap.explain.aiExplanation')
+                            : t('siaraMap.explain.generatedFromFactors')}
                         </span>
                       )}
                     </>
@@ -4791,17 +4793,17 @@ const SiaraMap = ({
                 <strong style={{ color: guidedRoute.route_color || getDangerColor(routeSummaryLevel) }}>
                   {routeSummaryHasPercent
                     ? `${formatPercent(routeSummaryPercent)}% (${routeSummaryLevel})`
-                    : "risk unavailable"}
+                    : t('siaraMap.route.riskUnavailable')}
                 </strong>
               </p>
               {Number.isFinite(Number(guidedRoute?.distance_km)) && (
-                <p>distance: {Number(guidedRoute.distance_km).toFixed(2)} km</p>
+                <p>{t('siaraMap.route.distance')}: {Number(guidedRoute.distance_km).toFixed(2)} km</p>
               )}
               {Number.isFinite(Number(guidedRoute?.duration_min)) && (
-                <p>eta: {Number(guidedRoute.duration_min).toFixed(1)} min</p>
+                <p>{t('siaraMap.route.eta')}: {Number(guidedRoute.duration_min).toFixed(1)} min</p>
               )}
               {timePresetMs !== "0" && (
-                <p>Route forecast time: {selectedTimestampPreview}</p>
+                <p>{t('siaraMap.route.forecastTime')}: {selectedTimestampPreview}</p>
               )}
               <div className="siara-route-explanation-slot">
                 <RouteExplanationCard
@@ -4825,9 +4827,9 @@ const SiaraMap = ({
                   }
                   details={
                     routeExplanation?.source === "ollama"
-                      ? "Generated by SIARA AI explainer (Ollama). Sources: route risk samples, alternative comparison, nearby heat clusters, and time-of-day."
+                      ? t('siaraMap.route.explanationSourceOllama')
                       : routeExplanation?.source === "fallback"
-                        ? "Template explanation generated from route risk samples and alternative comparison."
+                        ? t('siaraMap.route.explanationSourceFallback')
                         : ""
                   }
                 />
@@ -4858,8 +4860,8 @@ const SiaraMap = ({
               />
               <div className="siara-route-panel">
                 <div className="siara-route-panel__head">
-                  <h5>Risk along route</h5>
-                  <span>Selected route profile</span>
+                  <h5>{t('siaraMap.route.riskAlongRoute')}</h5>
+                  <span>{t('siaraMap.route.selectedProfile')}</span>
                 </div>
                 {selectedRouteRiskProfile.length > 0 ? (
                   <>
@@ -4876,18 +4878,18 @@ const SiaraMap = ({
                       ))}
                     </div>
                     <div className="siara-route-profile__labels">
-                      <span>Start</span>
-                      <span>End</span>
+                      <span>{t('siaraMap.route.start')}</span>
+                      <span>{t('siaraMap.route.end')}</span>
                     </div>
                   </>
                 ) : (
-                  <p>No route profile available yet.</p>
+                  <p>{t('siaraMap.route.noProfile')}</p>
                 )}
               </div>
               <div className="siara-route-panel">
                 <div className="siara-route-panel__head">
-                  <h5>Ahead on your route</h5>
-                  <span>Selected route only</span>
+                  <h5>{t('siaraMap.route.aheadTitle')}</h5>
+                  <span>{t('siaraMap.route.selectedRouteOnly')}</span>
                 </div>
                 {selectedRouteHazards.length > 0 ? (
                   <ul className="siara-route-panel__list">
@@ -4896,16 +4898,16 @@ const SiaraMap = ({
                     ))}
                   </ul>
                 ) : (
-                  <p>No strong hazard concentration detected on the selected route.</p>
+                  <p>{t('siaraMap.route.noHazards')}</p>
                 )}
               </div>
               {showRiskSourceFilters && (
                 <div className="siara-route-panel">
                   <div className="siara-route-panel__head">
-                    <h5>Risk source layers</h5>
-                    <span>Coming soon</span>
+                    <h5>{t('siaraMap.route.riskSourceLayers')}</h5>
+                    <span>{t('siaraMap.route.comingSoon')}</span>
                   </div>
-                  <p>Per-source attribution (weather, darkness, history, road) will be available once backend source scoring is live.</p>
+                  <p>{t('siaraMap.route.riskSourceLayersDesc')}</p>
                 </div>
               )}
             </>
@@ -4915,12 +4917,12 @@ const SiaraMap = ({
         {helpOpen && (
         <div className="siara-help-panel">
           <div className="siara-help-panel__header">
-            <h4>Confidence details</h4>
+            <h4>{t('siaraMap.helpPanel.title')}</h4>
             <button
               type="button"
               className="siara-help-panel__close"
               onClick={() => setHelpOpen(false)}
-              aria-label="Close confidence details"
+              aria-label={t('siaraMap.helpPanel.close')}
             >
               x
             </button>
@@ -4957,28 +4959,28 @@ const SiaraMap = ({
                 ) : (
                   <p>
                     {sentinelIsOod === false
-                      ? `No anomaly rules triggered. Sentinel confidence: ${(sentinelConfidenceLabel || "n/a").toUpperCase()}. OOD percentile: ${sentinelOodPct == null ? "n/a" : `${sentinelOodPct}%`} (somewhat unusual but acceptable).`
-                      : "Unusual conditions detected but no specific reason was returned."}
+                      ? t('siaraMap.helpPanel.noAnomaly', { confidence: (sentinelConfidenceLabel || "n/a").toUpperCase(), oodPct: sentinelOodPct == null ? "n/a" : `${sentinelOodPct}%` })
+                      : t('siaraMap.helpPanel.unusualConditions')}
                   </p>
                 )}
               </>
             ) : sentinelHasError ? (
               <>
-                <p>Sentinel unavailable: {sentinelErrorText || "unknown error"}</p>
+                <p>{t('siaraMap.helpPanel.sentinelUnavailable')}: {sentinelErrorText || t('siaraMap.helpPanel.unknownError')}</p>
                 {sentinelErrorDetails && (
                   <p style={{ fontSize: 11, color: "#94A3B8" }}>{sentinelErrorDetails}</p>
                 )}
-                <p>Showing fallback input-quality checks.</p>
+                <p>{t('siaraMap.helpPanel.fallbackQuality')}</p>
                 {(legacyMissingCount != null || legacyOodCount != null) && (
                   <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
                     {legacyMissingCount != null && (
                       <li style={{ marginBottom: 6, fontSize: 12, color: "#6B7280" }}>
-                        missing inputs: {legacyMissingCount}
+                        {t('siaraMap.helpPanel.missingInputs')}: {legacyMissingCount}
                       </li>
                     )}
                     {legacyOodCount != null && (
                       <li style={{ marginBottom: 6, fontSize: 12, color: "#6B7280" }}>
-                        out-of-distribution checks: {legacyOodCount}
+                        {t('siaraMap.helpPanel.oodChecks')}: {legacyOodCount}
                       </li>
                     )}
                   </ul>
@@ -4995,17 +4997,17 @@ const SiaraMap = ({
               </>
             ) : (
               <>
-                <p>Sentinel confidence is unavailable. Showing basic input-quality checks.</p>
+                <p>{t('siaraMap.helpPanel.sentinelConfidenceUnavailable')}</p>
                 {(legacyMissingCount != null || legacyOodCount != null) && (
                   <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
                     {legacyMissingCount != null && (
                       <li style={{ marginBottom: 6, fontSize: 12, color: "#6B7280" }}>
-                        missing inputs: {legacyMissingCount}
+                        {t('siaraMap.helpPanel.missingInputs')}: {legacyMissingCount}
                       </li>
                     )}
                     {legacyOodCount != null && (
                       <li style={{ marginBottom: 6, fontSize: 12, color: "#6B7280" }}>
-                        out-of-distribution checks: {legacyOodCount}
+                        {t('siaraMap.helpPanel.oodChecks')}: {legacyOodCount}
                       </li>
                     )}
                   </ul>
@@ -5032,19 +5034,19 @@ const SiaraMap = ({
       {selectedRouteExplanation && (
         <div className="siara-segment-panel">
           <div className="siara-segment-panel__header">
-            <h4>Segment Explanation</h4>
+            <h4>{t('siaraMap.segmentPanel.title')}</h4>
             <button
               type="button"
               className="siara-segment-panel__close"
               onClick={clearRouteExplanationSelection}
-              aria-label="Close segment explanation"
+              aria-label={t('siaraMap.segmentPanel.close')}
             >
               x
             </button>
           </div>
           <div className="siara-segment-panel__meta">
             <p>
-              danger:{" "}
+              {t('siaraMap.segmentPanel.danger')}:{" "}
               <strong
                 style={{
                   color: getDangerColor(
@@ -5063,18 +5065,18 @@ const SiaraMap = ({
                 )
               </strong>
             </p>
-            <p>confidence: {selectedRouteExplanation?.explanation?.confidence ?? "n/a"}</p>
-            <p>quality: {selectedRouteExplanation?.explanation?.quality ?? "n/a"}</p>
+            <p>{t('siaraMap.segmentPanel.confidence')}: {selectedRouteExplanation?.explanation?.confidence ?? "n/a"}</p>
+            <p>{t('siaraMap.segmentPanel.quality')}: {selectedRouteExplanation?.explanation?.quality ?? "n/a"}</p>
           </div>
           <div className="siara-segment-panel__reasons">
-            <h5>Top SHAP reasons</h5>
+            <h5>{t('siaraMap.segmentPanel.topReasons')}</h5>
             {(selectedRouteExplanation?.explanation?.xai?.top_reasons || [])
               .slice(0, 8)
               .map((reason, index) => (
                 <div key={`${reason.feature || "feature"}-${index}`} className="siara-segment-reason">
                   <span className="siara-segment-reason__feature">{reason.feature}</span>
                   <span className={`siara-segment-reason__direction ${reason.direction === "increases_risk" ? "siara-segment-reason__direction--increases" : "siara-segment-reason__direction--decreases"}`}>
-                    {reason.direction === "increases_risk" ? "increases" : "decreases"}
+                    {reason.direction === "increases_risk" ? t('siaraMap.segmentPanel.increases') : t('siaraMap.segmentPanel.decreases')}
                   </span>
                   <span className="siara-segment-reason__value">
                     {formatFeatureValue(reason.feature, reason.value)}
@@ -5093,7 +5095,7 @@ const SiaraMap = ({
           </div>
           <div className="siara-time-row">
             <label className="siara-time-label" htmlFor="siara-time-preset">
-              Prediction time
+              {t('siaraMap.guideControls.predictionTime')}
             </label>
             <FancySelect
               value={String(timePresetMs)}
@@ -5113,10 +5115,10 @@ const SiaraMap = ({
                 onChange={(event) => setCustomTimestampLocal(event.target.value)}
               />
             )}
-            <div className="siara-time-hint">Using: {selectedTimestampPreview}</div>
+            <div className="siara-time-hint">{t('siaraMap.guideControls.using')}: {selectedTimestampPreview}</div>
             {timePresetMs !== "0" && currentRiskTimePreview && (
               <div className="siara-time-preview">
-                <strong>Time impact</strong>
+                <strong>{t('siaraMap.guideControls.timeImpact')}</strong>
                 <p>{currentRiskTimePreview}</p>
               </div>
             )}
@@ -5126,7 +5128,7 @@ const SiaraMap = ({
             <input
               type="text"
               className="siara-guide-input"
-              placeholder="Destination..."
+              placeholder={t('siaraMap.guideControls.destinationPlaceholder')}
               value={destinationQuery}
               onChange={(e) => setDestinationQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -5142,7 +5144,7 @@ const SiaraMap = ({
               onClick={runDestinationSearch}
               disabled={destinationSearchState === "loading"}
             >
-              {destinationSearchState === "loading" ? "Searching..." : "Search"}
+              {destinationSearchState === "loading" ? t('siaraMap.guideControls.searching') : t('common:actions.search')}
             </button>
           </div>
 
@@ -5170,7 +5172,7 @@ const SiaraMap = ({
 
           {selectedDestination && (
             <div className="siara-guide-note">
-              Destination: <strong>{selectedDestination.name}</strong>
+              {t('siaraMap.guideControls.destinationLabel')}: <strong>{selectedDestination.name}</strong>
               {selectedDestination.subtitle ? ` (${selectedDestination.subtitle})` : ""}
             </div>
           )}
@@ -5182,11 +5184,11 @@ const SiaraMap = ({
               onClick={startGuidance}
               disabled={guidedRouteState === "loading" || !selectedDestination || !hasValidUserLocation}
             >
-              {guidedRouteState === "loading" ? "Computing route..." : "Start guidance"}
+              {guidedRouteState === "loading" ? t('siaraMap.guideControls.computingRoute') : t('siaraMap.guideControls.startGuidance')}
             </button>
             {guidedRoute && (
               <button type="button" className="siara-guide-btn" onClick={clearGuidance}>
-                Clear
+                {t('siaraMap.guideControls.clear')}
               </button>
             )}
           </div>

@@ -1,0 +1,827 @@
+{
+  "policeModeTab": {
+    "switchToPolice": "Passer en mode Police",
+    "switchToNormal": "Passer en mode normal"
+  },
+  "policeShell": {
+    "menu": {
+      "groups": {
+        "operations": "OPÉRATIONS",
+        "analytics": "ANALYTIQUE",
+        "info": "INFOS",
+        "supervisor": "SUPERVISEUR"
+      },
+      "items": {
+        "dashboard": "Tableau de bord",
+        "activeIncidents": "Incidents actifs",
+        "nearbyIncidents": "Incidents à proximité",
+        "verificationQueue": "File de vérification",
+        "myIncidents": "Mes incidents",
+        "assignedIncidents": "Incidents assignés",
+        "fieldReports": "Rapports de terrain",
+        "alertCenter": "Centre d'alertes",
+        "operationHistory": "Historique des opérations",
+        "aiInsights": "Analyse IA",
+        "contact": "Contact",
+        "about": "À propos",
+        "overview": "Aperçu",
+        "commandCenter": "Centre de commandement",
+        "incidentCoordination": "Coordination des incidents",
+        "officerMonitoring": "Suivi des agents",
+        "supervisorAlerts": "Alertes superviseur",
+        "analytics": "Analytique",
+        "globalMap": "Carte globale"
+      }
+    },
+    "aria": {
+      "openOperationsMenu": "Ouvrir le menu des opérations",
+      "policeModeSwitch": "Changement de mode police",
+      "userProfile": "Profil utilisateur",
+      "userAvatar": "Avatar utilisateur",
+      "closePoliceNav": "Fermer la navigation police",
+      "quickInfoPanel": "Panneau d'information rapide",
+      "closeContactForm": "Fermer le formulaire de contact",
+      "closeAboutPanel": "Fermer le panneau À propos",
+      "closeOverviewPanel": "Fermer le panneau Aperçu",
+      "supportInfo": "Informations d'assistance"
+    },
+    "supervisorBadge": "SUPERVISEUR",
+    "tabs": {
+      "feed": "Fil",
+      "report": "Signalement",
+      "dashboardTab": "Tableau de bord"
+    },
+    "switchToNormalMode": "Passer en mode normal",
+    "searchPlaceholder": "Rechercher un incident, une route, une zone...",
+    "dropdown": {
+      "myProfile": "Mon profil"
+    },
+    "operationsMenu": "Menu des opérations",
+    "modeSwitch": {
+      "officer": "Agent",
+      "supervisor": "Superviseur"
+    },
+    "contact": {
+      "kicker": "Assistance",
+      "title": "Contacter SIARA",
+      "subtitle": "Partagez votre demande et notre équipe vous répondra rapidement.",
+      "nameLabel": "Nom",
+      "emailLabel": "E-mail",
+      "messageLabel": "Message",
+      "sending": "Envoi en cours…",
+      "sendMessage": "Envoyer le message",
+      "emailDirectly": "Envoyer un e-mail direct",
+      "errors": {
+        "invalidName": "Veuillez saisir un nom valide.",
+        "invalidEmail": "Veuillez saisir une adresse e-mail valide.",
+        "shortMessage": "Le message doit comporter au moins 10 caractères."
+      },
+      "successMessage": "Merci. Nous vous répondrons dès que possible.",
+      "submitError": "Impossible d'envoyer votre message. Veuillez réessayer.",
+      "side": {
+        "responseWindowTitle": "Délai de réponse",
+        "responseWindowBody": "La plupart des demandes sont traitées en un jour ouvrable.",
+        "bestForTitle": "Idéal pour ce formulaire",
+        "bestForBody": "Support de compte, retours sur la plateforme, partenariats et questions sur le flux d'incidents.",
+        "directContactTitle": "Contact direct"
+      }
+    },
+    "about": {
+      "kicker": "Aperçu",
+      "title": "À propos de SIARA",
+      "brandCaption": "Plateforme de renseignement sur la sécurité routière",
+      "lead": "SIARA est une plateforme de renseignement sur la sécurité routière combinant signalement en direct, cartographie et analyse IA pour améliorer la réponse aux incidents.",
+      "pillars": {
+        "missionTitle": "Mission",
+        "missionBody": "Réduire le risque routier grâce à une coordination des incidents rapide et fondée sur les données.",
+        "visionTitle": "Vision",
+        "visionBody": "Construire des systèmes de sécurité urbaine connectés et assistés par l'IA pour une mobilité plus intelligente.",
+        "approachTitle": "Approche",
+        "approachBody": "Combiner les signaux citoyens, le contexte géospatial et l'analytique opérationnelle en un seul flux de travail."
+      },
+      "platformCapabilities": "Capacités de la plateforme",
+      "capabilities": {
+        "riskMappingTitle": "Cartographie des risques",
+        "riskMappingBody": "Identifier les points chauds et les zones de densité d'incidents en temps réel.",
+        "alertIntelligenceTitle": "Intelligence d'alerte",
+        "alertIntelligenceBody": "Prioriser les événements à fort impact grâce aux indicateurs de gravité et de fiabilité.",
+        "responseCoordinationTitle": "Coordination de la réponse",
+        "responseCoordinationBody": "Soutenir des décisions de terrain plus rapides grâce à une vue opérationnelle partagée.",
+        "performanceTrackingTitle": "Suivi des performances",
+        "performanceTrackingBody": "Mesurer les résultats de vérification et de réponse pour s'améliorer en continu."
+      }
+    },
+    "overview": {
+      "kicker": "Flux de service",
+      "title": "Aperçu du flux de travail SIARA",
+      "lead": "SIARA propose un pipeline opérationnel clair, du recueil des signalements à la livraison des alertes validées.",
+      "steps": {
+        "incidentIntakeTitle": "Réception des incidents",
+        "incidentIntakeBody": "Saisir les signalements avec localisation, médias et métadonnées contextuelles.",
+        "dataValidationTitle": "Validation des données",
+        "dataValidationBody": "Normaliser et vérifier les enregistrements entrants pour les préparer à l'analyse.",
+        "riskAssessmentTitle": "Évaluation des risques",
+        "riskAssessmentBody": "Estimer l'urgence et la fiabilité grâce à un score assisté par l'IA.",
+        "operationalReviewTitle": "Révision opérationnelle",
+        "operationalReviewBody": "Les équipes autorisées valident les incidents et définissent les priorités de réponse.",
+        "alertDistributionTitle": "Distribution des alertes",
+        "alertDistributionBody": "Diffuser les alertes pertinentes aux utilisateurs et aux parties prenantes opérationnelles."
+      },
+      "techStack": "Stack technologique",
+      "chips": {
+        "aiRiskScoring": "Score de risque IA",
+        "geospatialMapping": "Cartographie géospatiale",
+        "realtimeEvents": "Événements en temps réel",
+        "verificationWorkflow": "Flux de vérification"
+      }
+    }
+  },
+  "incidentCard": {
+    "actions": {
+      "view": "Voir",
+      "viewAriaWithId": "Voir {{id}}",
+      "viewAria": "Voir l'incident"
+    },
+    "untitledIncident": "Incident sans titre",
+    "reportedBy": "par {{name}}"
+  },
+  "policeOfficerPanel": {
+    "officerTitle": "Agent",
+    "onDuty": "En service",
+    "offDuty": "Hors service",
+    "defaultName": "Agent",
+    "defaultRank": "Agent de police",
+    "badge": "Badge",
+    "badgePending": "En attente",
+    "workZoneTitle": "Zone de travail",
+    "wilaya": "Wilaya",
+    "commune": "Commune",
+    "notSet": "Non défini"
+  },
+  "policeSortControl": {
+    "sort": "Trier",
+    "ariaAscending": "Ordre croissant — passer en décroissant",
+    "ariaDescending": "Ordre décroissant — passer en croissant",
+    "titleAscending": "Croissant",
+    "titleDescending": "Décroissant"
+  },
+  "policeAIInsightsPage": {
+    "contextSnapshot": "Aperçu contextuel",
+    "topCommune": "Commune principale",
+    "highPriority": "Haute priorité",
+    "unreadAlerts": "Alertes non lues",
+    "pendingVerify": "En attente de vérification",
+    "errorLoadFailed": "Échec du chargement des analyses IA.",
+    "loadingInsights": "Chargement des analyses IA…",
+    "title": "Analyses IA",
+    "subtitle": "Analyses opérationnelles légères issues du contrat police en temps réel.",
+    "statActiveIncidents": "Incidents actifs",
+    "statActiveIncidentsHint": "Pression de zone",
+    "statHighPriority": "Haute priorité",
+    "statHighPriorityHint": "Surveillance d'escalade",
+    "statTopZone": "Zone principale",
+    "statTopZoneHint": "Volume d'incidents le plus élevé",
+    "statNearbyResults": "Résultats à proximité",
+    "statNearbyResultsHint": "Rayon de 5 km",
+    "statusPressure": "Pression par statut",
+    "colStatus": "Statut",
+    "colCount": "Nombre",
+    "topCommunes": "Principales communes",
+    "colCommune": "Commune",
+    "colIncidents": "Incidents",
+    "noClusteringData": "Aucune donnée de regroupement d'incidents disponible pour l'instant.",
+    "sourceChannels": "Canaux sources",
+    "noSourceData": "Aucune donnée de canal source disponible."
+  },
+  "policeAlertCenterPage": {
+    "window": {
+      "immediate": "Immédiat",
+      "range": "{{start}} au {{end}}",
+      "until": "Jusqu'au {{end}}",
+      "from": "À partir du {{start}}"
+    },
+    "error": {
+      "loadFailed": "Impossible de charger les alertes de police.",
+      "markReadFailed": "Impossible de marquer l'alerte comme lue.",
+      "unableToLoad": "Impossible de charger les alertes"
+    },
+    "summary": {
+      "title": "Résumé des alertes",
+      "total": "Total des alertes",
+      "highSeverity": "Gravité élevée",
+      "unread": "Non lues"
+    },
+    "heading": "Centre d'alertes",
+    "status": {
+      "refreshing": "Actualisation des alertes...",
+      "live": "Alertes ciblées en direct",
+      "loadingFeed": "Chargement du flux d'alertes...",
+      "refreshingFeed": "Actualisation du flux d'alertes..."
+    },
+    "actions": {
+      "refresh": "Actualiser",
+      "opening": "Ouverture...",
+      "open": "Ouvrir",
+      "markRead": "Marquer comme lu"
+    },
+    "badge": {
+      "unread": "Non lue",
+      "expired": "Expiré"
+    },
+    "alert": {
+      "noDescription": "Aucune description fournie."
+    },
+    "meta": {
+      "status": "Statut",
+      "issued": "Émis",
+      "activeWindow": "Fenêtre d'activité"
+    },
+    "empty": {
+      "heading": "Aucune alerte importante",
+      "body": "Aucune alerte ciblant le superviseur n'est en attente pour le moment."
+    }
+  },
+  "policeAssignedIncidentsPage": {
+    "filters": {
+      "all": "Tous",
+      "pending": "En attente",
+      "underReview": "En cours d'examen",
+      "verified": "Vérifié",
+      "dispatched": "Envoyé",
+      "resolved": "Résolu"
+    },
+    "officerCard": {
+      "title": "Agent",
+      "onDuty": "En service",
+      "offDuty": "Hors service",
+      "defaultName": "Agent",
+      "defaultRank": "Agent de police",
+      "badge": "Badge",
+      "badgePending": "En attente"
+    },
+    "workZoneCard": {
+      "title": "Zone de travail",
+      "wilaya": "Wilaya",
+      "commune": "Commune",
+      "notSet": "Non défini"
+    },
+    "summaryCard": {
+      "title": "Par statut",
+      "total": "{{count}} au total"
+    },
+    "heading": "Incidents assignés",
+    "subheading": "Dossiers qui vous sont assignés",
+    "refreshTitle": "Actualiser la liste",
+    "refreshLabel": "Actualiser",
+    "loading": "Chargement des incidents…",
+    "empty": "Aucun incident ne vous est assigné",
+    "errorLoad": "Échec du chargement des incidents.",
+    "untitledIncident": "Incident sans titre",
+    "reportedBy": "par {{name}}",
+    "viewAriaLabel": "Voir {{id}}",
+    "viewButton": "Voir"
+  },
+  "policeFieldReportsPage": {
+    "filters": {
+      "all": "Tous",
+      "pending": "En attente",
+      "underReview": "En cours d'examen",
+      "verified": "Vérifié",
+      "resolved": "Résolu"
+    },
+    "officer": {
+      "title": "Agent",
+      "onDuty": "En service",
+      "offDuty": "Hors service",
+      "defaultName": "Agent",
+      "defaultRank": "Agent de police",
+      "badge": "Badge",
+      "badgePending": "En attente"
+    },
+    "workZone": {
+      "title": "Zone de travail",
+      "wilaya": "Wilaya",
+      "commune": "Commune",
+      "notSet": "Non défini"
+    },
+    "summary": {
+      "title": "Par statut",
+      "total": "{{count}} au total",
+      "officerNotes_one": "{{count}} note d'agent",
+      "officerNotes_other": "{{count}} notes d'agent"
+    },
+    "heading": "Rapports de terrain",
+    "subheading": "Signalements des citoyens et des agents disponibles pour examen",
+    "refresh": "Actualiser",
+    "loading": "Chargement des rapports de terrain…",
+    "emptyState": "Aucun signalement ne correspond à ce filtre",
+    "errorLoad": "Impossible de charger les rapports de terrain.",
+    "untitledReport": "Signalement sans titre",
+    "noteCount_one": "{{count}} note",
+    "noteCount_other": "{{count}} notes",
+    "view": "Voir",
+    "viewAriaLabel": "Voir {{id}}"
+  },
+  "policeIncidentDetailPage": {
+    "errors": {
+      "loadFailed": "Impossible de charger l'incident.",
+      "noteEmpty": "La note ne peut pas être vide.",
+      "updateNoteFailed": "Impossible de mettre à jour la note.",
+      "deleteNoteFailed": "Impossible de supprimer la note.",
+      "actionFailed": "L'action a échoué."
+    },
+    "confirmDeleteNote": "Supprimer cette note de terrain ? Cette action est irréversible.",
+    "success": {
+      "rejected": "Incident rejeté. Retour au tableau de bord…",
+      "resolved": "Incident résolu. Retour au tableau de bord…",
+      "verified": "Incident vérifié avec succès.",
+      "backup": "Renfort demandé."
+    },
+    "dialog": {
+      "rejectLabel": "Rejeter l'incident",
+      "rejectMessage": "Cela marquera l'incident comme rejeté et le retirera de la file active. Cette action est irréversible.",
+      "resolveLabel": "Résoudre l'incident",
+      "resolveMessage": "Cela marquera l'incident comme résolu et clôturera le dossier."
+    },
+    "severity": "Gravité",
+    "status": "Statut",
+    "quickActions": "Actions rapides",
+    "terminalBanner": "Incident {{status}} — aucune action supplémentaire disponible.",
+    "alreadyVerified": "Déjà vérifié",
+    "actions": {
+      "verifying": "Vérification…",
+      "verify": "Vérifier l'incident",
+      "requesting": "Demande en cours…",
+      "requestBackup": "Demander un renfort",
+      "resolving": "Résolution…",
+      "resolve": "Résoudre l'incident",
+      "rejecting": "Rejet…",
+      "reject": "Rejeter l'incident"
+    },
+    "addFieldNote": "Ajouter une note de terrain",
+    "fieldNotePlaceholder": "Rédigez votre observation de terrain…",
+    "saveNote": "Enregistrer la note",
+    "activityTimeline": "Chronologie des activités",
+    "noActivity": "Aucune activité enregistrée pour le moment.",
+    "incidentDetail": "Détail de l'incident",
+    "loadingData": "Chargement des données de l'incident…",
+    "incidentIntelligence": "Renseignements sur l'incident",
+    "intel": {
+      "incidentType": "Type d'incident",
+      "sourceChannel": "Canal source",
+      "wilaya": "Wilaya",
+      "commune": "Commune",
+      "reportedBy": "Signalé par",
+      "assignedTo": "Assigné à",
+      "unassigned": "Non assigné",
+      "location": "Emplacement",
+      "occurred": "Survenu"
+    },
+    "evidence": "Preuves",
+    "noMediaEvidence": "Aucune preuve média attachée à ce signalement.",
+    "viewFullSize": "Voir en taille réelle",
+    "mediaUnavailable": "Indisponible",
+    "fieldNotes": "Notes de terrain",
+    "noFieldNotes": "Aucune note de terrain enregistrée pour le moment. Ajoutez-en une dans le panneau de droite.",
+    "officerFallback": "Agent",
+    "you": "Vous",
+    "notes": {
+      "saving": "Enregistrement…",
+      "removing": "Suppression…"
+    },
+    "location": "Emplacement",
+    "lightbox": {
+      "zoomIn": "Zoom avant",
+      "zoomOut": "Zoom arrière",
+      "reset": "Réinitialiser",
+      "prevPhoto": "Photo précédente",
+      "nextPhoto": "Photo suivante",
+      "evidenceAlt": "Preuve"
+    }
+  },
+  "policeMyIncidentsPage": {
+    "filters": {
+      "all": "Tous",
+      "pending": "En attente",
+      "underReview": "En cours d'examen",
+      "verified": "Vérifié",
+      "dispatched": "Dépêché",
+      "resolved": "Résolu"
+    },
+    "officerCard": {
+      "title": "Agent",
+      "onDuty": "En service",
+      "offDuty": "Hors service",
+      "defaultName": "Agent",
+      "defaultRank": "Agent de police",
+      "badge": "Badge",
+      "badgePending": "En attente"
+    },
+    "workZoneCard": {
+      "title": "Zone de travail",
+      "wilaya": "Wilaya",
+      "commune": "Commune",
+      "notSet": "Non défini"
+    },
+    "summaryCard": {
+      "title": "Par statut",
+      "total": "{{count}} au total"
+    },
+    "heading": "Mes incidents",
+    "subheading": "Affaires qui vous sont assignées ou signalées par vous",
+    "refresh": {
+      "title": "Actualiser la liste",
+      "ariaLabel": "Actualiser la liste",
+      "label": "Actualiser"
+    },
+    "errors": {
+      "loadFailed": "Échec du chargement des incidents."
+    },
+    "loading": "Chargement des incidents…",
+    "empty": "Aucun incident ne correspond à ce filtre",
+    "incidentRow": {
+      "untitled": "Incident sans titre",
+      "reportedBy": "par {{name}}",
+      "view": "Voir",
+      "viewAriaLabel": "Voir {{id}}"
+    }
+  },
+  "policeNearbyIncidentsPage": {
+    "title": "Incidents à proximité",
+    "subtitle": "Incidents en direct détectés autour de votre dernière position dans un rayon d'intervention de 5 kilomètres.",
+    "radiusLabel": "Rayon 5 km",
+    "loadingNearby": "Chargement des incidents à proximité…",
+    "errorLoadFailed": "Impossible de charger les incidents à proximité.",
+    "nearby": "À proximité",
+    "fieldNoteCount_one": "{{count}} note",
+    "fieldNoteCount_other": "{{count}} notes",
+    "nearbyPanel": {
+      "title": "Résumé à proximité",
+      "searchRadius": "Rayon de recherche",
+      "incidentsFound": "Incidents trouvés",
+      "highSeverity": "Gravité élevée",
+      "location": "Position",
+      "selected": "Sélectionné"
+    },
+    "actions": {
+      "openCase": "Ouvrir le dossier",
+      "openCaseAria": "Ouvrir le dossier {{id}}",
+      "continue": "Continuer",
+      "continueAria": "Continuer {{id}} en vérification"
+    },
+    "emptyState": {
+      "locationUnavailableTitle": "Position indisponible",
+      "noIncidentsTitle": "Aucun incident à proximité",
+      "locationUnavailableDesc": "Aucune position utilisable de l'agent n'est encore disponible ; les incidents à proximité ne peuvent pas être calculés.",
+      "noIncidentsDesc": "Aucun incident actif n'est actuellement signalé dans un rayon de 5 kilomètres de votre dernière position valide."
+    },
+    "map": {
+      "focusTitle": "Focus carte",
+      "noSelection": "Aucune sélection",
+      "yourPosition": "Votre position"
+    },
+    "locationState": {
+      "locating": "Localisation de votre appareil…",
+      "usingFallback": "Utilisation d'une position de test de secours car le GPS est indisponible. La position de secours est réservée aux tests locaux et n'a pas été envoyée comme position active de l'agent.",
+      "usingFallbackUploaded": "Utilisation d'une position de test de secours car le GPS est indisponible (téléchargée pour test).",
+      "usingLastKnown": "Utilisation du dernier emplacement connu récent pendant que la position de l'appareil est instable.",
+      "permissionDeniedRequired": "L'autorisation de localisation a été refusée. Les incidents à proximité resteront vides jusqu'à ce qu'un emplacement valide soit disponible.",
+      "permissionDeniedFallback": "L'autorisation de localisation a été refusée ; les incidents à proximité utilisent votre dernier emplacement enregistré valide.",
+      "locationUnavailableRequired": "Position indisponible. Activez les services de localisation et actualisez pour charger les incidents à proximité.",
+      "nearbyLoadedCached": "Incidents à proximité chargés à partir de votre dernière position enregistrée.",
+      "nearbyLoadedCurrent": "Incidents à proximité chargés à partir de votre position actuelle.",
+      "locationUnavailable": "La position est temporairement indisponible."
+    }
+  },
+  "policeOperationHistoryPage": {
+    "officerFallback": "Agent",
+    "title": "Historique des opérations",
+    "hint": "Chronologie des actions policières significatives. Les mises à jour de position sont masquées pour se concentrer sur les décisions.",
+    "loadingActions": "Chargement des actions policières significatives…",
+    "actionTypes": {
+      "all": "Toutes les actions",
+      "verify_incident": "Incident vérifié",
+      "reject_incident": "Signalement rejeté",
+      "assign_self": "Auto-affectation",
+      "request_backup": "Renfort demandé",
+      "update_status": "Statut modifié",
+      "field_note": "Note de terrain",
+      "mark_alert_read": "Alerte prise en compte",
+      "manual_log_entry": "Note manuelle"
+    },
+    "actionLabels": {
+      "verify_incident": "Incident vérifié",
+      "reject_incident": "Signalement rejeté",
+      "assign_self": "Auto-affectation",
+      "request_backup": "Renfort demandé",
+      "update_status": "Statut modifié",
+      "field_note": "Note de terrain ajoutée",
+      "mark_alert_read": "Alerte prise en compte",
+      "manual_log_entry": "Note manuelle",
+      "default": "Action policière"
+    },
+    "panel": {
+      "title": "Résumé de l'historique",
+      "totalActions": "Total des actions",
+      "visible": "Visibles",
+      "verified": "Vérifiés",
+      "rejected": "Rejetés",
+      "notes": "Notes"
+    },
+    "errors": {
+      "loadFailed": "Échec du chargement de l'historique des opérations.",
+      "emptyNote": "Saisissez une courte note d'action avant d'enregistrer.",
+      "saveFailed": "Échec de l'enregistrement de l'action manuelle."
+    },
+    "messages": {
+      "manualActionSaved": "Action manuelle enregistrée."
+    },
+    "filters": {
+      "actionType": "Type d'action",
+      "date": "Date",
+      "sortBy": "Trier par",
+      "clearFilters": "Réinitialiser les filtres"
+    },
+    "manualNote": {
+      "label": "Note d'action manuelle",
+      "placeholder": "Ajoutez une courte action de terrain ou note opérationnelle",
+      "saving": "Enregistrement…",
+      "addNote": "Ajouter une note"
+    },
+    "timeline": {
+      "title": "Chronologie des activités",
+      "count": "{{visible}} sur {{total}} actions"
+    },
+    "itemMeta": {
+      "officer": "Agent :",
+      "incident": "Incident :",
+      "alert": "Alerte :",
+      "status": "Statut :"
+    },
+    "actions": {
+      "openIncident": "Ouvrir l'incident"
+    },
+    "empty": {
+      "title": "Aucune action trouvée",
+      "description": "Les mises à jour de position sont masquées ici afin que la chronologie reste centrée sur les actions policières significatives."
+    }
+  },
+  "policePage": {
+    "time": {
+      "unknown": "Inconnu",
+      "justNow": "À l'instant",
+      "minutesAgo": "Il y a {{count}} min",
+      "hoursAgo": "Il y a {{count}} h",
+      "daysAgo": "Il y a {{count}} j"
+    },
+    "duration": {
+      "lessThanMinute": "<1 min",
+      "minutes": "{{count}} min",
+      "hours": "{{count}} h",
+      "days": "{{count}} j"
+    },
+    "activity": {
+      "verifyIncident": "Agent a vérifié l'incident",
+      "rejectIncident": "Agent a rejeté le signalement",
+      "assignSelf": "Agent s'est auto-assigné",
+      "requestBackup": "Renfort demandé",
+      "updateStatus": "Statut mis à jour",
+      "fieldNote": "Note de terrain ajoutée",
+      "markAlertRead": "Alerte acquittée",
+      "manualLogEntry": "Entrée manuelle dans le journal",
+      "officerFallback": "Agent"
+    },
+    "errors": {
+      "loadDashboard": "Échec du chargement du tableau de bord de police.",
+      "loadAccidents": "Échec du chargement des accidents",
+      "loadZoneOptions": "Échec du chargement des options de zone",
+      "updateWorkZone": "Échec de la mise à jour de la zone de travail"
+    },
+    "map": {
+      "reportedLocation": "Emplacement signalé",
+      "openFullMap": "Ouvrir la carte complète",
+      "fullMap": "Carte complète",
+      "fullMapAriaLabel": "Carte complète",
+      "operationsMap": "Carte des opérations",
+      "markersCount": "{{count}} marqueur",
+      "markersCount_one": "{{count}} marqueur",
+      "markersCount_other": "{{count}} marqueurs",
+      "closeFullMap": "Fermer la carte complète"
+    },
+    "incident": {
+      "defaultTitle": "Incident",
+      "untitled": "Incident sans titre",
+      "noDescription": "Aucune description fournie.",
+      "unknownLocation": "Emplacement inconnu",
+      "locationLabel": "Emplacement",
+      "statusLabel": "Statut",
+      "openCase": "Ouvrir le dossier",
+      "view": "Voir",
+      "startReview": "Commencer la révision",
+      "viewAriaLabel": "Voir l'incident {{id}}"
+    },
+    "kpi": {
+      "activeIncidents": "Incidents actifs",
+      "activeIncidentsHint": "Ouverts dans la zone",
+      "highSeverity": "Incidents de haute gravité",
+      "highSeverityHint": "Haute gravité maintenant",
+      "pendingVerification": "En attente de vérification",
+      "pendingVerificationHint": "En attente de décision",
+      "avgIncidentAge": "Âge moyen des incidents",
+      "avgIncidentAgeHint": "Sur les cas actifs"
+    },
+    "quickActions": {
+      "verificationQueue": "File de vérification",
+      "verificationQueueHint": "Examiner les signalements en attente",
+      "allIncidents": "Tous les incidents",
+      "allIncidentsHint": "Flux actif en direct",
+      "myAssigned": "Mes assignations",
+      "myAssignedHint": "Dossiers me concernant",
+      "nearbyIncidents": "Incidents à proximité",
+      "nearbyIncidentsHint": "Dans un rayon de 5 km"
+    },
+    "zoneModal": {
+      "changeBtn": "Modifier",
+      "ariaLabel": "Modifier la zone de travail",
+      "title": "Modifier la zone de travail",
+      "loadingOptions": "Chargement des options…",
+      "wilayaLabel": "Wilaya",
+      "wilayaPlaceholder": "— Sélectionner une wilaya —",
+      "communeLabel": "Commune",
+      "communePlaceholder": "— Sélectionner une commune —",
+      "saving": "Enregistrement…"
+    },
+    "liveStats": {
+      "title": "Stats en direct",
+      "activeIncidents": "Incidents actifs",
+      "highPriority": "Haute priorité",
+      "unreadAlerts": "Alertes non lues",
+      "pendingVerify": "Vérification en attente"
+    },
+    "activeStream": {
+      "title": "Flux des incidents actifs",
+      "subtitle": "Flux d'incidents actifs en direct pour votre zone de travail policière actuelle."
+    },
+    "toolbar": {
+      "refresh": "Actualiser"
+    },
+    "empty": {
+      "noActiveIncidents": "Aucun incident actif",
+      "noActiveIncidentsDesc": "La zone de travail actuelle n'a aucun incident policier actif.",
+      "noHighSeverity": "Aucun incident de haute gravité en ce moment.",
+      "noActiveAlerts": "Aucune alerte active.",
+      "noActivity": "Aucune activité pour l'instant.",
+      "noActiveIncidentsShort": "Aucun incident actif.",
+      "noAccidents": "Aucun accident enregistré dans votre zone de travail."
+    },
+    "commandCenter": {
+      "title": "Centre de commandement",
+      "subtitle": "Opérations en direct pour {{zone}}",
+      "assignedZone": "votre zone assignée",
+      "liveSynced": "En direct · synchronisé {{time}}",
+      "refreshTitle": "Actualiser le tableau de bord"
+    },
+    "aria": {
+      "operationalMetrics": "Métriques opérationnelles",
+      "priorityIncidents": "Incidents prioritaires",
+      "mapOverview": "Vue d'ensemble de la carte",
+      "quickActions": "Actions rapides",
+      "importantAlerts": "Alertes importantes",
+      "activityFeed": "Fil d'activité",
+      "recentIncidents": "Incidents récents",
+      "allAccidents": "Tous les accidents"
+    },
+    "sections": {
+      "priorityIncidents": "Incidents prioritaires",
+      "openStream": "Ouvrir le flux",
+      "mapOverview": "Vue d'ensemble de la carte",
+      "quickActions": "Actions rapides",
+      "alerts": "Alertes",
+      "openCenter": "Ouvrir le centre",
+      "activity": "Activité",
+      "fullHistory": "Historique complet",
+      "recentIncidents": "Incidents récents",
+      "stream": "Flux",
+      "allAccidents": "Tous les accidents"
+    },
+    "severity": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    },
+    "alert": {
+      "defaultTitle": "Alerte"
+    },
+    "table": {
+      "id": "ID",
+      "incident": "Incident",
+      "type": "Type",
+      "severity": "Gravité",
+      "location": "Emplacement",
+      "status": "Statut",
+      "time": "Heure"
+    }
+  },
+  "policePriorityQueuePage": {
+    "title": "File de priorité",
+    "subtitle": "Incidents classés par gravité, récence, confirmation communautaire et densité de clusters à proximité.",
+    "refresh": "Actualiser",
+    "errorLoad": "Échec du chargement de la file de priorité",
+    "empty": "Aucun incident en attente ne nécessite un triage pour l'instant. Les nouveaux signalements hautement prioritaires apparaîtront ici dès qu'ils seront déposés.",
+    "confirmations_one": "{{count}} confirmation",
+    "confirmations_other": "{{count}} confirmations",
+    "reportsWithin500m_one": "{{count}} signalement dans un rayon de 500m",
+    "reportsWithin500m_other": "{{count}} signalements dans un rayon de 500m",
+    "open": "Ouvrir",
+    "publicView": "Vue publique",
+    "timeAgo": {
+      "justNow": "à l'instant",
+      "minutesAgo_one": "il y a {{count}} min",
+      "minutesAgo_other": "il y a {{count}} min",
+      "hoursAgo_one": "il y a {{count}}h",
+      "hoursAgo_other": "il y a {{count}}h",
+      "daysAgo_one": "il y a {{count}}j",
+      "daysAgo_other": "il y a {{count}}j"
+    }
+  },
+  "policeVerificationQueuePage": {
+    "title": "File de vérification",
+    "subtitle": "Examinez les signalements de terrain entrants avant qu'ils entrent en opérations actives.",
+    "refresh": "Actualiser",
+    "loadingQueue": "Chargement de la file de vérification…",
+    "errorLoadQueue": "Échec du chargement de la file de vérification.",
+    "errorUpdateItem": "Échec de la mise à jour de l'élément en file d'attente.",
+    "queueMetrics": "Métriques de la file",
+    "awaitingReview": "En attente d'examen",
+    "urgentReports": "Signalements urgents",
+    "assigned": "Assignés",
+    "untitledReport": "Signalement sans titre",
+    "noDescription": "Aucune description supplémentaire fournie.",
+    "location": "Lieu",
+    "notProvided": "Non renseigné",
+    "reported": "Signalé",
+    "unknownTime": "Heure inconnue",
+    "reporter": "Déclarant",
+    "approve": "Approuver",
+    "decline": "Refuser",
+    "takeCase": "Prendre en charge",
+    "details": "Détails",
+    "emptyQueue": "Aucun incident en attente dans la file de vérification."
+  },
+  "policeWorkZoneSetupPage": {
+    "eyebrow": "Configuration de l'espace de travail Police",
+    "title": "Sélectionnez votre zone de travail",
+    "subtitle": "Configuration de première connexion pour {{name}}",
+    "stepLabel": "Étape 1 sur 1",
+    "description": "Choisissez votre Wilaya et Commune actives avant d'entrer en mode Police. Vous pouvez mettre à jour votre zone active ultérieurement si votre affectation change.",
+    "wilaya": {
+      "label": "Wilaya",
+      "placeholder": "Sélectionner une Wilaya",
+      "empty": "Aucune wilaya trouvée",
+      "searchPlaceholder": "Rechercher une wilaya…"
+    },
+    "commune": {
+      "label": "Commune",
+      "placeholder": "Sélectionner une Commune",
+      "placeholderNoWilaya": "Sélectionnez d'abord une Wilaya",
+      "empty": "Aucune commune trouvée",
+      "emptyNoWilaya": "Choisissez d'abord une wilaya",
+      "searchPlaceholder": "Rechercher une commune…"
+    },
+    "loadingZoneOptions": "Chargement des options de zone…",
+    "formHint": "Les deux champs sont obligatoires pour activer votre espace de travail.",
+    "savingLabel": "Enregistrement…",
+    "saveButton": "Enregistrer la zone de travail",
+    "assignmentSummary": "Résumé de l'affectation actuelle",
+    "infoCards": {
+      "notSelected": "Non sélectionné",
+      "activeBadge": "Actif",
+      "wilaya": {
+        "category": "Wilaya",
+        "sub": "Wilaya active"
+      },
+      "commune": {
+        "category": "Commune",
+        "sub": "Commune active"
+      },
+      "officer": {
+        "category": "Agent"
+      },
+      "badge": {
+        "category": "Badge",
+        "pending": "En attente",
+        "sub": "Identification"
+      }
+    },
+    "defaults": {
+      "officer": "Agent",
+      "policeOfficer": "Agent de police"
+    },
+    "errors": {
+      "failedLoadOptions": "Échec du chargement des options de zone de travail.",
+      "failedLoadCommunes": "Échec du chargement des communes.",
+      "bothRequired": "Veuillez choisir une Wilaya et une Commune avant de continuer.",
+      "failedSave": "Échec de l'enregistrement de la zone de travail."
+    }
+  }
+}

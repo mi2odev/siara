@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined'
@@ -57,6 +58,7 @@ export default function PoliceShell({
   // notifications page tucks its filters here).
   sidebarExtra = null,
 }) {
+  const { t } = useTranslation(['police', 'common'])
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
   const setUiMode = useUiModeStore((state) => state.setMode)
@@ -88,54 +90,54 @@ export default function PoliceShell({
 
   const officerMenuGroups = useMemo(() => [
     {
-      title: 'OPERATIONS',
+      title: t('policeShell.menu.groups.operations'),
       items: [
-        { key: 'dashboard', label: 'Dashboard', icon: <AccountBalanceOutlinedIcon fontSize="inherit" />, path: '/police' },
-        { key: 'active-incidents', label: 'Active Incidents', icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-high" />, path: '/police?view=active' },
-        { key: 'nearby-incidents', label: 'Nearby Incidents', icon: <LocationOnOutlinedIcon fontSize="inherit" />, path: '/police/nearby' },
+        { key: 'dashboard', label: t('policeShell.menu.items.dashboard'), icon: <AccountBalanceOutlinedIcon fontSize="inherit" />, path: '/police' },
+        { key: 'active-incidents', label: t('policeShell.menu.items.activeIncidents'), icon: <FiberManualRecordIcon fontSize="inherit" className="icon-severity-high" />, path: '/police?view=active' },
+        { key: 'nearby-incidents', label: t('policeShell.menu.items.nearbyIncidents'), icon: <LocationOnOutlinedIcon fontSize="inherit" />, path: '/police/nearby' },
         {
           key: 'verification-queue',
-          label: 'Verification Queue',
+          label: t('policeShell.menu.items.verificationQueue'),
           icon: <PendingActionsOutlinedIcon fontSize="inherit" />,
           path: '/police/verification',
         },
-        { key: 'my-incidents', label: 'My Incidents', icon: <LocalPoliceOutlinedIcon fontSize="inherit" />, path: '/police/my-incidents' },
-        { key: 'assigned-incidents', label: 'Assigned Incidents', icon: <AssignmentIndOutlinedIcon fontSize="inherit" />, path: '/police/assigned-incidents' },
-        { key: 'field-reports', label: 'Field Reports', icon: <EditNoteOutlinedIcon fontSize="inherit" />, path: '/police/field-reports' },
-        { key: 'alert-center', label: 'Alert Center', icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />, path: '/police/alerts' },
-        { key: 'operation-history', label: 'Operation History', icon: <HistoryOutlinedIcon fontSize="inherit" />, path: '/police/history' },
+        { key: 'my-incidents', label: t('policeShell.menu.items.myIncidents'), icon: <LocalPoliceOutlinedIcon fontSize="inherit" />, path: '/police/my-incidents' },
+        { key: 'assigned-incidents', label: t('policeShell.menu.items.assignedIncidents'), icon: <AssignmentIndOutlinedIcon fontSize="inherit" />, path: '/police/assigned-incidents' },
+        { key: 'field-reports', label: t('policeShell.menu.items.fieldReports'), icon: <EditNoteOutlinedIcon fontSize="inherit" />, path: '/police/field-reports' },
+        { key: 'alert-center', label: t('policeShell.menu.items.alertCenter'), icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />, path: '/police/alerts' },
+        { key: 'operation-history', label: t('policeShell.menu.items.operationHistory'), icon: <HistoryOutlinedIcon fontSize="inherit" />, path: '/police/history' },
       ],
     },
     {
-      title: 'ANALYTICS',
+      title: t('policeShell.menu.groups.analytics'),
       items: [
-        { key: 'analytics', label: 'AI Insights', icon: <PsychologyOutlinedIcon fontSize="inherit" />, path: '/police/insights' },
+        { key: 'analytics', label: t('policeShell.menu.items.aiInsights'), icon: <PsychologyOutlinedIcon fontSize="inherit" />, path: '/police/insights' },
       ],
     },
     {
-      title: 'INFO',
+      title: t('policeShell.menu.groups.info'),
       items: [
-        { key: 'contact', label: 'Contact', icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
-        { key: 'about', label: 'About', icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
-        { key: 'overview', label: 'Overview', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/overview' },
+        { key: 'contact', label: t('policeShell.menu.items.contact'), icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
+        { key: 'about', label: t('policeShell.menu.items.about'), icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
+        { key: 'overview', label: t('policeShell.menu.items.overview'), icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/overview' },
       ],
     },
-  ], [])
+  ], [t])
 
   const supervisorMenuGroups = useMemo(() => [
     {
-      title: 'SUPERVISOR',
+      title: t('policeShell.menu.groups.supervisor'),
       items: [
-        { key: 'supervisor-dashboard', label: 'Command Center', icon: <AccountBalanceOutlinedIcon fontSize="inherit" />, path: '/police/supervisor' },
-        { key: 'incident-coordination', label: 'Incident Coordination', icon: <GpsFixedOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/coordination' },
-        { key: 'officer-monitoring', label: 'Officer Monitoring', icon: <GroupsOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/officers' },
-        { key: 'supervisor-alerts', label: 'Supervisor Alerts', icon: <CampaignOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/alerts' },
-        { key: 'operational-analytics', label: 'Analytics', icon: <InsightsOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/analytics' },
-        { key: 'global-map', label: 'Global Map', icon: <MapOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/map' },
+        { key: 'supervisor-dashboard', label: t('policeShell.menu.items.commandCenter'), icon: <AccountBalanceOutlinedIcon fontSize="inherit" />, path: '/police/supervisor' },
+        { key: 'incident-coordination', label: t('policeShell.menu.items.incidentCoordination'), icon: <GpsFixedOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/coordination' },
+        { key: 'officer-monitoring', label: t('policeShell.menu.items.officerMonitoring'), icon: <GroupsOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/officers' },
+        { key: 'supervisor-alerts', label: t('policeShell.menu.items.supervisorAlerts'), icon: <CampaignOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/alerts' },
+        { key: 'operational-analytics', label: t('policeShell.menu.items.analytics'), icon: <InsightsOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/analytics' },
+        { key: 'global-map', label: t('policeShell.menu.items.globalMap'), icon: <MapOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/map' },
       ],
     },
     officerMenuGroups[officerMenuGroups.length - 1], // INFO
-  ], [officerMenuGroups])
+  ], [t, officerMenuGroups])
 
   const menuGroups = useMemo(() => {
     if (!isSupervisor) return officerMenuGroups
@@ -215,15 +217,15 @@ export default function PoliceShell({
     const nextErrors = {}
 
     if (contactForm.name.trim().length < 2) {
-      nextErrors.name = 'Please enter a valid name.'
+      nextErrors.name = t('policeShell.contact.errors.invalidName')
     }
 
     if (!EMAIL_REGEX.test(contactForm.email.trim())) {
-      nextErrors.email = 'Please enter a valid email address.'
+      nextErrors.email = t('policeShell.contact.errors.invalidEmail')
     }
 
     if (contactForm.message.trim().length < 10) {
-      nextErrors.message = 'Message must be at least 10 characters.'
+      nextErrors.message = t('policeShell.contact.errors.shortMessage')
     }
 
     setContactErrors(nextErrors)
@@ -242,10 +244,10 @@ export default function PoliceShell({
         email: contactForm.email.trim(),
         message: contactForm.message.trim(),
       })
-      setContactSuccess('Thank you. We will respond as soon as possible.')
+      setContactSuccess(t('policeShell.contact.successMessage'))
       setContactForm({ name: '', email: '', message: '' })
     } catch (error) {
-      setContactSubmitError(error?.message || 'Could not send your message. Please try again.')
+      setContactSubmitError(error?.message || t('policeShell.contact.submitError'))
     } finally {
       setContactSubmitting(false)
     }
@@ -259,7 +261,7 @@ export default function PoliceShell({
             <button
               type="button"
               className="police-mobile-menu-toggle"
-              aria-label="Open operations menu"
+              aria-label={t('policeShell.aria.openOperationsMenu')}
               aria-expanded={showMobileMenu}
               onClick={() => setShowMobileMenu((prev) => !prev)}
             >
@@ -268,17 +270,17 @@ export default function PoliceShell({
             <div className="dash-logo-block" onClick={() => navigate(isSupervisor ? '/police/supervisor' : '/police')} role="button" tabIndex={0}>
               <img src={siaraLogo} alt="SIARA" className="dash-logo" />
               {isSupervisor && (
-                <span className="supervisor-mode-badge">SUPERVISOR</span>
+                <span className="supervisor-mode-badge">{t('policeShell.supervisorBadge')}</span>
               )}
             </div>
-            <nav className="dash-header-tabs police-switch-anchor" aria-label="Police mode switch">
-              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Feed</button>
-              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Map</button>
-              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Alerts</button>
-              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Report</button>
-              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Dashboard</button>
-              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">Predictions</button>
-              <PoliceModeTab user={user} basicLabel="Switch to Normal Mode" />
+            <nav className="dash-header-tabs police-switch-anchor" aria-label={t('policeShell.aria.policeModeSwitch')}>
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">{t('policeShell.tabs.feed')}</button>
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">{t('common:nav.map')}</button>
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">{t('common:nav.alerts')}</button>
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">{t('policeShell.tabs.report')}</button>
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">{t('policeShell.tabs.dashboardTab')}</button>
+              <button type="button" className="dash-tab police-switch-ghost" tabIndex={-1} disabled aria-hidden="true">{t('common:nav.predictions')}</button>
+              <PoliceModeTab user={user} basicLabel={t('policeShell.switchToNormalMode')} />
             </nav>
           </div>
 
@@ -287,8 +289,8 @@ export default function PoliceShell({
               navigate={navigate}
               query={headerSearchQuery}
               setQuery={setHeaderSearchQuery}
-              placeholder="Search for an incident, a road, a zone..."
-              ariaLabel="Search"
+              placeholder={t('policeShell.searchPlaceholder')}
+              ariaLabel={t('common:actions.search')}
               currentUser={user}
             />
           </div>
@@ -296,18 +298,18 @@ export default function PoliceShell({
           <div className="dash-header-right">
             <NotificationBell />
             <div className="dash-avatar-wrapper">
-              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label={t('policeShell.aria.userProfile')}>
                 {userAvatarUrl ? (
-                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                  <img src={userAvatarUrl} alt={t('policeShell.aria.userAvatar')} className="dash-avatar-image" loading="lazy" />
                 ) : profileInitials}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}><PersonOutlinedIcon fontSize="small" /> My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}><SettingsOutlinedIcon fontSize="small" /> Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}><NotificationsOutlinedIcon fontSize="small" /> Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}><PersonOutlinedIcon fontSize="small" /> {t('policeShell.dropdown.myProfile')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}><SettingsOutlinedIcon fontSize="small" /> {t('common:nav.settings')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}><NotificationsOutlinedIcon fontSize="small" /> {t('common:nav.notifications')}</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}><LogoutOutlinedIcon fontSize="small" className="icon-danger" /> Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}><LogoutOutlinedIcon fontSize="small" className="icon-danger" /> {t('common:nav.logout')}</button>
                 </div>
               )}
             </div>
@@ -318,17 +320,17 @@ export default function PoliceShell({
       <button
         type="button"
         className={`police-mobile-nav-backdrop ${showMobileMenu ? 'open' : ''}`}
-        aria-label="Close police navigation"
+        aria-label={t('policeShell.aria.closePoliceNav')}
         onClick={() => setShowMobileMenu(false)}
       ></button>
 
       <aside className={`police-mobile-nav ${showMobileMenu ? 'open' : ''}`} aria-hidden={!showMobileMenu}>
         <div className="police-mobile-nav-head">
-          <strong>Operations Menu</strong>
+          <strong>{t('policeShell.operationsMenu')}</strong>
           <button
             type="button"
             className="police-mobile-nav-close"
-            aria-label="Close police navigation"
+            aria-label={t('policeShell.aria.closePoliceNav')}
             onClick={() => setShowMobileMenu(false)}
           >
             ×
@@ -341,13 +343,13 @@ export default function PoliceShell({
               className={`police-mode-pill ${!isInSupervisorMode ? 'active' : ''}`}
               onClick={() => { setShowMobileMenu(false); navigate('/police') }}
             >
-              <LocalPoliceOutlinedIcon fontSize="inherit" /> Officer
+              <LocalPoliceOutlinedIcon fontSize="inherit" /> {t('policeShell.modeSwitch.officer')}
             </button>
             <button
               className={`police-mode-pill ${isInSupervisorMode ? 'active' : ''}`}
               onClick={() => { setShowMobileMenu(false); navigate('/police/supervisor') }}
             >
-              <AccountBalanceOutlinedIcon fontSize="inherit" /> Supervisor
+              <AccountBalanceOutlinedIcon fontSize="inherit" /> {t('policeShell.modeSwitch.supervisor')}
             </button>
           </div>
         )}
@@ -383,13 +385,13 @@ export default function PoliceShell({
                 className={`police-mode-pill ${!isInSupervisorMode ? 'active' : ''}`}
                 onClick={() => navigate('/police')}
               >
-                <LocalPoliceOutlinedIcon fontSize="inherit" /> Officer
+                <LocalPoliceOutlinedIcon fontSize="inherit" /> {t('policeShell.modeSwitch.officer')}
               </button>
               <button
                 className={`police-mode-pill ${isInSupervisorMode ? 'active' : ''}`}
                 onClick={() => navigate('/police/supervisor')}
               >
-                <AccountBalanceOutlinedIcon fontSize="inherit" /> Supervisor
+                <AccountBalanceOutlinedIcon fontSize="inherit" /> {t('policeShell.modeSwitch.supervisor')}
               </button>
             </div>
           )}
@@ -433,7 +435,7 @@ export default function PoliceShell({
 
       {openInfoPanel && typeof document !== 'undefined'
         ? createPortal(
-            <div className="contact-quick-backdrop" onClick={() => setOpenInfoPanel(null)} role="dialog" aria-modal="true" aria-label="Quick information panel">
+            <div className="contact-quick-backdrop" onClick={() => setOpenInfoPanel(null)} role="dialog" aria-modal="true" aria-label={t('policeShell.aria.quickInfoPanel')}>
               <div className={`contact-quick-modal panel-${openInfoPanel}`} onClick={(event) => event.stopPropagation()}>
                 {openInfoPanel === 'contact' ? (
                   <>
@@ -442,20 +444,20 @@ export default function PoliceShell({
                         <div className="contact-quick-brand">
                           <img src={siaraLogo} alt="SIARA" className="contact-quick-brand-logo" />
                           <div>
-                            <span className="contact-quick-kicker">Support</span>
-                            <h3>Contact SIARA</h3>
+                            <span className="contact-quick-kicker">{t('policeShell.contact.kicker')}</span>
+                            <h3>{t('policeShell.contact.title')}</h3>
                           </div>
                         </div>
-                        <p className="contact-quick-sub">Share your request and our team will get back to you quickly.</p>
+                        <p className="contact-quick-sub">{t('policeShell.contact.subtitle')}</p>
                       </div>
-                      <button type="button" className="contact-quick-close" onClick={() => setOpenInfoPanel(null)} aria-label="Close contact form">×</button>
+                      <button type="button" className="contact-quick-close" onClick={() => setOpenInfoPanel(null)} aria-label={t('policeShell.aria.closeContactForm')}>×</button>
                     </div>
 
                     <div className="contact-quick-layout">
                       <form className="contact-quick-form" onSubmit={submitContactForm} noValidate>
                         <div className="contact-quick-grid">
                           <div>
-                            <label htmlFor="quick-contact-name">Name</label>
+                            <label htmlFor="quick-contact-name">{t('policeShell.contact.nameLabel')}</label>
                             <input
                               id="quick-contact-name"
                               name="name"
@@ -467,7 +469,7 @@ export default function PoliceShell({
                           </div>
 
                           <div>
-                            <label htmlFor="quick-contact-email">Email</label>
+                            <label htmlFor="quick-contact-email">{t('policeShell.contact.emailLabel')}</label>
                             <input
                               id="quick-contact-email"
                               name="email"
@@ -479,7 +481,7 @@ export default function PoliceShell({
                           </div>
                         </div>
 
-                        <label htmlFor="quick-contact-message">Message</label>
+                        <label htmlFor="quick-contact-message">{t('policeShell.contact.messageLabel')}</label>
                         <textarea
                           id="quick-contact-message"
                           name="message"
@@ -492,26 +494,26 @@ export default function PoliceShell({
 
                         <div className="contact-quick-actions">
                           <button type="submit" className="contact-quick-submit" disabled={contactSubmitting}>
-                            {contactSubmitting ? 'Sending…' : 'Send Message'}
+                            {contactSubmitting ? t('policeShell.contact.sending') : t('policeShell.contact.sendMessage')}
                           </button>
-                          <a className="contact-quick-mail" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">Email directly</a>
+                          <a className="contact-quick-mail" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">{t('policeShell.contact.emailDirectly')}</a>
                         </div>
                         {contactSubmitError ? (
                           <p className="contact-quick-error" role="alert">{contactSubmitError}</p>
                         ) : null}
                       </form>
 
-                      <aside className="contact-quick-side" aria-label="Support information">
+                      <aside className="contact-quick-side" aria-label={t('policeShell.aria.supportInfo')}>
                         <article>
-                          <h4>Response Window</h4>
-                          <p>Most requests are reviewed within one business day.</p>
+                          <h4>{t('policeShell.contact.side.responseWindowTitle')}</h4>
+                          <p>{t('policeShell.contact.side.responseWindowBody')}</p>
                         </article>
                         <article>
-                          <h4>Best for This Form</h4>
-                          <p>Account support, platform feedback, partnerships, and incident workflow questions.</p>
+                          <h4>{t('policeShell.contact.side.bestForTitle')}</h4>
+                          <p>{t('policeShell.contact.side.bestForBody')}</p>
                         </article>
                         <article>
-                          <h4>Direct Contact</h4>
+                          <h4>{t('policeShell.contact.side.directContactTitle')}</h4>
                           <p>siara.ai.app@gmail.com</p>
                         </article>
                       </aside>
@@ -525,68 +527,67 @@ export default function PoliceShell({
                   <>
                     <div className="contact-quick-head">
                       <div>
-                        <span className="contact-quick-kicker">Overview</span>
-                        <h3>About SIARA</h3>
+                        <span className="contact-quick-kicker">{t('policeShell.about.kicker')}</span>
+                        <h3>{t('policeShell.about.title')}</h3>
                       </div>
-                      <button type="button" className="contact-quick-close" onClick={() => setOpenInfoPanel(null)} aria-label="Close about panel">×</button>
+                      <button type="button" className="contact-quick-close" onClick={() => setOpenInfoPanel(null)} aria-label={t('policeShell.aria.closeAboutPanel')}>×</button>
                     </div>
                     <div className="info-quick-block">
                       <div className="info-quick-brand">
                         <img src={siaraLogo} alt="SIARA" className="info-quick-brand-logo" />
                         <div>
                           <p className="info-quick-brand-name">SIARA</p>
-                          <p className="info-quick-brand-caption">Road Safety Intelligence Platform</p>
+                          <p className="info-quick-brand-caption">{t('policeShell.about.brandCaption')}</p>
                         </div>
                       </div>
                       <p className="info-quick-lead">
-                        SIARA is a road safety intelligence platform combining live reporting, mapping, and AI insights
-                        to improve incident response.
+                        {t('policeShell.about.lead')}
                       </p>
                       <div className="info-quick-pillars">
                         <article>
                           <span className="info-quick-pillar-icon"><TrackChangesOutlinedIcon fontSize="inherit" /></span>
-                          <h4>Mission</h4>
-                          <p>Reduce road risk with fast, evidence-based incident coordination.</p>
+                          <h4>{t('policeShell.about.pillars.missionTitle')}</h4>
+                          <p>{t('policeShell.about.pillars.missionBody')}</p>
                         </article>
                         <article>
                           <span className="info-quick-pillar-icon"><VisibilityOutlinedIcon fontSize="inherit" /></span>
-                          <h4>Vision</h4>
-                          <p>Build connected, AI-supported urban safety systems for smarter mobility.</p>
+                          <h4>{t('policeShell.about.pillars.visionTitle')}</h4>
+                          <p>{t('policeShell.about.pillars.visionBody')}</p>
                         </article>
                         <article>
                           <span className="info-quick-pillar-icon"><HubOutlinedIcon fontSize="inherit" /></span>
-                          <h4>Approach</h4>
-                          <p>Combine citizen signals, geospatial context, and operational analytics in one workflow.</p>
+                          <h4>{t('policeShell.about.pillars.approachTitle')}</h4>
+                          <p>{t('policeShell.about.pillars.approachBody')}</p>
                         </article>
                       </div>
-                      <p className="info-quick-section-label">Platform capabilities</p>
+                      <p className="info-quick-section-label">{t('policeShell.about.platformCapabilities')}</p>
                       <div className="info-quick-mini-cards">
                         <article>
                           <span className="info-quick-mini-icon info-quick-mini-icon--map"><MapOutlinedIcon fontSize="inherit" /></span>
                           <div className="info-quick-mini-text">
-                            <h4>Risk Mapping</h4>
-                            <p>Identify hotspots and incident density zones in real time.</p>
+                            <h4>{t('policeShell.about.capabilities.riskMappingTitle')}</h4>
+                            <p>{t('policeShell.about.capabilities.riskMappingBody')}</p>
                           </div>
                         </article>
                         <article>
                           <span className="info-quick-mini-icon info-quick-mini-icon--alert"><NotificationsActiveOutlinedIcon fontSize="inherit" /></span>
                           <div className="info-quick-mini-text">
-                            <h4>Alert Intelligence</h4>
-                            <p>Prioritize high-impact events using severity and reliability indicators.</p>
+                            <h4>{t('policeShell.about.capabilities.alertIntelligenceTitle')}</h4>
+                            <p>{t('policeShell.about.capabilities.alertIntelligenceBody')}</p>
                           </div>
                         </article>
                         <article>
                           <span className="info-quick-mini-icon info-quick-mini-icon--team"><GroupsOutlinedIcon fontSize="inherit" /></span>
                           <div className="info-quick-mini-text">
-                            <h4>Response Coordination</h4>
-                            <p>Support faster field decisions with one shared operational view.</p>
+                            <h4>{t('policeShell.about.capabilities.responseCoordinationTitle')}</h4>
+                            <p>{t('policeShell.about.capabilities.responseCoordinationBody')}</p>
                           </div>
                         </article>
                         <article>
                           <span className="info-quick-mini-icon info-quick-mini-icon--insight"><InsightsOutlinedIcon fontSize="inherit" /></span>
                           <div className="info-quick-mini-text">
-                            <h4>Performance Tracking</h4>
-                            <p>Measure verification and response outcomes to improve continuously.</p>
+                            <h4>{t('policeShell.about.capabilities.performanceTrackingTitle')}</h4>
+                            <p>{t('policeShell.about.capabilities.performanceTrackingBody')}</p>
                           </div>
                         </article>
                       </div>
@@ -598,58 +599,58 @@ export default function PoliceShell({
                   <>
                     <div className="contact-quick-head">
                       <div>
-                        <span className="contact-quick-kicker">Service Flow</span>
-                        <h3>SIARA Workflow Overview</h3>
+                        <span className="contact-quick-kicker">{t('policeShell.overview.kicker')}</span>
+                        <h3>{t('policeShell.overview.title')}</h3>
                       </div>
-                      <button type="button" className="contact-quick-close" onClick={() => setOpenInfoPanel(null)} aria-label="Close overview panel">×</button>
+                      <button type="button" className="contact-quick-close" onClick={() => setOpenInfoPanel(null)} aria-label={t('policeShell.aria.closeOverviewPanel')}>×</button>
                     </div>
                     <div className="info-quick-block">
                       <p className="info-quick-lead">
-                        SIARA provides a clear operational pipeline from report intake to validated alert delivery.
+                        {t('policeShell.overview.lead')}
                       </p>
                       <ol className="info-quick-timeline">
                         <li>
                           <span className="info-quick-step-marker"><EditNoteOutlinedIcon fontSize="inherit" /></span>
                           <div className="info-quick-step-body">
-                            <strong>Incident Intake</strong>
-                            <span>Capture reports with location, media, and contextual metadata.</span>
+                            <strong>{t('policeShell.overview.steps.incidentIntakeTitle')}</strong>
+                            <span>{t('policeShell.overview.steps.incidentIntakeBody')}</span>
                           </div>
                         </li>
                         <li>
                           <span className="info-quick-step-marker"><FactCheckOutlinedIcon fontSize="inherit" /></span>
                           <div className="info-quick-step-body">
-                            <strong>Data Validation</strong>
-                            <span>Normalize and verify incoming records for analysis readiness.</span>
+                            <strong>{t('policeShell.overview.steps.dataValidationTitle')}</strong>
+                            <span>{t('policeShell.overview.steps.dataValidationBody')}</span>
                           </div>
                         </li>
                         <li>
                           <span className="info-quick-step-marker"><PsychologyOutlinedIcon fontSize="inherit" /></span>
                           <div className="info-quick-step-body">
-                            <strong>Risk Assessment</strong>
-                            <span>Estimate urgency and confidence using AI-assisted scoring.</span>
+                            <strong>{t('policeShell.overview.steps.riskAssessmentTitle')}</strong>
+                            <span>{t('policeShell.overview.steps.riskAssessmentBody')}</span>
                           </div>
                         </li>
                         <li>
                           <span className="info-quick-step-marker"><LocalPoliceOutlinedIcon fontSize="inherit" /></span>
                           <div className="info-quick-step-body">
-                            <strong>Operational Review</strong>
-                            <span>Authorized teams validate incidents and assign response priorities.</span>
+                            <strong>{t('policeShell.overview.steps.operationalReviewTitle')}</strong>
+                            <span>{t('policeShell.overview.steps.operationalReviewBody')}</span>
                           </div>
                         </li>
                         <li>
                           <span className="info-quick-step-marker"><CampaignOutlinedIcon fontSize="inherit" /></span>
                           <div className="info-quick-step-body">
-                            <strong>Alert Distribution</strong>
-                            <span>Deliver relevant alerts to users and operational stakeholders.</span>
+                            <strong>{t('policeShell.overview.steps.alertDistributionTitle')}</strong>
+                            <span>{t('policeShell.overview.steps.alertDistributionBody')}</span>
                           </div>
                         </li>
                       </ol>
-                      <p className="info-quick-section-label">Technology stack</p>
+                      <p className="info-quick-section-label">{t('policeShell.overview.techStack')}</p>
                       <div className="info-quick-chips">
-                        <span className="info-quick-chip"><PsychologyOutlinedIcon fontSize="inherit" /> AI risk scoring</span>
-                        <span className="info-quick-chip"><MapOutlinedIcon fontSize="inherit" /> Geospatial mapping</span>
-                        <span className="info-quick-chip"><NotificationsActiveOutlinedIcon fontSize="inherit" /> Real-time events</span>
-                        <span className="info-quick-chip"><GpsFixedOutlinedIcon fontSize="inherit" /> Verification workflow</span>
+                        <span className="info-quick-chip"><PsychologyOutlinedIcon fontSize="inherit" /> {t('policeShell.overview.chips.aiRiskScoring')}</span>
+                        <span className="info-quick-chip"><MapOutlinedIcon fontSize="inherit" /> {t('policeShell.overview.chips.geospatialMapping')}</span>
+                        <span className="info-quick-chip"><NotificationsActiveOutlinedIcon fontSize="inherit" /> {t('policeShell.overview.chips.realtimeEvents')}</span>
+                        <span className="info-quick-chip"><GpsFixedOutlinedIcon fontSize="inherit" /> {t('policeShell.overview.chips.verificationWorkflow')}</span>
                       </div>
                     </div>
                   </>

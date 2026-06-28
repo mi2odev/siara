@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { acknowledgeMyWarning } from '../../services/adminUsersService'
 import { useAuthStore } from '../../stores/authStore'
 
@@ -7,8 +8,8 @@ import { useAuthStore } from '../../stores/authStore'
  * Unlike BanBanner, the user can dismiss this — the dismiss call moves them
  * back to 'active' on the backend AND removes the banner from the UI.
  */
-function formatRemaining(ms) {
-  if (ms <= 0) return 'just now'
+function formatRemaining(ms, t) {
+  if (ms <= 0) return t('warningBanner.justNow')
   const totalSec = Math.floor(ms / 1000)
   const d = Math.floor(totalSec / 86400)
   const h = Math.floor((totalSec % 86400) / 3600)
@@ -28,6 +29,7 @@ export default function WarningBanner({ user }) {
   const hasActive = (user?.hasActiveWarning || user?.has_active_warning) ??
     (moderation === 'warned' && !acknowledgedAt)
 
+  const { t } = useTranslation(['pages', 'common'])
   const setUser = useAuthStore((state) => state.setUser)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -68,7 +70,7 @@ export default function WarningBanner({ user }) {
       const refreshed = await acknowledgeMyWarning()
       if (refreshed) setUser(refreshed)
     } catch (err) {
-      setError(err?.message || 'Could not acknowledge the warning')
+      setError(err?.message || t('warningBanner.acknowledgeError'))
     } finally {
       setSubmitting(false)
     }
@@ -113,22 +115,21 @@ export default function WarningBanner({ user }) {
         ⚠
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <strong style={{ marginRight: 6 }}>Admin warning.</strong>
+        <strong style={{ marginRight: 6 }}>{t('warningBanner.title')}</strong>
         <span style={{ opacity: 0.95 }}>
-          A moderator has issued you a formal warning. Repeated violations may
-          lead to suspension or a ban.
+          {t('warningBanner.body')}
         </span>
         {reason && (
           <div style={{ marginTop: 2, fontSize: 12, opacity: 0.95 }}>
-            <strong>Reason:</strong> {reason}
+            <strong>{t('warningBanner.reasonLabel')}</strong> {reason}
           </div>
         )}
         <div style={{ marginTop: 2, fontSize: 11.5, opacity: 0.9, fontVariantNumeric: 'tabular-nums' }}>
           {warnedAt && (
-            <>Issued {new Date(warnedAt).toLocaleString()}</>
+            <>{t('warningBanner.issued', { date: new Date(warnedAt).toLocaleString() })}</>
           )}
           {expiresMs != null && expiresMs > 0 && (
-            <> · auto-clears in <strong>{formatRemaining(expiresMs)}</strong></>
+            <> · {t('warningBanner.autoClearsIn', { time: formatRemaining(expiresMs, t) })}</>
           )}
         </div>
         {error && (
@@ -157,7 +158,7 @@ export default function WarningBanner({ user }) {
         onMouseEnter={(e) => { if (!submitting) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.28)' }}
         onMouseLeave={(e) => { if (!submitting) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.18)' }}
       >
-        {submitting ? 'Saving…' : 'I understand'}
+        {submitting ? t('common:actions.loading') : t('warningBanner.iUnderstand')}
       </button>
     </div>
   )

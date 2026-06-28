@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import LaunchOutlinedIcon from '@mui/icons-material/LaunchOutlined'
@@ -36,65 +37,58 @@ function severityColor(severity) {
 
 function buildLocationState(syncResult, responseLocationRequired) {
   if (syncResult?.state === 'using_fallback' && syncResult?.coords) {
-    const uploadedNote = syncResult?.uploaded
-      ? ' (uploaded for testing)'
-      : ''
-    return {
-      key: 'using_fallback',
-      message:
-        `Using fallback test location because GPS is unavailable${uploadedNote}.`
-        + (syncResult?.uploaded
-          ? ''
-          : ' Fallback location is for local testing only and was not sent as live police position.'),
-    }
+    return syncResult?.uploaded
+      ? { key: 'using_fallback', tKey: 'policeNearbyIncidentsPage.locationState.usingFallbackUploaded' }
+      : { key: 'using_fallback', tKey: 'policeNearbyIncidentsPage.locationState.usingFallback' }
   }
 
   if (syncResult?.state === 'using_last_known' && syncResult?.coords) {
     return {
       key: 'using_last_known',
-      message: 'Using the last known recent location while the device location is unstable.',
+      tKey: 'policeNearbyIncidentsPage.locationState.usingLastKnown',
     }
   }
 
   if (syncResult?.state === 'permission_denied') {
     return {
       key: responseLocationRequired ? 'permission_denied' : 'using_last_known',
-      message: responseLocationRequired
-        ? 'Location permission was denied. Nearby incidents will stay empty until a valid location is available.'
-        : 'Location permission was denied, so nearby incidents are using your latest valid saved location.',
+      tKey: responseLocationRequired
+        ? 'policeNearbyIncidentsPage.locationState.permissionDeniedRequired'
+        : 'policeNearbyIncidentsPage.locationState.permissionDeniedFallback',
     }
   }
 
   if (responseLocationRequired) {
     return {
       key: 'location_unavailable',
-      message: 'Location unavailable. Turn on location services and refresh to load nearby incidents.',
+      tKey: 'policeNearbyIncidentsPage.locationState.locationUnavailableRequired',
     }
   }
 
   if (!responseLocationRequired) {
     return {
       key: 'nearby_loaded',
-      message: syncResult?.source === 'cached' || !syncResult?.ok
-        ? 'Nearby incidents loaded using your recent saved position.'
-        : 'Nearby incidents loaded from your current device position.',
+      tKey: syncResult?.source === 'cached' || !syncResult?.ok
+        ? 'policeNearbyIncidentsPage.locationState.nearbyLoadedCached'
+        : 'policeNearbyIncidentsPage.locationState.nearbyLoadedCurrent',
     }
   }
 
   return {
     key: 'location_unavailable',
-    message: 'Location is temporarily unavailable.',
+    tKey: 'policeNearbyIncidentsPage.locationState.locationUnavailable',
   }
 }
 
 export default function PoliceNearbyIncidentsPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation(['police', 'common'])
   const { policeMe } = usePoliceAccess()
   const [nearbyIncidents, setNearbyIncidents] = useState([])
   const [locationCoords, setLocationCoords] = useState(null)
   const [locationState, setLocationState] = useState({
     key: 'locating',
-    message: 'Locating your device...',
+    tKey: 'policeNearbyIncidentsPage.locationState.locating',
   })
   const [locationRequired, setLocationRequired] = useState(false)
   const [selectedIncidentId, setSelectedIncidentId] = useState(null)
@@ -106,7 +100,7 @@ export default function PoliceNearbyIncidentsPage() {
     setError('')
     setLocationState({
       key: 'locating',
-      message: 'Locating your device...',
+      tKey: 'policeNearbyIncidentsPage.locationState.locating',
     })
 
     let syncResult = null
@@ -139,13 +133,13 @@ export default function PoliceNearbyIncidentsPage() {
       setLocationRequired(Boolean(response.locationRequired))
       setLocationState(buildLocationState(syncResult, Boolean(response.locationRequired)))
     } catch (loadError) {
-      setError(loadError.message || 'Failed to load nearby incidents.')
+      setError(loadError.message || t('policeNearbyIncidentsPage.errorLoadFailed'))
       setLocationRequired(false)
       setLocationState(buildLocationState(syncResult, true))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [t])
 
   React.useEffect(() => {
     loadNearby()
@@ -175,14 +169,14 @@ export default function PoliceNearbyIncidentsPage() {
     <PoliceOfficerPanel officer={policeMe?.officer} workZone={policeMe?.workZone}>
       <div className="pop-extra">
         <div className="pop-extra-head">
-          <span className="pop-extra-title">Nearby Summary</span>
+          <span className="pop-extra-title">{t('policeNearbyIncidentsPage.nearbyPanel.title')}</span>
         </div>
         <div className="pop-extra-body">
-          <div className="pop-stat-row"><span>Search radius</span><strong>5 km</strong></div>
-          <div className="pop-stat-row"><span>Incidents found</span><strong className={nearbyIncidents.length > 0 ? 'pop-stat--accent' : ''}>{nearbyIncidents.length}</strong></div>
-          <div className="pop-stat-row"><span>High severity</span><strong className={highSeverityCount > 0 ? 'pop-stat--danger' : ''}>{highSeverityCount}</strong></div>
-          <div className="pop-stat-row"><span>Location</span><strong>{displayLabel(locationState.key)}</strong></div>
-          <div className="pop-stat-row"><span>Selected</span><strong>{selectedIncident?.displayId || '—'}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeNearbyIncidentsPage.nearbyPanel.searchRadius')}</span><strong>5 km</strong></div>
+          <div className="pop-stat-row"><span>{t('policeNearbyIncidentsPage.nearbyPanel.incidentsFound')}</span><strong className={nearbyIncidents.length > 0 ? 'pop-stat--accent' : ''}>{nearbyIncidents.length}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeNearbyIncidentsPage.nearbyPanel.highSeverity')}</span><strong className={highSeverityCount > 0 ? 'pop-stat--danger' : ''}>{highSeverityCount}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeNearbyIncidentsPage.nearbyPanel.location')}</span><strong>{displayLabel(locationState.key)}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeNearbyIncidentsPage.nearbyPanel.selected')}</span><strong>{selectedIncident?.displayId || '—'}</strong></div>
         </div>
       </div>
     </PoliceOfficerPanel>
@@ -193,11 +187,11 @@ export default function PoliceNearbyIncidentsPage() {
       <section className="police-section police-nearby-page">
         <div className="police-command-section-head police-nearby-page-head">
           <div>
-            <h2>Nearby Incidents</h2>
-            <p className="police-shortcuts-hint">Live incidents detected around your latest location with a 5-kilometer response radius.</p>
+            <h2>{t('policeNearbyIncidentsPage.title')}</h2>
+            <p className="police-shortcuts-hint">{t('policeNearbyIncidentsPage.subtitle')}</p>
           </div>
           <div className="police-nearby-page-head-actions">
-            <span className="police-nearby-page-radius">Radius 5 km</span>
+            <span className="police-nearby-page-radius">{t('policeNearbyIncidentsPage.radiusLabel')}</span>
             {nearbyIncidents.length > 0 ? (
               <PoliceSortControl
                 options={NEARBY_SORT_OPTIONS}
@@ -214,14 +208,14 @@ export default function PoliceNearbyIncidentsPage() {
               disabled={isLoading}
             >
               <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
-              <span>Refresh</span>
+              <span>{t('common:actions.retry')}</span>
             </button>
           </div>
         </div>
 
-        <p className="police-shortcuts-hint police-nearby-page-location-message">{locationState.message}</p>
+        <p className="police-shortcuts-hint police-nearby-page-location-message">{t(locationState.tKey)}</p>
         {error ? <p className="police-meta police-nearby-page-feedback police-nearby-page-feedback-error">{error}</p> : null}
-        {!error && isLoading ? <p className="police-meta police-nearby-page-feedback">Loading nearby incidents...</p> : null}
+        {!error && isLoading ? <p className="police-meta police-nearby-page-feedback">{t('policeNearbyIncidentsPage.loadingNearby')}</p> : null}
 
         <div className="police-nearby-layout police-nearby-page-layout">
           <div className="police-nearby-list police-nearby-page-list">
@@ -234,26 +228,26 @@ export default function PoliceNearbyIncidentsPage() {
                 topRight={(
                   <>
                     <StraightenOutlinedIcon fontSize="inherit" />
-                    {incident.distanceLabel || 'Nearby'}
+                    {incident.distanceLabel || t('policeNearbyIncidentsPage.nearby')}
                   </>
                 )}
                 metaExtras={incident.fieldNoteCount > 0 ? [{
                   icon: <DescriptionOutlinedIcon fontSize="inherit" />,
-                  label: `${incident.fieldNoteCount} note${incident.fieldNoteCount !== 1 ? 's' : ''}`,
+                  label: t('policeNearbyIncidentsPage.fieldNoteCount', { count: incident.fieldNoteCount }),
                 }] : []}
                 actions={[
                   {
-                    label: 'Open Case',
+                    label: t('policeNearbyIncidentsPage.actions.openCase'),
                     icon: <LaunchOutlinedIcon fontSize="inherit" />,
                     variant: 'primary',
-                    ariaLabel: `Open case ${incident.displayId}`,
+                    ariaLabel: t('policeNearbyIncidentsPage.actions.openCaseAria', { id: incident.displayId }),
                     onClick: () => navigate(`/police/incident/${incident.id}`),
                   },
                   {
-                    label: 'Continue',
+                    label: t('policeNearbyIncidentsPage.actions.continue'),
                     icon: <FactCheckOutlinedIcon fontSize="inherit" />,
                     variant: 'secondary',
-                    ariaLabel: `Continue ${incident.displayId} in verification`,
+                    ariaLabel: t('policeNearbyIncidentsPage.actions.continueAria', { id: incident.displayId }),
                     onClick: () => navigate('/police/verification', { state: { incidentId: incident.id } }),
                   },
                 ]}
@@ -263,11 +257,11 @@ export default function PoliceNearbyIncidentsPage() {
             {!isLoading && nearbyIncidents.length === 0 ? (
               <div className="police-empty-state" role="status" aria-live="polite">
                 <div className="police-empty-icon" aria-hidden="true"><LocationOnOutlinedIcon fontSize="inherit" /></div>
-                <h3>{locationRequired ? 'Location unavailable' : 'No nearby incidents'}</h3>
+                <h3>{locationRequired ? t('policeNearbyIncidentsPage.emptyState.locationUnavailableTitle') : t('policeNearbyIncidentsPage.emptyState.noIncidentsTitle')}</h3>
                 <p>
                   {locationRequired
-                    ? 'No usable officer location is available yet, so nearby incidents cannot be calculated.'
-                    : 'No active incidents are currently within 5 kilometers of your latest valid location.'}
+                    ? t('policeNearbyIncidentsPage.emptyState.locationUnavailableDesc')
+                    : t('policeNearbyIncidentsPage.emptyState.noIncidentsDesc')}
                 </p>
               </div>
             ) : null}
@@ -275,8 +269,8 @@ export default function PoliceNearbyIncidentsPage() {
 
           <div className="police-nearby-map-wrap police-nearby-page-map-wrap">
             <div className="police-nearby-page-map-head">
-              <strong>Map Focus</strong>
-              <span>{selectedIncident?.displayId || 'No selection'}</span>
+              <strong>{t('policeNearbyIncidentsPage.map.focusTitle')}</strong>
+              <span>{selectedIncident?.displayId || t('policeNearbyIncidentsPage.map.noSelection')}</span>
             </div>
             <MapContainer center={mapCenter} zoom={14} scrollWheelZoom className="police-leaflet-map" key={selectedIncident?.id || locationState.key}>
               <TileLayer
@@ -297,7 +291,7 @@ export default function PoliceNearbyIncidentsPage() {
                     radius={8}
                     pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#2563eb', fillOpacity: 1 }}
                   >
-                    <Popup><strong>Your position</strong></Popup>
+                    <Popup><strong>{t('policeNearbyIncidentsPage.map.yourPosition')}</strong></Popup>
                   </CircleMarker>
                 </>
               ) : null}
@@ -319,7 +313,7 @@ export default function PoliceNearbyIncidentsPage() {
                     <Popup>
                       <strong>{incident.displayId}</strong><br />
                       {incident.locationText}<br />
-                      {incident.distanceLabel || 'Nearby'}
+                      {incident.distanceLabel || t('policeNearbyIncidentsPage.nearby')}
                     </Popup>
                   </CircleMarker>
                 ) : null

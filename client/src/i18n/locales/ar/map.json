@@ -26,5 +26,629 @@
     "set": "تحديد الوجهة",
     "clear": "مسح الوجهة",
     "compute": "حساب المسار"
+  },
+  "accidentHeatClusterMarker": {
+    "reportCount_one": "{{count}} بلاغ حادث",
+    "reportCount_other": "{{count}} بلاغات حوادث",
+    "dominant": "السائد: {{dominant}}",
+    "severityHigh": "مرتفع",
+    "severityMedium": "متوسط",
+    "severityLow": "منخفض",
+    "avgSeverity": "متوسط الخطورة",
+    "officerVerified": "مؤكَّد من ضابط",
+    "latestReport": "آخر بلاغ",
+    "whyDangerous": "لماذا هذا المكان خطير؟"
+  },
+  "bestTimeToLeaveCompact": {
+    "title": "أفضل وقت للمغادرة",
+    "iconLabel": "الوقت",
+    "teaserIdle": "وسّع للمقارنة بين أوقات المغادرة.",
+    "teaserLoading": "جارٍ التحقق من أوقات المغادرة...",
+    "errorDefault": "تعذّر التحقق من أوقات المغادرة.",
+    "noDataYet": "لا توجد بيانات مغادرة بعد.",
+    "teaserWithBest": "الآن: {{tier}} | الأفضل عند {{bestTime}}",
+    "teaserNow": "الآن: {{tier}} ({{percent}})",
+    "checking": "جارٍ التحقق...",
+    "refresh": "تحديث",
+    "checkingSafer": "جارٍ البحث عن أوقات مغادرة أكثر أمانًا...",
+    "noOptions": "لا تتوفر خيارات مغادرة.",
+    "useDeparture": "استخدام هذا الموعد"
+  },
+  "bestTimeToLeavePanel": {
+    "title": "أفضل وقت للمغادرة",
+    "checking": "جارٍ التحقق…",
+    "refresh": "تحديث",
+    "pickOriginDestination": "اختر نقطة انطلاق ووجهة لمقارنة أوقات المغادرة.",
+    "checkingDepartureTimes": "جارٍ التحقق من أوقات المغادرة الأكثر أمانًا…",
+    "noOptions": "لا تتوفر خيارات مغادرة.",
+    "bestTimeWithDelta": "أفضل وقت للمغادرة: {{time}} ({{label}}). المغادرة في هذا الوقت تقلل الخطر بنسبة {{delta}}% مقارنةً بالمغادرة الآن.",
+    "bestWindow": "أفضل نافذة زمنية: {{label}} في {{time}}.",
+    "optionAriaLabel": "{{label}} — {{time}}",
+    "unavailable": "غير متاح",
+    "etaMin": "الوصول خلال {{minutes}} دقيقة",
+    "etaNA": "وقت الوصول غير متاح",
+    "errorFallback": "تعذّر التحقق من أوقات المغادرة الأكثر أمانًا."
+  },
+  "currentSegmentCard": {
+    "title": "المقطع الحالي",
+    "ariaLabel": "مستوى خطر مقطع الطريق الحالي",
+    "searching": "جارٍ البحث عن مقطع الطريق الحالي…",
+    "hint": "سِر على مسارك المحدد لعرض مستوى الخطر في هذا المقطع.",
+    "currentSegment": "المقطع الحالي",
+    "segmentLabel": "المقطع {{index}} من {{total}}",
+    "segmentLabel_noTotal": "المقطع {{index}}",
+    "tier": {
+      "unknown": "غير معروف",
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "مرتفع"
+    },
+    "explanation": {
+      "withScore": "يُصنَّف {{segmentLabel}} بمستوى خطر {{tierLabel}} — أعاد النموذج درجة خطر {{score}}% لهذا الجزء من مسارك.",
+      "noScore": "{{segmentLabel}} — درجة الخطر غير متوفرة بعد، لكن SIARA تراقب هذا الجزء من مسارك المحدد.",
+      "topFactors": "أبرز العوامل: {{factors}}."
+    },
+    "fields": {
+      "segment": "المقطع",
+      "risk": "الخطر",
+      "length": "الطول",
+      "riskTime": "توقيت الخطر"
+    }
+  },
+  "dangerForecastChart": {
+    "tooltipDanger": "الخطر: {{value}}",
+    "loadingForecast": "جارٍ تحميل التوقعات…",
+    "noForecast": "لا توجد توقعات",
+    "updating": "جارٍ التحديث…"
+  },
+  "fallbackLocationBanner": {
+    "defaultLabel": "يتم استخدام موقع اختباري احتياطي لأن نظام GPS غير متاح.",
+    "retrying": "جارٍ إعادة المحاولة…",
+    "retryGps": "إعادة محاولة GPS"
+  },
+  "heatmapClusterDetailPanel": {
+    "ariaLabel": "تفاصيل مجموعة الحوادث",
+    "title": "لماذا هذا المكان خطير؟",
+    "invalidLocation": "موقع المجموعة غير صالح.",
+    "loadError": "تعذّر تحميل تفاصيل المجموعة",
+    "metrics": {
+      "reports": "البلاغات",
+      "inThisZone": "في هذه المنطقة",
+      "policeVerified": "مؤكَّد من الشرطة",
+      "percentOfReports": "{{pct}}% من البلاغات",
+      "peakWindow": "النافذة الزمنية الأكثر خطورة",
+      "reportsInWindow": "{{count}} بلاغ في هذه الفترة",
+      "notEnoughData": "بيانات غير كافية",
+      "latest": "الأحدث",
+      "mostRecentReport": "أحدث بلاغ"
+    },
+    "commonTypes": "الأنواع الشائعة:",
+    "viewFullProfile": "عرض ملف السلامة الكامل للمنطقة",
+    "reportsInZone": "البلاغات في هذه المنطقة ({{count}})",
+    "noReports": "تعذّر تحميل أي بلاغات فردية لهذه المجموعة.",
+    "reportFallback": "البلاغ رقم {{id}}",
+    "policeVerifiedBadge": "مؤكَّد من الشرطة",
+    "showFewer": "عرض أقل",
+    "viewAllReports": "عرض جميع البلاغات ({{count}})"
+  },
+  "liveLocationMap": {
+    "fallbackTestLocation": "موقع اختبار احتياطي",
+    "centerOnMyLocation": "توسيط على موقعي",
+    "myLocation": "موقعي",
+    "status": {
+      "idle": "جارٍ تحديد الموقع…",
+      "requesting": "جارٍ طلب إذن الموقع…",
+      "denied": "تم رفض إذن الموقع. قم بتفعيله في إعدادات المتصفح.",
+      "unavailable": "الموقع غير متاح حاليًا. تحقق من GPS / الشبكة.",
+      "unsupported": "هذا المتصفح لا يدعم تحديد الموقع الجغرافي.",
+      "insecure": "تحديد الموقع الجغرافي يتطلب HTTPS — افتح الموقع عبر اتصال آمن."
+    }
+  },
+  "mapContainer": {
+    "deprecatedStub": "غلاف MapContainer مُهمَل. راجع SiaraMap.jsx للخريطة المباشرة."
+  },
+  "mapDestinationConfirmCard": {
+    "ariaLabel": "تأكيد الوجهة",
+    "title": "هل تريد بدء رحلتك مع SIARA؟",
+    "fallbackLabel": "النقطة المحددة: {{lat}}، {{lng}}",
+    "lookingUpPlace": "جارٍ البحث عن اسم المكان…",
+    "calculatingRouteRisk": "جارٍ حساب مخاطر مسار SIARA…",
+    "hintNameError": "تعذّر العثور على اسم المكان، لكن يمكنك المتابعة باستخدام الإحداثيات.",
+    "hintNoName": "لم يُعثر على اسم شارع لهذه النقطة — سيتم استخدام الإحداثيات.",
+    "hintDefault": "سيحسب SIARA مخاطر الطريق ويرشدك عبر أأمن مسار.",
+    "calculatingRoute": "جارٍ حساب المسار…",
+    "startTravel": "بدء الرحلة"
+  },
+  "mapLibreNavigationView": {
+    "tabs": {
+      "ariaLabel": "أوضاع التنقّل",
+      "drive": "قيادة",
+      "routes": "المسارات",
+      "risk": "الخطر"
+    },
+    "controls": {
+      "ariaLabel": "أدوات التحكم في خريطة التنقّل",
+      "toggleRoutePanel": "إظهار/إخفاء لوحة المسار المحدد",
+      "toggleDebug": "إظهار/إخفاء معلومات التشخيص",
+      "centerOnLocation": "توسيط على موقعي",
+      "myLocation": "موقعي"
+    },
+    "locationWarning": "فعّل الموقع لاستخدام التنقّل المباشر. يتم عرض معاينة المسار فقط.",
+    "legend": {
+      "ariaLabel": "دليل مخاطر المسار",
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "مرتفع",
+      "unknown": "غير معروف"
+    },
+    "debug": {
+      "ariaLabel": "تشخيص الموقع المباشر",
+      "lat": "خط العرض",
+      "lng": "خط الطول",
+      "accuracy": "الدقة",
+      "heading": "الاتجاه",
+      "source": "المصدر",
+      "follow": "المتابعة",
+      "nav": "التنقّل",
+      "camera": "الكاميرا",
+      "cameraFollow": "متابعة",
+      "cameraFree": "حرة",
+      "geo": "الجيو",
+      "fix": "الإشارة",
+      "cameraAt": "الكاميرا في",
+      "lastError": "آخر خطأ"
+    },
+    "destinationLabel": "الوجهة"
+  },
+  "markersLayer": {
+    "markersCount": "العلامات: {{count}} (عنصر نائب)"
+  },
+  "navigationBanner": {
+    "followRoute": "اتبع المسار",
+    "thenInstruction": "ثم {{instruction}}",
+    "thenArrive": "ثم الوصول إلى الوجهة",
+    "inDistance": "بعد {{distance}}"
+  },
+  "navigationDangerAlert": {
+    "severity": {
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض",
+      "risk": "الخطر"
+    },
+    "distance": {
+      "meters": "{{distance}} م أمامك",
+      "kilometers": "{{distance}} كم أمامك"
+    },
+    "defaultTitle": "حادث جديد مُبلَّغ عنه أمامك",
+    "policeVerified": "مؤكَّد من الشرطة",
+    "moreAlerts_one": "+ {{count}} تنبيه إضافي على المسار",
+    "moreAlerts_other": "+ {{count}} تنبيهات إضافية على المسار",
+    "keepRoute": "الاستمرار في المسار",
+    "recalculating": "جارٍ إعادة الحساب…",
+    "findSaferRoute": "إيجاد مسار أكثر أمانًا"
+  },
+  "navigationSummaryCard": {
+    "tripSummary": "ملخص الرحلة",
+    "arrive": "الوصول {{time}}",
+    "remaining": "المتبقي",
+    "destination": "الوجهة",
+    "exitNavigation": "إنهاء التنقّل"
+  },
+  "reportMapMarker": {
+    "type": {
+      "accident": "حادث",
+      "traffic": "ازدحام مروري",
+      "danger": "خطر",
+      "weather": "الطقس",
+      "roadworks": "أشغال الطريق",
+      "other": "أخرى"
+    },
+    "time": {
+      "unknown": "وقت غير معروف",
+      "justNow": "الآن",
+      "minutesAgo_one": "منذ {{count}} دقيقة",
+      "minutesAgo_other": "منذ {{count}} دقائق",
+      "hoursAgo_one": "منذ {{count}} ساعة",
+      "hoursAgo_other": "منذ {{count}} ساعات",
+      "daysAgo_one": "منذ {{count}} يوم",
+      "daysAgo_other": "منذ {{count}} أيام"
+    },
+    "titleFallback": "بلاغ: {{type}}",
+    "reportedLocation": "الموقع المُبلَّغ عنه",
+    "severity": {
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "مرتفع"
+    }
+  },
+  "routeComparisonPanel": {
+    "empty": "لا توجد مسارات بديلة متاحة بعد.",
+    "routeFallback": "المسار",
+    "recommended": "موصى به",
+    "selected": "محدد",
+    "riskLevel": {
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض"
+    },
+    "metaShort": "الخطر {{risk}} • وقت الوصول {{eta}}",
+    "metaFull": "وقت الوصول {{eta}} • المسافة {{distance}} • الخطر {{danger}}",
+    "factorsAriaLabel": "عوامل خطر المسار",
+    "highRiskSegmentsTitle": "مقاطع الطريق عالية الخطورة على هذا المسار",
+    "highRiskSegLabel": "مقاطع خطرة",
+    "clustersTitle": "تجمعات حوادث ضمن 1.5 كم من هذا المسار",
+    "clusters": "تجمعات",
+    "reportsTitle": "البلاغات الأخيرة بالقرب من هذا المسار",
+    "reports": "بلاغات",
+    "units": {
+      "min": "دقيقة",
+      "na": "غير متاح"
+    }
+  },
+  "routeExplanationCard": {
+    "title": "لماذا هذا المسار؟",
+    "ariaCalculating": "جارٍ حساب شرح المسار",
+    "analysingHint": "جارٍ تحليل عوامل الخطر…",
+    "ariaError": "خطأ في شرح المسار",
+    "retryExplanation": "إعادة محاولة الشرح",
+    "ariaEmpty": "لا يوجد شرح للمسار",
+    "emptyHint": "لا يتوفر شرح للمخاطر لهذا المسار حتى الآن.",
+    "ariaRegion": "شرح توصية المسار",
+    "recommended": "مُوصى به",
+    "ariaComparison": "مقارنة مخاطر المسارات",
+    "fastest": "الأسرع",
+    "balanced": "متوازن",
+    "safest": "الأكثر أماناً",
+    "risk": "خطر",
+    "riskFactor": "عامل الخطر",
+    "hideDetails": "إخفاء التفاصيل",
+    "viewDetails": "عرض التفاصيل"
+  },
+  "routeOverviewCard": {
+    "ariaLabel": "نظرة عامة على المسار المحدد",
+    "title": "المسار المحدد",
+    "destination": "الوجهة",
+    "eta": "وقت الوصول",
+    "left": "المتبقي",
+    "tier": {
+      "unknown": "غير معروف",
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "مرتفع"
+    },
+    "whyThisRoute": "لماذا هذا المسار؟",
+    "aiExplanation": "شرح الذكاء الاصطناعي",
+    "riskUnavailable": "تم تحميل المسار، لكن تقييم المخاطر غير متاح.",
+    "analysingRisk": "جارٍ تحليل عوامل الخطر…",
+    "defaultWhyText": "اختارت SIARA هذا المسار بناءً على بيانات المخاطر المتاحة والمسافة ووقت الوصول وبيانات الخطر لكل قطاع.",
+    "riskFactor": "عامل الخطر",
+    "callingOllama": "جارٍ الاتصال بـ Ollama…",
+    "generateAi": "إنشاء شرح بالذكاء الاصطناعي",
+    "segmentRiskSummary": "ملخص مخاطر القطاعات",
+    "segment": "القطاع {{number}}",
+    "switchRoute": "تغيير المسار",
+    "routeAlternativesAriaLabel": "مسارات بديلة",
+    "altRiskPercent": "{{percent}}% خطر",
+    "unknownRisk": "مخاطر غير معروفة"
+  },
+  "siaraMap": {
+    "errors": {
+      "tileLayer": "خطأ في طبقة الموزاييكط: {{error}}",
+      "tileLoad": "تعذّر تحميل موزاييك OpenStreetMap.",
+      "overlay": "خطأ في الطبقة المركبة: {{error}}",
+      "nearbyRoutes": "خطأ في المسارات القريبة: {{error}}",
+      "guidance": "خطأ في التوجيه: {{error}}",
+      "explain": "خطأ في الشرح: {{error}}"
+    },
+    "tooltips": {
+      "selectedDestination": "الوجهة المختارة",
+      "fallbackStart": "نقطة انطلاق احتياطية",
+      "start": "البداية",
+      "destination": "الوجهة",
+      "fallbackLocation": "موقع احتياطي",
+      "youAreHere": "أنت هنا",
+      "nearbyRoute": "مسار قريب"
+    },
+    "alertZone": {
+      "defaultName": "منطقة تنبيه",
+      "severity": "الخطورة",
+      "schedule": "الجدول",
+      "triggers": "محفزات التنبيه",
+      "lastTrigger": "آخر تفعيل",
+      "never": "لم يحدث قط"
+    },
+    "heatmap": {
+      "loading": "جاريس تحميل خريطة حرارة الحوادث…",
+      "error": "تعذّر تحميل خريطة حرارة الحوادث.",
+      "noReports": "لا توجد بلاغات حوادث في هذه المنطقة للفترة المحددة.",
+      "legendLabel": "مفتاح خريطة الحرارة",
+      "legendTitle": "خريطة حرارة الحوادث",
+      "legendSub": "حجم الدائرة = عدد البلاغات. الحلقات = خليط الخطورة.",
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض"
+    },
+    "location": {
+      "locating": "جارٍ تحديد موقع جهازك...",
+      "enableHint": "فعِّل الموقع للحصول على الخطر الحي والتنقّل.",
+      "enableBtn": "تفعيل",
+      "denied": "تم حجب الوصول إلى الموقع. فعِّل أذونات الموقع في إعدادات المتصفح، ثم أعد تحميل الصفحة."
+    },
+    "riskPanel": {
+      "title": "خطر SIARA الحالي",
+      "occurrenceSubtitle": "خطر وقوع الحادث",
+      "dangerSubtitle": "الخطر النسبي — نموذج مستند إلى الخطورة",
+      "occurrenceDesc": "احتمالية معايرة لحدوث حادث هنا",
+      "occurrenceDescPersonalized": "احتمالية معايرة لحدوث حادث هنا، مخصصة وفق ملفك كسائق",
+      "dangerDesc": "درجة خطر نسبية مستندة إلى الخطورة. ليست احتمالية معايرة لوقوع حادث.",
+      "model": "النموذج",
+      "locationRequired": "الموقع مطلوب لتوقع خطر SIARA.",
+      "accuracy": "الدقة",
+      "loadingRisk": "جارٍ تحميل الخطر الحالي...",
+      "gaugeLow": "منخفض",
+      "gaugeMedium": "متوسط",
+      "gaugeHigh": "مرتفع",
+      "refreshing": "جارٍ التحديث…",
+      "confidence": "الثقة",
+      "dataQuality": "جودة البيانات",
+      "hide": "إخفاء",
+      "why": "لماذا؟",
+      "confidenceDetails": "تفاصيل الثقة",
+      "showConfidenceDetails": "عرض تفاصيل الثقة"
+    },
+    "severity": {
+      "outlookLabel": "توقعات الخطورة",
+      "outlookTitle": "توقعات الخطورة",
+      "sevLabel": "درجة",
+      "mostLikely": "الأكثر احتمالاً",
+      "expected": "المتوقع"
+    },
+    "occurrenceCard": {
+      "title": "خطر الوقوع",
+      "computing": "جارٍ حساب خطر الوقوع...",
+      "roadModelTitle": "خطر الوقوع — نموذج الطريق/الوقت",
+      "calibratedProbability": "احتمالية معايرة",
+      "score": "الدرجة",
+      "modelLabel": "النموذج",
+      "modelNote": "مخرجات نموذج الوقوع المدرّب. يُعامل كخطر تشغيلي نسبي لكل حزمة زمنية — ليس احتمالية معايرة — حتى شحن المعايرة.",
+      "personalizedTitle": "خطر مخصص — مدرج وفق ملف السائق",
+      "noDriverProfile": "لا يوجد ملف سلوك سائق بعد. أكمل اختبار السائق لتخصيص هذا الخطر.",
+      "latestQuiz": "آخر اختبار"
+    },
+    "explain": {
+      "preparing": "SIARA تُعدّ شرحًا...",
+      "aiExplanation": "شرح بالذكاء الاصطناعي",
+      "generatedFromFactors": "موկد من العوامل المتاحة",
+      "couldNotGenerate": "SIARA لم تتمكن من إنشاء شرح الآن. يُرجى المحاولة مجددًا.",
+      "noRiskPrediction": "لا تتوفر توقعات الخطر بعد."
+    },
+    "route": {
+      "riskUnavailable": "الخطر غير متاح",
+      "distance": "المسافة",
+      "eta": "وقت الوصول",
+      "forecastTime": "وقت توقع المسار",
+      "explanationSourceOllama": "مولد بواسطة مفسِّر SIARA الذكي (Ollama). المصادر: عينات خطر المسار، مقارنة البدائل، وتجمعات حرارة قريبة، ووقت اليوم.",
+      "explanationSourceFallback": "شرح قالبي مولد من عينات خطر المسار ومقارنة البدائل.",
+      "riskAlongRoute": "الخطر على طول المسار",
+      "selectedProfile": "ملف المسار المختار",
+      "start": "البداية",
+      "end": "النهاية",
+      "noProfile": "لا يوجد ملف مسار متاح بعد.",
+      "aheadTitle": "أمامك على المسار",
+      "selectedRouteOnly": "المسار المختار فقط",
+      "noHazards": "لم يُرصد تركز مخاطر قوي على المسار المختار.",
+      "riskSourceLayers": "طبقات مصادر الخطر",
+      "comingSoon": "قريبًا",
+      "riskSourceLayersDesc": "سيتوفر الإسناد حسب المصدر (الطقس، الظلام، التاريخ، الطريق) بمجرد تفعيل تسجيل النقاط من الخادم."
+    },
+    "helpPanel": {
+      "title": "تفاصيل الثقة",
+      "close": "إغلاق تفاصيل الثقة",
+      "noAnomaly": "لم تُفعَّل قواعد الشذوذ. ثقة الحارس: {{confidence}}. نسبة OOD: {{oodPct}} (غير مألوف نوعًا لكن مقبول).",
+      "unusualConditions": "رصدت ظروف غير معتادة ولكن لم يُرجع سبب محدد.",
+      "sentinelUnavailable": "الحارس غير متاح",
+      "unknownError": "خطأ غير معروف",
+      "fallbackQuality": "عرض فحوصات جودة المدخل الاحتياطية.",
+      "missingInputs": "مدخلات مفقودة",
+      "oodChecks": "فحوصات خارج التوزيع",
+      "sentinelConfidenceUnavailable": "ثقة الحارس غير متاحة. عرض فحوصات جودة المدخل الأساسية."
+    },
+    "segmentPanel": {
+      "title": "شرح القطعة",
+      "close": "إغلاق شرح القطعة",
+      "danger": "خطر",
+      "confidence": "ثقة",
+      "quality": "جودة",
+      "topReasons": "أبرز أسباب SHAP",
+      "increases": "يزيد",
+      "decreases": "يخفض"
+    },
+    "guideControls": {
+      "predictionTime": "وقت التوقع",
+      "using": "استخدام",
+      "timeImpact": "تأثير الوقت",
+      "destinationPlaceholder": "الوجهة...",
+      "searching": "جارٍ البحث...",
+      "destinationLabel": "الوجهة",
+      "computingRoute": "جارٍ حساب المسار...",
+      "startGuidance": "بدء التوجيه",
+      "clear": "مسح",
+      "typeDestinationFirst": "أدخل وجهة أولاً.",
+      "noDestinationFound": "لم يُعثر على وجهة لهذا البحث."
+    },
+    "status": {
+      "locationLive": "الموقع مباشر",
+      "locationUnavailable": "الموقع غير متاح",
+      "riskUpdated": "جرى تحديث الخطر",
+      "riskNotUpdated": "لم يُحدَّث الخطر بعد",
+      "routesUpdated": "جرى تحديث المسارات",
+      "routesNotUpdated": "لم تُحدَّث المسارات بعد",
+      "nearbyUpdated": "جرى تحديث المجاور",
+      "nearbyNotUpdated": "لم يُحدَّث المجاور بعد",
+      "navigationReady": "التنقّل جاهز"
+    },
+    "confirm": {
+      "recalculateRoute": "هل تريد استخدام وقت المغادرة هذا وإعادة حساب المسار؟"
+    }
+  },
+  "mapPage": {
+    "nav": {
+      "dashboard": "لوحة التحكم"
+    },
+    "search": {
+      "placeholder": "ابحث عن حادث أو طريق أو ولاية…"
+    },
+    "header": {
+      "userProfile": "الملف الشخصي للمستخدم",
+      "userAvatar": "صورة المستخدم"
+    },
+    "dropdown": {
+      "myProfile": "ملفي الشخصي"
+    },
+    "profile": {
+      "bio": "تصفح بلاغات الطرق المباشرة وشارك آخر المستجدات من الميدان.",
+      "viewProfile": "عرض الملف الشخصي"
+    },
+    "filters": {
+      "title": "التصفية",
+      "clear": "مسح",
+      "period": "الفترة",
+      "period24h": "٢٤ ساعة",
+      "period7d": "٧ أيام",
+      "period30d": "٣٠ يومًا",
+      "periodCustom": "مخصص",
+      "severity": "الخطورة",
+      "severityHigh": "مرتفع",
+      "severityMedium": "متوسط",
+      "severityLow": "منخفض",
+      "incidentType": "نوع الحادث",
+      "zone": "المنطقة",
+      "allProvinces": "جميع الولايات"
+    },
+    "incidentTypes": {
+      "accident": "حادث",
+      "traffic": "مرور",
+      "danger": "خطر",
+      "weather": "طقس",
+      "roadworks": "أشغال الطريق",
+      "other": "أخرى"
+    },
+    "actions": {
+      "reportIncident": "الإبلاغ عن حادث"
+    },
+    "layers": {
+      "points": "نقاط",
+      "heatmap": "خريطة حرارية",
+      "zones": "المناطق",
+      "aiRisks": "مخاطر الذكاء الاصطناعي",
+      "nearbyRoads": "الطرق المجاورة"
+    },
+    "map": {
+      "exitFullscreen": "الخروج من وضع ملء الشاشة",
+      "exitFullMap": "الخروج من الخريطة الكاملة",
+      "fullscreen": "ملء الشاشة",
+      "fullMap": "الخريطة الكاملة",
+      "myLocation": "موقعي"
+    },
+    "weather": {
+      "positionRequired": "الموقع مطلوب",
+      "loadingWeather": "جارٍ تحميل الطقس…",
+      "weatherUnavailable": "الطقس غير متوفر",
+      "weather": "الطقس",
+      "resolvingNeighborhood": "جارٍ تحديد الحي…",
+      "currentLocation": "الموقع الحالي",
+      "unknownPlace": "مكان غير معروف",
+      "visibility": "الرؤية",
+      "wind": "الرياح",
+      "humidity": "الرطوبة",
+      "pressure": "الضغط الجوي",
+      "enableLocation": "فعّل الموقع للحصول على الطقس المباشر",
+      "refreshing": "جارٍ التحديث…"
+    },
+    "forecast": {
+      "title": "الخطر - الـ٢٤ ساعة القادمة",
+      "updating": "جارٍ تحديث التوقعات…",
+      "noData": "لا توجد توقعات متاحة.",
+      "unavailable": "التوقعات غير متاحة."
+    },
+    "status": {
+      "loadingAlertZones": "جارٍ تحميل مناطق التنبيه…",
+      "alertZonesUnavailable": "مناطق التنبيه غير متاحة",
+      "alertZonesLoaded": "مناطق التنبيه • تم تحميل {{count}} منطقة",
+      "loadingReports": "جارٍ تحميل البلاغات الفورية…",
+      "reportsUnavailable": "البلاغات الفورية غير متاحة",
+      "reportsDisplayed": "الوقت الفعلي • {{count}} حادث معروض"
+    },
+    "context": {
+      "alertZones": "مناطق التنبيه",
+      "reportsFeed": "تغذية البلاغات",
+      "loadingAlertZonesDb": "جارٍ تحميل مناطق التنبيه من قاعدة البيانات…",
+      "activeAlertZonesReady": "{{count}} منطقة تنبيه نشطة جاهزة للعرض على الخريطة.",
+      "loadingReportsDb": "جارٍ تحميل البلاغات من قاعدة البيانات…",
+      "mappedReportsMatch": "{{count}} بلاغ مصنَّف يطابق المرشحات الحالية."
+    },
+    "zones": {
+      "selectedZone": "المنطقة المحددة",
+      "manageAlerts": "إدارة التنبيهات",
+      "zoneLabel": "المنطقة",
+      "severityLabel": "خطورة {{severity}}",
+      "triggersCount": "{{count}} إطلاق",
+      "selectZoneHint": "حدد منطقة على الخريطة لفحص قاعدة التنبيه الخاصة بها.",
+      "signInToLoad": "سجّل الدخول لتحميل مناطق التنبيه الخاصة بك.",
+      "unableToLoad": "تعذّر تحميل مناطق التنبيه.",
+      "triggersMeta": "{{count}} إطلاق"
+    },
+    "segmentInsight": {
+      "title": "تحليل المقطع",
+      "segmentLabel": "المقطع {{id}}",
+      "risk": "الخطر: {{percent}}% ({{level}})",
+      "impact": "التأثير: {{value}}"
+    },
+    "legend": {
+      "title": "المفتاح",
+      "highSeverity": "خطورة مرتفعة",
+      "mediumSeverity": "خطورة متوسطة",
+      "lowSeverity": "خطورة منخفضة",
+      "zonesNote": "تعكس المناطق خطورة قاعدة التنبيه وجدولها الزمني.",
+      "aiRisk": "مخاطر الذكاء الاصطناعي (٠-١٠٠٪)"
+    },
+    "trending": {
+      "zoneRules": "قواعد المناطق",
+      "areasToWatch": "مناطق تستحق المتابعة",
+      "openAlerts": "فتح التنبيهات",
+      "loadingActiveZones": "جارٍ تحميل مناطق التنبيه النشطة…",
+      "noActiveZones": "لا توجد مناطق تنبيه نشطة حتى الآن.",
+      "noReportClusters": "لا توجد تجمعات بلاغات تطابق المرشحات الحالية.",
+      "incidentsMeta": "{{count}} حادث • {{updated}}",
+      "reportedArea": "منطقة مُبلَّغ عنها"
+    },
+    "activeAlerts": {
+      "title": "التنبيهات النشطة",
+      "noAlerts": "لا توجد تنبيهات نشطة حاليًا.",
+      "manageMyAlerts": "إدارة تنبيهاتي",
+      "alertLabel": "تنبيه"
+    },
+    "stats": {
+      "title": "الإحصاءات",
+      "today": "اليوم",
+      "avgSeverity": "متوسط الخطورة",
+      "verified": "مؤكَّد"
+    },
+    "location": {
+      "permissionBlocked": "إذن الموقع محظور. فعّله في إعدادات المتصفح.",
+      "notSupported": "هذا المتصفح لا يدعم تحديد الموقع الجغرافي.",
+      "enableForPredictions": "فعّل الموقع لتحميل توقعات SIARA.",
+      "fallbackWarning": "يُستخدم موقع احتياطي للاختبار لأن GPS غير متاح."
+    },
+    "time": {
+      "unknown": "غير معروف",
+      "justNow": "الآن",
+      "minutes": "{{count}} د",
+      "hours": "{{count}} س",
+      "days": "{{count}} ي",
+      "neverTriggered": "لم يُطلَق قط",
+      "ago": "منذ {{age}}"
+    }
   }
 }

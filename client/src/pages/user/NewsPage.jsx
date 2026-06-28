@@ -1,5 +1,7 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
 import FancySelect from '../../components/ui/FancySelect'
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -45,16 +47,6 @@ import '../../styles/DashboardPage.css'
 const PAGE_SIZE = 10
 const DEFAULT_RADIUS_KM = 25
 const FALLBACK_MAP_CENTER = { lat: 36.7525, lng: 3.04197 }
-const FEED_TABS = [
-  { id: 'latest', label: 'Latest' },
-  { id: 'nearby', label: 'Nearby' },
-  { id: 'verified', label: 'Verified' },
-  { id: 'following', label: 'Following' },
-]
-const SORT_OPTIONS = [
-  { id: 'recent', label: 'Most recent' },
-  { id: 'severity', label: 'Severity' },
-]
 
 function getMarkerColor(severity) {
   return severity === 'high' ? '#ff3b30' : severity === 'medium' ? '#ff9500' : '#34c759'
@@ -67,10 +59,10 @@ function getSeverityClass(severity) {
 }
 
 function getSeverityLabel(severity) {
-  if (severity === 'high') return 'High Severity'
-  if (severity === 'medium') return 'Medium Severity'
-  if (severity === 'low') return 'Low Severity'
-  return 'Severity Unknown'
+  if (severity === 'high') return i18n.t('pages:newsPage.severity.high')
+  if (severity === 'medium') return i18n.t('pages:newsPage.severity.medium')
+  if (severity === 'low') return i18n.t('pages:newsPage.severity.low')
+  return i18n.t('pages:newsPage.severity.unknown')
 }
 
 function getAuthorInitials(name) {
@@ -78,33 +70,33 @@ function getAuthorInitials(name) {
 }
 
 function formatRelativeTime(value) {
-  if (!value) return 'Unknown time'
+  if (!value) return i18n.t('pages:newsPage.time.unknown')
 
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Unknown time'
+  if (Number.isNaN(date.getTime())) return i18n.t('pages:newsPage.time.unknown')
 
   const diffMs = Date.now() - date.getTime()
   const diffMinutes = Math.max(0, Math.round(diffMs / 60000))
 
-  if (diffMinutes < 1) return 'Just now'
-  if (diffMinutes < 60) return `${diffMinutes} min ago`
+  if (diffMinutes < 1) return i18n.t('pages:newsPage.time.justNow')
+  if (diffMinutes < 60) return i18n.t('pages:newsPage.time.minAgo', { count: diffMinutes })
 
   const diffHours = Math.round(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours} h ago`
+  if (diffHours < 24) return i18n.t('pages:newsPage.time.hoursAgo', { count: diffHours })
 
   const diffDays = Math.round(diffHours / 24)
-  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  return i18n.t('pages:newsPage.time.daysAgo', { count: diffDays })
 }
 
 const QUALITY_BADGE_FALLBACKS = {
-  officer_verified: { code: 'officer_verified', label: 'Verified by officer', style: 'positive_strong', icon: 'shield_check' },
-  ai_verified: { code: 'ai_verified', label: 'AI verified', style: 'positive', icon: 'check_circle' },
-  needs_review: { code: 'needs_review', label: 'Needs review', style: 'warning', icon: 'alert_triangle' },
-  probably_spam: { code: 'probably_spam', label: 'Probably spam', style: 'danger', icon: 'alert_octagon' },
-  out_of_context: { code: 'out_of_context', label: 'Out of SIARA context', style: 'muted_warning', icon: 'info' },
-  invalid_location: { code: 'invalid_location', label: 'Suspicious location', style: 'warning', icon: 'map_pin_alert' },
-  checking: { code: 'checking', label: 'Checking report', style: 'neutral', icon: 'loader' },
-  unverified: { code: 'unverified', label: 'Unverified', style: 'neutral', icon: 'clock' },
+  officer_verified: { code: 'officer_verified', get label() { return i18n.t('pages:newsPage.qualityBadge.officerVerified') }, style: 'positive_strong', icon: 'shield_check' },
+  ai_verified: { code: 'ai_verified', get label() { return i18n.t('pages:newsPage.qualityBadge.aiVerified') }, style: 'positive', icon: 'check_circle' },
+  needs_review: { code: 'needs_review', get label() { return i18n.t('pages:newsPage.qualityBadge.needsReview') }, style: 'warning', icon: 'alert_triangle' },
+  probably_spam: { code: 'probably_spam', get label() { return i18n.t('pages:newsPage.qualityBadge.probablySpam') }, style: 'danger', icon: 'alert_octagon' },
+  out_of_context: { code: 'out_of_context', get label() { return i18n.t('pages:newsPage.qualityBadge.outOfContext') }, style: 'muted_warning', icon: 'info' },
+  invalid_location: { code: 'invalid_location', get label() { return i18n.t('pages:newsPage.qualityBadge.invalidLocation') }, style: 'warning', icon: 'map_pin_alert' },
+  checking: { code: 'checking', get label() { return i18n.t('pages:newsPage.qualityBadge.checking') }, style: 'neutral', icon: 'loader' },
+  unverified: { code: 'unverified', get label() { return i18n.t('pages:newsPage.qualityBadge.unverified') }, style: 'neutral', icon: 'clock' },
 }
 
 const QUALITY_BADGE_ICONS = {
@@ -170,7 +162,7 @@ function getReportAuthorProfile(report) {
       ?? report?.createdBy
       ?? report?.created_by
       ?? null,
-    name: author?.name || report?.authorName || 'Citizen',
+    name: author?.name || report?.authorName || i18n.t('pages:newsPage.role.citizen'),
     email: author?.email || report?.createdByEmail || report?.created_by_email || '',
     avatarUrl:
       author?.avatarUrl
@@ -197,22 +189,22 @@ function getAuthorRoleBadge(profile) {
   const normalizedRoles = getUserRoles(profile)
 
   if (normalizedRoles.includes('admin')) {
-    return { className: 'badge-admin', label: 'Admin' }
+    return { className: 'badge-admin', label: i18n.t('pages:newsPage.role.admin') }
   }
 
   if (isPoliceSupervisorUser(profile)) {
-    return { className: 'badge-police', label: 'Police Supervisor' }
+    return { className: 'badge-police', label: i18n.t('pages:newsPage.role.policeSupervisor') }
   }
 
   if (isPoliceOfficerUser(profile)) {
-    return { className: 'badge-police', label: 'Police' }
+    return { className: 'badge-police', label: i18n.t('pages:newsPage.role.police') }
   }
 
   if (isEmergencyServiceUser(profile)) {
-    return { className: 'badge-police', label: 'Emergency' }
+    return { className: 'badge-police', label: i18n.t('pages:newsPage.role.emergency') }
   }
 
-  return { className: 'badge-citoyen', label: 'Citizen' }
+  return { className: 'badge-citoyen', label: i18n.t('pages:newsPage.role.citizen') }
 }
 
 // Police, supervisors, admins and emergency services are institutional sources,
@@ -227,7 +219,7 @@ function getReporterTrustBadge(profile, baseTier) {
     isEmergencyServiceUser(profile)
 
   if (isOfficial) {
-    return { tier: { label: 'Official reporter', style: 'positive' }, official: true }
+    return { tier: { label: i18n.t('pages:newsPage.role.officialReporter'), style: 'positive' }, official: true }
   }
 
   return { tier: baseTier, official: false }
@@ -248,6 +240,7 @@ function mergeReports(previousReports, nextReports) {
 }
 
 function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, currentUser }) {
+  const { t } = useTranslation(['pages', 'common'])
   const authorProfile = getReportAuthorProfile(report)
   const authorName = authorProfile.name
   const authorAvatarUrl = getUserAvatarUrl(authorProfile)
@@ -361,7 +354,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
         setAllComments([newComment, ...allComments])
       }
     } catch (error) {
-      setCommentError(error.message || 'Could not post comment')
+      setCommentError(error.message || t('newsPage.comment.errorPost'))
     } finally {
       setIsSubmittingComment(false)
     }
@@ -379,7 +372,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
       const { comments } = await getReportComments(report.id, { limit: 50, offset: 0 })
       setAllComments(comments)
     } catch (error) {
-      setAllCommentsError(error.message || 'Could not load comments')
+      setAllCommentsError(error.message || t('newsPage.comment.errorLoad'))
     } finally {
       setAllCommentsLoading(false)
     }
@@ -553,7 +546,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
     const url = `${window.location.origin}/incident/${report.id}`
     try {
       if (navigator.share) {
-        await navigator.share({ title: report?.title || 'SIARA incident report', url })
+        await navigator.share({ title: report?.title || t('newsPage.actions.shareTitle'), url })
       } else {
         await navigator.clipboard.writeText(url)
         setShareCopied(true)
@@ -573,7 +566,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           type="button"
           className={`pcx-av${authorAvatarUrl ? ' pcx-av--img' : ''}`}
           onClick={handleOpenProfile}
-          aria-label={`View ${authorName} profile`}
+          aria-label={t('newsPage.card.viewProfile', { name: authorName })}
         >
           {authorAvatarUrl && (
             <img src={authorAvatarUrl} alt={authorName} className="pcx-av-img" loading="lazy" onError={handleAvatarImageError} />
@@ -587,7 +580,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           tabIndex={0}
           onClick={handleOpenProfile}
           onKeyDown={handleOpenProfileKeyDown}
-          aria-label={`View ${authorName} profile`}
+          aria-label={t('newsPage.card.viewProfile', { name: authorName })}
         >
           <div className="pcx-id-line pcx-id-name">
             <span className="pcx-name">{authorName}</span>
@@ -602,8 +595,8 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
                   className={`pcx-trust pcx-trust--${reporterTrustTier.style || 'neutral'}`}
                   title={
                     reporterIsOfficial
-                      ? 'Official reporter — institutional account'
-                      : `Trust score ${Math.round(reporterTrustScore)}/100`
+                      ? t('newsPage.card.officialReporterTitle')
+                      : t('newsPage.card.trustScoreTitle', { score: Math.round(reporterTrustScore) })
                   }
                 >
                   <span className="pcx-trust-dot" aria-hidden />
@@ -620,7 +613,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
             <svg className="pcx-loc-icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden>
               <path fill="currentColor" d="M8 1.5A4.5 4.5 0 0 0 3.5 6c0 3.2 4.5 8 4.5 8s4.5-4.8 4.5-8A4.5 4.5 0 0 0 8 1.5Zm0 6.2A1.7 1.7 0 1 1 8 4.3a1.7 1.7 0 0 1 0 3.4Z"/>
             </svg>
-            <span className="pcx-loc">{report?.locationLabel || 'Reported location'}</span>
+            <span className="pcx-loc">{report?.locationLabel || t('newsPage.card.reportedLocation')}</span>
             <span className="pcx-mid-dot" aria-hidden>•</span>
             <span className="pcx-time">{formatRelativeTime(report?.createdAt || occurredAt)}</span>
           </div>
@@ -632,7 +625,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           {qualityBadge && (
             <span
               className={`pcx-pill pcx-pill--q-${qualityTone}`}
-              title={spamPercent != null ? `Spam ${spamPercent}% · Confidence ${confidencePercent ?? '—'}%` : qualityBadge.label}
+              title={spamPercent != null ? t('newsPage.card.spamConfidenceTitle', { spam: spamPercent, confidence: confidencePercent ?? '—' }) : qualityBadge.label}
             >
               <span className="pcx-pill-ico" aria-hidden>{QUALITY_BADGE_ICONS[qualityBadge.icon] || ''}</span>
               {qualityBadge.label}
@@ -655,13 +648,13 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
                 aria-describedby={`cred-tip-${report.id}`}
               >
                 <span className="pcx-pill-dot" aria-hidden />
-                {credibility.score} Credibility
-                {credibility.isSpam && <span className="pcx-pill-meta pcx-pill-meta--danger">Spam</span>}
+                {credibility.score} {t('newsPage.card.credibility')}
+                {credibility.isSpam && <span className="pcx-pill-meta pcx-pill-meta--danger">{t('newsPage.card.spam')}</span>}
               </span>
               <span className="pcx-cred-tip" id={`cred-tip-${report.id}`} role="tooltip">
-                <span className="pcx-cred-tip__title">Why this score?</span>
+                <span className="pcx-cred-tip__title">{t('newsPage.card.whyThisScore')}</span>
                 <span className="pcx-cred-tip__score">
-                  {credibility.score}/100 · {credibility.level} credibility
+                  {credibility.score}/100 · {credibility.level} {t('newsPage.card.credibility')}
                 </span>
                 {credibility.reasons && credibility.reasons.length > 0 ? (
                   <ul className="pcx-cred-tip__list">
@@ -673,7 +666,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
                   </ul>
                 ) : (
                   <span className="pcx-cred-tip__empty">
-                    Based on the overall signals of this report.
+                    {t('newsPage.card.credibilityEmpty')}
                   </span>
                 )}
               </span>
@@ -685,24 +678,24 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           </span>
         </div>
 
-        <button className="pcx-menu" onClick={() => navigate(`/incident/${report.id}`)} title="View details" aria-label="View details">
+        <button className="pcx-menu" onClick={() => navigate(`/incident/${report.id}`)} title={t('newsPage.card.viewDetails')} aria-label={t('newsPage.card.viewDetails')}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
             <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" strokeLinecap="round" strokeLinejoin="round"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
-          <span className="pcx-menu-label">View details</span>
+          <span className="pcx-menu-label">{t('newsPage.card.viewDetails')}</span>
         </button>
       </header>
 
       {/* ── CONTENT ── */}
       <div className="pcx-content">
-        <h2 className="pcx-title">{report?.title || 'Untitled report'}</h2>
+        <h2 className="pcx-title">{report?.title || t('newsPage.card.untitledReport')}</h2>
         <p className={`pcx-desc${shouldShowSeeMore ? ' is-clamped' : ''}`}>
-          {description || 'No description provided for this report.'}
+          {description || t('newsPage.card.noDescription')}
         </p>
         {shouldShowSeeMore && (
           <button className="pcx-readmore" onClick={() => navigate(`/incident/${report.id}`)}>
-            <span>Read more</span>
+            <span>{t('newsPage.card.readMore')}</span>
             <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
               <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -721,7 +714,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
                 type="button"
                 className={`pcx-tile${fullBleed ? ' pcx-tile--contain' : ''}`}
                 onClick={() => { setSelectedMediaIndex(index); setZoomScale(1) }}
-                aria-label={`Open photo ${index + 1} of ${media.length}`}
+                aria-label={t('newsPage.card.openPhoto', { index: index + 1, total: media.length })}
               >
                 {fullBleed && (
                   <img className="pcx-tile-bg" src={item.url} alt="" aria-hidden loading="lazy" />
@@ -730,7 +723,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
                 <img
                   className={`pcx-tile-img${loaded ? ' is-loaded' : ''}`}
                   src={item.url}
-                  alt={report?.title || 'Report photo'}
+                  alt={report?.title || t('newsPage.card.reportPhoto')}
                   loading="lazy"
                   onLoad={() => markMediaLoaded(key)}
                   onError={() => setHiddenMediaKeys((prev) => { const n = new Set(prev); n.add(key); return n })}
@@ -759,7 +752,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           <svg viewBox="0 0 20 20" fill={viewerHasLiked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" aria-hidden>
             <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
           </svg>
-          <span>{likesCount > 0 ? likesCount : 'Like'}</span>
+          <span>{likesCount > 0 ? likesCount : t('newsPage.actions.like')}</span>
         </button>
 
         {!isOwnReport && (
@@ -774,7 +767,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
               <ellipse cx="10" cy="10" rx="8.5" ry="5.5"/>
               <circle cx="10" cy="10" r="2.5" fill={viewerSawItToo ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5"/>
             </svg>
-            <span>{sawItTooCount > 0 ? sawItTooCount : 'Saw it'}</span>
+            <span>{sawItTooCount > 0 ? sawItTooCount : t('newsPage.actions.sawIt')}</span>
           </button>
         )}
 
@@ -796,20 +789,20 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
             <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v7a2 2 0 01-2 2H7l-4 4V14H4a2 2 0 01-2-2V5z"/>
           </svg>
-          <span>{commentsCount > 0 ? commentsCount : 'Comment'}</span>
+          <span>{commentsCount > 0 ? commentsCount : t('newsPage.actions.comment')}</span>
         </button>
 
         <button
           type="button"
           className={`pcx-act pcx-act--share${shareCopied ? ' on' : ''}`}
           onClick={handleShare}
-          aria-label="Share report"
+          aria-label={t('newsPage.actions.shareReport')}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
             <circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/>
             <path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3" strokeLinecap="round"/>
           </svg>
-          <span>{shareCopied ? 'Copied' : 'Share'}</span>
+          <span>{shareCopied ? t('newsPage.actions.copied') : t('newsPage.actions.share')}</span>
         </button>
       </div>
 
@@ -823,7 +816,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
         <div className="pc-discuss">
         {showCommentList && (commentsCount > 0 || visibleComments.length > 0) && (
           <div className="pc-discuss-heading">
-            <span>{commentsCount > 0 ? `${commentsCount} ${commentsCount === 1 ? 'comment' : 'comments'}` : 'Comments'}</span>
+            <span>{commentsCount > 0 ? t('newsPage.comment.count', { count: commentsCount }) : t('newsPage.comment.comments')}</span>
             {allCommentsLoading && <span className="pc-discuss-spinner" aria-hidden />}
           </div>
         )}
@@ -832,7 +825,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           <ul className="pc-cmt-list">
             {visibleComments.map((comment, idx) => {
               const canDelete = isAdmin || (currentUserId && comment.author?.id === currentUserId)
-              const authorName = comment.author?.name || 'Anonymous'
+              const authorName = comment.author?.name || t('newsPage.comment.anonymous')
               const authorAvatar = getUserAvatarUrl(comment.author)
               const authorInitials = getInitialsFromName(authorName, 'U')
               return (
@@ -852,8 +845,8 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
                           type="button"
                           className="pc-cmt-del"
                           onClick={() => handleDeleteComment(comment.id)}
-                          title="Delete comment"
-                          aria-label="Delete comment"
+                          title={t('newsPage.comment.deleteComment')}
+                          aria-label={t('newsPage.comment.deleteComment')}
                         >
                           <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
                             <path d="M3 5h10M6.5 5V3.5A1.5 1.5 0 018 2h0a1.5 1.5 0 011.5 1.5V5M4.5 5l.7 8.2A1.5 1.5 0 006.7 14.5h2.6a1.5 1.5 0 001.5-1.3L11.5 5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -876,7 +869,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
             onClick={handleLoadAllComments}
             disabled={allCommentsLoading}
           >
-            {allCommentsLoading ? 'Loading…' : `View all ${commentsCount} comments`}
+            {allCommentsLoading ? t('common:actions.loading') : t('newsPage.comment.viewAll', { count: commentsCount })}
           </button>
         )}
         {allCommentsError && <p className="pc-cmt-err">{allCommentsError}</p>}
@@ -885,12 +878,12 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
           <div className="pc-cmt-avatar pc-cmt-avatar--me" aria-hidden>
             {currentUser && getUserAvatarUrl(currentUser)
               ? <img src={getUserAvatarUrl(currentUser)} alt="" />
-              : <span>{getInitialsFromName(currentUser?.name || currentUser?.username || 'You', 'YO')}</span>}
+              : <span>{getInitialsFromName(currentUser?.name || currentUser?.username || t('newsPage.comment.you'), 'YO')}</span>}
           </div>
           <div className={`pc-cmt-composer${isSubmittingComment ? ' is-submitting' : ''}${!currentUserId ? ' is-disabled' : ''}`}>
             <textarea
               className="pc-cmt-input"
-              placeholder={currentUserId ? 'Write a comment…' : 'Sign in to comment'}
+              placeholder={currentUserId ? t('newsPage.comment.placeholder') : t('newsPage.comment.signInPlaceholder')}
               value={commentDraft}
               onChange={(e) => setCommentDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -916,8 +909,8 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
                 type="submit"
                 className="pc-cmt-submit"
                 disabled={!currentUserId || isSubmittingComment || !commentDraft.trim()}
-                title="Post comment"
-                aria-label="Post comment"
+                title={t('newsPage.comment.postComment')}
+                aria-label={t('newsPage.comment.postComment')}
               >
                 {isSubmittingComment ? (
                   <span className="pc-cmt-submit-spinner" aria-hidden />
@@ -938,7 +931,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
       {/* ── FOOTER ── */}
       <div className="pcx-footer">
         <button type="button" className="pcx-open" onClick={() => navigate(`/incident/${report.id}`)}>
-          <span className="pcx-open-label">Open Incident</span>
+          <span className="pcx-open-label">{t('newsPage.card.openIncident')}</span>
           <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
             <path d="M3 8h10M9 4l4 4-4 4"/>
           </svg>
@@ -947,14 +940,14 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
 
       {/* ── LIGHTBOX ── */}
       {activeMedia && createPortal(
-        <div className="post-media-lightbox" role="dialog" aria-modal="true" aria-label="Photo preview" onClick={() => setSelectedMediaIndex(null)}>
+        <div className="post-media-lightbox" role="dialog" aria-modal="true" aria-label={t('newsPage.lightbox.photoPreview')} onClick={() => setSelectedMediaIndex(null)}>
           <div className="post-media-lightbox-content" onClick={(e) => e.stopPropagation()}>
             <div className="post-media-lightbox-toolbar">
-              <button type="button" className="post-media-zoom-btn" onClick={zoomOut} aria-label="Zoom out">−</button>
-              <button type="button" className="post-media-zoom-btn reset" onClick={zoomReset} aria-label="Reset zoom">{Math.round(zoomScale * 100)}%</button>
-              <button type="button" className="post-media-zoom-btn" onClick={zoomIn} aria-label="Zoom in">+</button>
+              <button type="button" className="post-media-zoom-btn" onClick={zoomOut} aria-label={t('newsPage.lightbox.zoomOut')}>−</button>
+              <button type="button" className="post-media-zoom-btn reset" onClick={zoomReset} aria-label={t('newsPage.lightbox.resetZoom')}>{Math.round(zoomScale * 100)}%</button>
+              <button type="button" className="post-media-zoom-btn" onClick={zoomIn} aria-label={t('newsPage.lightbox.zoomIn')}>+</button>
             </div>
-            <button type="button" className="post-media-lightbox-close" onClick={() => setSelectedMediaIndex(null)} aria-label="Close photo preview">×</button>
+            <button type="button" className="post-media-lightbox-close" onClick={() => setSelectedMediaIndex(null)} aria-label={t('newsPage.lightbox.closePreview')}>×</button>
 
             {media.length > 1 && (
               <>
@@ -966,7 +959,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
                     setZoomScale(1)
                     setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev - 1 + media.length) % media.length))
                   }}
-                  aria-label="Previous photo"
+                  aria-label={t('newsPage.lightbox.prevPhoto')}
                 >
                   ‹
                 </button>
@@ -978,7 +971,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
                     setZoomScale(1)
                     setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev + 1) % media.length))
                   }}
-                  aria-label="Next photo"
+                  aria-label={t('newsPage.lightbox.nextPhoto')}
                 >
                   ›
                 </button>
@@ -1004,7 +997,7 @@ function ReportCard({ report, navigate, onOpenAuthorProfile, onReportUpdated, cu
                 key={selectedMediaIndex}
                 className="post-media-lightbox-image"
                 src={activeMedia.url}
-                alt={report?.title || 'Report image'}
+                alt={report?.title || t('newsPage.card.reportImage')}
                 style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})` }}
               />
             </div>
@@ -1025,9 +1018,22 @@ function MapCenterUpdater({ center, zoom }) {
 }
 
 export default function NewsPage() {
+  const { t } = useTranslation(['pages', 'common'])
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useContext(AuthContext)
+
+  const FEED_TABS = useMemo(() => [
+    { id: 'latest', label: t('newsPage.feedTab.latest') },
+    { id: 'nearby', label: t('newsPage.feedTab.nearby') },
+    { id: 'verified', label: t('newsPage.feedTab.verified') },
+    { id: 'following', label: t('newsPage.feedTab.following') },
+  ], [t])
+
+  const SORT_OPTIONS = useMemo(() => [
+    { id: 'recent', label: t('newsPage.sortOption.mostRecent') },
+    { id: 'severity', label: t('newsPage.sortOption.severity') },
+  ], [t])
 
   const [showDropdown, setShowDropdown] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(true)
@@ -1141,17 +1147,17 @@ export default function NewsPage() {
       return ''
     }
     if (geoState.status === 'loading' || geoState.status === 'idle') {
-      return 'Finding reports near you...'
+      return t('newsPage.nearby.finding')
     }
     if (geoState.status === 'ready') {
-      return `Showing reports within ${DEFAULT_RADIUS_KM} km of your location.`
+      return t('newsPage.nearby.showingWithin', { km: DEFAULT_RADIUS_KM })
     }
-    return 'Nearby feed is unavailable without location access, so the latest reports are shown instead.'
-  }, [activeFeed, geoState.status])
+    return t('newsPage.nearby.unavailable')
+  }, [activeFeed, geoState.status, t])
 
   const selectedSortOption = useMemo(
     () => SORT_OPTIONS.find((option) => option.id === sortMode) || SORT_OPTIONS[0],
-    [sortMode],
+    [sortMode, SORT_OPTIONS],
   )
 
   useEffect(() => {
@@ -1221,7 +1227,7 @@ export default function NewsPage() {
           return
         }
 
-        setFeedError(error.message || 'Failed to load the reports feed.')
+        setFeedError(error.message || t('newsPage.feed.errorLoad'))
         setReports([])
         setPagination({
           limit: PAGE_SIZE,
@@ -1273,7 +1279,7 @@ export default function NewsPage() {
       setFeedMeta(response.meta)
     } catch (error) {
       if (requestIdRef.current === nextRequestId) {
-        setLoadMoreError(error.message || 'Failed to load more reports.')
+        setLoadMoreError(error.message || t('newsPage.feed.errorLoadMore'))
       }
     } finally {
       if (requestIdRef.current === nextRequestId) {
@@ -1355,7 +1361,7 @@ export default function NewsPage() {
       kind: 'account',
       id: profile.id != null ? `account-${profile.id}` : `account-${profile.name}`,
       title: profile.name,
-      subtitle: profile.email || 'Feed contributor',
+      subtitle: profile.email || t('newsPage.search.feedContributor'),
       avatarUrl: getUserAvatarUrl(profile) || profileAvatar,
       profile,
     }))
@@ -1363,8 +1369,8 @@ export default function NewsPage() {
     const incidentItems = quickSearchIncidents.map((report) => ({
       kind: 'report',
       id: `report-${report.id}`,
-      title: report?.title || 'Reported incident',
-      subtitle: report?.locationLabel || report?.incidentType || 'Incident report',
+      title: report?.title || t('newsPage.search.reportedIncident'),
+      subtitle: report?.locationLabel || report?.incidentType || t('newsPage.search.incidentReport'),
       report,
     }))
 
@@ -1413,7 +1419,7 @@ export default function NewsPage() {
       .slice(0, 3)
   }, [filteredReports])
 
-  const profileName = user?.name || 'Guest Driver'
+  const profileName = user?.name || t('newsPage.profile.guestDriver')
   const userAvatarUrl = getUserAvatarUrl(user)
   const profileAvatarUrl = userAvatarUrl || profileAvatar
   const normalizedRoles = getUserRoles(user)
@@ -1456,19 +1462,19 @@ export default function NewsPage() {
 
   const feedHeadline = useMemo(() => {
     if (isLoading) {
-      return 'Loading live reports...'
+      return t('newsPage.feed.loadingLive')
     }
     if (feedError) {
-      return 'Live feed unavailable right now'
+      return t('newsPage.feed.unavailable')
     }
     if (!reports.length) {
-      return 'No reports available for this feed'
+      return t('newsPage.feed.noReports')
     }
     if (userSearchQuery.trim()) {
-      return `Found ${filteredReports.length} matching report${filteredReports.length === 1 ? '' : 's'}`
+      return t('newsPage.feed.foundMatching', { count: filteredReports.length })
     }
-    return `Showing ${reports.length} live report${reports.length === 1 ? '' : 's'}`
-  }, [feedError, filteredReports.length, isLoading, reports.length, userSearchQuery])
+    return t('newsPage.feed.showing', { count: reports.length })
+  }, [feedError, filteredReports.length, isLoading, reports.length, userSearchQuery, t])
 
   const followingUnsupported = activeFeed === 'following' && feedMeta?.followingSupported === false
 
@@ -1543,12 +1549,12 @@ export default function NewsPage() {
               <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">
-              <button className="dash-tab dash-tab-active">Feed</button>
-              <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
-              <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
-              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
-              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <button className="dash-tab dash-tab-active">{t('newsPage.nav.feed')}</button>
+              <button className="dash-tab" onClick={() => navigate('/map')}>{t('common:nav.map')}</button>
+              <button className="dash-tab" onClick={() => navigate('/alerts')}>{t('common:nav.alerts')}</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>{t('newsPage.nav.report')}</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>{t('newsPage.nav.dashboard')}</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>{t('common:nav.predictions')}</button>
               <PoliceModeTab user={user} />
             </nav>
           </div>
@@ -1557,8 +1563,8 @@ export default function NewsPage() {
               <input
                 className="dash-search"
                 type="search"
-                placeholder="Search users, incidents, roads, zones…"
-                aria-label="Search users, incidents, roads, zones"
+                placeholder={t('newsPage.search.placeholder')}
+                aria-label={t('newsPage.search.ariaLabel')}
                 value={userSearchQuery}
                 onChange={(event) => setUserSearchQuery(event.target.value)}
                 onFocus={handleSearchFocus}
@@ -1586,7 +1592,7 @@ export default function NewsPage() {
               />
 
               {isUserSearchOpen && userSearchQuery.trim() && (
-                <div className="news-user-search-menu" role="listbox" aria-label="Matching accounts and incidents">
+                <div className="news-user-search-menu" role="listbox" aria-label={t('newsPage.search.menuAriaLabel')}>
                   {quickSearchItems.length > 0 ? (
                     quickSearchItems.map((item) => (
                       <button
@@ -1602,21 +1608,21 @@ export default function NewsPage() {
                       >
                         <span className={`news-user-search-avatar ${item.avatarUrl ? 'has-image' : ''}`}>
                           {item.avatarUrl ? (
-                            <img src={item.avatarUrl} alt={`${item.title} avatar`} className="news-user-search-avatar-image" loading="lazy" onError={handleQuickSearchAvatarImageError} />
+                            <img src={item.avatarUrl} alt={t('newsPage.search.avatarAlt', { name: item.title })} className="news-user-search-avatar-image" loading="lazy" onError={handleQuickSearchAvatarImageError} />
                           ) : null}
                           <span className="news-user-search-avatar-fallback">{getAuthorInitials(item.title || 'R')}</span>
                         </span>
                         <span className="news-user-search-labels">
                           <span className="news-user-search-name-row">
                             <span className="news-user-search-name">{item.title}</span>
-                            <span className={`news-user-search-type ${item.kind}`}>{item.kind === 'account' ? 'Account' : 'Report'}</span>
+                            <span className={`news-user-search-type ${item.kind}`}>{item.kind === 'account' ? t('newsPage.search.account') : t('newsPage.search.report')}</span>
                           </span>
                           <span className="news-user-search-meta">{item.subtitle}</span>
                         </span>
                       </button>
                     ))
                   ) : (
-                    <div className="news-user-search-empty">No matching account or accident found in current feed.</div>
+                    <div className="news-user-search-empty">{t('newsPage.search.noMatch')}</div>
                   )}
                 </div>
               )}
@@ -1625,19 +1631,19 @@ export default function NewsPage() {
           <div className="dash-header-right">
             <NotificationBell />
             <div className="dash-avatar-wrapper">
-              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown((previous) => !previous)} aria-label="User profile">
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown((previous) => !previous)} aria-label={t('newsPage.profile.ariaLabel')}>
                 {userAvatarUrl ? (
-                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" onError={handleHeaderAvatarImageError} />
+                  <img src={userAvatarUrl} alt={t('newsPage.profile.avatarAlt')} className="dash-avatar-image" loading="lazy" onError={handleHeaderAvatarImageError} />
                 ) : null}
                 <span className="dash-avatar-fallback">{getAuthorInitials(profileName)}</span>
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>{t('newsPage.dropdown.myProfile')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>{t('common:nav.settings')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>{t('common:nav.notifications')}</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>{t('common:nav.logout')}</button>
                 </div>
               )}
             </div>
@@ -1649,7 +1655,7 @@ export default function NewsPage() {
         <aside className="sidebar-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" onError={(event) => {
+              <img src={profileAvatarUrl} alt={t('newsPage.profile.alt')} className="profile-avatar-large" loading="lazy" onError={(event) => {
                 if (event.currentTarget.src !== profileAvatar) {
                   event.currentTarget.src = profileAvatar
                 }
@@ -1658,8 +1664,8 @@ export default function NewsPage() {
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
               <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
-              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
-              <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
+              <p className="profile-bio">{t('newsPage.profile.bio')}</p>
+              <button className="profile-view-link" onClick={() => navigate('/profile')}>{t('newsPage.profile.viewProfile')}</button>
             </div>
           </div>
 
@@ -1667,15 +1673,15 @@ export default function NewsPage() {
 
           <div className="card smart-filters">
             <div className="card-header">
-              <h3 className="card-title">Smart Filters</h3>
+              <h3 className="card-title">{t('newsPage.filters.smartFilters')}</h3>
               <button className="collapse-btn" onClick={() => setFiltersOpen((previous) => !previous)}>
-                {filtersOpen ? 'Hide' : 'Show'}
+                {filtersOpen ? t('newsPage.filters.hide') : t('newsPage.filters.show')}
               </button>
             </div>
             {filtersOpen && (
               <>
                 <div className="filter-section">
-                  <label className="filter-label">Feed mode</label>
+                  <label className="filter-label">{t('newsPage.filters.feedMode')}</label>
                   <FancySelect
                     value={activeFeed}
                     onChange={setActiveFeed}
@@ -1684,7 +1690,7 @@ export default function NewsPage() {
                   />
                 </div>
                 <div className="filter-section">
-                  <label className="filter-label">Sort</label>
+                  <label className="filter-label">{t('newsPage.filters.sort')}</label>
                   <FancySelect
                     value={sortMode}
                     onChange={setSortMode}
@@ -1693,11 +1699,11 @@ export default function NewsPage() {
                   />
                 </div>
                 <div className="filter-section">
-                  <label className="filter-label">Severity</label>
+                  <label className="filter-label">{t('newsPage.filters.severity')}</label>
                   <div className="filter-pills">
-                    <button className="severity-pill severity-low" onClick={() => setSortMode('recent')}>Low</button>
-                    <button className="severity-pill severity-medium" onClick={() => setSortMode('severity')}>Medium</button>
-                    <button className="severity-pill severity-high" onClick={() => setSortMode('severity')}>High</button>
+                    <button className="severity-pill severity-low" onClick={() => setSortMode('recent')}>{t('newsPage.filters.low')}</button>
+                    <button className="severity-pill severity-medium" onClick={() => setSortMode('severity')}>{t('newsPage.filters.medium')}</button>
+                    <button className="severity-pill severity-high" onClick={() => setSortMode('severity')}>{t('newsPage.filters.high')}</button>
                   </div>
                 </div>
               </>
@@ -1705,10 +1711,10 @@ export default function NewsPage() {
           </div>
 
           <div className="card saved-filters">
-            <h3 className="card-title">Saved Filters</h3>
-            <div className="saved-filter-item" onClick={() => { setActiveFeed('latest'); setSortMode('recent') }}>Latest reports</div>
-            <div className="saved-filter-item" onClick={() => { setActiveFeed('verified'); setSortMode('severity') }}>Verified + severe</div>
-            <div className="saved-filter-item" onClick={() => setActiveFeed('nearby')}>Reports near me</div>
+            <h3 className="card-title">{t('newsPage.filters.savedFilters')}</h3>
+            <div className="saved-filter-item" onClick={() => { setActiveFeed('latest'); setSortMode('recent') }}>{t('newsPage.filters.latestReports')}</div>
+            <div className="saved-filter-item" onClick={() => { setActiveFeed('verified'); setSortMode('severity') }}>{t('newsPage.filters.verifiedSevere')}</div>
+            <div className="saved-filter-item" onClick={() => setActiveFeed('nearby')}>{t('newsPage.filters.reportsNearMe')}</div>
           </div>
         </aside>
 
@@ -1718,9 +1724,9 @@ export default function NewsPage() {
           </button>
 
           <div className="card report-cta-card">
-            <p className="report-cta-copy">Want to report a new incident?</p>
+            <p className="report-cta-copy">{t('newsPage.cta.wantToReport')}</p>
             <button className="btn-publier report-cta-btn" onClick={() => navigate('/report')}>
-              Go to Report Page
+              {t('newsPage.cta.goToReportPage')}
             </button>
           </div>
 
@@ -1737,7 +1743,7 @@ export default function NewsPage() {
               ))}
             </div>
             <div className="feed-sort">
-              <span>Sort by:</span>
+              <span>{t('newsPage.feed.sortBy')}</span>
               <div className="feed-sort-dropdown" ref={sortDropdownRef}>
                 <button
                   type="button"
@@ -1745,14 +1751,14 @@ export default function NewsPage() {
                   onClick={() => setIsSortMenuOpen((previous) => !previous)}
                   aria-haspopup="listbox"
                   aria-expanded={isSortMenuOpen}
-                  aria-label="Sort reports"
+                  aria-label={t('newsPage.feed.sortReports')}
                 >
                   <span>{selectedSortOption.label}</span>
                   <span className="feed-sort-chevron" aria-hidden="true"><KeyboardArrowDownRoundedIcon fontSize="inherit" /></span>
                 </button>
 
                 {isSortMenuOpen ? (
-                  <div className="feed-sort-menu" role="listbox" aria-label="Sort options">
+                  <div className="feed-sort-menu" role="listbox" aria-label={t('newsPage.feed.sortOptions')}>
                     {SORT_OPTIONS.map((option) => (
                       <button
                         key={option.id}
@@ -1778,27 +1784,27 @@ export default function NewsPage() {
 
           {feedError && (
             <div className="card feed-state-card feed-state-error">
-              <h3 className="feed-state-title">Feed unavailable</h3>
+              <h3 className="feed-state-title">{t('newsPage.feed.errorTitle')}</h3>
               <p>{feedError}</p>
             </div>
           )}
 
           {!feedError && isLoading && (
             <div className="card feed-state-card">
-              <h3 className="feed-state-title">Loading reports</h3>
-              <p>Fetching the latest incident data for your feed.</p>
+              <h3 className="feed-state-title">{t('newsPage.feed.loadingTitle')}</h3>
+              <p>{t('newsPage.feed.loadingDesc')}</p>
             </div>
           )}
 
           {!feedError && !isLoading && filteredReports.length === 0 && (
             <div className="card feed-state-card">
-              <h3 className="feed-state-title">{followingUnsupported && !userSearchQuery.trim() ? 'Following feed not available yet' : 'No reports found'}</h3>
+              <h3 className="feed-state-title">{followingUnsupported && !userSearchQuery.trim() ? t('newsPage.feed.followingUnavailable') : t('newsPage.feed.noReportsFound')}</h3>
               <p>
                 {userSearchQuery.trim()
-                  ? 'Try a different search term for the incident title, location, or type.'
+                  ? t('newsPage.feed.tryDifferentSearch')
                   : followingUnsupported
-                  ? 'This repository does not currently include a following relationship, so there are no follow-based reports to show yet.'
-                  : 'Try switching tabs or sorting options to load a different set of reports.'}
+                  ? t('newsPage.feed.followingDesc')
+                  : t('newsPage.feed.trySwitching')}
               </p>
             </div>
           )}
@@ -1822,11 +1828,11 @@ export default function NewsPage() {
                   {isLoadingMore ? (
                     <>
                       <span className="show-more-spinner" aria-hidden />
-                      Loading more
+                      {t('newsPage.feed.loadingMore')}
                     </>
                   ) : (
                     <>
-                      Show more
+                      {t('newsPage.feed.showMore')}
                       <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
                         <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
@@ -1834,7 +1840,7 @@ export default function NewsPage() {
                   )}
                 </button>
               ) : (
-                <p className="feed-pagination-end">You have reached the end of the current feed.</p>
+                <p className="feed-pagination-end">{t('newsPage.feed.endOfFeed')}</p>
               )}
             </div>
           )}
@@ -1843,11 +1849,11 @@ export default function NewsPage() {
         <aside className="sidebar-right">
           <div className="card widget-map">
             <div className="map-widget-header">
-              <h3 className="widget-title">Incidents Near You</h3>
+              <h3 className="widget-title">{t('newsPage.widget.incidentsNearYou')}</h3>
               <div className="map-legends">
-                <span className="map-legend"><span className="legend-dot danger"></span>High</span>
-                <span className="map-legend"><span className="legend-dot accident"></span>Medium</span>
-                <span className="map-legend"><span className="legend-dot normal"></span>Low</span>
+                <span className="map-legend"><span className="legend-dot danger"></span>{t('newsPage.filters.high')}</span>
+                <span className="map-legend"><span className="legend-dot accident"></span>{t('newsPage.filters.medium')}</span>
+                <span className="map-legend"><span className="legend-dot normal"></span>{t('newsPage.filters.low')}</span>
               </div>
             </div>
             <div className="map-widget-container" style={{ width: '100%', height: 200, borderRadius: 12, overflow: 'hidden' }}>
@@ -1870,7 +1876,7 @@ export default function NewsPage() {
                         radius={9}
                         pathOptions={{ color: '#fff', weight: 2.5, fillColor: '#6366f1', fillOpacity: 1 }}
                       >
-                        <Popup>Your location</Popup>
+                        <Popup>{t('newsPage.widget.yourLocation')}</Popup>
                       </CircleMarker>
                     )}
                     {markerReports.map((report) => (
@@ -1889,24 +1895,24 @@ export default function NewsPage() {
             </div>
             <p className="map-widget-status">
               {markerReports.length > 0
-                ? `${markerReports.length} report${markerReports.length === 1 ? '' : 's'} with map coordinates are visible.`
-                : 'No mapped reports are available in the current feed.'}
+                ? t('newsPage.widget.mappedReports', { count: markerReports.length })
+                : t('newsPage.widget.noMappedReports')}
             </p>
-            <button className="btn-open-map" onClick={() => navigate('/map')}>Open Full Map</button>
+            <button className="btn-open-map" onClick={() => navigate('/map')}>{t('newsPage.widget.openFullMap')}</button>
           </div>
 
           <div className="card widget-trending">
-            <h3 className="widget-title">Trending Incidents</h3>
+            <h3 className="widget-title">{t('newsPage.widget.trendingIncidents')}</h3>
             {trendingReports.length > 0 ? (
               trendingReports.map((report) => (
                 <div className="trending-item" key={`trending-${report.id}`}>
                   <span className={`severity-pill ${getSeverityClass(report.severity)} small`}>
-                    {report.severity ? report.severity.charAt(0).toUpperCase() + report.severity.slice(1) : 'Info'}
+                    {report.severity ? report.severity.charAt(0).toUpperCase() + report.severity.slice(1) : t('newsPage.widget.info')}
                   </span>
                   <div className="trending-info">
                     <div className="trending-header">
-                      <p className="trending-location">{report.locationLabel || report.title || 'Reported incident'}</p>
-                      <span className="trending-icon">{report.incidentType || 'report'}</span>
+                      <p className="trending-location">{report.locationLabel || report.title || t('newsPage.search.reportedIncident')}</p>
+                      <span className="trending-icon">{report.incidentType || t('newsPage.widget.report')}</span>
                     </div>
                     <div className="trending-bar"></div>
                     <span className="trending-time">{formatRelativeTime(report.createdAt || report.occurredAt)}</span>
@@ -1914,28 +1920,28 @@ export default function NewsPage() {
                 </div>
               ))
             ) : (
-              <p className="widget-empty-copy">Trending incident data will appear here once reports are loaded.</p>
+              <p className="widget-empty-copy">{t('newsPage.widget.trendingEmpty')}</p>
             )}
-            <button className="widget-see-more" onClick={() => navigate('/map')}>See more</button>
+            <button className="widget-see-more" onClick={() => navigate('/map')}>{t('newsPage.widget.seeMore')}</button>
           </div>
 
           <div className="card widget-alerts">
-            <h3 className="widget-title">Priority Alerts</h3>
+            <h3 className="widget-title">{t('newsPage.widget.priorityAlerts')}</h3>
             {filteredReports.filter((report) => report.status === 'verified' || report.severity === 'high').slice(0, 3).map((report) => (
               <div className="alert-item" key={`alert-${report.id}`}>
-                {report.title || report.locationLabel || 'Reported incident'} in {report.locationLabel || 'the selected area'}
+                {t('newsPage.widget.alertItem', { title: report.title || report.locationLabel || t('newsPage.search.reportedIncident'), location: report.locationLabel || t('newsPage.widget.selectedArea') })}
               </div>
             ))}
             {filteredReports.length === 0 && (
-              <div className="alert-item">Live feed alerts will appear here when reports are available.</div>
+              <div className="alert-item">{t('newsPage.widget.alertsEmpty')}</div>
             )}
-            <button className="btn-activate-alerts" onClick={() => navigate('/alerts')}>Enable Alerts</button>
+            <button className="btn-activate-alerts" onClick={() => navigate('/alerts')}>{t('newsPage.widget.enableAlerts')}</button>
           </div>
 
           <div className="card widget-quick-actions">
-            <h3 className="widget-title">Quick Actions</h3>
-            <button className="quick-action-btn" onClick={() => navigate('/report')}>Add a Report</button>
-            <button className="quick-action-btn" onClick={() => navigate('/map')}>Open Incident Map</button>
+            <h3 className="widget-title">{t('newsPage.widget.quickActions')}</h3>
+            <button className="quick-action-btn" onClick={() => navigate('/report')}>{t('newsPage.widget.addReport')}</button>
+            <button className="quick-action-btn" onClick={() => navigate('/map')}>{t('newsPage.widget.openIncidentMap')}</button>
           </div>
         </aside>
       </div>

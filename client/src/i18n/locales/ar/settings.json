@@ -27,5 +27,136 @@
     "phone": "الهاتف",
     "language": "اللغة"
   },
-  "saved": "تم الحفظ"
+  "saved": "تم الحفظ",
+  "profilePage": {
+    "nav": {
+      "feed": "المنشورات",
+      "report": "الإبلاغ",
+      "dashboard": "لوحة التحكم"
+    },
+    "search": {
+      "placeholder": "ابحث عن حادث أو طريق أو ولاية…"
+    },
+    "header": {
+      "userProfileAriaLabel": "الملف الشخصي للمستخدم",
+      "userAvatarAlt": "صورة المستخدم"
+    },
+    "dropdown": {
+      "myProfile": "ملفي الشخصي"
+    },
+    "avatar": {
+      "openAriaLabel": "فتح صورة ملف {{name}} الشخصي",
+      "viewAriaLabel": "عرض صورة ملف {{name}} الشخصي",
+      "previewAriaLabel": "معاينة صورة الملف الشخصي",
+      "closePreviewAriaLabel": "إغلاق معاينة صورة الملف الشخصي",
+      "profileAlt": "ملف {{name}} الشخصي"
+    },
+    "editProfile": "تعديل الملف الشخصي",
+    "meta": {
+      "joined": "انضم في {{date}}"
+    },
+    "stats": {
+      "verified": "مؤكَّد"
+    },
+    "tabs": {
+      "alerts": "التنبيهات",
+      "reports": "البلاغات",
+      "history": "السجل",
+      "timeline": "الجدول الزمني"
+    },
+    "quiz": {
+      "title": "ملف سلوك السائق",
+      "subtitle": "تقييم مخاطر القيادة المخصص",
+      "take": "ابدأ الاختبار",
+      "retake": "إعادة الاختبار",
+      "loadingResult": "جارٍ تحميل آخر نتيجة…",
+      "noQuizYet": "لم تُكمل اختبار السائق الخاص بـ SIARA بعد. قم بإجرائه للحصول على ملف قيادة مخصص.",
+      "riskLabel": "الخطر",
+      "driverProfile": "ملف السائق",
+      "lastCompleted": "آخر إكمال في {{date}}"
+    },
+    "activity": {
+      "privateTitle": "النشاط خاص",
+      "privateAlertsSubtitle": "هذا الحساب خاص. التنبيهات مخفية عن المستخدمين الآخرين.",
+      "loadingAlerts": "جارٍ تحميل التنبيهات…",
+      "noAlertsTitle": "لا توجد تنبيهات محفوظة بعد",
+      "noAlertsSub": "أنشئ تنبيهاً جديداً لمراقبة مناطقك المهمة.",
+      "createAlert": "إنشاء تنبيه",
+      "savedAlert": "تنبيه محفوظ",
+      "privateReportsTitle": "البلاغات خاصة",
+      "privateReportsSub": "هذا الحساب خاص. سجل البلاغات مخفي عن المستخدمين الآخرين.",
+      "loadingReports": "جارٍ تحميل البلاغات…",
+      "noReportsTitle": "لا توجد بلاغات بعد",
+      "noReportsSub": "أنشئ أول بلاغ عن حادث لتراه هنا.",
+      "createReport": "إنشاء بلاغ",
+      "untitledReport": "بلاغ بدون عنوان"
+    },
+    "history": {
+      "loading": "جارٍ تحميل السجل…",
+      "errorTitle": "تعذّر تحميل السجل",
+      "emptyTitle": "لا يوجد سجل بعد",
+      "emptySub": "ستظهر هنا بلاغاتك وتنبيهاتك وتحديثاتها.",
+      "eventCount_one": "{{count}} حدث",
+      "eventCount_other": "{{count}} أحداث",
+      "toggleSort": "تبديل ترتيب الفرز",
+      "newestFirst": "الأحدث أولاً",
+      "oldestFirst": "الأقدم أولاً"
+    },
+    "timeline": {
+      "loading": "جارٍ تحميل الجدول الزمني…",
+      "errorTitle": "تعذّر تحميل الجدول الزمني",
+      "emptyTitle": "لا يوجد نشاط بعد",
+      "emptySub": "ستظهر هنا بلاغاتك وتنبيهاتك وتحديثاتها."
+    },
+    "trustScore": {
+      "label": "درجة الثقة",
+      "legitReports_one": "{{count}} بلاغ مؤكَّد صحيح",
+      "legitReports_other": "{{count}} بلاغات مؤكَّدة صحيحة",
+      "spamReports_one": "{{count}} بلاغ مؤكَّد غير صحيح",
+      "spamReports_other": "{{count}} بلاغات مؤكَّدة غير صحيحة",
+      "reviewedReports_one": "{{count}} بلاغ تمت مراجعته",
+      "reviewedReports_other": "{{count}} بلاغات تمت مراجعتها",
+      "lastSynced": "آخر مزامنة {{time}}",
+      "derived": "مشتق من البلاغات المراجَعة (المزامنة معلّقة)",
+      "reviewedFound": "تم العثور على بلاغات مراجَعة",
+      "noReviewed": "لا توجد بلاغات مراجَعة بعد"
+    },
+    "impact": {
+      "label": "أثر المساهمة",
+      "alertMatches": "تطابقات التنبيهات",
+      "aiValidated": "مُتحقَّق منه بالذكاء الاصطناعي",
+      "mostActiveZone": "المنطقة الأكثر نشاطاً"
+    },
+    "recentAlerts": {
+      "label": "التنبيهات المُفعَّلة مؤخراً",
+      "recentlyTriggered": "مُفعَّل مؤخراً",
+      "noRecentTriggers": "لا توجد تفعيلات حديثة بعد"
+    },
+    "accountHealth": {
+      "label": "حالة الحساب",
+      "emailVerified": "البريد الإلكتروني مؤكَّد",
+      "phoneVerified": "الهاتف مؤكَّد",
+      "locationSet": "الموقع محدَّد",
+      "visibility": "الرؤية: {{value}}"
+    },
+    "defaults": {
+      "siaraUser": "مستخدم SIARA",
+      "noBio": "لم تُضَف أي نبذة بعد.",
+      "locationNotSet": "الموقع غير محدَّد",
+      "noContactInfo": "لا توجد معلومات للتواصل",
+      "noZone": "لا توجد منطقة بعد",
+      "monitoredArea": "منطقة مراقبة",
+      "user": "مستخدم",
+      "recently": "مؤخراً",
+      "unknownTime": "وقت غير معروف",
+      "neverTriggered": "لم تُفعَّل قط"
+    },
+    "errors": {
+      "quizLoad": "تعذّر تحميل ملف اختبار السائق",
+      "reportsLoad": "تعذّر تحميل بلاغاتك في الوقت الحالي.",
+      "alertsResolve": "تعذّر الحصول على تنبيهات الملف الشخصي.",
+      "alertsLoad": "تعذّر تحميل تنبيهاتك في الوقت الحالي.",
+      "timelineLoad": "تعذّر تحميل جدولك الزمني في الوقت الحالي."
+    }
+  }
 }

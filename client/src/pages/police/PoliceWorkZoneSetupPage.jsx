@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { usePoliceAccess } from '../../components/police/PoliceAccessGate'
 import { getPoliceWorkZoneOptions, updatePoliceWorkZone } from '../../services/policeService'
@@ -232,6 +233,7 @@ function BadgeIcon() {
 }
 
 export default function PoliceWorkZoneSetupPage() {
+  const { t } = useTranslation(['police', 'common'])
   const { policeMe, refreshPoliceMe } = usePoliceAccess()
   const [wilayas, setWilayas] = React.useState([])
   const [communes, setCommunes] = React.useState([])
@@ -266,7 +268,7 @@ export default function PoliceWorkZoneSetupPage() {
         }
       } catch (loadError) {
         if (!isCancelled) {
-          setError(loadError.message || 'Failed to load work-zone options.')
+          setError(loadError.message || t('policeWorkZoneSetupPage.errors.failedLoadOptions'))
         }
       } finally {
         if (!isCancelled) {
@@ -297,7 +299,7 @@ export default function PoliceWorkZoneSetupPage() {
       setWilayas(response.wilayas)
       setCommunes(response.communes)
     } catch (loadError) {
-      setError(loadError.message || 'Failed to load communes.')
+      setError(loadError.message || t('policeWorkZoneSetupPage.errors.failedLoadCommunes'))
     } finally {
       setIsLoading(false)
     }
@@ -308,7 +310,7 @@ export default function PoliceWorkZoneSetupPage() {
     setError('')
 
     if (!wilayaId || !communeId) {
-      setError('Please choose both a Wilaya and a Commune before continuing.')
+      setError(t('policeWorkZoneSetupPage.errors.bothRequired'))
       return
     }
 
@@ -320,17 +322,17 @@ export default function PoliceWorkZoneSetupPage() {
       })
       await refreshPoliceMe()
     } catch (saveError) {
-      setError(saveError.message || 'Failed to save work zone.')
+      setError(saveError.message || t('policeWorkZoneSetupPage.errors.failedSave'))
     } finally {
       setIsSaving(false)
     }
   }
 
-  const officerName = policeMe?.officer?.name || 'Officer'
+  const officerName = policeMe?.officer?.name || t('policeWorkZoneSetupPage.defaults.officer')
   const wilayaName = policeMe?.workZone?.wilaya?.name
   const communeName = policeMe?.workZone?.commune?.name
   const badgeNumber = policeMe?.officer?.badgeNumber
-  const rank = policeMe?.officer?.rank || 'Police Officer'
+  const rank = policeMe?.officer?.rank || t('policeWorkZoneSetupPage.defaults.policeOfficer')
 
   return (
     <div className="pzs-root">
@@ -344,14 +346,14 @@ export default function PoliceWorkZoneSetupPage() {
             <div className="pzs-header-left">
               <ShieldIcon />
               <div>
-                <p className="pzs-eyebrow">Police Workspace Setup</p>
-                <h1 className="pzs-title">Select Your Working Zone</h1>
-                <p className="pzs-subtitle">First login configuration for <strong>{officerName}</strong></p>
+                <p className="pzs-eyebrow">{t('policeWorkZoneSetupPage.eyebrow')}</p>
+                <h1 className="pzs-title">{t('policeWorkZoneSetupPage.title')}</h1>
+                <p className="pzs-subtitle">{t('policeWorkZoneSetupPage.subtitle', { name: officerName })}</p>
               </div>
             </div>
             <div className="pzs-step-badge">
               <span className="pzs-step-dot active" />
-              <span className="pzs-step-label">Step 1 of 1</span>
+              <span className="pzs-step-label">{t('policeWorkZoneSetupPage.stepLabel')}</span>
             </div>
           </div>
 
@@ -361,34 +363,33 @@ export default function PoliceWorkZoneSetupPage() {
           {/* ── Form body ── */}
           <div className="pzs-body">
             <p className="pzs-description">
-              Choose your active <strong>Wilaya</strong> and <strong>Commune</strong> before entering police mode.
-              You can update your active zone later if your assignment changes.
+              {t('policeWorkZoneSetupPage.description')}
             </p>
 
             <form onSubmit={handleSubmit} className="pzs-form" noValidate>
               <div className="pzs-fields-row">
                 <PoliceSetupSelect
-                  label="Wilaya"
+                  label={t('policeWorkZoneSetupPage.wilaya.label')}
                   value={wilayaId}
                   options={wilayas}
                   onChange={handleWilayaChange}
-                  placeholder="Select Wilaya"
+                  placeholder={t('policeWorkZoneSetupPage.wilaya.placeholder')}
                   disabled={isSaving || isLoading}
-                  loadingLabel={isLoading && !wilayas.length ? 'Loading…' : ''}
-                  emptyLabel="No wilaya found"
-                  searchPlaceholder="Search wilaya…"
+                  loadingLabel={isLoading && !wilayas.length ? t('common:actions.loading') : ''}
+                  emptyLabel={t('policeWorkZoneSetupPage.wilaya.empty')}
+                  searchPlaceholder={t('policeWorkZoneSetupPage.wilaya.searchPlaceholder')}
                 />
 
                 <PoliceSetupSelect
-                  label="Commune"
+                  label={t('policeWorkZoneSetupPage.commune.label')}
                   value={communeId}
                   options={communes}
                   onChange={setCommuneId}
-                  placeholder={!wilayaId ? 'Select Wilaya first' : 'Select Commune'}
+                  placeholder={!wilayaId ? t('policeWorkZoneSetupPage.commune.placeholderNoWilaya') : t('policeWorkZoneSetupPage.commune.placeholder')}
                   disabled={!wilayaId || isLoading || isSaving}
-                  loadingLabel={isLoading && wilayaId ? 'Loading…' : ''}
-                  emptyLabel={!wilayaId ? 'Choose a wilaya first' : 'No commune found'}
-                  searchPlaceholder="Search commune…"
+                  loadingLabel={isLoading && wilayaId ? t('common:actions.loading') : ''}
+                  emptyLabel={!wilayaId ? t('policeWorkZoneSetupPage.commune.emptyNoWilaya') : t('policeWorkZoneSetupPage.commune.empty')}
+                  searchPlaceholder={t('policeWorkZoneSetupPage.commune.searchPlaceholder')}
                 />
               </div>
 
@@ -405,12 +406,12 @@ export default function PoliceWorkZoneSetupPage() {
               {isLoading && !error ? (
                 <div className="pzs-loading-row" aria-live="polite">
                   <span className="pzs-spinner" />
-                  <span>Loading zone options…</span>
+                  <span>{t('policeWorkZoneSetupPage.loadingZoneOptions')}</span>
                 </div>
               ) : null}
 
               <div className="pzs-form-footer">
-                <p className="pzs-form-hint">Both fields are required to activate your workspace.</p>
+                <p className="pzs-form-hint">{t('policeWorkZoneSetupPage.formHint')}</p>
                 <button
                   type="submit"
                   className="pzs-submit-btn"
@@ -419,14 +420,14 @@ export default function PoliceWorkZoneSetupPage() {
                   {isSaving ? (
                     <>
                       <span className="pzs-spinner pzs-spinner-white" />
-                      Saving…
+                      {t('policeWorkZoneSetupPage.savingLabel')}
                     </>
                   ) : (
                     <>
                       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
                         <path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
-                      Save Working Zone
+                      {t('policeWorkZoneSetupPage.saveButton')}
                     </>
                   )}
                 </button>
@@ -439,18 +440,18 @@ export default function PoliceWorkZoneSetupPage() {
 
           {/* ── Officer info cards ── */}
           <div className="pzs-info-section">
-            <p className="pzs-info-section-label">Current Assignment Summary</p>
+            <p className="pzs-info-section-label">{t('policeWorkZoneSetupPage.assignmentSummary')}</p>
             <div className="pzs-info-grid">
               <div className={`pzs-info-card ${wilayaName ? 'active' : ''}`}>
                 <div className="pzs-info-card-icon pzs-icon-map">
                   <MapPinIcon />
                 </div>
                 <div className="pzs-info-card-body">
-                  <span className="pzs-info-card-category">Wilaya</span>
-                  <strong className="pzs-info-card-value">{wilayaName || 'Not selected'}</strong>
-                  <span className="pzs-info-card-sub">Active Wilaya</span>
+                  <span className="pzs-info-card-category">{t('policeWorkZoneSetupPage.infoCards.wilaya.category')}</span>
+                  <strong className="pzs-info-card-value">{wilayaName || t('policeWorkZoneSetupPage.infoCards.notSelected')}</strong>
+                  <span className="pzs-info-card-sub">{t('policeWorkZoneSetupPage.infoCards.wilaya.sub')}</span>
                 </div>
-                {wilayaName && <span className="pzs-info-card-badge">Active</span>}
+                {wilayaName && <span className="pzs-info-card-badge">{t('policeWorkZoneSetupPage.infoCards.activeBadge')}</span>}
               </div>
 
               <div className={`pzs-info-card ${communeName ? 'active' : ''}`}>
@@ -458,11 +459,11 @@ export default function PoliceWorkZoneSetupPage() {
                   <BuildingIcon />
                 </div>
                 <div className="pzs-info-card-body">
-                  <span className="pzs-info-card-category">Commune</span>
-                  <strong className="pzs-info-card-value">{communeName || 'Not selected'}</strong>
-                  <span className="pzs-info-card-sub">Active Commune</span>
+                  <span className="pzs-info-card-category">{t('policeWorkZoneSetupPage.infoCards.commune.category')}</span>
+                  <strong className="pzs-info-card-value">{communeName || t('policeWorkZoneSetupPage.infoCards.notSelected')}</strong>
+                  <span className="pzs-info-card-sub">{t('policeWorkZoneSetupPage.infoCards.commune.sub')}</span>
                 </div>
-                {communeName && <span className="pzs-info-card-badge">Active</span>}
+                {communeName && <span className="pzs-info-card-badge">{t('policeWorkZoneSetupPage.infoCards.activeBadge')}</span>}
               </div>
 
               <div className="pzs-info-card pzs-info-card-officer">
@@ -470,7 +471,7 @@ export default function PoliceWorkZoneSetupPage() {
                   <UserIcon />
                 </div>
                 <div className="pzs-info-card-body">
-                  <span className="pzs-info-card-category">Officer</span>
+                  <span className="pzs-info-card-category">{t('policeWorkZoneSetupPage.infoCards.officer.category')}</span>
                   <strong className="pzs-info-card-value">{officerName}</strong>
                   <span className="pzs-info-card-sub">{rank}</span>
                 </div>
@@ -481,11 +482,11 @@ export default function PoliceWorkZoneSetupPage() {
                   <BadgeIcon />
                 </div>
                 <div className="pzs-info-card-body">
-                  <span className="pzs-info-card-category">Badge</span>
-                  <strong className="pzs-info-card-value">{badgeNumber || 'Pending'}</strong>
-                  <span className="pzs-info-card-sub">Identification</span>
+                  <span className="pzs-info-card-category">{t('policeWorkZoneSetupPage.infoCards.badge.category')}</span>
+                  <strong className="pzs-info-card-value">{badgeNumber || t('policeWorkZoneSetupPage.infoCards.badge.pending')}</strong>
+                  <span className="pzs-info-card-sub">{t('policeWorkZoneSetupPage.infoCards.badge.sub')}</span>
                 </div>
-                {!badgeNumber && <span className="pzs-info-card-badge pzs-badge-pending">Pending</span>}
+                {!badgeNumber && <span className="pzs-info-card-badge pzs-badge-pending">{t('policeWorkZoneSetupPage.infoCards.badge.pending')}</span>}
               </div>
             </div>
           </div>

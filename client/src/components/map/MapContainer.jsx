@@ -3,8 +3,11 @@
 // as a no-op stub so old imports do not break the build — it is NOT mounted
 // anywhere in the current routes. Delete once a grep confirms no consumers.
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function MapContainer({ children }) {
+  const { t } = useTranslation(['map', 'common'])
+
   if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
     console.warn(
       '[siara] components/map/MapContainer.jsx is a deprecated placeholder; ' +
@@ -22,7 +25,7 @@ export default function MapContainer({ children }) {
       }}
     >
       <div style={{ color: 'var(--siara-text-light)', padding: 12 }}>
-        Deprecated MapContainer stub. See SiaraMap.jsx for the live map.
+        {t('mapContainer.deprecatedStub')}
       </div>
       {children}
     </div>

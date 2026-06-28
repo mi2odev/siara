@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import EmergencyShell from '../../components/layout/EmergencyShell'
 
@@ -14,8 +15,8 @@ const ALERTS = [
     id: 'WARN-08',
     severity: 'high',
     type: 'accident',
-    title: 'Bus collision corridor RN1 — possible 12+ casualties',
-    location: 'RN1 km 12, Larbaa',
+    titleKey: 'emergencyAlertsPage.alerts.warn08.title',
+    locationKey: 'emergencyAlertsPage.alerts.warn08.location',
     time: '14:21',
     icon: <CarCrashOutlinedIcon fontSize="inherit" />,
   },
@@ -23,8 +24,8 @@ const ALERTS = [
     id: 'WARN-07',
     severity: 'high',
     type: 'weather',
-    title: 'Heavy rain — reduced visibility on coastal roads',
-    location: 'Algiers · Tipaza',
+    titleKey: 'emergencyAlertsPage.alerts.warn07.title',
+    locationKey: 'emergencyAlertsPage.alerts.warn07.location',
     time: '13:58',
     icon: <CloudOutlinedIcon fontSize="inherit" />,
   },
@@ -32,8 +33,8 @@ const ALERTS = [
     id: 'WARN-06',
     severity: 'high',
     type: 'blockage',
-    title: 'Road blocked — overturned truck on RN5',
-    location: 'RN5, exit Rouiba',
+    titleKey: 'emergencyAlertsPage.alerts.warn06.title',
+    locationKey: 'emergencyAlertsPage.alerts.warn06.location',
     time: '13:42',
     icon: <BlockOutlinedIcon fontSize="inherit" />,
   },
@@ -41,8 +42,8 @@ const ALERTS = [
     id: 'WARN-05',
     severity: 'medium',
     type: 'zone',
-    title: 'High-risk zone activated — repeated accidents reported',
-    location: 'El Harrach junction',
+    titleKey: 'emergencyAlertsPage.alerts.warn05.title',
+    locationKey: 'emergencyAlertsPage.alerts.warn05.location',
     time: '12:30',
     icon: <WarningAmberRoundedIcon fontSize="inherit" />,
   },
@@ -50,21 +51,22 @@ const ALERTS = [
     id: 'WARN-04',
     severity: 'medium',
     type: 'accident',
-    title: 'Two-vehicle collision — one ambulance dispatched',
-    location: 'Bd des Martyrs, Alger Centre',
+    titleKey: 'emergencyAlertsPage.alerts.warn04.title',
+    locationKey: 'emergencyAlertsPage.alerts.warn04.location',
     time: '12:08',
     icon: <CarCrashOutlinedIcon fontSize="inherit" />,
   },
 ]
 
-const FILTERS = [
-  { key: 'all',      label: 'All' },
-  { key: 'high',     label: 'High' },
-  { key: 'medium',   label: 'Medium' },
-  { key: 'low',      label: 'Low' },
+const FILTER_KEYS = [
+  { key: 'all',    labelKey: 'emergencyAlertsPage.filters.all' },
+  { key: 'high',   labelKey: 'emergencyAlertsPage.filters.high' },
+  { key: 'medium', labelKey: 'emergencyAlertsPage.filters.medium' },
+  { key: 'low',    labelKey: 'emergencyAlertsPage.filters.low' },
 ]
 
 export default function EmergencyAlertsPage() {
+  const { t } = useTranslation(['emergency', 'common'])
   const [filter, setFilter] = useState('all')
 
   const visible = useMemo(
@@ -76,19 +78,19 @@ export default function EmergencyAlertsPage() {
     <EmergencyShell unitId="AMB-A12" unitStatus="responding" activeMissions={2}>
       <header className="em-page-head">
         <div>
-          <span className="em-eyebrow">High-Severity Notices</span>
-          <h1 className="em-page-title">Emergency Alerts</h1>
-          <p className="em-page-subtitle">{visible.length} active alert{visible.length === 1 ? '' : 's'}</p>
+          <span className="em-eyebrow">{t('emergencyAlertsPage.eyebrow')}</span>
+          <h1 className="em-page-title">{t('emergencyAlertsPage.title')}</h1>
+          <p className="em-page-subtitle">{t('emergencyAlertsPage.subtitle', { count: visible.length })}</p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          {FILTERS.map((f) => (
+          {FILTER_KEYS.map((f) => (
             <button
               key={f.key}
               className={`em-btn ${filter === f.key ? 'em-btn-primary' : ''}`}
               onClick={() => setFilter(f.key)}
               style={{ padding: '8px 14px', fontSize: 12 }}
             >
-              {f.label}
+              {t(f.labelKey)}
             </button>
           ))}
         </div>
@@ -100,7 +102,7 @@ export default function EmergencyAlertsPage() {
             <span className="em-section-title-icon" style={{ background: 'var(--em-red-soft)', color: 'var(--em-red)' }}>
               <WarningAmberRoundedIcon fontSize="inherit" />
             </span>
-            Active Alerts
+            {t('emergencyAlertsPage.sectionTitle')}
             <span className="em-section-count">{visible.length}</span>
           </h2>
         </header>
@@ -116,10 +118,10 @@ export default function EmergencyAlertsPage() {
                       <span className="em-incident-id">{alert.id}</span>
                       <span className={`em-sev-badge ${alert.severity}`}>{alert.severity}</span>
                     </div>
-                    <div className="em-alert-title">{alert.title}</div>
+                    <div className="em-alert-title">{t(alert.titleKey)}</div>
                     <div className="em-alert-meta">
-                      <span><LocationOnOutlinedIcon />{alert.location}</span>
-                      {alert.type === 'accident' ? <span><GroupsOutlinedIcon />Possible casualties</span> : null}
+                      <span><LocationOnOutlinedIcon />{t(alert.locationKey)}</span>
+                      {alert.type === 'accident' ? <span><GroupsOutlinedIcon />{t('emergencyAlertsPage.possibleCasualties')}</span> : null}
                     </div>
                   </div>
                 </div>
@@ -128,7 +130,7 @@ export default function EmergencyAlertsPage() {
             ))}
 
             {visible.length === 0 ? (
-              <div className="em-empty">No alerts match this filter.</div>
+              <div className="em-empty">{t('emergencyAlertsPage.noAlertsMatch')}</div>
             ) : null}
           </div>
         </div>

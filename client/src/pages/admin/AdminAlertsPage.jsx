@@ -1,20 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 
 import FancySelect from '../../components/ui/FancySelect'
 import { fetchCommunes, fetchWilayas } from '../../services/alertService'
 
-const ALERT_SEVERITY_OPTIONS = [
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
-]
-
-const ALERT_AUDIENCE_OPTIONS = [
-  { value: 'users_in_zone', label: 'Users in Zone' },
-  { value: 'all_users', label: 'All Users' },
-  { value: 'subscribed_users_only', label: 'Subscribed Users Only' },
-]
 import {
   cancelAdminOperationalAlert,
   createAdminOperationalAlert,
@@ -27,24 +17,8 @@ import {
   updateAdminOperationalAlert,
 } from '../../services/adminOperationalAlertsService'
 
-const EMPTY_TEXT = '\u2014'
+const EMPTY_TEXT = '—'
 const DEFAULT_PAGE_SIZE = 20
-const TAB_DEFINITIONS = [
-  { key: 'all', label: 'All Alerts' },
-  { key: 'active', label: 'Active' },
-  { key: 'scheduled', label: 'Scheduled' },
-  { key: 'expired', label: 'Expiring / Expired' },
-  { key: 'emergency', label: 'Emergency' },
-  { key: 'templates', label: 'Templates' },
-]
-const ALERT_TYPE_OPTIONS = [
-  { value: 'incident', label: 'Incident' },
-  { value: 'weather', label: 'Weather' },
-  { value: 'roadwork', label: 'Roadwork' },
-  { value: 'closure', label: 'Road Closure' },
-  { value: 'emergency', label: 'Emergency' },
-  { value: 'advisory', label: 'Advisory' },
-]
 
 function addMinutes(date, minutes) {
   return new Date(date.getTime() + (minutes * 60 * 1000))
@@ -142,8 +116,39 @@ function getAudienceText(alert) {
 }
 
 export default function AdminAlertsPage() {
+  const { t } = useTranslation(['admin', 'common'])
   const [searchParams, setSearchParams] = useSearchParams()
   const currentTab = normalizeOperationalAlertTab(searchParams.get('tab') || 'all')
+
+  const TAB_DEFINITIONS = [
+    { key: 'all', label: t('adminAlertsPage.tabs.all') },
+    { key: 'active', label: t('adminAlertsPage.tabs.active') },
+    { key: 'scheduled', label: t('adminAlertsPage.tabs.scheduled') },
+    { key: 'expired', label: t('adminAlertsPage.tabs.expired') },
+    { key: 'emergency', label: t('adminAlertsPage.tabs.emergency') },
+    { key: 'templates', label: t('adminAlertsPage.tabs.templates') },
+  ]
+
+  const ALERT_SEVERITY_OPTIONS = [
+    { value: 'low', label: t('adminAlertsPage.severity.low') },
+    { value: 'medium', label: t('adminAlertsPage.severity.medium') },
+    { value: 'high', label: t('adminAlertsPage.severity.high') },
+  ]
+
+  const ALERT_AUDIENCE_OPTIONS = [
+    { value: 'users_in_zone', label: t('adminAlertsPage.audience.usersInZone') },
+    { value: 'all_users', label: t('adminAlertsPage.audience.allUsers') },
+    { value: 'subscribed_users_only', label: t('adminAlertsPage.audience.subscribedOnly') },
+  ]
+
+  const ALERT_TYPE_OPTIONS = [
+    { value: 'incident', label: t('adminAlertsPage.alertType.incident') },
+    { value: 'weather', label: t('adminAlertsPage.alertType.weather') },
+    { value: 'roadwork', label: t('adminAlertsPage.alertType.roadwork') },
+    { value: 'closure', label: t('adminAlertsPage.alertType.closure') },
+    { value: 'emergency', label: t('adminAlertsPage.alertType.emergency') },
+    { value: 'advisory', label: t('adminAlertsPage.alertType.advisory') },
+  ]
 
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -388,22 +393,22 @@ export default function AdminAlertsPage() {
     const endsAt = toIsoFromLocal(formData.endsAtLocal)
 
     if (!title) {
-      setFormError('Title is required.')
+      setFormError(t('adminAlertsPage.validation.titleRequired'))
       return
     }
 
     if (!adminAreaId) {
-      setFormError('Select a wilaya or commune for this alert.')
+      setFormError(t('adminAlertsPage.validation.selectZone'))
       return
     }
 
     if (!startsAt || !endsAt) {
-      setFormError('Start and end datetimes are required.')
+      setFormError(t('adminAlertsPage.validation.datetimeRequired'))
       return
     }
 
     if (new Date(endsAt) <= new Date(startsAt)) {
-      setFormError('End time must be after the start time.')
+      setFormError(t('adminAlertsPage.validation.endAfterStart'))
       return
     }
 
@@ -457,7 +462,7 @@ export default function AdminAlertsPage() {
         await refreshAlerts(1)
       }
     } catch (requestError) {
-      setFormError(requestError.message || 'Unable to save this alert.')
+      setFormError(requestError.message || t('adminAlertsPage.error.saveFailed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -516,15 +521,14 @@ export default function AdminAlertsPage() {
             className="high-text"
             style={{ color: 'var(--admin-danger)', fontWeight: 700 }}
           >
-            EMERGENCY MODE READY - New alerts default to high-severity emergency settings until you
-            publish or reset the composer
+            {t('adminAlertsPage.emergencyBanner')}
           </span>
           <button
             className="high-action"
             onClick={() => setEmergencyMode(false)}
             type="button"
           >
-            Reset &rarr;
+            {t('adminAlertsPage.resetComposer')}
           </button>
         </div>
       )}
@@ -540,9 +544,9 @@ export default function AdminAlertsPage() {
         >
           <div className="admin-card-header">
             <div>
-              <h2 className="admin-card-title">Alert operations unavailable</h2>
+              <h2 className="admin-card-title">{t('adminAlertsPage.error.unavailable')}</h2>
               <p className="admin-card-subtitle">
-                {error.message || 'Failed to load operational alerts.'}
+                {error.message || t('adminAlertsPage.error.loadFailed')}
               </p>
             </div>
             <button
@@ -556,7 +560,7 @@ export default function AdminAlertsPage() {
               }}
               type="button"
             >
-              Retry
+              {t('common:actions.retry')}
             </button>
           </div>
         </div>
@@ -566,11 +570,10 @@ export default function AdminAlertsPage() {
         <div className="admin-modal-overlay">
           <div className="admin-modal">
             <h3 className="admin-modal-title" style={{ color: 'var(--admin-danger)' }}>
-              {'\u26A0'} Enable Emergency Mode?
+              {'⚠'} {t('adminAlertsPage.emergencyConfirm.title')}
             </h3>
             <p className="admin-modal-desc">
-              This switches the composer into emergency defaults for the next operational alert.
-              Nothing is published until you save an alert.
+              {t('adminAlertsPage.emergencyConfirm.description')}
             </p>
             <div className="admin-modal-actions">
               <button
@@ -578,14 +581,14 @@ export default function AdminAlertsPage() {
                 onClick={() => setEmergencyConfirm(false)}
                 type="button"
               >
-                Cancel
+                {t('common:actions.cancel')}
               </button>
               <button
                 className="admin-btn admin-btn-danger"
                 onClick={activateEmergencyMode}
                 type="button"
               >
-                Confirm Activation
+                {t('adminAlertsPage.emergencyConfirm.confirm')}
               </button>
             </div>
           </div>
@@ -595,10 +598,9 @@ export default function AdminAlertsPage() {
       {cancelTarget && (
         <div className="admin-modal-overlay">
           <div className="admin-modal">
-            <h3 className="admin-modal-title">Cancel operational alert?</h3>
+            <h3 className="admin-modal-title">{t('adminAlertsPage.cancelModal.title')}</h3>
             <p className="admin-modal-desc">
-              <strong>{cancelTarget.title}</strong> will be marked as cancelled and an audit event
-              will be recorded.
+              <strong>{cancelTarget.title}</strong> {t('adminAlertsPage.cancelModal.description')}
             </p>
             <div className="admin-modal-actions">
               <button
@@ -606,7 +608,7 @@ export default function AdminAlertsPage() {
                 onClick={() => setCancelTarget(null)}
                 type="button"
               >
-                Keep Alert
+                {t('adminAlertsPage.keepAlert')}
               </button>
               <button
                 className="admin-btn admin-btn-danger"
@@ -614,7 +616,7 @@ export default function AdminAlertsPage() {
                 disabled={isSubmitting}
                 type="button"
               >
-                {isSubmitting ? 'Cancelling...' : 'Confirm Cancel'}
+                {isSubmitting ? t('adminAlertsPage.cancelModal.cancelling') : t('adminAlertsPage.cancelModal.confirm')}
               </button>
             </div>
           </div>
@@ -624,10 +626,9 @@ export default function AdminAlertsPage() {
       {deleteTarget && (
         <div className="admin-modal-overlay">
           <div className="admin-modal">
-            <h3 className="admin-modal-title">Delete operational alert?</h3>
+            <h3 className="admin-modal-title">{t('adminAlertsPage.deleteModal.title')}</h3>
             <p className="admin-modal-desc">
-              <strong>{deleteTarget.title}</strong> will be permanently removed, along with its
-              history and any notifications sent for it. This cannot be undone.
+              <strong>{deleteTarget.title}</strong> {t('adminAlertsPage.deleteModal.description')}
             </p>
             <div className="admin-modal-actions">
               <button
@@ -635,7 +636,7 @@ export default function AdminAlertsPage() {
                 onClick={() => setDeleteTarget(null)}
                 type="button"
               >
-                Keep Alert
+                {t('adminAlertsPage.keepAlert')}
               </button>
               <button
                 className="admin-btn admin-btn-danger"
@@ -643,7 +644,7 @@ export default function AdminAlertsPage() {
                 disabled={isSubmitting}
                 type="button"
               >
-                {isSubmitting ? 'Deleting...' : 'Confirm Delete'}
+                {isSubmitting ? t('adminAlertsPage.deleteModal.deleting') : t('adminAlertsPage.deleteModal.confirm')}
               </button>
             </div>
           </div>
@@ -652,9 +653,9 @@ export default function AdminAlertsPage() {
 
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">Alert Operations</h1>
+          <h1 className="admin-page-title">{t('adminAlertsPage.pageTitle')}</h1>
           <p className="admin-page-subtitle">
-            Manage geo-based alerts, emergency broadcasts and official notifications
+            {t('adminAlertsPage.pageSubtitle')}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -663,7 +664,7 @@ export default function AdminAlertsPage() {
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search title, zone, or type..."
+            placeholder={t('adminAlertsPage.searchPlaceholder')}
             style={{ minWidth: 240 }}
           />
           <div
@@ -684,7 +685,7 @@ export default function AdminAlertsPage() {
                 fontWeight: 600,
               }}
             >
-              Emergency Mode
+              {t('adminAlertsPage.emergencyModeLabel')}
             </span>
             <button
               className={`admin-toggle ${emergencyMode ? 'active' : ''}`}
@@ -700,7 +701,7 @@ export default function AdminAlertsPage() {
             onClick={() => openCreateForm({ emergency: emergencyMode })}
             type="button"
           >
-            + New Alert
+            {t('adminAlertsPage.newAlert')}
           </button>
         </div>
       </div>
@@ -711,15 +712,15 @@ export default function AdminAlertsPage() {
             <div>
               <h3 className="admin-card-title">
                 {formMode === 'edit'
-                  ? 'Edit Operational Alert'
+                  ? t('adminAlertsPage.form.titleEdit')
                   : formData.templateId
-                    ? 'Create Alert From Template'
-                    : 'Create New Alert'}
+                    ? t('adminAlertsPage.form.titleFromTemplate')
+                    : t('adminAlertsPage.form.titleCreate')}
               </h3>
               <p className="admin-card-subtitle">
                 {formData.templateId
-                  ? 'Template defaults are prefilled and can be adjusted before publishing.'
-                  : 'Target a wilaya or commune, choose the lifecycle window, then publish.'}
+                  ? t('adminAlertsPage.form.subtitleFromTemplate')
+                  : t('adminAlertsPage.form.subtitleCreate')}
               </p>
             </div>
             <button
@@ -732,7 +733,7 @@ export default function AdminAlertsPage() {
               }}
               type="button"
             >
-              Close
+              {t('common:actions.close')}
             </button>
           </div>
 
@@ -755,7 +756,7 @@ export default function AdminAlertsPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
             <div>
-              <label className="admin-form-label">Title</label>
+              <label className="admin-form-label">{t('adminAlertsPage.form.fieldTitle')}</label>
               <input
                 className="admin-input"
                 type="text"
@@ -764,12 +765,12 @@ export default function AdminAlertsPage() {
                   ...current,
                   title: event.target.value,
                 }))}
-                placeholder="Alert title..."
+                placeholder={t('adminAlertsPage.form.titlePlaceholder')}
               />
             </div>
 
             <div>
-              <label className="admin-form-label">Wilaya</label>
+              <label className="admin-form-label">{t('adminAlertsPage.form.wilayaLabel')}</label>
               <FancySelect
                 value={formData.wilayaId}
                 onChange={(value) => setFormData((current) => ({
@@ -778,17 +779,17 @@ export default function AdminAlertsPage() {
                   communeId: '',
                 }))}
                 disabled={loadingWilayas}
-                placeholder={loadingWilayas ? 'Loading wilayas...' : 'Select wilaya...'}
+                placeholder={loadingWilayas ? t('adminAlertsPage.form.loadingWilayas') : t('adminAlertsPage.form.selectWilaya')}
                 menuAlign="left"
                 options={[
-                  { value: '', label: loadingWilayas ? 'Loading wilayas...' : 'Select wilaya...' },
+                  { value: '', label: loadingWilayas ? t('adminAlertsPage.form.loadingWilayas') : t('adminAlertsPage.form.selectWilaya') },
                   ...wilayas.map((w) => ({ value: w.id, label: w.name })),
                 ]}
               />
             </div>
 
             <div>
-              <label className="admin-form-label">Commune (optional)</label>
+              <label className="admin-form-label">{t('adminAlertsPage.form.communeLabel')}</label>
               <FancySelect
                 value={formData.communeId}
                 onChange={(value) => setFormData((current) => ({
@@ -801,10 +802,10 @@ export default function AdminAlertsPage() {
                   {
                     value: '',
                     label: !formData.wilayaId
-                      ? 'Select wilaya first...'
+                      ? t('adminAlertsPage.form.selectWilayaFirst')
                       : loadingCommunes
-                        ? 'Loading communes...'
-                        : 'Use wilaya-wide alert',
+                        ? t('adminAlertsPage.form.loadingCommunes')
+                        : t('adminAlertsPage.form.wilayaWideAlert'),
                   },
                   ...communes.map((c) => ({ value: c.id, label: c.name })),
                 ]}
@@ -812,7 +813,7 @@ export default function AdminAlertsPage() {
             </div>
 
             <div>
-              <label className="admin-form-label">Severity</label>
+              <label className="admin-form-label">{t('adminAlertsPage.form.severityLabel')}</label>
               <FancySelect
                 value={formData.severity}
                 onChange={(value) => setFormData((current) => ({
@@ -825,7 +826,7 @@ export default function AdminAlertsPage() {
             </div>
 
             <div>
-              <label className="admin-form-label">Type</label>
+              <label className="admin-form-label">{t('adminAlertsPage.form.typeLabel')}</label>
               <FancySelect
                 value={formData.alertType}
                 onChange={(value) => setFormData((current) => ({
@@ -839,7 +840,7 @@ export default function AdminAlertsPage() {
             </div>
 
             <div>
-              <label className="admin-form-label">Audience Scope</label>
+              <label className="admin-form-label">{t('adminAlertsPage.form.audienceLabel')}</label>
               <FancySelect
                 value={formData.audienceScope}
                 onChange={(value) => setFormData((current) => ({
@@ -852,7 +853,7 @@ export default function AdminAlertsPage() {
             </div>
 
             <div>
-              <label className="admin-form-label">Starts At</label>
+              <label className="admin-form-label">{t('adminAlertsPage.form.startsAtLabel')}</label>
               <input
                 className="admin-input"
                 type="datetime-local"
@@ -865,7 +866,7 @@ export default function AdminAlertsPage() {
             </div>
 
             <div>
-              <label className="admin-form-label">Ends At</label>
+              <label className="admin-form-label">{t('adminAlertsPage.form.endsAtLabel')}</label>
               <input
                 className="admin-input"
                 type="datetime-local"
@@ -878,7 +879,7 @@ export default function AdminAlertsPage() {
             </div>
 
             <div>
-              <label className="admin-form-label">Delivery Channels</label>
+              <label className="admin-form-label">{t('adminAlertsPage.form.deliveryChannels')}</label>
               <div
                 style={{
                   display: 'flex',
@@ -889,9 +890,9 @@ export default function AdminAlertsPage() {
                 }}
               >
                 {[
-                  { key: 'sendPush', label: 'Push' },
-                  { key: 'sendEmail', label: 'Email' },
-                  { key: 'sendSms', label: 'SMS' },
+                  { key: 'sendPush', label: t('adminAlertsPage.form.channelPush') },
+                  { key: 'sendEmail', label: t('adminAlertsPage.form.channelEmail') },
+                  { key: 'sendSms', label: t('adminAlertsPage.form.channelSms') },
                 ].map((channel) => (
                   <label
                     key={channel.key}
@@ -919,7 +920,7 @@ export default function AdminAlertsPage() {
           </div>
 
           <div style={{ marginTop: 12 }}>
-            <label className="admin-form-label">Description</label>
+            <label className="admin-form-label">{t('adminAlertsPage.form.descriptionLabel')}</label>
             <textarea
               className="admin-textarea"
               rows={3}
@@ -928,7 +929,7 @@ export default function AdminAlertsPage() {
                 ...current,
                 description: event.target.value,
               }))}
-              placeholder="Explain the alert impact, guidance, and timing..."
+              placeholder={t('adminAlertsPage.form.descriptionPlaceholder')}
             />
           </div>
 
@@ -960,7 +961,7 @@ export default function AdminAlertsPage() {
                     notifyOnStart: event.target.checked,
                   }))}
                 />
-                Notify on start
+                {t('adminAlertsPage.form.notifyOnStart')}
               </label>
               <label
                 style={{
@@ -979,7 +980,7 @@ export default function AdminAlertsPage() {
                     notifyOnExpire: event.target.checked,
                   }))}
                 />
-                Notify on expire
+                {t('adminAlertsPage.form.notifyOnExpire')}
               </label>
             </div>
 
@@ -990,7 +991,7 @@ export default function AdminAlertsPage() {
                 disabled={isSubmitting}
                 type="button"
               >
-                Close
+                {t('common:actions.close')}
               </button>
               <button
                 className="admin-btn admin-btn-primary"
@@ -1000,11 +1001,11 @@ export default function AdminAlertsPage() {
               >
                 {isSubmitting
                   ? formMode === 'edit'
-                    ? 'Saving...'
-                    : 'Publishing...'
+                    ? t('adminAlertsPage.form.saving')
+                    : t('adminAlertsPage.form.publishing')
                   : formMode === 'edit'
-                    ? 'Save Changes'
-                    : 'Publish Alert'}
+                    ? t('adminAlertsPage.form.saveChanges')
+                    : t('adminAlertsPage.form.publishAlert')}
               </button>
             </div>
           </div>
@@ -1031,18 +1032,18 @@ export default function AdminAlertsPage() {
         templatesLoading ? (
           <div className="admin-card">
               <div className="admin-empty">
-              <div className="admin-empty-icon">{'\u25C8'}</div>
-              <div className="admin-empty-text">Loading alert templates...</div>
+              <div className="admin-empty-icon">{'◈'}</div>
+              <div className="admin-empty-text">{t('adminAlertsPage.templates.loading')}</div>
             </div>
           </div>
         ) : filteredTemplates.length === 0 ? (
           <div className="admin-card">
             <div className="admin-empty">
-              <div className="admin-empty-icon">{'\u25C8'}</div>
+              <div className="admin-empty-icon">{'◈'}</div>
               <div className="admin-empty-text">
                 {search
-                  ? 'No templates match your current search.'
-                  : 'No operational alert templates are available yet.'}
+                  ? t('adminAlertsPage.templates.noMatch')
+                  : t('adminAlertsPage.templates.empty')}
               </div>
             </div>
           </div>
@@ -1067,10 +1068,10 @@ export default function AdminAlertsPage() {
                   {template.description}
                 </p>
                 <div style={{ marginTop: 10, fontSize: 10.5, color: 'var(--admin-text-secondary)' }}>
-                  Default duration: {template.defaultDuration}
+                  {t('adminAlertsPage.templates.defaultDuration', { duration: template.defaultDuration })}
                 </div>
                 <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--admin-text-secondary)' }}>
-                  Type: {formatAlertType(template.alertType)}
+                  {t('adminAlertsPage.templates.type', { type: formatAlertType(template.alertType) })}
                 </div>
                 <button
                   className="admin-btn admin-btn-ghost admin-btn-full"
@@ -1078,7 +1079,7 @@ export default function AdminAlertsPage() {
                   onClick={() => handleUseTemplate(template)}
                   type="button"
                 >
-                  Use Template &rarr;
+                  {t('adminAlertsPage.templates.useTemplate')}
                 </button>
               </div>
             ))}
@@ -1089,11 +1090,11 @@ export default function AdminAlertsPage() {
           <div className="admin-card">
             <div className="admin-card-header">
               <div>
-                <h2 className="admin-card-title">Operational Alerts</h2>
+                <h2 className="admin-card-title">{t('adminAlertsPage.table.heading')}</h2>
                 <p className="admin-card-subtitle">
                   {loading
-                    ? 'Refreshing active lifecycle data...'
-                    : `${pagination.total.toLocaleString()} alert${pagination.total === 1 ? '' : 's'} in this view`}
+                    ? t('adminAlertsPage.table.refreshing')
+                    : t('adminAlertsPage.table.countSummary', { count: pagination.total, total: pagination.total.toLocaleString() })}
                 </p>
               </div>
             </div>
@@ -1102,16 +1103,16 @@ export default function AdminAlertsPage() {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Title</th>
-                    <th>Zone</th>
-                    <th>Severity</th>
-                    <th>Type</th>
-                    <th>Trigger</th>
-                    <th>Duration</th>
-                    <th>Audience</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th>{t('adminAlertsPage.table.colId')}</th>
+                    <th>{t('adminAlertsPage.table.colTitle')}</th>
+                    <th>{t('adminAlertsPage.table.colZone')}</th>
+                    <th>{t('adminAlertsPage.table.colSeverity')}</th>
+                    <th>{t('adminAlertsPage.table.colType')}</th>
+                    <th>{t('adminAlertsPage.table.colTrigger')}</th>
+                    <th>{t('adminAlertsPage.table.colDuration')}</th>
+                    <th>{t('adminAlertsPage.table.colAudience')}</th>
+                    <th>{t('adminAlertsPage.table.colStatus')}</th>
+                    <th>{t('adminAlertsPage.table.colActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1149,7 +1150,7 @@ export default function AdminAlertsPage() {
                             disabled={isSubmitting}
                             type="button"
                           >
-                            Edit
+                            {t('common:actions.edit')}
                           </button>
                           {(alert.status === 'active' || alert.status === 'scheduled') && (
                             <button
@@ -1158,7 +1159,7 @@ export default function AdminAlertsPage() {
                               disabled={isSubmitting}
                               type="button"
                             >
-                              Cancel
+                              {t('common:actions.cancel')}
                             </button>
                           )}
                           <button
@@ -1167,7 +1168,7 @@ export default function AdminAlertsPage() {
                             disabled={isSubmitting}
                             type="button"
                           >
-                            Delete
+                            {t('common:actions.delete')}
                           </button>
                         </div>
                       </td>
@@ -1178,8 +1179,8 @@ export default function AdminAlertsPage() {
                     <tr>
                       <td colSpan={10} style={{ textAlign: 'center', padding: 32, color: 'var(--admin-text-muted)' }}>
                         {currentTab === 'emergency'
-                          ? 'No emergency operational alerts were found.'
-                          : 'No operational alerts match this view yet.'}
+                          ? t('adminAlertsPage.table.emptyEmergency')
+                          : t('adminAlertsPage.table.emptyGeneric')}
                       </td>
                     </tr>
                   )}
@@ -1187,7 +1188,7 @@ export default function AdminAlertsPage() {
                   {loading && alerts.length === 0 && (
                     <tr>
                       <td colSpan={10} style={{ textAlign: 'center', padding: 32, color: 'var(--admin-text-muted)' }}>
-                        Loading operational alerts...
+                        {t('adminAlertsPage.table.loadingAlerts')}
                       </td>
                     </tr>
                   )}
@@ -1209,7 +1210,7 @@ export default function AdminAlertsPage() {
             }}
           >
             <div className="admin-card-subtitle" style={{ marginTop: 0 }}>
-              Showing {pagination.returned} of {pagination.total.toLocaleString()} alerts
+              {t('adminAlertsPage.pagination.showing', { returned: pagination.returned, total: pagination.total.toLocaleString() })}
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button
@@ -1218,7 +1219,7 @@ export default function AdminAlertsPage() {
                 disabled={page <= 1 || loading}
                 type="button"
               >
-                &larr; Previous
+                {t('adminAlertsPage.pagination.previous')}
               </button>
               <span
                 style={{
@@ -1227,7 +1228,7 @@ export default function AdminAlertsPage() {
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                Page {pagination.page} / {pagination.totalPages}
+                {t('adminAlertsPage.pagination.pageOf', { page: pagination.page, totalPages: pagination.totalPages })}
               </span>
               <button
                 className="admin-btn admin-btn-ghost"
@@ -1235,7 +1236,7 @@ export default function AdminAlertsPage() {
                 disabled={page >= pagination.totalPages || loading}
                 type="button"
               >
-                Next &rarr;
+                {t('adminAlertsPage.pagination.next')}
               </button>
             </div>
           </div>

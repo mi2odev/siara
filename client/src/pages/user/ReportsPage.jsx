@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
 import NotificationBell from '../../components/notifications/NotificationBell'
@@ -12,6 +13,7 @@ import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
 import { deleteReport, listReports, respondToInfoRequest } from '../../services/reportsService'
 import FancySelect from '../../components/ui/FancySelect'
 import DrivingQuiz from '../../components/ui/DrivingQuiz'
+import i18n from '../../i18n'
 import '../../styles/NewsPage.css'
 import '../../styles/AlertsPage.css'
 import '../../styles/DashboardPage.css'
@@ -20,7 +22,7 @@ import profileAvatar from '../../assets/logos/siara-logo1.png'
 
 function toTitleCase(value) {
   const normalized = String(value || '').trim()
-  if (!normalized) return 'Unknown'
+  if (!normalized) return i18n.t('reports:reportsPage.unknown')
   return normalized.charAt(0).toUpperCase() + normalized.slice(1)
 }
 
@@ -52,10 +54,10 @@ function TagIcon() {
 }
 
 function formatReportTime(value) {
-  if (!value) return 'Unknown time'
+  if (!value) return i18n.t('reports:reportsPage.unknownTime')
 
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Unknown time'
+  if (Number.isNaN(date.getTime())) return i18n.t('reports:reportsPage.unknownTime')
 
   return date.toLocaleString([], {
     month: 'short',
@@ -81,7 +83,7 @@ function getStatusClass(status) {
 }
 
 function getReportTitle(report) {
-  return report?.title || report?.incidentTitle || 'Untitled report'
+  return report?.title || report?.incidentTitle || i18n.t('reports:reportsPage.untitledReport')
 }
 
 function getReportType(report) {
@@ -89,7 +91,7 @@ function getReportType(report) {
 }
 
 function getReportLocation(report) {
-  return report?.location?.label || report?.locationLabel || 'Unknown location'
+  return report?.location?.label || report?.locationLabel || i18n.t('reports:reportsPage.unknownLocation')
 }
 
 function isOwnedByUser(report, userIdentity) {
@@ -137,6 +139,7 @@ function isOwnedByUser(report, userIdentity) {
 }
 
 export default function ReportsPage() {
+  const { t } = useTranslation(['reports', 'common'])
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useContext(AuthContext)
@@ -175,12 +178,12 @@ export default function ReportsPage() {
       const updated = await respondToInfoRequest(infoModalReport.id, infoModalText.trim())
       if (updated) {
         setReports((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
-        setToast('Response sent — thanks for the extra info.')
+        setToast(t('reportsPage.toastResponseSent'))
         setInfoModalReport(null)
         setInfoModalText('')
       }
     } catch (err) {
-      setInfoModalError(err?.message || 'Failed to send response')
+      setInfoModalError(err?.message || t('reportsPage.errorFailedToSend'))
     } finally {
       setInfoModalSubmitting(false)
     }
@@ -206,7 +209,7 @@ export default function ReportsPage() {
         setReports(ownedReports)
       } catch (error) {
         if (!ignore) {
-          setErrorMessage(error.message || 'Unable to load your reports.')
+          setErrorMessage(error.message || t('reportsPage.errorLoadReports'))
           setReports([])
         }
       } finally {
@@ -223,7 +226,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     if (location.state?.newReport) {
-      setToast(`Report \"${location.state.newReport}\" submitted successfully`)
+      setToast(t('reportsPage.toastSubmitted', { name: location.state.newReport }))
       window.history.replaceState({}, '')
     }
   }, [location.state])
@@ -291,14 +294,14 @@ export default function ReportsPage() {
 
   async function handleDelete(event, reportId) {
     event.stopPropagation()
-    if (!window.confirm('Delete this report?')) return
+    if (!window.confirm(t('reportsPage.confirmDelete'))) return
 
     try {
       await deleteReport(reportId)
       setReports((prev) => prev.filter((report) => report.id !== reportId))
-      setToast('Report deleted')
+      setToast(t('reportsPage.toastDeleted'))
     } catch (error) {
-      setErrorMessage(error.message || 'Unable to delete report.')
+      setErrorMessage(error.message || t('reportsPage.errorDeleteReport'))
     }
   }
 
@@ -312,12 +315,12 @@ export default function ReportsPage() {
               <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">
-              <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
-              <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
-              <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-              <button className="dash-tab dash-tab-active">Report</button>
-              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
-              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <button className="dash-tab" onClick={() => navigate('/news')}>{t('reportsPage.navFeed')}</button>
+              <button className="dash-tab" onClick={() => navigate('/map')}>{t('common:nav.map')}</button>
+              <button className="dash-tab" onClick={() => navigate('/alerts')}>{t('common:nav.alerts')}</button>
+              <button className="dash-tab dash-tab-active">{t('reportsPage.navReport')}</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>{t('reportsPage.navDashboard')}</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>{t('common:nav.predictions')}</button>
               <PoliceModeTab user={user} />
             </nav>
           </div>
@@ -326,26 +329,26 @@ export default function ReportsPage() {
               navigate={navigate}
               query={headerSearchQuery}
               setQuery={setHeaderSearchQuery}
-              placeholder="Search for an incident, a road, a wilaya..."
-              ariaLabel="Search"
+              placeholder={t('reportsPage.searchPlaceholder')}
+              ariaLabel={t('common:actions.search')}
               currentUser={user}
             />
           </div>
           <div className="dash-header-right">
             <NotificationBell />
             <div className="dash-avatar-wrapper">
-              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label={t('reportsPage.ariaUserProfile')}>
                 {userAvatarUrl ? (
-                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                  <img src={userAvatarUrl} alt={t('reportsPage.altUserAvatar')} className="dash-avatar-image" loading="lazy" />
                 ) : profileInitials}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>{t('reportsPage.dropdownMyProfile')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>{t('common:nav.settings')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>{t('common:nav.notifications')}</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>{t('common:nav.logout')}</button>
                 </div>
               )}
             </div>
@@ -359,38 +362,38 @@ export default function ReportsPage() {
         <aside className="al-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />            </div>
+              <img src={profileAvatarUrl} alt={t('common:nav.profile')} className="profile-avatar-large" loading="lazy" />            </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
               <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
-              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
-              <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
+              <p className="profile-bio">{t('reportsPage.profileBio')}</p>
+              <button className="profile-view-link" onClick={() => navigate('/profile')}>{t('reportsPage.viewProfile')}</button>
             </div>
           </div>
 
-          <button className="al-cta" onClick={() => navigate('/report/create')}>+ New Report</button>
+          <button className="al-cta" onClick={() => navigate('/report/create')}>{t('reportsPage.newReport')}</button>
 
           <div className="card al-filter-section">
-            <div className="nav-section-label">REPORT STATUS</div>
+            <div className="nav-section-label">{t('reportsPage.reportStatusLabel')}</div>
             <nav className="al-nav">
               <button className={`al-nav-btn ${statusFilter === 'all' ? 'active' : ''}`} onClick={() => setStatusFilter('all')}>
-                <span className="nav-label">All</span>
+                <span className="nav-label">{t('reportsPage.filterAll')}</span>
                 <span className="nav-count">{stats.all}</span>
               </button>
               <button className={`al-nav-btn ${statusFilter === 'pending' ? 'active' : ''}`} onClick={() => setStatusFilter('pending')}>
-                <span className="nav-label">Pending</span>
+                <span className="nav-label">{t('reportsPage.filterPending')}</span>
                 <span className="nav-count">{stats.pending}</span>
               </button>
               <button className={`al-nav-btn ${statusFilter === 'verified' ? 'active' : ''}`} onClick={() => setStatusFilter('verified')}>
-                <span className="nav-label">Verified</span>
+                <span className="nav-label">{t('reportsPage.filterVerified')}</span>
                 <span className="nav-count">{stats.verified}</span>
               </button>
               <button className={`al-nav-btn ${statusFilter === 'resolved' ? 'active' : ''}`} onClick={() => setStatusFilter('resolved')}>
-                <span className="nav-label">Resolved</span>
+                <span className="nav-label">{t('reportsPage.filterResolved')}</span>
                 <span className="nav-count">{stats.resolved}</span>
               </button>
               <button className={`al-nav-btn ${statusFilter === 'rejected' ? 'active' : ''}`} onClick={() => setStatusFilter('rejected')}>
-                <span className="nav-label">Rejected</span>
+                <span className="nav-label">{t('reportsPage.filterRejected')}</span>
                 <span className="nav-count">{stats.rejected}</span>
               </button>
             </nav>
@@ -401,8 +404,8 @@ export default function ReportsPage() {
 
         <main className="al-center">
           <div className="al-page-head">
-            <h1>My Reports</h1>
-            <p>Track, review, and manage your incident reports.</p>
+            <h1>{t('reportsPage.pageTitle')}</h1>
+            <p>{t('reportsPage.pageSubtitle')}</p>
           </div>
 
           <div className="al-filters">
@@ -411,10 +414,10 @@ export default function ReportsPage() {
               onChange={setSeverityFilter}
               menuAlign="left"
               options={[
-                { value: 'all',    label: 'Severity' },
-                { value: 'high',   label: 'High' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'low',    label: 'Low' },
+                { value: 'all',    label: t('reportsPage.severityAll') },
+                { value: 'high',   label: t('reportsPage.severityHigh') },
+                { value: 'medium', label: t('reportsPage.severityMedium') },
+                { value: 'low',    label: t('reportsPage.severityLow') },
               ]}
             />
           </div>
@@ -423,13 +426,13 @@ export default function ReportsPage() {
 
           <div className="al-list">
             {loading ? (
-              <div className="al-empty"><h3>Loading reports...</h3></div>
+              <div className="al-empty"><h3>{t('reportsPage.loadingReports')}</h3></div>
             ) : filteredReports.length === 0 ? (
               <div className="al-empty">
                 <span className="empty-icon"><EditNoteOutlinedIcon fontSize="inherit" /></span>
-                <h3>No Reports</h3>
-                <p>Create your first report to share road incidents.</p>
-                <button className="empty-btn" onClick={() => navigate('/report/create')}>Create a Report</button>
+                <h3>{t('reportsPage.emptyTitle')}</h3>
+                <p>{t('reportsPage.emptyDesc')}</p>
+                <button className="empty-btn" onClick={() => navigate('/report/create')}>{t('reportsPage.emptyCreateBtn')}</button>
               </div>
             ) : (
               filteredReports.map((report) => (
@@ -478,7 +481,7 @@ export default function ReportsPage() {
                       <span style={{ fontSize: 18, lineHeight: '20px', color: '#B45309' }}>?</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 700, fontSize: 12.5, color: '#92400E' }}>
-                          A moderator needs more info
+                          {t('reportsPage.infoRequestTitle')}
                         </div>
                         {report.infoRequest.message ? (
                           <div style={{ fontSize: 12, color: '#78350F', marginTop: 2, whiteSpace: 'pre-wrap' }}>
@@ -491,7 +494,7 @@ export default function ReportsPage() {
                         className="act-btn act-edit"
                         onClick={(event) => { event.stopPropagation(); openInfoModal(report) }}
                       >
-                        Respond
+                        {t('reportsPage.infoRequestRespond')}
                       </button>
                     </div>
                   )}
@@ -508,15 +511,15 @@ export default function ReportsPage() {
                         color: '#065F46',
                       }}
                     >
-                      <strong>Your response was sent.</strong> Waiting on the moderator to follow up.
+                      <strong>{t('reportsPage.infoResponseSent')}</strong> {t('reportsPage.infoResponseWaiting')}
                     </div>
                   )}
                   <div className="card-foot">
                     <button className="act-btn act-edit" onClick={(event) => { event.stopPropagation(); navigate(`/incident/${report.id}`) }}>
-                      View
+                      {t('reportsPage.cardView')}
                     </button>
                     <button className="act-btn act-delete" onClick={(event) => handleDelete(event, report.id)}>
-                      Delete
+                      {t('common:actions.delete')}
                     </button>
                   </div>
                 </div>
@@ -528,23 +531,23 @@ export default function ReportsPage() {
         <aside className="al-right">
           <div className="al-panel reports-overview-panel">
             <div className="panel-head">
-              <span className="panel-label">Reports Overview</span>
+              <span className="panel-label">{t('reportsPage.overviewTitle')}</span>
             </div>
             <div className="reports-overview-grid">
               <div className="reports-overview-item">
-                <span className="reports-overview-k">Total</span>
+                <span className="reports-overview-k">{t('reportsPage.overviewTotal')}</span>
                 <strong className="reports-overview-v">{stats.all}</strong>
               </div>
               <div className="reports-overview-item reports-overview-item-pending">
-                <span className="reports-overview-k">Pending</span>
+                <span className="reports-overview-k">{t('reportsPage.filterPending')}</span>
                 <strong className="reports-overview-v">{stats.pending}</strong>
               </div>
               <div className="reports-overview-item reports-overview-item-verified">
-                <span className="reports-overview-k">Verified</span>
+                <span className="reports-overview-k">{t('reportsPage.filterVerified')}</span>
                 <strong className="reports-overview-v">{stats.verified}</strong>
               </div>
               <div className="reports-overview-item reports-overview-item-resolved">
-                <span className="reports-overview-k">Resolved</span>
+                <span className="reports-overview-k">{t('reportsPage.filterResolved')}</span>
                 <strong className="reports-overview-v">{stats.resolved}</strong>
               </div>
             </div>
@@ -552,7 +555,7 @@ export default function ReportsPage() {
 
           <div className="al-panel reports-detail-panel">
             <div className="panel-head">
-              <span className="panel-label">Selected Report</span>
+              <span className="panel-label">{t('reportsPage.detailPanelTitle')}</span>
             </div>
 
             {!selectedReport ? (
@@ -563,8 +566,8 @@ export default function ReportsPage() {
                     <path d="M14 2v6h6M9 13h6M9 17h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
                   </svg>
                 </span>
-                <h4>No Report Selected</h4>
-                <p>Select a report from the list to view complete details here.</p>
+                <h4>{t('reportsPage.noSelTitle')}</h4>
+                <p>{t('reportsPage.noSelDesc')}</p>
               </div>
             ) : (
               <>
@@ -592,29 +595,29 @@ export default function ReportsPage() {
 
                 <div className="reports-detail-list">
                   <div className="reports-detail-row">
-                    <span>Type</span>
+                    <span>{t('reportsPage.detailType')}</span>
                     <strong>{toTitleCase(getReportType(selectedReport))}</strong>
                   </div>
                   <div className="reports-detail-row">
-                    <span>Location</span>
+                    <span>{t('reportsPage.detailLocation')}</span>
                     <strong>{getReportLocation(selectedReport)}</strong>
                   </div>
                   <div className="reports-detail-row">
-                    <span>Occurred</span>
+                    <span>{t('reportsPage.detailOccurred')}</span>
                     <strong>{formatReportTime(selectedReport.occurredAt || selectedReport.createdAt)}</strong>
                   </div>
                   <div className="reports-detail-row">
-                    <span>Reference</span>
+                    <span>{t('reportsPage.detailReference')}</span>
                     <strong className="ref-id">{selectedReport.id}</strong>
                   </div>
                 </div>
 
                 <div className="reports-detail-actions">
                   <button className="act-btn act-edit" onClick={() => navigate(`/incident/${selectedReport.id}`)}>
-                    View Full Report
+                    {t('reportsPage.viewFullReport')}
                   </button>
                   <button className="act-btn" onClick={() => navigate('/report/create')}>
-                    New Report
+                    {t('reportsPage.newReportBtn')}
                   </button>
                 </div>
               </>
@@ -641,9 +644,9 @@ export default function ReportsPage() {
             }}
           >
             <div>
-              <h3 style={{ margin: 0, fontSize: 16, color: '#0F172A' }}>Respond to moderator</h3>
+              <h3 style={{ margin: 0, fontSize: 16, color: '#0F172A' }}>{t('reportsPage.modalTitle')}</h3>
               <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#475569' }}>
-                Your answer goes to the admin reviewing this report.
+                {t('reportsPage.modalSubtitle')}
               </p>
             </div>
             {infoModalReport.infoRequest?.message ? (
@@ -661,7 +664,7 @@ export default function ReportsPage() {
             <textarea
               value={infoModalText}
               onChange={(event) => setInfoModalText(event.target.value)}
-              placeholder="Type your response…"
+              placeholder={t('reportsPage.modalPlaceholder')}
               rows={5}
               maxLength={2000}
               disabled={infoModalSubmitting}
@@ -680,7 +683,7 @@ export default function ReportsPage() {
                 onClick={closeInfoModal}
                 disabled={infoModalSubmitting}
               >
-                Cancel
+                {t('common:actions.cancel')}
               </button>
               <button
                 type="button"
@@ -688,7 +691,7 @@ export default function ReportsPage() {
                 onClick={submitInfoResponse}
                 disabled={!infoModalText.trim() || infoModalSubmitting}
               >
-                {infoModalSubmitting ? 'Sending…' : 'Send response'}
+                {infoModalSubmitting ? t('reportsPage.modalSending') : t('reportsPage.modalSend')}
               </button>
             </div>
           </div>

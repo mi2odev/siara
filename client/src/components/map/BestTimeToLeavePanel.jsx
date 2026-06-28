@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
 import { fetchDepartureOptions } from '../../services/departureOptionsService'
 import '../../styles/BestTimeToLeavePanel.css'
@@ -52,6 +53,7 @@ export default function BestTimeToLeavePanel({
   onSelectTimestamp,
   enabled = true,
 }) {
+  const { t } = useTranslation(['map', 'common'])
   const [state, setState] = useState('idle')
   const [error, setError] = useState('')
   const [options, setOptions] = useState([])
@@ -99,7 +101,7 @@ export default function BestTimeToLeavePanel({
       setBestOption(best)
       setState('success')
     } catch (err) {
-      setError(err?.message || 'Could not check safer departure times.')
+      setError(err?.message || t('bestTimeToLeavePanel.errorFallback'))
       setState('error')
     }
   }, [enabled, origin, destination, offsetsMin, baseMs])
@@ -141,30 +143,30 @@ export default function BestTimeToLeavePanel({
   return (
     <section
       className="siara-best-time"
-      aria-label="Best time to leave"
+      aria-label={t('bestTimeToLeavePanel.title')}
     >
       <div className="siara-best-time__header">
         <span className="siara-best-time__icon" aria-hidden="true">
           <AccessTimeOutlinedIcon fontSize="inherit" />
         </span>
-        <h4 className="siara-best-time__title">Best time to leave</h4>
+        <h4 className="siara-best-time__title">{t('bestTimeToLeavePanel.title')}</h4>
         <button
           type="button"
           className="siara-best-time__refresh"
           onClick={runQuery}
           disabled={state === 'loading' || !origin || !destination}
         >
-          {state === 'loading' ? 'Checking…' : 'Refresh'}
+          {state === 'loading' ? t('bestTimeToLeavePanel.checking') : t('bestTimeToLeavePanel.refresh')}
         </button>
       </div>
 
       {!origin || !destination ? (
         <p className="siara-best-time__hint">
-          Pick an origin and destination to compare departure times.
+          {t('bestTimeToLeavePanel.pickOriginDestination')}
         </p>
       ) : state === 'loading' ? (
         <>
-          <p className="siara-best-time__hint">Checking safer departure times…</p>
+          <p className="siara-best-time__hint">{t('bestTimeToLeavePanel.checkingDepartureTimes')}</p>
           <ul className="siara-best-time__list" aria-hidden="true">
             {offsetsMin.map((m) => (
               <li key={`skel-${m}`} className="siara-best-time__skeleton" />
@@ -174,19 +176,23 @@ export default function BestTimeToLeavePanel({
       ) : state === 'error' ? (
         <p className="siara-best-time__error" role="alert">{error}</p>
       ) : options.length === 0 ? (
-        <p className="siara-best-time__hint">No departure options available.</p>
+        <p className="siara-best-time__hint">{t('bestTimeToLeavePanel.noOptions')}</p>
       ) : (
         <>
           {bestOption && bestRiskDelta != null ? (
             <div className="siara-best-time__best">
-              Best time to leave: <strong>{formatClock(bestOption.timestamp)}</strong>{' '}
-              ({bestOption.label}). Leaving then reduces risk by{' '}
-              <strong>{bestRiskDelta}%</strong> versus leaving now.
+              {t('bestTimeToLeavePanel.bestTimeWithDelta', {
+                time: formatClock(bestOption.timestamp),
+                label: bestOption.label,
+                delta: bestRiskDelta,
+              })}
             </div>
           ) : bestOption ? (
             <div className="siara-best-time__best">
-              Best window: <strong>{bestOption.label}</strong> at{' '}
-              <strong>{formatClock(bestOption.timestamp)}</strong>.
+              {t('bestTimeToLeavePanel.bestWindow', {
+                label: bestOption.label,
+                time: formatClock(bestOption.timestamp),
+              })}
             </div>
           ) : null}
 
@@ -207,7 +213,7 @@ export default function BestTimeToLeavePanel({
                       }
                     }}
                     disabled={failed}
-                    aria-label={`${opt.label} — ${formatClock(opt.timestamp)}`}
+                    aria-label={t('bestTimeToLeavePanel.optionAriaLabel', { label: opt.label, time: formatClock(opt.timestamp) })}
                   >
                     <span className="siara-best-time__option-label">{opt.label}</span>
                     <span className="siara-best-time__option-time">
@@ -218,10 +224,10 @@ export default function BestTimeToLeavePanel({
                     </span>
                     <span className="siara-best-time__option-meta">
                       {failed
-                        ? 'unavailable'
+                        ? t('bestTimeToLeavePanel.unavailable')
                         : Number.isFinite(Number(opt.etaMin))
-                          ? `${Number(opt.etaMin).toFixed(0)} min ETA`
-                          : 'eta n/a'}
+                          ? t('bestTimeToLeavePanel.etaMin', { minutes: Number(opt.etaMin).toFixed(0) })
+                          : t('bestTimeToLeavePanel.etaNA')}
                     </span>
                   </button>
                 </li>

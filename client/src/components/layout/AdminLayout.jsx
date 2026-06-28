@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import AdminSidebar from './AdminSidebar'
 import AdminHeader from './AdminHeader'
 import '../../styles/AdminPanel.css'
@@ -18,6 +19,7 @@ const FOCUSABLE_SELECTOR = [
 ].join(',')
 
 export default function AdminLayout() {
+  const { t } = useTranslation(['admin', 'common'])
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const location = useLocation()
   const lastTriggerRef = useRef(null)
@@ -96,7 +98,7 @@ export default function AdminLayout() {
           className="admin-mobile-backdrop"
           role="button"
           tabIndex={0}
-          aria-label="Close navigation"
+          aria-label={t('adminLayout.closeNavigation')}
           onClick={closeMobileNav}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {

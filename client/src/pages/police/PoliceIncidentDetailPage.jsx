@@ -1,6 +1,7 @@
 import React, { useContext } from 'react'
 import { CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
@@ -54,6 +55,7 @@ function initials(name) {
 }
 
 export default function PoliceIncidentDetailPage() {
+  const { t } = useTranslation(['police', 'common'])
   const navigate = useNavigate()
   const { id } = useParams()
   const { policeMe } = usePoliceAccess()
@@ -170,11 +172,11 @@ export default function PoliceIncidentDetailPage() {
     try {
       setDetail(await getPoliceIncident(id))
     } catch (e) {
-      setError(e.message || 'Failed to load incident.')
+      setError(e.message || t('policeIncidentDetailPage.errors.loadFailed'))
     } finally {
       setIsLoading(false)
     }
-  }, [id])
+  }, [id, t])
 
   React.useEffect(() => { loadIncident() }, [loadIncident])
 
@@ -191,7 +193,7 @@ export default function PoliceIncidentDetailPage() {
 
   const saveEdit = async (entry) => {
     const trimmed = editingDraft.trim()
-    if (!trimmed) { setError('Note cannot be empty.'); return }
+    if (!trimmed) { setError(t('policeIncidentDetailPage.errors.noteEmpty')); return }
     setNoteBusyId(entry.id)
     setError('')
     try {
@@ -199,7 +201,7 @@ export default function PoliceIncidentDetailPage() {
       setEditingNoteId(null)
       setEditingDraft('')
     } catch (e) {
-      setError(e.message || 'Failed to update note.')
+      setError(e.message || t('policeIncidentDetailPage.errors.updateNoteFailed'))
     } finally {
       setNoteBusyId(null)
     }
@@ -207,14 +209,14 @@ export default function PoliceIncidentDetailPage() {
 
   const deleteNote = async (entry) => {
     if (!incident) return
-    if (!window.confirm('Delete this field note? This cannot be undone.')) return
+    if (!window.confirm(t('policeIncidentDetailPage.confirmDeleteNote'))) return
     setNoteBusyId(entry.id)
     setError('')
     try {
       setDetail(await deletePoliceFieldNote(incident.id, entry.id))
       if (editingNoteId === entry.id) cancelEdit()
     } catch (e) {
-      setError(e.message || 'Failed to delete note.')
+      setError(e.message || t('policeIncidentDetailPage.errors.deleteNoteFailed'))
     } finally {
       setNoteBusyId(null)
     }
@@ -237,18 +239,18 @@ export default function PoliceIncidentDetailPage() {
       }
       setDetail(result)
       if (action === 'reject') {
-        setSuccessMsg('Incident rejected. Returning to dashboard…')
+        setSuccessMsg(t('policeIncidentDetailPage.success.rejected'))
         setTimeout(() => navigate(-1), 1800)
       } else if (action === 'resolve') {
-        setSuccessMsg('Incident resolved. Returning to dashboard…')
+        setSuccessMsg(t('policeIncidentDetailPage.success.resolved'))
         setTimeout(() => navigate(-1), 1800)
       } else if (action === 'verify') {
-        setSuccessMsg('Incident verified successfully.')
+        setSuccessMsg(t('policeIncidentDetailPage.success.verified'))
       } else if (action === 'backup') {
-        setSuccessMsg('Backup requested.')
+        setSuccessMsg(t('policeIncidentDetailPage.success.backup'))
       }
     } catch (e) {
-      setError(e.message || 'Action failed.')
+      setError(e.message || t('policeIncidentDetailPage.errors.actionFailed'))
     } finally {
       setBusyAction(null)
     }
@@ -259,15 +261,15 @@ export default function PoliceIncidentDetailPage() {
     if (action === 'reject') {
       setConfirmDialog({
         action,
-        label: 'Reject Incident',
-        message: 'This will mark the incident as rejected and remove it from the active queue. This action cannot be undone.',
+        label: t('policeIncidentDetailPage.dialog.rejectLabel'),
+        message: t('policeIncidentDetailPage.dialog.rejectMessage'),
         tone: 'danger',
       })
     } else if (action === 'resolve') {
       setConfirmDialog({
         action,
-        label: 'Resolve Incident',
-        message: 'This will mark the incident as resolved and close the case.',
+        label: t('policeIncidentDetailPage.dialog.resolveLabel'),
+        message: t('policeIncidentDetailPage.dialog.resolveMessage'),
         tone: 'resolve',
       })
     } else {
@@ -290,18 +292,18 @@ export default function PoliceIncidentDetailPage() {
         <div className="pid-panel-status" data-severity={incident.severity}>
           <span className="pid-panel-dot" />
           <div className="pid-panel-status-text">
-            <span className="pid-panel-status-label">Severity</span>
+            <span className="pid-panel-status-label">{t('policeIncidentDetailPage.severity')}</span>
             <span className="pid-panel-status-val">{label(incident.severity)}</span>
           </div>
           <div className="pid-panel-status-text pid-panel-status-text--right">
-            <span className="pid-panel-status-label">Status</span>
+            <span className="pid-panel-status-label">{t('policeIncidentDetailPage.status')}</span>
             <span className="pid-panel-status-val">{label(incident.status)}</span>
           </div>
         </div>
       ) : null}
 
       <div className="pid-panel-section">
-        <p className="pid-panel-section-head">Quick Actions</p>
+        <p className="pid-panel-section-head">{t('policeIncidentDetailPage.quickActions')}</p>
 
         {successMsg ? (
           <div className="pid-success-banner">
@@ -315,14 +317,14 @@ export default function PoliceIncidentDetailPage() {
             {incidentStatus === 'resolved'
               ? <CheckCircleOutlineIcon fontSize="small" />
               : <CancelOutlinedIcon fontSize="small" />}
-            <span>Incident <strong>{label(incidentStatus)}</strong> — no further actions available.</span>
+            <span>{t('policeIncidentDetailPage.terminalBanner', { status: label(incidentStatus) })}</span>
           </div>
         ) : (
           <div className="pid-panel-actions">
             {alreadyVerified ? (
               <div className="pid-verified-chip">
                 <VerifiedUserOutlinedIcon fontSize="small" />
-                <span>Already Verified</span>
+                <span>{t('policeIncidentDetailPage.alreadyVerified')}</span>
               </div>
             ) : (
               <button
@@ -334,7 +336,7 @@ export default function PoliceIncidentDetailPage() {
                 {busyAction === 'verify'
                   ? <span className="pid-btn-spinner" aria-hidden="true" />
                   : <VerifiedUserOutlinedIcon fontSize="small" />}
-                <span>{busyAction === 'verify' ? 'Verifying…' : 'Verify Incident'}</span>
+                <span>{busyAction === 'verify' ? t('policeIncidentDetailPage.actions.verifying') : t('policeIncidentDetailPage.actions.verify')}</span>
               </button>
             )}
             <button
@@ -346,7 +348,7 @@ export default function PoliceIncidentDetailPage() {
               {busyAction === 'backup'
                 ? <span className="pid-btn-spinner" aria-hidden="true" />
                 : <GroupsOutlinedIcon fontSize="small" />}
-              <span>{busyAction === 'backup' ? 'Requesting…' : 'Request Backup'}</span>
+              <span>{busyAction === 'backup' ? t('policeIncidentDetailPage.actions.requesting') : t('policeIncidentDetailPage.actions.requestBackup')}</span>
             </button>
             <button
               type="button"
@@ -357,7 +359,7 @@ export default function PoliceIncidentDetailPage() {
               {busyAction === 'resolve'
                 ? <span className="pid-btn-spinner" aria-hidden="true" />
                 : <CheckCircleOutlineIcon fontSize="small" />}
-              <span>{busyAction === 'resolve' ? 'Resolving…' : 'Resolve Incident'}</span>
+              <span>{busyAction === 'resolve' ? t('policeIncidentDetailPage.actions.resolving') : t('policeIncidentDetailPage.actions.resolve')}</span>
             </button>
             <button
               type="button"
@@ -368,19 +370,19 @@ export default function PoliceIncidentDetailPage() {
               {busyAction === 'reject'
                 ? <span className="pid-btn-spinner" aria-hidden="true" />
                 : <CancelOutlinedIcon fontSize="small" />}
-              <span>{busyAction === 'reject' ? 'Rejecting…' : 'Reject Incident'}</span>
+              <span>{busyAction === 'reject' ? t('policeIncidentDetailPage.actions.rejecting') : t('policeIncidentDetailPage.actions.reject')}</span>
             </button>
           </div>
         )}
       </div>
 
       <div className="pid-panel-section">
-        <p className="pid-panel-section-head">Add Field Note</p>
+        <p className="pid-panel-section-head">{t('policeIncidentDetailPage.addFieldNote')}</p>
         <textarea
           className="pid-note-composer"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Write your field observation…"
+          placeholder={t('policeIncidentDetailPage.fieldNotePlaceholder')}
           disabled={!incident || !!busyAction}
           rows={4}
         />
@@ -391,15 +393,15 @@ export default function PoliceIncidentDetailPage() {
           disabled={!note.trim() || !incident || !!busyAction}
         >
           <NoteAddOutlinedIcon fontSize="small" />
-          <span>Save Note</span>
+          <span>{t('policeIncidentDetailPage.saveNote')}</span>
         </button>
       </div>
 
       <div className="pid-panel-section pid-panel-section--timeline">
-        <p className="pid-panel-section-head">Activity Timeline</p>
-        {isLoading ? <p className="pid-timeline-empty">Loading…</p> : null}
+        <p className="pid-panel-section-head">{t('policeIncidentDetailPage.activityTimeline')}</p>
+        {isLoading ? <p className="pid-timeline-empty">{t('common:actions.loading')}</p> : null}
         {!isLoading && history.length === 0 ? (
-          <p className="pid-timeline-empty">No activity recorded yet.</p>
+          <p className="pid-timeline-empty">{t('policeIncidentDetailPage.noActivity')}</p>
         ) : null}
         <ul className="pid-timeline">
           {history.slice(0, 8).map((entry) => (
@@ -429,7 +431,7 @@ export default function PoliceIncidentDetailPage() {
             <div className="pid-header-row">
               <button type="button" className="pid-back-btn" onClick={() => navigate(-1)}>
                 <ArrowBackRoundedIcon sx={{ fontSize: 14 }} />
-                <span>Back</span>
+                <span>{t('common:actions.back')}</span>
               </button>
               {incident ? <span className="pid-header-id">{incident.displayId}</span> : null}
               {incident ? (
@@ -445,7 +447,7 @@ export default function PoliceIncidentDetailPage() {
               ) : null}
             </div>
             <h1 className="pid-header-title">
-              {incident?.title || (isLoading ? 'Loading…' : 'Incident Detail')}
+              {incident?.title || (isLoading ? t('common:actions.loading') : t('policeIncidentDetailPage.incidentDetail'))}
             </h1>
             {incident?.description ? (
               <p className="pid-header-desc">{incident.description}</p>
@@ -457,7 +459,7 @@ export default function PoliceIncidentDetailPage() {
 
           {/* ── Loading ── */}
           {isLoading && !incident ? (
-            <div className="pid-loading-state">Loading incident data…</div>
+            <div className="pid-loading-state">{t('policeIncidentDetailPage.loadingData')}</div>
           ) : null}
 
           {/* ── Body ── */}
@@ -469,38 +471,38 @@ export default function PoliceIncidentDetailPage() {
 
                 {/* Intelligence */}
                 <section className="pid-card">
-                  <h2 className="pid-card-label">Incident Intelligence</h2>
+                  <h2 className="pid-card-label">{t('policeIncidentDetailPage.incidentIntelligence')}</h2>
                   <div className="pid-intel-grid">
                     <div className="pid-intel-cell">
-                      <span>Incident Type</span>
+                      <span>{t('policeIncidentDetailPage.intel.incidentType')}</span>
                       <strong>{label(incident.incidentType) || '—'}</strong>
                     </div>
                     <div className="pid-intel-cell">
-                      <span>Source Channel</span>
+                      <span>{t('policeIncidentDetailPage.intel.sourceChannel')}</span>
                       <strong>{label(incident.sourceChannel) || '—'}</strong>
                     </div>
                     <div className="pid-intel-cell">
-                      <span>Wilaya</span>
+                      <span>{t('policeIncidentDetailPage.intel.wilaya')}</span>
                       <strong>{incident.wilaya?.name || '—'}</strong>
                     </div>
                     <div className="pid-intel-cell">
-                      <span>Commune</span>
+                      <span>{t('policeIncidentDetailPage.intel.commune')}</span>
                       <strong>{incident.commune?.name || '—'}</strong>
                     </div>
                     <div className="pid-intel-cell">
-                      <span>Reported by</span>
+                      <span>{t('policeIncidentDetailPage.intel.reportedBy')}</span>
                       <strong>{incident.reportedBy?.name || '—'}</strong>
                     </div>
                     <div className="pid-intel-cell">
-                      <span>Assigned to</span>
-                      <strong>{incident.assignedOfficer?.name || 'Unassigned'}</strong>
+                      <span>{t('policeIncidentDetailPage.intel.assignedTo')}</span>
+                      <strong>{incident.assignedOfficer?.name || t('policeIncidentDetailPage.intel.unassigned')}</strong>
                     </div>
                     <div className="pid-intel-cell pid-intel-cell--full">
-                      <span>Location</span>
+                      <span>{t('policeIncidentDetailPage.intel.location')}</span>
                       <strong>{incident.locationText || '—'}</strong>
                     </div>
                     <div className="pid-intel-cell pid-intel-cell--full">
-                      <span>Occurred</span>
+                      <span>{t('policeIncidentDetailPage.intel.occurred')}</span>
                       <strong>{incident.occurredAtLabel} · {incident.timeAgo}</strong>
                     </div>
                   </div>
@@ -509,13 +511,13 @@ export default function PoliceIncidentDetailPage() {
                 {/* Evidence */}
                 <section className="pid-card">
                   <div className="pid-card-head-row">
-                    <h2 className="pid-card-label">Evidence</h2>
+                    <h2 className="pid-card-label">{t('policeIncidentDetailPage.evidence')}</h2>
                     {incident.media?.length > 0 ? (
                       <span className="pid-count-pill">{incident.media.length}</span>
                     ) : null}
                   </div>
                   {!incident.media?.length ? (
-                    <p className="pid-empty-msg">No media evidence attached to this report.</p>
+                    <p className="pid-empty-msg">{t('policeIncidentDetailPage.noMediaEvidence')}</p>
                   ) : (
                     <div className="pid-evidence-grid">
                       {incident.media.map((item, index) => (
@@ -523,7 +525,7 @@ export default function PoliceIncidentDetailPage() {
                           key={item.id}
                           type="button"
                           className="pid-evidence-tile"
-                          title="View full size"
+                          title={t('policeIncidentDetailPage.viewFullSize')}
                           onClick={() => openLightbox(index)}
                         >
                           <div className="pid-evidence-thumb">
@@ -538,7 +540,7 @@ export default function PoliceIncidentDetailPage() {
                                 img.dataset.fb = '1'
                                 img.replaceWith(Object.assign(document.createElement('div'), {
                                   className: 'pid-evidence-broken',
-                                  textContent: 'Unavailable',
+                                  textContent: t('policeIncidentDetailPage.mediaUnavailable'),
                                 }))
                               }}
                             />
@@ -553,11 +555,11 @@ export default function PoliceIncidentDetailPage() {
                 {/* Field Notes */}
                 <section className="pid-card">
                   <div className="pid-card-head-row">
-                    <h2 className="pid-card-label">Field Notes</h2>
+                    <h2 className="pid-card-label">{t('policeIncidentDetailPage.fieldNotes')}</h2>
                     <span className="pid-count-pill">{fieldNotes.length}</span>
                   </div>
                   {fieldNotes.length === 0 ? (
-                    <p className="pid-empty-msg">No field notes recorded yet. Add one in the right panel.</p>
+                    <p className="pid-empty-msg">{t('policeIncidentDetailPage.noFieldNotes')}</p>
                   ) : (
                     <ul className="pid-notes-list">
                       {fieldNotes.map((entry) => {
@@ -575,8 +577,8 @@ export default function PoliceIncidentDetailPage() {
                             </div>
                             <div className="pid-note-bubble">
                               <div className="pid-note-meta">
-                                <strong>{entry.officer?.name || 'Officer'}</strong>
-                                {isMine ? <span className="pid-you-pill">You</span> : null}
+                                <strong>{entry.officer?.name || t('policeIncidentDetailPage.officerFallback')}</strong>
+                                {isMine ? <span className="pid-you-pill">{t('policeIncidentDetailPage.you')}</span> : null}
                                 <time className="pid-note-time">{entry.createdAtLabel}</time>
                               </div>
                               {isEditing ? (
@@ -592,11 +594,11 @@ export default function PoliceIncidentDetailPage() {
                                   <div className="pid-note-actions">
                                     <button type="button" className="pid-btn pid-btn--save" onClick={() => saveEdit(entry)} disabled={isBusy || !editingDraft.trim()}>
                                       <CheckRoundedIcon sx={{ fontSize: 13 }} />
-                                      {isBusy ? 'Saving…' : 'Save'}
+                                      {isBusy ? t('policeIncidentDetailPage.notes.saving') : t('common:actions.save')}
                                     </button>
                                     <button type="button" className="pid-btn pid-btn--cancel" onClick={cancelEdit} disabled={isBusy}>
                                       <CloseRoundedIcon sx={{ fontSize: 13 }} />
-                                      Cancel
+                                      {t('common:actions.cancel')}
                                     </button>
                                   </div>
                                 </>
@@ -607,11 +609,11 @@ export default function PoliceIncidentDetailPage() {
                                     <div className="pid-note-actions">
                                       <button type="button" className="pid-btn pid-btn--ghost" onClick={() => startEdit(entry)} disabled={isBusy}>
                                         <EditOutlinedIcon sx={{ fontSize: 13 }} />
-                                        Edit
+                                        {t('common:actions.edit')}
                                       </button>
                                       <button type="button" className="pid-btn pid-btn--delete" onClick={() => deleteNote(entry)} disabled={isBusy}>
                                         <DeleteOutlineRoundedIcon sx={{ fontSize: 13 }} />
-                                        {isBusy ? 'Removing…' : 'Delete'}
+                                        {isBusy ? t('policeIncidentDetailPage.notes.removing') : t('common:actions.delete')}
                                       </button>
                                     </div>
                                   ) : null}
@@ -632,7 +634,7 @@ export default function PoliceIncidentDetailPage() {
 
                 {/* Map */}
                 <section className="pid-card pid-map-card">
-                  <h2 className="pid-card-label">Location</h2>
+                  <h2 className="pid-card-label">{t('policeIncidentDetailPage.location')}</h2>
                   <div className="pid-map-wrap">
                     <MapContainer center={mapCenter} zoom={13} scrollWheelZoom className="police-leaflet-map">
                       <TileLayer
@@ -691,7 +693,7 @@ export default function PoliceIncidentDetailPage() {
                 onClick={() => setConfirmDialog(null)}
                 disabled={!!busyAction}
               >
-                Cancel
+                {t('common:actions.cancel')}
               </button>
               <button
                 type="button"
@@ -710,11 +712,11 @@ export default function PoliceIncidentDetailPage() {
       {lightboxUrl ? (
         <div className="police-media-lightbox" onClick={closeLightbox}>
           <div className="police-media-lightbox-toolbar" onClick={(e) => e.stopPropagation()}>
-            <button className="police-media-zoom-btn" onClick={lbZoomIn} title="Zoom in">+</button>
-            <button className="police-media-zoom-btn" onClick={lbZoomOut} title="Zoom out">−</button>
-            <button className="police-media-zoom-btn reset" onClick={lbReset} title="Reset">1:1</button>
+            <button className="police-media-zoom-btn" onClick={lbZoomIn} title={t('policeIncidentDetailPage.lightbox.zoomIn')}>+</button>
+            <button className="police-media-zoom-btn" onClick={lbZoomOut} title={t('policeIncidentDetailPage.lightbox.zoomOut')}>−</button>
+            <button className="police-media-zoom-btn reset" onClick={lbReset} title={t('policeIncidentDetailPage.lightbox.reset')}>1:1</button>
           </div>
-          <button className="police-media-lightbox-close" onClick={closeLightbox} title="Close">×</button>
+          <button className="police-media-lightbox-close" onClick={closeLightbox} title={t('common:actions.close')}>×</button>
 
           {mediaList.length > 1 ? (
             <>
@@ -722,7 +724,7 @@ export default function PoliceIncidentDetailPage() {
                 type="button"
                 className="police-media-lightbox-nav police-media-lightbox-nav--prev"
                 onClick={(e) => { e.stopPropagation(); showPrevImage() }}
-                aria-label="Previous photo"
+                aria-label={t('policeIncidentDetailPage.lightbox.prevPhoto')}
               >
                 ‹
               </button>
@@ -730,7 +732,7 @@ export default function PoliceIncidentDetailPage() {
                 type="button"
                 className="police-media-lightbox-nav police-media-lightbox-nav--next"
                 onClick={(e) => { e.stopPropagation(); showNextImage() }}
-                aria-label="Next photo"
+                aria-label={t('policeIncidentDetailPage.lightbox.nextPhoto')}
               >
                 ›
               </button>
@@ -751,7 +753,7 @@ export default function PoliceIncidentDetailPage() {
             >
               <img
                 src={lightboxUrl}
-                alt="Evidence"
+                alt={t('policeIncidentDetailPage.lightbox.evidenceAlt')}
                 className="police-media-lightbox-image"
                 draggable={false}
                 style={{ transform: `translate(${lightboxOffset.x}px, ${lightboxOffset.y}px) scale(${lightboxScale})` }}

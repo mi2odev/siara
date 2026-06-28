@@ -1,0 +1,381 @@
+{
+  "supervisorAlertCenterPage": {
+    "eyebrow": "Supervisor — Alert Center",
+    "title": "Supervisor Alerts",
+    "subtitle": "Broadcast operational alerts and warnings to field officers",
+    "createAlertTitle": "Create Alert",
+    "labelAlertTitle": "Alert Title",
+    "placeholderAlertTitle": "e.g., Avoid Zone A — severe congestion",
+    "labelMessage": "Message",
+    "placeholderMessage": "Provide detailed instructions or context for field officers...",
+    "labelSeverity": "Severity",
+    "labelAlertType": "Alert Type",
+    "labelTargetAudience": "Target Audience",
+    "targetAllOfficersInZone": "All Officers in Zone",
+    "targetAllPoliceOfficers": "All Police Officers",
+    "labelZone": "Zone",
+    "labelZoneWithWilaya": "Zone ({{wilaya}})",
+    "optionSelectCommune": "Select commune...",
+    "optionAllOfWilaya": "All of {{wilaya}} (whole wilaya)",
+    "labelActiveFrom": "Active From",
+    "placeholderStartImmediately": "Start immediately",
+    "hintStartImmediately": "Leave blank to start immediately",
+    "labelActiveUntil": "Active Until *",
+    "placeholderSelectDateTime": "Select date & time",
+    "btnSending": "Sending...",
+    "btnBroadcast": "Broadcast Alert to Officers",
+    "recentAlertsTitle": "Recent Alerts Received",
+    "noRecentAlerts": "No recent alerts",
+    "badgeRead": "Read",
+    "guidelinesTitle": "Alert Guidelines",
+    "guidelineHighLabel": "High",
+    "guidelineHighDesc": "Immediate threat, major accident, danger zone active. Requires urgent response.",
+    "guidelineMediumLabel": "Medium",
+    "guidelineMediumDesc": "Significant risk, accident probability near a specific route.",
+    "guidelineAdvisoryLabel": "Advisory",
+    "guidelineAdvisoryDesc": "General guidance, zone updates, traffic congestion, roadwork.",
+    "errorTitleRequired": "Title is required",
+    "errorMessageRequired": "Message is required",
+    "errorZoneRequired": "Zone is required",
+    "errorEndTimeRequired": "End time is required",
+    "errorEndTimeAfterStart": "End time must be after start time",
+    "toastAlertSent": "Alert sent to officers successfully",
+    "toastAlertFailed": "Failed to send alert",
+    "timeJustNow": "Just now",
+    "timeMinutesAgo": "{{count}}m ago",
+    "timeHoursAgo": "{{count}}h ago",
+    "timeDaysAgo": "{{count}}d ago"
+  },
+  "supervisorAnalyticsPage": {
+    "eyebrow": "Supervisor — Strategic",
+    "title": "Operational Analytics",
+    "subtitle": "Incident resolution statistics, officer workload, and response metrics",
+    "daysFilter": "{{count}}d",
+    "errorLoadAnalytics": "Failed to load analytics",
+    "computingAnalytics": "Computing analytics...",
+    "noTrendData": "No trend data",
+    "trendBarTitle": "{{date}}: {{count}} incidents",
+    "noData": "No data",
+    "noZoneData": "No zone data",
+    "noWorkloadData": "No workload data",
+    "kpi": {
+      "totalIncidents": "Total Incidents",
+      "lastDays": "Last {{count}} days",
+      "resolutionRate": "Resolution Rate",
+      "resolvedCount": "{{count}} resolved",
+      "avgResponseTime": "Avg Response Time",
+      "reportToVerified": {
+        "before": "Report",
+        "after": "verified"
+      },
+      "avgResolution": "Avg Resolution",
+      "reportToResolved": {
+        "before": "Report",
+        "after": "resolved"
+      }
+    },
+    "sections": {
+      "dailyTrend": "Daily Trend — Last {{count}} Days",
+      "incidentsByStatus": "Incidents by Status",
+      "incidentsBySeverity": "Incidents by Severity",
+      "busiestZones": "Busiest Zones",
+      "officerWorkload": "Officer Workload Distribution"
+    },
+    "status": {
+      "pending": "Pending",
+      "underReview": "Under Review",
+      "verified": "Verified",
+      "dispatched": "Dispatched",
+      "resolved": "Resolved",
+      "rejected": "Rejected"
+    },
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "table": {
+      "officer": "Officer",
+      "activeIncidents": "Active Incidents",
+      "totalHandled": "Total Handled",
+      "workload": "Workload"
+    }
+  },
+  "supervisorDashboardPage": {
+    "eyebrow": "Command Overview",
+    "title": "Supervisor Dashboard",
+    "subtitle": "Real-time operational status",
+    "updated": "Updated {{time}}",
+    "refresh": "Refresh",
+    "errors": {
+      "loadFailed": "Failed to load dashboard"
+    },
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{{count}} min ago",
+      "hoursAgo": "{{count}} h ago",
+      "daysAgo": "{{count}} d ago"
+    },
+    "duration": {
+      "lessThanMinute": "<1 m",
+      "minutes": "{{count}} m",
+      "hours": "{{count}} h"
+    },
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "activity": {
+      "defaultOfficer": "An officer",
+      "defaultReport": "an incident",
+      "verifyIncident": "{{officer}} verified {{report}}",
+      "rejectIncident": "{{officer}} rejected {{report}}",
+      "assignSelf": "{{officer}} assigned themselves to {{report}}",
+      "requestBackup": "{{officer}} requested backup for {{report}}",
+      "updateStatus": "{{officer}} updated status on {{report}}",
+      "fieldNote": "{{officer}} added a field note on {{report}}",
+      "markAlertRead": "{{officer}} acknowledged an alert",
+      "manualLogEntry": "{{officer}} logged a manual entry",
+      "assignOfficer": "Supervisor assigned an officer to {{report}}",
+      "default": "{{officer}} performed an action"
+    },
+    "kpi": {
+      "activeIncidents": {
+        "label": "Active Incidents",
+        "sub": "Unresolved in system"
+      },
+      "high": {
+        "label": "High",
+        "sub": "Severity high"
+      },
+      "pendingVerification": {
+        "label": "Pending Verification",
+        "sub": "Awaiting officer action"
+      },
+      "activeOfficers": {
+        "label": "Active Officers",
+        "sub": "Currently on duty"
+      },
+      "avgResponse": {
+        "label": "Avg Response",
+        "sub": "Report",
+        "sub2": "verified (30d)"
+      }
+    },
+    "highSeverity": {
+      "title": "High-Severity Incidents",
+      "coordinate": "Coordinate",
+      "empty": "No high-severity incidents"
+    },
+    "incident": {
+      "unknownLocation": "Unknown location"
+    },
+    "officerStatus": {
+      "title": "Officer Status",
+      "monitor": "Monitor",
+      "onDuty": "On Duty",
+      "offDuty": "Off Duty",
+      "total": "Total Officers"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "incidentCoordination": "Incident Coordination",
+      "monitorOfficers": "Monitor Officers",
+      "sendAlert": "Send Alert",
+      "operationsMap": "Operations Map",
+      "analytics": "Analytics",
+      "verificationQueue": "Verification Queue"
+    },
+    "activityFeed": {
+      "title": "Live Activity Feed",
+      "fullHistory": "Full History",
+      "empty": "No recent activity"
+    }
+  },
+  "supervisorIncidentCoordinationPage": {
+    "eyebrow": "Supervisor — Operations",
+    "title": "Incident Coordination",
+    "subtitle": "Assign and coordinate officer responses to active incidents",
+    "actions": {
+      "refresh": "Refresh",
+      "assign": "Assign",
+      "view": "View"
+    },
+    "filters": {
+      "searchPlaceholder": "Search incidents...",
+      "allStatuses": "All Statuses",
+      "allSeverity": "All Severity"
+    },
+    "loadingIncidents": "Loading incidents...",
+    "emptyState": "No incidents match the current filters",
+    "activeIncidents": "Active Incidents",
+    "table": {
+      "incident": "Incident",
+      "location": "Location",
+      "severity": "Severity",
+      "status": "Status",
+      "assignedTo": "Assigned To",
+      "reported": "Reported",
+      "assignOfficer": "Assign Officer",
+      "unassigned": "Unassigned"
+    },
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago"
+    },
+    "officer": {
+      "locationUnavailable": "Location unavailable",
+      "metersAway": "{{meters}} m away",
+      "kmAway": "{{km}} km away",
+      "offDuty": "Off duty",
+      "noneInCommune": "No officers in your commune",
+      "selectPlaceholder": "Select officer..."
+    },
+    "errors": {
+      "loadFailed": "Failed to load coordination data",
+      "loadOfficersFailed": "Failed to load officers"
+    },
+    "toast": {
+      "assignSuccess": "Officer assigned successfully",
+      "assignFailed": "Assignment failed"
+    }
+  },
+  "supervisorOfficerMonitoringPage": {
+    "time": {
+      "never": "Never",
+      "justNow": "Just now",
+      "minutesAgo_one": "{{count}}m ago",
+      "minutesAgo_other": "{{count}}m ago",
+      "hoursAgo_one": "{{count}}h ago",
+      "hoursAgo_other": "{{count}}h ago",
+      "daysAgo_one": "{{count}}d ago",
+      "daysAgo_other": "{{count}}d ago"
+    },
+    "detail": {
+      "title": "Officer Profile",
+      "badge": "Badge #{{number}}",
+      "status": "Status",
+      "workZone": "Work Zone",
+      "noZoneSet": "No zone set",
+      "lastLocation": "Last Location",
+      "unknown": "Unknown",
+      "contact": "Contact"
+    },
+    "status": {
+      "onDuty": "On Duty",
+      "offDuty": "Off Duty"
+    },
+    "eyebrow": "Supervisor — Monitoring",
+    "pageTitle": "Officer Monitoring",
+    "subtitle": "Track officer availability, workload, and operational status",
+    "subtitleWithCommune": "Showing officers in your assigned commune — {{commune}}",
+    "actions": {
+      "refresh": "Refresh"
+    },
+    "errors": {
+      "loadFailed": "Failed to load officer list"
+    },
+    "kpi": {
+      "total": "Total Officers",
+      "onDuty": "On Duty",
+      "offDuty": "Off Duty"
+    },
+    "filters": {
+      "searchPlaceholder": "Search officer name, badge, email...",
+      "all": "All Officers"
+    },
+    "loading": "Loading officers...",
+    "empty": "No officers match the current filters",
+    "card": {
+      "noBadge": "No badge",
+      "noZone": "No zone",
+      "lastSeen": "Last seen"
+    }
+  },
+  "supervisorOperationsMapPage": {
+    "eyebrow": "Supervisor — Monitoring",
+    "title": "Global Operations Map",
+    "subtitle": "Live incident and officer positions across all zones",
+    "updatedAt": "Updated {{time}}",
+    "actions": {
+      "fit": "Fit"
+    },
+    "errors": {
+      "loadFailed": "Failed to load map data"
+    },
+    "kpi": {
+      "activeIncidents": "Active Incidents",
+      "highSeverity": "{{count}} high severity",
+      "unassigned": "Unassigned",
+      "highSeverityUncovered": "{{count}} high-severity uncovered",
+      "onDuty": "On Duty",
+      "respondingNow": "{{count}} responding now",
+      "signalLost": "Signal Lost",
+      "noPingThreshold": "no ping > 15 min"
+    },
+    "toolbar": {
+      "layers": "Layers",
+      "incidentsCount": "Incidents ({{count}})",
+      "officersCount": "Officers ({{count}})",
+      "assignmentLinks": "Assignment links",
+      "severity": "Severity",
+      "coverage": "Coverage",
+      "duty": "Duty"
+    },
+    "filter": {
+      "all": "All",
+      "unassigned": "Unassigned",
+      "assigned": "Assigned",
+      "onDuty": "On duty",
+      "offDuty": "Off duty"
+    },
+    "loadingMapData": "Loading map data…",
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "officerStatus": {
+      "responding": "Responding",
+      "available": "Available",
+      "stale": "Signal lost",
+      "off": "Off duty"
+    },
+    "popup": {
+      "nearest": "Nearest: {{name}} · {{km}} km",
+      "viewDetails": "View details",
+      "assignedCount": "{{count}} assigned",
+      "badgeNumber": "Badge #{{number}}",
+      "lastPing": "Last ping {{time}}"
+    },
+    "legend": {
+      "incidents": "Incidents",
+      "officers": "Officers"
+    },
+    "tabs": {
+      "incidents": "Incidents",
+      "officers": "Officers"
+    },
+    "empty": {
+      "noIncidents": "No incidents match these filters.",
+      "noOfficers": "No officers match these filters."
+    },
+    "list": {
+      "assignedCount": "{{count}} assigned"
+    },
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo": "{{count}}m ago",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago"
+    }
+  }
+}

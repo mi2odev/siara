@@ -1,0 +1,827 @@
+{
+  "policeModeTab": {
+    "switchToPolice": "Switch to Police Mode",
+    "switchToNormal": "Switch to Normal Mode"
+  },
+  "policeShell": {
+    "menu": {
+      "groups": {
+        "operations": "OPERATIONS",
+        "analytics": "ANALYTICS",
+        "info": "INFO",
+        "supervisor": "SUPERVISOR"
+      },
+      "items": {
+        "dashboard": "Dashboard",
+        "activeIncidents": "Active Incidents",
+        "nearbyIncidents": "Nearby Incidents",
+        "verificationQueue": "Verification Queue",
+        "myIncidents": "My Incidents",
+        "assignedIncidents": "Assigned Incidents",
+        "fieldReports": "Field Reports",
+        "alertCenter": "Alert Center",
+        "operationHistory": "Operation History",
+        "aiInsights": "AI Insights",
+        "contact": "Contact",
+        "about": "About",
+        "overview": "Overview",
+        "commandCenter": "Command Center",
+        "incidentCoordination": "Incident Coordination",
+        "officerMonitoring": "Officer Monitoring",
+        "supervisorAlerts": "Supervisor Alerts",
+        "analytics": "Analytics",
+        "globalMap": "Global Map"
+      }
+    },
+    "aria": {
+      "openOperationsMenu": "Open operations menu",
+      "policeModeSwitch": "Police mode switch",
+      "userProfile": "User profile",
+      "userAvatar": "User avatar",
+      "closePoliceNav": "Close police navigation",
+      "quickInfoPanel": "Quick information panel",
+      "closeContactForm": "Close contact form",
+      "closeAboutPanel": "Close about panel",
+      "closeOverviewPanel": "Close overview panel",
+      "supportInfo": "Support information"
+    },
+    "supervisorBadge": "SUPERVISOR",
+    "tabs": {
+      "feed": "Feed",
+      "report": "Report",
+      "dashboardTab": "Dashboard"
+    },
+    "switchToNormalMode": "Switch to Normal Mode",
+    "searchPlaceholder": "Search for an incident, a road, a zone...",
+    "dropdown": {
+      "myProfile": "My Profile"
+    },
+    "operationsMenu": "Operations Menu",
+    "modeSwitch": {
+      "officer": "Officer",
+      "supervisor": "Supervisor"
+    },
+    "contact": {
+      "kicker": "Support",
+      "title": "Contact SIARA",
+      "subtitle": "Share your request and our team will get back to you quickly.",
+      "nameLabel": "Name",
+      "emailLabel": "Email",
+      "messageLabel": "Message",
+      "sending": "Sending…",
+      "sendMessage": "Send Message",
+      "emailDirectly": "Email directly",
+      "errors": {
+        "invalidName": "Please enter a valid name.",
+        "invalidEmail": "Please enter a valid email address.",
+        "shortMessage": "Message must be at least 10 characters."
+      },
+      "successMessage": "Thank you. We will respond as soon as possible.",
+      "submitError": "Could not send your message. Please try again.",
+      "side": {
+        "responseWindowTitle": "Response Window",
+        "responseWindowBody": "Most requests are reviewed within one business day.",
+        "bestForTitle": "Best for This Form",
+        "bestForBody": "Account support, platform feedback, partnerships, and incident workflow questions.",
+        "directContactTitle": "Direct Contact"
+      }
+    },
+    "about": {
+      "kicker": "Overview",
+      "title": "About SIARA",
+      "brandCaption": "Road Safety Intelligence Platform",
+      "lead": "SIARA is a road safety intelligence platform combining live reporting, mapping, and AI insights to improve incident response.",
+      "pillars": {
+        "missionTitle": "Mission",
+        "missionBody": "Reduce road risk with fast, evidence-based incident coordination.",
+        "visionTitle": "Vision",
+        "visionBody": "Build connected, AI-supported urban safety systems for smarter mobility.",
+        "approachTitle": "Approach",
+        "approachBody": "Combine citizen signals, geospatial context, and operational analytics in one workflow."
+      },
+      "platformCapabilities": "Platform capabilities",
+      "capabilities": {
+        "riskMappingTitle": "Risk Mapping",
+        "riskMappingBody": "Identify hotspots and incident density zones in real time.",
+        "alertIntelligenceTitle": "Alert Intelligence",
+        "alertIntelligenceBody": "Prioritize high-impact events using severity and reliability indicators.",
+        "responseCoordinationTitle": "Response Coordination",
+        "responseCoordinationBody": "Support faster field decisions with one shared operational view.",
+        "performanceTrackingTitle": "Performance Tracking",
+        "performanceTrackingBody": "Measure verification and response outcomes to improve continuously."
+      }
+    },
+    "overview": {
+      "kicker": "Service Flow",
+      "title": "SIARA Workflow Overview",
+      "lead": "SIARA provides a clear operational pipeline from report intake to validated alert delivery.",
+      "steps": {
+        "incidentIntakeTitle": "Incident Intake",
+        "incidentIntakeBody": "Capture reports with location, media, and contextual metadata.",
+        "dataValidationTitle": "Data Validation",
+        "dataValidationBody": "Normalize and verify incoming records for analysis readiness.",
+        "riskAssessmentTitle": "Risk Assessment",
+        "riskAssessmentBody": "Estimate urgency and confidence using AI-assisted scoring.",
+        "operationalReviewTitle": "Operational Review",
+        "operationalReviewBody": "Authorized teams validate incidents and assign response priorities.",
+        "alertDistributionTitle": "Alert Distribution",
+        "alertDistributionBody": "Deliver relevant alerts to users and operational stakeholders."
+      },
+      "techStack": "Technology stack",
+      "chips": {
+        "aiRiskScoring": "AI risk scoring",
+        "geospatialMapping": "Geospatial mapping",
+        "realtimeEvents": "Real-time events",
+        "verificationWorkflow": "Verification workflow"
+      }
+    }
+  },
+  "incidentCard": {
+    "actions": {
+      "view": "View",
+      "viewAriaWithId": "View {{id}}",
+      "viewAria": "View incident"
+    },
+    "untitledIncident": "Untitled incident",
+    "reportedBy": "by {{name}}"
+  },
+  "policeOfficerPanel": {
+    "officerTitle": "Officer",
+    "onDuty": "On Duty",
+    "offDuty": "Off Duty",
+    "defaultName": "Officer",
+    "defaultRank": "Police Officer",
+    "badge": "Badge",
+    "badgePending": "Pending",
+    "workZoneTitle": "Work Zone",
+    "wilaya": "Wilaya",
+    "commune": "Commune",
+    "notSet": "Not set"
+  },
+  "policeSortControl": {
+    "sort": "Sort",
+    "ariaAscending": "Ascending order — switch to descending",
+    "ariaDescending": "Descending order — switch to ascending",
+    "titleAscending": "Ascending",
+    "titleDescending": "Descending"
+  },
+  "policeAIInsightsPage": {
+    "contextSnapshot": "Context Snapshot",
+    "topCommune": "Top commune",
+    "highPriority": "High priority",
+    "unreadAlerts": "Unread alerts",
+    "pendingVerify": "Pending verify",
+    "errorLoadFailed": "Failed to load AI insights.",
+    "loadingInsights": "Loading AI insights...",
+    "title": "AI Insights",
+    "subtitle": "Lightweight operational analytics built from the live police contract.",
+    "statActiveIncidents": "Active Incidents",
+    "statActiveIncidentsHint": "Zone pressure",
+    "statHighPriority": "High Priority",
+    "statHighPriorityHint": "Escalation watch",
+    "statTopZone": "Top Zone",
+    "statTopZoneHint": "Most incident volume",
+    "statNearbyResults": "Nearby Results",
+    "statNearbyResultsHint": "5 km radius",
+    "statusPressure": "Status Pressure",
+    "colStatus": "Status",
+    "colCount": "Count",
+    "topCommunes": "Top Communes",
+    "colCommune": "Commune",
+    "colIncidents": "Incidents",
+    "noClusteringData": "No incident clustering data available yet.",
+    "sourceChannels": "Source Channels",
+    "noSourceData": "No source-channel data available."
+  },
+  "policeAlertCenterPage": {
+    "window": {
+      "immediate": "Immediate",
+      "range": "{{start}} to {{end}}",
+      "until": "Until {{end}}",
+      "from": "From {{start}}"
+    },
+    "error": {
+      "loadFailed": "Failed to load police alerts.",
+      "markReadFailed": "Failed to mark alert as read.",
+      "unableToLoad": "Unable to load alerts"
+    },
+    "summary": {
+      "title": "Alert Summary",
+      "total": "Total alerts",
+      "highSeverity": "High severity",
+      "unread": "Unread"
+    },
+    "heading": "Alert Center",
+    "status": {
+      "refreshing": "Refreshing alerts...",
+      "live": "Live targeted alerts",
+      "loadingFeed": "Loading alert feed...",
+      "refreshingFeed": "Refreshing alert feed..."
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "opening": "Opening...",
+      "open": "Open",
+      "markRead": "Mark read"
+    },
+    "badge": {
+      "unread": "Unread",
+      "expired": "Expired"
+    },
+    "alert": {
+      "noDescription": "No description provided."
+    },
+    "meta": {
+      "status": "Status",
+      "issued": "Issued",
+      "activeWindow": "Active window"
+    },
+    "empty": {
+      "heading": "No important alerts",
+      "body": "No supervisor-targeted alerts are waiting right now."
+    }
+  },
+  "policeAssignedIncidentsPage": {
+    "filters": {
+      "all": "All",
+      "pending": "Pending",
+      "underReview": "Under Review",
+      "verified": "Verified",
+      "dispatched": "Dispatched",
+      "resolved": "Resolved"
+    },
+    "officerCard": {
+      "title": "Officer",
+      "onDuty": "On Duty",
+      "offDuty": "Off Duty",
+      "defaultName": "Officer",
+      "defaultRank": "Police Officer",
+      "badge": "Badge",
+      "badgePending": "Pending"
+    },
+    "workZoneCard": {
+      "title": "Work Zone",
+      "wilaya": "Wilaya",
+      "commune": "Commune",
+      "notSet": "Not set"
+    },
+    "summaryCard": {
+      "title": "By Status",
+      "total": "{{count}} total"
+    },
+    "heading": "Assigned Incidents",
+    "subheading": "Cases assigned to you",
+    "refreshTitle": "Refresh list",
+    "refreshLabel": "Refresh",
+    "loading": "Loading incidents…",
+    "empty": "No incidents are assigned to you",
+    "errorLoad": "Failed to load incidents.",
+    "untitledIncident": "Untitled incident",
+    "reportedBy": "by {{name}}",
+    "viewAriaLabel": "View {{id}}",
+    "viewButton": "View"
+  },
+  "policeFieldReportsPage": {
+    "filters": {
+      "all": "All",
+      "pending": "Pending",
+      "underReview": "Under Review",
+      "verified": "Verified",
+      "resolved": "Resolved"
+    },
+    "officer": {
+      "title": "Officer",
+      "onDuty": "On Duty",
+      "offDuty": "Off Duty",
+      "defaultName": "Officer",
+      "defaultRank": "Police Officer",
+      "badge": "Badge",
+      "badgePending": "Pending"
+    },
+    "workZone": {
+      "title": "Work Zone",
+      "wilaya": "Wilaya",
+      "commune": "Commune",
+      "notSet": "Not set"
+    },
+    "summary": {
+      "title": "By Status",
+      "total": "{{count}} total",
+      "officerNotes_one": "{{count}} officer note",
+      "officerNotes_other": "{{count}} officer notes"
+    },
+    "heading": "Field Reports",
+    "subheading": "Citizen and officer reports available for review",
+    "refresh": "Refresh",
+    "loading": "Loading field reports…",
+    "emptyState": "No reports match this filter",
+    "errorLoad": "Failed to load field reports.",
+    "untitledReport": "Untitled report",
+    "noteCount_one": "{{count}} note",
+    "noteCount_other": "{{count}} notes",
+    "view": "View",
+    "viewAriaLabel": "View {{id}}"
+  },
+  "policeIncidentDetailPage": {
+    "errors": {
+      "loadFailed": "Failed to load incident.",
+      "noteEmpty": "Note cannot be empty.",
+      "updateNoteFailed": "Failed to update note.",
+      "deleteNoteFailed": "Failed to delete note.",
+      "actionFailed": "Action failed."
+    },
+    "confirmDeleteNote": "Delete this field note? This cannot be undone.",
+    "success": {
+      "rejected": "Incident rejected. Returning to dashboard…",
+      "resolved": "Incident resolved. Returning to dashboard…",
+      "verified": "Incident verified successfully.",
+      "backup": "Backup requested."
+    },
+    "dialog": {
+      "rejectLabel": "Reject Incident",
+      "rejectMessage": "This will mark the incident as rejected and remove it from the active queue. This action cannot be undone.",
+      "resolveLabel": "Resolve Incident",
+      "resolveMessage": "This will mark the incident as resolved and close the case."
+    },
+    "severity": "Severity",
+    "status": "Status",
+    "quickActions": "Quick Actions",
+    "terminalBanner": "Incident {{status}} — no further actions available.",
+    "alreadyVerified": "Already Verified",
+    "actions": {
+      "verifying": "Verifying…",
+      "verify": "Verify Incident",
+      "requesting": "Requesting…",
+      "requestBackup": "Request Backup",
+      "resolving": "Resolving…",
+      "resolve": "Resolve Incident",
+      "rejecting": "Rejecting…",
+      "reject": "Reject Incident"
+    },
+    "addFieldNote": "Add Field Note",
+    "fieldNotePlaceholder": "Write your field observation…",
+    "saveNote": "Save Note",
+    "activityTimeline": "Activity Timeline",
+    "noActivity": "No activity recorded yet.",
+    "incidentDetail": "Incident Detail",
+    "loadingData": "Loading incident data…",
+    "incidentIntelligence": "Incident Intelligence",
+    "intel": {
+      "incidentType": "Incident Type",
+      "sourceChannel": "Source Channel",
+      "wilaya": "Wilaya",
+      "commune": "Commune",
+      "reportedBy": "Reported by",
+      "assignedTo": "Assigned to",
+      "unassigned": "Unassigned",
+      "location": "Location",
+      "occurred": "Occurred"
+    },
+    "evidence": "Evidence",
+    "noMediaEvidence": "No media evidence attached to this report.",
+    "viewFullSize": "View full size",
+    "mediaUnavailable": "Unavailable",
+    "fieldNotes": "Field Notes",
+    "noFieldNotes": "No field notes recorded yet. Add one in the right panel.",
+    "officerFallback": "Officer",
+    "you": "You",
+    "notes": {
+      "saving": "Saving…",
+      "removing": "Removing…"
+    },
+    "location": "Location",
+    "lightbox": {
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "reset": "Reset",
+      "prevPhoto": "Previous photo",
+      "nextPhoto": "Next photo",
+      "evidenceAlt": "Evidence"
+    }
+  },
+  "policeMyIncidentsPage": {
+    "filters": {
+      "all": "All",
+      "pending": "Pending",
+      "underReview": "Under Review",
+      "verified": "Verified",
+      "dispatched": "Dispatched",
+      "resolved": "Resolved"
+    },
+    "officerCard": {
+      "title": "Officer",
+      "onDuty": "On Duty",
+      "offDuty": "Off Duty",
+      "defaultName": "Officer",
+      "defaultRank": "Police Officer",
+      "badge": "Badge",
+      "badgePending": "Pending"
+    },
+    "workZoneCard": {
+      "title": "Work Zone",
+      "wilaya": "Wilaya",
+      "commune": "Commune",
+      "notSet": "Not set"
+    },
+    "summaryCard": {
+      "title": "By Status",
+      "total": "{{count}} total"
+    },
+    "heading": "My Incidents",
+    "subheading": "Cases assigned to you or reported by you",
+    "refresh": {
+      "title": "Refresh list",
+      "ariaLabel": "Refresh list",
+      "label": "Refresh"
+    },
+    "errors": {
+      "loadFailed": "Failed to load incidents."
+    },
+    "loading": "Loading incidents…",
+    "empty": "No incidents match this filter",
+    "incidentRow": {
+      "untitled": "Untitled incident",
+      "reportedBy": "by {{name}}",
+      "view": "View",
+      "viewAriaLabel": "View {{id}}"
+    }
+  },
+  "policeNearbyIncidentsPage": {
+    "title": "Nearby Incidents",
+    "subtitle": "Live incidents detected around your latest location with a 5-kilometer response radius.",
+    "radiusLabel": "Radius 5 km",
+    "loadingNearby": "Loading nearby incidents...",
+    "errorLoadFailed": "Failed to load nearby incidents.",
+    "nearby": "Nearby",
+    "fieldNoteCount_one": "{{count}} note",
+    "fieldNoteCount_other": "{{count}} notes",
+    "nearbyPanel": {
+      "title": "Nearby Summary",
+      "searchRadius": "Search radius",
+      "incidentsFound": "Incidents found",
+      "highSeverity": "High severity",
+      "location": "Location",
+      "selected": "Selected"
+    },
+    "actions": {
+      "openCase": "Open Case",
+      "openCaseAria": "Open case {{id}}",
+      "continue": "Continue",
+      "continueAria": "Continue {{id}} in verification"
+    },
+    "emptyState": {
+      "locationUnavailableTitle": "Location unavailable",
+      "noIncidentsTitle": "No nearby incidents",
+      "locationUnavailableDesc": "No usable officer location is available yet, so nearby incidents cannot be calculated.",
+      "noIncidentsDesc": "No active incidents are currently within 5 kilometers of your latest valid location."
+    },
+    "map": {
+      "focusTitle": "Map Focus",
+      "noSelection": "No selection",
+      "yourPosition": "Your position"
+    },
+    "locationState": {
+      "locating": "Locating your device...",
+      "usingFallback": "Using fallback test location because GPS is unavailable. Fallback location is for local testing only and was not sent as live police position.",
+      "usingFallbackUploaded": "Using fallback test location because GPS is unavailable (uploaded for testing).",
+      "usingLastKnown": "Using the last known recent location while the device location is unstable.",
+      "permissionDeniedRequired": "Location permission was denied. Nearby incidents will stay empty until a valid location is available.",
+      "permissionDeniedFallback": "Location permission was denied, so nearby incidents are using your latest valid saved location.",
+      "locationUnavailableRequired": "Location unavailable. Turn on location services and refresh to load nearby incidents.",
+      "nearbyLoadedCached": "Nearby incidents loaded using your recent saved position.",
+      "nearbyLoadedCurrent": "Nearby incidents loaded from your current device position.",
+      "locationUnavailable": "Location is temporarily unavailable."
+    }
+  },
+  "policeOperationHistoryPage": {
+    "officerFallback": "Officer",
+    "title": "Operation History",
+    "hint": "Timeline of meaningful police actions. Location pings are hidden to keep the focus on decisions.",
+    "loadingActions": "Loading meaningful police actions…",
+    "actionTypes": {
+      "all": "All actions",
+      "verify_incident": "Verified incident",
+      "reject_incident": "Rejected report",
+      "assign_self": "Assigned self",
+      "request_backup": "Requested backup",
+      "update_status": "Changed status",
+      "field_note": "Field note",
+      "mark_alert_read": "Acknowledged alert",
+      "manual_log_entry": "Manual note"
+    },
+    "actionLabels": {
+      "verify_incident": "Verified incident",
+      "reject_incident": "Rejected report",
+      "assign_self": "Assigned self",
+      "request_backup": "Requested backup",
+      "update_status": "Changed status",
+      "field_note": "Added field note",
+      "mark_alert_read": "Acknowledged alert",
+      "manual_log_entry": "Manual note",
+      "default": "Police action"
+    },
+    "panel": {
+      "title": "History Summary",
+      "totalActions": "Total actions",
+      "visible": "Visible",
+      "verified": "Verified",
+      "rejected": "Rejected",
+      "notes": "Notes"
+    },
+    "errors": {
+      "loadFailed": "Failed to load operation history.",
+      "emptyNote": "Enter a short action note before saving.",
+      "saveFailed": "Failed to save manual action."
+    },
+    "messages": {
+      "manualActionSaved": "Manual action saved."
+    },
+    "filters": {
+      "actionType": "Action type",
+      "date": "Date",
+      "sortBy": "Sort by",
+      "clearFilters": "Clear filters"
+    },
+    "manualNote": {
+      "label": "Manual action note",
+      "placeholder": "Add a short field action or operational note",
+      "saving": "Saving…",
+      "addNote": "Add note"
+    },
+    "timeline": {
+      "title": "Activity Timeline",
+      "count": "{{visible}} of {{total}} actions"
+    },
+    "itemMeta": {
+      "officer": "Officer:",
+      "incident": "Incident:",
+      "alert": "Alert:",
+      "status": "Status:"
+    },
+    "actions": {
+      "openIncident": "Open incident"
+    },
+    "empty": {
+      "title": "No actions found",
+      "description": "Location updates are hidden here so the timeline stays focused on meaningful police actions."
+    }
+  },
+  "policePage": {
+    "time": {
+      "unknown": "Unknown",
+      "justNow": "Just now",
+      "minutesAgo": "{{count}} min ago",
+      "hoursAgo": "{{count}} h ago",
+      "daysAgo": "{{count}} d ago"
+    },
+    "duration": {
+      "lessThanMinute": "<1 m",
+      "minutes": "{{count}} m",
+      "hours": "{{count}} h",
+      "days": "{{count}} d"
+    },
+    "activity": {
+      "verifyIncident": "Officer verified incident",
+      "rejectIncident": "Officer rejected report",
+      "assignSelf": "Officer assigned themselves",
+      "requestBackup": "Backup requested",
+      "updateStatus": "Status updated",
+      "fieldNote": "Field note added",
+      "markAlertRead": "Alert acknowledged",
+      "manualLogEntry": "Manual log entry",
+      "officerFallback": "Officer"
+    },
+    "errors": {
+      "loadDashboard": "Failed to load police dashboard.",
+      "loadAccidents": "Failed to load accidents",
+      "loadZoneOptions": "Failed to load zone options",
+      "updateWorkZone": "Failed to update work zone"
+    },
+    "map": {
+      "reportedLocation": "Reported location",
+      "openFullMap": "Open full map",
+      "fullMap": "Full Map",
+      "fullMapAriaLabel": "Full map",
+      "operationsMap": "Operations Map",
+      "markersCount": "{{count}} marker",
+      "markersCount_one": "{{count}} marker",
+      "markersCount_other": "{{count}} markers",
+      "closeFullMap": "Close full map"
+    },
+    "incident": {
+      "defaultTitle": "Incident",
+      "untitled": "Untitled incident",
+      "noDescription": "No description provided.",
+      "unknownLocation": "Unknown location",
+      "locationLabel": "Location",
+      "statusLabel": "Status",
+      "openCase": "Open Case",
+      "view": "View",
+      "startReview": "Start Review",
+      "viewAriaLabel": "View incident {{id}}"
+    },
+    "kpi": {
+      "activeIncidents": "Active Incidents",
+      "activeIncidentsHint": "Open in zone",
+      "highSeverity": "High-Severity Incidents",
+      "highSeverityHint": "High severity now",
+      "pendingVerification": "Pending Verification",
+      "pendingVerificationHint": "Awaiting decision",
+      "avgIncidentAge": "Avg Incident Age",
+      "avgIncidentAgeHint": "Across active cases"
+    },
+    "quickActions": {
+      "verificationQueue": "Verification Queue",
+      "verificationQueueHint": "Review pending reports",
+      "allIncidents": "All Incidents",
+      "allIncidentsHint": "Live active stream",
+      "myAssigned": "My Assigned",
+      "myAssignedHint": "Cases on me",
+      "nearbyIncidents": "Nearby Incidents",
+      "nearbyIncidentsHint": "Within 5 km"
+    },
+    "zoneModal": {
+      "changeBtn": "Change",
+      "ariaLabel": "Change Work Zone",
+      "title": "Change Work Zone",
+      "loadingOptions": "Loading options…",
+      "wilayaLabel": "Wilaya",
+      "wilayaPlaceholder": "— Select wilaya —",
+      "communeLabel": "Commune",
+      "communePlaceholder": "— Select commune —",
+      "saving": "Saving…"
+    },
+    "liveStats": {
+      "title": "Live Stats",
+      "activeIncidents": "Active incidents",
+      "highPriority": "High priority",
+      "unreadAlerts": "Unread alerts",
+      "pendingVerify": "Pending verify"
+    },
+    "activeStream": {
+      "title": "Active Incidents Stream",
+      "subtitle": "Live active incident stream for your current police work zone."
+    },
+    "toolbar": {
+      "refresh": "Refresh"
+    },
+    "empty": {
+      "noActiveIncidents": "No active incidents",
+      "noActiveIncidentsDesc": "The current work zone has no active police incidents.",
+      "noHighSeverity": "No high-severity incidents right now.",
+      "noActiveAlerts": "No active alerts.",
+      "noActivity": "No activity yet.",
+      "noActiveIncidentsShort": "No active incidents.",
+      "noAccidents": "No accidents recorded in your work zone."
+    },
+    "commandCenter": {
+      "title": "Command Center",
+      "subtitle": "Live operations for {{zone}}",
+      "assignedZone": "your assigned zone",
+      "liveSynced": "Live · synced {{time}}",
+      "refreshTitle": "Refresh dashboard"
+    },
+    "aria": {
+      "operationalMetrics": "Operational metrics",
+      "priorityIncidents": "Priority incidents",
+      "mapOverview": "Map overview",
+      "quickActions": "Quick actions",
+      "importantAlerts": "Important alerts",
+      "activityFeed": "Activity feed",
+      "recentIncidents": "Recent incidents",
+      "allAccidents": "All accidents"
+    },
+    "sections": {
+      "priorityIncidents": "Priority Incidents",
+      "openStream": "Open stream",
+      "mapOverview": "Map Overview",
+      "quickActions": "Quick Actions",
+      "alerts": "Alerts",
+      "openCenter": "Open center",
+      "activity": "Activity",
+      "fullHistory": "Full history",
+      "recentIncidents": "Recent Incidents",
+      "stream": "Stream",
+      "allAccidents": "All Accidents"
+    },
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "alert": {
+      "defaultTitle": "Alert"
+    },
+    "table": {
+      "id": "ID",
+      "incident": "Incident",
+      "type": "Type",
+      "severity": "Severity",
+      "location": "Location",
+      "status": "Status",
+      "time": "Time"
+    }
+  },
+  "policePriorityQueuePage": {
+    "title": "Priority queue",
+    "subtitle": "Incidents ranked by severity, recency, community confirmation, and nearby cluster density.",
+    "refresh": "Refresh",
+    "errorLoad": "Failed to load priority queue",
+    "empty": "No pending incidents need triage right now. New high-priority reports will appear here as soon as they're filed.",
+    "confirmations_one": "{{count}} confirmation",
+    "confirmations_other": "{{count}} confirmations",
+    "reportsWithin500m_one": "{{count}} report within 500m",
+    "reportsWithin500m_other": "{{count}} reports within 500m",
+    "open": "Open",
+    "publicView": "Public view",
+    "timeAgo": {
+      "justNow": "just now",
+      "minutesAgo_one": "{{count}} min ago",
+      "minutesAgo_other": "{{count}} min ago",
+      "hoursAgo_one": "{{count}}h ago",
+      "hoursAgo_other": "{{count}}h ago",
+      "daysAgo_one": "{{count}}d ago",
+      "daysAgo_other": "{{count}}d ago"
+    }
+  },
+  "policeVerificationQueuePage": {
+    "title": "Verification Queue",
+    "subtitle": "Review incoming field reports before they enter active operations.",
+    "refresh": "Refresh",
+    "loadingQueue": "Loading verification queue...",
+    "errorLoadQueue": "Failed to load verification queue.",
+    "errorUpdateItem": "Failed to update queue item.",
+    "queueMetrics": "Queue Metrics",
+    "awaitingReview": "Awaiting review",
+    "urgentReports": "Urgent reports",
+    "assigned": "Assigned",
+    "untitledReport": "Untitled report",
+    "noDescription": "No additional description provided.",
+    "location": "Location",
+    "notProvided": "Not provided",
+    "reported": "Reported",
+    "unknownTime": "Unknown time",
+    "reporter": "Reporter",
+    "approve": "Approve",
+    "decline": "Decline",
+    "takeCase": "Take Case",
+    "details": "Details",
+    "emptyQueue": "No pending incidents in the verification queue."
+  },
+  "policeWorkZoneSetupPage": {
+    "eyebrow": "Police Workspace Setup",
+    "title": "Select Your Working Zone",
+    "subtitle": "First login configuration for {{name}}",
+    "stepLabel": "Step 1 of 1",
+    "description": "Choose your active Wilaya and Commune before entering police mode. You can update your active zone later if your assignment changes.",
+    "wilaya": {
+      "label": "Wilaya",
+      "placeholder": "Select Wilaya",
+      "empty": "No wilaya found",
+      "searchPlaceholder": "Search wilaya…"
+    },
+    "commune": {
+      "label": "Commune",
+      "placeholder": "Select Commune",
+      "placeholderNoWilaya": "Select Wilaya first",
+      "empty": "No commune found",
+      "emptyNoWilaya": "Choose a wilaya first",
+      "searchPlaceholder": "Search commune…"
+    },
+    "loadingZoneOptions": "Loading zone options…",
+    "formHint": "Both fields are required to activate your workspace.",
+    "savingLabel": "Saving…",
+    "saveButton": "Save Working Zone",
+    "assignmentSummary": "Current Assignment Summary",
+    "infoCards": {
+      "notSelected": "Not selected",
+      "activeBadge": "Active",
+      "wilaya": {
+        "category": "Wilaya",
+        "sub": "Active Wilaya"
+      },
+      "commune": {
+        "category": "Commune",
+        "sub": "Active Commune"
+      },
+      "officer": {
+        "category": "Officer"
+      },
+      "badge": {
+        "category": "Badge",
+        "pending": "Pending",
+        "sub": "Identification"
+      }
+    },
+    "defaults": {
+      "officer": "Officer",
+      "policeOfficer": "Police Officer"
+    },
+    "errors": {
+      "failedLoadOptions": "Failed to load work-zone options.",
+      "failedLoadCommunes": "Failed to load communes.",
+      "bothRequired": "Please choose both a Wilaya and a Commune before continuing.",
+      "failedSave": "Failed to save work zone."
+    }
+  }
+}

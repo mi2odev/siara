@@ -1,5 +1,6 @@
 import React, { useContext, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import FancySelect from '../../components/ui/FancySelect'
 
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
@@ -25,16 +26,16 @@ import {
   listPoliceOperationHistory,
 } from '../../services/policeService'
 
-const ACTION_TYPES = [
-  { value: 'all', label: 'All actions' },
-  { value: 'verify_incident', label: 'Verified incident' },
-  { value: 'reject_incident', label: 'Rejected report' },
-  { value: 'assign_self', label: 'Assigned self' },
-  { value: 'request_backup', label: 'Requested backup' },
-  { value: 'update_status', label: 'Changed status' },
-  { value: 'field_note', label: 'Field note' },
-  { value: 'mark_alert_read', label: 'Acknowledged alert' },
-  { value: 'manual_log_entry', label: 'Manual note' },
+const ACTION_TYPE_VALUES = [
+  'all',
+  'verify_incident',
+  'reject_incident',
+  'assign_self',
+  'request_backup',
+  'update_status',
+  'field_note',
+  'mark_alert_read',
+  'manual_log_entry',
 ]
 
 function normalizeText(value) {
@@ -51,18 +52,6 @@ function localDateKey(value) {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
-}
-
-function actionLabel(value) {
-  if (value === 'verify_incident') return 'Verified incident'
-  if (value === 'reject_incident') return 'Rejected report'
-  if (value === 'assign_self') return 'Assigned self'
-  if (value === 'request_backup') return 'Requested backup'
-  if (value === 'update_status') return 'Changed status'
-  if (value === 'field_note') return 'Added field note'
-  if (value === 'mark_alert_read') return 'Acknowledged alert'
-  if (value === 'manual_log_entry') return 'Manual note'
-  return 'Police action'
 }
 
 function actionTone(value) {
@@ -96,10 +85,35 @@ function severityLabel(value) {
 }
 
 export default function PoliceOperationHistoryPage() {
+  const { t } = useTranslation(['police', 'common'])
   const navigate = useNavigate()
   const { policeMe } = usePoliceAccess()
   const { user } = useContext(AuthContext)
-  const officerName = user?.name || 'Officer'
+  const officerName = user?.name || t('policeOperationHistoryPage.officerFallback')
+
+  const ACTION_TYPES = [
+    { value: 'all', label: t('policeOperationHistoryPage.actionTypes.all') },
+    { value: 'verify_incident', label: t('policeOperationHistoryPage.actionTypes.verify_incident') },
+    { value: 'reject_incident', label: t('policeOperationHistoryPage.actionTypes.reject_incident') },
+    { value: 'assign_self', label: t('policeOperationHistoryPage.actionTypes.assign_self') },
+    { value: 'request_backup', label: t('policeOperationHistoryPage.actionTypes.request_backup') },
+    { value: 'update_status', label: t('policeOperationHistoryPage.actionTypes.update_status') },
+    { value: 'field_note', label: t('policeOperationHistoryPage.actionTypes.field_note') },
+    { value: 'mark_alert_read', label: t('policeOperationHistoryPage.actionTypes.mark_alert_read') },
+    { value: 'manual_log_entry', label: t('policeOperationHistoryPage.actionTypes.manual_log_entry') },
+  ]
+
+  function actionLabel(value) {
+    if (value === 'verify_incident') return t('policeOperationHistoryPage.actionLabels.verify_incident')
+    if (value === 'reject_incident') return t('policeOperationHistoryPage.actionLabels.reject_incident')
+    if (value === 'assign_self') return t('policeOperationHistoryPage.actionLabels.assign_self')
+    if (value === 'request_backup') return t('policeOperationHistoryPage.actionLabels.request_backup')
+    if (value === 'update_status') return t('policeOperationHistoryPage.actionLabels.update_status')
+    if (value === 'field_note') return t('policeOperationHistoryPage.actionLabels.field_note')
+    if (value === 'mark_alert_read') return t('policeOperationHistoryPage.actionLabels.mark_alert_read')
+    if (value === 'manual_log_entry') return t('policeOperationHistoryPage.actionLabels.manual_log_entry')
+    return t('policeOperationHistoryPage.actionLabels.default')
+  }
 
   const [typeFilter, setTypeFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('')
@@ -118,11 +132,11 @@ export default function PoliceOperationHistoryPage() {
       const response = await listPoliceOperationHistory({ page: 1, pageSize: 60 })
       setHistoryItems(response.items)
     } catch (loadError) {
-      setError(loadError.message || 'Failed to load operation history.')
+      setError(loadError.message || t('policeOperationHistoryPage.errors.loadFailed'))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [t])
 
   React.useEffect(() => {
     loadHistory()
@@ -147,14 +161,14 @@ export default function PoliceOperationHistoryPage() {
     <PoliceOfficerPanel officer={policeMe?.officer} workZone={policeMe?.workZone}>
       <div className="pop-extra">
         <div className="pop-extra-head">
-          <span className="pop-extra-title">History Summary</span>
+          <span className="pop-extra-title">{t('policeOperationHistoryPage.panel.title')}</span>
         </div>
         <div className="pop-extra-body">
-          <div className="pop-stat-row"><span>Total actions</span><strong>{historyItems.length}</strong></div>
-          <div className="pop-stat-row"><span>Visible</span><strong className="pop-stat--accent">{filteredItems.length}</strong></div>
-          <div className="pop-stat-row"><span>Verified</span><strong className={verifiedCount > 0 ? 'pop-stat--ok' : ''}>{verifiedCount}</strong></div>
-          <div className="pop-stat-row"><span>Rejected</span><strong className={rejectedCount > 0 ? 'pop-stat--danger' : ''}>{rejectedCount}</strong></div>
-          <div className="pop-stat-row"><span>Notes</span><strong>{noteCount}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeOperationHistoryPage.panel.totalActions')}</span><strong>{historyItems.length}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeOperationHistoryPage.panel.visible')}</span><strong className="pop-stat--accent">{filteredItems.length}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeOperationHistoryPage.panel.verified')}</span><strong className={verifiedCount > 0 ? 'pop-stat--ok' : ''}>{verifiedCount}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeOperationHistoryPage.panel.rejected')}</span><strong className={rejectedCount > 0 ? 'pop-stat--danger' : ''}>{rejectedCount}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeOperationHistoryPage.panel.notes')}</span><strong>{noteCount}</strong></div>
         </div>
       </div>
     </PoliceOfficerPanel>
@@ -167,7 +181,7 @@ export default function PoliceOperationHistoryPage() {
 
     const trimmedNote = manualNote.trim()
     if (!trimmedNote) {
-      setError('Enter a short action note before saving.')
+      setError(t('policeOperationHistoryPage.errors.emptyNote'))
       return
     }
 
@@ -188,9 +202,9 @@ export default function PoliceOperationHistoryPage() {
 
       setManualNote('')
       setTypeFilter('all')
-      setActionMessage('Manual action saved.')
+      setActionMessage(t('policeOperationHistoryPage.messages.manualActionSaved'))
     } catch (submitError) {
-      setError(submitError.message || 'Failed to save manual action.')
+      setError(submitError.message || t('policeOperationHistoryPage.errors.saveFailed'))
     } finally {
       setIsSubmittingNote(false)
     }
@@ -201,9 +215,9 @@ export default function PoliceOperationHistoryPage() {
       <section className="police-section police-dashboard-overview police-operation-history-page">
         <div className="police-command-section-head police-dashboard-head">
           <div>
-            <h2>Operation History</h2>
+            <h2>{t('policeOperationHistoryPage.title')}</h2>
             <p className="police-shortcuts-hint">
-              Timeline of meaningful police actions. Location pings are hidden to keep the focus on decisions.
+              {t('policeOperationHistoryPage.hint')}
             </p>
           </div>
           <div className="police-dashboard-head-actions">
@@ -215,7 +229,7 @@ export default function PoliceOperationHistoryPage() {
               disabled={isLoading || isSubmittingNote}
             >
               <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
-              <span>Refresh</span>
+              <span>{t('common:actions.retry')}</span>
             </button>
           </div>
         </div>
@@ -224,7 +238,7 @@ export default function PoliceOperationHistoryPage() {
       <section className="police-section police-history-toolbox">
         <div className="police-history-filters">
           <label className="police-filter-field">
-            <span>Action type</span>
+            <span>{t('policeOperationHistoryPage.filters.actionType')}</span>
             <FancySelect
               value={typeFilter}
               onChange={setTypeFilter}
@@ -234,12 +248,12 @@ export default function PoliceOperationHistoryPage() {
           </label>
 
           <label className="police-filter-field">
-            <span>Date</span>
+            <span>{t('policeOperationHistoryPage.filters.date')}</span>
             <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} />
           </label>
 
           <label className="police-filter-field">
-            <span>Sort by</span>
+            <span>{t('policeOperationHistoryPage.filters.sortBy')}</span>
             <PoliceSortControl
               options={HISTORY_SORT_OPTIONS}
               value={sortKey}
@@ -255,37 +269,37 @@ export default function PoliceOperationHistoryPage() {
             className="police-action police-action-secondary police-history-clear"
             onClick={() => { setTypeFilter('all'); setDateFilter('') }}
           >
-            Clear filters
+            {t('policeOperationHistoryPage.filters.clearFilters')}
           </button>
         </div>
 
         <form className="police-history-manual" onSubmit={handleSubmitManualEntry}>
           <label className="police-filter-field police-history-manual-field">
-            <span>Manual action note</span>
+            <span>{t('policeOperationHistoryPage.manualNote.label')}</span>
             <input
               type="text"
               value={manualNote}
               maxLength={1000}
-              placeholder="Add a short field action or operational note"
+              placeholder={t('policeOperationHistoryPage.manualNote.placeholder')}
               onChange={(event) => setManualNote(event.target.value)}
               disabled={isSubmittingNote}
             />
           </label>
 
           <button type="submit" className="police-action police-action-review" disabled={isSubmittingNote}>
-            {isSubmittingNote ? 'Saving…' : 'Add note'}
+            {isSubmittingNote ? t('policeOperationHistoryPage.manualNote.saving') : t('policeOperationHistoryPage.manualNote.addNote')}
           </button>
         </form>
 
         {error ? <p className="police-history-feedback police-history-feedback-error">{error}</p> : null}
         {!error && actionMessage ? <p className="police-history-feedback police-history-feedback-success">{actionMessage}</p> : null}
-        {isLoading ? <p className="police-meta">Loading meaningful police actions…</p> : null}
+        {isLoading ? <p className="police-meta">{t('policeOperationHistoryPage.loadingActions')}</p> : null}
       </section>
 
       <section className="police-section police-history-feed-section">
         <div className="police-command-section-head">
-          <h2>Activity Timeline</h2>
-          <span className="police-meta">{filteredItems.length} of {historyItems.length} actions</span>
+          <h2>{t('policeOperationHistoryPage.timeline.title')}</h2>
+          <span className="police-meta">{t('policeOperationHistoryPage.timeline.count', { visible: filteredItems.length, total: historyItems.length })}</span>
         </div>
 
         <div className="police-history-list">
@@ -316,10 +330,10 @@ export default function PoliceOperationHistoryPage() {
                   </div>
 
                   <div className="police-history-item-meta">
-                    <span>Officer: <strong>{item.officer?.name || officerName}</strong></span>
-                    {item.reportId ? <span>Incident: <strong>{item.reportTitle || item.reportId}</strong></span> : null}
-                    {item.alertId ? <span>Alert: <strong>{item.alertTitle || item.alertId}</strong></span> : null}
-                    {item.toStatus ? <span>Status: <strong>{normalizeText(item.toStatus).replace(/_/g, ' ')}</strong></span> : null}
+                    <span>{t('policeOperationHistoryPage.itemMeta.officer')} <strong>{item.officer?.name || officerName}</strong></span>
+                    {item.reportId ? <span>{t('policeOperationHistoryPage.itemMeta.incident')} <strong>{item.reportTitle || item.reportId}</strong></span> : null}
+                    {item.alertId ? <span>{t('policeOperationHistoryPage.itemMeta.alert')} <strong>{item.alertTitle || item.alertId}</strong></span> : null}
+                    {item.toStatus ? <span>{t('policeOperationHistoryPage.itemMeta.status')} <strong>{normalizeText(item.toStatus).replace(/_/g, ' ')}</strong></span> : null}
                   </div>
 
                   {item.note ? <p className="police-history-item-note">{item.note}</p> : null}
@@ -331,7 +345,7 @@ export default function PoliceOperationHistoryPage() {
                         className="police-action police-action-view"
                         onClick={() => navigate(`/police/incident/${item.reportId}`)}
                       >
-                        Open incident
+                        {t('policeOperationHistoryPage.actions.openIncident')}
                       </button>
                     </div>
                   ) : null}
@@ -343,8 +357,8 @@ export default function PoliceOperationHistoryPage() {
           {!isLoading && filteredItems.length === 0 ? (
             <div className="police-empty-state" role="status" aria-live="polite">
               <div className="police-empty-icon" aria-hidden="true"><LibraryBooksOutlinedIcon fontSize="inherit" /></div>
-              <h3>No actions found</h3>
-              <p>Location updates are hidden here so the timeline stays focused on meaningful police actions.</p>
+              <h3>{t('policeOperationHistoryPage.empty.title')}</h3>
+              <p>{t('policeOperationHistoryPage.empty.description')}</p>
             </div>
           ) : null}
         </div>

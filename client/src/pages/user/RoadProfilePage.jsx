@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import RoadSafetyProfileCard from '../../components/road/RoadSafetyProfileCard'
 import { getZoneProfile } from '../../services/zoneProfileService'
@@ -7,6 +8,7 @@ import LeftNavLayout from '../../components/layout/LeftNavLayout'
 import '../../styles/RoadSafetyProfile.css'
 
 export default function RoadProfilePage() {
+  const { t } = useTranslation(['pages', 'common'])
   const [params, setParams] = useSearchParams()
   const [lat, setLat] = useState(() => params.get('lat') || '')
   const [lng, setLng] = useState(() => params.get('lng') || '')
@@ -21,7 +23,7 @@ export default function RoadProfilePage() {
       const latNum = Number(latVal)
       const lngNum = Number(lngVal)
       if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
-        setError('Enter valid latitude and longitude.')
+        setError(t('roadProfilePage.errors.invalidCoords'))
         setState('error')
         return
       }
@@ -36,11 +38,11 @@ export default function RoadProfilePage() {
         setProfile(data)
         setState('success')
       } catch (err) {
-        setError(err?.message || 'Failed to load profile')
+        setError(err?.message || t('roadProfilePage.errors.loadFailed'))
         setState('error')
       }
     },
-    [],
+    [t],
   )
 
   useEffect(() => {
@@ -60,17 +62,16 @@ export default function RoadProfilePage() {
     <LeftNavLayout activeKey="map">
     <div className="siara-zp__page">
       <div className="siara-zp__page-header">
-        <h1 className="siara-zp__page-title">Road / zone safety profile</h1>
+        <h1 className="siara-zp__page-title">{t('roadProfilePage.title')}</h1>
         <p className="siara-zp__page-sub">
-          Look up the accident-history fingerprint of any zone — peak hours,
-          common report types, recent activity, and trend.
+          {t('roadProfilePage.subtitle')}
         </p>
       </div>
 
       <form className="siara-zp__form" onSubmit={handleSubmit}>
         <div>
           <label htmlFor="zp-lat" style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-            Latitude
+            {t('roadProfilePage.fields.latitude')}
           </label>
           <input
             id="zp-lat"
@@ -78,12 +79,12 @@ export default function RoadProfilePage() {
             step="0.0001"
             value={lat}
             onChange={(e) => setLat(e.target.value)}
-            placeholder="36.7538"
+            placeholder={t('roadProfilePage.fields.latitudePlaceholder')}
           />
         </div>
         <div>
           <label htmlFor="zp-lng" style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-            Longitude
+            {t('roadProfilePage.fields.longitude')}
           </label>
           <input
             id="zp-lng"
@@ -91,12 +92,12 @@ export default function RoadProfilePage() {
             step="0.0001"
             value={lng}
             onChange={(e) => setLng(e.target.value)}
-            placeholder="3.0588"
+            placeholder={t('roadProfilePage.fields.longitudePlaceholder')}
           />
         </div>
         <div>
           <label htmlFor="zp-radius" style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-            Radius (m)
+            {t('roadProfilePage.fields.radius')}
           </label>
           <input
             id="zp-radius"
@@ -109,12 +110,12 @@ export default function RoadProfilePage() {
           />
         </div>
         <button type="submit" disabled={state === 'loading'}>
-          {state === 'loading' ? 'Loading…' : 'Load profile'}
+          {state === 'loading' ? t('common:actions.loading') : t('roadProfilePage.actions.loadProfile')}
         </button>
       </form>
 
       {state === 'loading' ? (
-        <p className="siara-zp__loading">Loading profile…</p>
+        <p className="siara-zp__loading">{t('roadProfilePage.status.loadingProfile')}</p>
       ) : null}
 
       {state === 'error' ? <p className="siara-zp__error">{error}</p> : null}
@@ -125,8 +126,7 @@ export default function RoadProfilePage() {
 
       {state === 'success' && profile && profile.reportCount === 0 ? (
         <p className="siara-zp__empty">
-          No accident reports recorded in this area. Try a larger radius or a
-          different point.
+          {t('roadProfilePage.status.noReports')}
         </p>
       ) : null}
     </div>

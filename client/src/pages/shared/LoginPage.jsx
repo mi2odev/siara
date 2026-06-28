@@ -1,5 +1,6 @@
 import React, { useContext, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton'
 import LanguageSelect from '../../components/layout/LanguageSelect'
@@ -8,7 +9,7 @@ import { getAuthenticatedRedirect } from '../../routes/routeAccess'
 import logo from '../../assets/logos/siara-logo.png'
 import '../../styles/LoginPage.css'
 
-function getErrorMessage(error) {
+function getErrorMessage(error, t) {
   const apiMessage = String(error?.response?.data?.message || '').toLowerCase()
 
   if (
@@ -16,16 +17,17 @@ function getErrorMessage(error) {
     || apiMessage.includes('invalid email or password')
     || apiMessage.includes('invalid credentials')
   ) {
-    return 'Wrong password.'
+    return t('loginPage.errors.wrongPassword')
   }
 
-  return error.response?.data?.message || error.message || 'Unable to sign in right now.'
+  return error.response?.data?.message || error.message || t('loginPage.errors.unableToSignIn')
 }
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { login, loginWithGoogle } = useContext(AuthContext)
+  const { t } = useTranslation(['auth', 'common'])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -48,7 +50,7 @@ export default function LoginPage() {
     setError('')
 
     if (!email.trim() || !password) {
-      setError('Email and password are required.')
+      setError(t('loginPage.errors.emailPasswordRequired'))
       return
     }
 
@@ -68,7 +70,7 @@ export default function LoginPage() {
         navigate(`/verify-email?${params.toString()}`, {
           replace: true,
           state: {
-            notice: 'Your email needs to be verified before you can continue.',
+            notice: t('loginPage.errors.emailVerificationRequired'),
           },
         })
         return
@@ -79,20 +81,22 @@ export default function LoginPage() {
         const ban = authError.response.data.ban || {}
         const lines = [
           ban.permanent
-            ? 'Your account has been permanently banned.'
-            : `Your account is banned until ${ban.until ? new Date(ban.until).toLocaleString() : 'further notice'}.`,
+            ? t('loginPage.errors.accountPermanentlyBanned')
+            : t('loginPage.errors.accountBannedUntil', {
+                date: ban.until ? new Date(ban.until).toLocaleString() : t('loginPage.errors.furtherNotice'),
+              }),
         ]
-        if (ban.reason) lines.push(`Reason: ${ban.reason}`)
+        if (ban.reason) lines.push(t('loginPage.errors.banReason', { reason: ban.reason }))
         if (!ban.permanent) {
-          lines.push('You will be able to sign in again once the ban expires.')
+          lines.push(t('loginPage.errors.banExpires'))
         } else {
-          lines.push('Contact support if you believe this is a mistake.')
+          lines.push(t('loginPage.errors.contactSupport'))
         }
         setError(lines.join('\n'))
         return
       }
 
-      setError(getErrorMessage(authError))
+      setError(getErrorMessage(authError, t))
     } finally {
       setLoading(false)
     }
@@ -108,7 +112,7 @@ export default function LoginPage() {
       navigate(getAuthenticatedRedirect(user, Boolean(user?.email_verified ?? true)), { replace: true })
     } catch (authError) {
       console.error('[google-auth] Backend Google login failed on /login', authError)
-      setGoogleError(getErrorMessage(authError))
+      setGoogleError(getErrorMessage(authError, t))
     } finally {
       setLoading(false)
     }
@@ -121,7 +125,7 @@ export default function LoginPage() {
         <aside className="siara-hero">
           <img src={logo} alt="SIARA" className="logo" />
           <div className="siara-hero-main">
-            <div className="hero-kicker">AI Platform - SIARA</div>
+            <div className="hero-kicker">{t('loginPage.hero.kicker')}</div>
             <div className="siara-hero-illustration">
               <div className="hero-orbits">
                 <span />
@@ -129,14 +133,14 @@ export default function LoginPage() {
                 <span />
               </div>
             </div>
-            <h2 className="title">Stay ahead of road risk across your watched zones.</h2>
+            <h2 className="title">{t('loginPage.hero.title')}</h2>
             <p className="subtitle">
-              Sign in to access SIARA alerts, maps, predictions, and the notification center built around your safety rules.
+              {t('loginPage.hero.subtitle')}
             </p>
             <div className="hero-badges">
-              <span className="hero-badge">Verified alerts</span>
-              <span className="hero-badge">Smart zones</span>
-              <span className="hero-badge">Weekly summaries</span>
+              <span className="hero-badge">{t('loginPage.hero.badgeVerifiedAlerts')}</span>
+              <span className="hero-badge">{t('loginPage.hero.badgeSmartZones')}</span>
+              <span className="hero-badge">{t('loginPage.hero.badgeWeeklySummaries')}</span>
             </div>
           </div>
         </aside>
@@ -144,22 +148,22 @@ export default function LoginPage() {
         <main className="siara-form-column">
           <div className="siara-form-wrap" role="region" aria-labelledby="loginTitle">
             <div className="siara-brand">
-              <img src={logo} alt="SIARA logo" />
+              <img src={logo} alt={t('loginPage.brand.logoAlt')} />
               <div>
                 <div className="brand-name">SIARA</div>
-                <div className="tag">Road Risk Prediction Platform</div>
+                <div className="tag">{t('loginPage.brand.tagline')}</div>
               </div>
             </div>
 
-            <h1 id="loginTitle" className="siara-form-title">Welcome back</h1>
-            <p className="siara-form-sub">Use your verified email to get back to your dashboard.</p>
-            <div className="siara-form-helper">Secure session cookies keep you signed in when you choose Remember me.</div>
+            <h1 id="loginTitle" className="siara-form-title">{t('loginPage.form.title')}</h1>
+            <p className="siara-form-sub">{t('loginPage.form.subtitle')}</p>
+            <div className="siara-form-helper">{t('loginPage.form.helper')}</div>
 
             {notice ? <div className="siara-notice-box">{notice}</div> : null}
             {error ? <div className="error-box" role="alert" style={{ whiteSpace: 'pre-line' }}>{error}</div> : null}
 
             <form onSubmit={handleSubmit}>
-              <label htmlFor="login-email" className="field-label">Email</label>
+              <label htmlFor="login-email" className="field-label">{t('loginPage.form.emailLabel')}</label>
               <div className="input-shell">
                 <span className="input-icon" aria-hidden="true">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -172,13 +176,13 @@ export default function LoginPage() {
                   className="siara-input"
                   type="email"
                   autoComplete="email"
-                  placeholder="you@example.com"
+                  placeholder={t('loginPage.form.emailPlaceholder')}
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                 />
               </div>
 
-              <label htmlFor="login-password" className="field-label">Password</label>
+              <label htmlFor="login-password" className="field-label">{t('loginPage.form.passwordLabel')}</label>
               <div className="input-shell">
                 <span className="input-icon" aria-hidden="true">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -191,7 +195,7 @@ export default function LoginPage() {
                   className="siara-input has-eye-toggle"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  placeholder="Password"
+                  placeholder={t('loginPage.form.passwordPlaceholder')}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                 />
@@ -199,7 +203,7 @@ export default function LoginPage() {
                   type="button"
                   className={`eye-toggle ${showPassword ? 'eye-open' : 'eye-closed'}`}
                   onClick={() => setShowPassword((current) => !current)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? t('loginPage.form.hidePassword') : t('loginPage.form.showPassword')}
                 >
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path
@@ -230,19 +234,19 @@ export default function LoginPage() {
                     onChange={(event) => setRememberMe(event.target.checked)}
                   />
                   {' '}
-                  Remember me for 30 days
+                  {t('loginPage.form.rememberMe')}
                 </label>
                 <div style={{ flex: 1 }} />
-                <Link to="/forgot-password" className="link-accent">Forgot password?</Link>
+                <Link to="/forgot-password" className="link-accent">{t('loginPage.form.forgotPassword')}</Link>
               </div>
 
               <button type="submit" className="siara-cta" disabled={loading}>
-                {loading ? 'Signing in...' : 'Log In'}
+                {loading ? t('loginPage.form.signingIn') : t('loginPage.form.logIn')}
               </button>
             </form>
 
             <div className="siara-auth-divider">
-              <span>or continue with</span>
+              <span>{t('loginPage.form.orContinueWith')}</span>
             </div>
 
             {googleError ? <div className="error-box" role="alert">{googleError}</div> : null}
@@ -256,8 +260,8 @@ export default function LoginPage() {
             />
 
             <div className="siara-footer-links">
-              <Link to="/about">About SIARA</Link>
-              <Link to="/register" className="link-accent">Create account</Link>
+              <Link to="/about">{t('loginPage.footer.aboutSiara')}</Link>
+              <Link to="/register" className="link-accent">{t('common:nav.register')}</Link>
             </div>
           </div>
         </main>

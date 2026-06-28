@@ -15,5 +15,485 @@
     "resolved": "Résolu"
   },
   "count_one": "{{count}} signalement",
-  "count_other": "{{count}} signalements"
+  "count_other": "{{count}} signalements",
+  "reportCredibilityBadge": {
+    "levelHigh": "Haute crédibilité",
+    "levelMedium": "Crédibilité moyenne",
+    "levelLow": "Faible crédibilité",
+    "levelUnknown": "Crédibilité en attente",
+    "labelCompact": "Crédibilité {{score}}",
+    "labelFallback": "Crédibilité",
+    "ariaLabel": "{{level}}, score {{score}} sur 100",
+    "spam": "Spam",
+    "tooltipTitle": "Pourquoi cette crédibilité ?"
+  },
+  "reportSuggestionCard": {
+    "ariaLabel": "Suggestions SIARA",
+    "title": "Suggestions SIARA",
+    "updating": "Mise à jour…",
+    "suggestionsUnavailable": "Suggestions non disponibles",
+    "useType": "Utiliser le type : {{type}}",
+    "setSeverity": "Définir la gravité : {{severity}}",
+    "possiblyReported": "Peut-être déjà signalé",
+    "reportFallbackTitle": "Signalement n°{{id}}",
+    "incidentFallback": "incident",
+    "policeVerified": "Vérifié par la police",
+    "confirmExisting": "Confirmer ce signalement existant à la place",
+    "distanceMeters": "{{count}} m",
+    "distanceKm": "{{count}} km",
+    "timeJustNow": "à l'instant",
+    "timeMinutesAgo": "il y a {{count}} min",
+    "timeHoursAgo": "il y a {{count}}h",
+    "timeDaysAgo": "il y a {{count}}j"
+  },
+  "incidentDetailPage": {
+    "types": {
+      "accident": "Accident",
+      "traffic": "Trafic",
+      "danger": "Danger",
+      "weather": "Météo",
+      "roadworks": "Travaux",
+      "other": "Autre",
+      "incident": "Incident"
+    },
+    "status": {
+      "pending": "En attente",
+      "verified": "Vérifié",
+      "rejected": "Rejeté",
+      "resolved": "Résolu"
+    },
+    "severity": {
+      "high": "Gravité élevée",
+      "medium": "Gravité modérée",
+      "low": "Gravité faible",
+      "unknown": "Inconnu"
+    },
+    "timeAgo": {
+      "unknown": "Inconnu",
+      "justNow": "À l'instant",
+      "minutesAgo_one": "il y a {{count}} min",
+      "minutesAgo_other": "il y a {{count}} min",
+      "hoursAgo_one": "il y a {{count}} h",
+      "hoursAgo_other": "il y a {{count}} h",
+      "daysAgo_one": "il y a {{count}} jour",
+      "daysAgo_other": "il y a {{count}} jours"
+    },
+    "timeline": {
+      "anonymousUser": "un utilisateur identifié",
+      "administrator": "Administrateur",
+      "policeOfficer": "Agent de police",
+      "citizenReporter": "Citoyen déclarant",
+      "reportSubmittedBy": "Signalement soumis par {{name}}.",
+      "system": "Système",
+      "reportDetailsUpdated": "Les détails du signalement ont été mis à jour.",
+      "authority": "Autorité",
+      "statusUpdatedTo": "Statut mis à jour : {{status}}.",
+      "citizen": "Citoyen"
+    },
+    "noDescription": "Aucune description n'a été fournie pour ce signalement.",
+    "reportedLocation": "Lieu signalé",
+    "citizen": "Citoyen",
+    "reportImage": "Image du signalement",
+    "reportMedia": "Média du signalement",
+    "checkLiveMap": "Consultez la carte en direct pour des itinéraires alternatifs",
+    "errors": {
+      "failedToLoad": "Impossible de charger le signalement",
+      "failedToUpdate": "Impossible de mettre à jour le signalement",
+      "failedToDelete": "Impossible de supprimer le signalement",
+      "titleTooShort": "Le titre doit comporter au moins 2 caractères.",
+      "invalidLatitude": "La latitude doit être un nombre valide entre -90 et 90.",
+      "invalidLongitude": "La longitude doit être un nombre valide entre -180 et 180."
+    },
+    "confirmDelete": "Supprimer définitivement ce signalement ?",
+    "nav": {
+      "feed": "Fil d'actualité",
+      "report": "Signalement",
+      "dashboard": "Tableau de bord"
+    },
+    "searchPlaceholder": "Rechercher un incident, une route, une wilaya…",
+    "ariaLabels": {
+      "messages": "Messages",
+      "userProfile": "Profil utilisateur",
+      "userAvatar": "Avatar utilisateur",
+      "profile": "Profil",
+      "openPhoto": "Ouvrir la photo",
+      "photoPreview": "Aperçu de la photo",
+      "zoomOut": "Dézoomer",
+      "resetZoom": "Réinitialiser le zoom",
+      "zoomIn": "Zoomer",
+      "closePhotoPreview": "Fermer l'aperçu de la photo",
+      "previousPhoto": "Photo précédente",
+      "nextPhoto": "Photo suivante"
+    },
+    "dropdown": {
+      "myProfile": "Mon profil"
+    },
+    "profileBio": "Consultez les signalements routiers en direct et partagez des mises à jour du terrain.",
+    "viewProfile": "Voir le profil",
+    "reportStatus": "STATUT DU SIGNALEMENT",
+    "filter": {
+      "all": "Tous"
+    },
+    "newReport": "+ Nouveau signalement",
+    "loadingReport": "Chargement du signalement…",
+    "reportUnavailable": "Signalement indisponible",
+    "reportedBy": "Signalé par",
+    "statusLabel": "Statut :",
+    "updatedLabel": "Mis à jour",
+    "mergedReports": {
+      "title": "Signalements fusionnés ({{count}})",
+      "description": "SIARA a regroupé {{count}} signalements du même accident (dans un rayon de 300 m et 6 h) dans cet incident. Le signalement original est conservé ; les autres sont des doublons fusionnés.",
+      "original": "Original",
+      "merged": "Fusionné",
+      "thisReport": "· ce signalement",
+      "policeVerified": "· vérifié par la police"
+    },
+    "sections": {
+      "description": "Description",
+      "photos": "Photos",
+      "timeline": "Chronologie",
+      "communitySignals": "Signaux communautaires",
+      "location": "Localisation",
+      "recommendations": "Recommandations",
+      "actions": "Actions",
+      "metadata": "Métadonnées"
+    },
+    "showMore": "Afficher plus",
+    "showLess": "Afficher moins",
+    "signals": {
+      "confirmations": "Confirmations",
+      "comments": "Commentaires",
+      "availableAfterPublication": "Disponible après publication",
+      "iConfirm": "Je confirme"
+    },
+    "noLocationCoordinates": "Aucune coordonnée disponible",
+    "openFullMap": "Ouvrir la carte complète",
+    "safety": {
+      "treatWithCaution": "À traiter avec prudence",
+      "monitorArea": "Surveiller cette zone",
+      "estimatedDelay": "Retard estimé :",
+      "alternativeRoutes": "Itinéraires alternatifs :"
+    },
+    "actions": {
+      "following": "Suivi",
+      "followIncident": "Suivre cet incident",
+      "createZoneAlert": "Créer une alerte de zone",
+      "reportUpdate": "Signaler une mise à jour",
+      "editReport": "Modifier le signalement",
+      "deleting": "Suppression…",
+      "deleteReport": "Supprimer le signalement",
+      "saving": "Enregistrement…",
+      "saveChanges": "Enregistrer les modifications"
+    },
+    "editForm": {
+      "title": "Titre",
+      "type": "Type",
+      "severity": "Gravité",
+      "status": "Statut",
+      "locationLabel": "Libellé du lieu",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "occurredAt": "Date de survenance",
+      "description": "Description",
+      "mediaNote": "Les médias sont conservés avec le signalement, mais leur modification depuis cette page n'est pas encore disponible."
+    },
+    "metadata": {
+      "incidentId": "ID de l'incident",
+      "reporter": "Déclarant",
+      "status": "Statut",
+      "sources": "Sources",
+      "sourceCount_one": "{{count}} signalement",
+      "sourceCount_other": "{{count}} signalements",
+      "categories": "Catégories",
+      "lastUpdated": "Dernière mise à jour"
+    }
+  },
+  "reportIncidentPage": {
+    "header": {
+      "searchPlaceholder": "Rechercher un incident, une route, une wilaya…",
+      "userProfile": "Profil utilisateur",
+      "userAvatar": "Avatar utilisateur"
+    },
+    "steps": {
+      "incidentType": "Type d'incident",
+      "location": "Localisation",
+      "details": "Détails",
+      "media": "Médias",
+      "verification": "Vérification"
+    },
+    "incidentTypes": {
+      "accident": {
+        "label": "Accident",
+        "desc": "Collision, accident de la route"
+      },
+      "traffic": {
+        "label": "Circulation",
+        "desc": "Embouteillage, ralentissement"
+      },
+      "danger": {
+        "label": "Danger",
+        "desc": "Obstacle, situation dangereuse"
+      },
+      "weather": {
+        "label": "Météo",
+        "desc": "Conditions météo dangereuses"
+      },
+      "roadworks": {
+        "label": "Travaux",
+        "desc": "Construction, fermeture de voie"
+      },
+      "other": {
+        "label": "Autre",
+        "desc": "Autre type d'incident"
+      }
+    },
+    "severity": {
+      "high": {
+        "label": "Élevé",
+        "desc": "Urgent, danger immédiat"
+      },
+      "medium": {
+        "label": "Modéré",
+        "desc": "Important, attention requise"
+      },
+      "low": {
+        "label": "Faible",
+        "desc": "Mineur, informatif"
+      }
+    },
+    "timePresets": {
+      "now": "À l'instant",
+      "5m": "Il y a 5 min",
+      "15m": "Il y a 15 min",
+      "30m": "Il y a 30 min",
+      "1h": "Il y a 1 heure",
+      "2h": "Il y a 2 heures"
+    },
+    "locationDetails": {
+      "fullAddress": "Adresse complète",
+      "road": "Route",
+      "roadType": "Type de route",
+      "neighborhood": "Quartier",
+      "district": "District",
+      "city": "Ville",
+      "county": "Comté",
+      "state": "État",
+      "postcode": "Code postal",
+      "country": "Pays",
+      "coordinates": "Coordonnées"
+    },
+    "location": {
+      "selectedOnMap": "sélectionné sur la carte",
+      "gpsAccuracy": "Précision GPS ±{{meters}} m",
+      "highPrecisionGps": "GPS haute précision",
+      "addressSearch": "Recherche d'adresse",
+      "mapSelection": "Sélection sur la carte"
+    },
+    "errors": {
+      "geolocationNotSupported": "La géolocalisation n'est pas prise en charge par ce navigateur.",
+      "unableToReadCoordinates": "Impossible de lire vos coordonnées actuelles.",
+      "locationPermissionDenied": "L'accès à la localisation a été refusé. Autorisez l'accès et réessayez.",
+      "locationUnavailable": "Votre position est indisponible. Réessayez dans quelques secondes.",
+      "locationTimeout": "La demande de localisation a expiré. Veuillez réessayer.",
+      "unableToGetLocation": "Impossible d'obtenir votre position actuelle.",
+      "mediaMaxFiles": "Vous pouvez télécharger jusqu'à 5 images par signalement.",
+      "mediaInvalidType": "Seules les images JPEG, PNG et WebP sont autorisées.",
+      "mediaFileTooLarge": "Chaque image doit faire 5 Mo ou moins.",
+      "mediaNoValidImages": "Aucune image valide n'a été sélectionnée.",
+      "mediaUploadFailed": "Votre signalement a été créé, mais les images n'ont pas pu être téléchargées.",
+      "submitFailed": "Échec de l'envoi du signalement."
+    },
+    "preview": {
+      "reportedTitle": "{{type}} signalé",
+      "newIncident": "Nouvel incident",
+      "heading": "Aperçu du signalement",
+      "howItWillAppear": "Comment il apparaîtra",
+      "locationPlaceholder": "Localisation…",
+      "descriptionPlaceholder": "Description de l'incident…",
+      "pending": "En attente",
+      "locationLabel": "Localisation",
+      "selectLocation": "Sélectionner un emplacement",
+      "verificationStatus": "Statut de vérification",
+      "verifPending": "En attente",
+      "verifPendingDesc": "Sera vérifié après soumission",
+      "timeline": {
+        "aiReview": "Revue IA",
+        "community": "Communauté",
+        "published": "Publié"
+      },
+      "trustSafety": "Confiance & Sécurité",
+      "trust": {
+        "verifiedReports": "Signalements vérifiés",
+        "protectedData": "Données protégées",
+        "moderatedMedia": "Médias modérés",
+        "falseReportsRemoved": "Faux signalements supprimés"
+      }
+    },
+    "wizard": {
+      "heading": "Signaler un incident",
+      "secureReporting": "Signalement sécurisé",
+      "secureReportingDesc": "Vos données sont protégées. Les faux signalements peuvent être supprimés.",
+      "cancelReport": "Annuler le signalement"
+    },
+    "step1": {
+      "heading": "Quel type d'incident souhaitez-vous signaler ?",
+      "subheading": "Sélectionnez la catégorie la plus appropriée.",
+      "selectTypeHint": "Sélectionnez un type d'incident pour continuer."
+    },
+    "step2": {
+      "heading": "Où se situe l'incident ?",
+      "subheading": "Indiquez l'emplacement exact pour aider les autres utilisateurs.",
+      "detectingLocation": "Détection de votre position…",
+      "useCurrentLocation": "Utiliser ma position actuelle",
+      "pleaseWait": "Veuillez patienter un instant",
+      "searchAddressLabel": "Ou rechercher une adresse",
+      "searchAddressPlaceholder": "Ex. : Rue Didouche Mourad, Alger…",
+      "noAddressFound": "Aucune adresse correspondante trouvée.",
+      "selectOnMapLabel": "Ou sélectionner sur la carte",
+      "mapClickHint": "Cliquez pour placer le marqueur",
+      "locationDetailsAriaLabel": "Détails de la position sélectionnée"
+    },
+    "step3": {
+      "heading": "Décrivez l'incident",
+      "subheading": "Fournissez des détails pour aider à comprendre la situation.",
+      "titleLabel": "Titre du signalement",
+      "titlePlaceholder": "Ex. : Accident entre deux véhicules",
+      "titleMinChars": "Minimum 2 caractères",
+      "descriptionLabel": "Description",
+      "optional": "optionnel",
+      "descriptionPlaceholder": "Décrivez ce que vous avez observé. Restez factuel et objectif.",
+      "tips": {
+        "heading": "Conseils",
+        "tip1": "Décrivez les faits, pas vos émotions",
+        "tip2": "Mentionnez le nombre de véhicules/personnes si pertinent",
+        "tip3": "Indiquez si les services d'urgence sont présents"
+      },
+      "severityLabel": "Niveau de gravité",
+      "whenLabel": "Quand cela s'est-il produit ?",
+      "pickDateTime": "Choisir la date et l'heure",
+      "incidentTimeHint": "Heure de l'incident :"
+    },
+    "step4": {
+      "heading": "Ajouter des médias",
+      "subheading": "Ajoutez jusqu'à 5 photos pour documenter l'incident (optionnel).",
+      "uploadTitle": "Ajouter des photos",
+      "dropHere": "Déposez vos images ici",
+      "uploadDesc": "Cliquez ou glissez des images JPEG, PNG ou WebP",
+      "uploadLimit": "Maximum 5 fichiers • 5 Mo chacun",
+      "previewAlt": "Aperçu {{index}}",
+      "removeMedia": "Supprimer",
+      "privacyTitle": "Confidentialité",
+      "privacyDesc": "Les médias sont modérés avant publication. Les données personnelles visibles (visages, plaques d'immatriculation) peuvent être floutées.",
+      "noMedia": "Pas de médias à ajouter ?",
+      "skipStep": "Ignorer cette étape"
+    },
+    "step5": {
+      "heading": "Vérifier votre signalement",
+      "subheading": "Vérifiez les informations avant de soumettre.",
+      "reviewLabels": {
+        "incidentType": "Type d'incident",
+        "location": "Localisation",
+        "title": "Titre",
+        "description": "Description",
+        "severity": "Gravité",
+        "time": "Heure",
+        "media": "Médias"
+      },
+      "imageCount_one": "{{count}} image",
+      "imageCount_other": "{{count}} images",
+      "noMedia": "Aucun média",
+      "agreementText": "Je confirme que ces informations sont exactes et véridiques.",
+      "reviewNotice": "Votre signalement sera vérifié par notre système automatisé puis rendu visible aux autres utilisateurs. Les faux signalements peuvent entraîner un avertissement ou une suspension de compte.",
+      "loginRequired": "Vous devez être connecté pour soumettre ce signalement."
+    },
+    "nav": {
+      "continue": "Continuer",
+      "submitReport": "Envoyer le signalement",
+      "submitting": "Envoi en cours…"
+    },
+    "success": {
+      "title": "Signalement envoyé !",
+      "reference": "Référence :",
+      "awaitingVerification": "En attente de vérification",
+      "whatHappensNext": "Que se passe-t-il ensuite ?",
+      "nextSteps": {
+        "autoReview": {
+          "title": "Revue automatique",
+          "desc": "L'IA analyse votre signalement pour en vérifier l'exactitude"
+        },
+        "communityConfirmation": {
+          "title": "Confirmation communautaire",
+          "desc": "D'autres utilisateurs peuvent confirmer l'incident"
+        },
+        "officialValidation": {
+          "title": "Validation officielle",
+          "desc": "Vérification par les autorités si nécessaire"
+        }
+      },
+      "viewMyReport": "Voir mon signalement",
+      "reportAnother": "Signaler un autre incident",
+      "backToFeed": "Retour au fil d'actualité",
+      "trustNotice": "Vos données personnelles sont protégées. Les signalements sont modérés pour garantir la qualité."
+    }
+  },
+  "reportsPage": {
+    "unknown": "Inconnu",
+    "unknownTime": "Heure inconnue",
+    "untitledReport": "Signalement sans titre",
+    "unknownLocation": "Emplacement inconnu",
+    "toastResponseSent": "Réponse envoyée — merci pour les informations supplémentaires.",
+    "errorFailedToSend": "Échec de l'envoi de la réponse",
+    "errorLoadReports": "Impossible de charger vos signalements.",
+    "toastSubmitted": "Signalement « {{name}} » soumis avec succès",
+    "confirmDelete": "Supprimer ce signalement ?",
+    "toastDeleted": "Signalement supprimé",
+    "errorDeleteReport": "Impossible de supprimer le signalement.",
+    "navFeed": "Fil d'actualité",
+    "navReport": "Signalement",
+    "navDashboard": "Tableau de bord",
+    "searchPlaceholder": "Rechercher un incident, une route, une wilaya…",
+    "ariaUserProfile": "Profil utilisateur",
+    "altUserAvatar": "Avatar de l'utilisateur",
+    "dropdownMyProfile": "Mon profil",
+    "profileBio": "Consultez les signalements routiers en direct et partagez des mises à jour depuis le terrain.",
+    "viewProfile": "Voir le profil",
+    "newReport": "+ Nouveau signalement",
+    "reportStatusLabel": "STATUT DU SIGNALEMENT",
+    "filterAll": "Tous",
+    "filterPending": "En attente",
+    "filterVerified": "Vérifié",
+    "filterResolved": "Résolu",
+    "filterRejected": "Rejeté",
+    "pageTitle": "Mes signalements",
+    "pageSubtitle": "Suivez, examinez et gérez vos signalements d'incidents.",
+    "severityAll": "Gravité",
+    "severityHigh": "Élevé",
+    "severityMedium": "Modéré",
+    "severityLow": "Faible",
+    "loadingReports": "Chargement des signalements…",
+    "emptyTitle": "Aucun signalement",
+    "emptyDesc": "Créez votre premier signalement pour partager des incidents routiers.",
+    "emptyCreateBtn": "Créer un signalement",
+    "infoRequestTitle": "Un modérateur a besoin de plus d'informations",
+    "infoRequestRespond": "Répondre",
+    "infoResponseSent": "Votre réponse a été envoyée.",
+    "infoResponseWaiting": "En attente du suivi du modérateur.",
+    "cardView": "Voir",
+    "overviewTitle": "Aperçu des signalements",
+    "overviewTotal": "Total",
+    "detailPanelTitle": "Signalement sélectionné",
+    "noSelTitle": "Aucun signalement sélectionné",
+    "noSelDesc": "Sélectionnez un signalement dans la liste pour afficher tous les détails ici.",
+    "detailType": "Type",
+    "detailLocation": "Emplacement",
+    "detailOccurred": "Survenu",
+    "detailReference": "Référence",
+    "viewFullReport": "Voir le signalement complet",
+    "newReportBtn": "Nouveau signalement",
+    "modalTitle": "Répondre au modérateur",
+    "modalSubtitle": "Votre réponse sera transmise à l'administrateur qui examine ce signalement.",
+    "modalPlaceholder": "Saisissez votre réponse…",
+    "modalSending": "Envoi en cours…",
+    "modalSend": "Envoyer la réponse"
+  }
 }

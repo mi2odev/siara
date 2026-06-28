@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
 import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined'
 import GpsFixedOutlinedIcon from '@mui/icons-material/GpsFixedOutlined'
@@ -44,14 +45,15 @@ function BarChart({ data, colorClass = '' }) {
 }
 
 function TrendChart({ trend }) {
+  const { t } = useTranslation(['supervisor'])
   if (!trend || trend.length === 0) {
-    return <div className="sv-empty" style={{ padding: 24 }}><span className="sv-empty-icon"><TrendingUpOutlinedIcon fontSize="inherit" /></span>No trend data</div>
+    return <div className="sv-empty" style={{ padding: 24 }}><span className="sv-empty-icon"><TrendingUpOutlinedIcon fontSize="inherit" /></span>{t('supervisorAnalyticsPage.noTrendData')}</div>
   }
   const max = Math.max(...trend.map((d) => d.count), 1)
   return (
     <div className="sv-trend-chart">
       {trend.map((point) => (
-        <div key={point.date} className="sv-trend-bar-wrap" title={`${point.date}: ${point.count} incidents`}>
+        <div key={point.date} className="sv-trend-bar-wrap" title={t('supervisorAnalyticsPage.trendBarTitle', { date: point.date, count: point.count })}>
           <div
             className="sv-trend-bar"
             style={{ height: `${Math.max(3, Math.round((point.count / max) * 100))}%` }}
@@ -66,13 +68,13 @@ function TrendChart({ trend }) {
 }
 
 const STATUS_ORDER = ['pending', 'under_review', 'verified', 'dispatched', 'resolved', 'rejected']
-const STATUS_LABELS = {
-  pending: 'Pending',
-  under_review: 'Under Review',
-  verified: 'Verified',
-  dispatched: 'Dispatched',
-  resolved: 'Resolved',
-  rejected: 'Rejected',
+const STATUS_LABEL_KEYS = {
+  pending: 'supervisorAnalyticsPage.status.pending',
+  under_review: 'supervisorAnalyticsPage.status.underReview',
+  verified: 'supervisorAnalyticsPage.status.verified',
+  dispatched: 'supervisorAnalyticsPage.status.dispatched',
+  resolved: 'supervisorAnalyticsPage.status.resolved',
+  rejected: 'supervisorAnalyticsPage.status.rejected',
 }
 const STATUS_COLOR = {
   pending: 'fill-medium',
@@ -84,6 +86,7 @@ const STATUS_COLOR = {
 }
 
 export default function SupervisorAnalyticsPage() {
+  const { t } = useTranslation(['supervisor', 'common'])
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -96,7 +99,7 @@ export default function SupervisorAnalyticsPage() {
       setData(result)
       setError(null)
     } catch (err) {
-      setError(err.message || 'Failed to load analytics')
+      setError(err.message || t('supervisorAnalyticsPage.errorLoadAnalytics'))
     } finally {
       setLoading(false)
     }
@@ -114,13 +117,13 @@ export default function SupervisorAnalyticsPage() {
   const trend = data?.trendByDay || []
 
   const statusData = STATUS_ORDER.map((s) => ({
-    label: STATUS_LABELS[s] || s,
+    label: STATUS_LABEL_KEYS[s] ? t(STATUS_LABEL_KEYS[s]) : s,
     count: byStatus[s] || 0,
     colorClass: STATUS_COLOR[s] || '',
   })).filter((d) => d.count > 0)
 
   const severityData = ['high', 'medium', 'low'].map((s) => ({
-    label: s.charAt(0).toUpperCase() + s.slice(1),
+    label: t(`supervisorAnalyticsPage.severity.${s}`),
     count: bySeverity[s] || 0,
     colorClass: `fill-${s}`,
   })).filter((d) => d.count > 0)
@@ -130,10 +133,10 @@ export default function SupervisorAnalyticsPage() {
       <div className="supervisor-page">
         <div className="sv-page-header">
           <div className="sv-page-title-block">
-            <span className="sv-page-eyebrow">Supervisor — Strategic</span>
-            <h1 className="sv-page-title">Operational Analytics</h1>
+            <span className="sv-page-eyebrow">{t('supervisorAnalyticsPage.eyebrow')}</span>
+            <h1 className="sv-page-title">{t('supervisorAnalyticsPage.title')}</h1>
             <p className="sv-page-subtitle">
-              Incident resolution statistics, officer workload, and response metrics
+              {t('supervisorAnalyticsPage.subtitle')}
             </p>
           </div>
           <div className="sv-page-actions">
@@ -143,10 +146,10 @@ export default function SupervisorAnalyticsPage() {
                 className={`sv-filter-btn ${days === d ? 'active' : ''}`}
                 onClick={() => setDays(d)}
               >
-                {d}d
+                {t('supervisorAnalyticsPage.daysFilter', { count: d })}
               </button>
             ))}
-            <button className="sv-btn sv-btn-ghost sv-btn-refresh" onClick={load} disabled={loading} aria-label="Refresh"><RefreshRoundedIcon fontSize="small" /></button>
+            <button className="sv-btn sv-btn-ghost sv-btn-refresh" onClick={load} disabled={loading} aria-label={t('common:actions.retry')}><RefreshRoundedIcon fontSize="small" /></button>
           </div>
         </div>
 
@@ -155,37 +158,37 @@ export default function SupervisorAnalyticsPage() {
         {/* KPI Cards */}
         <div className="sv-kpi-bar">
           <div className="sv-kpi-card kpi-primary">
-            <div className="sv-kpi-label">Total Incidents</div>
+            <div className="sv-kpi-label">{t('supervisorAnalyticsPage.kpi.totalIncidents')}</div>
             <div className="sv-kpi-value">{loading ? '—' : metrics.totalIncidents ?? 0}</div>
-            <div className="sv-kpi-sub">Last {days} days</div>
+            <div className="sv-kpi-sub">{t('supervisorAnalyticsPage.kpi.lastDays', { count: days })}</div>
           </div>
           <div className="sv-kpi-card kpi-good">
-            <div className="sv-kpi-label">Resolution Rate</div>
+            <div className="sv-kpi-label">{t('supervisorAnalyticsPage.kpi.resolutionRate')}</div>
             <div className="sv-kpi-value" style={{ fontSize: 24 }}>
               {loading ? '—' : `${metrics.resolutionRate ?? 0}%`}
             </div>
-            <div className="sv-kpi-sub">{metrics.resolvedIncidents ?? 0} resolved</div>
+            <div className="sv-kpi-sub">{t('supervisorAnalyticsPage.kpi.resolvedCount', { count: metrics.resolvedIncidents ?? 0 })}</div>
           </div>
           <div className="sv-kpi-card kpi-accent">
-            <div className="sv-kpi-label">Avg Response Time</div>
+            <div className="sv-kpi-label">{t('supervisorAnalyticsPage.kpi.avgResponseTime')}</div>
             <div className="sv-kpi-value" style={{ fontSize: 22 }}>
               {loading ? '—' : formatDuration(metrics.avgResponseTimeMs)}
             </div>
-            <div className="sv-kpi-sub" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Report <ArrowRightAltRoundedIcon fontSize="inherit" /> verified</div>
+            <div className="sv-kpi-sub" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t('supervisorAnalyticsPage.kpi.reportToVerified.before')} <ArrowRightAltRoundedIcon fontSize="inherit" /> {t('supervisorAnalyticsPage.kpi.reportToVerified.after')}</div>
           </div>
           <div className="sv-kpi-card kpi-warning">
-            <div className="sv-kpi-label">Avg Resolution</div>
+            <div className="sv-kpi-label">{t('supervisorAnalyticsPage.kpi.avgResolution')}</div>
             <div className="sv-kpi-value" style={{ fontSize: 22 }}>
               {loading ? '—' : formatDuration(metrics.avgResolutionTimeMs)}
             </div>
-            <div className="sv-kpi-sub" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Report <ArrowRightAltRoundedIcon fontSize="inherit" /> resolved</div>
+            <div className="sv-kpi-sub" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t('supervisorAnalyticsPage.kpi.reportToResolved.before')} <ArrowRightAltRoundedIcon fontSize="inherit" /> {t('supervisorAnalyticsPage.kpi.reportToResolved.after')}</div>
           </div>
         </div>
 
         {loading ? (
           <div className="sv-loading" style={{ padding: 60 }}>
             <div className="sv-loading-spinner" />
-            <span>Computing analytics...</span>
+            <span>{t('supervisorAnalyticsPage.computingAnalytics')}</span>
           </div>
         ) : (
           <>
@@ -195,7 +198,7 @@ export default function SupervisorAnalyticsPage() {
                 <div className="sv-section-head">
                   <h2 className="sv-section-title">
                     <span className="sv-section-title-icon"><TrendingUpOutlinedIcon fontSize="inherit" /></span>
-                    Daily Trend — Last {days} Days
+                    {t('supervisorAnalyticsPage.sections.dailyTrend', { count: days })}
                   </h2>
                 </div>
                 <div className="sv-section-body">
@@ -207,12 +210,12 @@ export default function SupervisorAnalyticsPage() {
                 <div className="sv-section-head">
                   <h2 className="sv-section-title">
                     <span className="sv-section-title-icon"><BarChartOutlinedIcon fontSize="inherit" /></span>
-                    Incidents by Status
+                    {t('supervisorAnalyticsPage.sections.incidentsByStatus')}
                   </h2>
                 </div>
                 <div className="sv-section-body">
                   {statusData.length === 0
-                    ? <div className="sv-empty"><span className="sv-empty-icon"><AssignmentOutlinedIcon fontSize="inherit" /></span>No data</div>
+                    ? <div className="sv-empty"><span className="sv-empty-icon"><AssignmentOutlinedIcon fontSize="inherit" /></span>{t('supervisorAnalyticsPage.noData')}</div>
                     : <BarChart data={statusData} />}
                 </div>
               </div>
@@ -223,12 +226,12 @@ export default function SupervisorAnalyticsPage() {
                 <div className="sv-section-head">
                   <h2 className="sv-section-title">
                     <span className="sv-section-title-icon"><GpsFixedOutlinedIcon fontSize="inherit" /></span>
-                    Incidents by Severity
+                    {t('supervisorAnalyticsPage.sections.incidentsBySeverity')}
                   </h2>
                 </div>
                 <div className="sv-section-body">
                   {severityData.length === 0
-                    ? <div className="sv-empty"><span className="sv-empty-icon"><AssignmentOutlinedIcon fontSize="inherit" /></span>No data</div>
+                    ? <div className="sv-empty"><span className="sv-empty-icon"><AssignmentOutlinedIcon fontSize="inherit" /></span>{t('supervisorAnalyticsPage.noData')}</div>
                     : <BarChart data={severityData} />}
                 </div>
               </div>
@@ -237,12 +240,12 @@ export default function SupervisorAnalyticsPage() {
                 <div className="sv-section-head">
                   <h2 className="sv-section-title">
                     <span className="sv-section-title-icon"><LocationOnOutlinedIcon fontSize="inherit" /></span>
-                    Busiest Zones
+                    {t('supervisorAnalyticsPage.sections.busiestZones')}
                   </h2>
                 </div>
                 <div className="sv-section-body">
                   {zones.length === 0 ? (
-                    <div className="sv-empty"><span className="sv-empty-icon"><MapOutlinedIcon fontSize="inherit" /></span>No zone data</div>
+                    <div className="sv-empty"><span className="sv-empty-icon"><MapOutlinedIcon fontSize="inherit" /></span>{t('supervisorAnalyticsPage.noZoneData')}</div>
                   ) : (
                     <div className="sv-bar-chart">
                       {zones.map((zone, idx) => {
@@ -271,22 +274,22 @@ export default function SupervisorAnalyticsPage() {
               <div className="sv-section-head">
                 <h2 className="sv-section-title">
                   <span className="sv-section-title-icon"><LocalPoliceOutlinedIcon fontSize="inherit" /></span>
-                  Officer Workload Distribution
+                  {t('supervisorAnalyticsPage.sections.officerWorkload')}
                 </h2>
               </div>
               <div className="sv-section-body">
                 {workload.length === 0 ? (
-                  <div className="sv-empty"><span className="sv-empty-icon"><LocalPoliceOutlinedIcon fontSize="inherit" /></span>No workload data</div>
+                  <div className="sv-empty"><span className="sv-empty-icon"><LocalPoliceOutlinedIcon fontSize="inherit" /></span>{t('supervisorAnalyticsPage.noWorkloadData')}</div>
                 ) : (
                   <div className="sv-table-wrap">
                     <table className="sv-table">
                       <thead>
                         <tr>
                           <th>#</th>
-                          <th>Officer</th>
-                          <th>Active Incidents</th>
-                          <th>Total Handled</th>
-                          <th>Workload</th>
+                          <th>{t('supervisorAnalyticsPage.table.officer')}</th>
+                          <th>{t('supervisorAnalyticsPage.table.activeIncidents')}</th>
+                          <th>{t('supervisorAnalyticsPage.table.totalHandled')}</th>
+                          <th>{t('supervisorAnalyticsPage.table.workload')}</th>
                         </tr>
                       </thead>
                       <tbody>

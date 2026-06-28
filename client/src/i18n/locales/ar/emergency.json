@@ -1,0 +1,176 @@
+{
+  "emergencyShell": {
+    "brandRole": "خدمة الطوارئ",
+    "ariaUnitStatus": "حالة الوحدة",
+    "activeLabel": "نشط",
+    "ariaLiveTime": "الوقت المباشر",
+    "liveLabel": "مباشر",
+    "ariaEmergencyNav": "التنقل في الطوارئ",
+    "nav": {
+      "groupMain": "الرئيسية",
+      "groupMonitoring": "المراقبة",
+      "dashboard": "لوحة التحكم",
+      "assignedOperations": "العمليات المُسنَدة",
+      "emergencyMap": "خريطة الطوارئ",
+      "emergencyAlerts": "تنبيهات الطوارئ"
+    },
+    "status": {
+      "available": "متاح",
+      "responding": "يستجيب",
+      "onScene": "في الموقع",
+      "offline": "غير متصل"
+    }
+  },
+  "emergencyAlertsPage": {
+    "eyebrow": "إشعارات عالية الخطورة",
+    "title": "تنبيهات الطوارئ",
+    "subtitle_one": "تنبيه نشط واحد",
+    "subtitle_other": "{{count}} تنبيهات نشطة",
+    "filters": {
+      "all": "الكل",
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض"
+    },
+    "sectionTitle": "التنبيهات النشطة",
+    "possibleCasualties": "ضحايا محتملون",
+    "noAlertsMatch": "لا توجد تنبيهات تطابق هذا الفلتر.",
+    "alerts": {
+      "warn08": {
+        "title": "تصادم حافلة في محور RN1 — احتمال 12 ضحية أو أكثر",
+        "location": "RN1 كم 12، العرباء"
+      },
+      "warn07": {
+        "title": "أمطار غزيرة — رؤية محدودة على الطرق الساحلية",
+        "location": "الجزائر العاصمة · تيبازة"
+      },
+      "warn06": {
+        "title": "الطريق مغلق — شاحنة مقلوبة على RN5",
+        "location": "RN5، مخرج رويبة"
+      },
+      "warn05": {
+        "title": "تفعيل منطقة خطر مرتفع — تكرار حوادث مُبلَّغ عنها",
+        "location": "تقاطع الحراش"
+      },
+      "warn04": {
+        "title": "تصادم بين مركبتين — إسعاف واحد مُرسَل",
+        "location": "شارع الشهداء، وسط الجزائر"
+      }
+    }
+  },
+  "emergencyAssignedPage": {
+    "eyebrow": "مهامي",
+    "title": "العمليات المُسنَدة",
+    "subtitle": "المهام المُسنَدة حاليًا إلى وحدتك",
+    "sectionAriaLabel": "العمليات المُسنَدة",
+    "sectionTitle": "العمليات",
+    "vehicleLabel": "المركبة: {{vehicle}}",
+    "updateStatus": "تحديث الحالة",
+    "markCompleted": "تحديد كمكتملة",
+    "addNotes": "إضافة ملاحظات",
+    "empty": "لا توجد عمليات مُسنَدة حاليًا.",
+    "status": {
+      "assigned": "مُسنَد",
+      "en_route": "في الطريق",
+      "arrived": "وصل",
+      "completed": "مكتملة"
+    }
+  },
+  "emergencyDashboardPage": {
+    "operationsConsole": "وحدة تحكم العمليات",
+    "title": "لوحة تحكم الطوارئ",
+    "highSeveritySubtitle_one": "حادث خطير واحد يستوجب التدخل",
+    "highSeveritySubtitle_other": "{{count}} حوادث خطيرة تستوجب التدخل",
+    "ariaKeyMetrics": "المؤشرات الرئيسية",
+    "ariaActiveIncidents": "حوادث الطوارئ النشطة",
+    "ariaQuickActions": "الإجراءات السريعة",
+    "activeEmergencyIncidents": "حوادث الطوارئ النشطة",
+    "injuredCount_one": "مصاب واحد",
+    "injuredCount_other": "{{count}} مصابين",
+    "statusLabel": "الحالة",
+    "statusEnRoute": "في الطريق",
+    "statusUnassigned": "غير مُعيَّن",
+    "viewDetails": "عرض التفاصيل",
+    "navigate": "التنقّل",
+    "acceptMission": "قبول المهمة",
+    "quickActions": "الإجراءات السريعة",
+    "openEmergencyMap": "فتح خريطة الطوارئ",
+    "liveIncidentGeography": "خريطة الحوادث الحية",
+    "viewAssignedOperations": "عرض العمليات المُعيَّنة",
+    "ongoingMissions_one": "مهمة جارية واحدة",
+    "ongoingMissions_other": "{{count}} مهام جارية",
+    "viewAlerts": "عرض التنبيهات",
+    "activeWarnings_one": "تحذير نشط واحد",
+    "activeWarnings_other": "{{count}} تحذيرات نشطة",
+    "kpi": {
+      "activeOperations": "العمليات النشطة",
+      "awaitingResponse": "في انتظار الاستجابة",
+      "highSeverityIncidents": "الحوادث شديدة الخطورة",
+      "highestSeverity": "أعلى درجة خطورة",
+      "availableUnits": "الوحدات المتاحة",
+      "unitBreakdown": "5 سيارات إسعاف · 4 سيارات إطفاء · 2 مدني",
+      "avgResponseTime": "متوسط وقت الاستجابة",
+      "last30Days": "آخر 30 يومًا"
+    },
+    "incidents": {
+      "types": {
+        "multiVehicleAccident": "حادث متعدد المركبات",
+        "buildingFire": "حريق مبنى",
+        "injuredCivilian": "مدني مصاب",
+        "dangerousObstacle": "عقبة خطيرة"
+      },
+      "titles": {
+        "threeCarCollision": "تصادم ثلاث سيارات يسدّ المسارات باتجاه الشرق",
+        "residentialFire": "حريق سكني — دخان في الطابق الثالث",
+        "pedestrianStruck": "دهس مشاة — واعٍ، إصابة في الساق",
+        "cargoSpill": "انسكاب بضائع على مسارين"
+      },
+      "reportedAt": {
+        "2minAgo": "منذ دقيقتين",
+        "5minAgo": "منذ 5 دقائق",
+        "11minAgo": "منذ 11 دقيقة",
+        "18minAgo": "منذ 18 دقيقة"
+      }
+    }
+  },
+  "emergencyMapPage": {
+    "eyebrow": "الجغرافيا التشغيلية",
+    "title": "خريطة الطوارئ",
+    "subtitle": "الحوادث المباشرة · الوحدات · المستشفيات القريبة",
+    "hospitalLabel": "مستشفى",
+    "activeIncidents": "الحوادث النشطة",
+    "nearbyHospitals": "المستشفيات القريبة"
+  },
+  "emergencyResponsePage": {
+    "title": "الاستجابة للحادث",
+    "subtitle": "التفاصيل التشغيلية وأدوات التدخل",
+    "reportedAt": "تم الإبلاغ في {{time}}",
+    "injured": "المصابون",
+    "casualties": "الضحايا",
+    "source": "المصدر",
+    "reliability": "الموثوقية",
+    "media": "الوسائط",
+    "noMoreMedia": "لا توجد وسائط أخرى",
+    "actions": "الإجراءات",
+    "arrivalLogged": "تم تسجيل الوصول",
+    "markArrived": "تحديد الوصول",
+    "requestBackup": "طلب دعم",
+    "missionClosed": "تم إغلاق المهمة",
+    "closeMission": "إغلاق المهمة",
+    "operationalNotes": "الملاحظات التشغيلية",
+    "notePlaceholder": "أضف ملاحظة ميدانية للإرسال…",
+    "saveNote": "حفظ الملاحظة",
+    "responseTimeline": "الجدول الزمني للاستجابة",
+    "timeline": {
+      "reported": "تم الإبلاغ عن الحادث من قِبَل مواطن — تم التحقق تلقائيًا بواسطة SIARA.",
+      "dispatched": "تم إرسال",
+      "dispatchedSuffix": "إلى موقع الحادث.",
+      "enRoutePrefix": "الوحدة",
+      "enRoute": "في الطريق",
+      "enRouteSuffix": "— وقت الوصول المتوقع 4 دقائق.",
+      "now": "الآن",
+      "arrivedPrefix": "الوحدة",
+      "arrivedOnScene": "وصلت إلى الموقع"
+    }
+  }
+}

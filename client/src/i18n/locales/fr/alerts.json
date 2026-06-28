@@ -11,5 +11,369 @@
   "save": "Enregistrer l'alerte",
   "delete": "Supprimer l'alerte",
   "count_one": "{{count}} alerte",
-  "count_other": "{{count}} alertes"
+  "count_other": "{{count}} alertes",
+  "dangerSubscriptionForm": {
+    "errorNameRequired": "Donnez un nom court à cet abonnement (ex. : Domicile, Travail, Trajet au bureau).",
+    "errorLatLngRequired": "La latitude/longitude du centre est requise pour les abonnements de type zone et point.",
+    "labelName": "Nom",
+    "placeholderName": "Domicile, Travail, Université, …",
+    "labelType": "Type",
+    "typeZone": "Zone (centre + rayon)",
+    "typePoint": "Point (petite zone autour d'un lieu)",
+    "typeRoute": "Itinéraire — à configurer depuis la carte (bientôt disponible)",
+    "labelRiskThreshold": "Seuil de risque",
+    "thresholdLow": "Notifier pour tout risque",
+    "thresholdModerate": "Notifier à partir du risque modéré",
+    "thresholdHigh": "Notifier à partir du risque élevé",
+    "thresholdExtreme": "Notifier uniquement pour le risque extrême",
+    "labelCentreLat": "Latitude du centre",
+    "labelCentreLng": "Longitude du centre",
+    "labelRadius": "Rayon (mètres)",
+    "hintRadius": "Entre 100 m et 50 km. Par défaut 1 500 m pour les zones, 500 m pour les points.",
+    "checkNotifyReports": "Me notifier des nouveaux signalements d'accidents",
+    "checkNotifyHighRisk": "Me notifier quand le risque global dépasse mon seuil",
+    "checkNotifyPoliceVerified": "Me notifier des incidents vérifiés par la police",
+    "checkActive": "Actif",
+    "createSubscription": "Créer l'abonnement"
+  },
+  "alertsPage": {
+    "searchPlaceholder": "Rechercher un incident, une route, une wilaya...",
+    "ariaUserProfile": "Profil utilisateur",
+    "ariaUserAvatar": "Avatar utilisateur",
+    "ariaProfile": "Profil",
+    "dropdown": {
+      "myProfile": "Mon Profil"
+    },
+    "profileBio": "Consultez les signalements routiers en direct et partagez des mises à jour depuis le terrain.",
+    "viewProfile": "Voir le profil",
+    "newAlert": "+ Nouvelle alerte",
+    "alertStatusLabel": "STATUT DE L'ALERTE",
+    "statusTab": {
+      "active": "Active",
+      "paused": "En pause",
+      "archived": "Archivé"
+    },
+    "pageTitle": "Mes Alertes",
+    "pageDescription": "Gérez les règles d'alerte pour les wilayas, communes et zones de rayon.",
+    "filter": {
+      "severity": "Gravité",
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible",
+      "area": "Zone"
+    },
+    "loadingAlerts": "Chargement des alertes...",
+    "empty": {
+      "title": "Aucune alerte",
+      "description": "Créez votre première alerte pour recevoir des notifications.",
+      "createButton": "Créer une alerte"
+    },
+    "card": {
+      "last": "Dernier :",
+      "trigger_one": "{{count}} déclenchement",
+      "trigger_other": "{{count}} déclenchements",
+      "pause": "Suspendre",
+      "activate": "Activer"
+    },
+    "unknown": "Inconnu",
+    "on": "Activé",
+    "off": "Désactivé",
+    "push": {
+      "panelLabel": "Alertes système",
+      "alertsEnabled": "Alertes activées",
+      "enableAlerts": "Activer les alertes",
+      "descOff": "Les alertes système sont actuellement désactivées pour ce navigateur.",
+      "descAll": "Les alertes de zones surveillées à risque moyen et élevé s'afficheront comme notifications du navigateur.",
+      "descImportantOnly": "Seules les alertes de zones surveillées à risque élevé s'afficheront comme notifications du navigateur.",
+      "statusBrowser": "Navigateur",
+      "supported": "Pris en charge",
+      "unavailable": "Indisponible",
+      "statusPermission": "Permission",
+      "permissionAllowed": "Autorisé",
+      "permissionBlocked": "Bloqué",
+      "permissionAskFirst": "Demander d'abord",
+      "permissionUnavailable": "Indisponible",
+      "statusSubscription": "Abonnement",
+      "subscriptionActive": "Actif",
+      "subscriptionInactive": "Inactif",
+      "loadingSettings": "Chargement des paramètres d'alertes système...",
+      "optionHighRiskTitle": "Alertes à risque élevé uniquement",
+      "optionHighRiskCopy": "Recommandé pour les incidents à haute gravité dans les zones surveillées.",
+      "optionAllTitle": "Toutes les alertes des zones surveillées",
+      "optionAllCopy": "Inclut les incidents à risque moyen et élevé dans les zones surveillées.",
+      "optionOffTitle": "Désactiver les alertes système",
+      "optionOffCopy": "Conserver uniquement les notifications dans l'application.",
+      "sendTestAlert": "Envoyer une alerte de test",
+      "noticeAllMode": "Les alertes système incluent désormais les incidents à risque moyen et élevé dans les zones surveillées.",
+      "noticeImportantOnlyMode": "Les alertes système se concentrent désormais sur les incidents à risque élevé dans les zones surveillées.",
+      "noticeTurnedOff": "Alertes système désactivées pour ce navigateur.",
+      "noActiveSubscription": "Aucun abonnement navigateur actif n'a été trouvé pour votre compte sur ce navigateur.",
+      "testAlertSent": "Alerte de test envoyée. Vérifiez vos notifications du navigateur.",
+      "notSupportedError": "Les notifications système ne sont pas prises en charge par ce navigateur."
+    },
+    "email": {
+      "panelLabel": "Préférences e-mail",
+      "descDefault": "Choisissez les e-mails SIARA qui doivent arriver dans votre boîte de réception.",
+      "descAllOff": "Les mises à jour par e-mail sont actuellement désactivées, sauf pour les messages transactionnels obligatoires.",
+      "descSome": "Les résumés hebdomadaires, les mises à jour produit et les e-mails marketing optionnels sont gérés ici.",
+      "loadingSettings": "Chargement des paramètres e-mail...",
+      "weeklySummaryTitle": "E-mail de résumé hebdomadaire",
+      "weeklySummaryCopy": "Récapitulatif du dimanche soir des incidents et activités de déclenchement dans vos zones surveillées.",
+      "productUpdatesTitle": "Mises à jour produit",
+      "productUpdatesCopy": "Améliorations SIARA occasionnelles, notes de version et mises à jour de fonctionnalités.",
+      "marketingUpdatesTitle": "Mises à jour marketing",
+      "marketingUpdatesCopy": "Annonces optionnelles sur les campagnes et actions de sensibilisation SIARA.",
+      "preferencesUpdated": "Préférences e-mail mises à jour."
+    },
+    "summary": {
+      "area": "Zone",
+      "wilaya": "Wilaya",
+      "schedule": "Horaire",
+      "triggers": "Déclenchements"
+    },
+    "map": {
+      "monitoredArea": "Zone surveillée",
+      "openZoneOnMap": "Ouvrir la zone sur la carte"
+    },
+    "triggers": {
+      "panelLabel": "Déclenchements récents",
+      "noTriggers": "Aucun déclenchement pour l'instant"
+    },
+    "noSelection": {
+      "title": "Aucune alerte sélectionnée",
+      "description": "Sélectionnez une alerte dans la liste pour afficher les détails de zone en direct et l'activité de déclenchement récente.",
+      "createButton": "Créer une nouvelle alerte"
+    },
+    "toast": {
+      "alertCreated": "Alerte « {{name}} » créée avec succès",
+      "alertUpdated": "Alerte « {{name}} » mise à jour avec succès",
+      "alertDeleted": "Alerte supprimée"
+    },
+    "confirm": {
+      "deleteAlert": "Supprimer cette alerte ?"
+    },
+    "errors": {
+      "unableToLoadAlerts": "Impossible de charger les alertes.",
+      "unableToLoadPushSettings": "Impossible de charger les paramètres d'alertes système.",
+      "unableToLoadEmailPrefs": "Impossible de charger les préférences e-mail.",
+      "unableToUpdateStatus": "Impossible de mettre à jour le statut de l'alerte.",
+      "unableToDeleteAlert": "Impossible de supprimer l'alerte.",
+      "unableToEnablePush": "Impossible d'activer les alertes système.",
+      "unableToDisablePush": "Impossible de désactiver les alertes système.",
+      "unableToSendTestAlert": "Impossible d'envoyer une alerte système de test pour l'instant.",
+      "unableToUpdateEmailPrefs": "Impossible de mettre à jour les préférences e-mail."
+    }
+  },
+  "createAlertPage": {
+    "steps": {
+      "alertType": "Type d'alerte",
+      "zone": "Zone",
+      "conditions": "Conditions",
+      "frequency": "Fréquence",
+      "confirmation": "Confirmation"
+    },
+    "alertTypes": {
+      "accident": {
+        "label": "Accident",
+        "desc": "Collision, accident de la route"
+      },
+      "traffic": {
+        "label": "Trafic",
+        "desc": "Embouteillage, ralentissement"
+      },
+      "danger": {
+        "label": "Danger",
+        "desc": "Obstacle, situation dangereuse"
+      },
+      "weather": {
+        "label": "Météo",
+        "desc": "Conditions météorologiques dangereuses"
+      },
+      "roadworks": {
+        "label": "Travaux routiers",
+        "desc": "Construction, fermeture de voie"
+      },
+      "other": {
+        "label": "Autre",
+        "desc": "Autre type d'incident"
+      }
+    },
+    "severityOptions": {
+      "high": {
+        "label": "Élevé",
+        "desc": "Incidents urgents nécessitant une attention immédiate."
+      },
+      "medium": {
+        "label": "Modéré",
+        "desc": "Incidents importants avec un impact modéré."
+      },
+      "low": {
+        "label": "Faible",
+        "desc": "Incidents mineurs utiles pour la sensibilisation."
+      }
+    },
+    "timeRange": {
+      "allDay": "Toute la journée",
+      "daytime": "Journée",
+      "night": "Nuit",
+      "custom": "Personnalisé"
+    },
+    "frequency": {
+      "immediate": {
+        "label": "Immédiat",
+        "desc": "Recevez une notification dès qu'un incident correspondant est détecté."
+      },
+      "digest": {
+        "label": "Résumé",
+        "desc": "Regroupez les incidents dans un résumé pour recevoir moins de notifications."
+      },
+      "firstOnly": {
+        "label": "Premier uniquement",
+        "desc": "Notifiez lors du premier incident correspondant, puis ignorez les répétitions."
+      }
+    },
+    "delivery": {
+      "inApp": "Notifications in-app",
+      "inAppDesc": "Apparaissent dans votre centre de notifications SIARA.",
+      "email": "E-mail",
+      "emailDesc": "Envoyer les alertes correspondantes à votre adresse e-mail.",
+      "sms": "SMS",
+      "smsDesc": "Livraison par SMS si votre compte le prend en charge."
+    },
+    "nav": {
+      "feed": "Fil d'actualité",
+      "report": "Signalement",
+      "dashboard": "Tableau de bord"
+    },
+    "searchPlaceholder": "Rechercher un incident, une route, une wilaya…",
+    "userProfileAriaLabel": "Profil utilisateur",
+    "userAvatarAlt": "Avatar utilisateur",
+    "dropdown": {
+      "myProfile": "Mon profil"
+    },
+    "editAlert": "Modifier l'alerte",
+    "createAlert": "Créer une alerte",
+    "trustNotice": {
+      "title": "Alertes sécurisées",
+      "desc": "Seuls les incidents correspondant à vos filtres et à votre zone déclenchent des notifications."
+    },
+    "step1": {
+      "title": "Quel type d'alerte souhaitez-vous créer ?",
+      "subtitle": "Sélectionnez une ou plusieurs catégories correspondant à votre alerte.",
+      "hint": "Sélectionnez un type d'alerte pour continuer."
+    },
+    "step2": {
+      "title": "Où SIARA doit-elle surveiller ?",
+      "subtitle": "Wilaya, commune ou un rayon autour d'un point."
+    },
+    "zone": {
+      "wilaya": "Wilaya",
+      "commune": "Commune",
+      "radius": "Rayon",
+      "selectWilaya": "Sélectionner une wilaya",
+      "chooseWilaya": "Choisir une wilaya",
+      "loadingWilayas": "Chargement des wilayas…",
+      "chooseWilayaFirst": "Choisissez d'abord une wilaya",
+      "loadingCommunes": "Chargement des communes…",
+      "chooseCommune": "Choisir une commune",
+      "radiusLabel": "Rayon de {{radius}} km",
+      "radiusValue": "{{radius}} km",
+      "selectedWilaya": "Wilaya sélectionnée",
+      "selectedCommune": "Commune sélectionnée",
+      "zone": "Zone"
+    },
+    "step3": {
+      "title": "Conditions",
+      "subtitle": "Choisissez la gravité et le calendrier.",
+      "severityHint": "Sélectionnez au moins un niveau de gravité.",
+      "timeRangeLabel": "Plage horaire",
+      "timeFrom": "De",
+      "timeTo": "À"
+    },
+    "severity": {
+      "notSet": "Non défini"
+    },
+    "step4": {
+      "title": "Fréquence",
+      "subtitle": "Définissez la fréquence à laquelle SIARA doit vous notifier.",
+      "highVolumeTitle": "Mode volume élevé :",
+      "highVolumeDesc": "Les alertes immédiates peuvent être fréquentes lors des pics d'incidents.",
+      "digestInterval": "Intervalle du résumé",
+      "autoDeliveryNote": "Les canaux de livraison sont gérés automatiquement par les paramètres de notification de votre compte.",
+      "notifyVia": "Notifier via"
+    },
+    "digestIntervals": {
+      "hourly": "toutes les heures",
+      "daily": "quotidien",
+      "weekly": "hebdomadaire"
+    },
+    "step5": {
+      "title": "Confirmation",
+      "subtitle": "Vérifiez les paramètres de votre alerte avant d'enregistrer.",
+      "alertNamePlaceholder": "Nom de l'alerte",
+      "summaryTypes": "Types",
+      "summaryZone": "Zone",
+      "summarySeverity": "Gravité",
+      "summaryFrequency": "Fréquence",
+      "summaryTimeRange": "Plage horaire",
+      "summaryDelivery": "Livraison",
+      "readyBanner": "Votre alerte est prête. Cliquez sur <strong>{{action}}</strong> pour l'activer."
+    },
+    "saveChanges": "Enregistrer les modifications",
+    "createAlertBtn": "Créer l'alerte",
+    "continue": "Continuer",
+    "saving": "Enregistrement…",
+    "preview": {
+      "title": "Aperçu en direct",
+      "alertLabel": "Alerte",
+      "newAlert": "Nouvelle alerte",
+      "schedule": "Calendrier",
+      "estimatedVolume": "Volume estimé",
+      "signalsPerWeek": "{{count}} signaux/semaine",
+      "whyLabel": "Pourquoi vous serez notifié",
+      "whyText": "SIARA vous notifiera lorsque des incidents de type {{types}} correspondront à vos filtres dans {{zone}}.",
+      "whyOr": "ou",
+      "whyTextIncomplete": "Complétez les étapes pour voir une explication personnalisée."
+    },
+    "errors": {
+      "loadWilayas": "Impossible de charger les wilayas.",
+      "loadCommunes": "Impossible de charger les communes.",
+      "saveFailed": "Impossible d'enregistrer cette alerte."
+    }
+  },
+  "dangerSubscriptionsPage": {
+    "title": "Abonnements aux zones de danger",
+    "subtitle": "Recevez des alertes lorsque des accidents sont signalés ou que le risque augmente dans les zones, points ou itinéraires qui vous intéressent.",
+    "newSubscription": "+ Nouvel abonnement",
+    "loading": "Chargement de vos abonnements…",
+    "emptyState": "Vous n'avez pas encore d'abonnements aux zones de danger. Cliquez sur + Nouvel abonnement pour recevoir des alertes pour une zone, un point ou un itinéraire.",
+    "confirmDelete": "Supprimer l'abonnement « {{name}} » ?",
+    "thresholdLabel": "Seuil : {{label}}",
+    "threshold": {
+      "low": "Tout risque",
+      "moderate": "Modéré+",
+      "high": "Élevé+",
+      "extreme": "Extrême uniquement"
+    },
+    "location": {
+      "routePoints": "{{count}} points d'itinéraire",
+      "routeSubscription": "abonnement itinéraire",
+      "radius": "rayon de {{meters}} m",
+      "radiusNA": "rayon n/d"
+    },
+    "notify": {
+      "reports": "signalements",
+      "risk": "risque",
+      "policeVerified": "vérifié par la police"
+    },
+    "status": {
+      "active": "Actif",
+      "paused": "En pause"
+    },
+    "errors": {
+      "loadFailed": "Impossible de charger les abonnements",
+      "saveFailed": "Impossible d'enregistrer l'abonnement",
+      "deleteFailed": "Impossible de supprimer l'abonnement"
+    }
+  }
 }

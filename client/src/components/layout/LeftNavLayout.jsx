@@ -1,5 +1,6 @@
 import React, { useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { AuthContext } from '../../contexts/AuthContext'
 import FeedSidebarNav from './FeedSidebarNav'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
@@ -18,9 +19,10 @@ import './LeftNavLayout.css'
  */
 export default function LeftNavLayout({ activeKey, children }) {
   const navigate = useNavigate()
+  const { t } = useTranslation(['pages', 'common'])
   const { user } = useContext(AuthContext)
 
-  const displayName = user?.name || user?.email || 'SIARA User'
+  const displayName = user?.name || user?.email || t('leftNavLayout.defaultUser')
   const avatarUrl = getUserAvatarUrl(user)
   const initials = getInitialsFromName(displayName)
 
@@ -43,9 +45,9 @@ export default function LeftNavLayout({ activeKey, children }) {
             </div>
             <div className="profile-info">
               <p className="profile-name">{displayName}</p>
-              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
+              <p className="profile-bio">{t('leftNavLayout.profileBio')}</p>
               <button className="profile-view-link" onClick={() => navigate('/profile')}>
-                View Profile
+                {t('leftNavLayout.viewProfile')}
               </button>
             </div>
           </div>

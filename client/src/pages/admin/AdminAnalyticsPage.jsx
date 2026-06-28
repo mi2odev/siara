@@ -7,6 +7,7 @@
  */
 import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import FancySelect from '../../components/ui/FancySelect'
 import {
   Bar,
@@ -43,21 +44,6 @@ const TIME_OF_DAY_ICONS = {
   evening: <NightsStayOutlinedIcon fontSize="inherit" />,
 }
 
-const PERIOD_OPTIONS = [
-  { value: '30d',  label: 'Last 30 days' },
-  { value: '90d',  label: 'Last 90 days' },
-  { value: '180d', label: 'Last 6 months' },
-  { value: '365d', label: 'Last year' },
-]
-
-const TABS = [
-  { key: 'heatmap',      label: 'Hourly Heatmap' },
-  { key: 'severity',     label: 'Severity Distribution' },
-  { key: 'roads',        label: 'Dangerous Roads' },
-  { key: 'correlations', label: 'Correlations' },
-  { key: 'predictions',  label: '7-Day Prediction' },
-]
-
 function formatPeakHour(hour) {
   if (hour == null) return '—'
   const h = Number(hour)
@@ -79,8 +65,25 @@ function trendClass(trendPct, polarity = 'negative-up') {
 }
 
 export default function AdminAnalyticsPage() {
+  const { t } = useTranslation(['admin', 'common'])
   const [searchParams, setSearchParams] = useSearchParams()
-  const currentTab = TABS.some((t) => t.key === searchParams.get('tab'))
+
+  const PERIOD_OPTIONS = [
+    { value: '30d',  label: t('adminAnalyticsPage.period.last30days') },
+    { value: '90d',  label: t('adminAnalyticsPage.period.last90days') },
+    { value: '180d', label: t('adminAnalyticsPage.period.last6months') },
+    { value: '365d', label: t('adminAnalyticsPage.period.lastYear') },
+  ]
+
+  const TABS = [
+    { key: 'heatmap',      label: t('adminAnalyticsPage.tabs.heatmap') },
+    { key: 'severity',     label: t('adminAnalyticsPage.tabs.severity') },
+    { key: 'roads',        label: t('adminAnalyticsPage.tabs.roads') },
+    { key: 'correlations', label: t('adminAnalyticsPage.tabs.correlations') },
+    { key: 'predictions',  label: t('adminAnalyticsPage.tabs.predictions') },
+  ]
+
+  const currentTab = TABS.some((tab) => tab.key === searchParams.get('tab'))
     ? searchParams.get('tab')
     : 'heatmap'
   const period = normalizeAnalyticsPeriod(searchParams.get('period'))
@@ -98,7 +101,7 @@ export default function AdminAnalyticsPage() {
         if (!cancelled) setData(payload)
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message || 'Failed to load analytics')
+        if (!cancelled) setError(err?.message || t('adminAnalyticsPage.errors.loadFailed'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -135,9 +138,9 @@ export default function AdminAnalyticsPage() {
       {/* ═══ PAGE HEADER ═══ */}
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">Advanced Analytics</h1>
+          <h1 className="admin-page-title">{t('adminAnalyticsPage.title')}</h1>
           <p className="admin-page-subtitle">
-            Data-driven insights — Incident patterns, risk correlations & predictions
+            {t('adminAnalyticsPage.subtitle')}
             {data?.periodLabel ? ` · ${data.periodLabel}` : ''}
           </p>
         </div>
@@ -146,10 +149,10 @@ export default function AdminAnalyticsPage() {
             value={period}
             onChange={setPeriod}
             options={PERIOD_OPTIONS}
-            label="Period"
+            label={t('adminAnalyticsPage.periodLabel')}
             disabled={loading}
           />
-          <button className="admin-btn admin-btn-ghost" disabled>Export PDF</button>
+          <button className="admin-btn admin-btn-ghost" disabled>{t('adminAnalyticsPage.exportPdf')}</button>
         </div>
       </div>
 
@@ -172,8 +175,8 @@ export default function AdminAnalyticsPage() {
             lineHeight: 1.5,
           }}
         >
-          <strong>Partial data:</strong> the following sections timed out and were skipped — {data.warnings.join(', ')}.
-          Apply the GiST indexes in <code>db+</code> (idx_road_segments_geom_gist, idx_accident_reports_location_gist) so spatial joins use an index, then refresh.
+          <strong>{t('adminAnalyticsPage.warnings.partialDataLabel')}</strong> {t('adminAnalyticsPage.warnings.partialDataBody', { sections: data.warnings.join(', ') })}
+          {t('adminAnalyticsPage.warnings.partialDataHint')}
         </div>
       )}
 
@@ -182,59 +185,59 @@ export default function AdminAnalyticsPage() {
         <div className="analytics-kpi">
           <div className="analytics-kpi-icon primary"><BoltOutlinedIcon fontSize="inherit" /></div>
           <div className="analytics-kpi-body">
-            <span className="analytics-kpi-label">Total Incidents</span>
+            <span className="analytics-kpi-label">{t('adminAnalyticsPage.kpi.totalIncidents')}</span>
             <span className="analytics-kpi-value">{summary.totalIncidents ?? '—'}</span>
             <span className={`analytics-kpi-trend ${trendClass(summary.trendPct)}`}>
               {trendIcon(summary.trendPct)}
-              {summary.trendPct == null ? '—' : `${summary.trendPct > 0 ? '+' : ''}${summary.trendPct}% vs prev period`}
+              {summary.trendPct == null ? '—' : `${summary.trendPct > 0 ? '+' : ''}${summary.trendPct}% ${t('adminAnalyticsPage.kpi.vsPrevPeriod')}`}
             </span>
           </div>
         </div>
         <div className="analytics-kpi">
           <div className="analytics-kpi-icon info"><ShowChartRoundedIcon fontSize="inherit" /></div>
           <div className="analytics-kpi-body">
-            <span className="analytics-kpi-label">Avg. per Day</span>
+            <span className="analytics-kpi-label">{t('adminAnalyticsPage.kpi.avgPerDay')}</span>
             <span className="analytics-kpi-value">{summary.avgPerDay ?? '—'}</span>
             <span className="analytics-kpi-trend stable">
-              {summary.previousTotal != null ? `${summary.previousTotal} reports in previous window` : ''}
+              {summary.previousTotal != null ? t('adminAnalyticsPage.kpi.reportsInPrevWindow', { count: summary.previousTotal }) : ''}
             </span>
           </div>
         </div>
         <div className="analytics-kpi">
           <div className="analytics-kpi-icon warning"><AccessTimeRoundedIcon fontSize="inherit" /></div>
           <div className="analytics-kpi-body">
-            <span className="analytics-kpi-label">Peak Hour</span>
+            <span className="analytics-kpi-label">{t('adminAnalyticsPage.kpi.peakHour')}</span>
             <span className="analytics-kpi-value" style={{ fontSize: 18 }}>{formatPeakHour(summary.peakHour)}</span>
-            <span className="analytics-kpi-trend stable">{summary.peakHourCount ?? 0} incidents in this band</span>
+            <span className="analytics-kpi-trend stable">{t('adminAnalyticsPage.kpi.incidentsInBand', { count: summary.peakHourCount ?? 0 })}</span>
           </div>
         </div>
         <div className="analytics-kpi">
           <div className="analytics-kpi-icon danger"><WhereToVoteOutlinedIcon fontSize="inherit" /></div>
           <div className="analytics-kpi-body">
-            <span className="analytics-kpi-label">Most Dangerous Road</span>
+            <span className="analytics-kpi-label">{t('adminAnalyticsPage.kpi.mostDangerousRoad')}</span>
             <span className="analytics-kpi-value" style={{ fontSize: 14 }} title={summary.mostDangerousRoad || ''}>
               {summary.mostDangerousRoad || '—'}
             </span>
-            <span className="analytics-kpi-trend stable">{summary.mostDangerousRoadIncidents ?? 0} incidents</span>
+            <span className="analytics-kpi-trend stable">{t('adminAnalyticsPage.kpi.incidentsCount', { count: summary.mostDangerousRoadIncidents ?? 0 })}</span>
           </div>
         </div>
       </div>
 
       {/* ═══ TAB BAR ═══ */}
       <div className="admin-tabs" style={{ marginBottom: 14 }}>
-        {TABS.map((t) => (
+        {TABS.map((tab) => (
           <button
-            key={t.key}
-            className={`admin-tab ${currentTab === t.key ? 'active' : ''}`}
-            onClick={() => setTab(t.key)}
+            key={tab.key}
+            className={`admin-tab ${currentTab === tab.key ? 'active' : ''}`}
+            onClick={() => setTab(tab.key)}
           >
-            {t.label}
+            {tab.label}
           </button>
         ))}
       </div>
 
       {loading && !data && (
-        <div className="admin-card">Loading analytics…</div>
+        <div className="admin-card">{t('adminAnalyticsPage.loadingAnalytics')}</div>
       )}
 
       {/* ═══ TAB: HOURLY HEATMAP ═══ */}
@@ -254,31 +257,31 @@ export default function AdminAnalyticsPage() {
           <div className="admin-card">
             <div className="admin-card-header">
               <div>
-                <h3 className="admin-card-title">Incidents by Hour & Day</h3>
-                <p className="admin-card-subtitle">Color intensity indicates incident volume. Hover any cell for the exact count.</p>
+                <h3 className="admin-card-title">{t('adminAnalyticsPage.heatmap.title')}</h3>
+                <p className="admin-card-subtitle">{t('adminAnalyticsPage.heatmap.subtitle')}</p>
               </div>
             </div>
 
             {summary.totalIncidents === 0 ? (
               <p style={{ marginTop: 4, fontSize: 12, color: 'var(--admin-text-muted)' }}>
-                No incidents in this period yet.
+                {t('adminAnalyticsPage.noIncidentsInPeriod')}
               </p>
             ) : (
               <>
                 <div className="analytics-chip-row">
                   <span className="analytics-chip">
                     <AccessTimeRoundedIcon fontSize="inherit" style={{ color: 'var(--admin-warning)' }} />
-                    Busiest hour <strong>{topHour != null ? formatPeakHour(topHour) : '—'}</strong>
-                    <span style={{ color: 'var(--admin-text-muted)' }}>· {topHourCount} incidents</span>
+                    {t('adminAnalyticsPage.heatmap.busiestHour')} <strong>{topHour != null ? formatPeakHour(topHour) : '—'}</strong>
+                    <span style={{ color: 'var(--admin-text-muted)' }}>· {t('adminAnalyticsPage.kpi.incidentsCount', { count: topHourCount })}</span>
                   </span>
                   <span className="analytics-chip">
                     <span className="analytics-chip-dot" style={{ background: '#3B82F6' }} />
-                    Busiest day <strong>{topDay || '—'}</strong>
-                    <span style={{ color: 'var(--admin-text-muted)' }}>· {topDayCount} incidents</span>
+                    {t('adminAnalyticsPage.heatmap.busiestDay')} <strong>{topDay || '—'}</strong>
+                    <span style={{ color: 'var(--admin-text-muted)' }}>· {t('adminAnalyticsPage.kpi.incidentsCount', { count: topDayCount })}</span>
                   </span>
                   <span className="analytics-chip">
                     <BoltOutlinedIcon fontSize="inherit" style={{ color: 'var(--admin-primary)' }} />
-                    Peak single cell <strong>{heatmap.max}</strong>
+                    {t('adminAnalyticsPage.heatmap.peakSingleCell')} <strong>{heatmap.max}</strong>
                   </span>
                 </div>
 
@@ -297,7 +300,7 @@ export default function AdminAnalyticsPage() {
                             <div
                               key={ci}
                               className="admin-heatmap-cell"
-                              title={`${heatmap.days[ri]} ${String(ci).padStart(2, '0')}:00 — ${val} incidents`}
+                              title={t('adminAnalyticsPage.heatmap.cellTooltip', { day: heatmap.days[ri], hour: String(ci).padStart(2, '0'), count: val })}
                               style={{
                                 background: val === 0
                                   ? 'var(--admin-surface-alt)'
@@ -316,13 +319,13 @@ export default function AdminAnalyticsPage() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 10, color: 'var(--admin-text-muted)' }}>
-                  <span>Low</span>
+                  <span>{t('adminAnalyticsPage.heatmap.legendLow')}</span>
                   <div style={{ display: 'flex', gap: 2 }}>
                     {[0.15, 0.30, 0.45, 0.60, 0.75, 0.90].map((o, i) => (
                       <div key={i} style={{ width: 20, height: 10, borderRadius: 2, background: `rgba(59, 130, 246, ${o})` }} />
                     ))}
                   </div>
-                  <span>High</span>
+                  <span>{t('adminAnalyticsPage.heatmap.legendHigh')}</span>
                 </div>
               </>
             )}
@@ -337,13 +340,13 @@ export default function AdminAnalyticsPage() {
           <div className="admin-card">
             <div className="admin-card-header">
               <div>
-                <h3 className="admin-card-title">Severity Distribution</h3>
-                <p className="admin-card-subtitle">Share of incidents per AI-classified severity tier · {data.periodLabel}</p>
+                <h3 className="admin-card-title">{t('adminAnalyticsPage.severity.title')}</h3>
+                <p className="admin-card-subtitle">{t('adminAnalyticsPage.severity.subtitle')} · {data.periodLabel}</p>
               </div>
               {topSeverity && (
                 <span className="analytics-chip" style={{ borderColor: topSeverity.color, background: 'transparent' }}>
                   <span className="analytics-chip-dot" style={{ background: topSeverity.color }} />
-                  Top tier <strong style={{ color: topSeverity.color }}>{topSeverity.label}</strong>
+                  {t('adminAnalyticsPage.severity.topTier')} <strong style={{ color: topSeverity.color }}>{topSeverity.label}</strong>
                   <span style={{ color: 'var(--admin-text-muted)' }}>· {topSeverity.pct}%</span>
                 </span>
               )}
@@ -351,7 +354,7 @@ export default function AdminAnalyticsPage() {
 
             {totalSeverity === 0 ? (
               <p style={{ marginTop: 4, fontSize: 12, color: 'var(--admin-text-muted)' }}>
-                No incidents in this period yet.
+                {t('adminAnalyticsPage.noIncidentsInPeriod')}
               </p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: 24, alignItems: 'center' }}>
@@ -402,7 +405,7 @@ export default function AdminAnalyticsPage() {
                       alignItems: 'center', justifyContent: 'center',
                     }}>
                       <span style={{ fontSize: 28, fontWeight: 800, color: 'var(--admin-text)', fontVariantNumeric: 'tabular-nums' }}>{totalSeverity}</span>
-                      <span style={{ fontSize: 10, color: 'var(--admin-text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>Total</span>
+                      <span style={{ fontSize: 10, color: 'var(--admin-text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{t('adminAnalyticsPage.severity.total')}</span>
                     </div>
                   </div>
                 </div>
@@ -415,25 +418,25 @@ export default function AdminAnalyticsPage() {
       {/* ═══ TAB: DANGEROUS ROADS ═══ */}
       {currentTab === 'roads' && data && (
         <div className="admin-card">
-          <h3 className="admin-card-title">Top Dangerous Roads</h3>
+          <h3 className="admin-card-title">{t('adminAnalyticsPage.roads.title')}</h3>
           <p className="admin-card-subtitle">
-            Ranked by incident count — {data.periodLabel}. Reports are spatially matched to the nearest road segment within 75 m.
+            {t('adminAnalyticsPage.roads.subtitle')} — {data.periodLabel}. {t('adminAnalyticsPage.roads.spatialNote')}
           </p>
           {dangerousRoads.length === 0 ? (
             <p style={{ marginTop: 12, fontSize: 12, color: 'var(--admin-text-muted)' }}>
-              No incidents are mapped to a known road segment in this window.
+              {t('adminAnalyticsPage.roads.noRoadsFound')}
             </p>
           ) : (
             <div className="admin-table-wrapper" style={{ marginTop: 12 }}>
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Rank</th>
-                    <th>Road</th>
-                    <th>Incidents</th>
-                    <th>Severity</th>
-                    <th>Road Class</th>
-                    <th>Visual</th>
+                    <th>{t('adminAnalyticsPage.roads.colRank')}</th>
+                    <th>{t('adminAnalyticsPage.roads.colRoad')}</th>
+                    <th>{t('adminAnalyticsPage.roads.colIncidents')}</th>
+                    <th>{t('adminAnalyticsPage.roads.colSeverity')}</th>
+                    <th>{t('adminAnalyticsPage.roads.colRoadClass')}</th>
+                    <th>{t('adminAnalyticsPage.roads.colVisual')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -454,7 +457,7 @@ export default function AdminAnalyticsPage() {
                             background: 'var(--admin-surface-2)', color: 'var(--admin-text-secondary)',
                             textTransform: 'capitalize',
                           }}>
-                            {r.roadClass || 'unknown'}
+                            {r.roadClass || t('adminAnalyticsPage.roads.unknownClass')}
                           </span>
                         </td>
                         <td>
@@ -476,11 +479,11 @@ export default function AdminAnalyticsPage() {
       {currentTab === 'correlations' && data && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div className="admin-card">
-            <h3 className="admin-card-title">Road Type Correlation</h3>
-            <p className="admin-card-subtitle">Incident distribution by road category</p>
+            <h3 className="admin-card-title">{t('adminAnalyticsPage.correlations.roadTypeTitle')}</h3>
+            <p className="admin-card-subtitle">{t('adminAnalyticsPage.correlations.roadTypeSubtitle')}</p>
             {roadTypes.length === 0 ? (
               <p style={{ marginTop: 14, fontSize: 12, color: 'var(--admin-text-muted)' }}>
-                No incidents in this period yet.
+                {t('adminAnalyticsPage.noIncidentsInPeriod')}
               </p>
             ) : (
               <div style={{ marginTop: 14 }}>
@@ -503,8 +506,8 @@ export default function AdminAnalyticsPage() {
           </div>
 
           <div className="admin-card">
-            <h3 className="admin-card-title">Weather Correlation</h3>
-            <p className="admin-card-subtitle">Incident distribution by weather conditions</p>
+            <h3 className="admin-card-title">{t('adminAnalyticsPage.correlations.weatherTitle')}</h3>
+            <p className="admin-card-subtitle">{t('adminAnalyticsPage.correlations.weatherSubtitle')}</p>
             <div style={{
               marginTop: 14,
               padding: 18,
@@ -519,11 +522,10 @@ export default function AdminAnalyticsPage() {
             }}>
               <CloudOffOutlinedIcon style={{ fontSize: 30, color: 'var(--admin-text-muted)' }} />
               <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--admin-text-secondary)' }}>
-                Not wired up yet
+                {t('adminAnalyticsPage.correlations.weatherNotWired')}
               </div>
               <p style={{ fontSize: 11, color: 'var(--admin-text-muted)', margin: 0, lineHeight: 1.55, maxWidth: 320 }}>
-                Live reports in <code style={{ fontSize: 10 }}>app.accident_reports</code> don't capture a
-                weather snapshot at submit time. Wire that in to populate this chart.
+                {t('adminAnalyticsPage.correlations.weatherNotWiredDesc')}
               </p>
             </div>
           </div>
@@ -531,20 +533,20 @@ export default function AdminAnalyticsPage() {
           <div className="admin-card" style={{ gridColumn: 'span 2' }}>
             <div className="admin-card-header">
               <div>
-                <h3 className="admin-card-title">Incidents by Time of Day</h3>
-                <p className="admin-card-subtitle">4 fixed bands — the peak band is highlighted in violet.</p>
+                <h3 className="admin-card-title">{t('adminAnalyticsPage.correlations.timeOfDayTitle')}</h3>
+                <p className="admin-card-subtitle">{t('adminAnalyticsPage.correlations.timeOfDaySubtitle')}</p>
               </div>
             </div>
             {(() => {
-              const peakKey = timeOfDay.reduce((peak, t) => (t.incidents > (peak?.incidents || 0) ? t : peak), null)?.key
+              const peakKey = timeOfDay.reduce((peak, tod) => (tod.incidents > (peak?.incidents || 0) ? tod : peak), null)?.key
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 4 }}>
-                  {timeOfDay.map((t) => (
-                    <div key={t.key} className={`analytics-tod-card${t.key === peakKey ? ' peak' : ''}`}>
-                      <div className="analytics-tod-icon">{TIME_OF_DAY_ICONS[t.key]}</div>
-                      <div className="analytics-tod-period">{t.period}</div>
-                      <div className="analytics-tod-value">{t.incidents}</div>
-                      <div className="analytics-tod-pct">{t.pct}% of total</div>
+                  {timeOfDay.map((tod) => (
+                    <div key={tod.key} className={`analytics-tod-card${tod.key === peakKey ? ' peak' : ''}`}>
+                      <div className="analytics-tod-icon">{TIME_OF_DAY_ICONS[tod.key]}</div>
+                      <div className="analytics-tod-period">{tod.period}</div>
+                      <div className="analytics-tod-value">{tod.incidents}</div>
+                      <div className="analytics-tod-pct">{t('adminAnalyticsPage.correlations.pctOfTotal', { pct: tod.pct })}</div>
                     </div>
                   ))}
                 </div>
@@ -574,29 +576,29 @@ export default function AdminAnalyticsPage() {
           <div className="admin-card">
             <div className="admin-card-header">
               <div>
-                <h3 className="admin-card-title">7-Day Trend & Prediction</h3>
+                <h3 className="admin-card-title">{t('adminAnalyticsPage.predictions.title')}</h3>
                 <p className="admin-card-subtitle">
-                  Solid bars · actual reports per day. Outlined bars · naive lag-7 forecast (same weekday last week).
+                  {t('adminAnalyticsPage.predictions.subtitle')}
                 </p>
               </div>
             </div>
 
             {weeklyTrend.series.length === 0 ? (
               <p style={{ marginTop: 4, fontSize: 12, color: 'var(--admin-text-muted)' }}>
-                No incidents have been reported recently.
+                {t('adminAnalyticsPage.predictions.noRecentIncidents')}
               </p>
             ) : (
               <>
                 <div className="analytics-chip-row">
                   <span className="analytics-chip">
                     <span className="analytics-chip-dot" style={{ background: 'var(--admin-primary)' }} />
-                    Actual avg <strong>{actualAvg}</strong>
-                    <span style={{ color: 'var(--admin-text-muted)' }}>/ day</span>
+                    {t('adminAnalyticsPage.predictions.actualAvg')} <strong>{actualAvg}</strong>
+                    <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminAnalyticsPage.predictions.perDay')}</span>
                   </span>
                   <span className="analytics-chip">
                     <span className="analytics-chip-dot" style={{ background: 'var(--admin-primary)', opacity: 0.45 }} />
-                    Predicted avg <strong>{predictedAvg}</strong>
-                    <span style={{ color: 'var(--admin-text-muted)' }}>/ day</span>
+                    {t('adminAnalyticsPage.predictions.predictedAvg')} <strong>{predictedAvg}</strong>
+                    <span style={{ color: 'var(--admin-text-muted)' }}>{t('adminAnalyticsPage.predictions.perDay')}</span>
                   </span>
                   <span className="analytics-chip" style={{ borderColor: delta > 0 ? 'rgba(239, 68, 68, 0.35)' : delta < 0 ? 'rgba(34, 197, 94, 0.35)' : 'var(--admin-border)' }}>
                     {delta > 0
@@ -604,7 +606,7 @@ export default function AdminAnalyticsPage() {
                       : delta < 0
                         ? <TrendingDownRoundedIcon fontSize="inherit" style={{ color: 'var(--admin-success)' }} />
                         : <TrendingFlatRoundedIcon fontSize="inherit" />}
-                    Forecast change
+                    {t('adminAnalyticsPage.predictions.forecastChange')}
                     <strong style={{ color: delta > 0 ? 'var(--admin-danger)' : delta < 0 ? 'var(--admin-success)' : 'var(--admin-text)' }}>
                       {delta > 0 ? '+' : ''}{delta}
                     </strong>
@@ -638,8 +640,8 @@ export default function AdminAnalyticsPage() {
                           padding: '6px 10px',
                         }}
                         formatter={(value, _name, item) => [
-                          `${value} reports`,
-                          item.payload.isActual ? 'Actual' : 'Predicted',
+                          t('adminAnalyticsPage.predictions.tooltipReports', { count: value }),
+                          item.payload.isActual ? t('adminAnalyticsPage.predictions.actual') : t('adminAnalyticsPage.predictions.predicted'),
                         ]}
                         labelFormatter={(label, items) => {
                           const date = items?.[0]?.payload?.date
@@ -652,7 +654,7 @@ export default function AdminAnalyticsPage() {
                         strokeDasharray="4 3"
                         ifOverflow="extendDomain"
                         label={{
-                          value: `Avg ${actualAvg}`,
+                          value: t('adminAnalyticsPage.predictions.avgLabel', { avg: actualAvg }),
                           position: 'right',
                           fill: 'var(--admin-primary)',
                           fontSize: 10,
@@ -678,20 +680,18 @@ export default function AdminAnalyticsPage() {
                 <div style={{ display: 'flex', gap: 18, marginTop: 6, fontSize: 10.5, color: 'var(--admin-text-muted)' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                     <SquareRoundedIcon fontSize="inherit" sx={{ color: 'var(--admin-primary)' }} />
-                    Actual (last 7 days)
+                    {t('adminAnalyticsPage.predictions.legendActual')}
                   </span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                     <RemoveRoundedIcon fontSize="inherit" sx={{ color: 'var(--admin-primary)' }} />
-                    Predicted (next 7 days)
+                    {t('adminAnalyticsPage.predictions.legendPredicted')}
                   </span>
                 </div>
 
                 <div style={{ marginTop: 16, padding: '12px 14px', background: 'rgba(124, 58, 237, 0.06)', borderRadius: 8, border: '1px solid rgba(124, 58, 237, 0.18)' }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--admin-primary)', marginBottom: 4 }}>About the forecast</div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--admin-primary)', marginBottom: 4 }}>{t('adminAnalyticsPage.predictions.aboutForecastTitle')}</div>
                   <p style={{ fontSize: 11, color: 'var(--admin-text-secondary)', lineHeight: 1.6, margin: 0 }}>
-                    The prediction series is a simple lag-7 baseline — each future day reuses the
-                    count seen on the same weekday in the actual window. Swap this in for a real
-                    forecaster (e.g. the occurrence model) once a training pipeline is wired up.
+                    {t('adminAnalyticsPage.predictions.aboutForecastBody')}
                   </p>
                 </div>
               </>

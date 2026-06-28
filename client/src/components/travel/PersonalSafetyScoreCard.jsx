@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
 import { getMySafetySummary } from '../../services/travelHistoryService'
 import '../../styles/PersonalSafetyScoreCard.css'
@@ -10,16 +11,17 @@ function scoreClass(score) {
   return 'score-poor'
 }
 
-function scoreLabel(score) {
-  if (!Number.isFinite(Number(score))) return 'Not enough trips yet'
-  if (score >= 85) return 'Excellent'
-  if (score >= 70) return 'Strong'
-  if (score >= 50) return 'Fair'
-  if (score >= 30) return 'Needs improvement'
-  return 'High-risk pattern'
+function scoreLabel(score, t) {
+  if (!Number.isFinite(Number(score))) return t('personalSafetyScoreCard.scoreLabel.notEnough')
+  if (score >= 85) return t('personalSafetyScoreCard.scoreLabel.excellent')
+  if (score >= 70) return t('personalSafetyScoreCard.scoreLabel.strong')
+  if (score >= 50) return t('personalSafetyScoreCard.scoreLabel.fair')
+  if (score >= 30) return t('personalSafetyScoreCard.scoreLabel.needsImprovement')
+  return t('personalSafetyScoreCard.scoreLabel.highRisk')
 }
 
 export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
+  const { t } = useTranslation(['pages', 'common'])
   const [state, setState] = useState('loading')
   const [error, setError] = useState('')
   const [data, setData] = useState(null)
@@ -36,7 +38,7 @@ export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
         setState('success')
       } catch (err) {
         if (cancelled) return
-        setError(err?.message || 'Failed to load safety summary')
+        setError(err?.message || t('personalSafetyScoreCard.errorFallback'))
         setState('error')
       }
     })()
@@ -61,7 +63,7 @@ export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
           <span className="siara-safety-score__icon" aria-hidden="true">
             <ShieldOutlinedIcon fontSize="inherit" className="icon-security" />
           </span>
-          <h3 className="siara-safety-score__title">Your SIARA safety score</h3>
+          <h3 className="siara-safety-score__title">{t('personalSafetyScoreCard.title')}</h3>
         </div>
         <div className="siara-safety-score__skeleton" />
         <div className="siara-safety-score__skeleton" style={{ width: '70%' }} />
@@ -77,7 +79,7 @@ export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
           <span className="siara-safety-score__icon" aria-hidden="true">
             <ShieldOutlinedIcon fontSize="inherit" className="icon-security" />
           </span>
-          <h3 className="siara-safety-score__title">Your SIARA safety score</h3>
+          <h3 className="siara-safety-score__title">{t('personalSafetyScoreCard.title')}</h3>
         </div>
         <p className="siara-safety-score__error">{error}</p>
       </section>
@@ -91,11 +93,10 @@ export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
           <span className="siara-safety-score__icon" aria-hidden="true">
             <ShieldOutlinedIcon fontSize="inherit" className="icon-security" />
           </span>
-          <h3 className="siara-safety-score__title">Your SIARA safety score</h3>
+          <h3 className="siara-safety-score__title">{t('personalSafetyScoreCard.title')}</h3>
         </div>
         <p className="siara-safety-score__empty">
-          Complete your first SIARA-guided trip to start tracking your personal safety
-          score, route preferences, and weekly risk trends.
+          {t('personalSafetyScoreCard.emptyState')}
         </p>
       </section>
     )
@@ -110,7 +111,7 @@ export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
     : '—'
   const avgRatingLabel = Number.isFinite(Number(data.avgRating))
     ? `${Number(data.avgRating).toFixed(1)} / 5`
-    : 'no ratings'
+    : t('personalSafetyScoreCard.noRatings')
 
   return (
     <section className="siara-safety-score">
@@ -118,7 +119,7 @@ export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
         <span className="siara-safety-score__icon" aria-hidden="true">
           <ShieldOutlinedIcon fontSize="inherit" className="icon-security" />
         </span>
-        <h3 className="siara-safety-score__title">Your SIARA safety score</h3>
+        <h3 className="siara-safety-score__title">{t('personalSafetyScoreCard.title')}</h3>
       </div>
 
       <div className="siara-safety-score__score-row">
@@ -130,51 +131,52 @@ export default function PersonalSafetyScoreCard({ refreshKey = 0 }) {
         </div>
         <div className="siara-safety-score__score-meta">
           <span className="siara-safety-score__score-label">
-            {scoreLabel(data.safetyScore)}
+            {scoreLabel(data.safetyScore, t)}
           </span>
           <span className="siara-safety-score__score-sub">
-            Calculated from {data.tripCount} completed{' '}
-            {data.tripCount === 1 ? 'trip' : 'trips'} — average risk{' '}
-            {avgRiskLabel}, {data.highRiskTripCount} high-risk{' '}
-            {data.highRiskTripCount === 1 ? 'trip' : 'trips'}.
+            {t('personalSafetyScoreCard.scoreSub', {
+              tripCount: data.tripCount,
+              avgRiskLabel,
+              highRiskTripCount: data.highRiskTripCount,
+            })}
           </span>
         </div>
       </div>
 
       <div className="siara-safety-score__metrics">
         <div className="siara-safety-score__metric">
-          <span className="siara-safety-score__metric-label">Trips</span>
+          <span className="siara-safety-score__metric-label">{t('personalSafetyScoreCard.metrics.trips')}</span>
           <span className="siara-safety-score__metric-value">{data.tripCount}</span>
-          <span className="siara-safety-score__metric-sub">completed</span>
+          <span className="siara-safety-score__metric-sub">{t('personalSafetyScoreCard.metrics.completed')}</span>
         </div>
         <div className="siara-safety-score__metric">
-          <span className="siara-safety-score__metric-label">Distance</span>
+          <span className="siara-safety-score__metric-label">{t('personalSafetyScoreCard.metrics.distance')}</span>
           <span className="siara-safety-score__metric-value">{distanceLabel}</span>
-          <span className="siara-safety-score__metric-sub">total driven</span>
+          <span className="siara-safety-score__metric-sub">{t('personalSafetyScoreCard.metrics.totalDriven')}</span>
         </div>
         <div className="siara-safety-score__metric">
-          <span className="siara-safety-score__metric-label">Avg risk</span>
+          <span className="siara-safety-score__metric-label">{t('personalSafetyScoreCard.metrics.avgRisk')}</span>
           <span className="siara-safety-score__metric-value">{avgRiskLabel}</span>
-          <span className="siara-safety-score__metric-sub">across trips</span>
+          <span className="siara-safety-score__metric-sub">{t('personalSafetyScoreCard.metrics.acrossTrips')}</span>
         </div>
         <div className="siara-safety-score__metric">
-          <span className="siara-safety-score__metric-label">Safest route used</span>
+          <span className="siara-safety-score__metric-label">{t('personalSafetyScoreCard.metrics.safestRouteUsed')}</span>
           <span className="siara-safety-score__metric-value">
             {data.safestRouteUsageCount}
           </span>
-          <span className="siara-safety-score__metric-sub">times</span>
+          <span className="siara-safety-score__metric-sub">{t('personalSafetyScoreCard.metrics.times')}</span>
         </div>
         <div className="siara-safety-score__metric">
-          <span className="siara-safety-score__metric-label">Avg rating</span>
+          <span className="siara-safety-score__metric-label">{t('personalSafetyScoreCard.metrics.avgRating')}</span>
           <span className="siara-safety-score__metric-value">{avgRatingLabel}</span>
-          <span className="siara-safety-score__metric-sub">your feedback</span>
+          <span className="siara-safety-score__metric-sub">{t('personalSafetyScoreCard.metrics.yourFeedback')}</span>
         </div>
       </div>
 
       {data.weeklyTrend?.length ? (
         <div>
           <span className="siara-safety-score__metric-label" style={{ display: 'block', marginBottom: 4 }}>
-            Weekly avg risk
+            {t('personalSafetyScoreCard.weeklyAvgRisk')}
           </span>
           <div className="siara-safety-score__trend" aria-hidden="true">
             {data.weeklyTrend.map((week) => {

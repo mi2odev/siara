@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Area,
   AreaChart,
@@ -71,6 +72,8 @@ function normalizePoint(item, index) {
 }
 
 function DangerTooltip({ active, payload, label }) {
+  const { t } = useTranslation(["map", "common"]);
+
   if (!active || !Array.isArray(payload) || payload.length === 0) {
     return null;
   }
@@ -82,12 +85,13 @@ function DangerTooltip({ active, payload, label }) {
   return (
     <div className="danger-chart-tooltip">
       <div className="danger-chart-tooltip-time">{label}</div>
-      <div className="danger-chart-tooltip-value">Danger: {rounded}</div>
+      <div className="danger-chart-tooltip-value">{t("dangerForecastChart.tooltipDanger", { value: rounded })}</div>
     </div>
   );
 }
 
 export default function DangerForecastChart({ points, loading = false }) {
+  const { t } = useTranslation(["map", "common"]);
   const data = useMemo(() => {
     if (!Array.isArray(points)) {
       return [];
@@ -112,11 +116,11 @@ export default function DangerForecastChart({ points, loading = false }) {
   const selectedColor = colorForSeverity(chartSeverity);
 
   if (loading && data.length === 0) {
-    return <div className="danger-chart danger-chart-loading">Loading forecast...</div>;
+    return <div className="danger-chart danger-chart-loading">{t("dangerForecastChart.loadingForecast")}</div>;
   }
 
   if (data.length === 0) {
-    return <div className="danger-chart danger-chart-empty">No forecast</div>;
+    return <div className="danger-chart danger-chart-empty">{t("dangerForecastChart.noForecast")}</div>;
   }
 
   return (
@@ -152,7 +156,7 @@ export default function DangerForecastChart({ points, loading = false }) {
           />
         </AreaChart>
       </ResponsiveContainer>
-      {loading && <div className="danger-chart-updating">Updating...</div>}
+      {loading && <div className="danger-chart-updating">{t("dangerForecastChart.updating")}</div>}
     </div>
   );
 }

@@ -1,0 +1,1339 @@
+{
+  "adminContextPanel": {
+    "liveIntelligence": "Intelligence en direct",
+    "reviewQueueActive": "File de révision active",
+    "pendingReviewOldest": "{{count}} incident en attente de révision. Le plus ancien dans la file : {{location}}.",
+    "pendingReviewOldest_one": "{{count}} incident en attente de révision. Le plus ancien dans la file : {{location}}.",
+    "pendingReviewOldest_other": "{{count}} incidents en attente de révision. Le plus ancien dans la file : {{location}}.",
+    "noIncidentsPending": "Aucun incident n'est actuellement en attente dans la file de révision.",
+    "reviewOldestIncident": "Réviser l'incident le plus ancien",
+    "openQueue": "Ouvrir la file",
+    "queueLoad": "Charge de la file",
+    "pendingReviews": "Révisions en attente",
+    "communityFlagged": "Signalé par la communauté",
+    "aiHighRisk": "IA Risque élevé",
+    "workflowSnapshot": "Aperçu du flux de travail",
+    "mergedReports": "Signalements fusionnés",
+    "archivedReports": "Signalements archivés",
+    "completedAiAssessments": "Évaluations IA terminées",
+    "moderationGuidance": "Guide de modération",
+    "severityHintsTitle": "Les indices de gravité restent le recours par défaut",
+    "severityHintsBody": "Les signalements d'incidents utilisent l'indice de gravité soumis par l'utilisateur jusqu'à ce qu'une évaluation IA complète soit disponible.",
+    "reporterScoreTitle": "Le score du déclarant est intentionnellement vide",
+    "reporterScoreBody": "La confiance et la réputation du déclarant ne sont pas encore implémentées, les vues de modération affichent donc un tiret au lieu d'un score fictif."
+  },
+  "adminHeader": {
+    "skipToContent": "Passer au contenu",
+    "nav": {
+      "close": "Fermer la navigation",
+      "open": "Ouvrir la navigation"
+    },
+    "breadcrumb": {
+      "label": "Fil d'Ariane",
+      "detail": "Détail"
+    },
+    "roles": {
+      "admin": "Admin",
+      "supervisor": "Superviseur",
+      "police": "Police"
+    },
+    "routes": {
+      "overview": "Vue d'ensemble du système",
+      "incidents": "Gestion des incidents",
+      "alerts": "Opérations d'alertes",
+      "zones": "Risques et zones",
+      "ai": "Supervision IA",
+      "users": "Gestion des utilisateurs",
+      "analytics": "Analytiques",
+      "system": "Configuration",
+      "inbox": "Boîte de support"
+    },
+    "status": {
+      "label": "État du système",
+      "production": "Production",
+      "systemOperationalTitle": "Système opérationnel",
+      "system": "Système",
+      "operational": "Opérationnel",
+      "aiOnlineTitle": "Modèle IA v1.0 en ligne",
+      "ai": "IA",
+      "aiVersion": "v1.0 en ligne"
+    },
+    "profile": {
+      "title": "{{name}} · {{role}}"
+    }
+  },
+  "adminLayout": {
+    "closeNavigation": "Fermer la navigation"
+  },
+  "adminSidebar": {
+    "supervisionCentre": "Centre de supervision",
+    "searchPlaceholder": "Rechercher dans la navigation…",
+    "searchAriaLabel": "Rechercher dans la barre latérale admin",
+    "clearSearch": "Effacer la recherche",
+    "noLinksMatch": "Aucun lien ne correspond à « {{query}} ».",
+    "sections": {
+      "overview": "Vue d'ensemble",
+      "incidents": "Gestion des incidents",
+      "alerts": "Opérations d'alertes",
+      "zones": "Risques et zones",
+      "ai": "IA et supervision des modèles",
+      "users": "Gouvernance des utilisateurs",
+      "analytics": "Données et analytiques",
+      "inbox": "Boîte de réception du support",
+      "system": "Système"
+    },
+    "links": {
+      "systemOverview": "Vue d'ensemble du système",
+      "allIncidents": "Tous les incidents",
+      "pendingReview": "En attente de révision",
+      "suspectedSpam": "Spam suspecté",
+      "manualSpamReview": "Révision manuelle du spam",
+      "aiFlaggedHighRisk": "Risque élevé signalé par l'IA",
+      "communityFlagged": "Signalé par la communauté",
+      "mergedIncidents": "Incidents fusionnés",
+      "archived": "Archivés",
+      "allAlerts": "Toutes les alertes",
+      "activeAlerts": "Alertes actives",
+      "scheduledAlerts": "Alertes planifiées",
+      "expiringExpired": "En expiration / Expirées",
+      "emergencyBroadcast": "Diffusion d'urgence",
+      "alertTemplates": "Modèles d'alertes",
+      "zoneMap": "Carte des zones",
+      "zoneManagement": "Gestion des zones",
+      "wilayaRiskRanking": "Classement des risques par wilaya",
+      "zoneThresholds": "Seuils des zones",
+      "modelPerformance": "Performance du modèle",
+      "confidenceAnalysis": "Analyse de confiance",
+      "confusionMatrix": "Matrice de confusion",
+      "overrideLogs": "Journaux de substitution",
+      "occurrenceModelBeta": "Modèle d'occurrence (Bêta)",
+      "allUsers": "Tous les utilisateurs",
+      "activeUsers": "Actifs",
+      "topContributors": "Meilleurs contributeurs",
+      "atRisk": "À risque",
+      "banned": "Bannis",
+      "admins": "Admins",
+      "hourlyHeatmap": "Carte de chaleur horaire",
+      "severityDistribution": "Distribution de la gravité",
+      "dangerousRoads": "Routes dangereuses",
+      "correlations": "Corrélations",
+      "sevenDayPrediction": "Prévision sur 7 jours",
+      "allInbox": "Toute la boîte de réception",
+      "contactMessages": "Messages de contact",
+      "infoRequestReplies": "Réponses aux demandes d'info",
+      "severityRules": "Règles de gravité",
+      "notificationLogic": "Logique de notification",
+      "geofencing": "Géo-clôture",
+      "general": "Général"
+    }
+  },
+  "adminAIMonitoringPage": {
+    "title": "Supervision IA & Modèles",
+    "lastTrained": "Dernier entraînement {{date}}",
+    "retrainModel": "Ré-entraîner le modèle",
+    "downloadReport": "Télécharger le rapport",
+    "driftAlert": "Dérive du modèle détectée : {{drift}}% — Envisagez un ré-entraînement",
+    "tabs": {
+      "performance": "Performance du modèle",
+      "confusion": "Matrice de confusion",
+      "confidence": "Analyse de confiance",
+      "overrides": "Journal des corrections",
+      "occurrence": "Modèle d'occurrence (Bêta)"
+    },
+    "kpi": {
+      "accuracy": "Précision globale",
+      "precision": "Précision",
+      "recall": "Rappel",
+      "f1Score": "Score F1",
+      "modelDrift": "Dérive du modèle"
+    },
+    "falsePositives": {
+      "title": "Faux positifs",
+      "subtitle": "L'IA a surestimé la gravité"
+    },
+    "falseNegatives": {
+      "title": "Faux négatifs",
+      "subtitle": "L'IA a sous-estimé la gravité"
+    },
+    "cases_one": "{{count}} cas",
+    "cases_other": "{{count}} cas",
+    "modelInfo": {
+      "title": "Informations sur le modèle",
+      "modelName": "Nom du modèle",
+      "trainingDataset": "Jeu de données d'entraînement",
+      "lastTrained": "Dernier entraînement",
+      "driftStatus": "État de dérive"
+    },
+    "confusionMatrix": {
+      "title": "Matrice de confusion",
+      "subtitle": "Réel (lignes) vs Prédit (colonnes) — 30 derniers jours",
+      "axisLabel": "Réel ↓ / Prédit →",
+      "diagonalLegend": "Diagonale = prédictions correctes",
+      "offDiagonalLegend": "Hors diagonale = erreurs de classification (mis en évidence si > 10)"
+    },
+    "confidence": {
+      "meanConfidence": "Confiance moyenne",
+      "meanConfidenceHint": "+1,4% par rapport aux 30 derniers jours",
+      "median": "Médiane",
+      "medianHint": "P50 de toutes les prédictions",
+      "belowThreshold": "En dessous du seuil de 50%",
+      "highConfidence": "Haute confiance (≥70%)",
+      "pctOfPredictions": "{{pct}}% des prédictions",
+      "distributionTitle": "Distribution de confiance",
+      "distributionSubtitle": "Confiance de l'IA sur {{total}} prédictions (30 derniers jours)",
+      "legend": {
+        "veryLow": "Très faible",
+        "low": "Faible",
+        "moderate": "Modéré",
+        "high": "Élevé"
+      },
+      "tooltipValue": "{{count}} prédictions ({{pct}}%)",
+      "decisionThreshold": "Seuil de décision (50%)",
+      "insightText": "{{pct}}% des prédictions se situent dans les plages de haute confiance (≥70%) — le modèle produit des résultats décisifs."
+    },
+    "occurrence": {
+      "loading": "Chargement des métriques du modèle d'occurrence…",
+      "cardTitle": "Prévision d'occurrence d'accidents",
+      "version": "Version",
+      "algorithm": "Algorithme",
+      "calibration": "Calibrage",
+      "timeWindow": "Fenêtre temporelle {{hours}}h",
+      "decisionThreshold": "Seuil de décision {{value}}",
+      "notLoaded": "Le modèle d'occurrence Flask n'est PAS chargé",
+      "notLoadedSuffix": " Le point de terminaison des prédictions retournera 503.",
+      "precisionRecallTitle": "Précision / Rappel au Top-K",
+      "tableTopK": "Top",
+      "tablePrecision": "Précision",
+      "tableRecall": "Rappel",
+      "cmThreshold": "(seuil {{threshold}})",
+      "pred0": "Prédit 0",
+      "pred1": "Prédit 1",
+      "actual0": "Réel 0",
+      "actual1": "Réel 1",
+      "modelComparisonTitle": "Comparaison des modèles (validation)",
+      "compModel": "Modèle",
+      "compFitSeconds": "Ajustement (s)",
+      "riskThresholdsTitle": "Seuils de risque",
+      "thresholdModerate": "Modéré",
+      "thresholdHigh": "Élevé",
+      "thresholdCritical": "Critique",
+      "thresholdExplanation": "Explication",
+      "weatherCoverageTitle": "Couverture météo (entraînement)",
+      "weatherAvailableRate": "Taux de disponibilité",
+      "weatherCacheHitRate": "Taux de succès du cache",
+      "calibrationCurveTitle": "Courbe de calibrage — LightGBM + isotonique"
+    },
+    "overrideLog": {
+      "title": "Journal des corrections manuelles",
+      "subtitle": "Toutes les corrections de gravité par les admins — qui, quoi, pourquoi",
+      "exportLog": "Exporter le journal",
+      "colIncident": "Incident",
+      "colAdmin": "Admin",
+      "colOriginalNew": "Original / Nouveau",
+      "colReason": "Raison",
+      "colTimestamp": "Horodatage"
+    }
+  },
+  "adminAlertsPage": {
+    "tabs": {
+      "all": "Toutes les alertes",
+      "active": "Actif",
+      "scheduled": "Programmé",
+      "expired": "Expirant / Expiré",
+      "emergency": "Urgence",
+      "templates": "Modèles"
+    },
+    "severity": {
+      "low": "Faible",
+      "medium": "Modéré",
+      "high": "Élevé"
+    },
+    "audience": {
+      "usersInZone": "Utilisateurs dans la zone",
+      "allUsers": "Tous les utilisateurs",
+      "subscribedOnly": "Utilisateurs abonnés uniquement"
+    },
+    "alertType": {
+      "incident": "Incident",
+      "weather": "Météo",
+      "roadwork": "Travaux routiers",
+      "closure": "Fermeture de route",
+      "emergency": "Urgence",
+      "advisory": "Avis"
+    },
+    "emergencyBanner": "MODE URGENCE ACTIVÉ — Les nouvelles alertes utilisent les paramètres d'urgence haute gravité jusqu'à la publication ou la réinitialisation de l'éditeur",
+    "resetComposer": "Réinitialiser →",
+    "error": {
+      "unavailable": "Opérations d'alerte indisponibles",
+      "loadFailed": "Impossible de charger les alertes opérationnelles.",
+      "saveFailed": "Impossible d'enregistrer cette alerte."
+    },
+    "emergencyConfirm": {
+      "title": "Activer le mode urgence ?",
+      "description": "Cela bascule l'éditeur en mode urgence par défaut pour la prochaine alerte opérationnelle. Rien ne sera publié avant que vous sauvegardiez une alerte.",
+      "confirm": "Confirmer l'activation"
+    },
+    "cancelModal": {
+      "title": "Annuler l'alerte opérationnelle ?",
+      "description": "sera marquée comme annulée et un événement d'audit sera enregistré.",
+      "cancelling": "Annulation…",
+      "confirm": "Confirmer l'annulation"
+    },
+    "deleteModal": {
+      "title": "Supprimer l'alerte opérationnelle ?",
+      "description": "sera définitivement supprimée, ainsi que son historique et toutes les notifications envoyées pour elle. Cette action est irréversible.",
+      "deleting": "Suppression…",
+      "confirm": "Confirmer la suppression"
+    },
+    "keepAlert": "Conserver l'alerte",
+    "pageTitle": "Gestion des alertes",
+    "pageSubtitle": "Gérer les alertes géolocalisées, les diffusions d'urgence et les notifications officielles",
+    "searchPlaceholder": "Rechercher par titre, zone ou type…",
+    "emergencyModeLabel": "Mode urgence",
+    "newAlert": "+ Nouvelle alerte",
+    "form": {
+      "titleEdit": "Modifier l'alerte opérationnelle",
+      "titleFromTemplate": "Créer une alerte depuis un modèle",
+      "titleCreate": "Créer une nouvelle alerte",
+      "subtitleFromTemplate": "Les valeurs par défaut du modèle sont préremplies et peuvent être ajustées avant la publication.",
+      "subtitleCreate": "Ciblez une wilaya ou une commune, définissez la fenêtre de cycle de vie, puis publiez.",
+      "fieldTitle": "Titre",
+      "titlePlaceholder": "Titre de l'alerte…",
+      "wilayaLabel": "Wilaya",
+      "loadingWilayas": "Chargement des wilayas…",
+      "selectWilaya": "Sélectionner une wilaya…",
+      "communeLabel": "Commune (optionnel)",
+      "selectWilayaFirst": "Sélectionnez d'abord une wilaya…",
+      "loadingCommunes": "Chargement des communes…",
+      "wilayaWideAlert": "Alerte à l'échelle de la wilaya",
+      "severityLabel": "Gravité",
+      "typeLabel": "Type",
+      "audienceLabel": "Portée de l'audience",
+      "startsAtLabel": "Débute le",
+      "endsAtLabel": "Se termine le",
+      "deliveryChannels": "Canaux de diffusion",
+      "channelPush": "Push",
+      "channelEmail": "E-mail",
+      "channelSms": "SMS",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Expliquez l'impact de l'alerte, les consignes et le calendrier…",
+      "notifyOnStart": "Notifier au démarrage",
+      "notifyOnExpire": "Notifier à l'expiration",
+      "saving": "Enregistrement…",
+      "publishing": "Publication…",
+      "saveChanges": "Enregistrer les modifications",
+      "publishAlert": "Publier l'alerte"
+    },
+    "validation": {
+      "titleRequired": "Le titre est obligatoire.",
+      "selectZone": "Sélectionnez une wilaya ou une commune pour cette alerte.",
+      "datetimeRequired": "Les dates et heures de début et de fin sont obligatoires.",
+      "endAfterStart": "L'heure de fin doit être postérieure à l'heure de début."
+    },
+    "templates": {
+      "loading": "Chargement des modèles d'alerte…",
+      "noMatch": "Aucun modèle ne correspond à votre recherche.",
+      "empty": "Aucun modèle d'alerte opérationnelle n'est disponible pour le moment.",
+      "defaultDuration": "Durée par défaut : {{duration}}",
+      "type": "Type : {{type}}",
+      "useTemplate": "Utiliser le modèle →"
+    },
+    "table": {
+      "heading": "Alertes opérationnelles",
+      "refreshing": "Actualisation des données du cycle de vie actif…",
+      "countSummary_one": "{{total}} alerte dans cette vue",
+      "countSummary_other": "{{total}} alertes dans cette vue",
+      "colId": "ID",
+      "colTitle": "Titre",
+      "colZone": "Zone",
+      "colSeverity": "Gravité",
+      "colType": "Type",
+      "colTrigger": "Déclencheur",
+      "colDuration": "Durée",
+      "colAudience": "Audience",
+      "colStatus": "Statut",
+      "colActions": "Actions",
+      "emptyEmergency": "Aucune alerte opérationnelle d'urgence trouvée.",
+      "emptyGeneric": "Aucune alerte opérationnelle ne correspond à cette vue pour le moment.",
+      "loadingAlerts": "Chargement des alertes opérationnelles…"
+    },
+    "pagination": {
+      "showing": "Affichage de {{returned}} sur {{total}} alertes",
+      "previous": "← Précédent",
+      "pageOf": "Page {{page}} / {{totalPages}}",
+      "next": "Suivant →"
+    }
+  },
+  "adminAnalyticsPage": {
+    "title": "Analytiques avancées",
+    "subtitle": "Aperçus basés sur les données — Tendances des incidents, corrélations de risques & prévisions",
+    "periodLabel": "Période",
+    "exportPdf": "Exporter PDF",
+    "loadingAnalytics": "Chargement des analytiques…",
+    "noIncidentsInPeriod": "Aucun incident dans cette période pour l'instant.",
+    "errors": {
+      "loadFailed": "Échec du chargement des analytiques"
+    },
+    "warnings": {
+      "partialDataLabel": "Données partielles :",
+      "partialDataBody": "les sections suivantes ont expiré et ont été ignorées — {{sections}}.",
+      "partialDataHint": " Appliquez les index GiST dans db+ (idx_road_segments_geom_gist, idx_accident_reports_location_gist) pour que les jointures spatiales utilisent un index, puis actualisez."
+    },
+    "period": {
+      "last30days": "30 derniers jours",
+      "last90days": "90 derniers jours",
+      "last6months": "6 derniers mois",
+      "lastYear": "Dernière année"
+    },
+    "tabs": {
+      "heatmap": "Carte thermique horaire",
+      "severity": "Répartition par gravité",
+      "roads": "Routes dangereuses",
+      "correlations": "Corrélations",
+      "predictions": "Prévision sur 7 jours"
+    },
+    "kpi": {
+      "totalIncidents": "Total des incidents",
+      "vsPrevPeriod": "vs période précédente",
+      "avgPerDay": "Moy. par jour",
+      "reportsInPrevWindow": "{{count}} signalements dans la fenêtre précédente",
+      "peakHour": "Heure de pointe",
+      "incidentsInBand": "{{count}} incidents dans cette tranche",
+      "mostDangerousRoad": "Route la plus dangereuse",
+      "incidentsCount": "{{count}} incidents"
+    },
+    "heatmap": {
+      "title": "Incidents par heure et jour",
+      "subtitle": "L'intensité de la couleur indique le volume d'incidents. Survolez une cellule pour le nombre exact.",
+      "busiestHour": "Heure la plus chargée",
+      "busiestDay": "Jour le plus chargé",
+      "peakSingleCell": "Cellule maximale",
+      "cellTooltip": "{{day}} {{hour}}:00 — {{count}} incidents",
+      "legendLow": "Faible",
+      "legendHigh": "Élevé"
+    },
+    "severity": {
+      "title": "Répartition par gravité",
+      "subtitle": "Part des incidents par niveau de gravité classifié par IA",
+      "topTier": "Niveau dominant",
+      "total": "Total"
+    },
+    "roads": {
+      "title": "Routes les plus dangereuses",
+      "subtitle": "Classées par nombre d'incidents",
+      "spatialNote": "Les signalements sont associés au segment de route le plus proche dans un rayon de 75 m.",
+      "noRoadsFound": "Aucun incident n'est associé à un segment de route connu dans cette fenêtre.",
+      "colRank": "Rang",
+      "colRoad": "Route",
+      "colIncidents": "Incidents",
+      "colSeverity": "Gravité",
+      "colRoadClass": "Classe de route",
+      "colVisual": "Visuel",
+      "unknownClass": "inconnu"
+    },
+    "correlations": {
+      "roadTypeTitle": "Corrélation par type de route",
+      "roadTypeSubtitle": "Répartition des incidents par catégorie de route",
+      "weatherTitle": "Corrélation météorologique",
+      "weatherSubtitle": "Répartition des incidents par conditions météorologiques",
+      "weatherNotWired": "Pas encore connecté",
+      "weatherNotWiredDesc": "Les signalements en direct dans app.accident_reports ne capturent pas un instantané météo au moment de la soumission. Connectez cette donnée pour alimenter ce graphique.",
+      "timeOfDayTitle": "Incidents par moment de la journée",
+      "timeOfDaySubtitle": "4 tranches fixes — la tranche de pointe est mise en évidence en violet.",
+      "pctOfTotal": "{{pct}}% du total"
+    },
+    "predictions": {
+      "title": "Tendance et prévision sur 7 jours",
+      "subtitle": "Barres pleines · signalements réels par jour. Barres en contour · prévision naïve décalée de 7 jours (même jour de la semaine la semaine dernière).",
+      "noRecentIncidents": "Aucun incident n'a été signalé récemment.",
+      "actualAvg": "Moy. réelle",
+      "predictedAvg": "Moy. prévue",
+      "perDay": "/ jour",
+      "forecastChange": "Variation prévue",
+      "tooltipReports": "{{count}} signalements",
+      "actual": "Réel",
+      "predicted": "Prévu",
+      "avgLabel": "Moy. {{avg}}",
+      "legendActual": "Réel (7 derniers jours)",
+      "legendPredicted": "Prévu (7 prochains jours)",
+      "aboutForecastTitle": "À propos de la prévision",
+      "aboutForecastBody": "La série de prévisions est une référence simple décalée de 7 jours — chaque jour futur réutilise le nombre observé le même jour de la semaine dans la fenêtre réelle. Remplacez-la par un vrai modèle de prévision (ex. le modèle d'occurrence) une fois le pipeline d'entraînement mis en place."
+    }
+  },
+  "adminInboxPage": {
+    "title": "Boîte de réception support",
+    "messageCount_one": "message",
+    "messageCount_other": "messages",
+    "newCount_one": "{{count}} nouveau",
+    "newCount_other": "{{count}} nouveaux",
+    "refreshing": "Actualisation…",
+    "refresh": "Actualiser",
+    "searchPlaceholder": "Rechercher par nom, e-mail, sujet ou contenu…",
+    "tabs": {
+      "all": "Tous",
+      "contact": "Contact",
+      "infoReplies": "Réponses info"
+    },
+    "statusLabel": "Statut",
+    "statusFilter": {
+      "all": "Tous",
+      "new": "Nouveau",
+      "read": "Lu",
+      "replied": "Répondu",
+      "archived": "Archivé"
+    },
+    "loadError": "Échec du chargement : {{message}}",
+    "unknownError": "Erreur inconnue",
+    "noMessagesMatch": "Aucun message ne correspond à vos filtres.",
+    "clearFiltersHint": "Essayez d'effacer la recherche ou le filtre de statut.",
+    "unknownSender": "Inconnu",
+    "allMessages": "Tous les messages",
+    "noMessageSelected": "Aucun message sélectionné",
+    "noMessageSelectedHint": "Choisissez un fil de discussion dans la liste pour lire la conversation complète et répondre.",
+    "kindChip": {
+      "infoReply": "Réponse info",
+      "contact": "Contact"
+    },
+    "statusChip": {
+      "new": "Nouveau",
+      "read": "Lu",
+      "replied": "Répondu",
+      "archived": "Archivé"
+    },
+    "unknownReporter": "Auteur inconnu",
+    "reportLabel": "Signalement",
+    "repliedAt": "Répondu {{time}}",
+    "conversation": "Conversation",
+    "adminQuestion": "Admin · Question",
+    "reporterAnswer": "Auteur · Réponse",
+    "actions": "Actions",
+    "openIncident": "Ouvrir l'incident",
+    "emailReporter": "E-mailer l'auteur",
+    "markedAsRead": "Marqué comme lu",
+    "markAsRead": "Marquer comme lu",
+    "archive": "Archiver",
+    "infoReplyHint": "L'auteur a fourni les informations demandées. Examinez la réponse ci-dessus et agissez sur l'incident concerné.",
+    "unknownSenderFull": "Expéditeur inconnu",
+    "message": "Message",
+    "replySent": "Réponse envoyée",
+    "writeReply": "Écrire une réponse",
+    "inAppNotification": "Notification in-app",
+    "anonymousEmailOnly": "Anonyme — e-mail uniquement",
+    "alreadyRepliedNotice": "Une réponse a déjà été envoyée. Un nouveau message créera une notification de suivi.",
+    "replyPlaceholder": "Rédigez une réponse attentionnée à {{name}}…",
+    "theSender": "l'expéditeur",
+    "emailInstead": "Envoyer par e-mail",
+    "sending": "Envoi…",
+    "sendReply": "Envoyer la réponse",
+    "manageThread": "Gérer le fil",
+    "markAsReplied": "Marquer comme répondu"
+  },
+  "adminIncidentReviewPage": {
+    "loading": {
+      "title": "Chargement de l'incident...",
+      "subtitle": "Récupération des derniers détails de l'incident et de l'historique de modération."
+    },
+    "errorState": {
+      "title": "Incident indisponible",
+      "subtitle": "Impossible de charger ce signalement d'incident."
+    },
+    "backToQueue": "Retour à la file",
+    "actionFailed": {
+      "title": "Échec de l'action",
+      "subtitle": "Veuillez réessayer."
+    },
+    "report": {
+      "noDescription": "Aucune description supplémentaire n'a été fournie pour ce signalement.",
+      "status": "Statut",
+      "reported": "Signalé",
+      "severitySource": "Source de gravité",
+      "severitySourceAi": "Évaluation IA",
+      "severitySourceHint": "Indication du signalement",
+      "openFlags": "Signalements ouverts"
+    },
+    "merge": {
+      "label": "Fusion",
+      "mergedInto": "Fusionné dans {{reportId}} le {{date}}",
+      "reason": "Raison : {{reason}}"
+    },
+    "mergeGroup": {
+      "title": "Signalements fusionnés ({{count}})",
+      "subtitle": "Signalements en double du même accident (dans un rayon de 300 m / 6 h), regroupés en un seul incident.",
+      "roleOriginal": "Original",
+      "roleMerged": "Fusionné",
+      "untitledReport": "Signalement sans titre",
+      "current": "actuel"
+    },
+    "evidence": {
+      "title": "Preuves ({{count}})",
+      "clickHint": "Cliquez sur une miniature pour voir en taille réelle",
+      "notAvailable": "Non disponible",
+      "altText": "Preuve {{index}}"
+    },
+    "reporter": {
+      "title": "Profil du déclarant",
+      "name": "Déclarant",
+      "trust": "Fiabilité du déclarant",
+      "notProvided": "Non renseigné",
+      "totalReports": "Total des signalements",
+      "joined": "Inscrit le"
+    },
+    "aiAssessment": {
+      "title": "Évaluation IA",
+      "status": "Statut",
+      "severity": "Gravité",
+      "severityAi": "IA {{severity}}",
+      "severityHint": "Indication du signalement ({{severity}})",
+      "confidence": "Confiance",
+      "latestUpdate": "Dernière mise à jour",
+      "modelVersion": "Version du modèle",
+      "notActiveNote": "La vérification IA n'est pas encore totalement active pour les signalements d'incidents, la gravité revient donc à l'indication du signalement jusqu'à ce qu'une évaluation complète soit disponible.",
+      "pendingAi": "IA en attente",
+      "aiFailed": "Échec IA",
+      "statusCompleted": "Terminé",
+      "statusPending": "En attente",
+      "statusFailed": "Échoué",
+      "statusNotAvailable": "Non disponible"
+    },
+    "communityFlags": {
+      "title": "Signalements communautaires",
+      "allResolved": "Tous les signalements communautaires ont été résolus."
+    },
+    "timeline": {
+      "title": "Chronologie"
+    },
+    "location": {
+      "title": "Localisation de l'incident",
+      "openFullMap": "Ouvrir la carte complète",
+      "noCoordinates": "Aucune coordonnée fournie pour cet incident"
+    },
+    "spamAnalysis": {
+      "title": "Analyse anti-spam",
+      "predictedLabel": "Étiquette prédite",
+      "mlStatus": "Statut ML",
+      "spamScore": "Score spam",
+      "mlConfidence": "Confiance ML",
+      "modelVersion": "Version du modèle",
+      "classifiedAt": "Classifié le",
+      "reviewVerdict": "Verdict de révision",
+      "pendingVerdict": "En attente",
+      "reviewedBy": "Révisé par",
+      "suspiciousNote": "Ce signalement est classé comme suspect et attend une révision manuelle.",
+      "reviewNotes": "Notes de révision",
+      "reviewedAt": "Révisé le {{date}}"
+    },
+    "mlStatus": {
+      "notStarted": "Non démarré"
+    },
+    "predictedLabel": {
+      "unclassified": "Non classifié",
+      "spam": "Spam",
+      "real": "Réel"
+    },
+    "nearbyReports": {
+      "title": "Signalements à proximité",
+      "none": "Aucun signalement à proximité trouvé",
+      "clusterDetected": "Groupe détecté · {{count}} incidents dans un rayon de 5 km"
+    },
+    "decisionEngine": {
+      "title": "Moteur de décision",
+      "subtitle": "Choisissez une action — chaque choix est enregistré.",
+      "alreadyStatus": "Déjà {{status}}",
+      "rejectReasonDisplay": "Raison : {{reason}}",
+      "archivedNote": "Masqué des flux publics. Désarchivez pour le remettre dans la file de révision.",
+      "unarchiving": "Désarchivage…",
+      "unarchive": "Désarchiver",
+      "aiSuggestion": "Suggestion IA",
+      "useIt": "L'utiliser",
+      "changeTileLabel": "Modifier"
+    },
+    "decisionTiles": {
+      "approve": {
+        "label": "Approuver",
+        "hint": "Vérifie le signalement et le publie dans le flux public."
+      },
+      "change": {
+        "label": "Modifier la gravité",
+        "hint": "Remplacer la gravité IA. Le signalement reste dans son statut actuel."
+      },
+      "info": {
+        "label": "Demander plus d'informations",
+        "hint": "Demander des précisions au déclarant. Le signalement reste dans la file."
+      },
+      "flag": {
+        "label": "Signaler pour révision",
+        "hint": "Escalader vers un autre modérateur. Enregistre une entrée de signalement sur le rapport."
+      },
+      "archive": {
+        "label": "Archiver",
+        "hint": "Suppression discrète sans verdict (ex. signalements obsolètes)."
+      },
+      "reject": {
+        "label": "Rejeter",
+        "hint": "Marquer comme spam confirmé / faux signalement. Nécessite une raison."
+      }
+    },
+    "rejectReasons": {
+      "spam": "Spam",
+      "duplicate": "Doublon",
+      "offTopic": "Hors sujet",
+      "falseReport": "Faux signalement",
+      "insufficientEvidence": "Preuves insuffisantes",
+      "wrongLocation": "Mauvais emplacement",
+      "other": "Autre"
+    },
+    "infoRequest": {
+      "awaitingResponse": "En attente de la réponse du déclarant",
+      "asked": "Demandé le {{date}}",
+      "reporterResponded": "Le déclarant a répondu",
+      "answered": "Répondu le {{date}}"
+    },
+    "form": {
+      "newSeverity": "Nouvelle gravité",
+      "rejectionReason": "Motif de rejet",
+      "noteLabel": {
+        "messageToReporter": "Message au déclarant",
+        "internalNote": "Note interne",
+        "reviewerNote": "Note du réviseur",
+        "required": "(obligatoire)",
+        "optional": "(facultatif)"
+      },
+      "notePlaceholder": {
+        "info": "Que doit préciser le déclarant ?",
+        "reject": "Contexte interne pour ce rejet.",
+        "archive": "Note facultative pour le journal d'audit.",
+        "flag": "Pourquoi escaladez-vous ce signalement ?",
+        "change": "Pourquoi la gravité est-elle remplacée ?",
+        "default": "Note du réviseur (facultatif)"
+      },
+      "submitting": "Envoi en cours…",
+      "confirmAction": "Confirmer : {{label}}"
+    },
+    "internalNotes": {
+      "title": "Notes internes",
+      "noNotes": "Aucune note pour l'instant",
+      "placeholder": "Ajouter une note interne...",
+      "saving": "Enregistrement...",
+      "add": "Ajouter"
+    },
+    "fullscreenMap": {
+      "ariaLabel": "Carte de l'incident",
+      "closeAriaLabel": "Fermer la carte",
+      "legendCurrent": "Actuel",
+      "legendOthers": "Autres",
+      "loadingOthers": "chargement…",
+      "othersCount": "{{count}} incidents"
+    },
+    "lightbox": {
+      "ariaLabel": "Aperçu des preuves",
+      "zoomOut": "Dézoomer",
+      "resetZoom": "Réinitialiser le zoom",
+      "zoomIn": "Zoomer",
+      "closeAriaLabel": "Fermer l'aperçu des preuves",
+      "prevEvidence": "Preuve précédente",
+      "nextEvidence": "Preuve suivante"
+    },
+    "aiRec": {
+      "rejectAsSpam": "Rejeter comme spam",
+      "spamExplanation": "Le classificateur de spam a signalé ce rapport (score {{score}}%).",
+      "approve": "Approuver",
+      "approveExplanation": "Confiance IA élevée ({{confidence}}%) et signaux spam propres — publication sûre.",
+      "requestMoreInfo": "Demander plus d'informations",
+      "infoExplanation": "La confiance IA est modérée ({{confidence}}%) — demandez des précisions au déclarant avant de décider.",
+      "manualReviewNeeded": "Révision manuelle nécessaire",
+      "manualExplanation": "Les signaux IA sont peu clairs ou indisponibles — examinez les preuves manuellement."
+    }
+  },
+  "adminIncidentsPage": {
+    "title": "Gestion des incidents",
+    "tabs": {
+      "all": "Tous",
+      "pending": "En attente",
+      "suspicious": "Spam suspecté",
+      "pending-review": "Révision manuelle",
+      "ai-flagged": "Signalé par IA",
+      "community": "Communauté",
+      "merged": "Fusionnés",
+      "archived": "Archivés"
+    },
+    "meta": {
+      "incidents": "incidents",
+      "inFilter": "dans {{filter}}",
+      "suspicious": "suspects",
+      "manualReview": "révision manuelle"
+    },
+    "searchPlaceholder": "Rechercher ID, titre, lieu, auteur…",
+    "exportCsv": "Exporter CSV",
+    "sortMenu": {
+      "label": "Trier :",
+      "sortBy": "Trier par",
+      "newestFirst": "Plus récent d'abord",
+      "oldestFirst": "Plus ancien d'abord",
+      "severityHighLow": "Gravité · Élevée → Faible",
+      "severityLowHigh": "Gravité · Faible → Élevée",
+      "idAZ": "ID · A → Z",
+      "idZA": "ID · Z → A",
+      "userAZ": "Utilisateur · A → Z",
+      "userZA": "Utilisateur · Z → A"
+    },
+    "columns": {
+      "id": "ID",
+      "type": "Type",
+      "location": "Lieu",
+      "severity": "Gravité",
+      "spamAnalysis": "Analyse spam",
+      "aiConfidence": "Confiance IA",
+      "reporter": "Auteur",
+      "reported": "Signalé",
+      "status": "Statut",
+      "action": "Action"
+    },
+    "loadingIncidents": "Chargement des incidents…",
+    "emptyState": {
+      "title": "Aucun incident trouvé",
+      "aiNotActive": "La vérification IA n'est pas encore active pour les signalements d'incidents.",
+      "suspicious": "Aucun signalement n'est actuellement classé comme spam suspecté.",
+      "pendingReview": "Aucun signalement classé comme spam n'attend une révision manuelle.",
+      "community": "Aucun signalement n'a actuellement de signalement communautaire ouvert.",
+      "merged": "Aucun incident fusionné n'a été trouvé.",
+      "archived": "Aucun incident archivé n'a été trouvé.",
+      "pending": "Aucun incident en attente n'est en attente de révision.",
+      "default": "Aucun incident ne correspond aux filtres actuels."
+    },
+    "error": {
+      "unableToLoad": "Impossible de charger les incidents.",
+      "tryAgain": "Veuillez réessayer."
+    },
+    "footer": {
+      "showing": "Affichage de {{shown}} sur {{total}} incidents",
+      "suspicious": "suspects",
+      "awaitingReview": "en attente de révision manuelle"
+    },
+    "locating": "Localisation…",
+    "mergedTitle": "Signalement consolidé — {{count}} signalements fusionnés",
+    "mergedBadge": "{{count}} signalements fusionnés",
+    "pendingReviewLabel": "Révision en attente",
+    "mlStatus": {
+      "notStarted": "Non démarré"
+    },
+    "predictedLabel": {
+      "unclassified": "Non classifié",
+      "spam": "Spam",
+      "real": "Réel"
+    },
+    "spam": {
+      "spamScore": "Score spam",
+      "mlConfidence": "Confiance ML",
+      "model": "Modèle"
+    },
+    "aiConfidence": {
+      "pending": "IA en attente",
+      "failed": "Échec IA"
+    },
+    "reporter": {
+      "notProvided": "Non renseigné"
+    },
+    "flags_one": "{{count}} signalement",
+    "flags_other": "{{count}} signalements",
+    "reviewButton": "Réviser"
+  },
+  "adminOverviewPage": {
+    "timeRange": {
+      "lastHour": "Dernière heure",
+      "last24h": "Dernières 24h",
+      "last7days": "7 derniers jours",
+      "last30days": "30 derniers jours"
+    },
+    "error": {
+      "title": "Aperçu indisponible",
+      "description": "Impossible de charger l'aperçu administrateur."
+    },
+    "pageTitle": "Vue d'ensemble du système",
+    "pageSubtitle": "Supervision nationale des risques - Temps réel",
+    "refreshing": "Actualisation…",
+    "rangeLabel": "Plage",
+    "openSpamQueue": "Ouvrir la file spam",
+    "loading": {
+      "title": "Chargement de l'aperçu…",
+      "description": "Récupération des données d'incidents réels, d'IA et de classification spam depuis le serveur."
+    },
+    "kpi": {
+      "incidents": "Incidents {{range}}",
+      "pendingReview": "En attente de révision",
+      "aiConfidence": "Confiance de l'IA",
+      "highRiskZones": "Zones à risque élevé",
+      "activeAlerts": "Alertes actives",
+      "reportsPerMin": "Signalements/min"
+    },
+    "spam": {
+      "sectionLabel": "Triage spam",
+      "suspectedSpam": "Signalements suspects",
+      "liveQueueCount": "Nombre en file admin en direct",
+      "pendingManualReview": "En attente de révision manuelle",
+      "pendingManualReviewHint": "Marqué comme spam, non encore révisé",
+      "spamRate": "Taux de spam",
+      "spamRateHint": "{{suspicious}} sur {{all}} signalements",
+      "noReports": "Aucun signalement pour l'instant"
+    },
+    "trend": {
+      "noChange": "Aucun changement",
+      "up": "Hausse {{value}}",
+      "down": "Baisse {{value}}"
+    },
+    "predictedLabel": {
+      "unclassified": "Non classifié",
+      "spam": "Spam",
+      "real": "Réel"
+    },
+    "mlStatus": {
+      "notStarted": "Non démarré"
+    },
+    "confidence": {
+      "pending": "IA en attente",
+      "failed": "Échec de l'IA"
+    },
+    "reviewQueue": {
+      "title": "File de révision",
+      "subtitle": "Incidents en attente et signalés sur toute la période · {{count}} ouverts",
+      "openButton": "Réviser la file spam",
+      "empty": "Aucun incident en attente ou signalé dans la file de révision."
+    },
+    "table": {
+      "id": "ID",
+      "location": "Emplacement",
+      "severity": "Gravité",
+      "spamAnalysis": "Analyse spam",
+      "aiConfidence": "Confiance de l'IA",
+      "review": "Révision",
+      "sinceReported": "Depuis le signalement",
+      "action": "Action",
+      "pendingReview": "En attente de révision",
+      "scoreRow": "Score {{score}} · ML {{ml}} · {{version}}",
+      "awaitingReview": "En attente de révision",
+      "reviewButton": "Réviser"
+    },
+    "charts": {
+      "weeklyVolume": "Volume hebdomadaire d'incidents",
+      "severityDistribution": "Répartition par gravité",
+      "topRiskZones": "Principales zones à risque",
+      "zoneIncidents": "{{count}} incidents",
+      "noZoneActivity": "Aucune activité de zone trouvée pour cette période."
+    },
+    "severity": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    }
+  },
+  "adminSystemSettingsPage": {
+    "tabs": {
+      "severity": "Règles de gravité",
+      "notifications": "Logique de notification",
+      "geofencing": "Géo-clôture",
+      "general": "Général"
+    },
+    "severity": {
+      "low": "Faible",
+      "medium": "Modéré",
+      "high": "Élevé"
+    },
+    "archive": {
+      "days": "{{count}} jours",
+      "oneYear": "1 an",
+      "never": "Jamais"
+    },
+    "retention": {
+      "oneYear": "1 an",
+      "twoYears": "2 ans",
+      "fiveYears": "5 ans",
+      "indefinite": "Indéfini"
+    },
+    "errors": {
+      "loadFailed": "Impossible de charger les paramètres",
+      "saveFailed": "Impossible d'enregistrer les paramètres",
+      "resetFailed": "Impossible de réinitialiser les paramètres"
+    },
+    "messages": {
+      "saved": "Paramètres enregistrés.",
+      "reset": "Paramètres réinitialisés aux valeurs par défaut."
+    },
+    "confirmReset": "Réinitialiser tous les paramètres système à leurs valeurs par défaut ? Les remplacements enregistrés seront perdus.",
+    "newRuleName": "Nouvelle règle",
+    "newZoneName": "Nouvelle zone",
+    "neverEdited": "Jamais modifié",
+    "lastEdited": "Dernière modification {{date}}",
+    "title": "Paramètres système",
+    "subtitle": "Configurer les règles de gravité, les notifications, la géo-clôture et le comportement du système",
+    "resetting": "Réinitialisation…",
+    "resetToDefaults": "Réinitialiser aux valeurs par défaut",
+    "unsavedChanges": "modifications non enregistrées",
+    "loadingSettings": "Chargement des paramètres…",
+    "chips": {
+      "totalRules": "Règles totales",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "channels": "Canaux",
+      "active": "Actif",
+      "totalZones": "Zones totales",
+      "totalCoverage": "Couverture totale",
+      "systemStatus": "État du système",
+      "autoApprove": "Approbation automatique",
+      "apiRateLimit": "Limite de débit API"
+    },
+    "severityRules": {
+      "title": "Règles de gravité pour la classification automatique",
+      "subtitle": "Lorsque la confiance de l'IA dans la règle correspondante dépasse son seuil, le signalement se voit automatiquement attribuer la gravité choisie.",
+      "addRule": "Ajouter une règle",
+      "colRuleName": "Nom de la règle",
+      "colAutoSeverity": "Gravité automatique",
+      "colMinConfidence": "Confiance min.",
+      "colEnabled": "Activé",
+      "empty": "Aucune règle définie. Cliquez sur Ajouter une règle pour en créer une.",
+      "save": "Enregistrer les règles de gravité"
+    },
+    "colActions": "Actions",
+    "ariaToggleRule": "Activer/désactiver {{name}}",
+    "ariaDeleteRule": "Supprimer la règle",
+    "unsavedChangesHint": "Modifications non enregistrées",
+    "discard": "Annuler",
+    "saving": "Enregistrement…",
+    "notificationChannels": {
+      "title": "Canaux de notification",
+      "subtitle": "Configurez la façon dont les alertes parviennent aux utilisateurs finaux. Le filtre de gravité minimum s'applique par canal.",
+      "minSeverity": "Gravité min.",
+      "save": "Enregistrer les paramètres de notification"
+    },
+    "ariaToggleChannel": "Activer/désactiver {{name}}",
+    "geofenceRules": {
+      "title": "Règles de géo-clôture",
+      "subtitle": "Définissez des limites circulaires (centre + rayon) pour une livraison ciblée des alertes. Les clics sur les étiquettes d'événements les activent/désactivent.",
+      "addZone": "Ajouter une zone",
+      "colName": "Nom",
+      "colLatitude": "Latitude",
+      "colLongitude": "Longitude",
+      "colRadius": "Rayon",
+      "colEventTypes": "Types d'événements",
+      "colActive": "Actif",
+      "empty": "Aucune zone de géo-clôture définie. Cliquez sur Ajouter une zone pour en créer une.",
+      "save": "Enregistrer les règles de géo-clôture"
+    },
+    "ariaToggleZone": "Activer/désactiver la zone {{name}}",
+    "ariaDeleteZone": "Supprimer la zone",
+    "status": {
+      "maintenance": "Maintenance",
+      "operational": "Opérationnel"
+    },
+    "autoApproveOn": "Activé (≥ 95 %)",
+    "autoApproveOff": "Désactivé",
+    "systemControls": {
+      "title": "Contrôles système",
+      "subtitle": "Activez ou désactivez le comportement global de la plateforme. Le mode maintenance désactive tous les points d'accès publics jusqu'à ce que vous le désactiviez.",
+      "autoApproveTitle": "Approbation automatique des signalements à haute confiance",
+      "autoApproveDesc": "Approuver automatiquement les signalements avec une confiance de l'IA supérieure à 95 %",
+      "maintenanceModeTitle": "Mode maintenance",
+      "maintenanceModeDesc": "Désactiver les fonctionnalités publiques pour la maintenance"
+    },
+    "ariaToggleAutoApprove": "Activer/désactiver l'approbation automatique",
+    "ariaToggleMaintenanceMode": "Activer/désactiver le mode maintenance",
+    "dataRetention": {
+      "title": "Conservation des données",
+      "subtitle": "Quand les enregistrements plus anciens que le seuil sont archivés ou supprimés.",
+      "incidentArchiveAfter": "Archivage des incidents après",
+      "auditLogRetention": "Conservation du journal d'audit"
+    },
+    "apiConfig": {
+      "title": "Configuration de l'API",
+      "subtitle": "Limites côté serveur appliquées à chaque requête authentifiée.",
+      "rateLimit": "Limite de débit",
+      "maxUploadSize": "Taille maximale de téléchargement"
+    },
+    "generalSettings": {
+      "save": "Enregistrer les paramètres généraux"
+    }
+  },
+  "adminUsersPage": {
+    "title": "Gouvernance des utilisateurs",
+    "subtitle": "Scoring de confiance, évaluation des risques et gestion des utilisateurs",
+    "searchPlaceholder": "Rechercher nom, e-mail, ID…",
+    "sortBy": "Trier par",
+    "tabs": {
+      "all": "Tous les utilisateurs",
+      "active": "Actifs",
+      "trusted": "Fiables",
+      "at_risk": "À risque",
+      "banned": "Bannis",
+      "police": "Police",
+      "supervisor": "Superviseur",
+      "admin": "Admins"
+    },
+    "sort": {
+      "trust_asc": "Confiance croissante (plus risqué en premier)",
+      "trust_desc": "Confiance décroissante (plus fiable en premier)",
+      "reports_desc": "Plus de signalements en premier",
+      "created_desc": "Comptes les plus récents",
+      "last_active_desc": "Récemment actifs"
+    },
+    "table": {
+      "id": "ID",
+      "name": "Nom",
+      "role": "Rôle",
+      "trust": "Confiance",
+      "reports": "Signalements",
+      "falseRatio": "Taux de faux",
+      "risk": "Risque",
+      "status": "Statut",
+      "lastActive": "Dernière activité",
+      "actions": "Actions"
+    },
+    "loadingUsers": "Chargement des utilisateurs…",
+    "noUsers": "Aucun utilisateur ne correspond aux filtres actuels.",
+    "actions": {
+      "moderationGroup": "Modération",
+      "warnTitle": "Avertir l'utilisateur…",
+      "banTitle": "Bannir l'utilisateur…",
+      "unbanUser": "Lever le bannissement",
+      "unbanTitleTemp": "Lever le ban maintenant (expire le {{date}})",
+      "unbanTitlePerm": "Lever le ban permanent",
+      "confirmLiftPermBan": "Lever le ban permanent de {{name}} ? Ils pourront se reconnecter immédiatement.",
+      "promoteTitle": "Promouvoir en reporter fiable",
+      "recalcTitle": "Recalculer le score de confiance",
+      "details": "Détails"
+    },
+    "pagination": {
+      "showing": "Affichage de {{from}}–{{to}} sur {{total}}",
+      "prev": "Préc.",
+      "next": "Suiv."
+    },
+    "loadingDetails": "Chargement des détails…",
+    "unnamedUser": "Utilisateur sans nom",
+    "verified": "Vérifié",
+    "trustRecalc": {
+      "done": "Score de confiance recalculé pour {{label}}.",
+      "changed": "Score de confiance de {{label}} recalculé : {{previousScore}} → {{newScore}}.",
+      "unchanged": "Score de confiance de {{label}} recalculé — inchangé à {{newScore}}."
+    },
+    "errors": {
+      "failedLoadUsers": "Échec du chargement des utilisateurs",
+      "failedUpdateStatus": "Échec de la mise à jour du statut",
+      "failedUpdateRoles": "Échec de la mise à jour des rôles",
+      "failedPromote": "Échec de la promotion de l'utilisateur",
+      "failedRecalc": "Échec du recalcul du score de confiance",
+      "failedLoadDetails": "Échec du chargement des détails de l'utilisateur",
+      "warnReasonRequired": "Une raison est requise pour que l'utilisateur sache pourquoi il est averti.",
+      "pickFutureWarnDate": "Choisissez une date/heure future pour l'expiration de l'avertissement.",
+      "pickFutureBanDate": "Choisissez une date/heure future pour le ban personnalisé."
+    },
+    "detail": {
+      "trustScore": "Score de confiance",
+      "riskLabel": "Risque : {{label}}",
+      "trustUpdated": "Mis à jour {{time}}",
+      "authProvider": "Fournisseur d'auth.",
+      "emailVerified": "E-mail vérifié",
+      "yes": "Oui",
+      "no": "Non",
+      "joined": "Inscrit le",
+      "lastActive": "Dernière activité",
+      "timesBanned": "Fois banni",
+      "timesWarned": "Fois averti",
+      "lastBanned": "Dernier ban {{time}}",
+      "lastWarned": "Dernier avertissement {{time}}",
+      "neverBanned": "Jamais banni",
+      "neverWarned": "Jamais averti",
+      "lastTime": "dernier {{time}}",
+      "currentRoles": "Rôles actuels",
+      "noRoles": "Aucun",
+      "reportActivity": "Activité de signalement",
+      "falseRatio": "Taux de faux",
+      "driverBehavior": "Comportement au volant",
+      "riskScore": "Score de risque",
+      "result": "Résultat",
+      "attempts": "Tentatives",
+      "lastCompleted": "Dernière complétion",
+      "noQuiz": "Aucun quiz conducteur complété pour l'instant.",
+      "occurrenceRisk": "Dernier risque d'occurrence",
+      "personalized": "Personnalisé",
+      "global": "Global",
+      "recorded": "Enregistré",
+      "noOccurrenceRisk": "Aucune prévision de risque d'occurrence pour l'instant.",
+      "accountType": "Type de compte",
+      "unsavedChanges": "Modifications non enregistrées",
+      "noRolesAvailable": "Aucun rôle disponible.",
+      "saving": "Enregistrement…",
+      "saveRoles": "Enregistrer les rôles",
+      "resetRoles": "Réinitialiser",
+      "roleRequired": "Au moins un rôle est requis.",
+      "recentReports": "Signalements récents",
+      "untitled": "(sans titre)",
+      "verdict": "verdict : {{verdict}}"
+    },
+    "reportTiles": {
+      "total": "Total",
+      "verified": "Vérifiés",
+      "resolved": "Résolus",
+      "suspicious": "Suspects",
+      "spam": "Spam",
+      "outOfContext": "Hors contexte",
+      "invalidLocation": "Emplacement invalide",
+      "rejected": "Rejetés"
+    },
+    "warn": {
+      "title": "Avertir l'utilisateur",
+      "previewAck": "Reste visible jusqu'à ce que l'utilisateur le ferme",
+      "pickFuture": "Choisissez une date/heure future",
+      "untilAcknowledged": "Jusqu'à confirmation",
+      "autoClearsOn": "Supprimé automatiquement le {{date}}",
+      "presets": {
+        "ack": "Jusqu'à confirmation",
+        "7d": "7 jours",
+        "30d": "30 jours",
+        "90d": "90 jours",
+        "custom": "Date personnalisée…"
+      },
+      "reasonLabel": "Raison (affichée à l'utilisateur)",
+      "reasonPlaceholder": "ex. A publié un incident non vérifié avec des détails manquants",
+      "autoClearAfter": "Suppression automatique après",
+      "clearOn": "Supprimer le",
+      "howItShows": "Affichage :",
+      "bannerNote": "Une bannière jaune apparaît en haut de chaque page pour cet utilisateur. Il peut toujours publier et commenter.",
+      "sending": "Envoi…",
+      "sendWarning": "Envoyer l'avertissement"
+    },
+    "ban": {
+      "title": "Bannir l'utilisateur",
+      "previewPermanent": "Permanent (l'utilisateur ne peut plus jamais se connecter)",
+      "pickFuture": "Choisissez une date/heure future",
+      "presets": {
+        "1h": "1 heure",
+        "24h": "24 heures",
+        "7d": "7 jours",
+        "30d": "30 jours",
+        "6mo": "6 mois",
+        "custom": "Date personnalisée…",
+        "permanent": "Permanent"
+      },
+      "durationLabel": "Durée du ban",
+      "banUntil": "Bannir jusqu'au",
+      "reasonLabel": "Raison (affichée à l'utilisateur)",
+      "reasonPlaceholder": "ex. A publié plusieurs fois de faux incidents",
+      "permanentBan": "Ban permanent",
+      "effectiveUntil": "Effectif jusqu'au",
+      "canLoginNote": "L'utilisateur peut toujours se connecter pour voir l'avis de ban mais ne peut pas publier ou commenter.",
+      "banning": "Bannissement…",
+      "banPermanently": "Bannir définitivement",
+      "applyBan": "Appliquer le ban"
+    }
+  },
+  "adminZonesPage": {
+    "title": "Zones de risque & gestion géo",
+    "subtitle": "{{count}} zones de wilaya surveillées",
+    "refreshed": "actualisé le {{time}}",
+    "periodLabel": "Période",
+    "metricLabel": "Métrique",
+    "exportZones": "Exporter les zones",
+    "rebuilding": "Reconstruction…",
+    "rebuildSummary": "Reconstruire le résumé",
+    "errorTitle": "Informations de zone indisponibles",
+    "errorFallback": "Veuillez réessayer.",
+    "tabs": {
+      "map": "Carte des zones",
+      "table": "Gestion des zones",
+      "ranking": "Classement des wilayas",
+      "thresholds": "Configuration des seuils"
+    },
+    "period": {
+      "24h": "24h",
+      "7d": "7 jours",
+      "30d": "30 jours"
+    },
+    "metric": {
+      "composite": "Composite",
+      "model": "Modèle",
+      "reports": "Signalements",
+      "alerts": "Alertes"
+    },
+    "metricTitle": {
+      "composite": "Score de risque composite",
+      "model": "Score pondéré du modèle",
+      "reports": "Score de signalement",
+      "alerts": "Score d'alerte"
+    },
+    "mapTab": {
+      "title": "Carte d'intelligence des zones",
+      "subtitle": "Vue du risque par wilaya colorée par {{metric}}"
+    },
+    "statLabel": {
+      "high": "Élevé",
+      "selectedMetric": "Métrique sélectionnée"
+    },
+    "riskLevel": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    },
+    "mapEmpty": "Aucun résumé de polygone n'est disponible pour cette période.",
+    "mapLoading": "Chargement des polygones de wilayas et des résumés de risques…",
+    "tooltip": {
+      "risk": "Risque"
+    },
+    "detail": {
+      "finalScore": "Score final",
+      "modelWeighted": "Pondéré modèle",
+      "recentReports": "Signalements récents",
+      "activeAlerts": "Alertes actives",
+      "confidenceAvg": "Confiance moy.",
+      "trendVsPrevious": "Tendance vs précédent",
+      "topRoad": "Route principale",
+      "topRoadRisk": "Risque route principale",
+      "zoneBreakdown": "Détail de la zone",
+      "compositeScore": "Score composite",
+      "reportScore": "Score de signalement",
+      "alertScore": "Score d'alerte",
+      "verifiedPendingFlagged": "Vérifié / En attente / Signalé",
+      "selectedZoneDetails": "Détails de la zone sélectionnée",
+      "loadingDetails": "Chargement des détails de la zone…",
+      "topRoads": "Principales routes",
+      "scheduledAlerts": "Alertes programmées",
+      "noRoads": "Aucune route couverte par le modèle pour cette période",
+      "clickPrompt": "Cliquez sur une zone pour inspecter ses signaux routiers et d'alerte.",
+      "selectPrompt": "Sélectionnez un polygone de wilaya pour inspecter ses signaux de risque."
+    },
+    "tableTab": {
+      "title": "Gestion des zones",
+      "subtitle": "Résumés réels des wilayas depuis le cache de polygones actuel",
+      "colZone": "Zone",
+      "colRisk": "Risque",
+      "colScore": "Score",
+      "colModel": "Modèle",
+      "colReports": "Signalements",
+      "colAlerts": "Alertes",
+      "colTopRoad": "Route principale",
+      "colTrend": "Tendance",
+      "colAction": "Action",
+      "viewBtn": "Voir"
+    },
+    "rankingTab": {
+      "title": "Classement des risques par wilaya",
+      "subtitle": "Trié par score de risque composite avec la pression actuelle des signalements et alertes",
+      "colRank": "Rang",
+      "colWilaya": "Wilaya",
+      "colRiskLevel": "Niveau de risque",
+      "colFinalScore": "Score final",
+      "colModelScore": "Score modèle",
+      "colReports": "Signalements",
+      "colActiveAlerts": "Alertes actives",
+      "colTrend": "Tendance"
+    },
+    "thresholdsTab": {
+      "title": "Configuration des seuils",
+      "subtitle": "Bandes de scores V1 actuelles et pondération composite utilisées pour coloriser la carte des zones",
+      "band": "Bande {{level}}",
+      "weightModel": "Score modèle",
+      "weightReport": "Score de signalement",
+      "weightAlert": "Score d'alerte",
+      "weightIncident": "Historique des incidents"
+    }
+  },
+  "serviceControlPage": {
+    "placeholder": "ServiceControlPage (placeholder)"
+  }
+}

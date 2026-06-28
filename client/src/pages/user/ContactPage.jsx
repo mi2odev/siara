@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import '../../styles/InfoPages.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 import LeftNavLayout from '../../components/layout/LeftNavLayout'
@@ -7,6 +8,7 @@ import { submitSupportMessage } from '../../services/supportMessagesService'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function ContactPage() {
+  const { t } = useTranslation(['pages', 'common'])
   const [form, setForm] = useState({ name: '', email: '', message: '' })
   const [errors, setErrors] = useState({})
   const [statusMessage, setStatusMessage] = useState('')
@@ -30,13 +32,13 @@ export default function ContactPage() {
     const trimmedMessage = form.message.trim()
 
     if (trimmedName.length < 2) {
-      nextErrors.name = 'Please enter a valid name.'
+      nextErrors.name = t('contactPage.errors.invalidName')
     }
     if (!EMAIL_REGEX.test(trimmedEmail)) {
-      nextErrors.email = 'Please enter a valid email address.'
+      nextErrors.email = t('contactPage.errors.invalidEmail')
     }
     if (trimmedMessage.length < 10) {
-      nextErrors.message = 'Message must be at least 10 characters.'
+      nextErrors.message = t('contactPage.errors.messageTooShort')
     }
 
     setErrors(nextErrors)
@@ -54,10 +56,10 @@ export default function ContactPage() {
         email: form.email.trim(),
         message: form.message.trim(),
       })
-      setStatusMessage('Thank you. We will respond as soon as possible.')
+      setStatusMessage(t('contactPage.successMessage'))
       setForm({ name: '', email: '', message: '' })
     } catch (error) {
-      setSubmitError(error?.message || 'Could not send your message. Please try again.')
+      setSubmitError(error?.message || t('contactPage.errors.sendFailed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -72,25 +74,25 @@ export default function ContactPage() {
             <img src={siaraLogo} alt="SIARA" className="info-brand-logo" />
             <div>
               <p className="info-brand-name">SIARA</p>
-              <p className="info-brand-caption">Road Safety Intelligence Platform</p>
+              <p className="info-brand-caption">{t('contactPage.brandCaption')}</p>
             </div>
           </div>
           <div className="info-head-topline">
-            <span className="info-head-kicker">Support Center</span>
+            <span className="info-head-kicker">{t('contactPage.kicker')}</span>
           </div>
-          <h1 className="info-page-title">Contact</h1>
+          <h1 className="info-page-title">{t('contactPage.title')}</h1>
           <p className="info-page-intro">
-            Reach out to SIARA for support, questions, or partnership opportunities.
+            {t('contactPage.intro')}
           </p>
         </header>
 
         <section className="info-section-card">
-          <h2 className="info-section-title">Contact Information</h2>
+          <h2 className="info-section-title">{t('contactPage.infoSection.title')}</h2>
           <p className="info-inline-detail">
-            <strong>Email:</strong> siara.ai.app@gmail.com
+            <strong>{t('contactPage.infoSection.emailLabel')}</strong> siara.ai.app@gmail.com
           </p>
           <div className="info-contact-actions">
-            <a className="info-mail-link" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">Send email directly</a>
+            <a className="info-mail-link" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">{t('contactPage.infoSection.sendEmailLink')}</a>
             <button
               type="button"
               className="info-inline-btn"
@@ -98,7 +100,7 @@ export default function ContactPage() {
               aria-expanded={isFormOpen}
               aria-controls="contact-form-panel"
             >
-              {isFormOpen ? 'Hide contact form' : 'Open contact form'}
+              {isFormOpen ? t('contactPage.form.hideForm') : t('contactPage.form.openForm')}
             </button>
           </div>
         </section>
@@ -108,11 +110,11 @@ export default function ContactPage() {
           className={`info-section-card info-collapsible ${isFormOpen ? 'open' : ''}`}
           aria-hidden={!isFormOpen}
         >
-          <h2 className="info-section-title">Contact Form</h2>
+          <h2 className="info-section-title">{t('contactPage.form.title')}</h2>
           <form className="info-form" onSubmit={handleSubmit} noValidate>
             <div className="info-form-row">
               <div className="info-field-wrap">
-                <label htmlFor="contact-name">Name</label>
+                <label htmlFor="contact-name">{t('contactPage.form.nameLabel')}</label>
                 <input
                   id="contact-name"
                   name="name"
@@ -128,7 +130,7 @@ export default function ContactPage() {
               </div>
 
               <div className="info-field-wrap">
-                <label htmlFor="contact-email">Email</label>
+                <label htmlFor="contact-email">{t('contactPage.form.emailLabel')}</label>
                 <input
                   id="contact-email"
                   name="email"
@@ -144,7 +146,7 @@ export default function ContactPage() {
               </div>
             </div>
 
-            <label htmlFor="contact-message">Message</label>
+            <label htmlFor="contact-message">{t('contactPage.form.messageLabel')}</label>
             <textarea
               id="contact-message"
               name="message"
@@ -159,10 +161,10 @@ export default function ContactPage() {
             {errors.message ? <p id="contact-message-error" className="info-field-error">{errors.message}</p> : null}
 
             <button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Sending…' : 'Submit'}
+              {isSubmitting ? t('contactPage.form.sending') : t('contactPage.form.submit')}
             </button>
           </form>
-          <p className="info-note">We will respond as soon as possible.</p>
+          <p className="info-note">{t('contactPage.responseNote')}</p>
           {statusMessage ? <p className="info-success-note" role="status" aria-live="polite">{statusMessage}</p> : null}
           {submitError ? <p className="info-field-error" role="alert">{submitError}</p> : null}
         </section>

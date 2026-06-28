@@ -8,6 +8,7 @@
  * page always renders something sensible on a fresh database.
  */
 import React, { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import FancySelect from '../../components/ui/FancySelect'
@@ -31,34 +32,6 @@ import {
   resetAdminSystemSettings,
   saveAdminSystemSettings,
 } from '../../services/adminSystemSettingsService'
-
-const TABS = [
-  { key: 'severity',      label: 'Severity Rules' },
-  { key: 'notifications', label: 'Notification Logic' },
-  { key: 'geofencing',    label: 'Geo-fencing' },
-  { key: 'general',       label: 'General' },
-]
-
-const SEVERITY_OPTIONS = [
-  { value: 'low',    label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high',   label: 'High' },
-]
-
-const ARCHIVE_OPTIONS = [
-  { value: 30,  label: '30 days' },
-  { value: 60,  label: '60 days' },
-  { value: 90,  label: '90 days' },
-  { value: 365, label: '1 year' },
-  { value: 0,   label: 'Never' },
-]
-
-const RETENTION_OPTIONS = [
-  { value: '1y',         label: '1 year' },
-  { value: '2y',         label: '2 years' },
-  { value: '5y',         label: '5 years' },
-  { value: 'indefinite', label: 'Indefinite' },
-]
 
 const ALLOWED_EVENT_TAGS = ['collision', 'roadwork', 'weather', 'hazard', 'traffic']
 
@@ -116,8 +89,38 @@ function SuffixNumberInput({ value, onChange, unit, min, max, step = 1, disabled
 }
 
 export default function AdminSystemSettingsPage() {
+  const { t } = useTranslation(['admin', 'common'])
+
+  const TABS = [
+    { key: 'severity',      label: t('adminSystemSettingsPage.tabs.severity') },
+    { key: 'notifications', label: t('adminSystemSettingsPage.tabs.notifications') },
+    { key: 'geofencing',    label: t('adminSystemSettingsPage.tabs.geofencing') },
+    { key: 'general',       label: t('adminSystemSettingsPage.tabs.general') },
+  ]
+
+  const SEVERITY_OPTIONS = [
+    { value: 'low',    label: t('adminSystemSettingsPage.severity.low') },
+    { value: 'medium', label: t('adminSystemSettingsPage.severity.medium') },
+    { value: 'high',   label: t('adminSystemSettingsPage.severity.high') },
+  ]
+
+  const ARCHIVE_OPTIONS = [
+    { value: 30,  label: t('adminSystemSettingsPage.archive.days', { count: 30 }) },
+    { value: 60,  label: t('adminSystemSettingsPage.archive.days', { count: 60 }) },
+    { value: 90,  label: t('adminSystemSettingsPage.archive.days', { count: 90 }) },
+    { value: 365, label: t('adminSystemSettingsPage.archive.oneYear') },
+    { value: 0,   label: t('adminSystemSettingsPage.archive.never') },
+  ]
+
+  const RETENTION_OPTIONS = [
+    { value: '1y',         label: t('adminSystemSettingsPage.retention.oneYear') },
+    { value: '2y',         label: t('adminSystemSettingsPage.retention.twoYears') },
+    { value: '5y',         label: t('adminSystemSettingsPage.retention.fiveYears') },
+    { value: 'indefinite', label: t('adminSystemSettingsPage.retention.indefinite') },
+  ]
+
   const [searchParams, setSearchParams] = useSearchParams()
-  const currentTab = TABS.some((t) => t.key === searchParams.get('tab'))
+  const currentTab = TABS.some((tab) => tab.key === searchParams.get('tab'))
     ? searchParams.get('tab')
     : 'severity'
 
@@ -138,7 +141,7 @@ export default function AdminSystemSettingsPage() {
       setServer(payload)
       setDraft(payload)
     } catch (err) {
-      setError(err?.message || 'Failed to load settings')
+      setError(err?.message || t('adminSystemSettingsPage.errors.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -164,25 +167,25 @@ export default function AdminSystemSettingsPage() {
       const updated = await saveAdminSystemSettings(updates)
       setServer(updated)
       setDraft(updated)
-      showSuccess('Settings saved.')
+      showSuccess(t('adminSystemSettingsPage.messages.saved'))
     } catch (err) {
-      setError(err?.message || 'Failed to save settings')
+      setError(err?.message || t('adminSystemSettingsPage.errors.saveFailed'))
     } finally {
       setSavingTab(null)
     }
   }
 
   const handleResetAll = async () => {
-    if (!window.confirm('Reset every system setting to its default? Stored overrides will be lost.')) return
+    if (!window.confirm(t('adminSystemSettingsPage.confirmReset'))) return
     setSavingTab('reset')
     setError('')
     try {
       const updated = await resetAdminSystemSettings()
       setServer(updated)
       setDraft(updated)
-      showSuccess('Settings reset to defaults.')
+      showSuccess(t('adminSystemSettingsPage.messages.reset'))
     } catch (err) {
-      setError(err?.message || 'Failed to reset settings')
+      setError(err?.message || t('adminSystemSettingsPage.errors.resetFailed'))
     } finally {
       setSavingTab(null)
     }
@@ -221,7 +224,7 @@ export default function AdminSystemSettingsPage() {
         ...prev.severity,
         rules: [
           ...prev.severity.rules,
-          { id: nextId(prev.severity.rules), name: 'New rule', autoSeverity: 'medium', minConfidence: 60, enabled: true },
+          { id: nextId(prev.severity.rules), name: t('adminSystemSettingsPage.newRuleName'), autoSeverity: 'medium', minConfidence: 60, enabled: true },
         ],
       },
     }))
@@ -280,7 +283,7 @@ export default function AdminSystemSettingsPage() {
         ...prev.geofencing,
         rules: [
           ...prev.geofencing.rules,
-          { id: nextId(prev.geofencing.rules), name: 'New zone', lat: 36.75, lng: 3.05, radiusKm: 5, events: ['collision'], active: true },
+          { id: nextId(prev.geofencing.rules), name: t('adminSystemSettingsPage.newZoneName'), lat: 36.75, lng: 3.05, radiusKm: 5, events: ['collision'], active: true },
         ],
       },
     }))
@@ -328,21 +331,21 @@ export default function AdminSystemSettingsPage() {
   }
 
   const lastUpdatedLabel = useMemo(() => {
-    if (!server?.updatedAt) return 'Never edited'
+    if (!server?.updatedAt) return t('adminSystemSettingsPage.neverEdited')
     try {
-      return `Last edited ${new Date(server.updatedAt).toLocaleString()}`
+      return t('adminSystemSettingsPage.lastEdited', { date: new Date(server.updatedAt).toLocaleString() })
     } catch {
       return ''
     }
-  }, [server?.updatedAt])
+  }, [server?.updatedAt, t])
 
   return (
     <>
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">System Settings</h1>
+          <h1 className="admin-page-title">{t('adminSystemSettingsPage.title')}</h1>
           <p className="admin-page-subtitle">
-            Configure severity rules, notifications, geo-fencing and system behavior · {lastUpdatedLabel}
+            {t('adminSystemSettingsPage.subtitle')} · {lastUpdatedLabel}
           </p>
         </div>
         <button
@@ -351,19 +354,19 @@ export default function AdminSystemSettingsPage() {
           disabled={loading || savingTab === 'reset'}
           style={{ color: 'var(--admin-danger)' }}
         >
-          <RestartAltRoundedIcon fontSize="inherit" /> {savingTab === 'reset' ? 'Resetting…' : 'Reset to Defaults'}
+          <RestartAltRoundedIcon fontSize="inherit" /> {savingTab === 'reset' ? t('adminSystemSettingsPage.resetting') : t('adminSystemSettingsPage.resetToDefaults')}
         </button>
       </div>
 
       <div className="admin-tabs" style={{ marginBottom: 14 }}>
-        {TABS.map((t) => (
+        {TABS.map((tab) => (
           <button
-            key={t.key}
-            className={`admin-tab ${currentTab === t.key ? 'active' : ''}`}
-            onClick={() => setTab(t.key)}
+            key={tab.key}
+            className={`admin-tab ${currentTab === tab.key ? 'active' : ''}`}
+            onClick={() => setTab(tab.key)}
           >
-            {t.label}
-            {dirtyByTab[t.key] && <span className="admin-tab-dirty-dot" aria-label="unsaved changes" />}
+            {tab.label}
+            {dirtyByTab[tab.key] && <span className="admin-tab-dirty-dot" aria-label={t('adminSystemSettingsPage.unsavedChanges')} />}
           </button>
         ))}
       </div>
@@ -380,7 +383,7 @@ export default function AdminSystemSettingsPage() {
       )}
 
       {loading && !draft && (
-        <div className="admin-card">Loading settings…</div>
+        <div className="admin-card">{t('adminSystemSettingsPage.loadingSettings')}</div>
       )}
 
       {/* ═══ TAB: SEVERITY RULES ═══ */}
@@ -390,7 +393,7 @@ export default function AdminSystemSettingsPage() {
             <div className="admin-settings-hero-chip">
               <div className="admin-settings-hero-chip-icon"><GavelOutlinedIcon fontSize="inherit" /></div>
               <div className="admin-settings-hero-chip-body">
-                <span className="admin-settings-hero-chip-label">Total rules</span>
+                <span className="admin-settings-hero-chip-label">{t('adminSystemSettingsPage.chips.totalRules')}</span>
                 <span className="admin-settings-hero-chip-value">{severityDraft.length}</span>
               </div>
             </div>
@@ -399,7 +402,7 @@ export default function AdminSystemSettingsPage() {
                 <CheckCircleRoundedIcon fontSize="inherit" />
               </div>
               <div className="admin-settings-hero-chip-body">
-                <span className="admin-settings-hero-chip-label">Enabled</span>
+                <span className="admin-settings-hero-chip-label">{t('adminSystemSettingsPage.chips.enabled')}</span>
                 <span className="admin-settings-hero-chip-value">{severityActive}</span>
               </div>
             </div>
@@ -408,7 +411,7 @@ export default function AdminSystemSettingsPage() {
                 <ErrorOutlineRoundedIcon fontSize="inherit" />
               </div>
               <div className="admin-settings-hero-chip-body">
-                <span className="admin-settings-hero-chip-label">Disabled</span>
+                <span className="admin-settings-hero-chip-label">{t('adminSystemSettingsPage.chips.disabled')}</span>
                 <span className="admin-settings-hero-chip-value">{severityDraft.length - severityActive}</span>
               </div>
             </div>
@@ -417,22 +420,22 @@ export default function AdminSystemSettingsPage() {
           <div className="admin-card">
             <div className="admin-card-header">
               <div>
-                <h3 className="admin-card-title">Auto-Classification Severity Rules</h3>
-                <p className="admin-card-subtitle">When the AI's confidence in the matched rule clears its threshold, the report is auto-assigned the chosen severity.</p>
+                <h3 className="admin-card-title">{t('adminSystemSettingsPage.severityRules.title')}</h3>
+                <p className="admin-card-subtitle">{t('adminSystemSettingsPage.severityRules.subtitle')}</p>
               </div>
               <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={addSeverityRow}>
-                <AddRoundedIcon fontSize="inherit" /> Add Rule
+                <AddRoundedIcon fontSize="inherit" /> {t('adminSystemSettingsPage.severityRules.addRule')}
               </button>
             </div>
             <div className="admin-table-wrapper" style={{ marginTop: 4 }}>
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Rule Name</th>
-                    <th>Auto Severity</th>
-                    <th>Min. Confidence</th>
-                    <th>Enabled</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
+                    <th>{t('adminSystemSettingsPage.severityRules.colRuleName')}</th>
+                    <th>{t('adminSystemSettingsPage.severityRules.colAutoSeverity')}</th>
+                    <th>{t('adminSystemSettingsPage.severityRules.colMinConfidence')}</th>
+                    <th>{t('adminSystemSettingsPage.severityRules.colEnabled')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('adminSystemSettingsPage.colActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -473,14 +476,14 @@ export default function AdminSystemSettingsPage() {
                         <ToggleSwitch
                           checked={rule.enabled}
                           onChange={(checked) => updateSeverityRow(rule.id, { enabled: checked })}
-                          ariaLabel={`Toggle ${rule.name}`}
+                          ariaLabel={t('adminSystemSettingsPage.ariaToggleRule', { name: rule.name })}
                         />
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <button
                           className="admin-btn admin-btn-sm admin-btn-danger"
                           onClick={() => removeSeverityRow(rule.id)}
-                          aria-label="Delete rule"
+                          aria-label={t('adminSystemSettingsPage.ariaDeleteRule')}
                         >
                           <DeleteOutlineRoundedIcon fontSize="inherit" />
                         </button>
@@ -490,7 +493,7 @@ export default function AdminSystemSettingsPage() {
                   {severityDraft.length === 0 && (
                     <tr>
                       <td colSpan={5} style={{ textAlign: 'center', padding: 24, color: 'var(--admin-text-muted)' }}>
-                        No rules defined. Click <strong>Add Rule</strong> to create one.
+                        {t('adminSystemSettingsPage.severityRules.empty', { addLabel: t('adminSystemSettingsPage.severityRules.addRule') })}
                       </td>
                     </tr>
                   )}
@@ -498,20 +501,20 @@ export default function AdminSystemSettingsPage() {
               </table>
             </div>
             <div className="admin-settings-actions">
-              {severityDirty && <span className="dirty-hint">Unsaved changes</span>}
+              {severityDirty && <span className="dirty-hint">{t('adminSystemSettingsPage.unsavedChangesHint')}</span>}
               <button
                 className="admin-btn admin-btn-ghost admin-btn-sm"
                 onClick={() => setDraft({ ...draft, severity: { ...draft.severity, rules: severityServer } })}
                 disabled={!severityDirty || savingTab === 'severity'}
               >
-                Discard
+                {t('adminSystemSettingsPage.discard')}
               </button>
               <button
                 className="admin-btn admin-btn-primary admin-btn-sm"
                 onClick={saveSeverity}
                 disabled={!severityDirty || savingTab === 'severity'}
               >
-                {savingTab === 'severity' ? 'Saving…' : 'Save Severity Rules'}
+                {savingTab === 'severity' ? t('adminSystemSettingsPage.saving') : t('adminSystemSettingsPage.severityRules.save')}
               </button>
             </div>
           </div>
@@ -525,7 +528,7 @@ export default function AdminSystemSettingsPage() {
             <div className="admin-settings-hero-chip">
               <div className="admin-settings-hero-chip-icon"><NotificationsActiveOutlinedIcon fontSize="inherit" /></div>
               <div className="admin-settings-hero-chip-body">
-                <span className="admin-settings-hero-chip-label">Channels</span>
+                <span className="admin-settings-hero-chip-label">{t('adminSystemSettingsPage.chips.channels')}</span>
                 <span className="admin-settings-hero-chip-value">{channelsDraft.length}</span>
               </div>
             </div>
@@ -534,7 +537,7 @@ export default function AdminSystemSettingsPage() {
                 <CheckCircleRoundedIcon fontSize="inherit" />
               </div>
               <div className="admin-settings-hero-chip-body">
-                <span className="admin-settings-hero-chip-label">Active</span>
+                <span className="admin-settings-hero-chip-label">{t('adminSystemSettingsPage.chips.active')}</span>
                 <span className="admin-settings-hero-chip-value">{channelsEnabled}</span>
               </div>
             </div>
@@ -543,8 +546,8 @@ export default function AdminSystemSettingsPage() {
           <div className="admin-card">
             <div className="admin-card-header">
               <div>
-                <h3 className="admin-card-title">Notification Channels</h3>
-                <p className="admin-card-subtitle">Configure how alerts reach end users. The minimum severity filter applies per channel.</p>
+                <h3 className="admin-card-title">{t('adminSystemSettingsPage.notificationChannels.title')}</h3>
+                <p className="admin-card-subtitle">{t('adminSystemSettingsPage.notificationChannels.subtitle')}</p>
               </div>
             </div>
             <div style={{ marginTop: 4 }}>
@@ -561,7 +564,7 @@ export default function AdminSystemSettingsPage() {
                       <div style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 2 }}>{ch.description}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>Min. severity</span>
+                      <span style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>{t('adminSystemSettingsPage.notificationChannels.minSeverity')}</span>
                       <FancySelect
                         value={ch.minSeverity}
                         onChange={(value) => updateChannel(ch.id, { minSeverity: value })}
@@ -572,7 +575,7 @@ export default function AdminSystemSettingsPage() {
                       <ToggleSwitch
                         checked={ch.enabled}
                         onChange={(checked) => updateChannel(ch.id, { enabled: checked })}
-                        ariaLabel={`Toggle ${ch.name}`}
+                        ariaLabel={t('adminSystemSettingsPage.ariaToggleChannel', { name: ch.name })}
                       />
                     </div>
                   </div>
@@ -580,20 +583,20 @@ export default function AdminSystemSettingsPage() {
               })}
             </div>
             <div className="admin-settings-actions">
-              {channelsDirty && <span className="dirty-hint">Unsaved changes</span>}
+              {channelsDirty && <span className="dirty-hint">{t('adminSystemSettingsPage.unsavedChangesHint')}</span>}
               <button
                 className="admin-btn admin-btn-ghost admin-btn-sm"
                 onClick={() => setDraft({ ...draft, notifications: { ...draft.notifications, channels: channelsServer } })}
                 disabled={!channelsDirty || savingTab === 'notifications'}
               >
-                Discard
+                {t('adminSystemSettingsPage.discard')}
               </button>
               <button
                 className="admin-btn admin-btn-primary admin-btn-sm"
                 onClick={saveNotifications}
                 disabled={!channelsDirty || savingTab === 'notifications'}
               >
-                {savingTab === 'notifications' ? 'Saving…' : 'Save Notification Settings'}
+                {savingTab === 'notifications' ? t('adminSystemSettingsPage.saving') : t('adminSystemSettingsPage.notificationChannels.save')}
               </button>
             </div>
           </div>
@@ -607,7 +610,7 @@ export default function AdminSystemSettingsPage() {
             <div className="admin-settings-hero-chip">
               <div className="admin-settings-hero-chip-icon"><RadarOutlinedIcon fontSize="inherit" /></div>
               <div className="admin-settings-hero-chip-body">
-                <span className="admin-settings-hero-chip-label">Total zones</span>
+                <span className="admin-settings-hero-chip-label">{t('adminSystemSettingsPage.chips.totalZones')}</span>
                 <span className="admin-settings-hero-chip-value">{geofenceDraft.length}</span>
               </div>
             </div>
@@ -616,7 +619,7 @@ export default function AdminSystemSettingsPage() {
                 <CheckCircleRoundedIcon fontSize="inherit" />
               </div>
               <div className="admin-settings-hero-chip-body">
-                <span className="admin-settings-hero-chip-label">Active</span>
+                <span className="admin-settings-hero-chip-label">{t('adminSystemSettingsPage.chips.active')}</span>
                 <span className="admin-settings-hero-chip-value">{geofenceActive}</span>
               </div>
             </div>
@@ -625,7 +628,7 @@ export default function AdminSystemSettingsPage() {
                 <LayersOutlinedIcon fontSize="inherit" />
               </div>
               <div className="admin-settings-hero-chip-body">
-                <span className="admin-settings-hero-chip-label">Total coverage</span>
+                <span className="admin-settings-hero-chip-label">{t('adminSystemSettingsPage.chips.totalCoverage')}</span>
                 <span className="admin-settings-hero-chip-value">
                   {geofenceDraft.filter((g) => g.active).reduce((sum, g) => sum + (Number(g.radiusKm) || 0), 0)} km
                 </span>
@@ -636,24 +639,24 @@ export default function AdminSystemSettingsPage() {
           <div className="admin-card">
             <div className="admin-card-header">
               <div>
-                <h3 className="admin-card-title">Geo-fence Rules</h3>
-                <p className="admin-card-subtitle">Define circular boundaries (center + radius) for targeted alert delivery. Clicks on event tags toggle them.</p>
+                <h3 className="admin-card-title">{t('adminSystemSettingsPage.geofenceRules.title')}</h3>
+                <p className="admin-card-subtitle">{t('adminSystemSettingsPage.geofenceRules.subtitle')}</p>
               </div>
               <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={addGeofence}>
-                <AddRoundedIcon fontSize="inherit" /> Add Zone
+                <AddRoundedIcon fontSize="inherit" /> {t('adminSystemSettingsPage.geofenceRules.addZone')}
               </button>
             </div>
             <div className="admin-table-wrapper" style={{ marginTop: 4 }}>
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Latitude</th>
-                    <th>Longitude</th>
-                    <th>Radius</th>
-                    <th>Event Types</th>
-                    <th>Active</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
+                    <th>{t('adminSystemSettingsPage.geofenceRules.colName')}</th>
+                    <th>{t('adminSystemSettingsPage.geofenceRules.colLatitude')}</th>
+                    <th>{t('adminSystemSettingsPage.geofenceRules.colLongitude')}</th>
+                    <th>{t('adminSystemSettingsPage.geofenceRules.colRadius')}</th>
+                    <th>{t('adminSystemSettingsPage.geofenceRules.colEventTypes')}</th>
+                    <th>{t('adminSystemSettingsPage.geofenceRules.colActive')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('adminSystemSettingsPage.colActions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -730,14 +733,14 @@ export default function AdminSystemSettingsPage() {
                         <ToggleSwitch
                           checked={rule.active}
                           onChange={(checked) => updateGeofence(rule.id, { active: checked })}
-                          ariaLabel={`Toggle zone ${rule.name}`}
+                          ariaLabel={t('adminSystemSettingsPage.ariaToggleZone', { name: rule.name })}
                         />
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <button
                           className="admin-btn admin-btn-sm admin-btn-danger"
                           onClick={() => removeGeofence(rule.id)}
-                          aria-label="Delete zone"
+                          aria-label={t('adminSystemSettingsPage.ariaDeleteZone')}
                         >
                           <DeleteOutlineRoundedIcon fontSize="inherit" />
                         </button>
@@ -747,7 +750,7 @@ export default function AdminSystemSettingsPage() {
                   {geofenceDraft.length === 0 && (
                     <tr>
                       <td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--admin-text-muted)' }}>
-                        No geo-fence zones defined. Click <strong>Add Zone</strong> to create one.
+                        {t('adminSystemSettingsPage.geofenceRules.empty', { addLabel: t('adminSystemSettingsPage.geofenceRules.addZone') })}
                       </td>
                     </tr>
                   )}
@@ -755,20 +758,20 @@ export default function AdminSystemSettingsPage() {
               </table>
             </div>
             <div className="admin-settings-actions">
-              {geofenceDirty && <span className="dirty-hint">Unsaved changes</span>}
+              {geofenceDirty && <span className="dirty-hint">{t('adminSystemSettingsPage.unsavedChangesHint')}</span>}
               <button
                 className="admin-btn admin-btn-ghost admin-btn-sm"
                 onClick={() => setDraft({ ...draft, geofencing: { ...draft.geofencing, rules: geofenceServer } })}
                 disabled={!geofenceDirty || savingTab === 'geofencing'}
               >
-                Discard
+                {t('adminSystemSettingsPage.discard')}
               </button>
               <button
                 className="admin-btn admin-btn-primary admin-btn-sm"
                 onClick={saveGeofencing}
                 disabled={!geofenceDirty || savingTab === 'geofencing'}
               >
-                {savingTab === 'geofencing' ? 'Saving…' : 'Save Geo-fence Rules'}
+                {savingTab === 'geofencing' ? t('adminSystemSettingsPage.saving') : t('adminSystemSettingsPage.geofenceRules.save')}
               </button>
             </div>
           </div>
@@ -790,25 +793,25 @@ export default function AdminSystemSettingsPage() {
                 <PowerSettingsNewRoundedIcon fontSize="inherit" />
               </div>
               <div className="admin-settings-hero-chip-body">
-                <span className="admin-settings-hero-chip-label">System status</span>
+                <span className="admin-settings-hero-chip-label">{t('adminSystemSettingsPage.chips.systemStatus')}</span>
                 <span className="admin-settings-hero-chip-value" style={{ fontSize: 14 }}>
-                  {generalDraft.maintenanceMode ? 'Maintenance' : 'Operational'}
+                  {generalDraft.maintenanceMode ? t('adminSystemSettingsPage.status.maintenance') : t('adminSystemSettingsPage.status.operational')}
                 </span>
               </div>
             </div>
             <div className="admin-settings-hero-chip">
               <div className="admin-settings-hero-chip-icon"><TuneOutlinedIcon fontSize="inherit" /></div>
               <div className="admin-settings-hero-chip-body">
-                <span className="admin-settings-hero-chip-label">Auto-approve</span>
+                <span className="admin-settings-hero-chip-label">{t('adminSystemSettingsPage.chips.autoApprove')}</span>
                 <span className="admin-settings-hero-chip-value" style={{ fontSize: 14 }}>
-                  {generalDraft.autoApprove ? 'On (≥ 95%)' : 'Off'}
+                  {generalDraft.autoApprove ? t('adminSystemSettingsPage.autoApproveOn') : t('adminSystemSettingsPage.autoApproveOff')}
                 </span>
               </div>
             </div>
             <div className="admin-settings-hero-chip">
               <div className="admin-settings-hero-chip-icon"><BuildOutlinedIcon fontSize="inherit" /></div>
               <div className="admin-settings-hero-chip-body">
-                <span className="admin-settings-hero-chip-label">API rate limit</span>
+                <span className="admin-settings-hero-chip-label">{t('adminSystemSettingsPage.chips.apiRateLimit')}</span>
                 <span className="admin-settings-hero-chip-value">{generalDraft.apiRateLimitPerMin}<span style={{ fontSize: 10, color: 'var(--admin-text-muted)', fontWeight: 500 }}> /min</span></span>
               </div>
             </div>
@@ -818,31 +821,31 @@ export default function AdminSystemSettingsPage() {
             <div className="admin-card">
               <div className="admin-card-header">
                 <div>
-                  <h3 className="admin-card-title">System Controls</h3>
-                  <p className="admin-card-subtitle">Toggle platform-wide behavior. Maintenance mode disables every public-facing endpoint until you turn it back off.</p>
+                  <h3 className="admin-card-title">{t('adminSystemSettingsPage.systemControls.title')}</h3>
+                  <p className="admin-card-subtitle">{t('adminSystemSettingsPage.systemControls.subtitle')}</p>
                 </div>
               </div>
               <div style={{ marginTop: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--admin-border)' }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>Auto-Approve High Confidence Reports</div>
-                    <div style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 2 }}>Automatically approve reports with AI confidence above 95%</div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{t('adminSystemSettingsPage.systemControls.autoApproveTitle')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 2 }}>{t('adminSystemSettingsPage.systemControls.autoApproveDesc')}</div>
                   </div>
                   <ToggleSwitch
                     checked={Boolean(generalDraft.autoApprove)}
                     onChange={(checked) => updateGeneral({ autoApprove: checked })}
-                    ariaLabel="Toggle auto-approve"
+                    ariaLabel={t('adminSystemSettingsPage.ariaToggleAutoApprove')}
                   />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0' }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>Maintenance Mode</div>
-                    <div style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 2 }}>Disable public-facing features for maintenance</div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{t('adminSystemSettingsPage.systemControls.maintenanceModeTitle')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 2 }}>{t('adminSystemSettingsPage.systemControls.maintenanceModeDesc')}</div>
                   </div>
                   <ToggleSwitch
                     checked={Boolean(generalDraft.maintenanceMode)}
                     onChange={(checked) => updateGeneral({ maintenanceMode: checked })}
-                    ariaLabel="Toggle maintenance mode"
+                    ariaLabel={t('adminSystemSettingsPage.ariaToggleMaintenanceMode')}
                   />
                 </div>
               </div>
@@ -851,13 +854,13 @@ export default function AdminSystemSettingsPage() {
             <div className="admin-card">
               <div className="admin-card-header">
                 <div>
-                  <h3 className="admin-card-title">Data Retention</h3>
-                  <p className="admin-card-subtitle">When records older than the threshold are archived or pruned.</p>
+                  <h3 className="admin-card-title">{t('adminSystemSettingsPage.dataRetention.title')}</h3>
+                  <p className="admin-card-subtitle">{t('adminSystemSettingsPage.dataRetention.subtitle')}</p>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 4 }}>
                 <div>
-                  <label className="admin-form-label">Incident Archive After</label>
+                  <label className="admin-form-label">{t('adminSystemSettingsPage.dataRetention.incidentArchiveAfter')}</label>
                   <FancySelect
                     value={String(generalDraft.incidentArchiveDays ?? 90)}
                     onChange={(value) => updateGeneral({ incidentArchiveDays: Number(value) })}
@@ -866,7 +869,7 @@ export default function AdminSystemSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="admin-form-label">Audit Log Retention</label>
+                  <label className="admin-form-label">{t('adminSystemSettingsPage.dataRetention.auditLogRetention')}</label>
                   <FancySelect
                     value={generalDraft.auditLogRetention || '2y'}
                     onChange={(value) => updateGeneral({ auditLogRetention: value })}
@@ -880,13 +883,13 @@ export default function AdminSystemSettingsPage() {
             <div className="admin-card">
               <div className="admin-card-header">
                 <div>
-                  <h3 className="admin-card-title">API Configuration</h3>
-                  <p className="admin-card-subtitle">Server-side limits applied to every authenticated request.</p>
+                  <h3 className="admin-card-title">{t('adminSystemSettingsPage.apiConfig.title')}</h3>
+                  <p className="admin-card-subtitle">{t('adminSystemSettingsPage.apiConfig.subtitle')}</p>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 4 }}>
                 <div>
-                  <label className="admin-form-label">Rate Limit</label>
+                  <label className="admin-form-label">{t('adminSystemSettingsPage.apiConfig.rateLimit')}</label>
                   <SuffixNumberInput
                     value={generalDraft.apiRateLimitPerMin ?? 100}
                     onChange={(v) => updateGeneral({ apiRateLimitPerMin: v })}
@@ -897,7 +900,7 @@ export default function AdminSystemSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="admin-form-label">Max Upload Size</label>
+                  <label className="admin-form-label">{t('adminSystemSettingsPage.apiConfig.maxUploadSize')}</label>
                   <SuffixNumberInput
                     value={generalDraft.maxUploadMb ?? 10}
                     onChange={(v) => updateGeneral({ maxUploadMb: v })}
@@ -909,20 +912,20 @@ export default function AdminSystemSettingsPage() {
                 </div>
               </div>
               <div className="admin-settings-actions">
-                {generalDirty && <span className="dirty-hint">Unsaved changes</span>}
+                {generalDirty && <span className="dirty-hint">{t('adminSystemSettingsPage.unsavedChangesHint')}</span>}
                 <button
                   className="admin-btn admin-btn-ghost admin-btn-sm"
                   onClick={() => setDraft({ ...draft, general: generalServer })}
                   disabled={!generalDirty || savingTab === 'general'}
                 >
-                  Discard
+                  {t('adminSystemSettingsPage.discard')}
                 </button>
                 <button
                   className="admin-btn admin-btn-primary admin-btn-sm"
                   onClick={saveGeneral}
                   disabled={!generalDirty || savingTab === 'general'}
                 >
-                  {savingTab === 'general' ? 'Saving…' : 'Save General Settings'}
+                  {savingTab === 'general' ? t('adminSystemSettingsPage.saving') : t('adminSystemSettingsPage.generalSettings.save')}
                 </button>
               </div>
             </div>

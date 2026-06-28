@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import EmergencyShell from '../../components/layout/EmergencyShell'
 
@@ -25,17 +26,18 @@ const INCIDENT = {
   reliability: 76,
 }
 
-const TIMELINE = [
-  { time: '14:31', tone: 'done',   text: <>Incident reported by citizen — auto-validated by SIARA.</> },
-  { time: '14:35', tone: 'done',   text: <>Dispatched <strong>AMB-A12</strong> to scene.</> },
-  { time: '14:42', tone: 'active', text: <>Unit <strong>en route</strong> — ETA 4 min.</> },
-]
-
 export default function EmergencyResponsePage() {
   const navigate = useNavigate()
+  const { t } = useTranslation(['emergency', 'common'])
   const [arrived, setArrived] = useState(false)
   const [closed, setClosed] = useState(false)
   const [note, setNote] = useState('')
+
+  const TIMELINE = [
+    { time: '14:31', tone: 'done',   text: <>{t('emergencyResponsePage.timeline.reported')}</> },
+    { time: '14:35', tone: 'done',   text: <>{t('emergencyResponsePage.timeline.dispatched', { unit: 'AMB-A12' })} <strong>AMB-A12</strong> {t('emergencyResponsePage.timeline.dispatchedSuffix')}</> },
+    { time: '14:42', tone: 'active', text: <>{t('emergencyResponsePage.timeline.enRoutePrefix')} <strong>{t('emergencyResponsePage.timeline.enRoute')}</strong> {t('emergencyResponsePage.timeline.enRouteSuffix')}</> },
+  ]
 
   return (
     <EmergencyShell unitId="AMB-A12" unitStatus="responding" activeMissions={2}>
@@ -51,11 +53,11 @@ export default function EmergencyResponsePage() {
                 display: 'inline-flex', alignItems: 'center', gap: 4,
               }}
             >
-              <ArrowBackRoundedIcon style={{ fontSize: 14 }} /> Back
+              <ArrowBackRoundedIcon style={{ fontSize: 14 }} /> {t('common:actions.back')}
             </button>
           </span>
-          <h1 className="em-page-title">Incident Response</h1>
-          <p className="em-page-subtitle">Operational details and intervention controls</p>
+          <h1 className="em-page-title">{t('emergencyResponsePage.title')}</h1>
+          <p className="em-page-subtitle">{t('emergencyResponsePage.subtitle')}</p>
         </div>
       </header>
 
@@ -76,44 +78,44 @@ export default function EmergencyResponsePage() {
                 <span className="em-incident-meta-cell">
                   <LocationOnOutlinedIcon /> {INCIDENT.location}
                 </span>
-                <span className="em-incident-meta-cell">Reported {INCIDENT.reportedAt}</span>
+                <span className="em-incident-meta-cell">{t('emergencyResponsePage.reportedAt', { time: INCIDENT.reportedAt })}</span>
               </div>
             </div>
           </div>
 
           <div className="em-detail-info-grid">
             <div className="em-detail-info-item">
-              <div className="em-detail-info-item-label">Injured</div>
+              <div className="em-detail-info-item-label">{t('emergencyResponsePage.injured')}</div>
               <div className="em-detail-info-item-value mono">{INCIDENT.injured}</div>
             </div>
             <div className="em-detail-info-item">
-              <div className="em-detail-info-item-label">Casualties</div>
+              <div className="em-detail-info-item-label">{t('emergencyResponsePage.casualties')}</div>
               <div className="em-detail-info-item-value mono">{INCIDENT.casualties}</div>
             </div>
             <div className="em-detail-info-item">
-              <div className="em-detail-info-item-label">Source</div>
+              <div className="em-detail-info-item-label">{t('emergencyResponsePage.source')}</div>
               <div className="em-detail-info-item-value">{INCIDENT.reportedBy}</div>
             </div>
             <div className="em-detail-info-item">
-              <div className="em-detail-info-item-label">Reliability</div>
+              <div className="em-detail-info-item-label">{t('emergencyResponsePage.reliability')}</div>
               <div className="em-detail-info-item-value mono">{INCIDENT.reliability}%</div>
             </div>
           </div>
 
           <div style={{ padding: '4px 18px 8px', fontSize: 12, fontWeight: 600, color: 'var(--em-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Media
+            {t('emergencyResponsePage.media')}
           </div>
           <div className="em-media-grid">
             <div className="em-media-tile"><ImageOutlinedIcon style={{ fontSize: 28 }} /></div>
             <div className="em-media-tile"><ImageOutlinedIcon style={{ fontSize: 28 }} /></div>
-            <div className="em-media-tile">No more media</div>
+            <div className="em-media-tile">{t('emergencyResponsePage.noMoreMedia')}</div>
           </div>
         </section>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <section className="em-section">
             <header className="em-section-head">
-              <h2 className="em-section-title">Actions</h2>
+              <h2 className="em-section-title">{t('emergencyResponsePage.actions')}</h2>
             </header>
             <div className="em-action-stack">
               <button
@@ -122,11 +124,11 @@ export default function EmergencyResponsePage() {
                 disabled={arrived}
               >
                 <CheckCircleOutlineRoundedIcon style={{ fontSize: 16 }} />
-                {arrived ? 'Arrival Logged' : 'Mark Arrived'}
+                {arrived ? t('emergencyResponsePage.arrivalLogged') : t('emergencyResponsePage.markArrived')}
               </button>
               <button className="em-action-btn outline">
                 <NotificationsActiveOutlinedIcon style={{ fontSize: 16 }} />
-                Request Backup
+                {t('emergencyResponsePage.requestBackup')}
               </button>
               <button
                 className={`em-action-btn ${closed ? 'success' : 'danger'}`}
@@ -134,20 +136,20 @@ export default function EmergencyResponsePage() {
                 disabled={closed}
               >
                 <FlagOutlinedIcon style={{ fontSize: 16 }} />
-                {closed ? 'Mission Closed' : 'Close Mission'}
+                {closed ? t('emergencyResponsePage.missionClosed') : t('emergencyResponsePage.closeMission')}
               </button>
             </div>
           </section>
 
           <section className="em-section">
             <header className="em-section-head">
-              <h2 className="em-section-title">Operational Notes</h2>
+              <h2 className="em-section-title">{t('emergencyResponsePage.operationalNotes')}</h2>
             </header>
             <div style={{ padding: '14px 16px 16px' }}>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Add a field note for dispatch…"
+                placeholder={t('emergencyResponsePage.notePlaceholder')}
                 rows={4}
                 style={{
                   width: '100%',
@@ -163,7 +165,7 @@ export default function EmergencyResponsePage() {
                 }}
               />
               <button className="em-action-btn accept" style={{ marginTop: 10, width: '100%' }}>
-                Save Note
+                {t('emergencyResponsePage.saveNote')}
               </button>
             </div>
           </section>
@@ -172,7 +174,7 @@ export default function EmergencyResponsePage() {
             <header className="em-section-head">
               <h2 className="em-section-title">
                 <span className="em-section-title-icon"><LocalHospitalOutlinedIcon fontSize="inherit" /></span>
-                Response Timeline
+                {t('emergencyResponsePage.responseTimeline')}
               </h2>
             </header>
             <div className="em-timeline">
@@ -185,9 +187,9 @@ export default function EmergencyResponsePage() {
               ))}
               {arrived ? (
                 <div className="em-timeline-row" data-tone="done">
-                  <span className="em-timeline-time">Now</span>
+                  <span className="em-timeline-time">{t('emergencyResponsePage.timeline.now')}</span>
                   <span className="em-timeline-marker" />
-                  <span className="em-timeline-text">Unit <strong>arrived on scene</strong>.</span>
+                  <span className="em-timeline-text">{t('emergencyResponsePage.timeline.arrivedPrefix')} <strong>{t('emergencyResponsePage.timeline.arrivedOnScene')}</strong>.</span>
                 </div>
               ) : null}
             </div>

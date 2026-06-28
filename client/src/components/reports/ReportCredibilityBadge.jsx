@@ -1,22 +1,17 @@
 import { useMemo, useState, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
 import PriorityHighRoundedIcon from '@mui/icons-material/PriorityHighRounded'
 import { computeReportCredibility } from '../../utils/reportCredibility'
 import '../../styles/ReportCredibilityBadge.css'
-
-const LEVEL_LABELS = {
-  high: 'High credibility',
-  medium: 'Medium credibility',
-  low: 'Low credibility',
-  unknown: 'Credibility pending',
-}
 
 export default function ReportCredibilityBadge({
   report,
   showTooltip = true,
   compact = false,
 }) {
+  const { t } = useTranslation(['reports', 'common'])
   const credibility = useMemo(() => computeReportCredibility(report), [report])
   const [tooltipPos, setTooltipPos] = useState(null)
   const badgeRef = useRef(null)
@@ -31,9 +26,16 @@ export default function ReportCredibilityBadge({
 
   if (!credibility || credibility.level === 'unknown') return null
 
+  const LEVEL_LABELS = {
+    high: t('reportCredibilityBadge.levelHigh'),
+    medium: t('reportCredibilityBadge.levelMedium'),
+    low: t('reportCredibilityBadge.levelLow'),
+    unknown: t('reportCredibilityBadge.levelUnknown'),
+  }
+
   const label = compact
-    ? `Credibility ${credibility.score}`
-    : `${LEVEL_LABELS[credibility.level] || 'Credibility'} ${credibility.score}`
+    ? t('reportCredibilityBadge.labelCompact', { score: credibility.score })
+    : `${LEVEL_LABELS[credibility.level] || t('reportCredibilityBadge.labelFallback')} ${credibility.score}`
 
   return (
     <>
@@ -42,7 +44,10 @@ export default function ReportCredibilityBadge({
         className={`siara-credibility level-${credibility.level}`}
         tabIndex={0}
         role="status"
-        aria-label={`${LEVEL_LABELS[credibility.level]}, score ${credibility.score} out of 100`}
+        aria-label={t('reportCredibilityBadge.ariaLabel', {
+          level: LEVEL_LABELS[credibility.level],
+          score: credibility.score,
+        })}
         onMouseEnter={open}
         onMouseLeave={close}
         onFocus={open}
@@ -51,7 +56,7 @@ export default function ReportCredibilityBadge({
         <span className="siara-credibility__dot" aria-hidden="true" />
         <span>{label}</span>
         {credibility.isSpam ? (
-          <span className="siara-credibility__spam">Spam</span>
+          <span className="siara-credibility__spam">{t('reportCredibilityBadge.spam')}</span>
         ) : null}
       </span>
 
@@ -62,7 +67,7 @@ export default function ReportCredibilityBadge({
             role="tooltip"
             style={{ top: tooltipPos.top, left: tooltipPos.left }}
           >
-            <span className="siara-credibility-tooltip__title">Why this credibility?</span>
+            <span className="siara-credibility-tooltip__title">{t('reportCredibilityBadge.tooltipTitle')}</span>
             <ul className="siara-credibility-tooltip__list">
               {credibility.reasons.map((reason, idx) => (
                 <li

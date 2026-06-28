@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import FancySelect from '../ui/FancySelect'
 import './PoliceSortControl.css'
 
@@ -23,13 +24,17 @@ export default function PoliceSortControl({
   onChange,
   onToggleDirection,
   menuAlign = 'left',
-  label = 'Sort',
+  label,
   className = '',
 }) {
+  const { t } = useTranslation(['police', 'common'])
+
+  const resolvedLabel = label !== undefined ? label : t('policeSortControl.sort')
+
   return (
     <div className={`police-sort-control${className ? ` ${className}` : ''}`}>
       <FancySelect
-        label={label}
+        label={resolvedLabel}
         value={value}
         onChange={onChange}
         options={options}
@@ -40,8 +45,8 @@ export default function PoliceSortControl({
         type="button"
         className="police-sort-dir"
         onClick={onToggleDirection}
-        aria-label={direction === 'asc' ? 'Ascending order — switch to descending' : 'Descending order — switch to ascending'}
-        title={direction === 'asc' ? 'Ascending' : 'Descending'}
+        aria-label={direction === 'asc' ? t('policeSortControl.ariaAscending') : t('policeSortControl.ariaDescending')}
+        title={direction === 'asc' ? t('policeSortControl.titleAscending') : t('policeSortControl.titleDescending')}
       >
         <svg
           width="15"
