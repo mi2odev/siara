@@ -1,0 +1,381 @@
+{
+  "supervisorAlertCenterPage": {
+    "eyebrow": "Superviseur — Centre d'alertes",
+    "title": "Alertes du superviseur",
+    "subtitle": "Diffuser des alertes opérationnelles et des avertissements aux agents de terrain",
+    "createAlertTitle": "Créer une alerte",
+    "labelAlertTitle": "Titre de l'alerte",
+    "placeholderAlertTitle": "ex. : Éviter la zone A — embouteillage grave",
+    "labelMessage": "Message",
+    "placeholderMessage": "Fournir des instructions détaillées ou le contexte pour les agents de terrain…",
+    "labelSeverity": "Gravité",
+    "labelAlertType": "Type d'alerte",
+    "labelTargetAudience": "Public cible",
+    "targetAllOfficersInZone": "Tous les agents de la zone",
+    "targetAllPoliceOfficers": "Tous les agents de police",
+    "labelZone": "Zone",
+    "labelZoneWithWilaya": "Zone ({{wilaya}})",
+    "optionSelectCommune": "Sélectionner une commune…",
+    "optionAllOfWilaya": "Toute la wilaya de {{wilaya}}",
+    "labelActiveFrom": "Actif à partir de",
+    "placeholderStartImmediately": "Démarrer immédiatement",
+    "hintStartImmediately": "Laisser vide pour démarrer immédiatement",
+    "labelActiveUntil": "Actif jusqu'au *",
+    "placeholderSelectDateTime": "Sélectionner la date et l'heure",
+    "btnSending": "Envoi en cours…",
+    "btnBroadcast": "Diffuser l'alerte aux agents",
+    "recentAlertsTitle": "Alertes récentes reçues",
+    "noRecentAlerts": "Aucune alerte récente",
+    "badgeRead": "Lu",
+    "guidelinesTitle": "Directives d'alerte",
+    "guidelineHighLabel": "Élevé",
+    "guidelineHighDesc": "Menace immédiate, accident majeur, zone de danger active. Nécessite une réponse urgente.",
+    "guidelineMediumLabel": "Modéré",
+    "guidelineMediumDesc": "Risque significatif, probabilité d'accident à proximité d'un itinéraire spécifique.",
+    "guidelineAdvisoryLabel": "Conseil",
+    "guidelineAdvisoryDesc": "Conseils généraux, mises à jour de zone, embouteillages, travaux routiers.",
+    "errorTitleRequired": "Le titre est obligatoire",
+    "errorMessageRequired": "Le message est obligatoire",
+    "errorZoneRequired": "La zone est obligatoire",
+    "errorEndTimeRequired": "L'heure de fin est obligatoire",
+    "errorEndTimeAfterStart": "L'heure de fin doit être postérieure à l'heure de début",
+    "toastAlertSent": "Alerte envoyée aux agents avec succès",
+    "toastAlertFailed": "Échec de l'envoi de l'alerte",
+    "timeJustNow": "À l'instant",
+    "timeMinutesAgo": "Il y a {{count}} min",
+    "timeHoursAgo": "Il y a {{count}} h",
+    "timeDaysAgo": "Il y a {{count}} j"
+  },
+  "supervisorAnalyticsPage": {
+    "eyebrow": "Superviseur — Stratégique",
+    "title": "Analytique Opérationnelle",
+    "subtitle": "Statistiques de résolution des incidents, charge de travail des agents et métriques de réponse",
+    "daysFilter": "{{count}}j",
+    "errorLoadAnalytics": "Échec du chargement des analyses",
+    "computingAnalytics": "Calcul des analyses en cours…",
+    "noTrendData": "Aucune donnée de tendance",
+    "trendBarTitle": "{{date}} : {{count}} incidents",
+    "noData": "Aucune donnée",
+    "noZoneData": "Aucune donnée de zone",
+    "noWorkloadData": "Aucune donnée de charge de travail",
+    "kpi": {
+      "totalIncidents": "Total des incidents",
+      "lastDays": "{{count}} derniers jours",
+      "resolutionRate": "Taux de résolution",
+      "resolvedCount": "{{count}} résolu(s)",
+      "avgResponseTime": "Temps de réponse moyen",
+      "reportToVerified": {
+        "before": "Signalement",
+        "after": "vérifié"
+      },
+      "avgResolution": "Résolution moyenne",
+      "reportToResolved": {
+        "before": "Signalement",
+        "after": "résolu"
+      }
+    },
+    "sections": {
+      "dailyTrend": "Tendance journalière — {{count}} derniers jours",
+      "incidentsByStatus": "Incidents par statut",
+      "incidentsBySeverity": "Incidents par gravité",
+      "busiestZones": "Zones les plus actives",
+      "officerWorkload": "Répartition de la charge de travail des agents"
+    },
+    "status": {
+      "pending": "En attente",
+      "underReview": "En cours d'examen",
+      "verified": "Vérifié",
+      "dispatched": "Envoyé",
+      "resolved": "Résolu",
+      "rejected": "Rejeté"
+    },
+    "severity": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    },
+    "table": {
+      "officer": "Agent",
+      "activeIncidents": "Incidents actifs",
+      "totalHandled": "Total traité",
+      "workload": "Charge de travail"
+    }
+  },
+  "supervisorDashboardPage": {
+    "eyebrow": "Aperçu du commandement",
+    "title": "Tableau de bord du superviseur",
+    "subtitle": "État opérationnel en temps réel",
+    "updated": "Mis à jour {{time}}",
+    "refresh": "Actualiser",
+    "errors": {
+      "loadFailed": "Échec du chargement du tableau de bord"
+    },
+    "time": {
+      "justNow": "À l'instant",
+      "minutesAgo": "Il y a {{count}} min",
+      "hoursAgo": "Il y a {{count}} h",
+      "daysAgo": "Il y a {{count}} j"
+    },
+    "duration": {
+      "lessThanMinute": "<1 min",
+      "minutes": "{{count}} min",
+      "hours": "{{count}} h"
+    },
+    "severity": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    },
+    "activity": {
+      "defaultOfficer": "Un agent",
+      "defaultReport": "un incident",
+      "verifyIncident": "{{officer}} a vérifié {{report}}",
+      "rejectIncident": "{{officer}} a rejeté {{report}}",
+      "assignSelf": "{{officer}} s'est assigné à {{report}}",
+      "requestBackup": "{{officer}} a demandé des renforts pour {{report}}",
+      "updateStatus": "{{officer}} a mis à jour le statut de {{report}}",
+      "fieldNote": "{{officer}} a ajouté une note de terrain sur {{report}}",
+      "markAlertRead": "{{officer}} a accusé réception d'une alerte",
+      "manualLogEntry": "{{officer}} a enregistré une entrée manuelle",
+      "assignOfficer": "Le superviseur a assigné un agent à {{report}}",
+      "default": "{{officer}} a effectué une action"
+    },
+    "kpi": {
+      "activeIncidents": {
+        "label": "Incidents actifs",
+        "sub": "Non résolus dans le système"
+      },
+      "high": {
+        "label": "Élevé",
+        "sub": "Gravité élevée"
+      },
+      "pendingVerification": {
+        "label": "En attente de vérification",
+        "sub": "En attente d'action d'un agent"
+      },
+      "activeOfficers": {
+        "label": "Agents actifs",
+        "sub": "Actuellement en service"
+      },
+      "avgResponse": {
+        "label": "Délai moyen de réponse",
+        "sub": "Signalement",
+        "sub2": "vérifié (30j)"
+      }
+    },
+    "highSeverity": {
+      "title": "Incidents à haute gravité",
+      "coordinate": "Coordonner",
+      "empty": "Aucun incident à haute gravité"
+    },
+    "incident": {
+      "unknownLocation": "Localisation inconnue"
+    },
+    "officerStatus": {
+      "title": "Statut des agents",
+      "monitor": "Surveiller",
+      "onDuty": "En service",
+      "offDuty": "Hors service",
+      "total": "Total des agents"
+    },
+    "quickActions": {
+      "title": "Actions rapides",
+      "incidentCoordination": "Coordination des incidents",
+      "monitorOfficers": "Surveiller les agents",
+      "sendAlert": "Envoyer une alerte",
+      "operationsMap": "Carte des opérations",
+      "analytics": "Analyses",
+      "verificationQueue": "File de vérification"
+    },
+    "activityFeed": {
+      "title": "Flux d'activité en direct",
+      "fullHistory": "Historique complet",
+      "empty": "Aucune activité récente"
+    }
+  },
+  "supervisorIncidentCoordinationPage": {
+    "eyebrow": "Superviseur — Opérations",
+    "title": "Coordination des incidents",
+    "subtitle": "Assigner et coordonner les interventions des agents sur les incidents actifs",
+    "actions": {
+      "refresh": "Actualiser",
+      "assign": "Assigner",
+      "view": "Voir"
+    },
+    "filters": {
+      "searchPlaceholder": "Rechercher des incidents...",
+      "allStatuses": "Tous les statuts",
+      "allSeverity": "Toutes les gravités"
+    },
+    "loadingIncidents": "Chargement des incidents...",
+    "emptyState": "Aucun incident ne correspond aux filtres actuels",
+    "activeIncidents": "Incidents actifs",
+    "table": {
+      "incident": "Incident",
+      "location": "Localisation",
+      "severity": "Gravité",
+      "status": "Statut",
+      "assignedTo": "Assigné à",
+      "reported": "Signalé",
+      "assignOfficer": "Assigner un agent",
+      "unassigned": "Non assigné"
+    },
+    "severity": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    },
+    "time": {
+      "justNow": "À l'instant",
+      "minutesAgo": "il y a {{count}} min",
+      "hoursAgo": "il y a {{count}} h",
+      "daysAgo": "il y a {{count}} j"
+    },
+    "officer": {
+      "locationUnavailable": "Localisation indisponible",
+      "metersAway": "à {{meters}} m",
+      "kmAway": "à {{km}} km",
+      "offDuty": "Hors service",
+      "noneInCommune": "Aucun agent dans votre commune",
+      "selectPlaceholder": "Sélectionner un agent..."
+    },
+    "errors": {
+      "loadFailed": "Échec du chargement des données de coordination",
+      "loadOfficersFailed": "Échec du chargement des agents"
+    },
+    "toast": {
+      "assignSuccess": "Agent assigné avec succès",
+      "assignFailed": "L'assignation a échoué"
+    }
+  },
+  "supervisorOfficerMonitoringPage": {
+    "time": {
+      "never": "Jamais",
+      "justNow": "À l'instant",
+      "minutesAgo_one": "Il y a {{count}} min",
+      "minutesAgo_other": "Il y a {{count}} min",
+      "hoursAgo_one": "Il y a {{count}} h",
+      "hoursAgo_other": "Il y a {{count}} h",
+      "daysAgo_one": "Il y a {{count}} j",
+      "daysAgo_other": "Il y a {{count}} j"
+    },
+    "detail": {
+      "title": "Profil de l'agent",
+      "badge": "Badge n°{{number}}",
+      "status": "Statut",
+      "workZone": "Zone de travail",
+      "noZoneSet": "Aucune zone définie",
+      "lastLocation": "Dernière position",
+      "unknown": "Inconnu",
+      "contact": "Contact"
+    },
+    "status": {
+      "onDuty": "En service",
+      "offDuty": "Hors service"
+    },
+    "eyebrow": "Superviseur — Surveillance",
+    "pageTitle": "Surveillance des agents",
+    "subtitle": "Suivez la disponibilité, la charge de travail et le statut opérationnel des agents",
+    "subtitleWithCommune": "Agents de votre commune assignée — {{commune}}",
+    "actions": {
+      "refresh": "Actualiser"
+    },
+    "errors": {
+      "loadFailed": "Impossible de charger la liste des agents"
+    },
+    "kpi": {
+      "total": "Total des agents",
+      "onDuty": "En service",
+      "offDuty": "Hors service"
+    },
+    "filters": {
+      "searchPlaceholder": "Rechercher par nom, badge, e-mail...",
+      "all": "Tous les agents"
+    },
+    "loading": "Chargement des agents…",
+    "empty": "Aucun agent ne correspond aux filtres actuels",
+    "card": {
+      "noBadge": "Sans badge",
+      "noZone": "Aucune zone",
+      "lastSeen": "Vu pour la dernière fois"
+    }
+  },
+  "supervisorOperationsMapPage": {
+    "eyebrow": "Superviseur — Surveillance",
+    "title": "Carte des opérations globales",
+    "subtitle": "Positions en direct des incidents et des agents dans toutes les zones",
+    "updatedAt": "Mis à jour {{time}}",
+    "actions": {
+      "fit": "Ajuster"
+    },
+    "errors": {
+      "loadFailed": "Échec du chargement des données de la carte"
+    },
+    "kpi": {
+      "activeIncidents": "Incidents actifs",
+      "highSeverity": "{{count}} haute gravité",
+      "unassigned": "Non assignés",
+      "highSeverityUncovered": "{{count}} haute gravité non couverts",
+      "onDuty": "En service",
+      "respondingNow": "{{count}} en intervention",
+      "signalLost": "Signal perdu",
+      "noPingThreshold": "aucun ping > 15 min"
+    },
+    "toolbar": {
+      "layers": "Couches",
+      "incidentsCount": "Incidents ({{count}})",
+      "officersCount": "Agents ({{count}})",
+      "assignmentLinks": "Liens d'assignation",
+      "severity": "Gravité",
+      "coverage": "Couverture",
+      "duty": "Service"
+    },
+    "filter": {
+      "all": "Tous",
+      "unassigned": "Non assigné",
+      "assigned": "Assigné",
+      "onDuty": "En service",
+      "offDuty": "Hors service"
+    },
+    "loadingMapData": "Chargement des données de la carte…",
+    "severity": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    },
+    "officerStatus": {
+      "responding": "En intervention",
+      "available": "Disponible",
+      "stale": "Signal perdu",
+      "off": "Hors service"
+    },
+    "popup": {
+      "nearest": "Plus proche : {{name}} · {{km}} km",
+      "viewDetails": "Voir les détails",
+      "assignedCount": "{{count}} assigné(s)",
+      "badgeNumber": "Badge n°{{number}}",
+      "lastPing": "Dernier ping {{time}}"
+    },
+    "legend": {
+      "incidents": "Incidents",
+      "officers": "Agents"
+    },
+    "tabs": {
+      "incidents": "Incidents",
+      "officers": "Agents"
+    },
+    "empty": {
+      "noIncidents": "Aucun incident ne correspond à ces filtres.",
+      "noOfficers": "Aucun agent ne correspond à ces filtres."
+    },
+    "list": {
+      "assignedCount": "{{count}} assigné(s)"
+    },
+    "time": {
+      "justNow": "À l'instant",
+      "minutesAgo": "il y a {{count}} min",
+      "hoursAgo": "il y a {{count}} h",
+      "daysAgo": "il y a {{count}} j"
+    }
+  }
+}

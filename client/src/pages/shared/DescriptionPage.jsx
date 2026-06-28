@@ -1,31 +1,34 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import '../../styles/InfoPages.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
-const WORKFLOW_STEPS = [
-  {
-    title: 'Incident Intake',
-    detail: 'Reports are captured with location, media, and contextual metadata from users and operators.',
-  },
-  {
-    title: 'Data Validation',
-    detail: 'Input quality checks standardize records and prepare events for downstream analysis.',
-  },
-  {
-    title: 'Risk Assessment',
-    detail: 'Scoring models estimate urgency and confidence to support prioritization decisions.',
-  },
-  {
-    title: 'Operational Review',
-    detail: 'Authorized teams verify incidents and assign the appropriate response workflow.',
-  },
-  {
-    title: 'Alert Distribution',
-    detail: 'Validated alerts are distributed to relevant users, zones, and operational channels.',
-  },
-]
-
 export default function DescriptionPage() {
+  const { t } = useTranslation(['pages', 'common'])
+
+  const WORKFLOW_STEPS = [
+    {
+      title: t('descriptionPage.workflow.steps.intake.title'),
+      detail: t('descriptionPage.workflow.steps.intake.detail'),
+    },
+    {
+      title: t('descriptionPage.workflow.steps.validation.title'),
+      detail: t('descriptionPage.workflow.steps.validation.detail'),
+    },
+    {
+      title: t('descriptionPage.workflow.steps.riskAssessment.title'),
+      detail: t('descriptionPage.workflow.steps.riskAssessment.detail'),
+    },
+    {
+      title: t('descriptionPage.workflow.steps.operationalReview.title'),
+      detail: t('descriptionPage.workflow.steps.operationalReview.detail'),
+    },
+    {
+      title: t('descriptionPage.workflow.steps.alertDistribution.title'),
+      detail: t('descriptionPage.workflow.steps.alertDistribution.detail'),
+    },
+  ]
+
   return (
     <div className="info-page-root">
       <main className="info-page-shell">
@@ -34,45 +37,43 @@ export default function DescriptionPage() {
             <img src={siaraLogo} alt="SIARA" className="info-brand-logo" />
             <div>
               <p className="info-brand-name">SIARA</p>
-              <p className="info-brand-caption">Road Safety Intelligence Platform</p>
+              <p className="info-brand-caption">{t('descriptionPage.brandCaption')}</p>
             </div>
           </div>
           <div className="info-head-topline">
-            <span className="info-head-kicker">System Workflow</span>
-            <span className="info-page-badge">Operational Flow</span>
+            <span className="info-head-kicker">{t('descriptionPage.kicker')}</span>
+            <span className="info-page-badge">{t('descriptionPage.badge')}</span>
           </div>
-          <h1 className="info-page-title">Platform Description</h1>
+          <h1 className="info-page-title">{t('descriptionPage.title')}</h1>
           <p className="info-page-intro">
-            SIARA is an operational intelligence platform for road safety. It converts incident data
-            into structured decisions, enabling faster coordination and more consistent field response.
+            {t('descriptionPage.intro')}
           </p>
         </header>
 
         <section className="info-section-card info-description-overview">
-          <h2 className="info-section-title">Overview</h2>
+          <h2 className="info-section-title">{t('descriptionPage.overview.title')}</h2>
           <p>
-            The platform combines citizen reporting, geospatial context, and AI-assisted evaluation
-            to improve situational awareness across road safety operations.
+            {t('descriptionPage.overview.body')}
           </p>
           <div className="info-description-highlights">
             <article>
-              <strong>Operational clarity</strong>
-              <span>One shared view of incidents, priorities, and response status.</span>
+              <strong>{t('descriptionPage.overview.highlights.clarity.heading')}</strong>
+              <span>{t('descriptionPage.overview.highlights.clarity.detail')}</span>
             </article>
             <article>
-              <strong>Faster response cycles</strong>
-              <span>Clear prioritization reduces delay between detection and action.</span>
+              <strong>{t('descriptionPage.overview.highlights.response.heading')}</strong>
+              <span>{t('descriptionPage.overview.highlights.response.detail')}</span>
             </article>
             <article>
-              <strong>Consistent decision support</strong>
-              <span>Standardized scoring helps teams align on urgency and next steps.</span>
+              <strong>{t('descriptionPage.overview.highlights.decision.heading')}</strong>
+              <span>{t('descriptionPage.overview.highlights.decision.detail')}</span>
             </article>
           </div>
         </section>
 
         <section className="info-section-card info-description-workflow">
-          <h2 className="info-section-title">Service Workflow</h2>
-          <p className="info-section-lead">A transparent end-to-end process from intake to validated communication.</p>
+          <h2 className="info-section-title">{t('descriptionPage.workflow.title')}</h2>
+          <p className="info-section-lead">{t('descriptionPage.workflow.lead')}</p>
           <ol className="info-step-list">
             {WORKFLOW_STEPS.map((step) => (
               <li key={step.title}>
@@ -84,17 +85,17 @@ export default function DescriptionPage() {
         </section>
 
         <section className="info-section-card info-description-tech">
-          <h2 className="info-section-title">Technology and Governance</h2>
+          <h2 className="info-section-title">{t('descriptionPage.tech.title')}</h2>
           <p className="info-section-lead">
-            SIARA balances intelligent automation with human validation to maintain reliability and accountability.
+            {t('descriptionPage.tech.lead')}
           </p>
-          <div className="info-tech-tags" role="list" aria-label="Technologies">
-            <span role="listitem">AI Risk Scoring</span>
-            <span role="listitem">Geospatial Mapping</span>
-            <span role="listitem">Real-time Event Stream</span>
-            <span role="listitem">Verification Workflow</span>
-            <span role="listitem">Notification Pipeline</span>
-            <span role="listitem">Operational Analytics</span>
+          <div className="info-tech-tags" role="list" aria-label={t('descriptionPage.tech.tagsAriaLabel')}>
+            <span role="listitem">{t('descriptionPage.tech.tags.aiRiskScoring')}</span>
+            <span role="listitem">{t('descriptionPage.tech.tags.geospatialMapping')}</span>
+            <span role="listitem">{t('descriptionPage.tech.tags.realtimeEventStream')}</span>
+            <span role="listitem">{t('descriptionPage.tech.tags.verificationWorkflow')}</span>
+            <span role="listitem">{t('descriptionPage.tech.tags.notificationPipeline')}</span>
+            <span role="listitem">{t('descriptionPage.tech.tags.operationalAnalytics')}</span>
           </div>
         </section>
       </main>

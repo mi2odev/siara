@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
@@ -31,6 +32,8 @@ export default function IncidentCard({
   reasons = [],
   actions,
 }) {
+  const { t } = useTranslation(['police', 'common'])
+
   const severity = incident.severity || 'low'
   const status = incident.status || 'pending'
 
@@ -45,11 +48,13 @@ export default function IncidentCard({
   const resolvedActions = actions && actions.length > 0
     ? actions
     : [{
-        label: 'View',
+        label: t('incidentCard.actions.view'),
         icon: <VisibilityOutlinedIcon fontSize="inherit" />,
         onClick,
         variant: 'primary',
-        ariaLabel: incident.displayId ? `View ${incident.displayId}` : 'View incident',
+        ariaLabel: incident.displayId
+          ? t('incidentCard.actions.viewAriaWithId', { id: incident.displayId })
+          : t('incidentCard.actions.viewAria'),
       }]
 
   return (
@@ -84,7 +89,7 @@ export default function IncidentCard({
           {topRight != null && <span className="pic-topright">{topRight}</span>}
         </div>
 
-        <p className="pic-title">{incident.title || 'Untitled incident'}</p>
+        <p className="pic-title">{incident.title || t('incidentCard.untitledIncident')}</p>
 
         {description && <p className="pic-desc">{description}</p>}
 
@@ -102,7 +107,7 @@ export default function IncidentCard({
             </span>
           )}
           {incident.reportedBy?.name && (
-            <span className="pic-reporter">by {incident.reportedBy.name}</span>
+            <span className="pic-reporter">{t('incidentCard.reportedBy', { name: incident.reportedBy.name })}</span>
           )}
           {metaExtras.map((m, i) => (
             <span key={`meta-${i}`} className="pic-meta-extra">

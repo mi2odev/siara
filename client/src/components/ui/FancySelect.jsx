@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import './FancySelect.css'
 
 /**
@@ -26,12 +27,13 @@ export default function FancySelect({
   options = [],
   label,
   icon = null,
-  placeholder = 'Select…',
+  placeholder,
   menuAlign = 'right',
   size = 'md',
   className = '',
   disabled = false,
 }) {
+  const { t } = useTranslation(['pages', 'common'])
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(() =>
     Math.max(0, options.findIndex((o) => o.value === value)),
@@ -39,7 +41,7 @@ export default function FancySelect({
   const rootRef = useRef(null)
 
   const current = options.find((o) => o.value === value)
-  const currentLabel = current?.label ?? placeholder
+  const currentLabel = current?.label ?? (placeholder ?? t('fancySelect.placeholder'))
 
   useEffect(() => {
     if (!open) return undefined
@@ -119,7 +121,7 @@ export default function FancySelect({
         <div
           className="admin-fancy-select-menu"
           role="listbox"
-          aria-label={label || 'Options'}
+          aria-label={label || t('fancySelect.optionsLabel')}
         >
           {options.map((option, index) => {
             const isActive = option.value === value

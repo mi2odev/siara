@@ -1,5 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
@@ -40,20 +41,21 @@ function getInitials(name) {
     .toUpperCase()
 }
 
-const FILTERS = [
-  { value: 'all',          label: 'All' },
-  { value: 'pending',      label: 'Pending' },
-  { value: 'under_review', label: 'Under Review' },
-  { value: 'verified',     label: 'Verified' },
-  { value: 'dispatched',   label: 'Dispatched' },
-  { value: 'resolved',     label: 'Resolved' },
-]
-
 export default function PoliceAssignedIncidentsPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation(['police', 'common'])
   const { policeMe } = usePoliceAccess()
   const officer  = policeMe?.officer
   const workZone = policeMe?.workZone
+
+  const FILTERS = [
+    { value: 'all',          label: t('policeAssignedIncidentsPage.filters.all') },
+    { value: 'pending',      label: t('policeAssignedIncidentsPage.filters.pending') },
+    { value: 'under_review', label: t('policeAssignedIncidentsPage.filters.underReview') },
+    { value: 'verified',     label: t('policeAssignedIncidentsPage.filters.verified') },
+    { value: 'dispatched',   label: t('policeAssignedIncidentsPage.filters.dispatched') },
+    { value: 'resolved',     label: t('policeAssignedIncidentsPage.filters.resolved') },
+  ]
 
   const [allIncidents, setAllIncidents]   = React.useState([])
   const [statusFilter, setStatusFilter]   = React.useState('all')
@@ -67,11 +69,11 @@ export default function PoliceAssignedIncidentsPage() {
       const res = await listPoliceIncidents({ scope: 'assigned', page: 1, pageSize: 50 })
       setAllIncidents(res.items)
     } catch (e) {
-      setError(e.message || 'Failed to load incidents.')
+      setError(e.message || t('policeAssignedIncidentsPage.errorLoad'))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [t])
 
   React.useEffect(() => { load() }, [load])
 
@@ -92,10 +94,10 @@ export default function PoliceAssignedIncidentsPage() {
       {/* Officer card */}
       <div className="pmi-right-card">
         <div className="pmi-right-card-head">
-          <span className="pmi-right-card-title">Officer</span>
+          <span className="pmi-right-card-title">{t('policeAssignedIncidentsPage.officerCard.title')}</span>
           <span className={`pmi-duty-badge pmi-duty-badge--${officer?.isOnDuty ? 'on' : 'off'}`}>
             <span className="pmi-duty-dot" />
-            {officer?.isOnDuty ? 'On Duty' : 'Off Duty'}
+            {officer?.isOnDuty ? t('policeAssignedIncidentsPage.officerCard.onDuty') : t('policeAssignedIncidentsPage.officerCard.offDuty')}
           </span>
         </div>
         <div className="pmi-officer-row">
@@ -104,15 +106,15 @@ export default function PoliceAssignedIncidentsPage() {
             : <span className="pmi-officer-avatar">{getInitials(officer?.name)}</span>
           }
           <div className="pmi-officer-meta">
-            <strong>{officer?.name || 'Officer'}</strong>
-            <span>{officer?.rank || 'Police Officer'}</span>
+            <strong>{officer?.name || t('policeAssignedIncidentsPage.officerCard.defaultName')}</strong>
+            <span>{officer?.rank || t('policeAssignedIncidentsPage.officerCard.defaultRank')}</span>
           </div>
         </div>
         <div className="pmi-detail-rows">
           <div className="pmi-detail-row">
             <BadgeOutlinedIcon fontSize="inherit" />
-            <span>Badge</span>
-            <strong>{officer?.badgeNumber || 'Pending'}</strong>
+            <span>{t('policeAssignedIncidentsPage.officerCard.badge')}</span>
+            <strong>{officer?.badgeNumber || t('policeAssignedIncidentsPage.officerCard.badgePending')}</strong>
           </div>
         </div>
       </div>
@@ -120,18 +122,18 @@ export default function PoliceAssignedIncidentsPage() {
       {/* Work zone card */}
       <div className="pmi-right-card">
         <div className="pmi-right-card-head">
-          <span className="pmi-right-card-title">Work Zone</span>
+          <span className="pmi-right-card-title">{t('policeAssignedIncidentsPage.workZoneCard.title')}</span>
         </div>
         <div className="pmi-detail-rows">
           <div className="pmi-detail-row">
             <PlaceOutlinedIcon fontSize="inherit" />
-            <span>Wilaya</span>
-            <strong>{workZone?.wilaya?.name || 'Not set'}</strong>
+            <span>{t('policeAssignedIncidentsPage.workZoneCard.wilaya')}</span>
+            <strong>{workZone?.wilaya?.name || t('policeAssignedIncidentsPage.workZoneCard.notSet')}</strong>
           </div>
           <div className="pmi-detail-row">
             <PlaceOutlinedIcon fontSize="inherit" />
-            <span>Commune</span>
-            <strong>{workZone?.commune?.name || 'Not set'}</strong>
+            <span>{t('policeAssignedIncidentsPage.workZoneCard.commune')}</span>
+            <strong>{workZone?.commune?.name || t('policeAssignedIncidentsPage.workZoneCard.notSet')}</strong>
           </div>
         </div>
       </div>
@@ -139,8 +141,8 @@ export default function PoliceAssignedIncidentsPage() {
       {/* Status summary */}
       <div className="pmi-right-card pmi-right-card--summary">
         <div className="pmi-right-card-head">
-          <span className="pmi-right-card-title">By Status</span>
-          <span className="pmi-right-total">{allIncidents.length} total</span>
+          <span className="pmi-right-card-title">{t('policeAssignedIncidentsPage.summaryCard.title')}</span>
+          <span className="pmi-right-total">{t('policeAssignedIncidentsPage.summaryCard.total', { count: allIncidents.length })}</span>
         </div>
         {FILTERS.filter((f) => f.value !== 'all').map((f) => (
           <button
@@ -169,19 +171,19 @@ export default function PoliceAssignedIncidentsPage() {
         {/* ── Header ── */}
         <div className="pmi-head">
           <div>
-            <h2 className="pmi-heading">Assigned Incidents</h2>
-            <p className="pmi-sub">Cases assigned to you</p>
+            <h2 className="pmi-heading">{t('policeAssignedIncidentsPage.heading')}</h2>
+            <p className="pmi-sub">{t('policeAssignedIncidentsPage.subheading')}</p>
           </div>
           <button
             type="button"
             className="pmi-refresh"
             onClick={load}
             disabled={isLoading}
-            title="Refresh list"
-            aria-label="Refresh list"
+            title={t('policeAssignedIncidentsPage.refreshTitle')}
+            aria-label={t('policeAssignedIncidentsPage.refreshTitle')}
           >
             <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
-            <span>Refresh</span>
+            <span>{t('policeAssignedIncidentsPage.refreshLabel')}</span>
           </button>
         </div>
 
@@ -218,13 +220,13 @@ export default function PoliceAssignedIncidentsPage() {
           {error && <p className="pmi-error">{error}</p>}
 
           {isLoading && (
-            <p className="pmi-loading">Loading incidents…</p>
+            <p className="pmi-loading">{t('policeAssignedIncidentsPage.loading')}</p>
           )}
 
           {!isLoading && !error && displayed.length === 0 && (
             <div className="pmi-empty">
               <span className="pmi-empty-icon"><AssignmentIndOutlinedIcon fontSize="inherit" /></span>
-              <p>No incidents are assigned to you</p>
+              <p>{t('policeAssignedIncidentsPage.empty')}</p>
             </div>
           )}
 
@@ -251,7 +253,7 @@ export default function PoliceAssignedIncidentsPage() {
                       </span>
                     </div>
 
-                    <p className="pmi-title">{incident.title || 'Untitled incident'}</p>
+                    <p className="pmi-title">{incident.title || t('policeAssignedIncidentsPage.untitledIncident')}</p>
 
                     <div className="pmi-meta">
                       {incident.locationText && (
@@ -265,7 +267,7 @@ export default function PoliceAssignedIncidentsPage() {
                         {incident.timeAgo || '—'}
                       </span>
                       {incident.reportedBy?.name && (
-                        <span className="pmi-reporter">by {incident.reportedBy.name}</span>
+                        <span className="pmi-reporter">{t('policeAssignedIncidentsPage.reportedBy', { name: incident.reportedBy.name })}</span>
                       )}
                     </div>
                   </div>
@@ -274,10 +276,10 @@ export default function PoliceAssignedIncidentsPage() {
                     type="button"
                     className="pmi-view"
                     onClick={(e) => { e.stopPropagation(); navigate(`/police/incident/${incident.id}`) }}
-                    aria-label={`View ${incident.displayId}`}
+                    aria-label={t('policeAssignedIncidentsPage.viewAriaLabel', { id: incident.displayId })}
                   >
                     <VisibilityOutlinedIcon fontSize="inherit" />
-                    View
+                    {t('policeAssignedIncidentsPage.viewButton')}
                   </button>
                 </div>
               ))}

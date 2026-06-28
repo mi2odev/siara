@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import AltRouteIcon from '@mui/icons-material/AltRoute'
@@ -103,6 +104,7 @@ function formatClock(value) {
 }
 
 export default function NavigationPreviewPage() {
+  const { t } = useTranslation(['pages', 'common'])
   const mapNodeRef = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
@@ -247,36 +249,36 @@ export default function NavigationPreviewPage() {
         </div>
       ) : null}
 
-      <nav className="nav-preview-tabs" aria-label="Preview modes">
+      <nav className="nav-preview-tabs" aria-label={t('navigationPreviewPage.tabs.ariaLabel')}>
         <button type="button" className="is-active">
           <NavigationIcon />
-          Drive
+          {t('navigationPreviewPage.tabs.drive')}
         </button>
         <button type="button">
           <AltRouteIcon />
-          Routes
+          {t('navigationPreviewPage.tabs.routes')}
         </button>
         <button type="button">
           <WarningAmberIcon />
-          Risk
+          {t('navigationPreviewPage.tabs.risk')}
         </button>
       </nav>
 
-      <section className="nav-preview-instruction" aria-label="Navigation instruction">
+      <section className="nav-preview-instruction" aria-label={t('navigationPreviewPage.instruction.ariaLabel')}>
         <div className="nav-preview-instruction__icon"><NavigationIcon /></div>
         <div>
-          <span>In 450 m</span>
-          <strong>Keep right toward Boulevard Krim Belkacem</strong>
-          <small>Then continue straight past the next junction</small>
+          <span>{t('navigationPreviewPage.instruction.in450m')}</span>
+          <strong>{t('navigationPreviewPage.instruction.keepRight')}</strong>
+          <small>{t('navigationPreviewPage.instruction.continueStraight')}</small>
         </div>
       </section>
 
-      <div className="nav-preview-controls" aria-label="Map controls">
+      <div className="nav-preview-controls" aria-label={t('navigationPreviewPage.controls.ariaLabel')}>
         <button
           type="button"
           onClick={() => setRoutePanelOpen((open) => !open)}
           aria-pressed={routePanelOpen}
-          aria-label="Toggle selected route panel"
+          aria-label={t('navigationPreviewPage.controls.toggleRoutePanel')}
         >
           <LayersIcon />
         </button>
@@ -284,7 +286,7 @@ export default function NavigationPreviewPage() {
           type="button"
           onClick={() => setShowDebug((open) => !open)}
           aria-pressed={showDebug}
-          aria-label="Toggle debug overlay"
+          aria-label={t('navigationPreviewPage.controls.toggleDebug')}
         >
           <BugReportIcon />
         </button>
@@ -293,39 +295,39 @@ export default function NavigationPreviewPage() {
           className="nav-preview-controls__locate"
           onClick={handleLocate}
           aria-pressed={followUser}
-          aria-label="Center on my location"
+          aria-label={t('navigationPreviewPage.controls.centerLocation')}
         >
           <GpsFixedIcon />
-          <span>My Location</span>
+          <span>{t('navigationPreviewPage.controls.myLocation')}</span>
         </button>
       </div>
 
-      <aside className="nav-preview-route" aria-label="Selected route panel">
+      <aside className="nav-preview-route" aria-label={t('navigationPreviewPage.routePanel.ariaLabel')}>
         <div className="nav-preview-route__scroll">
           <header className="nav-preview-route__header">
             <div>
-              <span>Selected route</span>
+              <span>{t('navigationPreviewPage.routePanel.selectedRoute')}</span>
               <strong>{MOCK_ROUTE.route_label}</strong>
             </div>
             <span className="nav-preview-route__badge">
               <ShieldIcon />
-              Safer
+              {t('navigationPreviewPage.routePanel.safer')}
             </span>
           </header>
 
           <section className="nav-preview-route__section">
-            <span>Destination</span>
+            <span>{t('navigationPreviewPage.routePanel.destination')}</span>
             <strong>{MOCK_ROUTE.destination.name}</strong>
           </section>
 
-          <section className="nav-preview-route__metrics" aria-label="Route metrics">
+          <section className="nav-preview-route__metrics" aria-label={t('navigationPreviewPage.routePanel.metricsAriaLabel')}>
             <div>
               <strong>{MOCK_ROUTE.duration_min} min</strong>
-              <span>ETA</span>
+              <span>{t('navigationPreviewPage.routePanel.eta')}</span>
             </div>
             <div>
               <strong>{MOCK_ROUTE.distance_km.toFixed(1)} km</strong>
-              <span>Distance</span>
+              <span>{t('navigationPreviewPage.routePanel.distance')}</span>
             </div>
             <div>
               <strong>{MOCK_ROUTE.summary.danger_percent}%</strong>
@@ -334,19 +336,18 @@ export default function NavigationPreviewPage() {
           </section>
 
           <section className="nav-preview-route__section">
-            <span>Why this route?</span>
+            <span>{t('navigationPreviewPage.routePanel.whyThisRoute')}</span>
             <p>
-              Balanced travel time with fewer high-risk segments than the fastest
-              option, while keeping the route direct enough for active guidance.
+              {t('navigationPreviewPage.routePanel.whyThisRouteText')}
             </p>
           </section>
 
           <section className="nav-preview-route__section">
-            <span>Segment risk summary</span>
+            <span>{t('navigationPreviewPage.routePanel.segmentRiskSummary')}</span>
             <div className="nav-preview-route__segments">
               {MOCK_ROUTE.segments.map((segment, index) => (
                 <div key={segment.segment_id}>
-                  <strong>Segment {index + 1}</strong>
+                  <strong>{t('navigationPreviewPage.routePanel.segment', { number: index + 1 })}</strong>
                   <span>{segment.danger_percent}% {segment.danger_level}</span>
                 </div>
               ))}
@@ -354,7 +355,7 @@ export default function NavigationPreviewPage() {
           </section>
 
           <section className="nav-preview-route__section">
-            <span>Alternatives</span>
+            <span>{t('navigationPreviewPage.routePanel.alternatives')}</span>
             <div className="nav-preview-route__choices">
               {MOCK_ALTERNATIVES.map((route) => (
                 <button
@@ -365,7 +366,7 @@ export default function NavigationPreviewPage() {
                 >
                   <strong>{route.route_label}</strong>
                   <span>{route.duration_min} min</span>
-                  <small>{route.risk}% risk</small>
+                  <small>{t('navigationPreviewPage.routePanel.riskPercent', { percent: route.risk })}</small>
                 </button>
               ))}
             </div>
@@ -373,29 +374,29 @@ export default function NavigationPreviewPage() {
         </div>
       </aside>
 
-      <section className="nav-preview-risk" aria-label="Current segment risk">
+      <section className="nav-preview-risk" aria-label={t('navigationPreviewPage.segmentRisk.ariaLabel')}>
         <WarningAmberIcon />
         <div>
-          <span>Current segment</span>
+          <span>{t('navigationPreviewPage.segmentRisk.currentSegment')}</span>
           <strong>{currentSegment.danger_percent}% {currentSegment.danger_level}</strong>
-          <small>{currentSegment.distance_km.toFixed(1)} km until the next segment</small>
+          <small>{t('navigationPreviewPage.segmentRisk.untilNextSegment', { distance: currentSegment.distance_km.toFixed(1) })}</small>
         </div>
       </section>
 
-      <section className="nav-preview-legend" aria-label="Map legend">
-        <span><i className="risk-low" /> Low</span>
-        <span><i className="risk-moderate" /> Moderate</span>
-        <span><i className="risk-high" /> High</span>
+      <section className="nav-preview-legend" aria-label={t('navigationPreviewPage.legend.ariaLabel')}>
+        <span><i className="risk-low" /> {t('navigationPreviewPage.legend.low')}</span>
+        <span><i className="risk-moderate" /> {t('navigationPreviewPage.legend.moderate')}</span>
+        <span><i className="risk-high" /> {t('navigationPreviewPage.legend.high')}</span>
       </section>
 
-      <section className="nav-preview-summary" aria-label="Route summary">
+      <section className="nav-preview-summary" aria-label={t('navigationPreviewPage.summary.ariaLabel')}>
         <div>
           <strong>{formatDurationSeconds(etaSeconds)}</strong>
-          <span>ETA</span>
+          <span>{t('navigationPreviewPage.summary.eta')}</span>
         </div>
         <div>
           <strong>{formatDistanceMeters(distanceRemaining)}</strong>
-          <span>remaining</span>
+          <span>{t('navigationPreviewPage.summary.remaining')}</span>
         </div>
         <div>
           <strong>{MOCK_ROUTE.summary.danger_percent}%</strong>
@@ -403,12 +404,12 @@ export default function NavigationPreviewPage() {
         </div>
         <button type="button" onClick={() => setFollowUser(false)}>
           <CloseIcon />
-          Exit navigation
+          {t('navigationPreviewPage.summary.exitNavigation')}
         </button>
       </section>
 
       {showDebug ? (
-        <div className="nav-preview-debug" aria-label="Live location debug">
+        <div className="nav-preview-debug" aria-label={t('navigationPreviewPage.debug.ariaLabel')}>
           <span>lat {displayLocation.lat.toFixed(6)}</span>
           <span>lng {displayLocation.lng.toFixed(6)}</span>
           <span>accuracy {displayLocation.accuracy != null ? `${Math.round(displayLocation.accuracy)}m` : 'n/a'}</span>

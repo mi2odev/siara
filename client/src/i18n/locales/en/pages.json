@@ -1,0 +1,1590 @@
+{
+  "app": {
+    "toggleNavMenu": "Toggle navigation menu"
+  },
+  "appErrorBoundary": {
+    "heading": "Something crashed in the UI",
+    "componentStack": "Component stack",
+    "tryAgain": "Try again"
+  },
+  "banBanner": {
+    "justNow": "just now",
+    "permanentlyBanned": "Your account is permanently banned.",
+    "temporarilyBanned": "Your account is temporarily banned.",
+    "cannotPostPermanent": "You cannot post reports, comments or reactions and your access will be revoked on next sign-in.",
+    "cannotPostTemporary": "You cannot post reports, comments or reactions.",
+    "reason": "Reason:",
+    "banEndsIn": "Ban ends in"
+  },
+  "warningBanner": {
+    "justNow": "just now",
+    "acknowledgeError": "Could not acknowledge the warning",
+    "title": "Admin warning.",
+    "body": "A moderator has issued you a formal warning. Repeated violations may lead to suspension or a ban.",
+    "reasonLabel": "Reason:",
+    "issued": "Issued {{date}}",
+    "autoClearsIn": "auto-clears in {{time}}",
+    "iUnderstand": "I understand"
+  },
+  "contactForm": {
+    "name": "Name",
+    "email": "Email",
+    "message": "Message",
+    "send": "Send"
+  },
+  "predictForm": {
+    "locationLabel": "Location",
+    "locationPlaceholder": "City, state or coordinates",
+    "dateLabel": "Date (optional)",
+    "runPrediction": "Run prediction"
+  },
+  "feedSidebarNav": {
+    "nav": {
+      "newsFeed": "News Feed",
+      "incidentMap": "Incident Map",
+      "myReports": "My Reports",
+      "contact": "Contact",
+      "about": "About",
+      "overview": "Overview",
+      "driverQuiz": "Driver Quiz"
+    },
+    "section": {
+      "navigation": "NAVIGATION",
+      "tools": "TOOLS",
+      "info": "INFO",
+      "account": "ACCOUNT"
+    },
+    "panel": {
+      "ariaLabel": "Quick information panel"
+    },
+    "contact": {
+      "kicker": "Support",
+      "title": "Contact SIARA",
+      "subtitle": "Share your request and our team will get back to you quickly.",
+      "closeAriaLabel": "Close contact form",
+      "labelName": "Name",
+      "labelEmail": "Email",
+      "labelMessage": "Message",
+      "sending": "Sending…",
+      "sendButton": "Send Message",
+      "emailDirectly": "Email directly",
+      "sideAriaLabel": "Support information",
+      "responseWindowTitle": "Response Window",
+      "responseWindowText": "Most requests are reviewed within one business day.",
+      "bestForTitle": "Best for This Form",
+      "bestForText": "Account support, platform feedback, partnerships, and incident workflow questions.",
+      "directContactTitle": "Direct Contact",
+      "errorName": "Please enter a valid name.",
+      "errorEmail": "Please enter a valid email address.",
+      "errorMessage": "Message must be at least 10 characters.",
+      "successMessage": "Thank you. We will respond as soon as possible.",
+      "submitError": "Could not send your message. Please try again."
+    },
+    "about": {
+      "kicker": "Overview",
+      "title": "About SIARA",
+      "closeAriaLabel": "Close about panel",
+      "brandCaption": "Road Safety Intelligence Platform",
+      "lead": "SIARA is a road safety intelligence platform combining live reporting, mapping, and AI insights to improve incident response.",
+      "missionTitle": "Mission",
+      "missionText": "Reduce road risk with fast, evidence-based incident coordination.",
+      "visionTitle": "Vision",
+      "visionText": "Build connected, AI-supported urban safety systems for smarter mobility.",
+      "approachTitle": "Approach",
+      "approachText": "Combine citizen signals, geospatial context, and operational analytics in one workflow.",
+      "riskMappingTitle": "Risk Mapping",
+      "riskMappingText": "Identify hotspots and incident density zones in real time.",
+      "alertIntelTitle": "Alert Intelligence",
+      "alertIntelText": "Prioritize high-impact events using severity and reliability indicators.",
+      "responseCoordTitle": "Response Coordination",
+      "responseCoordText": "Support faster field decisions with one shared operational view.",
+      "performanceTitle": "Performance Tracking",
+      "performanceText": "Measure verification and response outcomes to improve continuously."
+    },
+    "overview": {
+      "kicker": "Service Flow",
+      "title": "SIARA Workflow Overview",
+      "closeAriaLabel": "Close overview panel",
+      "lead": "SIARA provides a clear operational pipeline from report intake to validated alert delivery.",
+      "step1Title": "Incident Intake",
+      "step1Text": "Capture reports with location, media, and contextual metadata.",
+      "step2Title": "Data Validation",
+      "step2Text": "Normalize and verify incoming records for analysis readiness.",
+      "step3Title": "Risk Assessment",
+      "step3Text": "Estimate urgency and confidence using AI-assisted scoring.",
+      "step4Title": "Operational Review",
+      "step4Text": "Authorized teams validate incidents and assign response priorities.",
+      "step5Title": "Alert Distribution",
+      "step5Text": "Deliver relevant alerts to users and operational stakeholders.",
+      "techStackLabel": "Technology stack:",
+      "techStackText": "AI risk scoring, geospatial mapping, real-time events, and verification workflow."
+    }
+  },
+  "footer": {
+    "ariaLabel": "Footer",
+    "logoAlt": "Logo SIARA",
+    "address": "Algiers, Algeria",
+    "linksHeading": "Links",
+    "about": "About",
+    "contact": "Contact",
+    "contactHeading": "Contact",
+    "socialLinkedIn": "LinkedIn",
+    "socialTwitter": "Twitter",
+    "socialGitHub": "GitHub"
+  },
+  "header": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "contact": "Contact",
+      "overview": "Overview",
+      "incidents": "Incidents",
+      "zones": "Zones",
+      "system": "System"
+    },
+    "logoAdmin": "Admin SIARA",
+    "logoHome": "Home SIARA",
+    "mainNav": "Main navigation",
+    "ctaAdmin": "Open admin",
+    "ctaDashboard": "Open dashboard",
+    "adminLabel": "Admin",
+    "dashboardLabel": "Dashboard"
+  },
+  "leftNavLayout": {
+    "defaultUser": "SIARA User",
+    "profileBio": "Browse live road reports and share updates from the field.",
+    "viewProfile": "View Profile"
+  },
+  "leftQuickInfoLinks": {
+    "defaultTitle": "Quick Pages",
+    "nav": {
+      "contact": "Contact",
+      "about": "About",
+      "overview": "Overview"
+    },
+    "panel": {
+      "ariaLabel": "Quick information panel"
+    },
+    "contact": {
+      "kicker": "Support",
+      "heading": "Contact SIARA",
+      "subheading": "Share your request and our team will get back to you quickly.",
+      "closeAriaLabel": "Close contact form",
+      "form": {
+        "nameLbl": "Name",
+        "emailLbl": "Email",
+        "messageLbl": "Message",
+        "sending": "Sending…",
+        "sendBtn": "Send Message",
+        "emailDirectly": "Email directly"
+      },
+      "errors": {
+        "invalidName": "Please enter a valid name.",
+        "invalidEmail": "Please enter a valid email address.",
+        "messageTooShort": "Message must be at least 10 characters."
+      },
+      "successMessage": "Thank you. We will respond as soon as possible.",
+      "submitError": "Could not send your message. Please try again.",
+      "side": {
+        "ariaLabel": "Support information",
+        "responseWindowTitle": "Response Window",
+        "responseWindowText": "Most requests are reviewed within one business day.",
+        "bestForTitle": "Best for This Form",
+        "bestForText": "Account support, platform feedback, partnerships, and incident workflow questions.",
+        "directContactTitle": "Direct Contact"
+      }
+    },
+    "about": {
+      "kicker": "Overview",
+      "heading": "About SIARA",
+      "closeAriaLabel": "Close about panel",
+      "brandCaption": "Road Safety Intelligence Platform",
+      "lead": "SIARA is a road safety intelligence platform combining live reporting, mapping, and AI insights to improve incident response.",
+      "pillars": {
+        "missionTitle": "Mission",
+        "missionText": "Reduce road risk with fast, evidence-based incident coordination.",
+        "visionTitle": "Vision",
+        "visionText": "Build connected, AI-supported urban safety systems for smarter mobility.",
+        "approachTitle": "Approach",
+        "approachText": "Combine citizen signals, geospatial context, and operational analytics in one workflow."
+      },
+      "cards": {
+        "riskMappingTitle": "Risk Mapping",
+        "riskMappingText": "Identify hotspots and incident density zones in real time.",
+        "alertIntelTitle": "Alert Intelligence",
+        "alertIntelText": "Prioritize high-impact events using severity and reliability indicators.",
+        "responseCoordTitle": "Response Coordination",
+        "responseCoordText": "Support faster field decisions with one shared operational view.",
+        "perfTrackingTitle": "Performance Tracking",
+        "perfTrackingText": "Measure verification and response outcomes to improve continuously."
+      }
+    },
+    "overview": {
+      "kicker": "Service Flow",
+      "heading": "SIARA Workflow Overview",
+      "closeAriaLabel": "Close overview panel",
+      "lead": "SIARA provides a clear operational pipeline from report intake to validated alert delivery.",
+      "steps": {
+        "intakeTitle": "Incident Intake",
+        "intakeText": "Capture reports with location, media, and contextual metadata.",
+        "validationTitle": "Data Validation",
+        "validationText": "Normalize and verify incoming records for analysis readiness.",
+        "riskTitle": "Risk Assessment",
+        "riskText": "Estimate urgency and confidence using AI-assisted scoring.",
+        "reviewTitle": "Operational Review",
+        "reviewText": "Authorized teams validate incidents and assign response priorities.",
+        "distributionTitle": "Alert Distribution",
+        "distributionText": "Deliver relevant alerts to users and operational stakeholders."
+      },
+      "techStackLabel": "Technology stack:",
+      "techStackText": "AI risk scoring, geospatial mapping, real-time events, and verification workflow."
+    }
+  },
+  "sidebar": {
+    "links": {
+      "dashboard": "Dashboard",
+      "home": "Home",
+      "news": "News",
+      "contact": "Contact",
+      "about": "About",
+      "description": "Description",
+      "overview": "Overview",
+      "incidents": "Incidents",
+      "alerts": "Alerts",
+      "serviceControl": "Service Control",
+      "system": "System"
+    }
+  },
+  "addMobileDeviceModal": {
+    "title": "Add mobile device",
+    "subtitle": "Scan this QR code with the SIARA mobile app while signed in to the same account.",
+    "generatingCode": "Generating pairing code…",
+    "pairingFailed": "Pairing failed.",
+    "qrAlt": "SIARA mobile device pairing QR code",
+    "expiresIn": "Expires in",
+    "pasteUrlSummary": "Or paste this URL in the app",
+    "qrExpired": "QR expired before pairing completed.",
+    "generateNewQr": "Generate new QR",
+    "deviceConnected": "Mobile device connected. You can close this window.",
+    "done": "Done"
+  },
+  "notificationBell": {
+    "timeNow": "Now",
+    "timeMinutes_one": "{{count}}m",
+    "timeMinutes_other": "{{count}}m",
+    "timeHours_one": "{{count}}h",
+    "timeHours_other": "{{count}}h",
+    "timeDays_one": "{{count}}d",
+    "timeDays_other": "{{count}}d",
+    "ariaLabel": "Notifications",
+    "badgeAriaLabel": "{{count}} unread notifications",
+    "kicker": "Notifications",
+    "unreadTitle": "{{count}} unread",
+    "allCaughtUp": "All caught up",
+    "markAllRead": "Mark all read",
+    "loading": "Loading notifications…",
+    "empty": "You have no notifications yet.",
+    "monitoredArea": "Monitored area",
+    "markRead": "Mark read",
+    "seeAll": "See all notifications"
+  },
+  "notificationToasts": {
+    "priority": {
+      "high": "High",
+      "medium": "Medium",
+      "info": "Info"
+    },
+    "priorityKicker": "{{label}} priority",
+    "viewDetails": "View details",
+    "dismissAriaLabel": "Dismiss notification"
+  },
+  "roadSafetyProfileCard": {
+    "title": "Road / zone safety profile",
+    "noProfileData": "No profile data available.",
+    "severityLow": "low",
+    "vsPrev30d": "vs prev 30d",
+    "stableVsPrev30d": "stable vs prev 30d",
+    "metrics": {
+      "reports": "Reports",
+      "inRadius": "in {{radius}} m",
+      "avgRisk": "Avg risk",
+      "approximate": "approximate",
+      "last30Days": "Last 30 days",
+      "vsPrev": "vs {{count}} prev",
+      "policeVerified": "Police-verified",
+      "allTime": "all-time",
+      "peakWindow": "Peak window",
+      "mostCommonHour": "most common hour"
+    },
+    "reportsPerMonth": "Reports per month (last 6 months)",
+    "mostCommonTypes": "Most common types",
+    "peakDays": "Peak days",
+    "recentReports": "Recent reports in this zone",
+    "verified": "verified"
+  },
+  "globalHeaderSearch": {
+    "placeholder": "Search users, incidents, roads, zones…",
+    "searchSuggestions": "Search suggestions",
+    "loadingSuggestions": "Loading suggestions...",
+    "feedContributor": "Feed contributor",
+    "reportedIncident": "Reported incident",
+    "incidentReport": "Incident report",
+    "avatarAlt": "{{name}} avatar",
+    "kindAccount": "Account",
+    "kindReport": "Report",
+    "noResults": "No matching account or accident found."
+  },
+  "personalSafetyScoreCard": {
+    "title": "Your SIARA safety score",
+    "errorFallback": "Failed to load safety summary",
+    "emptyState": "Complete your first SIARA-guided trip to start tracking your personal safety score, route preferences, and weekly risk trends.",
+    "noRatings": "no ratings",
+    "scoreSub": "Calculated from {{tripCount}} completed {{tripCount, plural, one {trip} other {trips}}} — average risk {{avgRiskLabel}}, {{highRiskTripCount}} high-risk {{highRiskTripCount, plural, one {trip} other {trips}}}.",
+    "scoreLabel": {
+      "notEnough": "Not enough trips yet",
+      "excellent": "Excellent",
+      "strong": "Strong",
+      "fair": "Fair",
+      "needsImprovement": "Needs improvement",
+      "highRisk": "High-risk pattern"
+    },
+    "metrics": {
+      "trips": "Trips",
+      "completed": "completed",
+      "distance": "Distance",
+      "totalDriven": "total driven",
+      "avgRisk": "Avg risk",
+      "acrossTrips": "across trips",
+      "safestRouteUsed": "Safest route used",
+      "times": "times",
+      "avgRating": "Avg rating",
+      "yourFeedback": "your feedback"
+    },
+    "weeklyAvgRisk": "Weekly avg risk"
+  },
+  "routeReplayMap": {
+    "noGeometry": "No route geometry was captured for this trip — replay is unavailable.",
+    "start": "Start",
+    "end": "End",
+    "pause": "Pause",
+    "replayAgain": "Replay again",
+    "play": "Play",
+    "reset": "Reset",
+    "speed": "Speed",
+    "progress": "Progress",
+    "distance": "Distance",
+    "overallRisk": "Overall risk",
+    "routeType": "Route type"
+  },
+  "travelHistoryDetailModal": {
+    "tripRatingAriaLabel": "Trip rating",
+    "tripDetails": "Trip details",
+    "fromOrigin": "From {{name}}",
+    "savedTrip": "Saved trip",
+    "loadingTripDetails": "Loading trip details…",
+    "tripNotFound": "Trip not found.",
+    "errorLoadFailed": "Failed to load trip details",
+    "errorUpdateFailed": "Failed to update rating",
+    "saved": "Saved",
+    "labelFrom": "From",
+    "labelTo": "To",
+    "labelStarted": "Started",
+    "labelArrived": "Arrived",
+    "labelDuration": "Duration",
+    "labelDistance": "Distance",
+    "labelRouteType": "Route type",
+    "labelOverallRisk": "Overall risk",
+    "yourRating": "Your rating",
+    "feedbackPlaceholder": "Share feedback about this trip (optional)",
+    "saving": "Saving…",
+    "saveRating": "Save rating",
+    "hideReplay": "Hide replay",
+    "replayTrip": "Replay trip",
+    "roadSegments": "Road segments ({{count}})",
+    "noSegmentData": "No segment data was captured for this trip.",
+    "colIndex": "#",
+    "colSegment": "Segment",
+    "colDistance": "Distance",
+    "colRisk": "Risk",
+    "colWindow": "Window",
+    "colTime": "Time",
+    "segmentId": "Segment {{id}}",
+    "segmentIndex": "Segment {{index}}"
+  },
+  "cTA": {
+    "contactUs": "Contactez-nous"
+  },
+  "dateTimePicker": {
+    "selectDateTime": "Select date & time",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "timeLabel": "Time",
+    "now": "Now",
+    "done": "Done",
+    "weekdays": {
+      "mo": "Mo",
+      "tu": "Tu",
+      "we": "We",
+      "th": "Th",
+      "fr": "Fr",
+      "sa": "Sa",
+      "su": "Su"
+    },
+    "months": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    }
+  },
+  "drivingQuiz": {
+    "title": "Driver Profile Assessment",
+    "subtitle": "Answer questions, then we send scores to model service",
+    "skipQuizAria": "Skip quiz",
+    "progress": "{{answered}} of {{total}} questions",
+    "sectionCounter": "Section {{current}}/{{total}}",
+    "questionCounter": "Question {{current}} of {{total}}",
+    "skipForNow": "Skip for now",
+    "answers": {
+      "never": "Never",
+      "rarely": "Rarely",
+      "sometimes": "Sometimes",
+      "often": "Often",
+      "very_often": "Very Often",
+      "always": "Always"
+    },
+    "stream": {
+      "starting": "Preparing explanation...",
+      "loadingModel": "Loading local language model...",
+      "generating": "Generating explanation...",
+      "finalizing": "Finalizing response...",
+      "fallback": "Using deterministic fallback explanation...",
+      "done": "Explanation ready.",
+      "working": "Working on explanation..."
+    },
+    "errors": {
+      "modelExplanationFailed": "Could not get live model explanation",
+      "streamFailed": "Live explanation stream failed. Please retry."
+    },
+    "results": {
+      "title": "Model Result",
+      "riskScore": "Risk score: {{score}}% ({{label}})",
+      "savedToProfile": "Saved to your SIARA profile.",
+      "continue": "Continue"
+    },
+    "impact": {
+      "pushedHigher": "pushed risk higher",
+      "reducedRisk": "helped reduce risk",
+      "noImpact": "no noticeable impact",
+      "limitedProtective": "limited protective effect",
+      "shapTooltip": "SHAP: {{value}} ({{text}})"
+    },
+    "sections": {
+      "attention": {
+        "title": "Attention & Focus",
+        "q1": "How often do you find your mind wandering away from driving while you're behind the wheel?",
+        "q2": "How often do you realize you missed something on the road because you weren't fully paying attention?"
+      },
+      "anxiety": {
+        "title": "Driving Anxiety",
+        "q3": "How often do you feel nervous or tense when driving, even in normal traffic?",
+        "q4": "How often do you worry about getting into a crash while you're driving?"
+      },
+      "risk-taking": {
+        "title": "Risk Taking",
+        "q5": "How often do you take chances while driving, like overtaking when it's a bit risky?",
+        "q6": "How often do you feel comfortable driving faster than others when the road is clear?",
+        "q7": "How often do you push yourself to drive in situations you know are a bit dangerous (like on narrow or busy roads)?"
+      },
+      "anger": {
+        "title": "Anger & Aggression",
+        "q8": "How often do you feel angry or furious at other drivers when they annoy you?",
+        "q9": "How often do you get frustrated and drive more aggressively after being cut off?",
+        "q10": "How often do you shout at other drivers or make rude gestures at them?"
+      },
+      "sensation": {
+        "title": "Sensation Seeking",
+        "q11": "How often do you drive much faster than the speed limit for the thrill of it?",
+        "q12": "How often do you feel excited when driving at very high speeds on open roads?"
+      },
+      "stress-relief": {
+        "title": "Stress Relief",
+        "q13": "How often do you drive to relax or reduce stress?",
+        "q14": "How often do you take a drive just to clear your mind or calm down?",
+        "q15": "How often do you feel less stressed after a long drive?"
+      },
+      "patience": {
+        "title": "Patience & Calmness",
+        "q16": "How often do you stay calm and patient even when you're stuck in a traffic jam?",
+        "q17": "How often do you keep your cool when other drivers are slow or make mistakes?"
+      },
+      "safety": {
+        "title": "Safety Consciousness",
+        "q18": "How often do you drive carefully to avoid accidents?",
+        "q19": "How often do you follow all traffic rules (speed limits, signals, etc.) because safety is important to you?",
+        "q20": "How often do you pay extra attention to the road and surroundings to avoid mistakes?"
+      },
+      "violations": {
+        "title": "Traffic Violations",
+        "q21": "How often do you exceed the speed limit when driving?",
+        "q22": "How often do you tailgate (follow too closely) the vehicle in front of you?",
+        "q23": "How often do you overtake another vehicle by briefly driving in the oncoming lane?",
+        "q24": "How often do you drive through a red light or fail to fully stop at a stop sign?",
+        "q25": "How often do you use your mobile phone (text or call) while driving?",
+        "q26": "How often do you get angry at other drivers and express it by shouting or honking?"
+      },
+      "errors": {
+        "title": "Driving Errors",
+        "q27": "How often do you misjudge the distance or speed of another vehicle when overtaking or merging?",
+        "q28": "How often do you accidentally press the gas pedal when you meant to hit the brake (or vice versa)?",
+        "q29": "How often do you fail to notice a traffic sign or signal until it's too late?",
+        "q30": "How often do you overlook a pedestrian or cyclist when making a turn?",
+        "q31": "How often do you have to brake suddenly because you only just noticed something you missed?"
+      },
+      "lapses": {
+        "title": "Memory Lapses",
+        "q32": "How often do you find yourself driving on \"autopilot,\" arriving at your destination without remembering parts of the trip?",
+        "q33": "How often do you miss your exit or turn because you were distracted or daydreaming?",
+        "q34": "How often do you get lost or forget which way to go while driving?",
+        "q35": "How often do you forget where you parked your car?"
+      },
+      "habits": {
+        "title": "Driving Habits",
+        "q36": "How often do you forget to signal when changing lanes or turning?",
+        "q37": "How often do you forget to check your mirrors or blind spots before changing lanes?",
+        "q38": "How often do you become distracted (by something like a phone or music) and then miss something happening on the road?",
+        "q39": "How often do you start driving without fastening your seatbelt and realize it soon after?",
+        "q40": "How often do you find yourself multitasking (like adjusting the radio or grabbing something) and briefly drifting out of your lane?"
+      }
+    }
+  },
+  "fancySelect": {
+    "placeholder": "Select…",
+    "optionsLabel": "Options"
+  },
+  "quizExplanationResult": {
+    "generatingExplanation": "Generating explanation...",
+    "explanationReady": "Explanation ready",
+    "fallback": "Fallback",
+    "eyebrow": "SIARA assistant explanation",
+    "heading": "Driving profile result",
+    "sections": {
+      "summary": "Summary",
+      "riskFactors": "Main risk-increasing factors",
+      "protectiveFactors": "Main protective factors",
+      "advice": "Practical advice",
+      "disclaimer": "Disclaimer"
+    },
+    "waitingForSummary": "Waiting for the summary...",
+    "emptyRiskFactors": "Risk-increasing factors will appear here as the explanation streams.",
+    "emptyProtectiveFactors": "Protective factors will appear here as the explanation streams.",
+    "emptyAdvice": "Practical advice will appear here as the explanation streams.",
+    "disclaimerFallback": "This explanation is for driving-safety education and does not change the computed score."
+  },
+  "siaraDatePicker": {
+    "selectDate": "Select date",
+    "selectTime": "Select time",
+    "chooseDate": "Choose date",
+    "chooseTime": "Choose time",
+    "prevYear": "Previous year",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "nextYear": "Next year",
+    "hour": "Hour",
+    "minute": "Minute",
+    "clear": "Clear",
+    "now": "Now",
+    "today": "Today",
+    "done": "Done",
+    "months": {
+      "0": "January",
+      "1": "February",
+      "2": "March",
+      "3": "April",
+      "4": "May",
+      "5": "June",
+      "6": "July",
+      "7": "August",
+      "8": "September",
+      "9": "October",
+      "10": "November",
+      "11": "December"
+    },
+    "weekdays": {
+      "0": "Mo",
+      "1": "Tu",
+      "2": "We",
+      "3": "Th",
+      "4": "Fr",
+      "5": "Sa",
+      "6": "Su"
+    }
+  },
+  "notificationContext": {
+    "unableToLoad": "Unable to load notifications."
+  },
+  "navigationPreviewPage": {
+    "tabs": {
+      "ariaLabel": "Preview modes",
+      "drive": "Drive",
+      "routes": "Routes",
+      "risk": "Risk"
+    },
+    "instruction": {
+      "ariaLabel": "Navigation instruction",
+      "in450m": "In 450 m",
+      "keepRight": "Keep right toward Boulevard Krim Belkacem",
+      "continueStraight": "Then continue straight past the next junction"
+    },
+    "controls": {
+      "ariaLabel": "Map controls",
+      "toggleRoutePanel": "Toggle selected route panel",
+      "toggleDebug": "Toggle debug overlay",
+      "centerLocation": "Center on my location",
+      "myLocation": "My Location"
+    },
+    "routePanel": {
+      "ariaLabel": "Selected route panel",
+      "selectedRoute": "Selected route",
+      "safer": "Safer",
+      "destination": "Destination",
+      "metricsAriaLabel": "Route metrics",
+      "eta": "ETA",
+      "distance": "Distance",
+      "whyThisRoute": "Why this route?",
+      "whyThisRouteText": "Balanced travel time with fewer high-risk segments than the fastest option, while keeping the route direct enough for active guidance.",
+      "segmentRiskSummary": "Segment risk summary",
+      "segment": "Segment {{number}}",
+      "alternatives": "Alternatives",
+      "riskPercent": "{{percent}}% risk"
+    },
+    "segmentRisk": {
+      "ariaLabel": "Current segment risk",
+      "currentSegment": "Current segment",
+      "untilNextSegment": "{{distance}} km until the next segment"
+    },
+    "legend": {
+      "ariaLabel": "Map legend",
+      "low": "Low",
+      "moderate": "Moderate",
+      "high": "High"
+    },
+    "summary": {
+      "ariaLabel": "Route summary",
+      "eta": "ETA",
+      "remaining": "remaining",
+      "exitNavigation": "Exit navigation"
+    },
+    "debug": {
+      "ariaLabel": "Live location debug"
+    }
+  },
+  "routeExplanationPreviewPage": {
+    "heading": "RouteExplanationCard — design preview",
+    "sections": {
+      "default": {
+        "label": "Default state (balanced route, moderate risk)",
+        "summary": "SIARA recommends this route because it avoids 2 high-risk accident clusters and has 32% lower predicted risk than the fastest route. It adds 4 minutes but skips a high-severity area near the destination.",
+        "details": "Risk model: SIARA v2 (gradient-boosted)\nSampled 12 points along route\nHeatmap clusters within 200m: 2\nReports within 500m last 7d: 3 (2 police-verified)\nWeather: clear, visibility good\nTime-of-day adjustment: +5% (evening rush)"
+      },
+      "highRisk": {
+        "label": "High-risk warning state (fastest route, high risk)",
+        "summary": "The fastest route crosses 3 high-risk accident clusters. Consider the safer alternative — it adds 6 minutes but cuts predicted risk by more than half.",
+        "reasons": {
+          "h1": {
+            "label": "3 high-risk clusters on route",
+            "detail": "Bab Ezzouar, El Harrach, RN5 km 18",
+            "impactLabel": "+34% risk"
+          },
+          "h2": {
+            "label": "5 recent severe reports",
+            "detail": "4 within last 24h, 2 police-verified",
+            "impactLabel": "high"
+          },
+          "h3": {
+            "label": "2 dangerous segments traversed",
+            "detail": "Both flagged as high-severity in last 30 days",
+            "impactLabel": "+12% risk"
+          }
+        }
+      },
+      "loading": {
+        "label": "Loading state"
+      },
+      "error": {
+        "label": "Error state",
+        "errorMessage": "Could not generate an explanation. Showing risk numbers only."
+      },
+      "empty": {
+        "label": "Empty state"
+      }
+    },
+    "reasons": {
+      "r1": {
+        "label": "Avoids 2 high-risk accident clusters",
+        "detail": "Bab Ezzouar junction & RN24 km 12 (18 reports last 30 days)",
+        "impactLabel": "−24% risk"
+      },
+      "r2": {
+        "label": "1 high-risk road segment skipped",
+        "detail": "Steep curve on RN5 with 4 severe reports",
+        "impactLabel": "−8% risk"
+      },
+      "r3": {
+        "label": "3 recent reports near route",
+        "detail": "2 verified by police, 1 pending review",
+        "impactLabel": "monitor"
+      },
+      "r4": {
+        "label": "Evening rush hour ahead",
+        "detail": "Departure at 17:42 — peak risk window 17:00–20:00",
+        "impactLabel": "+5% risk"
+      },
+      "r5": {
+        "label": "Adds 4 minutes vs. fastest route",
+        "detail": "Recommended for 32% lower predicted risk",
+        "impactLabel": "+4 min"
+      }
+    }
+  },
+  "aboutPage": {
+    "brandCaption": "Road Safety Intelligence Platform",
+    "kicker": "Project Identity",
+    "badge": "SIARA Vision",
+    "title": "About SIARA",
+    "intro": "SIARA is a smart road safety platform that combines reports, maps, and AI to support safer mobility and faster incident response.",
+    "metrics": {
+      "realtime": {
+        "title": "Real-time coordination",
+        "desc": "Live map intelligence for field teams and road users."
+      },
+      "ai": {
+        "title": "AI-assisted prioritization",
+        "desc": "Severity and reliability scoring for better response decisions."
+      },
+      "visibility": {
+        "title": "Operational visibility",
+        "desc": "Unified alerts, reports, and analytics in one SIARA workspace."
+      }
+    },
+    "features": {
+      "overview": {
+        "title": "What is SIARA",
+        "desc": "SIARA centralizes incident reporting, monitoring, and operational visibility in one unified platform."
+      },
+      "mission": {
+        "title": "Mission",
+        "desc": "Improve road safety and incident response with accurate, timely, and actionable information."
+      },
+      "vision": {
+        "title": "Vision",
+        "desc": "Support smart city integration using AI and connected data for proactive public safety."
+      }
+    },
+    "impact": {
+      "title": "How SIARA Creates Impact",
+      "lead": "SIARA is built to turn fragmented incident data into coordinated action. Instead of relying on isolated reports, it connects citizens, responders, and supervisors through one decision-ready platform.",
+      "steps": {
+        "capture": {
+          "title": "1. Capture",
+          "desc": "Citizens submit incidents with location, media, and context from the field."
+        },
+        "analyze": {
+          "title": "2. Analyze",
+          "desc": "AI models classify risk, detect anomalies, and rank urgency for operators."
+        },
+        "act": {
+          "title": "3. Act",
+          "desc": "Police and teams validate events, trigger alerts, and coordinate interventions quickly."
+        }
+      }
+    },
+    "capabilities": {
+      "title": "SIARA Core Capabilities",
+      "riskMapping": {
+        "title": "Risk Mapping",
+        "desc": "Visualize dangerous corridors and hotspot zones with incident density and severity layers."
+      },
+      "alertEngine": {
+        "title": "Alert Engine",
+        "desc": "Generate targeted alerts by location, incident type, and priority level in real time."
+      },
+      "analytics": {
+        "title": "Operational Analytics",
+        "desc": "Track trends, response performance, and verification throughput across the network."
+      },
+      "coordination": {
+        "title": "Cross-Team Coordination",
+        "desc": "Support consistent decision-making between field agents, dispatch, and supervisors."
+      }
+    },
+    "values": {
+      "title": "Key Values",
+      "safety": "Safety",
+      "efficiency": "Efficiency",
+      "innovation": "Innovation"
+    }
+  },
+  "descriptionPage": {
+    "brandCaption": "Road Safety Intelligence Platform",
+    "kicker": "System Workflow",
+    "badge": "Operational Flow",
+    "title": "Platform Description",
+    "intro": "SIARA is an operational intelligence platform for road safety. It converts incident data into structured decisions, enabling faster coordination and more consistent field response.",
+    "overview": {
+      "title": "Overview",
+      "body": "The platform combines citizen reporting, geospatial context, and AI-assisted evaluation to improve situational awareness across road safety operations.",
+      "highlights": {
+        "clarity": {
+          "heading": "Operational clarity",
+          "detail": "One shared view of incidents, priorities, and response status."
+        },
+        "response": {
+          "heading": "Faster response cycles",
+          "detail": "Clear prioritization reduces delay between detection and action."
+        },
+        "decision": {
+          "heading": "Consistent decision support",
+          "detail": "Standardized scoring helps teams align on urgency and next steps."
+        }
+      }
+    },
+    "workflow": {
+      "title": "Service Workflow",
+      "lead": "A transparent end-to-end process from intake to validated communication.",
+      "steps": {
+        "intake": {
+          "title": "Incident Intake",
+          "detail": "Reports are captured with location, media, and contextual metadata from users and operators."
+        },
+        "validation": {
+          "title": "Data Validation",
+          "detail": "Input quality checks standardize records and prepare events for downstream analysis."
+        },
+        "riskAssessment": {
+          "title": "Risk Assessment",
+          "detail": "Scoring models estimate urgency and confidence to support prioritization decisions."
+        },
+        "operationalReview": {
+          "title": "Operational Review",
+          "detail": "Authorized teams verify incidents and assign the appropriate response workflow."
+        },
+        "alertDistribution": {
+          "title": "Alert Distribution",
+          "detail": "Validated alerts are distributed to relevant users, zones, and operational channels."
+        }
+      }
+    },
+    "tech": {
+      "title": "Technology and Governance",
+      "lead": "SIARA balances intelligent automation with human validation to maintain reliability and accountability.",
+      "tagsAriaLabel": "Technologies",
+      "tags": {
+        "aiRiskScoring": "AI Risk Scoring",
+        "geospatialMapping": "Geospatial Mapping",
+        "realtimeEventStream": "Real-time Event Stream",
+        "verificationWorkflow": "Verification Workflow",
+        "notificationPipeline": "Notification Pipeline",
+        "operationalAnalytics": "Operational Analytics"
+      }
+    }
+  },
+  "contactPage": {
+    "brandCaption": "Road Safety Intelligence Platform",
+    "kicker": "Support Center",
+    "title": "Contact",
+    "intro": "Reach out to SIARA for support, questions, or partnership opportunities.",
+    "infoSection": {
+      "title": "Contact Information",
+      "emailLabel": "Email:",
+      "sendEmailLink": "Send email directly"
+    },
+    "form": {
+      "hideForm": "Hide contact form",
+      "openForm": "Open contact form",
+      "title": "Contact Form",
+      "nameLabel": "Name",
+      "emailLabel": "Email",
+      "messageLabel": "Message",
+      "sending": "Sending…",
+      "submit": "Submit"
+    },
+    "errors": {
+      "invalidName": "Please enter a valid name.",
+      "invalidEmail": "Please enter a valid email address.",
+      "messageTooShort": "Message must be at least 10 characters.",
+      "sendFailed": "Could not send your message. Please try again."
+    },
+    "successMessage": "Thank you. We will respond as soon as possible.",
+    "responseNote": "We will respond as soon as possible."
+  },
+  "homePage": {
+    "logoAlt": "Logo SIARA",
+    "hero": {
+      "eyebrow": "AI-Powered Road Safety Platform",
+      "title": "Make roads safer",
+      "titleHighlight": "with AI",
+      "subtitle": "Analyze, predict and prevent accidents before they happen.",
+      "cta": {
+        "getStarted": "Get Started",
+        "discover": "Discover our services"
+      }
+    },
+    "how": {
+      "title": "How does SIARA work?",
+      "step01": {
+        "label": "Step 01",
+        "title": "Data Collection",
+        "description": "Aggregated road data, accident history, weather and traffic density."
+      },
+      "step02": {
+        "label": "Step 02",
+        "title": "Analysis & Predictive AI",
+        "description": "Machine learning models to estimate risk zones in real time."
+      },
+      "step03": {
+        "label": "Step 03",
+        "title": "Real-Time Alerts",
+        "description": "Notifications and visualizations to anticipate and prevent accidents."
+      }
+    },
+    "mission": {
+      "eyebrow": "Our Mission",
+      "title": "Zero preventable accidents.",
+      "description": "Significantly reduce road accidents by putting the power of AI and data at the service of drivers, authorities and smart infrastructure developers."
+    },
+    "stats": {
+      "deathsLabel": "deaths / year worldwide",
+      "reductionLabel": "2030 reduction target",
+      "accuracyLabel": "Simulated accuracy",
+      "zonesLabel": "High-risk zones mapped"
+    },
+    "services": {
+      "sectionTitle": "SIARA Services",
+      "learnMore": "Learn more",
+      "analytics": {
+        "tag": "Analytics",
+        "title": "Analytics Dashboard",
+        "description": "Aggregated visualizations, time trends and dynamic filters to understand risk evolution."
+      },
+      "mapping": {
+        "tag": "Mapping",
+        "title": "Prediction Map",
+        "description": "Interactive map highlighting risk areas at the local level with real-time incident overlays."
+      },
+      "mobile": {
+        "tag": "Mobile",
+        "title": "SIARA Mobile App",
+        "description": "On-board alerts, risk notifications and preventive guidance at your fingertips."
+      }
+    },
+    "join": {
+      "title": "Join the Initiative",
+      "description": "Collaborate to make Algerian roads safer through data and artificial intelligence.",
+      "cta": "Create your account"
+    }
+  },
+  "newsPage": {
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "unknown": "Unknown"
+    },
+    "time": {
+      "unknown": "Unknown time",
+      "justNow": "Just now",
+      "minAgo_one": "{{count}} min ago",
+      "minAgo_other": "{{count}} min ago",
+      "hoursAgo_one": "{{count}} hour ago",
+      "hoursAgo_other": "{{count}} hours ago",
+      "daysAgo_one": "{{count}} day ago",
+      "daysAgo_other": "{{count}} days ago"
+    },
+    "qualityBadge": {
+      "officerVerified": "Officer verified",
+      "aiVerified": "AI verified",
+      "needsReview": "Needs review",
+      "probablySpam": "Probably spam",
+      "outOfContext": "Out of context",
+      "invalidLocation": "Invalid location",
+      "checking": "Checking…",
+      "unverified": "Unverified"
+    },
+    "role": {
+      "citizen": "Citizen",
+      "admin": "Admin",
+      "policeSupervisor": "Supervisor",
+      "police": "Police",
+      "emergency": "Emergency",
+      "officialReporter": "Official reporter"
+    },
+    "card": {
+      "viewProfile": "View {{name}}'s profile",
+      "officialReporterTitle": "Official reporter",
+      "trustScoreTitle": "Trust score: {{score}}",
+      "reportedLocation": "Location not specified",
+      "spamConfidenceTitle": "Spam score: {{spam}}% · Confidence: {{confidence}}%",
+      "credibility": "credibility",
+      "spam": "Spam",
+      "whyThisScore": "Why this score?",
+      "credibilityEmpty": "No details available.",
+      "viewDetails": "View details",
+      "untitledReport": "Untitled report",
+      "noDescription": "No description provided.",
+      "readMore": "Read more",
+      "openPhoto": "Open photo {{index}} of {{total}}",
+      "reportPhoto": "Report photo",
+      "reportImage": "Report image",
+      "openIncident": "Open incident"
+    },
+    "actions": {
+      "shareTitle": "SIARA Incident",
+      "like": "Like",
+      "sawIt": "Saw it",
+      "comment": "Comment",
+      "shareReport": "Share report",
+      "copied": "Copied!",
+      "share": "Share"
+    },
+    "comment": {
+      "errorPost": "Failed to post comment.",
+      "errorLoad": "Failed to load comments.",
+      "count_one": "{{count}} comment",
+      "count_other": "{{count}} comments",
+      "comments": "Comments",
+      "anonymous": "Anonymous",
+      "deleteComment": "Delete comment",
+      "viewAll_one": "View {{count}} comment",
+      "viewAll_other": "View all {{count}} comments",
+      "you": "You",
+      "placeholder": "Add a comment…",
+      "signInPlaceholder": "Sign in to comment",
+      "postComment": "Post comment"
+    },
+    "lightbox": {
+      "photoPreview": "Photo preview",
+      "zoomOut": "Zoom out",
+      "resetZoom": "Reset zoom",
+      "zoomIn": "Zoom in",
+      "closePreview": "Close preview",
+      "prevPhoto": "Previous photo",
+      "nextPhoto": "Next photo"
+    },
+    "feedTab": {
+      "latest": "Latest",
+      "nearby": "Nearby",
+      "verified": "Verified",
+      "following": "Following"
+    },
+    "sortOption": {
+      "mostRecent": "Most recent",
+      "severity": "Severity"
+    },
+    "nearby": {
+      "finding": "Finding your location…",
+      "showingWithin": "Showing reports within {{km}} km",
+      "unavailable": "Location unavailable. Showing latest reports instead."
+    },
+    "feed": {
+      "errorLoad": "Failed to load reports.",
+      "errorLoadMore": "Failed to load more reports.",
+      "loadingLive": "Loading live feed…",
+      "unavailable": "Feed unavailable",
+      "noReports": "No reports found",
+      "foundMatching_one": "{{count}} result matching your search",
+      "foundMatching_other": "{{count}} results matching your search",
+      "showing_one": "Showing {{count}} report",
+      "showing_other": "Showing {{count}} reports",
+      "sortBy": "Sort by:",
+      "sortReports": "Sort reports",
+      "sortOptions": "Sort options",
+      "errorTitle": "Feed error",
+      "loadingTitle": "Loading…",
+      "loadingDesc": "Fetching the latest reports for you.",
+      "followingUnavailable": "Following not supported",
+      "noReportsFound": "No reports found",
+      "tryDifferentSearch": "Try a different search term.",
+      "followingDesc": "The following feed is not yet supported. Try Latest or Nearby instead.",
+      "trySwitching": "Try switching to a different feed tab.",
+      "loadingMore": "Loading more…",
+      "showMore": "Show more",
+      "endOfFeed": "You've reached the end of the feed."
+    },
+    "search": {
+      "feedContributor": "Feed contributor",
+      "reportedIncident": "Reported incident",
+      "incidentReport": "Incident report",
+      "placeholder": "Search incidents or people…",
+      "ariaLabel": "Search",
+      "menuAriaLabel": "Search suggestions",
+      "avatarAlt": "{{name}}'s avatar",
+      "account": "Account",
+      "report": "Report",
+      "noMatch": "No results found"
+    },
+    "profile": {
+      "guestDriver": "Guest Driver",
+      "ariaLabel": "User menu",
+      "avatarAlt": "Your avatar",
+      "alt": "Profile avatar",
+      "bio": "Road safety community member",
+      "viewProfile": "View profile"
+    },
+    "dropdown": {
+      "myProfile": "My profile"
+    },
+    "nav": {
+      "feed": "Feed",
+      "report": "Report",
+      "dashboard": "Dashboard"
+    },
+    "filters": {
+      "smartFilters": "Smart Filters",
+      "hide": "Hide",
+      "show": "Show",
+      "feedMode": "Feed mode",
+      "sort": "Sort",
+      "severity": "Severity",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "savedFilters": "Saved Filters",
+      "latestReports": "Latest reports",
+      "verifiedSevere": "Verified & severe",
+      "reportsNearMe": "Reports near me"
+    },
+    "cta": {
+      "wantToReport": "Witnessed an incident? Share it with the community.",
+      "goToReportPage": "Report an incident"
+    },
+    "widget": {
+      "incidentsNearYou": "Incidents near you",
+      "yourLocation": "Your location",
+      "mappedReports_one": "{{count}} report on the map",
+      "mappedReports_other": "{{count}} reports on the map",
+      "noMappedReports": "No reports on the map",
+      "openFullMap": "Open full map",
+      "trendingIncidents": "Trending incidents",
+      "info": "Info",
+      "report": "Report",
+      "trendingEmpty": "No trending incidents at the moment.",
+      "seeMore": "See more on the map",
+      "priorityAlerts": "Priority alerts",
+      "alertItem": "{{title}} — {{location}}",
+      "selectedArea": "Selected area",
+      "alertsEmpty": "No priority alerts right now.",
+      "enableAlerts": "Enable alerts",
+      "quickActions": "Quick actions",
+      "addReport": "Add a report",
+      "openIncidentMap": "Open incident map"
+    }
+  },
+  "notificationsPage": {
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo_one": "{{count}} min ago",
+      "minutesAgo_other": "{{count}} min ago",
+      "hoursAgo_one": "{{count}} h ago",
+      "hoursAgo_other": "{{count}} h ago",
+      "daysAgo_one": "{{count}} d ago",
+      "daysAgo_other": "{{count}} d ago",
+      "unknown": "Unknown time"
+    },
+    "actionNeeded": "Action needed",
+    "unread": "Unread",
+    "read": "Read",
+    "aboutThisReport": "About this report",
+    "severityLabel": "severity",
+    "moderatorQuestion": "Moderator's question",
+    "reply": {
+      "sent": "Response sent.",
+      "sentDetail": "The moderator was notified — they'll follow up on your report.",
+      "sentDetailPanel": "The moderator has been notified — they'll follow up on this report.",
+      "placeholder": "Type your reply to the moderator…",
+      "placeholderPanel": "Type the extra info the moderator asked for…",
+      "sending": "Sending…",
+      "sendReply": "Send reply",
+      "sendResponse": "Send response",
+      "sendError": "Failed to send response"
+    },
+    "support": {
+      "yourOriginalMessage": "Your original message",
+      "yourMessage": "Your message",
+      "repliedBy": "{{name}} replied",
+      "siaraTeamReplied": "SIARA team replied"
+    },
+    "signInPrompt": {
+      "title": "Sign in to view your notifications",
+      "body": "Live incident alerts appear here after you log in and create alert rules.",
+      "cta": "Go to login"
+    },
+    "searchPlaceholder": "Search notifications, incidents, zones...",
+    "userAvatarAlt": "User avatar",
+    "dropdown": {
+      "myProfile": "My Profile"
+    },
+    "filters": {
+      "title": "Filters",
+      "status": "Status",
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read",
+      "priority": "Priority",
+      "time": "Time",
+      "allTime": "All time",
+      "today": "Today",
+      "sevenDays": "7 days"
+    },
+    "priority": {
+      "high": "High",
+      "med": "Med",
+      "medium": "Medium",
+      "low": "Low",
+      "normal": "Normal"
+    },
+    "prioritySuffix": "Priority",
+    "summary": {
+      "title": "Summary",
+      "visible": "Visible",
+      "total": "Total"
+    },
+    "profileBio": "Browse live road reports and share updates from the field.",
+    "viewProfile": "View Profile",
+    "unreadBadge": "{{count}} unread",
+    "markAllRead": "Mark all as read",
+    "loadingDetail": "Your latest alerts are on the way.",
+    "empty": {
+      "title": "No notifications",
+      "body": "Create an alert to start receiving live incident updates.",
+      "createAlert": "Create an alert",
+      "exploreMap": "Explore map"
+    },
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "older": "Older"
+    },
+    "description": "Description",
+    "conversation": "Conversation",
+    "subject": "Subject",
+    "incidentDetails": "Incident Details",
+    "detail": {
+      "report": "Report",
+      "zone": "Zone",
+      "location": "Location",
+      "occurred": "Occurred",
+      "event": "Event"
+    },
+    "dangerScore": "Danger Score",
+    "dangerScale": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "quickActions": "Quick Actions",
+    "sendAnotherMessage": "Send another message",
+    "markAsRead": "Mark as Read",
+    "respondToModerator": "Respond to moderator",
+    "openRelatedIncident": "Open Related Incident",
+    "viewOnMap": "View on Map",
+    "recentAlerts": "Recent Alerts",
+    "noSelected": {
+      "title": "No notification selected",
+      "body": "Click any notification in the list to see its full details here."
+    }
+  },
+  "predictionsPage": {
+    "searchPlaceholder": "Search for an incident, a road, a wilaya…",
+    "ariaUserProfile": "User profile",
+    "ariaUserAvatar": "User avatar",
+    "ariaProfile": "Profile",
+    "profileBio": "Browse live road reports and share updates from the field.",
+    "viewProfile": "View Profile",
+    "modelSidebar": {
+      "title": "AI Model",
+      "version": "Version",
+      "algorithm": "Algorithm",
+      "lastUpdate": "Last Update",
+      "today": "Today",
+      "status": "Status",
+      "active": "Active",
+      "accuracy": "Accuracy"
+    },
+    "dataSourcesTitle": "Data Sources",
+    "dataSources": {
+      "citizenReports": "Citizen reports",
+      "weatherSensors": "Weather sensors (ONM)",
+      "trafficFlow": "DGRSDT traffic flow",
+      "historicalData": "DGSN historical data"
+    },
+    "hero": {
+      "aiModelActive": "AI Model Active",
+      "title": "Advanced",
+      "titleHighlight": "Predictions",
+      "subtitle": "Harness the power of our machine-learning-based predictive engine to anticipate risk zones, analyze temporal trends, and make informed decisions in real time.",
+      "kpiDataPoints": "Data Points Analyzed",
+      "kpiProvinces": "Provinces Covered",
+      "kpiAccuracy": "Accuracy",
+      "kpiResponseTime": "Response Time"
+    },
+    "features": {
+      "statusReady": "Ready",
+      "statusBeta": "Beta",
+      "statusComingSoon": "Coming Soon",
+      "heatmaps": {
+        "title": "Heat Maps",
+        "description": "Visualization of accident density zones with dynamic risk layer overlay across 48 provinces.",
+        "update": "Update: 5 min",
+        "coverage": "48 provinces"
+      },
+      "timeSeries": {
+        "title": "Time Series",
+        "description": "Predictive analysis by time slot and seasonality with LSTM and LightGBM models trained on 5 years of data.",
+        "horizon": "Horizon: 24h"
+      },
+      "export": {
+        "title": "Export & Reports",
+        "description": "Automatic generation of PDF reports and CSV/GeoJSON export for authorities and researchers.",
+        "certified": "Certified"
+      }
+    },
+    "viz": {
+      "title": "Predictive Overview — Risk Distribution by Zone",
+      "tabHeatmap": "Heatmap",
+      "tabTimeline": "Timeline",
+      "tabClusters": "Clusters",
+      "overlayText": "Full visualization coming soon",
+      "overlaySub": "The model is being calibrated on your regional data"
+    },
+    "zones": {
+      "title": "Risk Zone Ranking",
+      "updated": "Updated: {{time}}",
+      "colZone": "Zone",
+      "colWilaya": "Wilaya",
+      "colScore": "Score",
+      "colTrend": "Trend",
+      "colLevel": "Level"
+    },
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "howItWorks": {
+      "title": "How Does It Work?",
+      "step1": {
+        "title": "Data Collection",
+        "description": "Citizen reports, ONM weather sensors, DGSN historical data (5 years), and real-time DGRSDT traffic flow combined in a unified pipeline."
+      },
+      "step2": {
+        "title": "Feature Engineering",
+        "description": "Extraction of 120+ variables: weather conditions, road density, hour/day/season, proximity to schools/hospitals, history by zone."
+      },
+      "step3": {
+        "title": "Predictive Model",
+        "description": "LightGBM + CatBoost ensemble with temporal cross-validation. Risk score 0–100 generated by geographic zone and time slot."
+      },
+      "step4": {
+        "title": "Smart Alerts",
+        "description": "Proactive push notifications sent to users before entering a high-risk zone, with suggested alternate route."
+      }
+    },
+    "techStack": {
+      "title": "Technology Stack"
+    },
+    "modelStatus": {
+      "title": "Model Status",
+      "lastUpdateValue": "Today, 08:30",
+      "overallConfidence": "Overall Confidence",
+      "recall": "Recall",
+      "f1Score": "F1-Score"
+    },
+    "forecast": {
+      "title": "Risk Forecast"
+    },
+    "featureImportance": {
+      "title": "Feature Importance",
+      "weather": "Weather",
+      "hour": "Hour",
+      "traffic": "Traffic",
+      "history": "History",
+      "roadInfra": "Road Infra.",
+      "daySeason": "Day/Season"
+    },
+    "liveActivity": {
+      "title": "Live Activity"
+    },
+    "activity": {
+      "riskPeakRN5": "Risk peak detected – RN5 Algiers",
+      "modelRecalibrated": "Model recalibrated – Bab Ezzouar area",
+      "riskReducedHydra": "Risk reduced – Hydra after roadwork",
+      "newWeatherDataset": "New weather dataset integrated",
+      "schoolAlertBMR": "School alert – Bir Mourad Raïs 08h"
+    },
+    "cta": {
+      "title": "Early Access",
+      "description": "Be among the first to test real-time predictions on your daily route.",
+      "button": "View on Map"
+    },
+    "predictiveAlerts": {
+      "title": "Predictive Alerts",
+      "alert1": "• Risk peak expected at 5 PM – Algiers Centre",
+      "alert2": "• Heavy rain expected tomorrow morning",
+      "alert3": "• School zone – increased risk 08h-09h",
+      "alert4": "• Fog expected A1 – reduced visibility",
+      "manageButton": "Manage Alerts"
+    }
+  },
+  "roadProfilePage": {
+    "title": "Road / zone safety profile",
+    "subtitle": "Look up the accident-history fingerprint of any zone — peak hours, common report types, recent activity, and trend.",
+    "fields": {
+      "latitude": "Latitude",
+      "latitudePlaceholder": "36.7538",
+      "longitude": "Longitude",
+      "longitudePlaceholder": "3.0588",
+      "radius": "Radius (m)"
+    },
+    "actions": {
+      "loadProfile": "Load profile"
+    },
+    "status": {
+      "loadingProfile": "Loading profile…",
+      "noReports": "No accident reports recorded in this area. Try a larger radius or a different point."
+    },
+    "errors": {
+      "invalidCoords": "Enter valid latitude and longitude.",
+      "loadFailed": "Failed to load profile"
+    }
+  },
+  "userDashboardPage": {
+    "unavailable": "Unavailable",
+    "errors": {
+      "loadDashboard": "Unable to load your dashboard right now.",
+      "loadTravelHistory": "Unable to load travel history"
+    },
+    "nav": {
+      "feed": "Feed",
+      "report": "Report",
+      "dashboard": "Dashboard"
+    },
+    "searchPlaceholder": "Search for an incident, a road, a wilaya...",
+    "userProfileAriaLabel": "User profile",
+    "userAvatarAlt": "User avatar",
+    "dropdown": {
+      "myProfile": "My Profile"
+    },
+    "profileBio": "Browse live road reports and share updates from the field.",
+    "viewProfile": "View Profile",
+    "dashboardUnavailable": "Dashboard unavailable",
+    "loadingDashboard": "Loading live dashboard...",
+    "loadingDashboardCaption": "Pulling current SIARA incident, alert, and risk data.",
+    "riskOverview": {
+      "title": "Your Current Risk Overview",
+      "updated": "Updated {{time}}",
+      "vsYesterday": "vs yesterday",
+      "aiConfidence": "AI Confidence:",
+      "sevenDayTrend": "7-day trend"
+    },
+    "volatility": {
+      "title": "Risk Volatility Index",
+      "period24h": "24h"
+    },
+    "severityPressure": {
+      "title": "Severity Pressure",
+      "changeVsLastWeek": "Change vs last week"
+    },
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "distribution": {
+      "title": "24-Hour Incident Distribution",
+      "incidents": "{{count}} incidents",
+      "caption": "Powered by the last 24 hours of incidents in your {{scope}}.",
+      "watchedZones": "watched zones",
+      "systemFallback": "system fallback"
+    },
+    "factors": {
+      "title": "Top Contributing Factors",
+      "noData": "No factor data available yet.",
+      "caption": "Explains why risk increased."
+    },
+    "exposure": {
+      "title": "Your Exposure Index",
+      "monitoredZones": "Monitored zones",
+      "activeAlerts": "Active alerts",
+      "commuteDetected": "Commute detected"
+    },
+    "forecast": {
+      "title": "Risk Forecast — Next 48 Hours",
+      "noData": "Forecast data is not available yet."
+    },
+    "roads": {
+      "title": "High-Risk Road Ranking",
+      "colRoad": "Road",
+      "colRiskScore": "Risk Score",
+      "colChange": "Change",
+      "noData": "No road risk data available yet."
+    },
+    "travelHistory": {
+      "title": "My Travel History",
+      "refresh": "Refresh",
+      "loading": "Loading your completed trips…",
+      "empty": "No completed trips yet. Start route guidance from the map to build your travel history.",
+      "savedTrip": "Saved trip",
+      "distance": "Distance",
+      "duration": "Duration",
+      "route": "Route",
+      "notRated": "Not rated yet",
+      "viewDetails": "View details"
+    },
+    "alerts": {
+      "title": "Active Alerts",
+      "viewAll": "View all",
+      "triggeredThisWeek": "Triggered this week",
+      "matchedHighSeverity": "Matched high severity",
+      "falseAlertRatio": "False alert ratio",
+      "colAlert": "Alert",
+      "colArea": "Area",
+      "colSeverity": "Severity",
+      "colLastTrigger": "Last Trigger",
+      "colStatus": "Status",
+      "noData": "No active alerts yet.",
+      "statusActive": "Active",
+      "statusScheduled": "Scheduled"
+    },
+    "volatileZone": {
+      "title": "Most Volatile Zone Today",
+      "risk": "Risk:",
+      "riskChange": "risk change",
+      "viewOnMap": "View on Map",
+      "noData": "No zone volatility detected yet."
+    },
+    "insight": {
+      "title": "AI Insight of the Week",
+      "noData": "Insights will appear as soon as SIARA has enough recent activity."
+    },
+    "systemOverview": {
+      "title": "System Overview",
+      "totalIncidents": "Total incidents",
+      "aiConfidence": "AI confidence",
+      "vsLastWeek": "vs last week"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "reportIncident": "Report Incident",
+      "createAlert": "Create Alert",
+      "drivingQuiz": "Driving Quiz"
+    }
+  }
+}

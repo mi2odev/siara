@@ -1,47 +1,5 @@
+import { useTranslation } from 'react-i18next'
 import RouteExplanationCard from '../../components/map/RouteExplanationCard'
-
-const SAMPLE_REASONS = [
-  {
-    id: 'r1',
-    type: 'cluster',
-    label: 'Avoids 2 high-risk accident clusters',
-    detail: 'Bab Ezzouar junction & RN24 km 12 (18 reports last 30 days)',
-    impact: 'positive',
-    impactLabel: '−24% risk',
-  },
-  {
-    id: 'r2',
-    type: 'segment',
-    label: '1 high-risk road segment skipped',
-    detail: 'Steep curve on RN5 with 4 severe reports',
-    impact: 'positive',
-    impactLabel: '−8% risk',
-  },
-  {
-    id: 'r3',
-    type: 'reports',
-    label: '3 recent reports near route',
-    detail: '2 verified by police, 1 pending review',
-    impact: 'neutral',
-    impactLabel: 'monitor',
-  },
-  {
-    id: 'r4',
-    type: 'time',
-    label: 'Evening rush hour ahead',
-    detail: 'Departure at 17:42 — peak risk window 17:00–20:00',
-    impact: 'negative',
-    impactLabel: '+5% risk',
-  },
-  {
-    id: 'r5',
-    type: 'tradeoff',
-    label: 'Adds 4 minutes vs. fastest route',
-    detail: 'Recommended for 32% lower predicted risk',
-    impact: 'neutral',
-    impactLabel: '+4 min',
-  },
-]
 
 const wrapStyle = {
   minHeight: '100vh',
@@ -76,14 +34,59 @@ const labelStyle = {
 }
 
 export default function RouteExplanationPreviewPage() {
+  const { t } = useTranslation(['pages', 'common'])
+
+  const SAMPLE_REASONS = [
+    {
+      id: 'r1',
+      type: 'cluster',
+      label: t('routeExplanationPreviewPage.reasons.r1.label'),
+      detail: t('routeExplanationPreviewPage.reasons.r1.detail'),
+      impact: 'positive',
+      impactLabel: t('routeExplanationPreviewPage.reasons.r1.impactLabel'),
+    },
+    {
+      id: 'r2',
+      type: 'segment',
+      label: t('routeExplanationPreviewPage.reasons.r2.label'),
+      detail: t('routeExplanationPreviewPage.reasons.r2.detail'),
+      impact: 'positive',
+      impactLabel: t('routeExplanationPreviewPage.reasons.r2.impactLabel'),
+    },
+    {
+      id: 'r3',
+      type: 'reports',
+      label: t('routeExplanationPreviewPage.reasons.r3.label'),
+      detail: t('routeExplanationPreviewPage.reasons.r3.detail'),
+      impact: 'neutral',
+      impactLabel: t('routeExplanationPreviewPage.reasons.r3.impactLabel'),
+    },
+    {
+      id: 'r4',
+      type: 'time',
+      label: t('routeExplanationPreviewPage.reasons.r4.label'),
+      detail: t('routeExplanationPreviewPage.reasons.r4.detail'),
+      impact: 'negative',
+      impactLabel: t('routeExplanationPreviewPage.reasons.r4.impactLabel'),
+    },
+    {
+      id: 'r5',
+      type: 'tradeoff',
+      label: t('routeExplanationPreviewPage.reasons.r5.label'),
+      detail: t('routeExplanationPreviewPage.reasons.r5.detail'),
+      impact: 'neutral',
+      impactLabel: t('routeExplanationPreviewPage.reasons.r5.impactLabel'),
+    },
+  ]
+
   return (
     <div style={wrapStyle}>
-      <h1 style={headingStyle}>RouteExplanationCard — design preview</h1>
+      <h1 style={headingStyle}>{t('routeExplanationPreviewPage.heading')}</h1>
 
       <div style={sectionStyle}>
-        <span style={labelStyle}>Default state (balanced route, moderate risk)</span>
+        <span style={labelStyle}>{t('routeExplanationPreviewPage.sections.default.label')}</span>
         <RouteExplanationCard
-          summary="SIARA recommends this route because it avoids 2 high-risk accident clusters and has 32% lower predicted risk than the fastest route. It adds 4 minutes but skips a high-severity area near the destination."
+          summary={t('routeExplanationPreviewPage.sections.default.summary')}
           reasons={SAMPLE_REASONS}
           comparison={{
             fastestRisk: 62,
@@ -94,45 +97,38 @@ export default function RouteExplanationPreviewPage() {
           recommendedRouteType="balanced"
           recommendedRiskLevel="moderate"
           recommendedRiskPercent={39}
-          details={
-            'Risk model: SIARA v2 (gradient-boosted)\n' +
-            'Sampled 12 points along route\n' +
-            'Heatmap clusters within 200m: 2\n' +
-            'Reports within 500m last 7d: 3 (2 police-verified)\n' +
-            'Weather: clear, visibility good\n' +
-            'Time-of-day adjustment: +5% (evening rush)'
-          }
+          details={t('routeExplanationPreviewPage.sections.default.details')}
         />
       </div>
 
       <div style={sectionStyle}>
-        <span style={labelStyle}>High-risk warning state (fastest route, high risk)</span>
+        <span style={labelStyle}>{t('routeExplanationPreviewPage.sections.highRisk.label')}</span>
         <RouteExplanationCard
-          summary="The fastest route crosses 3 high-risk accident clusters. Consider the safer alternative — it adds 6 minutes but cuts predicted risk by more than half."
+          summary={t('routeExplanationPreviewPage.sections.highRisk.summary')}
           reasons={[
             {
               id: 'h1',
               type: 'cluster',
-              label: '3 high-risk clusters on route',
-              detail: 'Bab Ezzouar, El Harrach, RN5 km 18',
+              label: t('routeExplanationPreviewPage.sections.highRisk.reasons.h1.label'),
+              detail: t('routeExplanationPreviewPage.sections.highRisk.reasons.h1.detail'),
               impact: 'negative',
-              impactLabel: '+34% risk',
+              impactLabel: t('routeExplanationPreviewPage.sections.highRisk.reasons.h1.impactLabel'),
             },
             {
               id: 'h2',
               type: 'reports',
-              label: '5 recent severe reports',
-              detail: '4 within last 24h, 2 police-verified',
+              label: t('routeExplanationPreviewPage.sections.highRisk.reasons.h2.label'),
+              detail: t('routeExplanationPreviewPage.sections.highRisk.reasons.h2.detail'),
               impact: 'negative',
-              impactLabel: 'high',
+              impactLabel: t('routeExplanationPreviewPage.sections.highRisk.reasons.h2.impactLabel'),
             },
             {
               id: 'h3',
               type: 'segment',
-              label: '2 dangerous segments traversed',
-              detail: 'Both flagged as high-severity in last 30 days',
+              label: t('routeExplanationPreviewPage.sections.highRisk.reasons.h3.label'),
+              detail: t('routeExplanationPreviewPage.sections.highRisk.reasons.h3.detail'),
               impact: 'negative',
-              impactLabel: '+12% risk',
+              impactLabel: t('routeExplanationPreviewPage.sections.highRisk.reasons.h3.impactLabel'),
             },
           ]}
           comparison={{
@@ -148,20 +144,20 @@ export default function RouteExplanationPreviewPage() {
       </div>
 
       <div style={sectionStyle}>
-        <span style={labelStyle}>Loading state</span>
+        <span style={labelStyle}>{t('routeExplanationPreviewPage.sections.loading.label')}</span>
         <RouteExplanationCard loading />
       </div>
 
       <div style={sectionStyle}>
-        <span style={labelStyle}>Error state</span>
+        <span style={labelStyle}>{t('routeExplanationPreviewPage.sections.error.label')}</span>
         <RouteExplanationCard
-          error="Could not generate an explanation. Showing risk numbers only."
+          error={t('routeExplanationPreviewPage.sections.error.errorMessage')}
           onRetry={() => undefined}
         />
       </div>
 
       <div style={sectionStyle}>
-        <span style={labelStyle}>Empty state</span>
+        <span style={labelStyle}>{t('routeExplanationPreviewPage.sections.empty.label')}</span>
         <RouteExplanationCard />
       </div>
     </div>

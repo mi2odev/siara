@@ -9,6 +9,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded'
 import ArrowDropUpRoundedIcon   from '@mui/icons-material/ArrowDropUpRounded'
@@ -37,15 +38,15 @@ import '../../styles/AdminIncidents.css'
 
 const EMPTY = '—'
 
-const TAB_DEFINITIONS = [
-  { key: 'all',            label: 'All'              },
-  { key: 'pending',        label: 'Pending'          },
-  { key: 'suspicious',     label: 'Suspected Spam'   },
-  { key: 'pending-review', label: 'Manual Review'    },
-  { key: 'ai-flagged',     label: 'AI-Flagged'       },
-  { key: 'community',      label: 'Community'        },
-  { key: 'merged',         label: 'Merged'           },
-  { key: 'archived',       label: 'Archived'         },
+const TAB_KEYS = [
+  'all',
+  'pending',
+  'suspicious',
+  'pending-review',
+  'ai-flagged',
+  'community',
+  'merged',
+  'archived',
 ]
 
 /* ──────────────────────────────────────────────────────────────────
@@ -114,15 +115,17 @@ function formatPercent(value, digits = 2) {
   return typeof value === 'number' ? `${value.toFixed(digits)}%` : EMPTY
 }
 
-function formatMlStatus(value) {
+function formatMlStatus(value, t) {
   const v = String(value || '').trim()
-  if (!v) return 'Not started'
+  if (!v) return t('adminIncidentsPage.mlStatus.notStarted')
   return v.replace(/[_-]+/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())
 }
 
-function formatPredictedLabel(value) {
-  if (!value) return 'Unclassified'
-  return value === 'spam' ? 'Spam' : 'Real'
+function formatPredictedLabel(value, t) {
+  if (!value) return t('adminIncidentsPage.predictedLabel.unclassified')
+  return value === 'spam'
+    ? t('adminIncidentsPage.predictedLabel.spam')
+    : t('adminIncidentsPage.predictedLabel.real')
 }
 
 function predictedPillKey(value) {
@@ -162,17 +165,17 @@ function trustKey(score) {
   return 'low'
 }
 
-function emptyStateText(filter, completedAiReports) {
+function emptyStateText(filter, completedAiReports, t) {
   if (filter === 'ai-flagged' && completedAiReports === 0) {
-    return 'AI verification is not active yet for incident reports.'
+    return t('adminIncidentsPage.emptyState.aiNotActive')
   }
-  if (filter === 'suspicious')     return 'No reports are currently classified as suspected spam.'
-  if (filter === 'pending-review') return 'No spam-classified reports are waiting for manual review.'
-  if (filter === 'community')      return 'No reports currently have open community flags.'
-  if (filter === 'merged')         return 'No merged incidents were found.'
-  if (filter === 'archived')       return 'No archived incidents were found.'
-  if (filter === 'pending')        return 'No pending incidents are waiting for review.'
-  return 'No incidents match the current filters.'
+  if (filter === 'suspicious')     return t('adminIncidentsPage.emptyState.suspicious')
+  if (filter === 'pending-review') return t('adminIncidentsPage.emptyState.pendingReview')
+  if (filter === 'community')      return t('adminIncidentsPage.emptyState.community')
+  if (filter === 'merged')         return t('adminIncidentsPage.emptyState.merged')
+  if (filter === 'archived')       return t('adminIncidentsPage.emptyState.archived')
+  if (filter === 'pending')        return t('adminIncidentsPage.emptyState.pending')
+  return t('adminIncidentsPage.emptyState.default')
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -212,6 +215,7 @@ function downloadCsv(rows) {
    ══════════════════════════════════════════════════════════════════ */
 
 export default function AdminIncidentsPage() {
+  const { t } = useTranslation(['admin', 'common'])
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
@@ -314,6 +318,11 @@ export default function AdminIncidentsPage() {
     )
   }
 
+  const TAB_DEFINITIONS = TAB_KEYS.map((key) => ({
+    key,
+    label: t(`adminIncidentsPage.tabs.${key}`),
+  }))
+
   return (
     <div className="incidents-root">
 
@@ -324,13 +333,18 @@ export default function AdminIncidentsPage() {
             <ShieldOutlinedIcon fontSize="inherit" />
           </div>
           <div>
-            <h1 className="incidents__title">Incident Management</h1>
+            <h1 className="incidents__title">{t('adminIncidentsPage.title')}</h1>
             <p className="incidents__title-meta">
-              <strong>{counts[filterParam] ?? 0}</strong> {filterParam === 'all' ? 'incidents' : `in ${TAB_DEFINITIONS.find((t) => t.key === filterParam)?.label.toLowerCase() || filterParam}`}
+              <strong>{counts[filterParam] ?? 0}</strong>{' '}
+              {filterParam === 'all'
+                ? t('adminIncidentsPage.meta.incidents')
+                : t('adminIncidentsPage.meta.inFilter', {
+                    filter: TAB_DEFINITIONS.find((tab) => tab.key === filterParam)?.label.toLowerCase() || filterParam,
+                  })}
               {' · '}
-              <strong>{counts.suspicious}</strong> suspicious
+              <strong>{counts.suspicious}</strong> {t('adminIncidentsPage.meta.suspicious')}
               {' · '}
-              <strong>{counts['pending-review']}</strong> manual review
+              <strong>{counts['pending-review']}</strong> {t('adminIncidentsPage.meta.manualReview')}
             </p>
           </div>
         </div>
@@ -341,7 +355,7 @@ export default function AdminIncidentsPage() {
             <input
               className="incidents__search-input"
               type="text"
-              placeholder="Search ID, title, location, reporter…"
+              placeholder={t('adminIncidentsPage.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -353,7 +367,7 @@ export default function AdminIncidentsPage() {
             disabled={!incidents.length}
           >
             <FileDownloadOutlinedIcon style={{ fontSize: 15 }} />
-            Export CSV
+            {t('adminIncidentsPage.exportCsv')}
           </button>
         </div>
       </header>
@@ -379,8 +393,8 @@ export default function AdminIncidentsPage() {
         <div className="incidents__error">
           <ErrorOutlineRoundedIcon style={{ fontSize: 18, marginTop: 1 }} />
           <span>
-            <span className="incidents__error-title">Unable to load incidents.</span>
-            {error.message || 'Please try again.'}
+            <span className="incidents__error-title">{t('adminIncidentsPage.error.unableToLoad')}</span>
+            {error.message || t('adminIncidentsPage.error.tryAgain')}
           </span>
         </div>
       ) : null}
@@ -400,40 +414,40 @@ export default function AdminIncidentsPage() {
             <thead>
               <tr>
                 <th className={sortField === 'id' ? 'is-sorted' : ''} onClick={() => toggleSort('id')}>
-                  ID <SortArrow field="id" />
+                  {t('adminIncidentsPage.columns.id')} <SortArrow field="id" />
                 </th>
                 <th className={sortField === 'incidentType' ? 'is-sorted' : ''} onClick={() => toggleSort('incidentType')}>
-                  Type <SortArrow field="incidentType" />
+                  {t('adminIncidentsPage.columns.type')} <SortArrow field="incidentType" />
                 </th>
                 <th className={sortField === 'location' ? 'is-sorted' : ''} onClick={() => toggleSort('location')}>
-                  Location <SortArrow field="location" />
+                  {t('adminIncidentsPage.columns.location')} <SortArrow field="location" />
                 </th>
                 <th className={sortField === 'severity' ? 'is-sorted' : ''} onClick={() => toggleSort('severity')}>
-                  Severity <SortArrow field="severity" />
+                  {t('adminIncidentsPage.columns.severity')} <SortArrow field="severity" />
                 </th>
                 <th className={sortField === 'spamScore' ? 'is-sorted' : ''} onClick={() => toggleSort('spamScore')}>
-                  Spam Analysis <SortArrow field="spamScore" />
+                  {t('adminIncidentsPage.columns.spamAnalysis')} <SortArrow field="spamScore" />
                 </th>
                 <th className={sortField === 'confidence' ? 'is-sorted' : ''} onClick={() => toggleSort('confidence')}>
-                  AI Confidence <SortArrow field="confidence" />
+                  {t('adminIncidentsPage.columns.aiConfidence')} <SortArrow field="confidence" />
                 </th>
                 <th className={sortField === 'reporterScore' ? 'is-sorted' : ''} onClick={() => toggleSort('reporterScore')}>
-                  Reporter <SortArrow field="reporterScore" />
+                  {t('adminIncidentsPage.columns.reporter')} <SortArrow field="reporterScore" />
                 </th>
                 <th className={sortField === 'createdAt' ? 'is-sorted' : ''} onClick={() => toggleSort('createdAt')}>
-                  Reported <SortArrow field="createdAt" />
+                  {t('adminIncidentsPage.columns.reported')} <SortArrow field="createdAt" />
                 </th>
                 <th className={sortField === 'status' ? 'is-sorted' : ''} onClick={() => toggleSort('status')}>
-                  Status <SortArrow field="status" />
+                  {t('adminIncidentsPage.columns.status')} <SortArrow field="status" />
                 </th>
-                <th style={{ cursor: 'default' }}>Action</th>
+                <th style={{ cursor: 'default' }}>{t('adminIncidentsPage.columns.action')}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={10}>
-                    <div className="incidents__placeholder">Loading incidents…</div>
+                    <div className="incidents__placeholder">{t('adminIncidentsPage.loadingIncidents')}</div>
                   </td>
                 </tr>
               ) : incidents.length > 0 ? (
@@ -448,8 +462,8 @@ export default function AdminIncidentsPage() {
                 <tr>
                   <td colSpan={10}>
                     <div className="incidents__placeholder">
-                      <h3 className="incidents__placeholder-title">No incidents found</h3>
-                      {emptyStateText(filterParam, meta.completedAiReports)}
+                      <h3 className="incidents__placeholder-title">{t('adminIncidentsPage.emptyState.title')}</h3>
+                      {emptyStateText(filterParam, meta.completedAiReports, t)}
                     </div>
                   </td>
                 </tr>
@@ -460,10 +474,15 @@ export default function AdminIncidentsPage() {
 
         <div className="incidents__footer">
           <span>
-            Showing <strong>{incidents.length}</strong> of <strong>{counts[filterParam] ?? 0}</strong> incidents
+            {t('adminIncidentsPage.footer.showing', {
+              shown: incidents.length,
+              total: counts[filterParam] ?? 0,
+            })}
           </span>
           <span>
-            <strong>{counts.suspicious}</strong> suspicious · <strong>{counts['pending-review']}</strong> awaiting manual review
+            <strong>{counts.suspicious}</strong> {t('adminIncidentsPage.footer.suspicious')}
+            {' · '}
+            <strong>{counts['pending-review']}</strong> {t('adminIncidentsPage.footer.awaitingReview')}
           </span>
         </div>
       </div>
@@ -475,20 +494,26 @@ export default function AdminIncidentsPage() {
    SORT MENU — compact dropdown listing every (field, dir) combo
    ══════════════════════════════════════════════════════════════════ */
 
-const SORT_MENU_ITEMS = [
-  { field: 'createdAt', dir: 'desc', label: 'Newest first',       Icon: AccessTimeRoundedIcon },
-  { field: 'createdAt', dir: 'asc',  label: 'Oldest first',       Icon: AccessTimeRoundedIcon },
-  { field: 'severity',  dir: 'desc', label: 'Severity · High → Low', Icon: SignalCellularAltRoundedIcon },
-  { field: 'severity',  dir: 'asc',  label: 'Severity · Low → High', Icon: SignalCellularAltRoundedIcon },
-  { field: 'id',        dir: 'asc',  label: 'ID · A → Z',         Icon: TagRoundedIcon },
-  { field: 'id',        dir: 'desc', label: 'ID · Z → A',         Icon: TagRoundedIcon },
-  { field: 'reporter',  dir: 'asc',  label: 'User · A → Z',       Icon: PersonOutlineRoundedIcon },
-  { field: 'reporter',  dir: 'desc', label: 'User · Z → A',       Icon: PersonOutlineRoundedIcon },
+const SORT_MENU_ITEM_KEYS = [
+  { field: 'createdAt', dir: 'desc', tKey: 'newestFirst',     Icon: AccessTimeRoundedIcon },
+  { field: 'createdAt', dir: 'asc',  tKey: 'oldestFirst',     Icon: AccessTimeRoundedIcon },
+  { field: 'severity',  dir: 'desc', tKey: 'severityHighLow', Icon: SignalCellularAltRoundedIcon },
+  { field: 'severity',  dir: 'asc',  tKey: 'severityLowHigh', Icon: SignalCellularAltRoundedIcon },
+  { field: 'id',        dir: 'asc',  tKey: 'idAZ',            Icon: TagRoundedIcon },
+  { field: 'id',        dir: 'desc', tKey: 'idZA',            Icon: TagRoundedIcon },
+  { field: 'reporter',  dir: 'asc',  tKey: 'userAZ',          Icon: PersonOutlineRoundedIcon },
+  { field: 'reporter',  dir: 'desc', tKey: 'userZA',          Icon: PersonOutlineRoundedIcon },
 ]
 
 function SortMenu({ sortField, sortDir, onChange }) {
+  const { t } = useTranslation(['admin'])
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
+
+  const SORT_MENU_ITEMS = SORT_MENU_ITEM_KEYS.map((item) => ({
+    ...item,
+    label: t(`adminIncidentsPage.sortMenu.${item.tKey}`),
+  }))
 
   const active = SORT_MENU_ITEMS.find((i) => i.field === sortField && i.dir === sortDir)
     || SORT_MENU_ITEMS[0]
@@ -518,7 +543,7 @@ function SortMenu({ sortField, sortDir, onChange }) {
         onClick={() => setOpen((o) => !o)}
       >
         <SortRoundedIcon style={{ fontSize: 14, color: 'currentColor', opacity: 0.7 }} />
-        <span className="incidents__sort-trigger-label">Sort:</span>
+        <span className="incidents__sort-trigger-label">{t('adminIncidentsPage.sortMenu.label')}</span>
         <span className="incidents__sort-trigger-value">{active.label}</span>
         <span className="incidents__sort-trigger-caret">
           <KeyboardArrowDownRoundedIcon style={{ fontSize: 16 }} />
@@ -527,7 +552,7 @@ function SortMenu({ sortField, sortDir, onChange }) {
 
       {open ? (
         <div className="incidents__sort-menu" role="menu">
-          <div className="incidents__sort-menu-section">Sort by</div>
+          <div className="incidents__sort-menu-section">{t('adminIncidentsPage.sortMenu.sortBy')}</div>
           {SORT_MENU_ITEMS.map((item, idx) => {
             const isActive = item.field === active.field && item.dir === active.dir
             const { Icon } = item
@@ -613,6 +638,7 @@ function TabsRow({ tabs, activeKey, counts, onSelect }) {
 // name from the coordinates. Falls back to the raw coordinates only if the
 // lookup fails.
 function GenericLocationName({ coordinates }) {
+  const { t } = useTranslation(['admin'])
   const [state, setState] = useState({ loading: true, name: null })
   useEffect(() => {
     let active = true
@@ -623,13 +649,14 @@ function GenericLocationName({ coordinates }) {
     return () => { active = false }
   }, [coordinates?.lat, coordinates?.lng])
 
-  if (state.loading) return <span className="iy-loc-coords">Locating…</span>
+  if (state.loading) return <span className="iy-loc-coords">{t('adminIncidentsPage.locating')}</span>
   const text = state.name || formatCoords(coordinates)
   if (!text) return null
   return <span className="iy-loc-coords">{text}</span>
 }
 
 function IncidentRow({ incident, onReview }) {
+  const { t } = useTranslation(['admin'])
   const flagged = incident.pendingSpamReview || incident.predictedLabel === 'spam'
 
   const verdictKey = incident.pendingSpamReview
@@ -638,8 +665,8 @@ function IncidentRow({ incident, onReview }) {
   const verdictLabel = incident.reviewVerdict
     ? formatVerdictLabel(incident.reviewVerdict)
     : incident.pendingSpamReview
-      ? 'Pending review'
-      : formatMlStatus(incident.mlStatus)
+      ? t('adminIncidentsPage.pendingReviewLabel')
+      : formatMlStatus(incident.mlStatus, t)
 
   const trust = trustKey(incident.reporterScore)
 
@@ -651,7 +678,7 @@ function IncidentRow({ incident, onReview }) {
           <span className="iy-id__code">{incident.displayId}</span>
           {incident.mergedChildCount > 0 ? (
             <span
-              title={`Consolidated report — ${incident.mergedChildCount + 1} reports merged together`}
+              title={t('adminIncidentsPage.mergedTitle', { count: incident.mergedChildCount + 1 })}
               style={{
                 marginTop: 4,
                 display: 'inline-block',
@@ -664,7 +691,7 @@ function IncidentRow({ incident, onReview }) {
                 width: 'fit-content',
               }}
             >
-              {incident.mergedChildCount + 1} reports merged
+              {t('adminIncidentsPage.mergedBadge', { count: incident.mergedChildCount + 1 })}
             </span>
           ) : null}
         </div>
@@ -695,7 +722,7 @@ function IncidentRow({ incident, onReview }) {
         <div className="iy-spam">
           <div className="iy-spam__pills">
             <span className={`iy-pill iy-pill--${predictedPillKey(incident.predictedLabel)}`}>
-              {formatPredictedLabel(incident.predictedLabel)}
+              {formatPredictedLabel(incident.predictedLabel, t)}
             </span>
             <span className={`iy-pill iy-pill--${verdictKey}`}>
               {verdictLabel}
@@ -703,15 +730,15 @@ function IncidentRow({ incident, onReview }) {
           </div>
           <div className="iy-spam__meta">
             <div className="iy-spam__meta-row">
-              <span className="iy-spam__meta-label">Spam score</span>
+              <span className="iy-spam__meta-label">{t('adminIncidentsPage.spam.spamScore')}</span>
               <span className="iy-spam__meta-value">{formatPercent(incident.spamScore)}</span>
             </div>
             <div className="iy-spam__meta-row">
-              <span className="iy-spam__meta-label">ML confidence</span>
+              <span className="iy-spam__meta-label">{t('adminIncidentsPage.spam.mlConfidence')}</span>
               <span className="iy-spam__meta-value">{formatPercent(incident.mlConfidence)}</span>
             </div>
             <div className="iy-spam__meta-row">
-              <span className="iy-spam__meta-label">Model</span>
+              <span className="iy-spam__meta-label">{t('adminIncidentsPage.spam.model')}</span>
               <span className="iy-spam__meta-value">{incident.modelVersion || EMPTY}</span>
             </div>
           </div>
@@ -732,8 +759,8 @@ function IncidentRow({ incident, onReview }) {
           </div>
         ) : (
           <span className="iy-conf__empty">
-            {incident.confidenceStatus === 'pending' ? 'Pending AI'
-              : incident.confidenceStatus === 'failed' ? 'AI failed'
+            {incident.confidenceStatus === 'pending' ? t('adminIncidentsPage.aiConfidence.pending')
+              : incident.confidenceStatus === 'failed' ? t('adminIncidentsPage.aiConfidence.failed')
               : EMPTY}
           </span>
         )}
@@ -744,7 +771,7 @@ function IncidentRow({ incident, onReview }) {
         <span className={`iy-trust iy-trust--${trust}`}>
           {typeof incident.reporterScore === 'number'
             ? `${incident.reporterScore.toFixed(1)}%`
-            : 'Not provided'}
+            : t('adminIncidentsPage.reporter.notProvided')}
         </span>
       </td>
 
@@ -764,7 +791,7 @@ function IncidentRow({ incident, onReview }) {
           </span>
           {incident.openFlagCount > 0 ? (
             <span className="iy-pill iy-pill--warning">
-              {incident.openFlagCount} flag{incident.openFlagCount === 1 ? '' : 's'}
+              {t('adminIncidentsPage.flags', { count: incident.openFlagCount })}
             </span>
           ) : null}
         </div>
@@ -777,7 +804,7 @@ function IncidentRow({ incident, onReview }) {
           className="iy-btn iy-btn--primary iy-btn--sm"
           onClick={onReview}
         >
-          Review
+          {t('adminIncidentsPage.reviewButton')}
         </button>
       </td>
     </tr>

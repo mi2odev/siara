@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Circle, CircleMarker, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { useTranslation } from 'react-i18next'
 import useLiveLocation from '../../hooks/useLiveLocation'
 import FallbackLocationBanner from './FallbackLocationBanner'
 
@@ -70,6 +71,7 @@ export default function LiveLocationMap({
   zoom = DEFAULT_ZOOM,
   initialCenter = DEFAULT_CENTER,
 }) {
+  const { t } = useTranslation(['map', 'common'])
   const {
     position,
     error,
@@ -128,7 +130,7 @@ export default function LiveLocationMap({
                 dashArray: '4 3',
               }}
             >
-              <Tooltip direction="top">Fallback test location</Tooltip>
+              <Tooltip direction="top">{t('liveLocationMap.fallbackTestLocation')}</Tooltip>
             </CircleMarker>
           ) : (
             <>
@@ -148,7 +150,7 @@ export default function LiveLocationMap({
       <button
         type="button"
         onClick={handleMyLocation}
-        aria-label="Center on my location"
+        aria-label={t('liveLocationMap.centerOnMyLocation')}
         style={{
           position: 'absolute',
           right: 12,
@@ -164,7 +166,7 @@ export default function LiveLocationMap({
           fontWeight: 600,
         }}
       >
-        My Location
+        {t('liveLocationMap.myLocation')}
       </button>
 
       {isFallback ? (
@@ -194,15 +196,16 @@ export default function LiveLocationMap({
 }
 
 function StatusBanner({ status, error, onRetry }) {
+  const { t } = useTranslation(['map', 'common'])
   const messages = {
-    idle: 'Locating…',
-    requesting: 'Requesting location permission…',
-    denied: 'Location permission was denied. Enable it in your browser settings.',
-    unavailable: 'Location currently unavailable. Check GPS / network.',
-    unsupported: 'This browser does not support geolocation.',
-    insecure: 'Geolocation needs HTTPS — open the site over a secure connection.',
+    idle: t('liveLocationMap.status.idle'),
+    requesting: t('liveLocationMap.status.requesting'),
+    denied: t('liveLocationMap.status.denied'),
+    unavailable: t('liveLocationMap.status.unavailable'),
+    unsupported: t('liveLocationMap.status.unsupported'),
+    insecure: t('liveLocationMap.status.insecure'),
   }
-  const text = messages[status] ?? error?.message ?? 'Locating…'
+  const text = messages[status] ?? error?.message ?? t('liveLocationMap.status.idle')
   const isError = ['denied', 'unavailable', 'unsupported', 'insecure'].includes(status)
 
   return (
@@ -236,7 +239,7 @@ function StatusBanner({ status, error, onRetry }) {
             fontWeight: 600,
           }}
         >
-          Retry
+          {t('common:actions.retry')}
         </button>
       )}
     </div>

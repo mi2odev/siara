@@ -11,6 +11,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import InboxRoundedIcon            from '@mui/icons-material/InboxRounded'
 import SearchRoundedIcon           from '@mui/icons-material/SearchRounded'
@@ -46,14 +47,6 @@ import '../../styles/AdminInbox.css'
 
 const TAB_FROM_QUERY = { support: 'support', info: 'info', all: 'all' }
 const QUERY_FROM_TAB = { support: 'support', info: 'info', all: '' }
-
-const STATUS_OPTIONS = [
-  { value: '',         label: 'All' },
-  { value: 'new',      label: 'New' },
-  { value: 'read',     label: 'Read' },
-  { value: 'replied',  label: 'Replied' },
-  { value: 'archived', label: 'Archived' },
-]
 
 const MAX_REPLY_CHARS = 4000
 
@@ -118,22 +111,24 @@ function Avatar({ name, isInfo, size = 'sm' }) {
 }
 
 function KindChip({ isInfo }) {
+  const { t } = useTranslation(['admin'])
   return isInfo ? (
     <span className="ix-chip ix-chip--info">
       <HelpOutlineRoundedIcon style={{ fontSize: 11 }} />
-      Info reply
+      {t('adminInboxPage.kindChip.infoReply')}
     </span>
   ) : (
     <span className="ix-chip ix-chip--contact">
       <MailOutlineRoundedIcon style={{ fontSize: 11 }} />
-      Contact
+      {t('adminInboxPage.kindChip.contact')}
     </span>
   )
 }
 
 function StatusChip({ status }) {
+  const { t } = useTranslation(['admin'])
   const key = status || 'new'
-  const label = key.charAt(0).toUpperCase() + key.slice(1)
+  const label = t(`adminInboxPage.statusChip.${key}`, key.charAt(0).toUpperCase() + key.slice(1))
   return <span className={`ix-status ix-status--${key}`}>{label}</span>
 }
 
@@ -142,6 +137,7 @@ function StatusChip({ status }) {
    ══════════════════════════════════════════════════════════════════ */
 
 export default function AdminInboxPage() {
+  const { t } = useTranslation(['admin', 'common'])
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -250,6 +246,14 @@ export default function AdminInboxPage() {
   const supportCount = items.filter((i) => i.kind === 'support_message').length
   const infoCount    = items.filter((i) => i.kind === 'info_response').length
 
+  const STATUS_OPTIONS = [
+    { value: '',         label: t('adminInboxPage.statusFilter.all') },
+    { value: 'new',      label: t('adminInboxPage.statusFilter.new') },
+    { value: 'read',     label: t('adminInboxPage.statusFilter.read') },
+    { value: 'replied',  label: t('adminInboxPage.statusFilter.replied') },
+    { value: 'archived', label: t('adminInboxPage.statusFilter.archived') },
+  ]
+
   return (
     <div className={`inbox${mobileView === 'list' ? ' inbox--list-mode' : ''}`}>
 
@@ -260,10 +264,10 @@ export default function AdminInboxPage() {
             <InboxRoundedIcon fontSize="inherit" />
           </div>
           <div>
-            <h1 className="inbox__title">Support Inbox</h1>
+            <h1 className="inbox__title">{t('adminInboxPage.title')}</h1>
             <p className="inbox__title-meta">
-              <strong>{filteredItems.length}</strong> message{filteredItems.length !== 1 ? 's' : ''}
-              {newCount > 0 ? <span className="inbox__new-pill">{newCount} new</span> : null}
+              <strong>{filteredItems.length}</strong> {t('adminInboxPage.messageCount', { count: filteredItems.length })}
+              {newCount > 0 ? <span className="inbox__new-pill">{t('adminInboxPage.newCount', { count: newCount })}</span> : null}
             </p>
           </div>
         </div>
@@ -279,7 +283,7 @@ export default function AdminInboxPage() {
               style={{ fontSize: 15 }}
               className={loading ? 'ix-spin' : ''}
             />
-            {loading ? 'Refreshing' : 'Refresh'}
+            {loading ? t('adminInboxPage.refreshing') : t('adminInboxPage.refresh')}
           </button>
         </div>
       </header>
@@ -291,7 +295,7 @@ export default function AdminInboxPage() {
           <input
             type="text"
             className="inbox__search-input"
-            placeholder="Search name, email, subject or body…"
+            placeholder={t('adminInboxPage.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -299,18 +303,18 @@ export default function AdminInboxPage() {
 
         <nav className="inbox__tabs">
           {[
-            { key: 'all',     label: 'All',          count: items.length   },
-            { key: 'support', label: 'Contact',      count: supportCount   },
-            { key: 'info',    label: 'Info replies', count: infoCount      },
-          ].map((t) => (
+            { key: 'all',     label: t('adminInboxPage.tabs.all'),         count: items.length   },
+            { key: 'support', label: t('adminInboxPage.tabs.contact'),      count: supportCount   },
+            { key: 'info',    label: t('adminInboxPage.tabs.infoReplies'),  count: infoCount      },
+          ].map((tab_item) => (
             <button
-              key={t.key}
+              key={tab_item.key}
               type="button"
-              className={`inbox__tab ${tab === t.key ? 'inbox__tab--active' : ''}`}
-              onClick={() => setTab(t.key)}
+              className={`inbox__tab ${tab === tab_item.key ? 'inbox__tab--active' : ''}`}
+              onClick={() => setTab(tab_item.key)}
             >
-              {t.label}
-              <span className="inbox__tab-count">{t.count}</span>
+              {tab_item.label}
+              <span className="inbox__tab-count">{tab_item.count}</span>
             </button>
           ))}
         </nav>
@@ -319,7 +323,7 @@ export default function AdminInboxPage() {
       {/* ── STATUS FILTER (Contact only) ───────────────────────── */}
       {tab !== 'info' ? (
         <div className="inbox__filter-bar">
-          <span className="inbox__filter-label">Status</span>
+          <span className="inbox__filter-label">{t('adminInboxPage.statusLabel')}</span>
           <div className="inbox__segmented">
             {STATUS_OPTIONS.map((opt) => (
               <button
@@ -339,7 +343,7 @@ export default function AdminInboxPage() {
       {error ? (
         <div className="inbox__error">
           <ErrorOutlineRoundedIcon style={{ fontSize: 15 }} />
-          Failed to load: {error.message || 'Unknown error'}
+          {t('adminInboxPage.loadError', { message: error.message || t('adminInboxPage.unknownError') })}
         </div>
       ) : null}
 
@@ -351,9 +355,9 @@ export default function AdminInboxPage() {
           {filteredItems.length === 0 ? (
             <div className="inbox__list-empty">
               <InboxRoundedIcon className="inbox__list-empty-icon" />
-              {loading ? 'Loading…' : 'No messages match your filters.'}
+              {loading ? t('common:actions.loading') : t('adminInboxPage.noMessagesMatch')}
               {!loading && (searchTerm || statusFilter) ? (
-                <p className="inbox__list-empty-hint">Try clearing the search or status filter.</p>
+                <p className="inbox__list-empty-hint">{t('adminInboxPage.clearFiltersHint')}</p>
               ) : null}
             </div>
           ) : (
@@ -376,7 +380,7 @@ export default function AdminInboxPage() {
                   <div className="inbox__item-main">
                     <div className="inbox__item-row1">
                       <span className="inbox__item-name">
-                        {it.name || it.email || 'Unknown'}
+                        {it.name || it.email || t('adminInboxPage.unknownSender')}
                       </span>
                       <span className="inbox__item-time">{timeAgo(it.createdAt)}</span>
                     </div>
@@ -399,14 +403,14 @@ export default function AdminInboxPage() {
         <div className="inbox__detail">
           <button type="button" className="inbox__back" onClick={() => setMobileView('list')}>
             <ArrowBackRoundedIcon style={{ fontSize: 16 }} />
-            All messages
+            {t('adminInboxPage.allMessages')}
           </button>
           {!selected ? (
             <div className="inbox__empty">
               <ChatBubbleOutlineRoundedIcon className="inbox__empty-icon" />
-              <h2 className="inbox__empty-title">No message selected</h2>
+              <h2 className="inbox__empty-title">{t('adminInboxPage.noMessageSelected')}</h2>
               <p className="inbox__empty-sub">
-                Choose a thread from the list to read the full conversation and respond.
+                {t('adminInboxPage.noMessageSelectedHint')}
               </p>
             </div>
           ) : selected.kind === 'info_response' ? (
@@ -439,6 +443,7 @@ export default function AdminInboxPage() {
    ══════════════════════════════════════════════════════════════════ */
 
 function InfoReplyDetail({ selected, navigate, busy, onSetStatus }) {
+  const { t } = useTranslation(['admin'])
   return (
     <div className="inbox__detail-inner">
 
@@ -447,7 +452,7 @@ function InfoReplyDetail({ selected, navigate, busy, onSetStatus }) {
         <div className="ix-sender__id">
           <Avatar name={selected.name} isInfo size="md" />
           <div>
-            <h2 className="ix-sender__name">{selected.name || 'Unknown reporter'}</h2>
+            <h2 className="ix-sender__name">{selected.name || t('adminInboxPage.unknownReporter')}</h2>
             {selected.email ? (
               <div className="ix-sender__email">
                 <EmailOutlinedIcon style={{ fontSize: 13 }} />
@@ -465,11 +470,11 @@ function InfoReplyDetail({ selected, navigate, busy, onSetStatus }) {
       {/* Report reference */}
       {selected.reportTitle ? (
         <div className="ix-report-ref">
-          <span className="ix-report-ref__label">Report</span>
+          <span className="ix-report-ref__label">{t('adminInboxPage.reportLabel')}</span>
           <span className="ix-report-ref__value">{selected.reportTitle}</span>
           <span className="ix-report-ref__time">
             <AccessTimeOutlinedIcon style={{ fontSize: 13 }} />
-            Replied {timeAgo(selected.respondedAt)}
+            {t('adminInboxPage.repliedAt', { time: timeAgo(selected.respondedAt) })}
           </span>
         </div>
       ) : null}
@@ -479,21 +484,21 @@ function InfoReplyDetail({ selected, navigate, busy, onSetStatus }) {
         <div className="ix-card__head">
           <span className="ix-card__head-title">
             <ChatBubbleOutlineRoundedIcon style={{ fontSize: 14 }} />
-            Conversation
+            {t('adminInboxPage.conversation')}
           </span>
         </div>
         <div className="ix-thread">
           {selected.question ? (
             <div className="ix-thread__item">
               <span className="ix-thread__label ix-thread__label--admin">
-                Admin · Question
+                {t('adminInboxPage.adminQuestion')}
               </span>
               <div className="ix-bubble ix-bubble--admin">{selected.question}</div>
             </div>
           ) : null}
           <div className="ix-thread__item">
             <span className="ix-thread__label ix-thread__label--reporter">
-              Reporter · Answer
+              {t('adminInboxPage.reporterAnswer')}
             </span>
             <div className="ix-bubble ix-bubble--reporter">{selected.body}</div>
           </div>
@@ -503,7 +508,7 @@ function InfoReplyDetail({ selected, navigate, busy, onSetStatus }) {
       {/* Actions — info reply */}
       <section className="ix-actions">
         <div className="ix-actions__head">
-          <span className="ix-actions__title">Actions</span>
+          <span className="ix-actions__title">{t('adminInboxPage.actions')}</span>
           <span className="ix-actions__sub">{fullDate(selected.respondedAt)}</span>
         </div>
         <div className="ix-actions__row">
@@ -513,7 +518,7 @@ function InfoReplyDetail({ selected, navigate, busy, onSetStatus }) {
             onClick={() => navigate(`/admin/incidents/${selected.reportId}`)}
           >
             <OpenInNewRoundedIcon style={{ fontSize: 15 }} />
-            Open incident
+            {t('adminInboxPage.openIncident')}
           </button>
           {selected.email ? (
             <a
@@ -523,7 +528,7 @@ function InfoReplyDetail({ selected, navigate, busy, onSetStatus }) {
               rel="noopener noreferrer"
             >
               <EmailOutlinedIcon style={{ fontSize: 15 }} />
-              Email reporter
+              {t('adminInboxPage.emailReporter')}
             </a>
           ) : null}
           <button
@@ -533,7 +538,7 @@ function InfoReplyDetail({ selected, navigate, busy, onSetStatus }) {
             onClick={() => onSetStatus('read')}
           >
             <DraftsOutlinedIcon style={{ fontSize: 15 }} />
-            {selected.status === 'read' ? 'Marked as read' : 'Mark as read'}
+            {selected.status === 'read' ? t('adminInboxPage.markedAsRead') : t('adminInboxPage.markAsRead')}
           </button>
           <button
             type="button"
@@ -542,11 +547,11 @@ function InfoReplyDetail({ selected, navigate, busy, onSetStatus }) {
             onClick={() => onSetStatus('archived')}
           >
             <ArchiveOutlinedIcon style={{ fontSize: 15 }} />
-            Archive
+            {t('adminInboxPage.archive')}
           </button>
         </div>
         <p className="ix-actions__hint">
-          The reporter has provided the requested information. Review the answer above and act on the related incident.
+          {t('adminInboxPage.infoReplyHint')}
         </p>
       </section>
     </div>
@@ -558,6 +563,7 @@ function InfoReplyDetail({ selected, navigate, busy, onSetStatus }) {
    ══════════════════════════════════════════════════════════════════ */
 
 function ContactDetail({ selected, draft, status, busy, onDraftChange, onSendReply, onSetStatus, onArchive }) {
+  const { t } = useTranslation(['admin'])
   const sending        = status.state === 'sending'
   const justSent       = status.state === 'sent'
   const alreadyReplied = selected.status === 'replied' && !justSent
@@ -571,7 +577,7 @@ function ContactDetail({ selected, draft, status, busy, onDraftChange, onSendRep
         <div className="ix-sender__id">
           <Avatar name={selected.name} size="md" />
           <div>
-            <h2 className="ix-sender__name">{selected.name || 'Unknown sender'}</h2>
+            <h2 className="ix-sender__name">{selected.name || t('adminInboxPage.unknownSenderFull')}</h2>
             <div className="ix-sender__email">
               <EmailOutlinedIcon style={{ fontSize: 13 }} />
               {selected.email}
@@ -594,7 +600,7 @@ function ContactDetail({ selected, draft, status, busy, onDraftChange, onSendRep
         <div className="ix-card__head">
           <span className="ix-card__head-title">
             <MailOutlineRoundedIcon style={{ fontSize: 14 }} />
-            Message
+            {t('adminInboxPage.message')}
           </span>
           <span className="ix-report-ref__time">
             <AccessTimeOutlinedIcon style={{ fontSize: 13 }} />
@@ -608,19 +614,19 @@ function ContactDetail({ selected, draft, status, busy, onDraftChange, onSendRep
       <section className="ix-composer">
         <div className="ix-composer__head">
           <span className={`ix-composer__label${isReplied ? ' ix-composer__label--sent' : ''}`}>
-            {isReplied ? 'Reply sent' : 'Write a reply'}
+            {isReplied ? t('adminInboxPage.replySent') : t('adminInboxPage.writeReply')}
           </span>
           {selected.userId ? (
-            <span className="ix-delivery ix-delivery--in-app">In-app notification</span>
+            <span className="ix-delivery ix-delivery--in-app">{t('adminInboxPage.inAppNotification')}</span>
           ) : (
-            <span className="ix-delivery ix-delivery--anon">Anonymous — email only</span>
+            <span className="ix-delivery ix-delivery--anon">{t('adminInboxPage.anonymousEmailOnly')}</span>
           )}
         </div>
 
         {alreadyReplied ? (
           <div className="ix-composer__notice">
             <CheckCircleOutlineRoundedIcon style={{ fontSize: 15, marginTop: 1 }} />
-            <span>A reply was already sent. A new message will create a follow-up notification.</span>
+            <span>{t('adminInboxPage.alreadyRepliedNotice')}</span>
           </div>
         ) : null}
 
@@ -636,7 +642,7 @@ function ContactDetail({ selected, draft, status, busy, onDraftChange, onSendRep
             className="ix-composer__textarea"
             value={draft}
             onChange={(e) => onDraftChange(e.target.value)}
-            placeholder={`Write a thoughtful reply to ${selected.name || 'the sender'}…`}
+            placeholder={t('adminInboxPage.replyPlaceholder', { name: selected.name || t('adminInboxPage.theSender') })}
             rows={5}
             maxLength={MAX_REPLY_CHARS}
             disabled={sending}
@@ -665,7 +671,7 @@ function ContactDetail({ selected, draft, status, busy, onDraftChange, onSendRep
               rel="noopener noreferrer"
             >
               <EmailOutlinedIcon style={{ fontSize: 14 }} />
-              Email instead
+              {t('adminInboxPage.emailInstead')}
             </a>
             <button
               type="button"
@@ -674,7 +680,7 @@ function ContactDetail({ selected, draft, status, busy, onDraftChange, onSendRep
               onClick={onSendReply}
             >
               <SendRoundedIcon style={{ fontSize: 14 }} />
-              {sending ? 'Sending…' : 'Send reply'}
+              {sending ? t('adminInboxPage.sending') : t('adminInboxPage.sendReply')}
             </button>
           </div>
         </div>
@@ -683,7 +689,7 @@ function ContactDetail({ selected, draft, status, busy, onDraftChange, onSendRep
       {/* Status actions */}
       <section className="ix-actions">
         <div className="ix-actions__head">
-          <span className="ix-actions__title">Manage thread</span>
+          <span className="ix-actions__title">{t('adminInboxPage.manageThread')}</span>
         </div>
         <div className="ix-actions__row">
           <button
@@ -693,7 +699,7 @@ function ContactDetail({ selected, draft, status, busy, onDraftChange, onSendRep
             onClick={() => onSetStatus('read')}
           >
             <DraftsOutlinedIcon style={{ fontSize: 15 }} />
-            Mark as read
+            {t('adminInboxPage.markAsRead')}
           </button>
           <button
             type="button"
@@ -702,7 +708,7 @@ function ContactDetail({ selected, draft, status, busy, onDraftChange, onSendRep
             onClick={() => onSetStatus('replied')}
           >
             <MarkEmailReadOutlinedIcon style={{ fontSize: 15 }} />
-            Mark as replied
+            {t('adminInboxPage.markAsReplied')}
           </button>
           <button
             type="button"
@@ -711,7 +717,7 @@ function ContactDetail({ selected, draft, status, busy, onDraftChange, onSendRep
             onClick={onArchive}
           >
             <ArchiveOutlinedIcon style={{ fontSize: 15 }} />
-            Archive
+            {t('adminInboxPage.archive')}
           </button>
         </div>
       </section>

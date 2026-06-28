@@ -40,6 +40,7 @@ import {
   syncPoliceBrowserLocation,
   updatePoliceWorkZone,
 } from '../../services/policeService'
+import { useTranslation } from 'react-i18next'
 
 const AUTO_REFRESH_MS = 30_000
 
@@ -49,29 +50,29 @@ function displayLabel(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
-function formatRelativeAge(value) {
-  if (!value) return 'Unknown'
+function formatRelativeAge(value, t) {
+  if (!value) return t('policePage.time.unknown')
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Unknown'
+  if (Number.isNaN(date.getTime())) return t('policePage.time.unknown')
 
   const diffMinutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000))
-  if (diffMinutes < 1) return 'Just now'
-  if (diffMinutes < 60) return `${diffMinutes} min ago`
+  if (diffMinutes < 1) return t('policePage.time.justNow')
+  if (diffMinutes < 60) return t('policePage.time.minutesAgo', { count: diffMinutes })
   const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours} h ago`
+  if (diffHours < 24) return t('policePage.time.hoursAgo', { count: diffHours })
   const diffDays = Math.floor(diffHours / 24)
-  return `${diffDays} d ago`
+  return t('policePage.time.daysAgo', { count: diffDays })
 }
 
-function formatDuration(milliseconds) {
+function formatDuration(milliseconds, t) {
   if (!Number.isFinite(milliseconds) || milliseconds < 0) return '—'
   const minutes = Math.round(milliseconds / 60000)
-  if (minutes < 1) return '<1 m'
-  if (minutes < 60) return `${minutes} m`
+  if (minutes < 1) return t('policePage.duration.lessThanMinute')
+  if (minutes < 60) return t('policePage.duration.minutes', { count: minutes })
   const hours = Math.round((minutes / 60) * 10) / 10
-  if (hours < 24) return `${hours} h`
+  if (hours < 24) return t('policePage.duration.hours', { count: hours })
   const days = Math.round((hours / 24) * 10) / 10
-  return `${days} d`
+  return t('policePage.duration.days', { count: days })
 }
 
 function computeAverageIncidentAge(incidents = []) {
@@ -102,15 +103,15 @@ function ActivityIcon({ actionType }) {
   return <FiberManualRecordRoundedIcon {...props} />
 }
 
-function activityActionLabel(actionType) {
-  if (actionType === 'verify_incident') return 'Officer verified incident'
-  if (actionType === 'reject_incident') return 'Officer rejected report'
-  if (actionType === 'assign_self') return 'Officer assigned themselves'
-  if (actionType === 'request_backup') return 'Backup requested'
-  if (actionType === 'update_status') return 'Status updated'
-  if (actionType === 'field_note') return 'Field note added'
-  if (actionType === 'mark_alert_read') return 'Alert acknowledged'
-  if (actionType === 'manual_log_entry') return 'Manual log entry'
+function activityActionLabel(actionType, t) {
+  if (actionType === 'verify_incident') return t('policePage.activity.verifyIncident')
+  if (actionType === 'reject_incident') return t('policePage.activity.rejectIncident')
+  if (actionType === 'assign_self') return t('policePage.activity.assignSelf')
+  if (actionType === 'request_backup') return t('policePage.activity.requestBackup')
+  if (actionType === 'update_status') return t('policePage.activity.updateStatus')
+  if (actionType === 'field_note') return t('policePage.activity.fieldNote')
+  if (actionType === 'mark_alert_read') return t('policePage.activity.markAlertRead')
+  if (actionType === 'manual_log_entry') return t('policePage.activity.manualLogEntry')
   return displayLabel(actionType)
 }
 
@@ -171,6 +172,7 @@ function FlyToLocation({ center, zoom }) {
 }
 
 export default function PolicePage() {
+  const { t } = useTranslation(['police', 'common'])
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { policeMe, refreshPoliceMe } = usePoliceAccess()
@@ -223,11 +225,11 @@ export default function PolicePage() {
       setAlerts(Array.isArray(alertsResponse?.items) ? alertsResponse.items : [])
       setLastUpdatedAt(new Date().toISOString())
     } catch (loadError) {
-      setError(loadError.message || 'Failed to load police dashboard.')
+      setError(loadError.message || t('policePage.errors.loadDashboard'))
     } finally {
       if (!silent) setIsLoading(false)
     }
-  }, [])
+  }, [t])
 
   React.useEffect(() => {
     loadDashboard()
@@ -249,14 +251,14 @@ export default function PolicePage() {
         }
         if (!cancelled) setAllAccidents(Array.isArray(result?.items) ? result.items : [])
       } catch (err) {
-        if (!cancelled) setAllAccidentsError(err?.message || 'Failed to load accidents')
+        if (!cancelled) setAllAccidentsError(err?.message || t('policePage.errors.loadAccidents'))
       } finally {
         if (!cancelled) setAllAccidentsLoading(false)
       }
     }
     loadAllAccidents()
     return () => { cancelled = true }
-  }, [])
+  }, [t])
 
   React.useEffect(() => {
     if (activeView) return undefined
@@ -293,7 +295,7 @@ export default function PolicePage() {
   const highSeverityCount = activeIncidents.filter((item) => item.severity === 'high').length
 
   const avgAgeMs = computeAverageIncidentAge(activeIncidents)
-  const avgResponseLabel = avgAgeMs == null ? '—' : formatDuration(avgAgeMs)
+  const avgResponseLabel = avgAgeMs == null ? '—' : formatDuration(avgAgeMs, t)
 
   const priorityIncidents = React.useMemo(
     () => activeIncidents
@@ -314,15 +316,15 @@ export default function PolicePage() {
       if (enriched) {
         return {
           ...enriched,
-          locationLabel: enriched.locationLabel || enriched.locationText || 'Reported location',
+          locationLabel: enriched.locationLabel || enriched.locationText || t('policePage.map.reportedLocation'),
         }
       }
       return {
         id: marker.id,
         location: { lat: marker.lat, lng: marker.lng },
         severity: marker.severity,
-        title: marker.title || 'Incident',
-        locationLabel: marker.locationLabel || 'Reported location',
+        title: marker.title || t('policePage.incident.defaultTitle'),
+        locationLabel: marker.locationLabel || t('policePage.map.reportedLocation'),
         status: marker.status,
         incidentType: marker.incidentType || 'other',
         description: marker.description || '',
@@ -331,7 +333,7 @@ export default function PolicePage() {
         createdAt: marker.createdAt || null,
       }
     })
-  }, [activeIncidents, nearbyIncidents, myIncidents, mapMarkers])
+  }, [activeIncidents, nearbyIncidents, myIncidents, mapMarkers, t])
 
   const recentIncidentsCompact = React.useMemo(
     () => activeIncidents.slice(0, 5),
@@ -345,33 +347,33 @@ export default function PolicePage() {
     {
       key: 'active',
       tone: 'blue',
-      label: 'Active Incidents',
+      label: t('policePage.kpi.activeIncidents'),
       value: stats.activeCount,
-      hint: 'Open in zone',
+      hint: t('policePage.kpi.activeIncidentsHint'),
       icon: <ReportRoundedIcon fontSize="inherit" />,
     },
     {
       key: 'high',
       tone: 'red',
-      label: 'High-Severity Incidents',
+      label: t('policePage.kpi.highSeverity'),
       value: highSeverityCount || stats.highPriorityCount || 0,
-      hint: 'High severity now',
+      hint: t('policePage.kpi.highSeverityHint'),
       icon: <LocalFireDepartmentRoundedIcon fontSize="inherit" />,
     },
     {
       key: 'pending',
       tone: 'amber',
-      label: 'Pending Verification',
+      label: t('policePage.kpi.pendingVerification'),
       value: stats.pendingVerificationCount,
-      hint: 'Awaiting decision',
+      hint: t('policePage.kpi.pendingVerificationHint'),
       icon: <HourglassBottomRoundedIcon fontSize="inherit" />,
     },
     {
       key: 'response',
       tone: 'teal',
-      label: 'Avg Incident Age',
+      label: t('policePage.kpi.avgIncidentAge'),
       value: avgResponseLabel,
-      hint: 'Across active cases',
+      hint: t('policePage.kpi.avgIncidentAgeHint'),
       icon: <SpeedRoundedIcon fontSize="inherit" />,
     },
   ]
@@ -379,8 +381,8 @@ export default function PolicePage() {
   const quickActions = [
     {
       key: 'verification',
-      label: 'Verification Queue',
-      hint: 'Review pending reports',
+      label: t('policePage.quickActions.verificationQueue'),
+      hint: t('policePage.quickActions.verificationQueueHint'),
       count: stats.pendingVerificationCount,
       icon: <VerifiedUserOutlinedIcon fontSize="inherit" />,
       tone: 'amber',
@@ -388,8 +390,8 @@ export default function PolicePage() {
     },
     {
       key: 'all',
-      label: 'All Incidents',
-      hint: 'Live active stream',
+      label: t('policePage.quickActions.allIncidents'),
+      hint: t('policePage.quickActions.allIncidentsHint'),
       count: stats.activeCount,
       icon: <ListAltRoundedIcon fontSize="inherit" />,
       tone: 'blue',
@@ -397,8 +399,8 @@ export default function PolicePage() {
     },
     {
       key: 'mine',
-      label: 'My Assigned',
-      hint: 'Cases on me',
+      label: t('policePage.quickActions.myAssigned'),
+      hint: t('policePage.quickActions.myAssignedHint'),
       count: myIncidents.length,
       icon: <PersonPinCircleOutlinedIcon fontSize="inherit" />,
       tone: 'violet',
@@ -406,8 +408,8 @@ export default function PolicePage() {
     },
     {
       key: 'nearby',
-      label: 'Nearby Incidents',
-      hint: 'Within 5 km',
+      label: t('policePage.quickActions.nearbyIncidents'),
+      hint: t('policePage.quickActions.nearbyIncidentsHint'),
       count: nearbyIncidents.length,
       icon: <MyLocationRoundedIcon fontSize="inherit" />,
       tone: 'teal',
@@ -441,11 +443,11 @@ export default function PolicePage() {
         setZoneCommuneId('')
       }
     } catch (err) {
-      setZoneError(err?.message || 'Failed to load zone options')
+      setZoneError(err?.message || t('policePage.errors.loadZoneOptions'))
     } finally {
       setZoneLoading(false)
     }
-  }, [workZone])
+  }, [workZone, t])
 
   const handleZoneWilayaChange = React.useCallback(async (wilayaId) => {
     setZoneWilayaId(wilayaId)
@@ -470,11 +472,11 @@ export default function PolicePage() {
       await loadDashboard({ silent: true })
       setShowZoneModal(false)
     } catch (err) {
-      setZoneError(err?.message || 'Failed to update work zone')
+      setZoneError(err?.message || t('policePage.errors.updateWorkZone'))
     } finally {
       setZoneSaving(false)
     }
-  }, [zoneWilayaId, zoneCommuneId, refreshPoliceMe, loadDashboard])
+  }, [zoneWilayaId, zoneCommuneId, refreshPoliceMe, loadDashboard, t])
 
   const rightPanel = (
     <PoliceOfficerPanel
@@ -482,59 +484,59 @@ export default function PolicePage() {
       workZone={workZone}
       workZoneAction={
         <button type="button" className="pop-zone-change-btn" onClick={openZoneModal}>
-          Change
+          {t('policePage.zoneModal.changeBtn')}
         </button>
       }
     >
       <div className="pop-extra">
         <div className="pop-extra-head">
-          <span className="pop-extra-title">Live Stats</span>
+          <span className="pop-extra-title">{t('policePage.liveStats.title')}</span>
         </div>
         <div className="pop-extra-body">
-          <div className="pop-stat-row"><span>Active incidents</span><strong className={stats.activeCount > 0 ? 'pop-stat--accent' : ''}>{stats.activeCount}</strong></div>
-          <div className="pop-stat-row"><span>High priority</span><strong className={stats.highPriorityCount > 0 ? 'pop-stat--danger' : ''}>{stats.highPriorityCount}</strong></div>
-          <div className="pop-stat-row"><span>Unread alerts</span><strong className={stats.unreadAlertsCount > 0 ? 'pop-stat--warn' : ''}>{stats.unreadAlertsCount}</strong></div>
-          <div className="pop-stat-row"><span>Pending verify</span><strong className={stats.pendingVerificationCount > 0 ? 'pop-stat--accent' : ''}>{stats.pendingVerificationCount}</strong></div>
+          <div className="pop-stat-row"><span>{t('policePage.liveStats.activeIncidents')}</span><strong className={stats.activeCount > 0 ? 'pop-stat--accent' : ''}>{stats.activeCount}</strong></div>
+          <div className="pop-stat-row"><span>{t('policePage.liveStats.highPriority')}</span><strong className={stats.highPriorityCount > 0 ? 'pop-stat--danger' : ''}>{stats.highPriorityCount}</strong></div>
+          <div className="pop-stat-row"><span>{t('policePage.liveStats.unreadAlerts')}</span><strong className={stats.unreadAlertsCount > 0 ? 'pop-stat--warn' : ''}>{stats.unreadAlertsCount}</strong></div>
+          <div className="pop-stat-row"><span>{t('policePage.liveStats.pendingVerify')}</span><strong className={stats.pendingVerificationCount > 0 ? 'pop-stat--accent' : ''}>{stats.pendingVerificationCount}</strong></div>
         </div>
       </div>
     </PoliceOfficerPanel>
   )
 
   const zoneModal = showZoneModal ? ReactDOM.createPortal(
-    <div className="police-zone-modal-overlay" role="dialog" aria-modal="true" aria-label="Change Work Zone">
+    <div className="police-zone-modal-overlay" role="dialog" aria-modal="true" aria-label={t('policePage.zoneModal.ariaLabel')}>
       <div className="police-zone-modal">
         <div className="police-zone-modal-head">
-          <h3>Change Work Zone</h3>
-          <button type="button" className="police-zone-modal-close" onClick={() => setShowZoneModal(false)} aria-label="Close">
+          <h3>{t('policePage.zoneModal.title')}</h3>
+          <button type="button" className="police-zone-modal-close" onClick={() => setShowZoneModal(false)} aria-label={t('common:actions.close')}>
             <CloseRoundedIcon fontSize="small" />
           </button>
         </div>
 
         {zoneLoading ? (
-          <p className="police-zone-modal-loading">Loading options…</p>
+          <p className="police-zone-modal-loading">{t('policePage.zoneModal.loadingOptions')}</p>
         ) : (
           <>
             <div className="police-zone-modal-body">
               <div className="police-zone-modal-field">
-                <label htmlFor="zone-wilaya-select">Wilaya</label>
+                <label htmlFor="zone-wilaya-select">{t('policePage.zoneModal.wilayaLabel')}</label>
                 <ZoneSelect
                   id="zone-wilaya-select"
                   value={zoneWilayaId}
                   onChange={handleZoneWilayaChange}
                   options={zoneWilayas}
-                  placeholder="— Select wilaya —"
+                  placeholder={t('policePage.zoneModal.wilayaPlaceholder')}
                   disabled={zoneSaving}
                 />
               </div>
 
               <div className="police-zone-modal-field">
-                <label htmlFor="zone-commune-select">Commune</label>
+                <label htmlFor="zone-commune-select">{t('policePage.zoneModal.communeLabel')}</label>
                 <ZoneSelect
                   id="zone-commune-select"
                   value={zoneCommuneId}
                   onChange={setZoneCommuneId}
                   options={zoneCommunes}
-                  placeholder="— Select commune —"
+                  placeholder={t('policePage.zoneModal.communePlaceholder')}
                   disabled={!zoneWilayaId || zoneSaving}
                 />
               </div>
@@ -544,7 +546,7 @@ export default function PolicePage() {
 
             <div className="police-zone-modal-actions">
               <button type="button" className="police-zone-btn-cancel" onClick={() => setShowZoneModal(false)} disabled={zoneSaving}>
-                Cancel
+                {t('common:actions.cancel')}
               </button>
               <button
                 type="button"
@@ -552,7 +554,7 @@ export default function PolicePage() {
                 onClick={saveZone}
                 disabled={!zoneWilayaId || !zoneCommuneId || zoneSaving}
               >
-                {zoneSaving ? 'Saving…' : 'Save'}
+                {zoneSaving ? t('policePage.zoneModal.saving') : t('common:actions.save')}
               </button>
             </div>
           </>
@@ -574,9 +576,9 @@ export default function PolicePage() {
         <section className="police-section police-dashboard-overview">
           <div className="police-command-section-head police-dashboard-head">
             <div className="police-dashboard-head-text">
-              <h2>Active Incidents Stream</h2>
+              <h2>{t('policePage.activeStream.title')}</h2>
               <p className="police-shortcuts-hint">
-                Live active incident stream for your current police work zone.
+                {t('policePage.activeStream.subtitle')}
               </p>
             </div>
             <div className="police-page-toolbar-actions">
@@ -593,12 +595,12 @@ export default function PolicePage() {
                 type="button"
                 className="police-cc-btn-primary police-cc-refresh-pill"
                 onClick={() => loadDashboard()}
-                title="Refresh"
-                aria-label="Refresh"
+                title={t('common:actions.retry')}
+                aria-label={t('common:actions.retry')}
                 disabled={isLoading}
               >
                 <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
-                <span>Refresh</span>
+                <span>{t('policePage.toolbar.refresh')}</span>
               </button>
             </div>
           </div>
@@ -623,14 +625,14 @@ export default function PolicePage() {
                       </span>
                     </div>
                     <span className="police-dashboard-incident-timeline">
-                      {formatRelativeAge(incident.occurredAt || incident.createdAt)}
+                      {formatRelativeAge(incident.occurredAt || incident.createdAt, t)}
                     </span>
                   </div>
-                  <strong className="police-stream-title">{incident.title || 'Untitled incident'}</strong>
-                  <p className="police-stream-description">{incident.description || 'No description provided.'}</p>
+                  <strong className="police-stream-title">{incident.title || t('policePage.incident.untitled')}</strong>
+                  <p className="police-stream-description">{incident.description || t('policePage.incident.noDescription')}</p>
                   <div className="police-stream-meta-line police-dashboard-incident-meta">
-                    <span className="police-dashboard-incident-chip">Location: {incident.locationText}</span>
-                    <span className="police-dashboard-incident-chip">Status: {displayLabel(incident.status)}</span>
+                    <span className="police-dashboard-incident-chip">{t('policePage.incident.locationLabel')}: {incident.locationText}</span>
+                    <span className="police-dashboard-incident-chip">{t('policePage.incident.statusLabel')}: {displayLabel(incident.status)}</span>
                   </div>
                 </div>
                 <div className="police-stream-actions">
@@ -639,7 +641,7 @@ export default function PolicePage() {
                     className="police-cc-btn-primary"
                     onClick={() => navigate(`/police/incident/${incident.id}`)}
                   >
-                    Open Case
+                    {t('policePage.incident.openCase')}
                   </button>
                 </div>
               </article>
@@ -648,8 +650,8 @@ export default function PolicePage() {
             {!isLoading && activeIncidents.length === 0 ? (
               <div className="police-empty-state" role="status">
                 <div className="police-empty-icon" aria-hidden="true"><LocalPoliceOutlinedIcon fontSize="inherit" /></div>
-                <h3>No active incidents</h3>
-                <p>The current work zone has no active police incidents.</p>
+                <h3>{t('policePage.empty.noActiveIncidents')}</h3>
+                <p>{t('policePage.empty.noActiveIncidentsDesc')}</p>
               </div>
             ) : null}
           </div>
@@ -674,24 +676,24 @@ export default function PolicePage() {
           <div className="police-cc-bar-left">
             <span className="police-cc-bar-pulse" aria-hidden="true"></span>
             <div>
-              <h1 className="police-cc-title">Command Center</h1>
+              <h1 className="police-cc-title">{t('policePage.commandCenter.title')}</h1>
               <p className="police-cc-subtitle">
-                Live operations for {workZone?.commune?.name || workZone?.wilaya?.name || 'your assigned zone'}
+                {t('policePage.commandCenter.subtitle', { zone: workZone?.commune?.name || workZone?.wilaya?.name || t('policePage.commandCenter.assignedZone') })}
               </p>
             </div>
           </div>
           <div className="police-cc-bar-right">
             <span className="police-cc-sync">
               <span className="police-cc-sync-dot" aria-hidden="true"></span>
-              Live · synced {lastUpdatedAt ? formatRelativeAge(lastUpdatedAt) : '…'}
+              {t('policePage.commandCenter.liveSynced', { time: lastUpdatedAt ? formatRelativeAge(lastUpdatedAt, t) : '…' })}
             </span>
             <button
               type="button"
               className="police-cc-refresh"
               onClick={() => loadDashboard()}
               disabled={isLoading}
-              title="Refresh dashboard"
-              aria-label="Refresh dashboard"
+              title={t('policePage.commandCenter.refreshTitle')}
+              aria-label={t('policePage.commandCenter.refreshTitle')}
             >
               <RefreshRoundedIcon fontSize="inherit" className={isLoading ? 'is-spinning' : ''} />
             </button>
@@ -701,7 +703,7 @@ export default function PolicePage() {
         {error ? <p className="police-history-feedback police-history-feedback-error">{error}</p> : null}
 
         {/* 1. KPI BAR */}
-        <section className="police-cc-kpis" aria-label="Operational metrics">
+        <section className="police-cc-kpis" aria-label={t('policePage.aria.operationalMetrics')}>
           {kpis.map((kpi) => (
             <article key={kpi.key} className={`police-cc-kpi tone-${kpi.tone}`}>
               <div className="police-cc-kpi-icon" aria-hidden="true">{kpi.icon}</div>
@@ -715,11 +717,11 @@ export default function PolicePage() {
         </section>
 
         {/* 2. PRIORITY INCIDENTS */}
-        <section className="police-cc-section police-cc-priority" aria-label="Priority incidents">
+        <section className="police-cc-section police-cc-priority" aria-label={t('policePage.aria.priorityIncidents')}>
           <header className="police-cc-section-head">
             <div className="police-cc-section-title">
               <PriorityHighRoundedIcon fontSize="inherit" className="police-cc-section-icon high" />
-              <h2>Priority Incidents</h2>
+              <h2>{t('policePage.sections.priorityIncidents')}</h2>
               <span className="police-cc-section-count">{priorityIncidents.length}</span>
             </div>
             <button
@@ -727,14 +729,14 @@ export default function PolicePage() {
               className="police-cc-section-link"
               onClick={() => navigate('/police?view=active')}
             >
-              Open stream <ArrowForwardRoundedIcon fontSize="inherit" />
+              {t('policePage.sections.openStream')} <ArrowForwardRoundedIcon fontSize="inherit" />
             </button>
           </header>
 
           {priorityIncidents.length === 0 ? (
             <div className="police-cc-empty">
               <CheckCircleOutlinedIcon fontSize="inherit" />
-              <span>No high-severity incidents right now.</span>
+              <span>{t('policePage.empty.noHighSeverity')}</span>
             </div>
           ) : (
             <div className="police-cc-priority-grid">
@@ -751,16 +753,16 @@ export default function PolicePage() {
                       {displayLabel(incident.severity)}
                     </span>
                   </header>
-                  <strong className="police-cc-priority-title">{incident.title || 'Untitled incident'}</strong>
+                  <strong className="police-cc-priority-title">{incident.title || t('policePage.incident.untitled')}</strong>
                   <p className="police-cc-priority-location">
                     <MyLocationRoundedIcon fontSize="inherit" />
-                    {incident.locationText || 'Unknown location'}
+                    {incident.locationText || t('policePage.incident.unknownLocation')}
                   </p>
                   <p className="police-cc-priority-desc">
-                    {incident.description || 'No description provided.'}
+                    {incident.description || t('policePage.incident.noDescription')}
                   </p>
                   <footer className="police-cc-priority-foot">
-                    <time>{formatRelativeAge(incident.occurredAt || incident.createdAt)}</time>
+                    <time>{formatRelativeAge(incident.occurredAt || incident.createdAt, t)}</time>
                     <div className="police-cc-priority-actions">
                       <button
                         type="button"
@@ -768,7 +770,7 @@ export default function PolicePage() {
                         onClick={() => navigate(`/police/incident/${incident.id}`)}
                       >
                         <VisibilityOutlinedIcon fontSize="inherit" />
-                        <span>View</span>
+                        <span>{t('policePage.incident.view')}</span>
                       </button>
                       <button
                         type="button"
@@ -776,7 +778,7 @@ export default function PolicePage() {
                         onClick={() => navigate('/police/verification')}
                       >
                         <RuleFolderOutlinedIcon fontSize="inherit" />
-                        <span>Start Review</span>
+                        <span>{t('policePage.incident.startReview')}</span>
                       </button>
                     </div>
                   </footer>
@@ -789,21 +791,21 @@ export default function PolicePage() {
         {/* Workspace: 3 + 4 + 5 + 6 + 7 */}
         <div className="police-cc-grid">
           {/* 3. MAP OVERVIEW */}
-          <section className="police-cc-section police-cc-map" aria-label="Map overview">
+          <section className="police-cc-section police-cc-map" aria-label={t('policePage.aria.mapOverview')}>
             <header className="police-cc-section-head">
               <div className="police-cc-section-title">
                 <MyLocationRoundedIcon fontSize="inherit" className="police-cc-section-icon blue" />
-                <h2>Map Overview</h2>
+                <h2>{t('policePage.sections.mapOverview')}</h2>
                 <span className="police-cc-section-count">{mapMarkers.length}</span>
               </div>
               <button
                 type="button"
                 className="police-cc-section-link police-cc-fullmap-btn"
                 onClick={() => setIsFullMapOpen(true)}
-                title="Open full map"
+                title={t('policePage.map.openFullMap')}
               >
                 <OpenInFullRoundedIcon fontSize="inherit" />
-                <span>Full Map</span>
+                <span>{t('policePage.map.fullMap')}</span>
               </button>
             </header>
 
@@ -831,20 +833,20 @@ export default function PolicePage() {
 
               {mapMarkers.length > 0 ? (
                 <div className="police-cc-map-legend" aria-hidden="true">
-                  <span className="police-cc-map-pill high"><span className="dot" /> High</span>
-                  <span className="police-cc-map-pill medium"><span className="dot" /> Medium</span>
-                  <span className="police-cc-map-pill low"><span className="dot" /> Low</span>
+                  <span className="police-cc-map-pill high"><span className="dot" /> {t('policePage.severity.high')}</span>
+                  <span className="police-cc-map-pill medium"><span className="dot" /> {t('policePage.severity.medium')}</span>
+                  <span className="police-cc-map-pill low"><span className="dot" /> {t('policePage.severity.low')}</span>
                 </div>
               ) : null}
             </div>
           </section>
 
           {/* 4. QUICK ACTIONS */}
-          <section className="police-cc-section police-cc-quick" aria-label="Quick actions">
+          <section className="police-cc-section police-cc-quick" aria-label={t('policePage.aria.quickActions')}>
             <header className="police-cc-section-head">
               <div className="police-cc-section-title">
                 <ListAltRoundedIcon fontSize="inherit" className="police-cc-section-icon blue" />
-                <h2>Quick Actions</h2>
+                <h2>{t('policePage.sections.quickActions')}</h2>
               </div>
             </header>
             <div className="police-cc-quick-grid">
@@ -869,11 +871,11 @@ export default function PolicePage() {
           </section>
 
           {/* 5. ALERTS PANEL */}
-          <section className="police-cc-section police-cc-alerts" aria-label="Important alerts">
+          <section className="police-cc-section police-cc-alerts" aria-label={t('policePage.aria.importantAlerts')}>
             <header className="police-cc-section-head">
               <div className="police-cc-section-title">
                 <NotificationImportantOutlinedIcon fontSize="inherit" className="police-cc-section-icon amber" />
-                <h2>Alerts</h2>
+                <h2>{t('policePage.sections.alerts')}</h2>
                 <span className="police-cc-section-count">{alerts.length}</span>
               </div>
               <button
@@ -881,14 +883,14 @@ export default function PolicePage() {
                 className="police-cc-section-link"
                 onClick={() => navigate('/police/alerts')}
               >
-                Open center <ArrowForwardRoundedIcon fontSize="inherit" />
+                {t('policePage.sections.openCenter')} <ArrowForwardRoundedIcon fontSize="inherit" />
               </button>
             </header>
 
             {topAlerts.length === 0 ? (
               <div className="police-cc-empty">
                 <CheckCircleOutlinedIcon fontSize="inherit" />
-                <span>No active alerts.</span>
+                <span>{t('policePage.empty.noActiveAlerts')}</span>
               </div>
             ) : (
               <ul className="police-cc-alerts-list">
@@ -909,7 +911,7 @@ export default function PolicePage() {
                   >
                     <span className={`police-cc-alert-dot severity-${alert.severity}`} aria-hidden="true" />
                     <div className="police-cc-alert-body">
-                      <strong>{alert.title || 'Alert'}</strong>
+                      <strong>{alert.title || t('policePage.alert.defaultTitle')}</strong>
                       <span>{alert.locationLabel || displayLabel(alert.severity)}</span>
                     </div>
                     <span className={`police-badge ${alert.severity}`}>
@@ -923,25 +925,25 @@ export default function PolicePage() {
           </section>
 
           {/* 6. ACTIVITY FEED */}
-          <section className="police-cc-section police-cc-activity" aria-label="Activity feed">
+          <section className="police-cc-section police-cc-activity" aria-label={t('policePage.aria.activityFeed')}>
             <header className="police-cc-section-head">
               <div className="police-cc-section-title">
                 <FiberManualRecordRoundedIcon fontSize="inherit" className="police-cc-section-icon teal" />
-                <h2>Activity</h2>
+                <h2>{t('policePage.sections.activity')}</h2>
               </div>
               <button
                 type="button"
                 className="police-cc-section-link"
                 onClick={() => navigate('/police/history')}
               >
-                Full history <ArrowForwardRoundedIcon fontSize="inherit" />
+                {t('policePage.sections.fullHistory')} <ArrowForwardRoundedIcon fontSize="inherit" />
               </button>
             </header>
 
             {activityFeedItems.length === 0 ? (
               <div className="police-cc-empty">
                 <FiberManualRecordRoundedIcon fontSize="inherit" />
-                <span>No activity yet.</span>
+                <span>{t('policePage.empty.noActivity')}</span>
               </div>
             ) : (
               <ol className="police-cc-timeline">
@@ -951,13 +953,13 @@ export default function PolicePage() {
                       <ActivityIcon actionType={entry.actionType} />
                     </span>
                     <div className="police-cc-timeline-body">
-                      <strong>{activityActionLabel(entry.actionType)}</strong>
+                      <strong>{activityActionLabel(entry.actionType, t)}</strong>
                       <span>
-                        {entry.officer?.name || 'Officer'}
+                        {entry.officer?.name || t('policePage.activity.officerFallback')}
                         {entry.reportId ? ` · ${entry.reportTitle || entry.reportId}` : ''}
                       </span>
                       <time dateTime={entry.createdAt || undefined}>
-                        {formatRelativeAge(entry.createdAt)}
+                        {formatRelativeAge(entry.createdAt, t)}
                       </time>
                     </div>
                   </li>
@@ -967,11 +969,11 @@ export default function PolicePage() {
           </section>
 
           {/* 7. RECENT INCIDENTS (compact) */}
-          <section className="police-cc-section police-cc-recent" aria-label="Recent incidents">
+          <section className="police-cc-section police-cc-recent" aria-label={t('policePage.aria.recentIncidents')}>
             <header className="police-cc-section-head">
               <div className="police-cc-section-title">
                 <ReportRoundedIcon fontSize="inherit" className="police-cc-section-icon blue" />
-                <h2>Recent Incidents</h2>
+                <h2>{t('policePage.sections.recentIncidents')}</h2>
                 <span className="police-cc-section-count">{recentIncidentsCompact.length}</span>
               </div>
               <button
@@ -979,14 +981,14 @@ export default function PolicePage() {
                 className="police-cc-section-link"
                 onClick={() => navigate('/police?view=active')}
               >
-                Stream <ArrowForwardRoundedIcon fontSize="inherit" />
+                {t('policePage.sections.stream')} <ArrowForwardRoundedIcon fontSize="inherit" />
               </button>
             </header>
 
             {recentIncidentsCompact.length === 0 ? (
               <div className="police-cc-empty">
                 <LocalPoliceOutlinedIcon fontSize="inherit" />
-                <span>No active incidents.</span>
+                <span>{t('policePage.empty.noActiveIncidentsShort')}</span>
               </div>
             ) : (
               <ul className="police-cc-recent-list">
@@ -999,21 +1001,21 @@ export default function PolicePage() {
                     <span className={`police-cc-recent-strip ${incident.severity}`} aria-hidden="true" />
                     <div className="police-cc-recent-body">
                       <div className="police-cc-recent-top">
-                        <strong>{incident.title || 'Untitled incident'}</strong>
+                        <strong>{incident.title || t('policePage.incident.untitled')}</strong>
                         <span className={`police-badge ${incident.severity}`}>
                           <SeverityBadgeIcon severity={incident.severity} />
                           {displayLabel(incident.severity)}
                         </span>
                       </div>
                       <span className="police-cc-recent-meta">
-                        {incident.locationText || 'Unknown location'} · {displayLabel(incident.status)}
+                        {incident.locationText || t('policePage.incident.unknownLocation')} · {displayLabel(incident.status)}
                       </span>
                     </div>
                     <button
                       type="button"
                       className="police-cc-btn-ghost police-cc-recent-btn"
                       onClick={() => navigate(`/police/incident/${incident.id}`)}
-                      aria-label={`View incident ${incident.displayId}`}
+                      aria-label={t('policePage.incident.viewAriaLabel', { id: incident.displayId })}
                     >
                       <VisibilityOutlinedIcon fontSize="inherit" />
                     </button>
@@ -1025,17 +1027,17 @@ export default function PolicePage() {
         </div>
 
         {/* 8. ALL ACCIDENTS TABLE */}
-        <section className="police-cc-section police-cc-all-accidents" aria-label="All accidents">
+        <section className="police-cc-section police-cc-all-accidents" aria-label={t('policePage.aria.allAccidents')}>
           <header className="police-cc-section-head">
             <div className="police-cc-section-title">
               <ReportRoundedIcon fontSize="inherit" className="police-cc-section-icon high" />
-              <h2>All Accidents</h2>
+              <h2>{t('policePage.sections.allAccidents')}</h2>
               <span className="police-cc-section-count">{allAccidents.length}</span>
             </div>
             {allAccidentsLoading ? (
               <span className="police-cc-sync">
                 <span className="police-cc-sync-dot" aria-hidden="true"></span>
-                Loading…
+                {t('common:actions.loading')}
               </span>
             ) : null}
           </header>
@@ -1048,20 +1050,20 @@ export default function PolicePage() {
           ) : !allAccidentsLoading && allAccidents.length === 0 ? (
             <div className="police-cc-empty">
               <LocalPoliceOutlinedIcon fontSize="inherit" />
-              <span>No accidents recorded in your work zone.</span>
+              <span>{t('policePage.empty.noAccidents')}</span>
             </div>
           ) : (
             <div className="police-cc-acc-wrap">
               <table className="police-cc-acc-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Incident</th>
-                    <th>Type</th>
-                    <th>Severity</th>
-                    <th>Location</th>
-                    <th>Status</th>
-                    <th>Time</th>
+                    <th>{t('policePage.table.id')}</th>
+                    <th>{t('policePage.table.incident')}</th>
+                    <th>{t('policePage.table.type')}</th>
+                    <th>{t('policePage.table.severity')}</th>
+                    <th>{t('policePage.table.location')}</th>
+                    <th>{t('policePage.table.status')}</th>
+                    <th>{t('policePage.table.time')}</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -1076,7 +1078,7 @@ export default function PolicePage() {
                         {incident.displayId || <span className="police-cc-acc-dash">—</span>}
                       </td>
                       <td className="police-cc-acc-cell police-cc-acc-cell--title">
-                        <span className="police-cc-acc-title">{incident.title || 'Untitled incident'}</span>
+                        <span className="police-cc-acc-title">{incident.title || t('policePage.incident.untitled')}</span>
                         {incident.description ? (
                           <span className="police-cc-acc-desc">{incident.description}</span>
                         ) : null}
@@ -1099,17 +1101,17 @@ export default function PolicePage() {
                         </span>
                       </td>
                       <td className="police-cc-acc-cell police-cc-acc-cell--time">
-                        {formatRelativeAge(incident.occurredAt || incident.createdAt)}
+                        {formatRelativeAge(incident.occurredAt || incident.createdAt, t)}
                       </td>
                       <td className="police-cc-acc-cell police-cc-acc-cell--action">
                         <button
                           type="button"
                           className="police-cc-btn-ghost police-cc-acc-view-btn"
                           onClick={() => navigate(`/police/incident/${incident.id}`)}
-                          aria-label={`View incident ${incident.displayId}`}
+                          aria-label={t('policePage.incident.viewAriaLabel', { id: incident.displayId })}
                         >
                           <VisibilityOutlinedIcon fontSize="inherit" />
-                          <span>View</span>
+                          <span>{t('policePage.incident.view')}</span>
                         </button>
                       </td>
                     </tr>
@@ -1126,7 +1128,7 @@ export default function PolicePage() {
           className="police-cc-fullmap-backdrop"
           role="dialog"
           aria-modal="true"
-          aria-label="Full map"
+          aria-label={t('policePage.map.fullMapAriaLabel')}
           onClick={() => setIsFullMapOpen(false)}
         >
           <div
@@ -1137,21 +1139,21 @@ export default function PolicePage() {
               <div className="police-cc-fullmap-title">
                 <MyLocationRoundedIcon fontSize="inherit" className="police-cc-section-icon blue" />
                 <div>
-                  <h2>Operations Map</h2>
-                  <span>{mapMarkers.length} marker{mapMarkers.length === 1 ? '' : 's'} · {workZone?.commune?.name || workZone?.wilaya?.name || 'assigned zone'}</span>
+                  <h2>{t('policePage.map.operationsMap')}</h2>
+                  <span>{t('policePage.map.markersCount', { count: mapMarkers.length })} · {workZone?.commune?.name || workZone?.wilaya?.name || t('policePage.commandCenter.assignedZone')}</span>
                 </div>
               </div>
               <div className="police-cc-fullmap-legend">
-                <span className="police-cc-map-pill high"><span className="dot" /> High</span>
-                <span className="police-cc-map-pill medium"><span className="dot" /> Medium</span>
-                <span className="police-cc-map-pill low"><span className="dot" /> Low</span>
+                <span className="police-cc-map-pill high"><span className="dot" /> {t('policePage.severity.high')}</span>
+                <span className="police-cc-map-pill medium"><span className="dot" /> {t('policePage.severity.medium')}</span>
+                <span className="police-cc-map-pill low"><span className="dot" /> {t('policePage.severity.low')}</span>
               </div>
               <button
                 type="button"
                 className="police-cc-fullmap-close"
                 onClick={() => setIsFullMapOpen(false)}
-                aria-label="Close full map"
-                title="Close"
+                aria-label={t('policePage.map.closeFullMap')}
+                title={t('common:actions.close')}
               >
                 <CloseRoundedIcon fontSize="inherit" />
               </button>

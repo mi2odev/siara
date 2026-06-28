@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import CenterFocusStrongRoundedIcon from '@mui/icons-material/CenterFocusStrongRounded'
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
@@ -21,16 +22,16 @@ const STALE_MS = 15 * 60 * 1000 // an on-duty officer with no fresh ping is "sta
 const ACTIVE_STATUSES = new Set(['pending', 'verifying', 'verified', 'in_progress', 'dispatched', 'assigned'])
 
 const SEVERITY_CONFIG = {
-  high: { color: '#dc2626', marker: 'H', label: 'High' },
-  medium: { color: '#d97706', marker: 'M', label: 'Medium' },
-  low: { color: '#16a34a', marker: 'L', label: 'Low' },
+  high: { color: '#dc2626', marker: 'H', labelKey: 'supervisorOperationsMapPage.severity.high' },
+  medium: { color: '#d97706', marker: 'M', labelKey: 'supervisorOperationsMapPage.severity.medium' },
+  low: { color: '#16a34a', marker: 'L', labelKey: 'supervisorOperationsMapPage.severity.low' },
 }
 
 const OFFICER_STATUS = {
-  responding: { color: '#d97706', label: 'Responding' },
-  available: { color: '#2563eb', label: 'Available' },
-  stale: { color: '#94a3b8', label: 'Signal lost' },
-  off: { color: '#64748b', label: 'Off duty' },
+  responding: { color: '#d97706', labelKey: 'supervisorOperationsMapPage.officerStatus.responding' },
+  available: { color: '#2563eb', labelKey: 'supervisorOperationsMapPage.officerStatus.available' },
+  stale: { color: '#94a3b8', labelKey: 'supervisorOperationsMapPage.officerStatus.stale' },
+  off: { color: '#64748b', labelKey: 'supervisorOperationsMapPage.officerStatus.off' },
 }
 
 function severityKey(inc) {
@@ -96,14 +97,14 @@ function officerIcon(statusKey) {
   })
 }
 
-function formatRelative(value) {
+function formatRelative(value, t) {
   if (!value) return '—'
   const diff = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000))
-  if (diff < 1) return 'Just now'
-  if (diff < 60) return `${diff}m ago`
+  if (diff < 1) return t('supervisorOperationsMapPage.time.justNow')
+  if (diff < 60) return t('supervisorOperationsMapPage.time.minutesAgo', { count: diff })
   const h = Math.floor(diff / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
+  if (h < 24) return t('supervisorOperationsMapPage.time.hoursAgo', { count: h })
+  return t('supervisorOperationsMapPage.time.daysAgo', { count: Math.floor(h / 24) })
 }
 
 function statusLabel(s) {
@@ -126,6 +127,7 @@ function FitBounds({ points, fitKey }) {
 
 export default function SupervisorOperationsMapPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation(['supervisor', 'common'])
   const mapRef = useRef(null)
   const markerRefs = useRef({})
 
@@ -153,11 +155,11 @@ export default function SupervisorOperationsMapPage() {
       setLastRefreshed(new Date())
       setError(null)
     } catch (err) {
-      setError(err.message || 'Failed to load map data')
+      setError(err.message || t('supervisorOperationsMapPage.errors.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     load()
@@ -311,19 +313,19 @@ export default function SupervisorOperationsMapPage() {
       <div className="supervisor-page sv-ops">
         <div className="sv-page-header">
           <div className="sv-page-title-block">
-            <span className="sv-page-eyebrow">Supervisor — Monitoring</span>
-            <h1 className="sv-page-title">Global Operations Map</h1>
+            <span className="sv-page-eyebrow">{t('supervisorOperationsMapPage.eyebrow')}</span>
+            <h1 className="sv-page-title">{t('supervisorOperationsMapPage.title')}</h1>
             <p className="sv-page-subtitle">
-              Live incident and officer positions across all zones
-              {lastRefreshed && ` · Updated ${formatRelative(lastRefreshed)}`}
+              {t('supervisorOperationsMapPage.subtitle')}
+              {lastRefreshed && ` · ${t('supervisorOperationsMapPage.updatedAt', { time: formatRelative(lastRefreshed, t) })}`}
             </p>
           </div>
           <div className="sv-page-actions">
             <button className="sv-btn sv-btn-ghost" onClick={() => setFitKey((k) => k + 1)}>
-              <CenterFocusStrongRoundedIcon fontSize="inherit" /> Fit
+              <CenterFocusStrongRoundedIcon fontSize="inherit" /> {t('supervisorOperationsMapPage.actions.fit')}
             </button>
             <button className="sv-btn sv-btn-ghost sv-btn-refresh" onClick={load} disabled={loading}>
-              <RefreshRoundedIcon fontSize="inherit" /> Refresh
+              <RefreshRoundedIcon fontSize="inherit" /> {t('common:actions.retry')}
             </button>
           </div>
         </div>
@@ -333,73 +335,73 @@ export default function SupervisorOperationsMapPage() {
         {/* Coverage KPIs */}
         <div className="sv-kpi-bar sv-ops-kpis">
           <div className="sv-kpi-card kpi-primary">
-            <span className="sv-kpi-label">Active Incidents</span>
+            <span className="sv-kpi-label">{t('supervisorOperationsMapPage.kpi.activeIncidents')}</span>
             <span className="sv-kpi-value">{kpis.active}</span>
-            <span className="sv-kpi-sub">{kpis.high} high severity</span>
+            <span className="sv-kpi-sub">{t('supervisorOperationsMapPage.kpi.highSeverity', { count: kpis.high })}</span>
           </div>
           <div className={`sv-kpi-card ${kpis.unassigned ? 'kpi-high' : 'kpi-good'}`}>
-            <span className="sv-kpi-label">Unassigned</span>
+            <span className="sv-kpi-label">{t('supervisorOperationsMapPage.kpi.unassigned')}</span>
             <span className="sv-kpi-value">{kpis.unassigned}</span>
-            <span className="sv-kpi-sub">{kpis.highUnassigned} high-severity uncovered</span>
+            <span className="sv-kpi-sub">{t('supervisorOperationsMapPage.kpi.highSeverityUncovered', { count: kpis.highUnassigned })}</span>
           </div>
           <div className="sv-kpi-card kpi-accent">
-            <span className="sv-kpi-label">On Duty</span>
+            <span className="sv-kpi-label">{t('supervisorOperationsMapPage.kpi.onDuty')}</span>
             <span className="sv-kpi-value">{kpis.onDuty}</span>
-            <span className="sv-kpi-sub">{kpis.responding} responding now</span>
+            <span className="sv-kpi-sub">{t('supervisorOperationsMapPage.kpi.respondingNow', { count: kpis.responding })}</span>
           </div>
           <div className={`sv-kpi-card ${kpis.stale ? 'kpi-warning' : 'kpi-good'}`}>
-            <span className="sv-kpi-label">Signal Lost</span>
+            <span className="sv-kpi-label">{t('supervisorOperationsMapPage.kpi.signalLost')}</span>
             <span className="sv-kpi-value">{kpis.stale}</span>
-            <span className="sv-kpi-sub">no ping &gt; 15 min</span>
+            <span className="sv-kpi-sub">{t('supervisorOperationsMapPage.kpi.noPingThreshold')}</span>
           </div>
         </div>
 
         {/* Toolbar */}
         <div className="sv-ops-toolbar">
           <div className="sv-ops-toolbar-group">
-            <span className="sv-ops-toolbar-label">Layers</span>
+            <span className="sv-ops-toolbar-label">{t('supervisorOperationsMapPage.toolbar.layers')}</span>
             <button className={`sv-filter-btn ${showIncidents ? 'active' : ''}`} onClick={() => setShowIncidents((v) => !v)}>
-              Incidents ({incidents.length})
+              {t('supervisorOperationsMapPage.toolbar.incidentsCount', { count: incidents.length })}
             </button>
             <button className={`sv-filter-btn ${showOfficers ? 'active' : ''}`} onClick={() => setShowOfficers((v) => !v)}>
-              Officers ({officers.length})
+              {t('supervisorOperationsMapPage.toolbar.officersCount', { count: officers.length })}
             </button>
             <button className={`sv-filter-btn ${showLinks ? 'active' : ''}`} onClick={() => setShowLinks((v) => !v)}>
-              Assignment links
+              {t('supervisorOperationsMapPage.toolbar.assignmentLinks')}
             </button>
           </div>
 
           <div className="sv-ops-toolbar-group">
-            <span className="sv-ops-toolbar-label">Severity</span>
+            <span className="sv-ops-toolbar-label">{t('supervisorOperationsMapPage.toolbar.severity')}</span>
             {['all', 'high', 'medium', 'low'].map((s) => (
               <button key={s} className={`sv-filter-btn ${severityFilter === s ? 'active' : ''}`} onClick={() => setSeverityFilter(s)}>
-                {s === 'all' ? 'All' : `${SEVERITY_CONFIG[s].label} (${severityCounts[s] ?? 0})`}
+                {s === 'all' ? t('supervisorOperationsMapPage.filter.all') : `${t(SEVERITY_CONFIG[s].labelKey)} (${severityCounts[s] ?? 0})`}
               </button>
             ))}
           </div>
 
           <div className="sv-ops-toolbar-group">
-            <span className="sv-ops-toolbar-label">Coverage</span>
+            <span className="sv-ops-toolbar-label">{t('supervisorOperationsMapPage.toolbar.coverage')}</span>
             {[
-              { k: 'all', label: 'All' },
-              { k: 'unassigned', label: 'Unassigned' },
-              { k: 'assigned', label: 'Assigned' },
+              { k: 'all', labelKey: 'supervisorOperationsMapPage.filter.all' },
+              { k: 'unassigned', labelKey: 'supervisorOperationsMapPage.filter.unassigned' },
+              { k: 'assigned', labelKey: 'supervisorOperationsMapPage.filter.assigned' },
             ].map((o) => (
               <button key={o.k} className={`sv-filter-btn ${assignmentFilter === o.k ? 'active' : ''}`} onClick={() => setAssignmentFilter(o.k)}>
-                {o.label}
+                {t(o.labelKey)}
               </button>
             ))}
           </div>
 
           <div className="sv-ops-toolbar-group">
-            <span className="sv-ops-toolbar-label">Duty</span>
+            <span className="sv-ops-toolbar-label">{t('supervisorOperationsMapPage.toolbar.duty')}</span>
             {[
-              { k: 'all', label: 'All' },
-              { k: 'on', label: 'On duty' },
-              { k: 'off', label: 'Off duty' },
+              { k: 'all', labelKey: 'supervisorOperationsMapPage.filter.all' },
+              { k: 'on', labelKey: 'supervisorOperationsMapPage.filter.onDuty' },
+              { k: 'off', labelKey: 'supervisorOperationsMapPage.filter.offDuty' },
             ].map((o) => (
               <button key={o.k} className={`sv-filter-btn ${dutyFilter === o.k ? 'active' : ''}`} onClick={() => setDutyFilter(o.k)}>
-                {o.label}
+                {t(o.labelKey)}
               </button>
             ))}
           </div>
@@ -411,7 +413,7 @@ export default function SupervisorOperationsMapPage() {
             {loading && (
               <div className="sv-ops-map-loading">
                 <div className="sv-loading-spinner" />
-                <span>Loading map data…</span>
+                <span>{t('supervisorOperationsMapPage.loadingMapData')}</span>
               </div>
             )}
             <MapContainer center={ALGERIA_CENTER} zoom={DEFAULT_ZOOM} className="sv-ops-map-canvas" ref={mapRef}>
@@ -443,9 +445,9 @@ export default function SupervisorOperationsMapPage() {
                       <div className="sv-ops-popup">
                         <div className="sv-ops-popup-title">{inc.title || inc.id?.slice(0, 8)}</div>
                         <div className="sv-ops-popup-chips">
-                          <span className="sv-ops-chip" style={{ background: cfg.color }}>{cfg.label}</span>
+                          <span className="sv-ops-chip" style={{ background: cfg.color }}>{t(cfg.labelKey)}</span>
                           <span className="sv-ops-chip sv-ops-chip--muted">{statusLabel(inc.status)}</span>
-                          {inc.unassigned && <span className="sv-ops-chip sv-ops-chip--warn">Unassigned</span>}
+                          {inc.unassigned && <span className="sv-ops-chip sv-ops-chip--warn">{t('supervisorOperationsMapPage.filter.unassigned')}</span>}
                         </div>
                         {inc.locationLabel && (
                           <div className="sv-ops-popup-row"><LocationOnOutlinedIcon fontSize="inherit" /> {inc.locationLabel}</div>
@@ -453,11 +455,11 @@ export default function SupervisorOperationsMapPage() {
                         {inc.assignedOfficerName ? (
                           <div className="sv-ops-popup-row"><LocalPoliceOutlinedIcon fontSize="inherit" /> {inc.assignedOfficerName}</div>
                         ) : inc.nearest ? (
-                          <div className="sv-ops-popup-row"><NearMeOutlinedIcon fontSize="inherit" /> Nearest: {inc.nearest.officer.name} · {inc.nearest.km.toFixed(1)} km</div>
+                          <div className="sv-ops-popup-row"><NearMeOutlinedIcon fontSize="inherit" /> {t('supervisorOperationsMapPage.popup.nearest', { name: inc.nearest.officer.name, km: inc.nearest.km.toFixed(1) })}</div>
                         ) : null}
-                        <div className="sv-ops-popup-time">{formatRelative(inc.occurredAt || inc.createdAt)}</div>
+                        <div className="sv-ops-popup-time">{formatRelative(inc.occurredAt || inc.createdAt, t)}</div>
                         <button className="sv-ops-popup-btn" onClick={() => navigate(`/police/incident/${inc.id}`)}>
-                          View details <ArrowForwardRoundedIcon fontSize="inherit" />
+                          {t('supervisorOperationsMapPage.popup.viewDetails')} <ArrowForwardRoundedIcon fontSize="inherit" />
                         </button>
                       </div>
                     </Popup>
@@ -479,17 +481,17 @@ export default function SupervisorOperationsMapPage() {
                       <div className="sv-ops-popup">
                         <div className="sv-ops-popup-title">{off.name}</div>
                         <div className="sv-ops-popup-chips">
-                          <span className="sv-ops-chip" style={{ background: cfg.color }}>{cfg.label}</span>
-                          {off.assignedCount > 0 && <span className="sv-ops-chip sv-ops-chip--muted">{off.assignedCount} assigned</span>}
+                          <span className="sv-ops-chip" style={{ background: cfg.color }}>{t(cfg.labelKey)}</span>
+                          {off.assignedCount > 0 && <span className="sv-ops-chip sv-ops-chip--muted">{t('supervisorOperationsMapPage.popup.assignedCount', { count: off.assignedCount })}</span>}
                         </div>
                         {(off.rank || off.badgeNumber) && (
-                          <div className="sv-ops-popup-row">{[off.rank, off.badgeNumber && `Badge #${off.badgeNumber}`].filter(Boolean).join(' · ')}</div>
+                          <div className="sv-ops-popup-row">{[off.rank, off.badgeNumber && t('supervisorOperationsMapPage.popup.badgeNumber', { number: off.badgeNumber })].filter(Boolean).join(' · ')}</div>
                         )}
                         {(off.communeName || off.wilayaName) && (
                           <div className="sv-ops-popup-row"><LocationOnOutlinedIcon fontSize="inherit" /> {[off.communeName, off.wilayaName].filter(Boolean).join(', ')}</div>
                         )}
                         {off.locationCapturedAt && (
-                          <div className="sv-ops-popup-time">Last ping {formatRelative(off.locationCapturedAt)}</div>
+                          <div className="sv-ops-popup-time">{t('supervisorOperationsMapPage.popup.lastPing', { time: formatRelative(off.locationCapturedAt, t) })}</div>
                         )}
                       </div>
                     </Popup>
@@ -500,19 +502,19 @@ export default function SupervisorOperationsMapPage() {
 
             {/* Legend */}
             <div className="sv-map-legend sv-ops-legend">
-              <span className="sv-map-legend-title">Incidents</span>
+              <span className="sv-map-legend-title">{t('supervisorOperationsMapPage.legend.incidents')}</span>
               {['high', 'medium', 'low'].map((sk) => (
                 <div key={sk} className="sv-map-legend-item">
                   <span className="sv-map-legend-dot" style={{ background: SEVERITY_CONFIG[sk].color }} />
-                  {SEVERITY_CONFIG[sk].label}
+                  {t(SEVERITY_CONFIG[sk].labelKey)}
                   <span className="sv-ops-legend-count">{severityCounts[sk] ?? 0}</span>
                 </div>
               ))}
-              <span className="sv-map-legend-title" style={{ marginTop: 6 }}>Officers</span>
+              <span className="sv-map-legend-title" style={{ marginTop: 6 }}>{t('supervisorOperationsMapPage.legend.officers')}</span>
               {['responding', 'available', 'stale', 'off'].map((sk) => (
                 <div key={sk} className="sv-map-legend-item">
                   <span className="sv-map-legend-dot" style={{ background: OFFICER_STATUS[sk].color }} />
-                  {OFFICER_STATUS[sk].label}
+                  {t(OFFICER_STATUS[sk].labelKey)}
                 </div>
               ))}
             </div>
@@ -522,16 +524,16 @@ export default function SupervisorOperationsMapPage() {
           <aside className="sv-ops-aside">
             <div className="sv-ops-tabs">
               <button className={`sv-ops-tab ${activeTab === 'incidents' ? 'active' : ''}`} onClick={() => setActiveTab('incidents')}>
-                Incidents <span className="sv-ops-tab-count">{visibleIncidents.length}</span>
+                {t('supervisorOperationsMapPage.tabs.incidents')} <span className="sv-ops-tab-count">{visibleIncidents.length}</span>
               </button>
               <button className={`sv-ops-tab ${activeTab === 'officers' ? 'active' : ''}`} onClick={() => setActiveTab('officers')}>
-                Officers <span className="sv-ops-tab-count">{visibleOfficers.length}</span>
+                {t('supervisorOperationsMapPage.tabs.officers')} <span className="sv-ops-tab-count">{visibleOfficers.length}</span>
               </button>
             </div>
 
             <div className="sv-ops-list">
               {activeTab === 'incidents' && visibleIncidents.length === 0 && (
-                <div className="sv-ops-list-empty">No incidents match these filters.</div>
+                <div className="sv-ops-list-empty">{t('supervisorOperationsMapPage.empty.noIncidents')}</div>
               )}
               {activeTab === 'incidents' &&
                 visibleIncidents.map((inc) => {
@@ -553,14 +555,14 @@ export default function SupervisorOperationsMapPage() {
                       {inc.unassigned ? (
                         <span className="sv-ops-item-tag sv-ops-item-tag--warn"><ReportProblemOutlinedIcon fontSize="inherit" /></span>
                       ) : (
-                        <span className="sv-ops-item-time">{formatRelative(inc.occurredAt || inc.createdAt)}</span>
+                        <span className="sv-ops-item-time">{formatRelative(inc.occurredAt || inc.createdAt, t)}</span>
                       )}
                     </button>
                   )
                 })}
 
               {activeTab === 'officers' && visibleOfficers.length === 0 && (
-                <div className="sv-ops-list-empty">No officers match these filters.</div>
+                <div className="sv-ops-list-empty">{t('supervisorOperationsMapPage.empty.noOfficers')}</div>
               )}
               {activeTab === 'officers' &&
                 visibleOfficers.map((off) => {
@@ -576,11 +578,11 @@ export default function SupervisorOperationsMapPage() {
                       <span className="sv-ops-item-body">
                         <span className="sv-ops-item-title">{off.name}</span>
                         <span className="sv-ops-item-meta">
-                          {cfg.label}
-                          {off.assignedCount > 0 ? ` · ${off.assignedCount} assigned` : ''}
+                          {t(cfg.labelKey)}
+                          {off.assignedCount > 0 ? ` · ${t('supervisorOperationsMapPage.list.assignedCount', { count: off.assignedCount })}` : ''}
                         </span>
                       </span>
-                      <span className="sv-ops-item-time">{off.locationCapturedAt ? formatRelative(off.locationCapturedAt) : '—'}</span>
+                      <span className="sv-ops-item-time">{off.locationCapturedAt ? formatRelative(off.locationCapturedAt, t) : '—'}</span>
                     </button>
                   )
                 })}

@@ -1,0 +1,176 @@
+{
+  "emergencyShell": {
+    "brandRole": "Service d'urgence",
+    "ariaUnitStatus": "Statut de l'unité",
+    "activeLabel": "actif",
+    "ariaLiveTime": "Heure en direct",
+    "liveLabel": "EN DIRECT",
+    "ariaEmergencyNav": "Navigation d'urgence",
+    "nav": {
+      "groupMain": "PRINCIPAL",
+      "groupMonitoring": "SURVEILLANCE",
+      "dashboard": "Tableau de bord",
+      "assignedOperations": "Opérations assignées",
+      "emergencyMap": "Carte d'urgence",
+      "emergencyAlerts": "Alertes d'urgence"
+    },
+    "status": {
+      "available": "DISPONIBLE",
+      "responding": "EN INTERVENTION",
+      "onScene": "SUR PLACE",
+      "offline": "HORS LIGNE"
+    }
+  },
+  "emergencyAlertsPage": {
+    "eyebrow": "Avis de haute gravité",
+    "title": "Alertes d'urgence",
+    "subtitle_one": "{{count}} alerte active",
+    "subtitle_other": "{{count}} alertes actives",
+    "filters": {
+      "all": "Tous",
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    },
+    "sectionTitle": "Alertes actives",
+    "possibleCasualties": "Victimes possibles",
+    "noAlertsMatch": "Aucune alerte ne correspond à ce filtre.",
+    "alerts": {
+      "warn08": {
+        "title": "Collision de bus sur la RN1 — 12+ victimes possibles",
+        "location": "RN1 km 12, Larbaa"
+      },
+      "warn07": {
+        "title": "Pluie forte — visibilité réduite sur les routes côtières",
+        "location": "Alger · Tipaza"
+      },
+      "warn06": {
+        "title": "Route bloquée — camion renversé sur la RN5",
+        "location": "RN5, sortie Rouiba"
+      },
+      "warn05": {
+        "title": "Zone à risque élevé activée — accidents répétés signalés",
+        "location": "Carrefour El Harrach"
+      },
+      "warn04": {
+        "title": "Collision entre deux véhicules — une ambulance dépêchée",
+        "location": "Bd des Martyrs, Alger Centre"
+      }
+    }
+  },
+  "emergencyAssignedPage": {
+    "eyebrow": "Mes Missions",
+    "title": "Opérations Assignées",
+    "subtitle": "Missions actuellement assignées à votre unité",
+    "sectionAriaLabel": "Opérations assignées",
+    "sectionTitle": "Opérations",
+    "vehicleLabel": "Véhicule : {{vehicle}}",
+    "updateStatus": "Mettre à jour le statut",
+    "markCompleted": "Marquer comme terminé",
+    "addNotes": "Ajouter des notes",
+    "empty": "Aucune opération assignée actuellement.",
+    "status": {
+      "assigned": "Assigné",
+      "en_route": "En Route",
+      "arrived": "Arrivé",
+      "completed": "Terminé"
+    }
+  },
+  "emergencyDashboardPage": {
+    "operationsConsole": "Console des opérations",
+    "title": "Tableau de bord des urgences",
+    "highSeveritySubtitle_one": "{{count}} incident de haute gravité nécessitant une action",
+    "highSeveritySubtitle_other": "{{count}} incidents de haute gravité nécessitant une action",
+    "ariaKeyMetrics": "Indicateurs clés",
+    "ariaActiveIncidents": "Incidents d'urgence actifs",
+    "ariaQuickActions": "Actions rapides",
+    "activeEmergencyIncidents": "Incidents d'urgence actifs",
+    "injuredCount_one": "{{count}} blessé",
+    "injuredCount_other": "{{count}} blessés",
+    "statusLabel": "Statut",
+    "statusEnRoute": "En route",
+    "statusUnassigned": "Non assigné",
+    "viewDetails": "Voir les détails",
+    "navigate": "Naviguer",
+    "acceptMission": "Accepter la mission",
+    "quickActions": "Actions rapides",
+    "openEmergencyMap": "Ouvrir la carte d'urgence",
+    "liveIncidentGeography": "Géographie des incidents en direct",
+    "viewAssignedOperations": "Voir les opérations assignées",
+    "ongoingMissions_one": "{{count}} mission en cours",
+    "ongoingMissions_other": "{{count}} missions en cours",
+    "viewAlerts": "Voir les alertes",
+    "activeWarnings_one": "{{count}} avertissement actif",
+    "activeWarnings_other": "{{count}} avertissements actifs",
+    "kpi": {
+      "activeOperations": "Opérations actives",
+      "awaitingResponse": "En attente de réponse",
+      "highSeverityIncidents": "Incidents de haute gravité",
+      "highestSeverity": "Gravité maximale",
+      "availableUnits": "Unités disponibles",
+      "unitBreakdown": "5 ambulances · 4 pompiers · 2 civils",
+      "avgResponseTime": "Temps de réponse moyen",
+      "last30Days": "30 derniers jours"
+    },
+    "incidents": {
+      "types": {
+        "multiVehicleAccident": "Accident multivoiture",
+        "buildingFire": "Incendie de bâtiment",
+        "injuredCivilian": "Civil blessé",
+        "dangerousObstacle": "Obstacle dangereux"
+      },
+      "titles": {
+        "threeCarCollision": "Collision de trois voitures bloquant les voies en direction est",
+        "residentialFire": "Incendie résidentiel — fumée au 3e étage",
+        "pedestrianStruck": "Piéton renversé — conscient, traumatisme à la jambe",
+        "cargoSpill": "Déversement de cargaison sur deux voies"
+      },
+      "reportedAt": {
+        "2minAgo": "Il y a 2 min",
+        "5minAgo": "Il y a 5 min",
+        "11minAgo": "Il y a 11 min",
+        "18minAgo": "Il y a 18 min"
+      }
+    }
+  },
+  "emergencyMapPage": {
+    "eyebrow": "Géographie opérationnelle",
+    "title": "Carte des urgences",
+    "subtitle": "Incidents en direct · unités · hôpitaux à proximité",
+    "hospitalLabel": "Hôpital",
+    "activeIncidents": "Incidents actifs",
+    "nearbyHospitals": "Hôpitaux à proximité"
+  },
+  "emergencyResponsePage": {
+    "title": "Réponse à l'incident",
+    "subtitle": "Détails opérationnels et contrôles d'intervention",
+    "reportedAt": "Signalé à {{time}}",
+    "injured": "Blessés",
+    "casualties": "Victimes",
+    "source": "Source",
+    "reliability": "Fiabilité",
+    "media": "Médias",
+    "noMoreMedia": "Aucun autre média",
+    "actions": "Actions",
+    "arrivalLogged": "Arrivée enregistrée",
+    "markArrived": "Marquer comme arrivé",
+    "requestBackup": "Demander des renforts",
+    "missionClosed": "Mission clôturée",
+    "closeMission": "Clôturer la mission",
+    "operationalNotes": "Notes opérationnelles",
+    "notePlaceholder": "Ajouter une note de terrain pour le dispatch…",
+    "saveNote": "Enregistrer la note",
+    "responseTimeline": "Chronologie de l'intervention",
+    "timeline": {
+      "reported": "Incident signalé par un citoyen — validé automatiquement par SIARA.",
+      "dispatched": "Dépêché",
+      "dispatchedSuffix": "sur les lieux.",
+      "enRoutePrefix": "Unité",
+      "enRoute": "en route",
+      "enRouteSuffix": "— Arrivée estimée dans 4 min.",
+      "now": "Maintenant",
+      "arrivedPrefix": "Unité",
+      "arrivedOnScene": "arrivée sur les lieux"
+    }
+  }
+}

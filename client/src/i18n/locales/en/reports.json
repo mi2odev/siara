@@ -15,5 +15,485 @@
     "resolved": "Resolved"
   },
   "count_one": "{{count}} report",
-  "count_other": "{{count}} reports"
+  "count_other": "{{count}} reports",
+  "reportCredibilityBadge": {
+    "levelHigh": "High credibility",
+    "levelMedium": "Medium credibility",
+    "levelLow": "Low credibility",
+    "levelUnknown": "Credibility pending",
+    "labelCompact": "Credibility {{score}}",
+    "labelFallback": "Credibility",
+    "ariaLabel": "{{level}}, score {{score}} out of 100",
+    "spam": "Spam",
+    "tooltipTitle": "Why this credibility?"
+  },
+  "reportSuggestionCard": {
+    "ariaLabel": "SIARA suggestions",
+    "title": "SIARA suggestions",
+    "updating": "Updating…",
+    "suggestionsUnavailable": "Suggestions unavailable",
+    "useType": "Use type: {{type}}",
+    "setSeverity": "Set severity: {{severity}}",
+    "possiblyReported": "Possibly already reported",
+    "reportFallbackTitle": "Report #{{id}}",
+    "incidentFallback": "incident",
+    "policeVerified": "Police-verified",
+    "confirmExisting": "Confirm this existing report instead",
+    "distanceMeters": "{{count}} m away",
+    "distanceKm": "{{count}} km away",
+    "timeJustNow": "just now",
+    "timeMinutesAgo": "{{count}} min ago",
+    "timeHoursAgo": "{{count}}h ago",
+    "timeDaysAgo": "{{count}}d ago"
+  },
+  "incidentDetailPage": {
+    "types": {
+      "accident": "Accident",
+      "traffic": "Traffic",
+      "danger": "Danger",
+      "weather": "Weather",
+      "roadworks": "Roadworks",
+      "other": "Other",
+      "incident": "Incident"
+    },
+    "status": {
+      "pending": "Pending",
+      "verified": "Verified",
+      "rejected": "Rejected",
+      "resolved": "Resolved"
+    },
+    "severity": {
+      "high": "High Severity",
+      "medium": "Medium Severity",
+      "low": "Low Severity",
+      "unknown": "Unknown"
+    },
+    "timeAgo": {
+      "unknown": "Unknown",
+      "justNow": "Just now",
+      "minutesAgo_one": "{{count}} min ago",
+      "minutesAgo_other": "{{count}} min ago",
+      "hoursAgo_one": "{{count}} h ago",
+      "hoursAgo_other": "{{count}} h ago",
+      "daysAgo_one": "{{count}} day ago",
+      "daysAgo_other": "{{count}} days ago"
+    },
+    "timeline": {
+      "anonymousUser": "an identified user",
+      "administrator": "Administrator",
+      "policeOfficer": "Police Officer",
+      "citizenReporter": "Citizen Reporter",
+      "reportSubmittedBy": "Report submitted by {{name}}.",
+      "system": "System",
+      "reportDetailsUpdated": "Report details were updated.",
+      "authority": "Authority",
+      "statusUpdatedTo": "Status updated to {{status}}.",
+      "citizen": "Citizen"
+    },
+    "noDescription": "No description was provided for this report.",
+    "reportedLocation": "Reported location",
+    "citizen": "Citizen",
+    "reportImage": "Report image",
+    "reportMedia": "Report media",
+    "checkLiveMap": "Check the live map for alternate routes",
+    "errors": {
+      "failedToLoad": "Failed to load report",
+      "failedToUpdate": "Failed to update report",
+      "failedToDelete": "Failed to delete report",
+      "titleTooShort": "Title must be at least 2 characters.",
+      "invalidLatitude": "Latitude must be a valid number between -90 and 90.",
+      "invalidLongitude": "Longitude must be a valid number between -180 and 180."
+    },
+    "confirmDelete": "Delete this report permanently?",
+    "nav": {
+      "feed": "Feed",
+      "report": "Report",
+      "dashboard": "Dashboard"
+    },
+    "searchPlaceholder": "Search for an incident, a road, a wilaya...",
+    "ariaLabels": {
+      "messages": "Messages",
+      "userProfile": "User profile",
+      "userAvatar": "User avatar",
+      "profile": "Profile",
+      "openPhoto": "Open photo",
+      "photoPreview": "Photo preview",
+      "zoomOut": "Zoom out",
+      "resetZoom": "Reset zoom",
+      "zoomIn": "Zoom in",
+      "closePhotoPreview": "Close photo preview",
+      "previousPhoto": "Previous photo",
+      "nextPhoto": "Next photo"
+    },
+    "dropdown": {
+      "myProfile": "My Profile"
+    },
+    "profileBio": "Browse live road reports and share updates from the field.",
+    "viewProfile": "View Profile",
+    "reportStatus": "REPORT STATUS",
+    "filter": {
+      "all": "All"
+    },
+    "newReport": "+ New Report",
+    "loadingReport": "Loading report...",
+    "reportUnavailable": "Report unavailable",
+    "reportedBy": "Reported by",
+    "statusLabel": "Status:",
+    "updatedLabel": "Updated",
+    "mergedReports": {
+      "title": "Merged reports ({{count}})",
+      "description": "SIARA grouped {{count}} reports of the same accident (within 300 m and 6 h) into this incident. The original report is kept; the others are merged duplicates.",
+      "original": "Original",
+      "merged": "Merged",
+      "thisReport": "· this report",
+      "policeVerified": "· police-verified"
+    },
+    "sections": {
+      "description": "Description",
+      "photos": "Photos",
+      "timeline": "Timeline",
+      "communitySignals": "Community Signals",
+      "location": "Location",
+      "recommendations": "Recommendations",
+      "actions": "Actions",
+      "metadata": "Metadata"
+    },
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "signals": {
+      "confirmations": "Confirmations",
+      "comments": "Comments",
+      "availableAfterPublication": "Available after publication",
+      "iConfirm": "I confirm"
+    },
+    "noLocationCoordinates": "No location coordinates available",
+    "openFullMap": "Open full map",
+    "safety": {
+      "treatWithCaution": "Treat with caution",
+      "monitorArea": "Monitor this area",
+      "estimatedDelay": "Estimated delay:",
+      "alternativeRoutes": "Alternative routes:"
+    },
+    "actions": {
+      "following": "Following",
+      "followIncident": "Follow this incident",
+      "createZoneAlert": "Create zone alert",
+      "reportUpdate": "Report an update",
+      "editReport": "Edit report",
+      "deleting": "Deleting...",
+      "deleteReport": "Delete report",
+      "saving": "Saving...",
+      "saveChanges": "Save changes"
+    },
+    "editForm": {
+      "title": "Title",
+      "type": "Type",
+      "severity": "Severity",
+      "status": "Status",
+      "locationLabel": "Location label",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "occurredAt": "Occurred at",
+      "description": "Description",
+      "mediaNote": "Media is preserved with the report, but media editing from this page is not available yet."
+    },
+    "metadata": {
+      "incidentId": "Incident ID",
+      "reporter": "Reporter",
+      "status": "Status",
+      "sources": "Sources",
+      "sourceCount_one": "{{count}} report",
+      "sourceCount_other": "{{count}} reports",
+      "categories": "Categories",
+      "lastUpdated": "Last Updated"
+    }
+  },
+  "reportIncidentPage": {
+    "header": {
+      "searchPlaceholder": "Search for an incident, a road, a wilaya…",
+      "userProfile": "User profile",
+      "userAvatar": "User avatar"
+    },
+    "steps": {
+      "incidentType": "Incident Type",
+      "location": "Location",
+      "details": "Details",
+      "media": "Media",
+      "verification": "Verification"
+    },
+    "incidentTypes": {
+      "accident": {
+        "label": "Accident",
+        "desc": "Collision, road accident"
+      },
+      "traffic": {
+        "label": "Traffic",
+        "desc": "Traffic jam, slowdown"
+      },
+      "danger": {
+        "label": "Danger",
+        "desc": "Obstacle, dangerous situation"
+      },
+      "weather": {
+        "label": "Weather",
+        "desc": "Dangerous weather conditions"
+      },
+      "roadworks": {
+        "label": "Roadworks",
+        "desc": "Construction, lane closure"
+      },
+      "other": {
+        "label": "Other",
+        "desc": "Other type of incident"
+      }
+    },
+    "severity": {
+      "high": {
+        "label": "High",
+        "desc": "Urgent, immediate danger"
+      },
+      "medium": {
+        "label": "Medium",
+        "desc": "Important, attention required"
+      },
+      "low": {
+        "label": "Low",
+        "desc": "Minor, informational"
+      }
+    },
+    "timePresets": {
+      "now": "Just now",
+      "5m": "5 min ago",
+      "15m": "15 min ago",
+      "30m": "30 min ago",
+      "1h": "1 hour ago",
+      "2h": "2 hours ago"
+    },
+    "locationDetails": {
+      "fullAddress": "Full address",
+      "road": "Road",
+      "roadType": "Road type",
+      "neighborhood": "Neighborhood",
+      "district": "District",
+      "city": "City",
+      "county": "County",
+      "state": "State",
+      "postcode": "Postcode",
+      "country": "Country",
+      "coordinates": "Coordinates"
+    },
+    "location": {
+      "selectedOnMap": "selected on map",
+      "gpsAccuracy": "GPS accuracy ±{{meters}} m",
+      "highPrecisionGps": "High-precision GPS",
+      "addressSearch": "Address search",
+      "mapSelection": "Map selection"
+    },
+    "errors": {
+      "geolocationNotSupported": "Geolocation is not supported in this browser.",
+      "unableToReadCoordinates": "Unable to read your current coordinates.",
+      "locationPermissionDenied": "Location permission was denied. Allow location access and try again.",
+      "locationUnavailable": "Your location is unavailable right now. Try again in a few seconds.",
+      "locationTimeout": "Location request timed out. Please try again.",
+      "unableToGetLocation": "Unable to get your current location.",
+      "mediaMaxFiles": "You can upload up to 5 images per report.",
+      "mediaInvalidType": "Only JPEG, PNG, and WebP images are allowed.",
+      "mediaFileTooLarge": "Each image must be 5 MB or smaller.",
+      "mediaNoValidImages": "No valid images were selected.",
+      "mediaUploadFailed": "Your report was created, but the images could not be uploaded.",
+      "submitFailed": "Failed to submit report."
+    },
+    "preview": {
+      "reportedTitle": "{{type}} reported",
+      "newIncident": "New incident",
+      "heading": "Report preview",
+      "howItWillAppear": "How it will appear",
+      "locationPlaceholder": "Location...",
+      "descriptionPlaceholder": "Incident description...",
+      "pending": "Pending",
+      "locationLabel": "Location",
+      "selectLocation": "Select a location",
+      "verificationStatus": "Verification status",
+      "verifPending": "Pending",
+      "verifPendingDesc": "Will be verified after submission",
+      "timeline": {
+        "aiReview": "AI Review",
+        "community": "Community",
+        "published": "Published"
+      },
+      "trustSafety": "Trust & Safety",
+      "trust": {
+        "verifiedReports": "Verified reports",
+        "protectedData": "Protected data",
+        "moderatedMedia": "Moderated media",
+        "falseReportsRemoved": "False reports removed"
+      }
+    },
+    "wizard": {
+      "heading": "Report an incident",
+      "secureReporting": "Secure reporting",
+      "secureReportingDesc": "Your data is protected. False reports may be removed.",
+      "cancelReport": "Cancel report"
+    },
+    "step1": {
+      "heading": "What type of incident do you want to report?",
+      "subheading": "Select the category that best matches.",
+      "selectTypeHint": "Select an incident type to continue."
+    },
+    "step2": {
+      "heading": "Where is the incident located?",
+      "subheading": "Provide the exact location to help other users.",
+      "detectingLocation": "Detecting your location...",
+      "useCurrentLocation": "Use my current location",
+      "pleaseWait": "Please wait a moment",
+      "searchAddressLabel": "Or search for an address",
+      "searchAddressPlaceholder": "E.g.: Rue Didouche Mourad, Algiers...",
+      "noAddressFound": "No matching address found.",
+      "selectOnMapLabel": "Or select on the map",
+      "mapClickHint": "Click to place the marker",
+      "locationDetailsAriaLabel": "Selected location details"
+    },
+    "step3": {
+      "heading": "Describe the incident",
+      "subheading": "Provide details to help understand the situation.",
+      "titleLabel": "Report title",
+      "titlePlaceholder": "E.g.: Accident between two vehicles",
+      "titleMinChars": "Minimum 2 characters",
+      "descriptionLabel": "Description",
+      "optional": "optional",
+      "descriptionPlaceholder": "Describe what you observed. Stay factual and objective.",
+      "tips": {
+        "heading": "Tips",
+        "tip1": "Describe the facts, not your emotions",
+        "tip2": "Mention the number of vehicles/people if relevant",
+        "tip3": "Indicate if emergency services are present"
+      },
+      "severityLabel": "Severity level",
+      "whenLabel": "When did this happen?",
+      "pickDateTime": "Pick date & time",
+      "incidentTimeHint": "Incident time:"
+    },
+    "step4": {
+      "heading": "Add media",
+      "subheading": "Add up to 5 photos to document the incident (optional).",
+      "uploadTitle": "Add photos",
+      "dropHere": "Drop your images here",
+      "uploadDesc": "Click or drag JPEG, PNG, or WebP images",
+      "uploadLimit": "Maximum 5 files • 5 MB each",
+      "previewAlt": "Preview {{index}}",
+      "removeMedia": "Remove",
+      "privacyTitle": "Privacy",
+      "privacyDesc": "Media is moderated before publication. Visible personal data (faces, license plates) may be blurred.",
+      "noMedia": "No media to add?",
+      "skipStep": "Skip this step"
+    },
+    "step5": {
+      "heading": "Review your report",
+      "subheading": "Review the information before submitting.",
+      "reviewLabels": {
+        "incidentType": "Incident type",
+        "location": "Location",
+        "title": "Title",
+        "description": "Description",
+        "severity": "Severity",
+        "time": "Time",
+        "media": "Media"
+      },
+      "imageCount_one": "{{count}} image",
+      "imageCount_other": "{{count}} images",
+      "noMedia": "No media",
+      "agreementText": "I confirm that this information is accurate and truthful.",
+      "reviewNotice": "Your report will be verified by our automated system and then made visible to other users. False reports may result in a warning or an account ban.",
+      "loginRequired": "You need to be logged in to submit this report."
+    },
+    "nav": {
+      "continue": "Continue",
+      "submitReport": "Submit report",
+      "submitting": "Submitting…"
+    },
+    "success": {
+      "title": "Report submitted!",
+      "reference": "Reference:",
+      "awaitingVerification": "Awaiting verification",
+      "whatHappensNext": "What happens next?",
+      "nextSteps": {
+        "autoReview": {
+          "title": "Automatic review",
+          "desc": "AI analyzes your report for accuracy"
+        },
+        "communityConfirmation": {
+          "title": "Community confirmation",
+          "desc": "Other users can confirm the incident"
+        },
+        "officialValidation": {
+          "title": "Official validation",
+          "desc": "Verification by authorities if needed"
+        }
+      },
+      "viewMyReport": "View my report",
+      "reportAnother": "Report another incident",
+      "backToFeed": "Back to feed",
+      "trustNotice": "Your personal data is protected. Reports are moderated to ensure quality."
+    }
+  },
+  "reportsPage": {
+    "unknown": "Unknown",
+    "unknownTime": "Unknown time",
+    "untitledReport": "Untitled report",
+    "unknownLocation": "Unknown location",
+    "toastResponseSent": "Response sent — thanks for the extra info.",
+    "errorFailedToSend": "Failed to send response",
+    "errorLoadReports": "Unable to load your reports.",
+    "toastSubmitted": "Report \"{{name}}\" submitted successfully",
+    "confirmDelete": "Delete this report?",
+    "toastDeleted": "Report deleted",
+    "errorDeleteReport": "Unable to delete report.",
+    "navFeed": "Feed",
+    "navReport": "Report",
+    "navDashboard": "Dashboard",
+    "searchPlaceholder": "Search for an incident, a road, a wilaya...",
+    "ariaUserProfile": "User profile",
+    "altUserAvatar": "User avatar",
+    "dropdownMyProfile": "My Profile",
+    "profileBio": "Browse live road reports and share updates from the field.",
+    "viewProfile": "View Profile",
+    "newReport": "+ New Report",
+    "reportStatusLabel": "REPORT STATUS",
+    "filterAll": "All",
+    "filterPending": "Pending",
+    "filterVerified": "Verified",
+    "filterResolved": "Resolved",
+    "filterRejected": "Rejected",
+    "pageTitle": "My Reports",
+    "pageSubtitle": "Track, review, and manage your incident reports.",
+    "severityAll": "Severity",
+    "severityHigh": "High",
+    "severityMedium": "Medium",
+    "severityLow": "Low",
+    "loadingReports": "Loading reports...",
+    "emptyTitle": "No Reports",
+    "emptyDesc": "Create your first report to share road incidents.",
+    "emptyCreateBtn": "Create a Report",
+    "infoRequestTitle": "A moderator needs more info",
+    "infoRequestRespond": "Respond",
+    "infoResponseSent": "Your response was sent.",
+    "infoResponseWaiting": "Waiting on the moderator to follow up.",
+    "cardView": "View",
+    "overviewTitle": "Reports Overview",
+    "overviewTotal": "Total",
+    "detailPanelTitle": "Selected Report",
+    "noSelTitle": "No Report Selected",
+    "noSelDesc": "Select a report from the list to view complete details here.",
+    "detailType": "Type",
+    "detailLocation": "Location",
+    "detailOccurred": "Occurred",
+    "detailReference": "Reference",
+    "viewFullReport": "View Full Report",
+    "newReportBtn": "New Report",
+    "modalTitle": "Respond to moderator",
+    "modalSubtitle": "Your answer goes to the admin reviewing this report.",
+    "modalPlaceholder": "Type your response…",
+    "modalSending": "Sending…",
+    "modalSend": "Send response"
+  }
 }

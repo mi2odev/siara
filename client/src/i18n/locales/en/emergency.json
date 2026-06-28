@@ -1,0 +1,176 @@
+{
+  "emergencyShell": {
+    "brandRole": "Emergency Service",
+    "ariaUnitStatus": "Unit status",
+    "activeLabel": "active",
+    "ariaLiveTime": "Live time",
+    "liveLabel": "LIVE",
+    "ariaEmergencyNav": "Emergency navigation",
+    "nav": {
+      "groupMain": "MAIN",
+      "groupMonitoring": "MONITORING",
+      "dashboard": "Dashboard",
+      "assignedOperations": "Assigned Operations",
+      "emergencyMap": "Emergency Map",
+      "emergencyAlerts": "Emergency Alerts"
+    },
+    "status": {
+      "available": "AVAILABLE",
+      "responding": "RESPONDING",
+      "onScene": "ON-SCENE",
+      "offline": "OFFLINE"
+    }
+  },
+  "emergencyAlertsPage": {
+    "eyebrow": "High-Severity Notices",
+    "title": "Emergency Alerts",
+    "subtitle_one": "{{count}} active alert",
+    "subtitle_other": "{{count}} active alerts",
+    "filters": {
+      "all": "All",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "sectionTitle": "Active Alerts",
+    "possibleCasualties": "Possible casualties",
+    "noAlertsMatch": "No alerts match this filter.",
+    "alerts": {
+      "warn08": {
+        "title": "Bus collision corridor RN1 — possible 12+ casualties",
+        "location": "RN1 km 12, Larbaa"
+      },
+      "warn07": {
+        "title": "Heavy rain — reduced visibility on coastal roads",
+        "location": "Algiers · Tipaza"
+      },
+      "warn06": {
+        "title": "Road blocked — overturned truck on RN5",
+        "location": "RN5, exit Rouiba"
+      },
+      "warn05": {
+        "title": "High-risk zone activated — repeated accidents reported",
+        "location": "El Harrach junction"
+      },
+      "warn04": {
+        "title": "Two-vehicle collision — one ambulance dispatched",
+        "location": "Bd des Martyrs, Alger Centre"
+      }
+    }
+  },
+  "emergencyAssignedPage": {
+    "eyebrow": "My Missions",
+    "title": "Assigned Operations",
+    "subtitle": "Missions currently assigned to your unit",
+    "sectionAriaLabel": "Assigned operations",
+    "sectionTitle": "Operations",
+    "vehicleLabel": "Vehicle: {{vehicle}}",
+    "updateStatus": "Update Status",
+    "markCompleted": "Mark Completed",
+    "addNotes": "Add Notes",
+    "empty": "No operations currently assigned.",
+    "status": {
+      "assigned": "Assigned",
+      "en_route": "En Route",
+      "arrived": "Arrived",
+      "completed": "Completed"
+    }
+  },
+  "emergencyDashboardPage": {
+    "operationsConsole": "Operations Console",
+    "title": "Emergency Dashboard",
+    "highSeveritySubtitle_one": "{{count}} high-severity incident requiring action",
+    "highSeveritySubtitle_other": "{{count}} high-severity incidents requiring action",
+    "ariaKeyMetrics": "Key metrics",
+    "ariaActiveIncidents": "Active emergency incidents",
+    "ariaQuickActions": "Quick actions",
+    "activeEmergencyIncidents": "Active Emergency Incidents",
+    "injuredCount_one": "{{count}} injured",
+    "injuredCount_other": "{{count}} injured",
+    "statusLabel": "Status",
+    "statusEnRoute": "En-Route",
+    "statusUnassigned": "Unassigned",
+    "viewDetails": "View Details",
+    "navigate": "Navigate",
+    "acceptMission": "Accept Mission",
+    "quickActions": "Quick Actions",
+    "openEmergencyMap": "Open Emergency Map",
+    "liveIncidentGeography": "Live incident geography",
+    "viewAssignedOperations": "View Assigned Operations",
+    "ongoingMissions_one": "{{count}} ongoing mission",
+    "ongoingMissions_other": "{{count}} ongoing missions",
+    "viewAlerts": "View Alerts",
+    "activeWarnings_one": "{{count}} active warning",
+    "activeWarnings_other": "{{count}} active warnings",
+    "kpi": {
+      "activeOperations": "Active Operations",
+      "awaitingResponse": "Awaiting response",
+      "highSeverityIncidents": "High-Severity Incidents",
+      "highestSeverity": "Highest severity",
+      "availableUnits": "Available Units",
+      "unitBreakdown": "5 ambulance · 4 fire · 2 civil",
+      "avgResponseTime": "Avg Response Time",
+      "last30Days": "Last 30 days"
+    },
+    "incidents": {
+      "types": {
+        "multiVehicleAccident": "Multi-vehicle accident",
+        "buildingFire": "Building fire",
+        "injuredCivilian": "Injured civilian",
+        "dangerousObstacle": "Dangerous obstacle"
+      },
+      "titles": {
+        "threeCarCollision": "Three-car collision blocking eastbound lanes",
+        "residentialFire": "Residential fire — smoke on 3rd floor",
+        "pedestrianStruck": "Pedestrian struck — conscious, leg trauma",
+        "cargoSpill": "Cargo spill across two lanes"
+      },
+      "reportedAt": {
+        "2minAgo": "2 min ago",
+        "5minAgo": "5 min ago",
+        "11minAgo": "11 min ago",
+        "18minAgo": "18 min ago"
+      }
+    }
+  },
+  "emergencyMapPage": {
+    "eyebrow": "Operational Geography",
+    "title": "Emergency Map",
+    "subtitle": "Live incidents · units · nearby hospitals",
+    "hospitalLabel": "Hospital",
+    "activeIncidents": "Active Incidents",
+    "nearbyHospitals": "Nearby Hospitals"
+  },
+  "emergencyResponsePage": {
+    "title": "Incident Response",
+    "subtitle": "Operational details and intervention controls",
+    "reportedAt": "Reported {{time}}",
+    "injured": "Injured",
+    "casualties": "Casualties",
+    "source": "Source",
+    "reliability": "Reliability",
+    "media": "Media",
+    "noMoreMedia": "No more media",
+    "actions": "Actions",
+    "arrivalLogged": "Arrival Logged",
+    "markArrived": "Mark Arrived",
+    "requestBackup": "Request Backup",
+    "missionClosed": "Mission Closed",
+    "closeMission": "Close Mission",
+    "operationalNotes": "Operational Notes",
+    "notePlaceholder": "Add a field note for dispatch…",
+    "saveNote": "Save Note",
+    "responseTimeline": "Response Timeline",
+    "timeline": {
+      "reported": "Incident reported by citizen — auto-validated by SIARA.",
+      "dispatched": "Dispatched",
+      "dispatchedSuffix": "to scene.",
+      "enRoutePrefix": "Unit",
+      "enRoute": "en route",
+      "enRouteSuffix": "— ETA 4 min.",
+      "now": "Now",
+      "arrivedPrefix": "Unit",
+      "arrivedOnScene": "arrived on scene"
+    }
+  }
+}

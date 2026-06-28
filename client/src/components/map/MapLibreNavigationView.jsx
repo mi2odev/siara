@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import AltRouteIcon from '@mui/icons-material/AltRoute'
@@ -223,6 +224,7 @@ export default function MapLibreNavigationView({
   lastLocationError = null,
   routeOrigin = null,
 }) {
+  const { t } = useTranslation(['map', 'common'])
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const userMarkerRef = useRef(null)
@@ -618,7 +620,7 @@ export default function MapLibreNavigationView({
     }
 
     if (!destinationMarkerRef.current) {
-      const element = buildDestinationMarkerElement(destination?.name)
+      const element = buildDestinationMarkerElement(destination?.name || t('mapLibreNavigationView.destinationLabel'))
       const marker = new maplibregl.Marker({ element, anchor: 'bottom' })
         .setLngLat([lng, lat])
         .addTo(map)
@@ -627,7 +629,7 @@ export default function MapLibreNavigationView({
       const labelNode = destinationMarkerRef.current
         .getElement()
         .querySelector('.siara-mlb-destination-marker__label')
-      if (labelNode) labelNode.textContent = destination?.name || 'Destination'
+      if (labelNode) labelNode.textContent = destination?.name || t('mapLibreNavigationView.destinationLabel')
       destinationMarkerRef.current.setLngLat([lng, lat])
     }
   }, [mapReady, destination?.lat, destination?.lng, destination?.name])
@@ -905,27 +907,27 @@ export default function MapLibreNavigationView({
       <div ref={containerRef} className="siara-mlb-canvas" />
 
       <div className="siara-mlb-top-zone">
-        <nav className="siara-mlb-tabs" aria-label="Navigation modes">
+        <nav className="siara-mlb-tabs" aria-label={t('mapLibreNavigationView.tabs.ariaLabel')}>
           <button type="button" className="is-active">
             <NavigationIcon />
-            Drive
+            {t('mapLibreNavigationView.tabs.drive')}
           </button>
           <button type="button">
             <AltRouteIcon />
-            Routes
+            {t('mapLibreNavigationView.tabs.routes')}
           </button>
           <button type="button">
             <WarningAmberIcon />
-            Risk
+            {t('mapLibreNavigationView.tabs.risk')}
           </button>
         </nav>
 
-        <div className="siara-mlb-controls" aria-label="Navigation map controls">
+        <div className="siara-mlb-controls" aria-label={t('mapLibreNavigationView.controls.ariaLabel')}>
           <button
             type="button"
             onClick={() => setRoutePanelOpen((open) => !open)}
             aria-pressed={routePanelOpen}
-            aria-label="Toggle selected route panel"
+            aria-label={t('mapLibreNavigationView.controls.toggleRoutePanel')}
           >
             <LayersIcon />
           </button>
@@ -933,7 +935,7 @@ export default function MapLibreNavigationView({
             type="button"
             onClick={() => setShowDebug((open) => !open)}
             aria-pressed={showDebug}
-            aria-label="Toggle navigation debug"
+            aria-label={t('mapLibreNavigationView.controls.toggleDebug')}
           >
             <BugReportIcon />
           </button>
@@ -942,12 +944,12 @@ export default function MapLibreNavigationView({
               type="button"
               className="siara-mlb-controls__locate"
               onClick={handleRecenter}
-              aria-label="Center on my location"
+              aria-label={t('mapLibreNavigationView.controls.centerOnLocation')}
               aria-pressed={followUser}
               data-following={followUser ? 'true' : 'false'}
             >
               <GpsFixedIcon />
-              <span>My Location</span>
+              <span>{t('mapLibreNavigationView.controls.myLocation')}</span>
             </button>
           ) : null}
         </div>
@@ -956,7 +958,7 @@ export default function MapLibreNavigationView({
       <div className="siara-mlb-instruction-zone">
         {!hasValidUserLocation ? (
           <div className="siara-mlb-location-warning" role="status">
-            Enable location to use live navigation. Showing route preview only.
+            {t('mapLibreNavigationView.locationWarning')}
           </div>
         ) : null}
 
@@ -993,11 +995,11 @@ export default function MapLibreNavigationView({
           searching={searchingSegment && !currentNavigationSegment}
         />
 
-        <div className="siara-mlb-legend" aria-label="Route risk legend">
-          <span><i className="risk-low" /> Low</span>
-          <span><i className="risk-medium" /> Medium</span>
-          <span><i className="risk-high" /> High</span>
-          <span><i className="risk-unknown" /> Unknown</span>
+        <div className="siara-mlb-legend" aria-label={t('mapLibreNavigationView.legend.ariaLabel')}>
+          <span><i className="risk-low" /> {t('mapLibreNavigationView.legend.low')}</span>
+          <span><i className="risk-medium" /> {t('mapLibreNavigationView.legend.medium')}</span>
+          <span><i className="risk-high" /> {t('mapLibreNavigationView.legend.high')}</span>
+          <span><i className="risk-unknown" /> {t('mapLibreNavigationView.legend.unknown')}</span>
         </div>
       </div>
 
@@ -1040,27 +1042,27 @@ export default function MapLibreNavigationView({
       </div>
 
       {showDebug ? (
-        <div className="siara-mlb-debug" aria-label="Live location debug">
-          <span>lat {debugLocation.latitude != null ? debugLocation.latitude.toFixed(6) : 'n/a'}</span>
-          <span>lng {debugLocation.longitude != null ? debugLocation.longitude.toFixed(6) : 'n/a'}</span>
-          <span>accuracy {debugLocation.accuracy != null ? `${Math.round(debugLocation.accuracy)}m` : 'n/a'}</span>
-          <span>heading {Number.isFinite(debugLocation.heading) ? `${Math.round(debugLocation.heading)}deg` : 'n/a'}</span>
-          <span>source {debugLocation.headingSource}</span>
-          <span>follow {debugLocation.followUser ? 'true' : 'false'}</span>
-          <span>nav {debugLocation.navigationActive ? 'true' : 'false'}</span>
-          <span>camera {debugLocation.cameraFollowEnabled ? 'follow' : 'free'}</span>
-          <span>geo {debugLocation.geolocationStatus}</span>
+        <div className="siara-mlb-debug" aria-label={t('mapLibreNavigationView.debug.ariaLabel')}>
+          <span>{t('mapLibreNavigationView.debug.lat')} {debugLocation.latitude != null ? debugLocation.latitude.toFixed(6) : 'n/a'}</span>
+          <span>{t('mapLibreNavigationView.debug.lng')} {debugLocation.longitude != null ? debugLocation.longitude.toFixed(6) : 'n/a'}</span>
+          <span>{t('mapLibreNavigationView.debug.accuracy')} {debugLocation.accuracy != null ? `${Math.round(debugLocation.accuracy)}m` : 'n/a'}</span>
+          <span>{t('mapLibreNavigationView.debug.heading')} {Number.isFinite(debugLocation.heading) ? `${Math.round(debugLocation.heading)}deg` : 'n/a'}</span>
+          <span>{t('mapLibreNavigationView.debug.source')} {debugLocation.headingSource}</span>
+          <span>{t('mapLibreNavigationView.debug.follow')} {debugLocation.followUser ? 'true' : 'false'}</span>
+          <span>{t('mapLibreNavigationView.debug.nav')} {debugLocation.navigationActive ? 'true' : 'false'}</span>
+          <span>{t('mapLibreNavigationView.debug.camera')} {debugLocation.cameraFollowEnabled ? t('mapLibreNavigationView.debug.cameraFollow') : t('mapLibreNavigationView.debug.cameraFree')}</span>
+          <span>{t('mapLibreNavigationView.debug.geo')} {debugLocation.geolocationStatus}</span>
           <span>
-            fix {debugLocation.lastLocationUpdatedAt
+            {t('mapLibreNavigationView.debug.fix')} {debugLocation.lastLocationUpdatedAt
               ? new Date(debugLocation.lastLocationUpdatedAt).toLocaleTimeString()
               : 'n/a'}
           </span>
           <span>
-            camera at {debugLocation.lastCameraUpdateAt
+            {t('mapLibreNavigationView.debug.cameraAt')} {debugLocation.lastCameraUpdateAt
               ? new Date(debugLocation.lastCameraUpdateAt).toLocaleTimeString()
               : 'n/a'}
           </span>
-          {debugLocation.lastLocationError ? <span>last error {debugLocation.lastLocationError}</span> : null}
+          {debugLocation.lastLocationError ? <span>{t('mapLibreNavigationView.debug.lastError')} {debugLocation.lastLocationError}</span> : null}
         </div>
       ) : null}
 

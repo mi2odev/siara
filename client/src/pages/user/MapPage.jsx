@@ -9,6 +9,7 @@
  */
 
 import React, { useEffect, useMemo, useState, useContext, useCallback, useRef } from "react";
+import { useTranslation } from 'react-i18next';
 import FancySelect from '../../components/ui/FancySelect';
 import { useLocation, useNavigate } from "react-router-dom";
 import ThunderstormOutlinedIcon from '@mui/icons-material/ThunderstormOutlined';
@@ -239,30 +240,31 @@ function matchesTimeFilter(report, timeFilter) {
   return Date.now() - reportTimestamp.getTime() <= maxAgeMs;
 }
 
-function formatRelativeReportAge(value) {
+function formatRelativeReportAge(value, tFn) {
   const timestamp = new Date(value || "");
   if (Number.isNaN(timestamp.getTime())) {
-    return "Unknown";
+    return tFn ? tFn('mapPage.time.unknown') : "Unknown";
   }
 
   const diffMinutes = Math.max(0, Math.round((Date.now() - timestamp.getTime()) / 60000));
-  if (diffMinutes < 1) return "Just now";
-  if (diffMinutes < 60) return `${diffMinutes} min`;
+  if (diffMinutes < 1) return tFn ? tFn('mapPage.time.justNow') : "Just now";
+  if (diffMinutes < 60) return tFn ? tFn('mapPage.time.minutes', { count: diffMinutes }) : `${diffMinutes} min`;
 
   const diffHours = Math.round(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours} h`;
+  if (diffHours < 24) return tFn ? tFn('mapPage.time.hours', { count: diffHours }) : `${diffHours} h`;
 
   const diffDays = Math.round(diffHours / 24);
-  return `${diffDays} d`;
+  return tFn ? tFn('mapPage.time.days', { count: diffDays }) : `${diffDays} d`;
 }
 
-function formatZoneLastTriggered(value) {
+function formatZoneLastTriggered(value, tFn) {
   if (!value) {
-    return "Never triggered";
+    return tFn ? tFn('mapPage.time.neverTriggered') : "Never triggered";
   }
 
-  const relativeAge = formatRelativeReportAge(value);
-  return relativeAge === "Unknown" ? relativeAge : `${relativeAge} ago`;
+  const relativeAge = formatRelativeReportAge(value, tFn);
+  const unknownLabel = tFn ? tFn('mapPage.time.unknown') : "Unknown";
+  return relativeAge === unknownLabel ? relativeAge : (tFn ? tFn('mapPage.time.ago', { age: relativeAge }) : `${relativeAge} ago`);
 }
 
 function formatCurrentHourLabel(dateValue = new Date()) {
@@ -347,6 +349,7 @@ export default function MapPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useContext(AuthContext);
+  const { t } = useTranslation(['map', 'common']);
 
   /* ──────────────────────────── State ──────────────────────────── */
 
@@ -507,7 +510,7 @@ export default function MapPage() {
       // Keep weather/place lookups working off fallback coords, but flag it.
       setLocationStatus("fallback");
       setLocationWarning(
-        "Using fallback test location because GPS is unavailable."
+        t('mapPage.location.fallbackWarning')
       );
       return;
     }
@@ -533,7 +536,7 @@ export default function MapPage() {
     if (liveLocationStatus === "denied") {
       setUserPosition(null);
       setLocationStatus("denied");
-      setLocationError("Location permission is blocked. Enable it in browser settings.");
+      setLocationError(t('mapPage.location.permissionBlocked'));
       setLocationWarning("");
       return;
     }
@@ -549,14 +552,14 @@ export default function MapPage() {
     if (!navigator?.geolocation) {
       setUserPosition(null);
       setLocationStatus("error");
-      setLocationError("Geolocation is not supported by this browser.");
+      setLocationError(t('mapPage.location.notSupported'));
       setLocationWarning("");
       return undefined;
     }
 
     if (!navigator?.permissions?.query) {
       setLocationStatus("unknown");
-      setLocationError("Enable location to load SIARA predictions.");
+      setLocationError(t('mapPage.location.enableForPredictions'));
       return undefined;
     }
 
@@ -578,7 +581,7 @@ export default function MapPage() {
       if (state === "prompt") {
         autoLocateAttemptedRef.current = false;
         setLocationStatus("prompt");
-        setLocationError("Enable location to load SIARA predictions.");
+        setLocationError(t('mapPage.location.enableForPredictions'));
         setLocationWarning("");
         return;
       }
@@ -586,7 +589,7 @@ export default function MapPage() {
         autoLocateAttemptedRef.current = false;
         setUserPosition(null);
         setLocationStatus("denied");
-        setLocationError("Location permission is blocked. Enable it in browser settings.");
+        setLocationError(t('mapPage.location.permissionBlocked'));
         setLocationWarning("");
         return;
       }
@@ -603,7 +606,7 @@ export default function MapPage() {
       .catch(() => {
         if (cancelled) return;
         setLocationStatus("unknown");
-        setLocationError("Enable location to load SIARA predictions.");
+        setLocationError(t('mapPage.location.enableForPredictions'));
         setLocationWarning("");
       });
 
@@ -731,7 +734,7 @@ export default function MapPage() {
         setWeatherData(weatherResult.value || null);
         setWeatherError("");
       } else if (weatherResult.reason?.name !== "AbortError") {
-        setWeatherError(weatherResult.reason?.message || "Meteo indisponible.");
+        setWeatherError(weatherResult.reason?.message || t('mapPage.weather.weatherUnavailable'));
       }
       
 
@@ -747,7 +750,7 @@ export default function MapPage() {
         setForecastPoints(points);
         setForecastError("");
       } else if (forecastResult.reason?.name !== "AbortError") {
-        setForecastError(forecastResult.reason?.message || "Forecast indisponible.");
+        setForecastError(forecastResult.reason?.message || t('mapPage.forecast.unavailable'));
       }
 
       setWeatherLoading(false);
@@ -774,12 +777,12 @@ export default function MapPage() {
     ? "--°C"
     : `${Math.round(Number(weatherData.temperature_c))}°C`;
   const weatherDescText = !hasGrantedLocation
-    ? "Position requise"
+    ? t('mapPage.weather.positionRequired')
     : weatherLoading && !weatherData
-    ? "Chargement meteo..."
+    ? t('mapPage.weather.loadingWeather')
     : weatherError
-      ? "Meteo indisponible"
-      : weatherData?.condition || "Meteo";
+      ? t('mapPage.weather.weatherUnavailable')
+      : weatherData?.condition || t('mapPage.weather.weather');
   const visibilityText = weatherData?.visibility_km == null
     ? "n/a"
     : `${Number(weatherData.visibility_km).toFixed(1)} km`;
@@ -808,7 +811,7 @@ export default function MapPage() {
         || weatherData?.wilaya
         || (selectedWilaya !== "all" ? selectedWilaya : ""),
       ).trim()
-      || (isResolvingPlace ? "Resolving neighborhood..." : "Current location")
+      || (isResolvingPlace ? t('mapPage.weather.resolvingNeighborhood') : t('mapPage.weather.currentLocation'))
     )
     : (
       String(
@@ -820,19 +823,19 @@ export default function MapPage() {
         || weatherData?.wilaya
         || (selectedWilaya !== "all" ? selectedWilaya : ""),
       ).trim()
-      || "Unknown place"
+      || t('mapPage.weather.unknownPlace')
     );
 
   /* ──────────────────────── Report Data & Derived UI Data ──────────────────────── */
 
   // Incident categories shown as filter chips
   const incidentTypes = [
-    { id: "accident", label: "Accident", icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" /> },
-    { id: "traffic", label: "Traffic", icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" /> },
-    { id: "danger", label: "Danger", icon: <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" /> },
-    { id: "weather", label: "Weather", icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" /> },
-    { id: "roadworks", label: "Roadworks", icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" /> },
-    { id: "other", label: "Other", icon: <HelpOutlineOutlinedIcon fontSize="inherit" className="icon-muted" /> },
+    { id: "accident", label: t('mapPage.incidentTypes.accident'), icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" /> },
+    { id: "traffic", label: t('mapPage.incidentTypes.traffic'), icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" /> },
+    { id: "danger", label: t('mapPage.incidentTypes.danger'), icon: <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" /> },
+    { id: "weather", label: t('mapPage.incidentTypes.weather'), icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" /> },
+    { id: "roadworks", label: t('mapPage.incidentTypes.roadworks'), icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" /> },
+    { id: "other", label: t('mapPage.incidentTypes.other'), icon: <HelpOutlineOutlinedIcon fontSize="inherit" className="icon-muted" /> },
   ];
 
   // List of wilayas available in the zone dropdown
@@ -878,7 +881,7 @@ export default function MapPage() {
     if (!user) {
       setAlertZones([]);
       setZonesLoading(false);
-      setZonesError("Sign in to load your alert zones.");
+      setZonesError(t('mapPage.zones.signInToLoad'));
       return undefined;
     }
 
@@ -900,7 +903,7 @@ export default function MapPage() {
           return;
         }
 
-        setZonesError(error.response?.data?.message || "Unable to load alert zones.");
+        setZonesError(error.response?.data?.message || t('mapPage.zones.unableToLoad'));
       })
       .finally(() => {
         if (!cancelled) {
@@ -958,7 +961,7 @@ export default function MapPage() {
     const zoneMap = new Map();
 
     for (const report of filteredReports) {
-      const zoneName = String(report?.locationLabel || "Reported area").trim() || "Reported area";
+      const zoneName = String(report?.locationLabel || t('mapPage.trending.reportedArea')).trim() || t('mapPage.trending.reportedArea');
       const severity = normalizeSeverityLevel(report?.severity);
       const severityScore = SEVERITY_SCORES[severity] || 0;
       const updatedAt =
@@ -998,7 +1001,7 @@ export default function MapPage() {
       .slice(0, 4)
       .map((zone) => ({
         ...zone,
-        updated: formatRelativeReportAge(zone.updatedAt),
+        updated: formatRelativeReportAge(zone.updatedAt, t),
       }));
   }, [filteredReports]);
 
@@ -1020,8 +1023,8 @@ export default function MapPage() {
         .slice(0, 4)
         .map((alert) => ({
           id: alert.id,
-          title: alert.name || alert.zone?.displayName || alert.area?.name || "Alert",
-          time: formatZoneLastTriggered(alert.lastTriggeredAt),
+          title: alert.name || alert.zone?.displayName || alert.area?.name || t('mapPage.activeAlerts.alertLabel'),
+          time: formatZoneLastTriggered(alert.lastTriggeredAt, t),
         })),
     [activeAlertZones],
   );
@@ -1061,25 +1064,25 @@ export default function MapPage() {
   const reportStatusLabel = useMemo(() => {
     if (mapLayer === "zones") {
       if (zonesLoading) {
-        return "Loading alert zones...";
+        return t('mapPage.status.loadingAlertZones');
       }
 
       if (zonesError) {
-        return "Alert zones unavailable";
+        return t('mapPage.status.alertZonesUnavailable');
       }
 
-      return `Alert zones • ${activeAlertZones.length} zones loaded`;
+      return t('mapPage.status.alertZonesLoaded', { count: activeAlertZones.length });
     }
 
     if (reportsLoading) {
-      return "Loading real-time reports...";
+      return t('mapPage.status.loadingReports');
     }
 
     if (reportsError) {
-      return "Real-time reports unavailable";
+      return t('mapPage.status.reportsUnavailable');
     }
 
-    return `Real-time • ${visibleReportMarkers.length} incidents displayed`;
+    return t('mapPage.status.reportsDisplayed', { count: visibleReportMarkers.length });
   }, [activeAlertZones.length, mapLayer, reportsError, reportsLoading, visibleReportMarkers.length, zonesError, zonesLoading]);
 
   /* ──────────────────────── Event Handlers ──────────────────────── */
@@ -1184,12 +1187,12 @@ export default function MapPage() {
             </div>
 
             <nav className="dash-header-tabs">
-              <button className="dash-tab" onClick={() => navigate("/news")}>Feed</button>
-              <button className="dash-tab dash-tab-active">Map</button>
-              <button className="dash-tab" onClick={() => navigate("/alerts")}>Alerts</button>
-              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
-              <button className="dash-tab" onClick={() => navigate("/dashboard")}>Dashboard</button>
-              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <button className="dash-tab" onClick={() => navigate("/news")}>{t('common:nav.feed')}</button>
+              <button className="dash-tab dash-tab-active">{t('common:nav.map')}</button>
+              <button className="dash-tab" onClick={() => navigate("/alerts")}>{t('common:nav.alerts')}</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>{t('common:nav.reports')}</button>
+              <button className="dash-tab" onClick={() => navigate("/dashboard")}>{t('mapPage.nav.dashboard')}</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>{t('common:nav.predictions')}</button>
               <PoliceModeTab user={user} />
             </nav>
           </div>
@@ -1200,8 +1203,8 @@ export default function MapPage() {
               navigate={navigate}
               query={headerSearchQuery}
               setQuery={setHeaderSearchQuery}
-              placeholder="Search for an incident, a road, a wilaya…"
-              ariaLabel="Search"
+              placeholder={t('mapPage.search.placeholder')}
+              ariaLabel={t('common:actions.search')}
               currentUser={user}
             />
           </div>
@@ -1216,29 +1219,29 @@ export default function MapPage() {
               <button
                 className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`}
                 onClick={() => setShowDropdown(!showDropdown)}
-                aria-label="User profile"
+                aria-label={t('mapPage.header.userProfile')}
               >
                 {userAvatarUrl ? (
-                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                  <img src={userAvatarUrl} alt={t('mapPage.header.userAvatar')} className="dash-avatar-image" loading="lazy" />
                 ) : profileInitials}
               </button>
 
               {showDropdown && (
                 <div className="user-dropdown">
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate("/profile"); }}>
-                    My Profile
+                    {t('mapPage.dropdown.myProfile')}
                   </button>
                   <button
                     className="dropdown-item"
                     onClick={() => { setShowDropdown(false); navigate("/settings"); }}
                   >
-                    Settings
+                    {t('common:nav.settings')}
                   </button>
                   <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate("/notifications"); }}>
-                    Notifications
+                    {t('common:nav.notifications')}
                   </button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home'); }}>Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home'); }}>{t('common:nav.logout')}</button>
                 </div>
               )}
             </div>
@@ -1255,12 +1258,12 @@ export default function MapPage() {
           {/* ── Profile card ── */}
           <div className="card profile-summary map-profile-summary">
             <div className="profile-avatar-container map-profile-avatar-container">
-              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large map-profile-avatar-large" loading="lazy" />            </div>
+              <img src={profileAvatarUrl} alt={t('common:nav.profile')} className="profile-avatar-large map-profile-avatar-large" loading="lazy" />            </div>
             <div className="profile-info map-profile-info">
               <p className="profile-name map-profile-name">{profileName}</p>
               <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
-              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
-              <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
+              <p className="profile-bio">{t('mapPage.profile.bio')}</p>
+              <button className="profile-view-link" onClick={() => navigate('/profile')}>{t('mapPage.profile.viewProfile')}</button>
             </div>
           </div>
 
@@ -1270,28 +1273,28 @@ export default function MapPage() {
           {/* ── Filter panel ── */}
           <div className="card filters-section">
             <div className="section-header">
-              <h3>Filters</h3>
+              <h3>{t('mapPage.filters.title')}</h3>
               {hasActiveFilters && (
-                <button className="clear-btn" onClick={clearFilters}>Clear</button>
+                <button className="clear-btn" onClick={clearFilters}>{t('mapPage.filters.clear')}</button>
               )}
             </div>
 
             {/* Time-range filter chips */}
             <div className="filter-group">
-              <label className="filter-label">Period</label>
+              <label className="filter-label">{t('mapPage.filters.period')}</label>
               <div className="filter-chips">
                 {[
-                  { id: "24h", label: "24h" },
-                  { id: "7d", label: "7 days" },
-                  { id: "30d", label: "30 days" },
-                  { id: "custom", label: "Custom" },
-                ].map((t) => (
+                  { id: "24h", label: t('mapPage.filters.period24h') },
+                  { id: "7d", label: t('mapPage.filters.period7d') },
+                  { id: "30d", label: t('mapPage.filters.period30d') },
+                  { id: "custom", label: t('mapPage.filters.periodCustom') },
+                ].map((chip) => (
                   <button
-                    key={t.id}
-                    className={`chip ${timeFilter === t.id ? "active" : ""}`}
-                    onClick={() => setTimeFilter(t.id)}
+                    key={chip.id}
+                    className={`chip ${timeFilter === chip.id ? "active" : ""}`}
+                    onClick={() => setTimeFilter(chip.id)}
                   >
-                    {t.label}
+                    {chip.label}
                   </button>
                 ))}
               </div>
@@ -1299,12 +1302,12 @@ export default function MapPage() {
 
             {/* Severity filter chips */}
             <div className="filter-group">
-              <label className="filter-label">Severity</label>
+              <label className="filter-label">{t('mapPage.filters.severity')}</label>
               <div className="filter-chips">
                 {[
-                  { id: "high", label: "High", color: "#EF4444" },
-                  { id: "medium", label: "Medium", color: "#F59E0B" },
-                  { id: "low", label: "Low", color: "#10B981" },
+                  { id: "high", label: t('mapPage.filters.severityHigh'), color: "#EF4444" },
+                  { id: "medium", label: t('mapPage.filters.severityMedium'), color: "#F59E0B" },
+                  { id: "low", label: t('mapPage.filters.severityLow'), color: "#10B981" },
                 ].map((s) => (
                   <button
                     key={s.id}
@@ -1324,15 +1327,15 @@ export default function MapPage() {
 
             {/* Incident-type filter chips */}
             <div className="filter-group">
-              <label className="filter-label">Incident Type</label>
+              <label className="filter-label">{t('mapPage.filters.incidentType')}</label>
               <div className="filter-chips">
-                {incidentTypes.map((t) => (
+                {incidentTypes.map((inc) => (
                   <button
-                    key={t.id}
-                    className={`chip ${typeFilter.includes(t.id) ? "active" : ""}`}
-                    onClick={() => toggleType(t.id)}
+                    key={inc.id}
+                    className={`chip ${typeFilter.includes(inc.id) ? "active" : ""}`}
+                    onClick={() => toggleType(inc.id)}
                   >
-                    <span>{t.icon}</span> {t.label}
+                    <span>{inc.icon}</span> {inc.label}
                   </button>
                 ))}
               </div>
@@ -1340,13 +1343,13 @@ export default function MapPage() {
 
             {/* Wilaya (province) dropdown selector */}
             <div className="filter-group">
-              <label className="filter-label">Zone</label>
+              <label className="filter-label">{t('mapPage.filters.zone')}</label>
               <FancySelect
                 value={selectedWilaya}
                 onChange={setSelectedWilaya}
                 menuAlign="left"
                 options={[
-                  { value: 'all', label: 'All provinces' },
+                  { value: 'all', label: t('mapPage.filters.allProvinces') },
                   ...wilayas.map((w) => ({ value: w, label: w })),
                 ]}
               />
@@ -1356,7 +1359,7 @@ export default function MapPage() {
           {/* Report-incident CTA pinned at sidebar bottom */}
           <div className="sidebar-action">
             <button className="btn-signal" onClick={() => navigate("/report")}>
-              <AddRoundedIcon fontSize="inherit" /> Report an Incident
+              <AddRoundedIcon fontSize="inherit" /> {t('mapPage.actions.reportIncident')}
             </button>
           </div>
         </aside>
@@ -1370,11 +1373,11 @@ export default function MapPage() {
           <div className="map-toolbar">
             <div className="layer-switcher">
               {[
-                { id: "points", label: "Points" },
-                { id: "heatmap", label: "Heatmap" },
-                { id: "zones", label: "Zones" },
-                { id: "ai", label: "AI Risks" },
-                { id: "nearbyRoads", label: "Nearby Roads" },
+                { id: "points", label: t('mapPage.layers.points') },
+                { id: "heatmap", label: t('mapPage.layers.heatmap') },
+                { id: "zones", label: t('mapPage.layers.zones') },
+                { id: "ai", label: t('mapPage.layers.aiRisks') },
+                { id: "nearbyRoads", label: t('mapPage.layers.nearbyRoads') },
               ].map((l) => (
                 <button
                   key={l.id}
@@ -1393,21 +1396,21 @@ export default function MapPage() {
             <div className="map-controls-right">
               {/* Toggle fullscreen on/off */}
               {isFullscreen ? (
-                <button className="map-ctrl-btn" title="Exit fullscreen" onClick={() => setIsFullscreen(false)}>
+                <button className="map-ctrl-btn" title={t('mapPage.map.exitFullscreen')} onClick={() => setIsFullscreen(false)}>
                   <FullscreenExitTwoToneIcon className="btn-icon" />
-                  <span className="map-ctrl-label">Exit Full Map</span>
+                  <span className="map-ctrl-label">{t('mapPage.map.exitFullMap')}</span>
                 </button>
               ) : (
-                <button className="map-ctrl-btn" title="Fullscreen" onClick={() => setIsFullscreen(true)}>
+                <button className="map-ctrl-btn" title={t('mapPage.map.fullscreen')} onClick={() => setIsFullscreen(true)}>
                   <FullscreenTwoToneIcon className="btn-icon" />
-                  <span className="map-ctrl-label">Full Map</span>
+                  <span className="map-ctrl-label">{t('mapPage.map.fullMap')}</span>
                 </button>
               )}
 
               {/* Geolocate user and center the map on their position */}
-              <button className="map-ctrl-btn" title="My location" onClick={handleLocateUser}>
+              <button className="map-ctrl-btn" title={t('mapPage.map.myLocation')} onClick={handleLocateUser}>
                 <LocationOnTwoToneIcon className="btn-icon" />
-                <span className="map-ctrl-label">My Location</span>
+                <span className="map-ctrl-label">{t('mapPage.map.myLocation')}</span>
               </button>
             </div>
 
@@ -1492,66 +1495,66 @@ export default function MapPage() {
               <div className="cw-grid">
                 <div className="cw-cell">
                   <span className="cw-cell-val">{visibilityText}</span>
-                  <span className="cw-cell-lbl">Visibility</span>
+                  <span className="cw-cell-lbl">{t('mapPage.weather.visibility')}</span>
                 </div>
                 <div className="cw-cell">
                   <span className="cw-cell-val">{windText}{windDirectionText && <span className="cw-dir"> {windDirectionText}</span>}</span>
-                  <span className="cw-cell-lbl">Wind</span>
+                  <span className="cw-cell-lbl">{t('mapPage.weather.wind')}</span>
                 </div>
                 <div className="cw-cell">
                   <span className="cw-cell-val">{humidityText}</span>
-                  <span className="cw-cell-lbl">Humidity</span>
+                  <span className="cw-cell-lbl">{t('mapPage.weather.humidity')}</span>
                 </div>
                 <div className="cw-cell">
                   <span className="cw-cell-val">{pressureText}</span>
-                  <span className="cw-cell-lbl">Pressure</span>
+                  <span className="cw-cell-lbl">{t('mapPage.weather.pressure')}</span>
                 </div>
               </div>
             ) : (
-              <p className="cw-no-loc">Enable location for live weather</p>
+              <p className="cw-no-loc">{t('mapPage.weather.enableLocation')}</p>
             )}
-            {weatherUpdating && <p className="cw-updating">Refreshing…</p>}
+            {weatherUpdating && <p className="cw-updating">{t('mapPage.weather.refreshing')}</p>}
           </div>
 
           {/* CURRENT RISK panel — portaled here from SiaraMap when not in full-map mode */}
           <div ref={setRiskPanelHost} className="context-risk-slot" />
 
           <div className="context-section danger-forecast-section">
-            <h4 className="section-title">Danger - next 24h</h4>
+            <h4 className="section-title">{t('mapPage.forecast.title')}</h4>
             <DangerForecastChart
               points={forecastPoints}
               loading={forecastLoading && forecastPoints.length === 0}
             />
             {forecastRefreshing && forecastPoints.length > 0 && (
-              <p className="chart-note">Updating forecast...</p>
+              <p className="chart-note">{t('mapPage.forecast.updating')}</p>
             )}
             {forecastError && (
               <p className="chart-note chart-note-error">{forecastError}</p>
             )}
             {!forecastLoading && !forecastError && forecastPoints.length === 0 && (
-              <p className="chart-note">Aucune prevision disponible.</p>
+              <p className="chart-note">{t('mapPage.forecast.noData')}</p>
             )}
           </div>
 
           <div className="context-section">
-            <h4 className="section-title">{mapLayer === "zones" ? "Alert Zones" : "Reports Feed"}</h4>
+            <h4 className="section-title">{mapLayer === "zones" ? t('mapPage.context.alertZones') : t('mapPage.context.reportsFeed')}</h4>
             {mapLayer === "zones" ? (
               zonesLoading ? (
-                <p className="chart-note">Loading your alert zones from the database...</p>
+                <p className="chart-note">{t('mapPage.context.loadingAlertZonesDb')}</p>
               ) : zonesError ? (
                 <p className="chart-note chart-note-error">{zonesError}</p>
               ) : (
                 <p className="chart-note">
-                  {activeAlertZones.length} active alert zones are ready to render on the map.
+                  {t('mapPage.context.activeAlertZonesReady', { count: activeAlertZones.length })}
                 </p>
               )
             ) : reportsLoading ? (
-              <p className="chart-note">Loading reports from the database...</p>
+              <p className="chart-note">{t('mapPage.context.loadingReportsDb')}</p>
             ) : reportsError ? (
               <p className="chart-note chart-note-error">{reportsError}</p>
             ) : (
               <p className="chart-note">
-                {visibleReportMarkers.length} mapped reports match the current filters.
+                {t('mapPage.context.mappedReportsMatch', { count: visibleReportMarkers.length })}
               </p>
             )}
           </div>
@@ -1559,32 +1562,32 @@ export default function MapPage() {
           {mapLayer === "zones" && (
             <div className="context-section zone-focus-section">
               <div className="zones-section-head">
-                <h4 className="section-title">Selected Zone</h4>
+                <h4 className="section-title">{t('mapPage.zones.selectedZone')}</h4>
                 <button
                   type="button"
                   className="zone-link-btn"
                   onClick={() => navigate('/alerts')}
                 >
-                  Manage alerts
+                  {t('mapPage.zones.manageAlerts')}
                 </button>
               </div>
               {selectedAlertZone ? (
                 <div className={`zone-focus-card severity-${selectedAlertZone.severity}`}>
                   <span className="zone-focus-name">{selectedAlertZone.name}</span>
                   <span className="zone-focus-area">
-                    {selectedAlertZone.zone?.displayName || selectedAlertZone.area?.name || 'Zone'}
+                    {selectedAlertZone.zone?.displayName || selectedAlertZone.area?.name || t('mapPage.zones.zoneLabel')}
                   </span>
                   <div className="zone-focus-meta">
-                    <span>{selectedAlertZone.severity} severity</span>
+                    <span>{t('mapPage.zones.severityLabel', { severity: selectedAlertZone.severity })}</span>
                     <span>{selectedAlertZone.timeWindow}</span>
                   </div>
                   <div className="zone-focus-meta">
-                    <span>{selectedAlertZone.triggerCount} triggers</span>
-                    <span>{formatZoneLastTriggered(selectedAlertZone.lastTriggeredAt)}</span>
+                    <span>{t('mapPage.zones.triggersCount', { count: selectedAlertZone.triggerCount })}</span>
+                    <span>{formatZoneLastTriggered(selectedAlertZone.lastTriggeredAt, t)}</span>
                   </div>
                 </div>
               ) : (
-                <p className="chart-note">Select a zone on the map to inspect its alert rule.</p>
+                <p className="chart-note">{t('mapPage.zones.selectZoneHint')}</p>
               )}
             </div>
           )}
@@ -1592,17 +1595,17 @@ export default function MapPage() {
           {/* ── AI Segment Insight (visible only when an AI segment is selected) ── */}
           {selectedIncident?.explanation && (
             <div className="context-section">
-              <h4 className="section-title">Segment Insight</h4>
+              <h4 className="section-title">{t('mapPage.segmentInsight.title')}</h4>
 
               {/* Overview: segment name + danger percentage */}
               <div className="map-alert-item">
                 <span className="map-alert-icon">IA</span>
                 <div className="map-alert-info">
                   <span className="map-alert-title">
-                    {selectedIncident.title || `Segment ${selectedIncident.id}`}
+                    {selectedIncident.title || t('mapPage.segmentInsight.segmentLabel', { id: selectedIncident.id })}
                   </span>
                   <span className="map-alert-time">
-                    Risk: {selectedIncident.explanation.danger_percent}% ({selectedIncident.explanation.danger_level})
+                    {t('mapPage.segmentInsight.risk', { percent: selectedIncident.explanation.danger_percent, level: selectedIncident.explanation.danger_level })}
                   </span>
                 </div>
               </div>
@@ -1619,7 +1622,7 @@ export default function MapPage() {
                       <div className="map-alert-info">
                         <span className="map-alert-title">{reason.feature}</span>
                         <span className="map-alert-time">
-                          impact: {Number(reason.impact || 0).toFixed(4)}
+                          {t('mapPage.segmentInsight.impact', { value: Number(reason.impact || 0).toFixed(4) })}
                         </span>
                       </div>
                     </div>
@@ -1630,22 +1633,22 @@ export default function MapPage() {
 
           {/* ── Map legend ── */}
           <div className="context-section">
-            <h4 className="section-title">Legend</h4>
+            <h4 className="section-title">{t('mapPage.legend.title')}</h4>
             <div className="legend">
               <div className="legend-item">
                 <span className="legend-dot high"></span>
-                <span>High Severity</span>
+                <span>{t('mapPage.legend.highSeverity')}</span>
               </div>
               <div className="legend-item">
                 <span className="legend-dot medium"></span>
-                <span>Medium Severity</span>
+                <span>{t('mapPage.legend.mediumSeverity')}</span>
               </div>
               <div className="legend-item">
                 <span className={`legend-dot ${mapLayer === "zones" ? "zone-low" : "low"}`}></span>
-                <span>Low Severity</span>
+                <span>{t('mapPage.legend.lowSeverity')}</span>
               </div>
               {mapLayer === "zones" && (
-                <p className="chart-note">Zones reflect your alert rule severity and schedule.</p>
+                <p className="chart-note">{t('mapPage.legend.zonesNote')}</p>
               )}
               {/* Extra legend row when the AI risk layer is active */}
               {mapLayer === "ai" && (
@@ -1653,7 +1656,7 @@ export default function MapPage() {
                   <hr />
                   <div className="legend-item">
                     <span className="legend-gradient"></span>
-                    <span>AI Risk (0-100%)</span>
+                    <span>{t('mapPage.legend.aiRisk')}</span>
                   </div>
                 </>
               )}
@@ -1663,25 +1666,25 @@ export default function MapPage() {
           {/* ── Trending / hot-spot zones ── */}
           <div className="context-section">
             <div className="zones-section-head">
-              <h4 className="section-title">{mapLayer === "zones" ? "Zone Rules" : "Areas to Watch"}</h4>
+              <h4 className="section-title">{mapLayer === "zones" ? t('mapPage.trending.zoneRules') : t('mapPage.trending.areasToWatch')}</h4>
               {mapLayer === "zones" ? (
                 <button
                   type="button"
                   className="zone-link-btn"
                   onClick={() => navigate('/alerts')}
                 >
-                  Open alerts
+                  {t('mapPage.trending.openAlerts')}
                 </button>
               ) : null}
             </div>
             <div className="trending-zones">
               {mapLayer === "zones" ? (
                 zonesLoading ? (
-                  <p className="chart-note">Loading active alert zones...</p>
+                  <p className="chart-note">{t('mapPage.trending.loadingActiveZones')}</p>
                 ) : zonesError ? (
                   <p className="chart-note chart-note-error">{zonesError}</p>
                 ) : activeAlertZones.length === 0 ? (
-                  <p className="chart-note">No active alert zones yet.</p>
+                  <p className="chart-note">{t('mapPage.trending.noActiveZones')}</p>
                 ) : (
                   activeAlertZones.map((alert) => (
                     <div
@@ -1704,10 +1707,10 @@ export default function MapPage() {
                       <div className="zone-info">
                         <span className="zone-name">{alert.zone?.displayName || alert.area?.name || alert.name}</span>
                         <span className="zone-meta">
-                          {alert.timeWindow} • {alert.triggerCount} triggers
+                          {alert.timeWindow} • {t('mapPage.zones.triggersMeta', { count: alert.triggerCount })}
                         </span>
                         <span className="zone-meta zone-meta-secondary">
-                          {formatZoneLastTriggered(alert.lastTriggeredAt)}
+                          {formatZoneLastTriggered(alert.lastTriggeredAt, t)}
                         </span>
                       </div>
                       <span className={`zone-badge severity-${alert.severity}`}>
@@ -1718,14 +1721,14 @@ export default function MapPage() {
                 )
               ) : null}
               {mapLayer !== "zones" && trendingZones.length === 0 && (
-                <p className="chart-note">No report clusters match the current filters.</p>
+                <p className="chart-note">{t('mapPage.trending.noReportClusters')}</p>
               )}
               {mapLayer !== "zones" && trendingZones.map((zone) => (
                 <div key={zone.name} className="zone-item">
                   <div className="zone-info">
                     <span className="zone-name">{zone.name}</span>
                     <span className="zone-meta">
-                      {zone.incidents} incidents • {zone.updated}
+                      {t('mapPage.trending.incidentsMeta', { count: zone.incidents, updated: zone.updated })}
                     </span>
                   </div>
                   <span className={`zone-badge severity-${zone.severity}`}>
@@ -1738,10 +1741,10 @@ export default function MapPage() {
 
           {/* ── Active alerts list ── */}
           <div className="context-section">
-            <h4 className="section-title">Active Alerts</h4>
+            <h4 className="section-title">{t('mapPage.activeAlerts.title')}</h4>
             <div className="map-alerts-list">
               {activeAlerts.length === 0 && (
-                <p className="chart-note">No active alerts right now.</p>
+                <p className="chart-note">{t('mapPage.activeAlerts.noAlerts')}</p>
               )}
               {activeAlerts.map((alert) => (
                 <div key={alert.id} className="map-alert-item">
@@ -1753,24 +1756,24 @@ export default function MapPage() {
                 </div>
               ))}
             </div>
-            <button className="btn-manage-alerts" onClick={() => navigate('/alerts')}>Manage My Alerts</button>
+            <button className="btn-manage-alerts" onClick={() => navigate('/alerts')}>{t('mapPage.activeAlerts.manageMyAlerts')}</button>
           </div>
 
           {/* ── Quick statistics summary ── */}
           <div className="context-section">
-            <h4 className="section-title">Statistics</h4>
+            <h4 className="section-title">{t('mapPage.stats.title')}</h4>
             <div className="quick-stats">
               <div className="map-stat-item">
                 <span className="map-stat-value">{statsTodayCount}</span>
-                <span className="map-stat-label">Today</span>
+                <span className="map-stat-label">{t('mapPage.stats.today')}</span>
               </div>
               <div className="map-stat-item">
                 <span className="map-stat-value">{averageSeverityLabel}</span>
-                <span className="map-stat-label">Avg. Severity</span>
+                <span className="map-stat-label">{t('mapPage.stats.avgSeverity')}</span>
               </div>
               <div className="map-stat-item">
                 <span className="map-stat-value">{verifiedRateLabel}</span>
-                <span className="map-stat-label">Verified</span>
+                <span className="map-stat-label">{t('mapPage.stats.verified')}</span>
               </div>
             </div>
           </div>

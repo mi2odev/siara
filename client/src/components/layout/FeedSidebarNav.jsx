@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
@@ -19,30 +20,31 @@ import { submitSupportMessage } from '../../services/supportMessagesService'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const NAV_ITEMS = [
-  { key: 'feed', label: 'News Feed', icon: <ArticleOutlinedIcon fontSize="inherit" />, path: '/news' },
-  { key: 'map', label: 'Incident Map', icon: <MapOutlinedIcon fontSize="inherit" />, path: '/map' },
-  { key: 'alerts', label: 'Alerts', icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />, path: '/alerts' },
-  { key: 'reports', label: 'My Reports', icon: <EditNoteOutlinedIcon fontSize="inherit" />, path: '/report' },
-  { key: 'dashboard', label: 'Dashboard', icon: <SpeedOutlinedIcon fontSize="inherit" />, path: '/dashboard' },
-  { key: 'predictions', label: 'Predictions', icon: <AutoGraphOutlinedIcon fontSize="inherit" />, path: '/predictions' },
-]
-
-const INFO_ITEMS = [
-  { key: 'contact', label: 'Contact', icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
-  { key: 'about', label: 'About', icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
-  { key: 'overview', label: 'Overview', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/overview' },
-]
-
-const ACCOUNT_ITEMS = [
-  { key: 'notifications', label: 'Notifications', icon: <NotificationsOutlinedIcon fontSize="inherit" />, path: '/notifications' },
-  { key: 'profile', label: 'Profile', icon: <PersonOutlinedIcon fontSize="inherit" />, path: '/profile' },
-  { key: 'settings', label: 'Settings', icon: <SettingsOutlinedIcon fontSize="inherit" />, path: '/settings' },
-]
-
 export default function FeedSidebarNav({ activeKey, onOpenQuiz, triggerPanel }) {
   const navigate = useNavigate()
+  const { t } = useTranslation(['pages', 'common'])
   const [openPanel, setOpenPanel] = useState(null)
+
+  const NAV_ITEMS = [
+    { key: 'feed', label: t('feedSidebarNav.nav.newsFeed'), icon: <ArticleOutlinedIcon fontSize="inherit" />, path: '/news' },
+    { key: 'map', label: t('feedSidebarNav.nav.incidentMap'), icon: <MapOutlinedIcon fontSize="inherit" />, path: '/map' },
+    { key: 'alerts', label: t('common:nav.alerts'), icon: <NotificationsActiveOutlinedIcon fontSize="inherit" />, path: '/alerts' },
+    { key: 'reports', label: t('feedSidebarNav.nav.myReports'), icon: <EditNoteOutlinedIcon fontSize="inherit" />, path: '/report' },
+    { key: 'dashboard', label: t('common:nav.dashboard'), icon: <SpeedOutlinedIcon fontSize="inherit" />, path: '/dashboard' },
+    { key: 'predictions', label: t('common:nav.predictions'), icon: <AutoGraphOutlinedIcon fontSize="inherit" />, path: '/predictions' },
+  ]
+
+  const INFO_ITEMS = [
+    { key: 'contact', label: t('feedSidebarNav.nav.contact'), icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
+    { key: 'about', label: t('feedSidebarNav.nav.about'), icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
+    { key: 'overview', label: t('feedSidebarNav.nav.overview'), icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/overview' },
+  ]
+
+  const ACCOUNT_ITEMS = [
+    { key: 'notifications', label: t('common:nav.notifications'), icon: <NotificationsOutlinedIcon fontSize="inherit" />, path: '/notifications' },
+    { key: 'profile', label: t('common:nav.profile'), icon: <PersonOutlinedIcon fontSize="inherit" />, path: '/profile' },
+    { key: 'settings', label: t('common:nav.settings'), icon: <SettingsOutlinedIcon fontSize="inherit" />, path: '/settings' },
+  ]
 
   useEffect(() => {
     if (triggerPanel) {
@@ -88,9 +90,9 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz, triggerPanel }) 
 
   const validateContactForm = () => {
     const nextErrors = {}
-    if (contactForm.name.trim().length < 2) nextErrors.name = 'Please enter a valid name.'
-    if (!EMAIL_REGEX.test(contactForm.email.trim())) nextErrors.email = 'Please enter a valid email address.'
-    if (contactForm.message.trim().length < 10) nextErrors.message = 'Message must be at least 10 characters.'
+    if (contactForm.name.trim().length < 2) nextErrors.name = t('feedSidebarNav.contact.errorName')
+    if (!EMAIL_REGEX.test(contactForm.email.trim())) nextErrors.email = t('feedSidebarNav.contact.errorEmail')
+    if (contactForm.message.trim().length < 10) nextErrors.message = t('feedSidebarNav.contact.errorMessage')
     setContactErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
   }
@@ -107,10 +109,10 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz, triggerPanel }) 
         email: contactForm.email.trim(),
         message: contactForm.message.trim(),
       })
-      setContactSuccess('Thank you. We will respond as soon as possible.')
+      setContactSuccess(t('feedSidebarNav.contact.successMessage'))
       setContactForm({ name: '', email: '', message: '' })
     } catch (error) {
-      setContactSubmitError(error?.message || 'Could not send your message. Please try again.')
+      setContactSubmitError(error?.message || t('feedSidebarNav.contact.submitError'))
     } finally {
       setContactSubmitting(false)
     }
@@ -137,24 +139,24 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz, triggerPanel }) 
   return (
     <>
       <nav className="card nav-menu">
-        <div className="nav-section-label">NAVIGATION</div>
+        <div className="nav-section-label">{t('feedSidebarNav.section.navigation')}</div>
         {NAV_ITEMS.map((item) => renderItem(item))}
 
-        <div className="nav-section-label">TOOLS</div>
-        {onOpenQuiz ? renderItem({ key: 'quiz', label: 'Driver Quiz', icon: <DirectionsCarOutlinedIcon fontSize="inherit" /> }, onOpenQuiz) : null}
+        <div className="nav-section-label">{t('feedSidebarNav.section.tools')}</div>
+        {onOpenQuiz ? renderItem({ key: 'quiz', label: t('feedSidebarNav.nav.driverQuiz'), icon: <DirectionsCarOutlinedIcon fontSize="inherit" /> }, onOpenQuiz) : null}
 
-        <div className="nav-section-label nav-section-label-info">INFO</div>
+        <div className="nav-section-label nav-section-label-info">{t('feedSidebarNav.section.info')}</div>
         <div className="nav-info-group">
           {INFO_ITEMS.map((item) => renderItem(item, undefined, 'nav-item-info'))}
         </div>
 
-        <div className="nav-section-label">ACCOUNT</div>
+        <div className="nav-section-label">{t('feedSidebarNav.section.account')}</div>
         {ACCOUNT_ITEMS.map((item) => renderItem(item))}
       </nav>
 
       {openPanel && typeof document !== 'undefined'
         ? createPortal(
-            <div className="contact-quick-backdrop" onClick={() => setOpenPanel(null)} role="dialog" aria-modal="true" aria-label="Quick information panel">
+            <div className="contact-quick-backdrop" onClick={() => setOpenPanel(null)} role="dialog" aria-modal="true" aria-label={t('feedSidebarNav.panel.ariaLabel')}>
               <div className={`contact-quick-modal panel-${openPanel}`} onClick={(event) => event.stopPropagation()}>
                 {openPanel === 'contact' ? (
                   <>
@@ -163,20 +165,20 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz, triggerPanel }) 
                         <div className="contact-quick-brand">
                           <img src={siaraLogo} alt="SIARA" className="contact-quick-brand-logo" />
                           <div>
-                            <span className="contact-quick-kicker">Support</span>
-                            <h3>Contact SIARA</h3>
+                            <span className="contact-quick-kicker">{t('feedSidebarNav.contact.kicker')}</span>
+                            <h3>{t('feedSidebarNav.contact.title')}</h3>
                           </div>
                         </div>
-                        <p className="contact-quick-sub">Share your request and our team will get back to you quickly.</p>
+                        <p className="contact-quick-sub">{t('feedSidebarNav.contact.subtitle')}</p>
                       </div>
-                      <button type="button" className="contact-quick-close" onClick={() => setOpenPanel(null)} aria-label="Close contact form">×</button>
+                      <button type="button" className="contact-quick-close" onClick={() => setOpenPanel(null)} aria-label={t('feedSidebarNav.contact.closeAriaLabel')}>×</button>
                     </div>
 
                     <div className="contact-quick-layout">
                       <form className="contact-quick-form" onSubmit={submitContactForm} noValidate>
                         <div className="contact-quick-grid">
                           <div>
-                            <label htmlFor="quick-contact-name">Name</label>
+                            <label htmlFor="quick-contact-name">{t('feedSidebarNav.contact.labelName')}</label>
                             <input
                               id="quick-contact-name"
                               name="name"
@@ -188,7 +190,7 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz, triggerPanel }) 
                           </div>
 
                           <div>
-                            <label htmlFor="quick-contact-email">Email</label>
+                            <label htmlFor="quick-contact-email">{t('feedSidebarNav.contact.labelEmail')}</label>
                             <input
                               id="quick-contact-email"
                               name="email"
@@ -200,7 +202,7 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz, triggerPanel }) 
                           </div>
                         </div>
 
-                        <label htmlFor="quick-contact-message">Message</label>
+                        <label htmlFor="quick-contact-message">{t('feedSidebarNav.contact.labelMessage')}</label>
                         <textarea
                           id="quick-contact-message"
                           name="message"
@@ -213,26 +215,26 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz, triggerPanel }) 
 
                         <div className="contact-quick-actions">
                           <button type="submit" className="contact-quick-submit" disabled={contactSubmitting}>
-                            {contactSubmitting ? 'Sending…' : 'Send Message'}
+                            {contactSubmitting ? t('feedSidebarNav.contact.sending') : t('feedSidebarNav.contact.sendButton')}
                           </button>
-                          <a className="contact-quick-mail" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">Email directly</a>
+                          <a className="contact-quick-mail" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">{t('feedSidebarNav.contact.emailDirectly')}</a>
                         </div>
                         {contactSubmitError ? (
                           <p className="contact-quick-error" role="alert">{contactSubmitError}</p>
                         ) : null}
                       </form>
 
-                      <aside className="contact-quick-side" aria-label="Support information">
+                      <aside className="contact-quick-side" aria-label={t('feedSidebarNav.contact.sideAriaLabel')}>
                         <article>
-                          <h4>Response Window</h4>
-                          <p>Most requests are reviewed within one business day.</p>
+                          <h4>{t('feedSidebarNav.contact.responseWindowTitle')}</h4>
+                          <p>{t('feedSidebarNav.contact.responseWindowText')}</p>
                         </article>
                         <article>
-                          <h4>Best for This Form</h4>
-                          <p>Account support, platform feedback, partnerships, and incident workflow questions.</p>
+                          <h4>{t('feedSidebarNav.contact.bestForTitle')}</h4>
+                          <p>{t('feedSidebarNav.contact.bestForText')}</p>
                         </article>
                         <article>
-                          <h4>Direct Contact</h4>
+                          <h4>{t('feedSidebarNav.contact.directContactTitle')}</h4>
                           <p>siara.ai.app@gmail.com</p>
                         </article>
                       </aside>
@@ -246,53 +248,52 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz, triggerPanel }) 
                   <>
                     <div className="contact-quick-head">
                       <div>
-                        <span className="contact-quick-kicker">Overview</span>
-                        <h3>About SIARA</h3>
+                        <span className="contact-quick-kicker">{t('feedSidebarNav.about.kicker')}</span>
+                        <h3>{t('feedSidebarNav.about.title')}</h3>
                       </div>
-                      <button type="button" className="contact-quick-close" onClick={() => setOpenPanel(null)} aria-label="Close about panel">×</button>
+                      <button type="button" className="contact-quick-close" onClick={() => setOpenPanel(null)} aria-label={t('feedSidebarNav.about.closeAriaLabel')}>×</button>
                     </div>
                     <div className="info-quick-block">
                       <div className="info-quick-brand">
                         <img src={siaraLogo} alt="SIARA" className="info-quick-brand-logo" />
                         <div>
                           <p className="info-quick-brand-name">SIARA</p>
-                          <p className="info-quick-brand-caption">Road Safety Intelligence Platform</p>
+                          <p className="info-quick-brand-caption">{t('feedSidebarNav.about.brandCaption')}</p>
                         </div>
                       </div>
                       <p className="info-quick-lead">
-                        SIARA is a road safety intelligence platform combining live reporting, mapping, and AI insights
-                        to improve incident response.
+                        {t('feedSidebarNav.about.lead')}
                       </p>
                       <div className="info-quick-pillars">
                         <article>
-                          <h4>Mission</h4>
-                          <p>Reduce road risk with fast, evidence-based incident coordination.</p>
+                          <h4>{t('feedSidebarNav.about.missionTitle')}</h4>
+                          <p>{t('feedSidebarNav.about.missionText')}</p>
                         </article>
                         <article>
-                          <h4>Vision</h4>
-                          <p>Build connected, AI-supported urban safety systems for smarter mobility.</p>
+                          <h4>{t('feedSidebarNav.about.visionTitle')}</h4>
+                          <p>{t('feedSidebarNav.about.visionText')}</p>
                         </article>
                         <article>
-                          <h4>Approach</h4>
-                          <p>Combine citizen signals, geospatial context, and operational analytics in one workflow.</p>
+                          <h4>{t('feedSidebarNav.about.approachTitle')}</h4>
+                          <p>{t('feedSidebarNav.about.approachText')}</p>
                         </article>
                       </div>
                       <div className="info-quick-mini-cards">
                         <article>
-                          <h4>Risk Mapping</h4>
-                          <p>Identify hotspots and incident density zones in real time.</p>
+                          <h4>{t('feedSidebarNav.about.riskMappingTitle')}</h4>
+                          <p>{t('feedSidebarNav.about.riskMappingText')}</p>
                         </article>
                         <article>
-                          <h4>Alert Intelligence</h4>
-                          <p>Prioritize high-impact events using severity and reliability indicators.</p>
+                          <h4>{t('feedSidebarNav.about.alertIntelTitle')}</h4>
+                          <p>{t('feedSidebarNav.about.alertIntelText')}</p>
                         </article>
                         <article>
-                          <h4>Response Coordination</h4>
-                          <p>Support faster field decisions with one shared operational view.</p>
+                          <h4>{t('feedSidebarNav.about.responseCoordTitle')}</h4>
+                          <p>{t('feedSidebarNav.about.responseCoordText')}</p>
                         </article>
                         <article>
-                          <h4>Performance Tracking</h4>
-                          <p>Measure verification and response outcomes to improve continuously.</p>
+                          <h4>{t('feedSidebarNav.about.performanceTitle')}</h4>
+                          <p>{t('feedSidebarNav.about.performanceText')}</p>
                         </article>
                       </div>
                     </div>
@@ -303,24 +304,24 @@ export default function FeedSidebarNav({ activeKey, onOpenQuiz, triggerPanel }) 
                   <>
                     <div className="contact-quick-head">
                       <div>
-                        <span className="contact-quick-kicker">Service Flow</span>
-                        <h3>SIARA Workflow Overview</h3>
+                        <span className="contact-quick-kicker">{t('feedSidebarNav.overview.kicker')}</span>
+                        <h3>{t('feedSidebarNav.overview.title')}</h3>
                       </div>
-                      <button type="button" className="contact-quick-close" onClick={() => setOpenPanel(null)} aria-label="Close overview panel">×</button>
+                      <button type="button" className="contact-quick-close" onClick={() => setOpenPanel(null)} aria-label={t('feedSidebarNav.overview.closeAriaLabel')}>×</button>
                     </div>
                     <div className="info-quick-block">
                       <p className="info-quick-lead">
-                        SIARA provides a clear operational pipeline from report intake to validated alert delivery.
+                        {t('feedSidebarNav.overview.lead')}
                       </p>
                       <ol className="info-quick-steps info-quick-steps-pro">
-                        <li><strong>Incident Intake</strong><span>Capture reports with location, media, and contextual metadata.</span></li>
-                        <li><strong>Data Validation</strong><span>Normalize and verify incoming records for analysis readiness.</span></li>
-                        <li><strong>Risk Assessment</strong><span>Estimate urgency and confidence using AI-assisted scoring.</span></li>
-                        <li><strong>Operational Review</strong><span>Authorized teams validate incidents and assign response priorities.</span></li>
-                        <li><strong>Alert Distribution</strong><span>Deliver relevant alerts to users and operational stakeholders.</span></li>
+                        <li><strong>{t('feedSidebarNav.overview.step1Title')}</strong><span>{t('feedSidebarNav.overview.step1Text')}</span></li>
+                        <li><strong>{t('feedSidebarNav.overview.step2Title')}</strong><span>{t('feedSidebarNav.overview.step2Text')}</span></li>
+                        <li><strong>{t('feedSidebarNav.overview.step3Title')}</strong><span>{t('feedSidebarNav.overview.step3Text')}</span></li>
+                        <li><strong>{t('feedSidebarNav.overview.step4Title')}</strong><span>{t('feedSidebarNav.overview.step4Text')}</span></li>
+                        <li><strong>{t('feedSidebarNav.overview.step5Title')}</strong><span>{t('feedSidebarNav.overview.step5Text')}</span></li>
                       </ol>
                       <p className="info-quick-tech">
-                        <strong>Technology stack:</strong> AI risk scoring, geospatial mapping, real-time events, and verification workflow.
+                        <strong>{t('feedSidebarNav.overview.techStackLabel')}</strong> {t('feedSidebarNav.overview.techStackText')}
                       </p>
                     </div>
                   </>

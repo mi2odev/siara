@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import FancySelect from '../ui/FancySelect'
 
 const DEFAULT_FORM = {
@@ -15,6 +16,7 @@ const DEFAULT_FORM = {
 }
 
 export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, busy = false }) {
+  const { t } = useTranslation(['alerts', 'common'])
   const [form, setForm] = useState(DEFAULT_FORM)
   const [error, setError] = useState('')
 
@@ -45,12 +47,12 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
     setError('')
     const trimmed = String(form.name || '').trim()
     if (!trimmed) {
-      setError('Give this subscription a short name (e.g. Home, Work, Route to office).')
+      setError(t('dangerSubscriptionForm.errorNameRequired'))
       return
     }
     if ((form.type === 'zone' || form.type === 'point') &&
         (!Number.isFinite(Number(form.centerLat)) || !Number.isFinite(Number(form.centerLng)))) {
-      setError('Centre lat/lng are required for zone and point subscriptions.')
+      setError(t('dangerSubscriptionForm.errorLatLngRequired'))
       return
     }
     onSubmit?.({
@@ -65,41 +67,41 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
   return (
     <form className="siara-ds-form" onSubmit={handleSubmit}>
       <div className="siara-ds-form__row">
-        <span className="siara-ds-form__label">Name</span>
+        <span className="siara-ds-form__label">{t('dangerSubscriptionForm.labelName')}</span>
         <input
           className="siara-ds-form__input"
           value={form.name}
           onChange={(e) => update({ name: e.target.value })}
-          placeholder="Home, Work, University, …"
+          placeholder={t('dangerSubscriptionForm.placeholderName')}
           maxLength={80}
         />
       </div>
 
       <div className="siara-ds-form__row siara-ds-form__row--two">
         <div>
-          <span className="siara-ds-form__label">Type</span>
+          <span className="siara-ds-form__label">{t('dangerSubscriptionForm.labelType')}</span>
           <FancySelect
             value={form.type}
             onChange={(value) => update({ type: value })}
             menuAlign="left"
             options={[
-              { value: 'zone',  label: 'Zone (centre + radius)' },
-              { value: 'point', label: 'Point (small area around a place)' },
-              { value: 'route', label: 'Route — set up from the map (coming soon)' },
+              { value: 'zone',  label: t('dangerSubscriptionForm.typeZone') },
+              { value: 'point', label: t('dangerSubscriptionForm.typePoint') },
+              { value: 'route', label: t('dangerSubscriptionForm.typeRoute') },
             ]}
           />
         </div>
         <div>
-          <span className="siara-ds-form__label">Risk threshold</span>
+          <span className="siara-ds-form__label">{t('dangerSubscriptionForm.labelRiskThreshold')}</span>
           <FancySelect
             value={form.riskThreshold}
             onChange={(value) => update({ riskThreshold: value })}
             menuAlign="left"
             options={[
-              { value: 'low',      label: 'Notify on any risk' },
-              { value: 'moderate', label: 'Notify on moderate or higher' },
-              { value: 'high',     label: 'Notify on high or higher' },
-              { value: 'extreme',  label: 'Notify on extreme only' },
+              { value: 'low',      label: t('dangerSubscriptionForm.thresholdLow') },
+              { value: 'moderate', label: t('dangerSubscriptionForm.thresholdModerate') },
+              { value: 'high',     label: t('dangerSubscriptionForm.thresholdHigh') },
+              { value: 'extreme',  label: t('dangerSubscriptionForm.thresholdExtreme') },
             ]}
           />
         </div>
@@ -107,7 +109,7 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
 
       <div className="siara-ds-form__row siara-ds-form__row--two">
         <div>
-          <span className="siara-ds-form__label">Centre latitude</span>
+          <span className="siara-ds-form__label">{t('dangerSubscriptionForm.labelCentreLat')}</span>
           <input
             className="siara-ds-form__input"
             type="number"
@@ -118,7 +120,7 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
           />
         </div>
         <div>
-          <span className="siara-ds-form__label">Centre longitude</span>
+          <span className="siara-ds-form__label">{t('dangerSubscriptionForm.labelCentreLng')}</span>
           <input
             className="siara-ds-form__input"
             type="number"
@@ -131,7 +133,7 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
       </div>
 
       <div className="siara-ds-form__row">
-        <span className="siara-ds-form__label">Radius (meters)</span>
+        <span className="siara-ds-form__label">{t('dangerSubscriptionForm.labelRadius')}</span>
         <input
           className="siara-ds-form__input"
           type="number"
@@ -142,7 +144,7 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
           onChange={(e) => update({ radiusMeters: e.target.value })}
         />
         <span className="siara-ds-form__hint">
-          Between 100 m and 50 km. Default 1500 m for zones, 500 m for points.
+          {t('dangerSubscriptionForm.hintRadius')}
         </span>
       </div>
 
@@ -153,7 +155,7 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
             checked={form.notifyOnReports}
             onChange={(e) => update({ notifyOnReports: e.target.checked })}
           />
-          Notify me about new accident reports
+          {t('dangerSubscriptionForm.checkNotifyReports')}
         </label>
         <label className="siara-ds-form__checkbox">
           <input
@@ -161,7 +163,7 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
             checked={form.notifyOnHighRisk}
             onChange={(e) => update({ notifyOnHighRisk: e.target.checked })}
           />
-          Notify me when overall risk crosses my threshold
+          {t('dangerSubscriptionForm.checkNotifyHighRisk')}
         </label>
         <label className="siara-ds-form__checkbox">
           <input
@@ -169,7 +171,7 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
             checked={form.notifyOnPoliceVerified}
             onChange={(e) => update({ notifyOnPoliceVerified: e.target.checked })}
           />
-          Notify me about police-verified incidents
+          {t('dangerSubscriptionForm.checkNotifyPoliceVerified')}
         </label>
         <label className="siara-ds-form__checkbox">
           <input
@@ -177,7 +179,7 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
             checked={form.isActive}
             onChange={(e) => update({ isActive: e.target.checked })}
           />
-          Active
+          {t('dangerSubscriptionForm.checkActive')}
         </label>
       </div>
 
@@ -203,7 +205,7 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
             onClick={onCancel}
             disabled={busy}
           >
-            Cancel
+            {t('common:actions.cancel')}
           </button>
         ) : null}
         <button
@@ -211,7 +213,7 @@ export default function DangerSubscriptionForm({ initial, onSubmit, onCancel, bu
           className="siara-ds-page__btn"
           disabled={busy}
         >
-          {busy ? 'Saving…' : initial?.id ? 'Save changes' : 'Create subscription'}
+          {busy ? t('common:actions.loading') : initial?.id ? t('common:actions.save') : t('dangerSubscriptionForm.createSubscription')}
         </button>
       </div>
     </form>

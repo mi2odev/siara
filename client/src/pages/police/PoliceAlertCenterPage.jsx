@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined'
@@ -39,26 +40,27 @@ function renderAlertTypeIcon(type) {
   }
 }
 
-function formatAlertWindow(alert) {
+function formatAlertWindow(alert, t) {
   if (!alert?.startsAt && !alert?.endsAt) {
-    return 'Immediate'
+    return t('policeAlertCenterPage.window.immediate')
   }
 
   const startLabel = alert?.startsAt ? new Date(alert.startsAt).toLocaleString('en-GB') : null
   const endLabel = alert?.endsAt ? new Date(alert.endsAt).toLocaleString('en-GB') : null
 
   if (alert?.startsAt && alert?.endsAt) {
-    return `${startLabel} to ${endLabel}`
+    return t('policeAlertCenterPage.window.range', { start: startLabel, end: endLabel })
   }
 
   if (alert?.endsAt) {
-    return `Until ${endLabel}`
+    return t('policeAlertCenterPage.window.until', { end: endLabel })
   }
 
-  return `From ${startLabel}`
+  return t('policeAlertCenterPage.window.from', { start: startLabel })
 }
 
 export default function PoliceAlertCenterPage() {
+  const { t } = useTranslation(['police', 'common'])
   const { policeMe } = usePoliceAccess()
   const [alerts, setAlerts] = React.useState([])
   const [unreadCount, setUnreadCount] = React.useState(0)
@@ -94,7 +96,7 @@ export default function PoliceAlertCenterPage() {
         return response.items[0]?.id || null
       })
     } catch (loadError) {
-      setError(loadError.message || 'Failed to load police alerts.')
+      setError(loadError.message || t('policeAlertCenterPage.error.loadFailed'))
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
@@ -130,7 +132,7 @@ export default function PoliceAlertCenterPage() {
       setUnreadCount((previous) => Math.max(0, previous - 1))
       await loadAlerts({ refresh: true })
     } catch (markError) {
-      setError(markError.message || 'Failed to mark alert as read.')
+      setError(markError.message || t('policeAlertCenterPage.error.markReadFailed'))
     } finally {
       setBusyAlertId('')
     }
@@ -146,12 +148,12 @@ export default function PoliceAlertCenterPage() {
     <PoliceOfficerPanel officer={policeMe?.officer} workZone={policeMe?.workZone}>
       <div className="pop-extra">
         <div className="pop-extra-head">
-          <span className="pop-extra-title">Alert Summary</span>
+          <span className="pop-extra-title">{t('policeAlertCenterPage.summary.title')}</span>
         </div>
         <div className="pop-extra-body">
-          <div className="pop-stat-row"><span>Total alerts</span><strong>{counters.total}</strong></div>
-          <div className="pop-stat-row"><span>High severity</span><strong className={counters.high > 0 ? 'pop-stat--danger' : ''}>{counters.high}</strong></div>
-          <div className="pop-stat-row"><span>Unread</span><strong className={counters.unread > 0 ? 'pop-stat--warn' : 'pop-stat--ok'}>{counters.unread}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeAlertCenterPage.summary.total')}</span><strong>{counters.total}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeAlertCenterPage.summary.highSeverity')}</span><strong className={counters.high > 0 ? 'pop-stat--danger' : ''}>{counters.high}</strong></div>
+          <div className="pop-stat-row"><span>{t('policeAlertCenterPage.summary.unread')}</span><strong className={counters.unread > 0 ? 'pop-stat--warn' : 'pop-stat--ok'}>{counters.unread}</strong></div>
         </div>
       </div>
     </PoliceOfficerPanel>
@@ -161,10 +163,10 @@ export default function PoliceAlertCenterPage() {
     <PoliceShell activeKey="alert-center" rightPanel={rightPanel} notificationCount={unreadCount}>
       <section className="police-section police-alert-center-page">
         <div className="police-command-section-head">
-          <h2>Alert Center</h2>
+          <h2>{t('policeAlertCenterPage.heading')}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <span className="police-alert-important-note">
-              {isRefreshing ? 'Refreshing alerts...' : 'Live targeted alerts'}
+              {isRefreshing ? t('policeAlertCenterPage.status.refreshing') : t('policeAlertCenterPage.status.live')}
             </span>
             {alerts.length > 0 ? (
               <PoliceSortControl
@@ -182,7 +184,7 @@ export default function PoliceAlertCenterPage() {
               disabled={isLoading || isRefreshing || Boolean(busyAlertId)}
             >
               <RefreshRoundedIcon fontSize="inherit" className={isLoading || isRefreshing ? 'is-spinning' : ''} />
-              <span>Refresh</span>
+              <span>{t('policeAlertCenterPage.actions.refresh')}</span>
             </button>
           </div>
         </div>
@@ -190,17 +192,17 @@ export default function PoliceAlertCenterPage() {
         {error ? (
           <div className="police-empty-state" role="alert" aria-live="assertive">
             <div className="police-empty-icon" aria-hidden="true">!</div>
-            <h3>Unable to load alerts</h3>
+            <h3>{t('policeAlertCenterPage.error.unableToLoad')}</h3>
             <p>{error}</p>
             <button type="button" className="police-action police-action-secondary" onClick={() => loadAlerts({ refresh: true })}>
-              Retry
+              {t('common:actions.retry')}
             </button>
           </div>
         ) : null}
 
         {!error && (isLoading || isRefreshing) ? (
           <p className="police-meta" aria-live="polite">
-            {isLoading ? 'Loading alert feed...' : 'Refreshing alert feed...'}
+            {isLoading ? t('policeAlertCenterPage.status.loadingFeed') : t('policeAlertCenterPage.status.refreshingFeed')}
           </p>
         ) : null}
 
@@ -228,26 +230,26 @@ export default function PoliceAlertCenterPage() {
                       </div>
                     </div>
                     <div className="police-alert-item-badges">
-                      {!isRead ? <span className="police-alert-unread-dot" title="Unread" aria-label="Unread" /> : null}
+                      {!isRead ? <span className="police-alert-unread-dot" title={t('policeAlertCenterPage.badge.unread')} aria-label={t('policeAlertCenterPage.badge.unread')} /> : null}
                       <span className={`police-badge ${severity}`}>{displayLabel(alert.severity)}</span>
-                      {alert.expired ? <span className="police-badge neutral">Expired</span> : null}
+                      {alert.expired ? <span className="police-badge neutral">{t('policeAlertCenterPage.badge.expired')}</span> : null}
                     </div>
                   </div>
 
-                  <p className="police-alert-desc">{alert.description || 'No description provided.'}</p>
+                  <p className="police-alert-desc">{alert.description || t('policeAlertCenterPage.alert.noDescription')}</p>
 
                   <div className="police-alert-item-meta">
                     <span className="police-alert-meta-cell">
-                      <span className="police-alert-meta-label">Status</span>
-                      <strong>{alert.expired ? 'Expired' : displayLabel(alert.status)}</strong>
+                      <span className="police-alert-meta-label">{t('policeAlertCenterPage.meta.status')}</span>
+                      <strong>{alert.expired ? t('policeAlertCenterPage.badge.expired') : displayLabel(alert.status)}</strong>
                     </span>
                     <span className="police-alert-meta-cell">
-                      <span className="police-alert-meta-label">Issued</span>
+                      <span className="police-alert-meta-label">{t('policeAlertCenterPage.meta.issued')}</span>
                       <strong>{alert.createdAtLabel}</strong>
                     </span>
                     <span className="police-alert-meta-cell">
-                      <span className="police-alert-meta-label">Active window</span>
-                      <strong>{formatAlertWindow(alert)}</strong>
+                      <span className="police-alert-meta-label">{t('policeAlertCenterPage.meta.activeWindow')}</span>
+                      <strong>{formatAlertWindow(alert, t)}</strong>
                     </span>
                   </div>
                 </div>
@@ -259,7 +261,7 @@ export default function PoliceAlertCenterPage() {
                     disabled={isBusy || isRefreshing}
                     onClick={() => handleOpenAlert(alert)}
                   >
-                    {isBusy ? 'Opening...' : isRead ? 'Open' : 'Mark read'}
+                    {isBusy ? t('policeAlertCenterPage.actions.opening') : isRead ? t('policeAlertCenterPage.actions.open') : t('policeAlertCenterPage.actions.markRead')}
                   </button>
                 </div>
               </article>
@@ -269,8 +271,8 @@ export default function PoliceAlertCenterPage() {
           {!isLoading && !error && alerts.length === 0 ? (
             <div className="police-empty-state" role="status" aria-live="polite">
               <div className="police-empty-icon" aria-hidden="true"><CheckCircleOutlineRoundedIcon fontSize="inherit" className="icon-success" /></div>
-              <h3>No important alerts</h3>
-              <p>No supervisor-targeted alerts are waiting right now.</p>
+              <h3>{t('policeAlertCenterPage.empty.heading')}</h3>
+              <p>{t('policeAlertCenterPage.empty.body')}</p>
             </div>
           ) : null}
         </div>

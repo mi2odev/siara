@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MapContainer, Marker, TileLayer } from 'react-leaflet'
 import FancySelect from '../../components/ui/FancySelect'
@@ -50,9 +51,9 @@ import siaraLogo from '../../assets/logos/siara-logo.png'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
 
 const STATUS_TABS = [
-  { key: 'active', label: 'Active' },
-  { key: 'paused', label: 'Paused' },
-  { key: 'archived', label: 'Archived' },
+  { key: 'active' },
+  { key: 'paused' },
+  { key: 'archived' },
 ]
 
 const DEFAULT_CENTER = { lat: 36.753, lng: 3.0588 }
@@ -95,49 +96,6 @@ function ClockIcon() {
 
 function color(severity) {
   return { high: '#DC2626', medium: '#F59E0B', low: '#10B981' }[severity] || '#64748B'
-}
-
-function formatPushPermission(permission) {
-  if (permission === 'granted') {
-    return 'Allowed'
-  }
-  if (permission === 'denied') {
-    return 'Blocked'
-  }
-  if (permission === 'default') {
-    return 'Ask first'
-  }
-  return 'Unavailable'
-}
-
-function describePushMode(preferences) {
-  if (!preferences?.pushEnabled || preferences?.pushMode === 'off') {
-    return 'System alerts are currently off for this browser.'
-  }
-
-  if (preferences.pushMode === 'all') {
-    return 'Medium and high-risk watched-zone alerts will appear as browser notifications.'
-  }
-
-  return 'Only high-risk watched-zone alerts will appear as browser notifications.'
-}
-
-function describeEmailPreferences(preferences) {
-  if (!preferences) {
-    return 'Choose which SIARA emails should reach your inbox.'
-  }
-
-  if (!preferences.weekly_summary_enabled && !preferences.product_updates_enabled && !preferences.marketing_enabled) {
-    return 'Email updates are currently turned off except for required transactional messages.'
-  }
-
-  return 'Weekly summaries, product updates, and optional marketing emails are controlled here.'
-}
-
-function toTitleCase(value) {
-  const normalized = String(value || '').trim()
-  if (!normalized) return 'Unknown'
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1)
 }
 
 function normalizeTrigger(trigger, index) {
@@ -192,6 +150,7 @@ function normalizeAlert(alert) {
 }
 
 export default function AlertsPage() {
+  const { t } = useTranslation(['alerts', 'common'])
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useContext(AuthContext)
@@ -228,13 +187,13 @@ export default function AlertsPage() {
         const items = await fetchAlerts()
         if (!ignore) setAlerts(items.map(normalizeAlert))
       } catch (error) {
-        if (!ignore) setErrorMessage(error.response?.data?.message || 'Unable to load alerts.')
+        if (!ignore) setErrorMessage(error.response?.data?.message || t('alertsPage.errors.unableToLoadAlerts'))
       } finally {
         if (!ignore) setLoading(false)
       }
     })()
     return () => { ignore = true }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let ignore = false
@@ -256,7 +215,7 @@ export default function AlertsPage() {
         setPushPermission(getPushPermissionState())
       } catch (error) {
         if (!ignore) {
-          setPushError(error.response?.data?.message || 'Unable to load system alert settings.')
+          setPushError(error.response?.data?.message || t('alertsPage.errors.unableToLoadPushSettings'))
         }
       } finally {
         if (!ignore) {
@@ -266,7 +225,7 @@ export default function AlertsPage() {
     })()
 
     return () => { ignore = true }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let ignore = false
@@ -279,7 +238,7 @@ export default function AlertsPage() {
         }
       } catch (error) {
         if (!ignore) {
-          setEmailPreferencesError(error.response?.data?.message || 'Unable to load email preferences.')
+          setEmailPreferencesError(error.response?.data?.message || t('alertsPage.errors.unableToLoadEmailPrefs'))
         }
       } finally {
         if (!ignore) {
@@ -289,17 +248,17 @@ export default function AlertsPage() {
     })()
 
     return () => { ignore = true }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (location.state?.newAlert) {
-      setToast(`Alert "${location.state.newAlert}" created successfully`)
+      setToast(t('alertsPage.toast.alertCreated', { name: location.state.newAlert }))
       window.history.replaceState({}, '')
     } else if (location.state?.editedAlert) {
-      setToast(`Alert "${location.state.editedAlert}" updated successfully`)
+      setToast(t('alertsPage.toast.alertUpdated', { name: location.state.editedAlert }))
       window.history.replaceState({}, '')
     }
-  }, [location.state])
+  }, [location.state, t])
 
   useEffect(() => {
     if (!toast) return undefined
@@ -381,19 +340,19 @@ export default function AlertsPage() {
       const updated = normalizeAlert(await updateAlertStatus(alert.id, nextStatus))
       setAlerts((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
     } catch (error) {
-      setErrorMessage(error.response?.data?.message || 'Unable to update alert status.')
+      setErrorMessage(error.response?.data?.message || t('alertsPage.errors.unableToUpdateStatus'))
     }
   }
 
   async function handleDelete(event, alertId) {
     event.stopPropagation()
-    if (!window.confirm('Delete this alert?')) return
+    if (!window.confirm(t('alertsPage.confirm.deleteAlert'))) return
     try {
       await deleteAlert(alertId)
       setAlerts((prev) => prev.filter((item) => item.id !== alertId))
-      setToast('Alert deleted')
+      setToast(t('alertsPage.toast.alertDeleted'))
     } catch (error) {
-      setErrorMessage(error.response?.data?.message || 'Unable to delete alert.')
+      setErrorMessage(error.response?.data?.message || t('alertsPage.errors.unableToDeleteAlert'))
     }
   }
 
@@ -410,7 +369,7 @@ export default function AlertsPage() {
 
   async function handlePushModeChange(nextMode) {
     if (!pushSupported) {
-      setPushError('System notifications are not supported in this browser.')
+      setPushError(t('alertsPage.push.notSupportedError'))
       return
     }
 
@@ -428,11 +387,11 @@ export default function AlertsPage() {
       setHasBrowserSubscription(true)
       setPushPermission(getPushPermissionState())
       setPushNotice(nextMode === 'all'
-        ? 'System alerts now include medium and high-risk watched-zone incidents.'
-        : 'System alerts now focus on high-risk watched-zone incidents.')
+        ? t('alertsPage.push.noticeAllMode')
+        : t('alertsPage.push.noticeImportantOnlyMode'))
     } catch (error) {
       await refreshBrowserPushState()
-      setPushError(error.response?.data?.message || error.message || 'Unable to enable system alerts.')
+      setPushError(error.response?.data?.message || error.message || t('alertsPage.errors.unableToEnablePush'))
     } finally {
       setPushBusyAction('')
     }
@@ -452,9 +411,9 @@ export default function AlertsPage() {
       setPushPreferences(preferences)
       await unsubscribeCurrentBrowserFromPush().catch(() => null)
       await refreshBrowserPushState()
-      setPushNotice('System alerts turned off for this browser.')
+      setPushNotice(t('alertsPage.push.noticeTurnedOff'))
     } catch (error) {
-      setPushError(error.response?.data?.message || error.message || 'Unable to turn off system alerts.')
+      setPushError(error.response?.data?.message || error.message || t('alertsPage.errors.unableToDisablePush'))
     } finally {
       setPushBusyAction('')
     }
@@ -469,14 +428,14 @@ export default function AlertsPage() {
       const result = await sendPushTest()
       if (!result.ok || result.sentCount === 0) {
         setPushError(result.reason === 'no_active_subscriptions'
-          ? 'No active browser subscription was found for your account on this browser.'
-          : 'Unable to send a test system alert right now.')
+          ? t('alertsPage.push.noActiveSubscription')
+          : t('alertsPage.errors.unableToSendTestAlert'))
         return
       }
 
-      setPushNotice('Test alert sent. Check your browser notifications.')
+      setPushNotice(t('alertsPage.push.testAlertSent'))
     } catch (error) {
-      setPushError(error.response?.data?.message || error.message || 'Unable to send a test system alert.')
+      setPushError(error.response?.data?.message || error.message || t('alertsPage.errors.unableToSendTestAlert'))
     } finally {
       setPushBusyAction('')
     }
@@ -495,12 +454,55 @@ export default function AlertsPage() {
       })
 
       setEmailPreferences(preferences)
-      setEmailPreferencesNotice('Email preferences updated.')
+      setEmailPreferencesNotice(t('alertsPage.email.preferencesUpdated'))
     } catch (error) {
-      setEmailPreferencesError(error.response?.data?.message || 'Unable to update email preferences.')
+      setEmailPreferencesError(error.response?.data?.message || t('alertsPage.errors.unableToUpdateEmailPrefs'))
     } finally {
       setEmailPreferencesBusyKey('')
     }
+  }
+
+  function formatPushPermission(permission) {
+    if (permission === 'granted') {
+      return t('alertsPage.push.permissionAllowed')
+    }
+    if (permission === 'denied') {
+      return t('alertsPage.push.permissionBlocked')
+    }
+    if (permission === 'default') {
+      return t('alertsPage.push.permissionAskFirst')
+    }
+    return t('alertsPage.push.permissionUnavailable')
+  }
+
+  function describePushMode(preferences) {
+    if (!preferences?.pushEnabled || preferences?.pushMode === 'off') {
+      return t('alertsPage.push.descOff')
+    }
+
+    if (preferences.pushMode === 'all') {
+      return t('alertsPage.push.descAll')
+    }
+
+    return t('alertsPage.push.descImportantOnly')
+  }
+
+  function describeEmailPreferences(preferences) {
+    if (!preferences) {
+      return t('alertsPage.email.descDefault')
+    }
+
+    if (!preferences.weekly_summary_enabled && !preferences.product_updates_enabled && !preferences.marketing_enabled) {
+      return t('alertsPage.email.descAllOff')
+    }
+
+    return t('alertsPage.email.descSome')
+  }
+
+  function toTitleCase(value) {
+    const normalized = String(value || '').trim()
+    if (!normalized) return t('alertsPage.unknown')
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1)
   }
 
   return (
@@ -514,12 +516,12 @@ export default function AlertsPage() {
               <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">
-              <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
-              <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
-              <button className="dash-tab dash-tab-active">Alerts</button>
-              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
-              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
-              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <button className="dash-tab" onClick={() => navigate('/news')}>{t('common:nav.feed')}</button>
+              <button className="dash-tab" onClick={() => navigate('/map')}>{t('common:nav.map')}</button>
+              <button className="dash-tab dash-tab-active">{t('common:nav.alerts')}</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>{t('common:nav.report')}</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>{t('common:nav.dashboard')}</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>{t('common:nav.predictions')}</button>
               <PoliceModeTab user={user} />
             </nav>
           </div>
@@ -528,26 +530,26 @@ export default function AlertsPage() {
               navigate={navigate}
               query={headerSearchQuery}
               setQuery={setHeaderSearchQuery}
-              placeholder="Search for an incident, a road, a wilaya..."
-              ariaLabel="Search"
+              placeholder={t('alertsPage.searchPlaceholder')}
+              ariaLabel={t('common:actions.search')}
               currentUser={user}
             />
           </div>
           <div className="dash-header-right">
             <NotificationBell />
             <div className="dash-avatar-wrapper">
-              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label={t('alertsPage.ariaUserProfile')}>
                 {userAvatarUrl ? (
-                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                  <img src={userAvatarUrl} alt={t('alertsPage.ariaUserAvatar')} className="dash-avatar-image" loading="lazy" />
                 ) : profileInitials}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>{t('alertsPage.dropdown.myProfile')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>{t('common:nav.settings')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>{t('common:nav.notifications')}</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>{t('common:nav.logout')}</button>
                 </div>
               )}
             </div>
@@ -561,23 +563,23 @@ export default function AlertsPage() {
         <aside className="al-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />            </div>
+              <img src={profileAvatarUrl} alt={t('alertsPage.ariaProfile')} className="profile-avatar-large" loading="lazy" />            </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
               <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
-              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
-              <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
+              <p className="profile-bio">{t('alertsPage.profileBio')}</p>
+              <button className="profile-view-link" onClick={() => navigate('/profile')}>{t('alertsPage.viewProfile')}</button>
             </div>
           </div>
 
-          <button className="al-cta" onClick={() => navigate('/alerts/create')}>+ New Alert</button>
+          <button className="al-cta" onClick={() => navigate('/alerts/create')}>{t('alertsPage.newAlert')}</button>
 
           <div className="card al-filter-section">
-            <div className="nav-section-label">ALERT STATUS</div>
+            <div className="nav-section-label">{t('alertsPage.alertStatusLabel')}</div>
             <nav className="al-nav">
               {STATUS_TABS.map((tab) => (
                 <button key={tab.key} className={`al-nav-btn ${activeTab === tab.key ? 'active' : ''}`} onClick={() => setActiveTab(tab.key)}>
-                  <span className="nav-label">{tab.label}</span>
+                  <span className="nav-label">{t(`alertsPage.statusTab.${tab.key}`)}</span>
                   <span className="nav-count">{stats[tab.key]}</span>
                 </button>
               ))}
@@ -589,8 +591,8 @@ export default function AlertsPage() {
 
         <main className="al-center">
           <div className="al-page-head">
-            <h1>My Alerts</h1>
-            <p>Manage database-backed alert rules for wilayas, communes, and radius zones.</p>
+            <h1>{t('alertsPage.pageTitle')}</h1>
+            <p>{t('alertsPage.pageDescription')}</p>
           </div>
 
           <div className="al-filters">
@@ -598,10 +600,10 @@ export default function AlertsPage() {
               value={severityFilter}
               onChange={setSeverityFilter}
               options={[
-                { value: 'all',    label: 'Severity' },
-                { value: 'high',   label: 'High' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'low',    label: 'Low' },
+                { value: 'all',    label: t('alertsPage.filter.severity') },
+                { value: 'high',   label: t('alertsPage.filter.high') },
+                { value: 'medium', label: t('alertsPage.filter.medium') },
+                { value: 'low',    label: t('alertsPage.filter.low') },
               ]}
               menuAlign="left"
             />
@@ -609,7 +611,7 @@ export default function AlertsPage() {
               value={areaFilter}
               onChange={setAreaFilter}
               options={[
-                { value: 'all', label: 'Area' },
+                { value: 'all', label: t('alertsPage.filter.area') },
                 ...wilayas.map((wilaya) => ({ value: wilaya, label: wilaya })),
               ]}
               menuAlign="left"
@@ -620,13 +622,13 @@ export default function AlertsPage() {
 
           <div className="al-list">
             {loading ? (
-              <div className="al-empty"><h3>Loading alerts...</h3></div>
+              <div className="al-empty"><h3>{t('alertsPage.loadingAlerts')}</h3></div>
             ) : filteredAlerts.length === 0 ? (
               <div className="al-empty">
                 <span className="empty-icon" aria-hidden="true">{icon('notification')}</span>
-                <h3>No Alerts</h3>
-                <p>Create your first alert to get notified.</p>
-                <button className="empty-btn" onClick={() => navigate('/alerts/create')}>Create an Alert</button>
+                <h3>{t('alertsPage.empty.title')}</h3>
+                <p>{t('alertsPage.empty.description')}</p>
+                <button className="empty-btn" onClick={() => navigate('/alerts/create')}>{t('alertsPage.empty.createButton')}</button>
               </div>
             ) : (
               filteredAlerts.map((alert) => (
@@ -656,18 +658,18 @@ export default function AlertsPage() {
                           ? alert.incidentTypes.map((type) => <span key={type} className="type-badge">{toTitleCase(type)}</span>)
                           : null}
                       </span>
-                      <span className="meta" style={{ marginLeft: 'auto' }}>Last: {alert.lastTriggered} · {alert.triggerCount} trigger{alert.triggerCount === 1 ? '' : 's'}</span>
+                      <span className="meta" style={{ marginLeft: 'auto' }}>{t('alertsPage.card.last')} {alert.lastTriggered} · {t('alertsPage.card.trigger', { count: alert.triggerCount })}</span>
                     </div>
                   </div>
                   <div className="card-foot">
                     <button className={`act-btn act-toggle ${alert.status === 'active' ? 'on' : 'off'}`} onClick={(event) => handleToggleStatus(event, alert)}>
-                      {alert.status === 'active' ? 'Pause' : 'Activate'}
+                      {alert.status === 'active' ? t('alertsPage.card.pause') : t('alertsPage.card.activate')}
                     </button>
                     <button className="act-btn act-edit" onClick={(event) => { event.stopPropagation(); navigate('/alerts/create', { state: { editAlert: alert } }) }}>
-                      Edit
+                      {t('common:actions.edit')}
                     </button>
                     <button className="act-btn act-delete" onClick={(event) => handleDelete(event, alert.id)}>
-                      Delete
+                      {t('common:actions.delete')}
                     </button>
                   </div>
                 </div>
@@ -680,11 +682,11 @@ export default function AlertsPage() {
           <div className="al-panel al-push-panel">
             <div className="panel-head al-push-head">
               <div>
-                <span className="panel-label" style={{ marginBottom: 4 }}>System Alerts</span>
+                <span className="panel-label" style={{ marginBottom: 4 }}>{t('alertsPage.push.panelLabel')}</span>
                 <div className="al-push-panel-status">
                   <span className={`al-push-status-dot ${pushEnabled ? 'on' : 'off'}`} />
                   <span className={`al-push-chip ${pushEnabled ? 'enabled' : 'disabled'}`}>
-                    {pushEnabled ? 'On' : 'Off'}
+                    {pushEnabled ? t('alertsPage.on') : t('alertsPage.off')}
                   </span>
                 </div>
               </div>
@@ -694,7 +696,7 @@ export default function AlertsPage() {
                 onClick={() => { void handlePushModeChange('important_only') }}
                 disabled={!pushSupported || pushBusyAction !== '' || pushSettingsLoading || pushEnabled}
               >
-                {pushEnabled ? 'Alerts enabled' : 'Enable alerts'}
+                {pushEnabled ? t('alertsPage.push.alertsEnabled') : t('alertsPage.push.enableAlerts')}
               </button>
             </div>
 
@@ -702,21 +704,21 @@ export default function AlertsPage() {
 
             <div className="al-push-status-grid">
               <div className="al-push-status-item">
-                <span className="al-push-status-label">Browser</span>
-                <strong>{pushSupported ? 'Supp...' : 'Unavail.'}</strong>
+                <span className="al-push-status-label">{t('alertsPage.push.statusBrowser')}</span>
+                <strong>{pushSupported ? t('alertsPage.push.supported') : t('alertsPage.push.unavailable')}</strong>
               </div>
               <div className="al-push-status-item">
-                <span className="al-push-status-label">Permission</span>
+                <span className="al-push-status-label">{t('alertsPage.push.statusPermission')}</span>
                 <strong>{formatPushPermission(pushPermission)}</strong>
               </div>
               <div className="al-push-status-item">
-                <span className="al-push-status-label">Subscription</span>
-                <strong>{hasBrowserSubscription ? 'Active' : 'Inactive'}</strong>
+                <span className="al-push-status-label">{t('alertsPage.push.statusSubscription')}</span>
+                <strong>{hasBrowserSubscription ? t('alertsPage.push.subscriptionActive') : t('alertsPage.push.subscriptionInactive')}</strong>
               </div>
             </div>
 
             {pushSettingsLoading ? (
-              <div className="al-push-feedback subtle">Loading system alert settings...</div>
+              <div className="al-push-feedback subtle">{t('alertsPage.push.loadingSettings')}</div>
             ) : null}
             {pushError ? (
               <div className="al-push-feedback error">{pushError}</div>
@@ -739,9 +741,9 @@ export default function AlertsPage() {
                       <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </span>
-                  <span className="al-push-option-title">High-risk alerts only</span>
+                  <span className="al-push-option-title">{t('alertsPage.push.optionHighRiskTitle')}</span>
                 </div>
-                <span className="al-push-option-copy">Recommended for high-severity watched-zone incidents.</span>
+                <span className="al-push-option-copy">{t('alertsPage.push.optionHighRiskCopy')}</span>
               </button>
 
               <button
@@ -757,9 +759,9 @@ export default function AlertsPage() {
                       <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
                     </svg>
                   </span>
-                  <span className="al-push-option-title">All watched-zone alerts</span>
+                  <span className="al-push-option-title">{t('alertsPage.push.optionAllTitle')}</span>
                 </div>
-                <span className="al-push-option-copy">Includes medium and high-risk watched-zone incidents.</span>
+                <span className="al-push-option-copy">{t('alertsPage.push.optionAllCopy')}</span>
               </button>
 
               <button
@@ -776,9 +778,9 @@ export default function AlertsPage() {
                       <path d="M4 4l16 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
                     </svg>
                   </span>
-                  <span className="al-push-option-title">Turn off system alerts</span>
+                  <span className="al-push-option-title">{t('alertsPage.push.optionOffTitle')}</span>
                 </div>
-                <span className="al-push-option-copy">Keep in-app notifications only.</span>
+                <span className="al-push-option-copy">{t('alertsPage.push.optionOffCopy')}</span>
               </button>
             </div>
 
@@ -789,7 +791,7 @@ export default function AlertsPage() {
                 onClick={() => { void handleSendPushTest() }}
                 disabled={!pushEnabled || !hasBrowserSubscription || pushBusyAction !== ''}
               >
-                Send test alert
+                {t('alertsPage.push.sendTestAlert')}
               </button>
             </div>
           </div>
@@ -797,11 +799,11 @@ export default function AlertsPage() {
           <div className="al-panel al-email-panel">
             <div className="panel-head al-push-head">
               <div>
-                <span className="panel-label" style={{ marginBottom: 4 }}>Email Preferences</span>
+                <span className="panel-label" style={{ marginBottom: 4 }}>{t('alertsPage.email.panelLabel')}</span>
                 <div className="al-push-panel-status">
                   <span className={`al-push-status-dot ${(emailPreferences?.weekly_summary_enabled || emailPreferences?.product_updates_enabled || emailPreferences?.marketing_enabled) ? 'on' : 'off'}`} />
                   <span className={`al-push-chip ${(emailPreferences?.weekly_summary_enabled || emailPreferences?.product_updates_enabled || emailPreferences?.marketing_enabled) ? 'enabled' : 'disabled'}`}>
-                    {(emailPreferences?.weekly_summary_enabled || emailPreferences?.product_updates_enabled || emailPreferences?.marketing_enabled) ? 'On' : 'Off'}
+                    {(emailPreferences?.weekly_summary_enabled || emailPreferences?.product_updates_enabled || emailPreferences?.marketing_enabled) ? t('alertsPage.on') : t('alertsPage.off')}
                   </span>
                 </div>
               </div>
@@ -810,7 +812,7 @@ export default function AlertsPage() {
             <p className="al-push-copy">{describeEmailPreferences(emailPreferences)}</p>
 
             {emailPreferencesLoading ? (
-              <div className="al-push-feedback subtle">Loading email settings...</div>
+              <div className="al-push-feedback subtle">{t('alertsPage.email.loadingSettings')}</div>
             ) : null}
             {emailPreferencesError ? (
               <div className="al-push-feedback error">{emailPreferencesError}</div>
@@ -833,9 +835,9 @@ export default function AlertsPage() {
                       <path d="M3 9h18M8 2v4M16 2v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
                     </svg>
                   </span>
-                  <span className="al-push-option-title">Weekly summary email</span>
+                  <span className="al-push-option-title">{t('alertsPage.email.weeklySummaryTitle')}</span>
                 </div>
-                <span className="al-push-option-copy">Sunday evening recap of incidents and trigger activity in your watched zones.</span>
+                <span className="al-push-option-copy">{t('alertsPage.email.weeklySummaryCopy')}</span>
               </button>
 
               <button
@@ -850,9 +852,9 @@ export default function AlertsPage() {
                       <path d="M12 2l2.4 6.4H21l-5.6 4 2.2 6.6L12 15l-5.6 4 2.2-6.6L3 8.4h6.6L12 2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/>
                     </svg>
                   </span>
-                  <span className="al-push-option-title">Product updates</span>
+                  <span className="al-push-option-title">{t('alertsPage.email.productUpdatesTitle')}</span>
                 </div>
-                <span className="al-push-option-copy">Occasional SIARA improvements, release notes, and feature updates.</span>
+                <span className="al-push-option-copy">{t('alertsPage.email.productUpdatesCopy')}</span>
               </button>
 
               <button
@@ -868,9 +870,9 @@ export default function AlertsPage() {
                       <path d="M22 5v14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
                     </svg>
                   </span>
-                  <span className="al-push-option-title">Marketing updates</span>
+                  <span className="al-push-option-title">{t('alertsPage.email.marketingUpdatesTitle')}</span>
                 </div>
-                <span className="al-push-option-copy">Optional announcements about SIARA campaigns and outreach.</span>
+                <span className="al-push-option-copy">{t('alertsPage.email.marketingUpdatesCopy')}</span>
               </button>
             </div>
           </div>
@@ -883,15 +885,15 @@ export default function AlertsPage() {
                   <span className={`panel-status ${selectedAlert.status}`}>{toTitleCase(selectedAlert.status)}</span>
                 </div>
                 <div className="summary-grid">
-                  <div className="sum-item"><span className="sum-l">Area</span><span className="sum-v">{selectedAlert.area?.name || selectedAlert.zone?.displayName}</span></div>
-                  <div className="sum-item"><span className="sum-l">Wilaya</span><span className="sum-v">{selectedAlert.area?.wilaya || 'N/A'}</span></div>
-                  <div className="sum-item"><span className="sum-l">Schedule</span><span className="sum-v">{selectedAlert.timeWindow}</span></div>
-                  <div className="sum-item"><span className="sum-l">Triggers</span><span className="sum-v">{selectedAlert.triggerCount}</span></div>
+                  <div className="sum-item"><span className="sum-l">{t('alertsPage.summary.area')}</span><span className="sum-v">{selectedAlert.area?.name || selectedAlert.zone?.displayName}</span></div>
+                  <div className="sum-item"><span className="sum-l">{t('alertsPage.summary.wilaya')}</span><span className="sum-v">{selectedAlert.area?.wilaya || 'N/A'}</span></div>
+                  <div className="sum-item"><span className="sum-l">{t('alertsPage.summary.schedule')}</span><span className="sum-v">{selectedAlert.timeWindow}</span></div>
+                  <div className="sum-item"><span className="sum-l">{t('alertsPage.summary.triggers')}</span><span className="sum-v">{selectedAlert.triggerCount}</span></div>
                 </div>
               </div>
 
               <div className="al-panel map">
-                <span className="panel-label">Monitored Area</span>
+                <span className="panel-label">{t('alertsPage.map.monitoredArea')}</span>
                 <div className="mini-map-wrap">
                   <MapContainer
                     className="al-gmap"
@@ -914,12 +916,12 @@ export default function AlertsPage() {
                   className="al-map-link"
                   onClick={() => navigate('/map', { state: { mapLayer: 'zones', focusAlertId: selectedAlert.id } })}
                 >
-                  Open zone on map
+                  {t('alertsPage.map.openZoneOnMap')}
                 </button>
               </div>
 
               <div className="al-panel triggers">
-                <span className="panel-label">Recent Triggers</span>
+                <span className="panel-label">{t('alertsPage.triggers.panelLabel')}</span>
                 {selectedAlert.recentTriggers?.length ? (
                   <div className="trigger-list">
                     {selectedAlert.recentTriggers.map((trigger) => (
@@ -932,17 +934,17 @@ export default function AlertsPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="no-triggers">No triggers yet</div>
+                  <div className="no-triggers">{t('alertsPage.triggers.noTriggers')}</div>
                 )}
               </div>
             </>
           ) : (
             <div className="al-panel al-no-sel">
               <span className="no-sel-icon">{renderSidebarIcon('map')}</span>
-              <h4>No Alert Selected</h4>
-              <p>Select an alert from the list to view live zone details and recent trigger activity.</p>
+              <h4>{t('alertsPage.noSelection.title')}</h4>
+              <p>{t('alertsPage.noSelection.description')}</p>
               <button type="button" className="al-map-link" onClick={() => navigate('/alerts/create')}>
-                Create a New Alert
+                {t('alertsPage.noSelection.createButton')}
               </button>
             </div>
           )}

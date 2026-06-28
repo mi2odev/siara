@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { listReports } from '../../services/reportsService'
 import { getUserAvatarUrl } from '../../utils/avatarUtils'
 import profileAvatar from '../../assets/logos/siara-logo1.png'
@@ -35,16 +36,17 @@ function getReportAuthorProfile(report) {
 
 // The placeholder is intentionally fixed here (not a prop) so the header search
 // reads identically on every page. Any per-page `placeholder` prop is ignored.
-const SEARCH_PLACEHOLDER = 'Search users, incidents, roads, zones…'
 
 export default function GlobalHeaderSearch({
   navigate,
   query,
   setQuery,
-  ariaLabel = 'Search',
+  ariaLabel,
   currentUser = null,
 }) {
-  const placeholder = SEARCH_PLACEHOLDER
+  const { t } = useTranslation(['pages', 'common'])
+  const placeholder = t('globalHeaderSearch.placeholder')
+  const resolvedAriaLabel = ariaLabel ?? t('common:actions.search')
   const [reports, setReports] = useState([])
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -144,7 +146,7 @@ export default function GlobalHeaderSearch({
       kind: 'account',
       id: profile.id != null ? `account-${profile.id}` : `account-${profile.name}`,
       title: profile.name,
-      subtitle: profile.email || 'Feed contributor',
+      subtitle: profile.email || t('globalHeaderSearch.feedContributor'),
       avatarUrl: getUserAvatarUrl(profile) || profileAvatar,
       payload: profile,
     }))
@@ -152,8 +154,8 @@ export default function GlobalHeaderSearch({
     const reportItems = filteredReports.map((report) => ({
       kind: 'report',
       id: `report-${report.id}`,
-      title: report?.title || 'Reported incident',
-      subtitle: report?.locationLabel || report?.incidentType || 'Incident report',
+      title: report?.title || t('globalHeaderSearch.reportedIncident'),
+      subtitle: report?.locationLabel || report?.incidentType || t('globalHeaderSearch.incidentReport'),
       avatarUrl: '',
       payload: report,
     }))
@@ -229,7 +231,7 @@ export default function GlobalHeaderSearch({
         type="search"
         className="dash-search"
         placeholder={placeholder}
-        aria-label={ariaLabel}
+        aria-label={resolvedAriaLabel}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         onFocus={handleFocus}
@@ -242,9 +244,9 @@ export default function GlobalHeaderSearch({
       />
 
       {isOpen && normalizedQuery && (
-        <div className="global-header-search-menu" role="listbox" aria-label="Search suggestions">
+        <div className="global-header-search-menu" role="listbox" aria-label={t('globalHeaderSearch.searchSuggestions')}>
           {isLoading ? (
-            <div className="global-header-search-empty">Loading suggestions...</div>
+            <div className="global-header-search-empty">{t('globalHeaderSearch.loadingSuggestions')}</div>
           ) : suggestions.length > 0 ? (
             suggestions.map((item) => (
               <button
@@ -262,7 +264,7 @@ export default function GlobalHeaderSearch({
                   {item.avatarUrl ? (
                     <img
                       src={item.avatarUrl}
-                      alt={`${item.title} avatar`}
+                      alt={t('globalHeaderSearch.avatarAlt', { name: item.title })}
                       className="global-header-search-avatar-image"
                       loading="lazy"
                       onError={(event) => {
@@ -287,7 +289,7 @@ export default function GlobalHeaderSearch({
                   <span className="global-header-search-name-row">
                     <span className="global-header-search-name">{item.title}</span>
                     <span className={`global-header-search-type ${item.kind}`}>
-                      {item.kind === 'account' ? 'Account' : 'Report'}
+                      {item.kind === 'account' ? t('globalHeaderSearch.kindAccount') : t('globalHeaderSearch.kindReport')}
                     </span>
                   </span>
                   <span className="global-header-search-meta">{item.subtitle}</span>
@@ -295,7 +297,7 @@ export default function GlobalHeaderSearch({
               </button>
             ))
           ) : (
-            <div className="global-header-search-empty">No matching account or accident found.</div>
+            <div className="global-header-search-empty">{t('globalHeaderSearch.noResults')}</div>
           )}
         </div>
       )}

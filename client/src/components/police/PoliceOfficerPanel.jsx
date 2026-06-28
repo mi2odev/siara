@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined'
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 
@@ -12,16 +13,17 @@ function getInitials(name) {
 }
 
 export default function PoliceOfficerPanel({ officer, workZone, workZoneAction, children }) {
+  const { t } = useTranslation(['police', 'common'])
   return (
     <div className="pop-panel">
 
       {/* Officer card */}
       <div className="pop-card">
         <div className="pop-card-head">
-          <span className="pop-card-title">Officer</span>
+          <span className="pop-card-title">{t('policeOfficerPanel.officerTitle')}</span>
           <span className={`pop-duty pop-duty--${officer?.isOnDuty ? 'on' : 'off'}`}>
             <span className="pop-duty-dot" />
-            {officer?.isOnDuty ? 'On Duty' : 'Off Duty'}
+            {officer?.isOnDuty ? t('policeOfficerPanel.onDuty') : t('policeOfficerPanel.offDuty')}
           </span>
         </div>
         <div className="pop-officer-row">
@@ -30,15 +32,15 @@ export default function PoliceOfficerPanel({ officer, workZone, workZoneAction, 
             : <span className="pop-avatar">{getInitials(officer?.name)}</span>
           }
           <div className="pop-officer-meta">
-            <strong>{officer?.name || 'Officer'}</strong>
-            <span>{officer?.rank || 'Police Officer'}</span>
+            <strong>{officer?.name || t('policeOfficerPanel.defaultName')}</strong>
+            <span>{officer?.rank || t('policeOfficerPanel.defaultRank')}</span>
           </div>
         </div>
         <div className="pop-rows">
           <div className="pop-row">
             <BadgeOutlinedIcon fontSize="inherit" />
-            <span>Badge</span>
-            <strong>{officer?.badgeNumber || 'Pending'}</strong>
+            <span>{t('policeOfficerPanel.badge')}</span>
+            <strong>{officer?.badgeNumber || t('policeOfficerPanel.badgePending')}</strong>
           </div>
         </div>
       </div>
@@ -46,19 +48,19 @@ export default function PoliceOfficerPanel({ officer, workZone, workZoneAction, 
       {/* Work Zone card */}
       <div className="pop-card">
         <div className="pop-card-head">
-          <span className="pop-card-title">Work Zone</span>
+          <span className="pop-card-title">{t('policeOfficerPanel.workZoneTitle')}</span>
           {workZoneAction || null}
         </div>
         <div className="pop-rows">
           <div className="pop-row">
             <PlaceOutlinedIcon fontSize="inherit" />
-            <span>Wilaya</span>
-            <strong>{workZone?.wilaya?.name || 'Not set'}</strong>
+            <span>{t('policeOfficerPanel.wilaya')}</span>
+            <strong>{workZone?.wilaya?.name || t('policeOfficerPanel.notSet')}</strong>
           </div>
           <div className="pop-row">
             <PlaceOutlinedIcon fontSize="inherit" />
-            <span>Commune</span>
-            <strong>{workZone?.commune?.name || 'Not set'}</strong>
+            <span>{t('policeOfficerPanel.commune')}</span>
+            <strong>{workZone?.commune?.name || t('policeOfficerPanel.notSet')}</strong>
           </div>
         </div>
       </div>

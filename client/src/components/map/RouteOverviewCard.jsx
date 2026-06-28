@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
 import BalanceOutlinedIcon from '@mui/icons-material/BalanceOutlined'
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
@@ -30,13 +31,6 @@ const TIER_CLASSES = {
   high: 'risk-high',
 }
 
-const TIER_LABELS = {
-  unknown: 'Unknown',
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-}
-
 const ALT_ICONS = {
   safest: ShieldOutlinedIcon,
   balanced: BalanceOutlinedIcon,
@@ -57,7 +51,7 @@ function tierFromLevel(level, percent) {
 }
 
 function formatPercent(value) {
-  if (value === null || value === undefined || value === '') return 'â€”'
+  if (value === null || value === undefined || value === '') return 'â€"'
   const n = Number(value)
   return Number.isFinite(n) ? `${Math.round(n)}%` : '—'
 }
@@ -100,6 +94,15 @@ export default function RouteOverviewCard({
   destination = null,
   onSelectDepartureTimestamp,
 }) {
+  const { t } = useTranslation(['map', 'common'])
+
+  const TIER_LABELS = {
+    unknown: t('routeOverviewCard.tier.unknown'),
+    low: t('routeOverviewCard.tier.low'),
+    medium: t('routeOverviewCard.tier.medium'),
+    high: t('routeOverviewCard.tier.high'),
+  }
+
   const data = useMemo(() => {
     if (!selectedRoute) return null
     const summary = selectedRoute.summary || {}
@@ -127,12 +130,13 @@ export default function RouteOverviewCard({
         selectedRoute.riskMessage ||
         selectedRoute.message ||
         summary.message ||
-        'Route loaded, but risk scoring is unavailable.',
+        t('routeOverviewCard.riskUnavailable'),
       tier,
       tierClass: TIER_CLASSES[tier] || 'risk-low',
-      tierLabel: TIER_LABELS[tier] || 'Unknown',
+      tierLabel: TIER_LABELS[tier] || t('routeOverviewCard.tier.unknown'),
     }
-  }, [selectedRoute])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoute, t])
 
   if (!data) return null
 
@@ -152,13 +156,13 @@ export default function RouteOverviewCard({
     <aside
       className="siara-route-overview"
       role="region"
-      aria-label="Selected route overview"
+      aria-label={t('routeOverviewCard.ariaLabel')}
     >
       <header className="siara-route-overview__header">
         <span className="siara-route-overview__icon" aria-hidden="true">
           <ExploreOutlinedIcon fontSize="inherit" />
         </span>
-        <h4 className="siara-route-overview__title">Selected route</h4>
+        <h4 className="siara-route-overview__title">{t('routeOverviewCard.title')}</h4>
         {data.routeLabel ? (
           <span className="siara-route-overview__type-badge">{data.routeLabel}</span>
         ) : null}
@@ -166,7 +170,7 @@ export default function RouteOverviewCard({
 
       {destinationName ? (
         <div className="siara-route-overview__row">
-          <span className="siara-route-overview__label">Destination</span>
+          <span className="siara-route-overview__label">{t('routeOverviewCard.destination')}</span>
           <span className="siara-route-overview__value">{destinationName}</span>
         </div>
       ) : null}
@@ -174,11 +178,11 @@ export default function RouteOverviewCard({
       <div className="siara-route-overview__stats">
         <div className="siara-route-overview__stat">
           <strong>{formatMinutes(data.durationMin)}</strong>
-          <span>ETA</span>
+          <span>{t('routeOverviewCard.eta')}</span>
         </div>
         <div className="siara-route-overview__stat">
           <strong>{formatDistanceKm(data.distanceKm)}</strong>
-          <span>Left</span>
+          <span>{t('routeOverviewCard.left')}</span>
         </div>
         <div className={`siara-route-overview__stat ${data.tierClass}`}>
           <strong>{formatPercent(data.dangerPercent)}</strong>
@@ -188,11 +192,11 @@ export default function RouteOverviewCard({
 
       <div className="siara-route-overview__why">
         <div className="siara-route-overview__why-head">
-          <p className="siara-route-overview__why-title">Why this route?</p>
+          <p className="siara-route-overview__why-title">{t('routeOverviewCard.whyThisRoute')}</p>
           {source === 'ollama' ? (
             <span className="siara-route-overview__ai-chip">
               <AutoAwesomeOutlinedIcon fontSize="inherit" aria-hidden="true" />
-              AI explanation
+              {t('routeOverviewCard.aiExplanation')}
             </span>
           ) : null}
         </div>
@@ -203,7 +207,7 @@ export default function RouteOverviewCard({
             </p>
           ) : explanationLoading && !summary ? (
             <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
-              Analysing risk factors…
+              {t('routeOverviewCard.analysingRisk')}
             </p>
           ) : summary ? (
             <p className="siara-route-overview__why-text">{summary}</p>
@@ -213,8 +217,7 @@ export default function RouteOverviewCard({
             </p>
           ) : (
             <p className="siara-route-overview__why-text siara-route-overview__why-text--muted">
-              SIARA selected this route based on the available route risk,
-              distance, ETA and segment danger data.
+              {t('routeOverviewCard.defaultWhyText')}
             </p>
           )}
           {reasons.length > 0 ? (
@@ -223,7 +226,7 @@ export default function RouteOverviewCard({
                 const key = reason?.id || `${reason?.type || 'reason'}-${idx}`
                 return (
                   <li key={key} className="siara-route-overview__why-item">
-                    {reason?.label || reason?.detail || 'Risk factor'}
+                    {reason?.label || reason?.detail || t('routeOverviewCard.riskFactor')}
                   </li>
                 )
               })}
@@ -237,7 +240,7 @@ export default function RouteOverviewCard({
               disabled={aiGenerating}
             >
               <AutoAwesomeOutlinedIcon fontSize="inherit" aria-hidden="true" />
-              {aiGenerating ? 'Calling Ollama…' : 'Generate AI explanation'}
+              {aiGenerating ? t('routeOverviewCard.callingOllama') : t('routeOverviewCard.generateAi')}
             </button>
           ) : null}
         </div>
@@ -245,7 +248,7 @@ export default function RouteOverviewCard({
 
       {segmentSummary.length > 0 ? (
         <div className="siara-route-overview__segments">
-          <p className="siara-route-overview__section-label">Segment risk summary</p>
+          <p className="siara-route-overview__section-label">{t('routeOverviewCard.segmentRiskSummary')}</p>
           {segmentSummary.map((segment, index) => {
             // Prefer the occurrence-model probability for the segment; fall back
             // to the severity danger score when occurrence data is missing.
@@ -272,7 +275,7 @@ export default function RouteOverviewCard({
                 className="siara-route-overview__segment"
               >
                 <div className="siara-route-overview__segment-row">
-                  <span>Segment {index + 1}</span>
+                  <span>{t('routeOverviewCard.segment', { number: index + 1 })}</span>
                   <span className={`siara-route-overview__segment-risk ${TIER_CLASSES[tier] || 'risk-low'}`}>
                     {formatPercent(hasPercent ? percent : null)} {TIER_LABELS[tier] || ''}
                   </span>
@@ -321,8 +324,8 @@ export default function RouteOverviewCard({
 
       {altChips.length > 0 && typeof onChangeRouteType === 'function' ? (
         <div className="siara-route-overview__alts-section">
-          <p className="siara-route-overview__section-label">Switch route</p>
-          <div className="siara-route-overview__alts" role="group" aria-label="Route alternatives">
+          <p className="siara-route-overview__section-label">{t('routeOverviewCard.switchRoute')}</p>
+          <div className="siara-route-overview__alts" role="group" aria-label={t('routeOverviewCard.routeAlternativesAriaLabel')}>
             {altChips.map((route) => {
               const rawAltPercent = route?.summary?.danger_percent
               const altPercent = Number(rawAltPercent)
@@ -349,7 +352,7 @@ export default function RouteOverviewCard({
                     {route.route_label || titleCase(route.route_type)}
                   </span>
                   <span className="siara-route-overview__alt-risk">
-                    {altHasPercent ? `${Math.round(altPercent)}% risk` : 'unknown risk'}
+                    {altHasPercent ? t('routeOverviewCard.altRiskPercent', { percent: Math.round(altPercent) }) : t('routeOverviewCard.unknownRisk')}
                   </span>
                 </button>
               )

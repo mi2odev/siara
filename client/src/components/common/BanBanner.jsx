@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Top-of-page banner shown whenever the current user is moderation-banned.
@@ -7,8 +8,8 @@ import React, { useEffect, useRef, useState } from 'react'
  * temporary bans (user can still authenticate but every write endpoint will
  * return 403). The banner shows the reason and a live countdown to expiry.
  */
-function formatRemaining(ms) {
-  if (ms <= 0) return 'just now'
+function formatRemaining(ms, t) {
+  if (ms <= 0) return t('banBanner.justNow')
   const totalSec = Math.floor(ms / 1000)
   const d = Math.floor(totalSec / 86400)
   const h = Math.floor((totalSec % 86400) / 3600)
@@ -20,6 +21,7 @@ function formatRemaining(ms) {
 }
 
 export default function BanBanner({ user }) {
+  const { t } = useTranslation(['pages', 'common'])
   const moderation = String(user?.moderationStatus || user?.moderation_status || '').toLowerCase()
   const bannedUntil = user?.bannedUntil || user?.banned_until || null
   const reason = user?.banReason || user?.ban_reason || null
@@ -100,20 +102,19 @@ export default function BanBanner({ user }) {
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <strong style={{ marginRight: 6 }}>
-          {permanent ? 'Your account is permanently banned.' : 'Your account is temporarily banned.'}
+          {permanent ? t('banBanner.permanentlyBanned') : t('banBanner.temporarilyBanned')}
         </strong>
         <span style={{ opacity: 0.92 }}>
-          You cannot post reports, comments or reactions
-          {permanent ? ' and your access will be revoked on next sign-in.' : '.'}
+          {permanent ? t('banBanner.cannotPostPermanent') : t('banBanner.cannotPostTemporary')}
         </span>
         {reason && (
           <div style={{ marginTop: 2, fontSize: 12, opacity: 0.95 }}>
-            <strong>Reason:</strong> {reason}
+            <strong>{t('banBanner.reason')}</strong> {reason}
           </div>
         )}
         {!permanent && expiresAt && (
           <div style={{ marginTop: 2, fontSize: 12, opacity: 0.95, fontVariantNumeric: 'tabular-nums' }}>
-            Ban ends in <strong>{formatRemaining(remainingMs)}</strong>
+            {t('banBanner.banEndsIn')} <strong>{formatRemaining(remainingMs, t)}</strong>
             {' · '}
             <span style={{ opacity: 0.85 }}>{expiresAt.toLocaleString()}</span>
           </div>

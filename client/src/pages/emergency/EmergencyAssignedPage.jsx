@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import EmergencyShell from '../../components/layout/EmergencyShell'
@@ -11,12 +12,6 @@ import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined'
 
 const STATUS_FLOW = ['assigned', 'en_route', 'arrived', 'completed']
-const STATUS_LABEL = {
-  assigned:  'Assigned',
-  en_route:  'En Route',
-  arrived:   'Arrived',
-  completed: 'Completed',
-}
 
 const INITIAL_OPS = [
   {
@@ -44,6 +39,7 @@ function nextStatus(status) {
 }
 
 export default function EmergencyAssignedPage() {
+  const { t } = useTranslation(['emergency', 'common'])
   const navigate = useNavigate()
   const location = useLocation()
   const basePath = location.pathname.startsWith('/preview/emergency') ? '/preview/emergency' : '/emergency'
@@ -62,17 +58,17 @@ export default function EmergencyAssignedPage() {
     <EmergencyShell unitId="AMB-A12" unitStatus="responding" activeMissions={ops.filter((o) => o.status !== 'completed').length}>
       <header className="em-page-head">
         <div>
-          <span className="em-eyebrow">My Missions</span>
-          <h1 className="em-page-title">Assigned Operations</h1>
-          <p className="em-page-subtitle">Missions currently assigned to your unit</p>
+          <span className="em-eyebrow">{t('emergencyAssignedPage.eyebrow')}</span>
+          <h1 className="em-page-title">{t('emergencyAssignedPage.title')}</h1>
+          <p className="em-page-subtitle">{t('emergencyAssignedPage.subtitle')}</p>
         </div>
       </header>
 
-      <section className="em-section" aria-label="Assigned operations">
+      <section className="em-section" aria-label={t('emergencyAssignedPage.sectionAriaLabel')}>
         <header className="em-section-head">
           <h2 className="em-section-title">
             <span className="em-section-title-icon"><AssignmentTurnedInOutlinedIcon fontSize="inherit" /></span>
-            Operations
+            {t('emergencyAssignedPage.sectionTitle')}
             <span className="em-section-count">{ops.length}</span>
           </h2>
         </header>
@@ -85,14 +81,14 @@ export default function EmergencyAssignedPage() {
                   <div className="em-incident-head">
                     <span className="em-incident-id">{op.id}</span>
                     <span className={`em-sev-badge ${op.severity}`}>{op.severity}</span>
-                    <span className={`em-status-pill ${op.status}`}>{STATUS_LABEL[op.status]}</span>
+                    <span className={`em-status-pill ${op.status}`}>{t(`emergencyAssignedPage.status.${op.status}`)}</span>
                   </div>
 
                   <h3 className="em-incident-title">{op.title}</h3>
 
                   <div className="em-ops-meta">
                     <span className="em-ops-meta-cell"><LocationOnOutlinedIcon /> {op.location}</span>
-                    <span className="em-ops-meta-cell"><DirectionsCarFilledOutlinedIcon /> Vehicle: {op.vehicle}</span>
+                    <span className="em-ops-meta-cell"><DirectionsCarFilledOutlinedIcon /> {t('emergencyAssignedPage.vehicleLabel', { vehicle: op.vehicle })}</span>
                   </div>
                 </div>
 
@@ -100,27 +96,27 @@ export default function EmergencyAssignedPage() {
                   {op.status !== 'completed' && op.status !== 'arrived' ? (
                     <button className="em-action-btn accept" onClick={() => advance(op.id)}>
                       <RouteOutlinedIcon style={{ fontSize: 16 }} />
-                      Update Status
+                      {t('emergencyAssignedPage.updateStatus')}
                     </button>
                   ) : null}
 
                   {op.status === 'arrived' ? (
                     <button className="em-action-btn success" onClick={() => complete(op.id)}>
                       <CheckCircleOutlineRoundedIcon style={{ fontSize: 16 }} />
-                      Mark Completed
+                      {t('emergencyAssignedPage.markCompleted')}
                     </button>
                   ) : null}
 
                   <button className="em-action-btn outline" onClick={() => navigate(`${basePath}/response`)}>
                     <EditNoteOutlinedIcon style={{ fontSize: 16 }} />
-                    Add Notes
+                    {t('emergencyAssignedPage.addNotes')}
                   </button>
                 </div>
               </article>
             ))}
 
             {ops.length === 0 ? (
-              <div className="em-empty">No operations currently assigned.</div>
+              <div className="em-empty">{t('emergencyAssignedPage.empty')}</div>
             ) : null}
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { segmentOccurrenceRisk } from '../../utils/occurrenceRisk'
 import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded'
@@ -15,13 +16,6 @@ import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownR
 // factors. This keeps the bottom of the screen clear for the
 // NavigationSummaryCard.
 
-const TIER_LABELS = {
-  unknown: 'Unknown',
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-}
-
 const TIER_CLASSES = {
   unknown: 'risk-unknown',
   low: 'risk-low',
@@ -29,10 +23,17 @@ const TIER_CLASSES = {
   high: 'risk-high',
 }
 
+const TIER_KEYS = {
+  unknown: 'unknown',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+}
+
 function tierFromLevel(level, percent) {
   const text = String(level || '').trim().toLowerCase()
   if (text === 'unknown' || text === 'unavailable') return 'unknown'
-  if (TIER_LABELS[text]) return text
+  if (TIER_KEYS[text]) return text
   if (percent === null || percent === undefined || percent === '') return 'unknown'
   const numeric = Number(percent)
   if (!Number.isFinite(numeric)) return 'unknown'
@@ -42,7 +43,7 @@ function tierFromLevel(level, percent) {
 }
 
 function formatPercent(value) {
-  if (value === null || value === undefined || value === '') return 'â€”'
+  if (value === null || value === undefined || value === '') return 'â€"'
   const n = Number(value)
   return Number.isFinite(n) ? `${Math.round(n)}%` : '—'
 }
@@ -61,15 +62,19 @@ function formatTimestamp(value) {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function buildExplanation({ tier, dangerPercent, segmentLabel, factors }) {
-  const tierLabel = (TIER_LABELS[tier] || 'Unknown').toLowerCase()
+function buildExplanation({ t, tier, dangerPercent, segmentLabel, factors }) {
+  const tierLabel = t(`currentSegmentCard.tier.${tier}`, tier).toLowerCase()
   const reasonBits = Array.isArray(factors) && factors.length > 0
-    ? ` Top factors: ${factors.slice(0, 3).join(', ')}.`
+    ? ` ${t('currentSegmentCard.explanation.topFactors', { factors: factors.slice(0, 3).join(', ') })}`
     : ''
   if (Number.isFinite(Number(dangerPercent))) {
-    return `${segmentLabel} is ${tierLabel} risk — the model returned a ${Math.round(Number(dangerPercent))}% risk score for this stretch of your route.${reasonBits}`
+    return t('currentSegmentCard.explanation.withScore', {
+      segmentLabel,
+      tierLabel,
+      score: Math.round(Number(dangerPercent)),
+    }) + reasonBits
   }
-  return `${segmentLabel} — risk score not available yet, but SIARA is tracking this stretch of your selected route.${reasonBits}`
+  return t('currentSegmentCard.explanation.noScore', { segmentLabel }) + reasonBits
 }
 
 function extractFactors(segment) {
@@ -108,6 +113,7 @@ export default function CurrentSegmentCard({
   totalSegments,
   searching = false,
 }) {
+  const { t } = useTranslation(['map', 'common'])
   const [expanded, setExpanded] = useState(false)
 
   const data = useMemo(() => {
@@ -128,13 +134,17 @@ export default function CurrentSegmentCard({
     const segLabel = segment.segment_label
       || segment.name
       || (segmentIndex != null
-        ? `Segment ${segmentIndex + 1}${totalSegments ? ` of ${totalSegments}` : ''}`
-        : 'Current segment')
+        ? t('currentSegmentCard.segmentLabel', {
+            index: segmentIndex + 1,
+            total: totalSegments || null,
+            context: totalSegments ? 'withTotal' : 'noTotal',
+          })
+        : t('currentSegmentCard.currentSegment'))
     const factors = extractFactors(segment)
     return {
       tier,
       tierClass: TIER_CLASSES[tier] || 'risk-low',
-      tierLabel: TIER_LABELS[tier] || 'Unknown',
+      tierLabel: t(`currentSegmentCard.tier.${tier}`),
       dangerPercent: hasDangerPercent ? dangerPercent : null,
       distanceLabel: formatDistanceKm(segment.distance_km),
       predictedAt: formatTimestamp(segment.predicted_enter_at)
@@ -143,13 +153,14 @@ export default function CurrentSegmentCard({
       segLabel,
       factors,
       explanation: buildExplanation({
+        t,
         tier,
         dangerPercent: hasDangerPercent ? dangerPercent : null,
         segmentLabel: segLabel,
         factors,
       }),
     }
-  }, [segment, segmentIndex, totalSegments])
+  }, [segment, segmentIndex, totalSegments, t])
 
   if (!data) {
     return (
@@ -162,12 +173,12 @@ export default function CurrentSegmentCard({
           <span className="siara-current-segment__icon">
             <RouteOutlinedIcon fontSize="inherit" />
           </span>
-          <h4 className="siara-current-segment__title">Current segment</h4>
+          <h4 className="siara-current-segment__title">{t('currentSegmentCard.title')}</h4>
         </div>
         <p className="siara-current-segment__hint">
           {searching
-            ? 'Searching current road segment…'
-            : 'Drive onto your selected route to see segment risk.'}
+            ? t('currentSegmentCard.searching')
+            : t('currentSegmentCard.hint')}
         </p>
       </section>
     )
@@ -179,7 +190,7 @@ export default function CurrentSegmentCard({
     <section
       className={`siara-current-segment${expanded ? ' siara-current-segment--expanded' : ''}`}
       role="region"
-      aria-label="Current road segment risk"
+      aria-label={t('currentSegmentCard.ariaLabel')}
     >
       <button
         type="button"
@@ -190,7 +201,7 @@ export default function CurrentSegmentCard({
         <span className="siara-current-segment__icon" aria-hidden="true">
           <RouteOutlinedIcon fontSize="inherit" />
         </span>
-        <h4 className="siara-current-segment__title">Current segment</h4>
+        <h4 className="siara-current-segment__title">{t('currentSegmentCard.title')}</h4>
         <span className={`siara-current-segment__badge ${data.tierClass}`}>
           {data.tierLabel}
         </span>
@@ -209,24 +220,24 @@ export default function CurrentSegmentCard({
       ) : (
         <div className="siara-current-segment__body">
           <div className="siara-current-segment__row">
-            <span className="siara-current-segment__label">Segment</span>
+            <span className="siara-current-segment__label">{t('currentSegmentCard.fields.segment')}</span>
             <span className="siara-current-segment__value">{data.segLabel}</span>
           </div>
           <div className="siara-current-segment__row">
-            <span className="siara-current-segment__label">Risk</span>
+            <span className="siara-current-segment__label">{t('currentSegmentCard.fields.risk')}</span>
             <span className="siara-current-segment__value">
               {formatPercent(data.dangerPercent)}
             </span>
           </div>
           {data.distanceLabel ? (
             <div className="siara-current-segment__row">
-              <span className="siara-current-segment__label">Length</span>
+              <span className="siara-current-segment__label">{t('currentSegmentCard.fields.length')}</span>
               <span className="siara-current-segment__value">{data.distanceLabel}</span>
             </div>
           ) : null}
           {data.predictedAt ? (
             <div className="siara-current-segment__row">
-              <span className="siara-current-segment__label">Risk time</span>
+              <span className="siara-current-segment__label">{t('currentSegmentCard.fields.riskTime')}</span>
               <span className="siara-current-segment__value">{data.predictedAt}</span>
             </div>
           ) : null}

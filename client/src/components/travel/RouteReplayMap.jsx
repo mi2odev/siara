@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import FancySelect from '../ui/FancySelect'
 import {
   CircleMarker,
@@ -89,6 +90,7 @@ function FitToPath({ path }) {
 }
 
 export default function RouteReplayMap({ trip }) {
+  const { t } = useTranslation(['pages', 'common'])
   const path = useMemo(() => flattenPath(trip?.routeSnapshot, trip?.segmentsSnapshot), [
     trip?.routeSnapshot,
     trip?.segmentsSnapshot,
@@ -182,7 +184,7 @@ export default function RouteReplayMap({ trip }) {
   if (path.length < 2) {
     return (
       <div className="siara-route-replay__empty">
-        No route geometry was captured for this trip — replay is unavailable.
+        {t('routeReplayMap.noGeometry')}
       </div>
     )
   }
@@ -228,7 +230,7 @@ export default function RouteReplayMap({ trip }) {
             pathOptions={{ color: '#FFFFFF', fillColor: '#0F766E', fillOpacity: 1, weight: 2 }}
           >
             <Tooltip permanent direction="top" offset={[0, -8]}>
-              Start
+              {t('routeReplayMap.start')}
             </Tooltip>
           </CircleMarker>
           <CircleMarker
@@ -237,7 +239,7 @@ export default function RouteReplayMap({ trip }) {
             pathOptions={{ color: '#FFFFFF', fillColor: '#1D4ED8', fillOpacity: 1, weight: 2 }}
           >
             <Tooltip permanent direction="top" offset={[0, -8]}>
-              End
+              {t('routeReplayMap.end')}
             </Tooltip>
           </CircleMarker>
           {currentPoint ? (
@@ -269,7 +271,7 @@ export default function RouteReplayMap({ trip }) {
             className="siara-route-replay__btn siara-route-replay__btn--primary"
             onClick={handleTogglePlay}
           >
-            {playing ? 'Pause' : progress >= 1 ? 'Replay again' : 'Play'}
+            {playing ? t('routeReplayMap.pause') : progress >= 1 ? t('routeReplayMap.replayAgain') : t('routeReplayMap.play')}
           </button>
           <button
             type="button"
@@ -277,12 +279,12 @@ export default function RouteReplayMap({ trip }) {
             onClick={handleReset}
             disabled={progress === 0 && !playing}
           >
-            Reset
+            {t('routeReplayMap.reset')}
           </button>
         </div>
 
         <label className="siara-route-replay__speed">
-          Speed
+          {t('routeReplayMap.speed')}
           <FancySelect
             value={String(speed)}
             onChange={(value) => setSpeed(Number(value) || 1)}
@@ -298,21 +300,21 @@ export default function RouteReplayMap({ trip }) {
 
       <div className="siara-route-replay__meta">
         <span>
-          Progress <strong>{Math.round(progress * 100)}%</strong>
+          {t('routeReplayMap.progress')} <strong>{Math.round(progress * 100)}%</strong>
         </span>
         {Number.isFinite(Number(trip?.distanceKm)) ? (
           <span>
-            Distance <strong>{Number(trip.distanceKm).toFixed(1)} km</strong>
+            {t('routeReplayMap.distance')} <strong>{Number(trip.distanceKm).toFixed(1)} km</strong>
           </span>
         ) : null}
         {Number.isFinite(Number(trip?.overallRiskPercent)) ? (
           <span>
-            Overall risk <strong>{Math.round(Number(trip.overallRiskPercent))}%</strong>
+            {t('routeReplayMap.overallRisk')} <strong>{Math.round(Number(trip.overallRiskPercent))}%</strong>
           </span>
         ) : null}
         {trip?.routeType ? (
           <span>
-            Route type <strong>{trip.routeType}</strong>
+            {t('routeReplayMap.routeType')} <strong>{trip.routeType}</strong>
           </span>
         ) : null}
       </div>

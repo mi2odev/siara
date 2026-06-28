@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 
 import NotificationToasts from '../components/notifications/NotificationToasts'
@@ -20,6 +21,7 @@ import '../styles/NotificationCenter.css'
 const NotificationContext = createContext(null)
 
 export function NotificationProvider({ children }) {
+  const { t } = useTranslation(['pages', 'common'])
   const { isAdmin, isAuthenticated, isAuthLoading, token } = useContext(AuthContext)
   const location = useLocation()
   const socketRef = useRef(null)
@@ -77,7 +79,7 @@ export function NotificationProvider({ children }) {
           return
         }
 
-        setError(error.response?.data?.message || 'Unable to load notifications.')
+        setError(error.response?.data?.message || t('notificationContext.unableToLoad'))
       })
       .finally(() => {
         if (!cancelled) {
@@ -142,6 +144,7 @@ export function NotificationProvider({ children }) {
     setError,
     setLoading,
     setUnreadCount,
+    t,
     token,
     upsertNotification,
   ])
@@ -178,7 +181,7 @@ export function NotificationProvider({ children }) {
         replaceNotifications(items)
         return items
       } catch (error) {
-        const message = error.response?.data?.message || 'Unable to load notifications.'
+        const message = error.response?.data?.message || t('notificationContext.unableToLoad')
         setError(message)
         throw error
       } finally {
@@ -219,6 +222,7 @@ export function NotificationProvider({ children }) {
     setError,
     setLoading,
     setUnreadCount,
+    t,
     upsertNotification,
   ])
 

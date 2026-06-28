@@ -14,6 +14,7 @@
 // one-time-use + 5-minute TTL + per-user binding.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import QRCode from 'qrcode'
 
 import {
@@ -32,6 +33,7 @@ function formatCountdown(remainingMs) {
 }
 
 export default function AddMobileDeviceModal({ open, onClose, onCompleted }) {
+  const { t } = useTranslation(['pages', 'common'])
   const [stage, setStage] = useState('idle') // idle | loading | waiting | expired | completed | error
   const [error, setError] = useState('')
   const [session, setSession] = useState(null)
@@ -212,15 +214,15 @@ export default function AddMobileDeviceModal({ open, onClose, onCompleted }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h3 id="add-mobile-device-title" style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
-              Add mobile device
+              {t('addMobileDeviceModal.title')}
             </h3>
             <p style={{ marginTop: 6, fontSize: 13, color: '#475569' }}>
-              Scan this QR code with the SIARA mobile app while signed in to the same account.
+              {t('addMobileDeviceModal.subtitle')}
             </p>
           </div>
           <button
             type="button"
-            aria-label="Close"
+            aria-label={t('common:actions.close')}
             onClick={handleCancel}
             style={{
               border: 'none',
@@ -237,12 +239,12 @@ export default function AddMobileDeviceModal({ open, onClose, onCompleted }) {
 
         <div style={{ marginTop: 16, minHeight: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           {stage === 'loading' && (
-            <p style={{ color: '#475569' }}>Generating pairing code…</p>
+            <p style={{ color: '#475569' }}>{t('addMobileDeviceModal.generatingCode')}</p>
           )}
 
           {stage === 'error' && (
             <>
-              <p style={{ color: '#b91c1c', textAlign: 'center' }}>{error || 'Pairing failed.'}</p>
+              <p style={{ color: '#b91c1c', textAlign: 'center' }}>{error || t('addMobileDeviceModal.pairingFailed')}</p>
               <button
                 type="button"
                 onClick={issueSession}
@@ -256,7 +258,7 @@ export default function AddMobileDeviceModal({ open, onClose, onCompleted }) {
                   cursor: 'pointer',
                 }}
               >
-                Retry
+                {t('common:actions.retry')}
               </button>
             </>
           )}
@@ -265,14 +267,14 @@ export default function AddMobileDeviceModal({ open, onClose, onCompleted }) {
             <>
               <img
                 src={qrDataUrl}
-                alt="SIARA mobile device pairing QR code"
+                alt={t('addMobileDeviceModal.qrAlt')}
                 style={{ width: 232, height: 232, borderRadius: 8, border: '1px solid #e2e8f0' }}
               />
               <p style={{ marginTop: 10, fontSize: 13, color: '#475569' }}>
-                Expires in <strong>{formatCountdown(remainingMs)}</strong>
+                {t('addMobileDeviceModal.expiresIn')} <strong>{formatCountdown(remainingMs)}</strong>
               </p>
               <details style={{ marginTop: 8, fontSize: 12, color: '#475569' }}>
-                <summary>Or paste this URL in the app</summary>
+                <summary>{t('addMobileDeviceModal.pasteUrlSummary')}</summary>
                 <code style={{ display: 'block', marginTop: 6, fontSize: 11, wordBreak: 'break-all' }}>
                   {pairingUrl}
                 </code>
@@ -285,7 +287,7 @@ export default function AddMobileDeviceModal({ open, onClose, onCompleted }) {
 
           {stage === 'expired' && (
             <>
-              <p style={{ color: '#b91c1c' }}>QR expired before pairing completed.</p>
+              <p style={{ color: '#b91c1c' }}>{t('addMobileDeviceModal.qrExpired')}</p>
               <button
                 type="button"
                 onClick={issueSession}
@@ -299,14 +301,14 @@ export default function AddMobileDeviceModal({ open, onClose, onCompleted }) {
                   cursor: 'pointer',
                 }}
               >
-                Generate new QR
+                {t('addMobileDeviceModal.generateNewQr')}
               </button>
             </>
           )}
 
           {stage === 'completed' && (
             <p style={{ color: '#15803d' }}>
-              Mobile device connected. You can close this window.
+              {t('addMobileDeviceModal.deviceConnected')}
             </p>
           )}
         </div>
@@ -324,7 +326,7 @@ export default function AddMobileDeviceModal({ open, onClose, onCompleted }) {
               cursor: 'pointer',
             }}
           >
-            {stage === 'completed' ? 'Done' : 'Cancel'}
+            {stage === 'completed' ? t('addMobileDeviceModal.done') : t('common:actions.cancel')}
           </button>
         </div>
       </div>

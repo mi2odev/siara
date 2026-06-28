@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import {
   createDangerSubscription,
@@ -10,33 +11,38 @@ import DangerSubscriptionForm from '../../components/alerts/DangerSubscriptionFo
 import LeftNavLayout from '../../components/layout/LeftNavLayout'
 import '../../styles/DangerSubscriptions.css'
 
-function thresholdLabel(value) {
+function thresholdLabel(value, t) {
   switch (value) {
     case 'low':
-      return 'Any risk'
+      return t('dangerSubscriptionsPage.threshold.low')
     case 'moderate':
-      return 'Moderate+'
+      return t('dangerSubscriptionsPage.threshold.moderate')
     case 'high':
-      return 'High+'
+      return t('dangerSubscriptionsPage.threshold.high')
     case 'extreme':
-      return 'Extreme only'
+      return t('dangerSubscriptionsPage.threshold.extreme')
     default:
       return value
   }
 }
 
-function locationSummary(item) {
+function locationSummary(item, t) {
   if (item.type === 'route') {
     const points = Array.isArray(item.geometry?.path) ? item.geometry.path.length : 0
-    return points ? `${points} route points` : 'route subscription'
+    return points
+      ? t('dangerSubscriptionsPage.location.routePoints', { count: points })
+      : t('dangerSubscriptionsPage.location.routeSubscription')
   }
   if (item.centerLat == null || item.centerLng == null) return '—'
   return `${Number(item.centerLat).toFixed(3)}, ${Number(item.centerLng).toFixed(3)} · ${
-    item.radiusMeters != null ? `${Math.round(item.radiusMeters)} m radius` : 'radius n/a'
+    item.radiusMeters != null
+      ? t('dangerSubscriptionsPage.location.radius', { meters: Math.round(item.radiusMeters) })
+      : t('dangerSubscriptionsPage.location.radiusNA')
   }`
 }
 
 export default function DangerSubscriptionsPage() {
+  const { t } = useTranslation(['alerts', 'common'])
   const [items, setItems] = useState([])
   const [state, setState] = useState('loading')
   const [error, setError] = useState('')
@@ -52,10 +58,10 @@ export default function DangerSubscriptionsPage() {
       setItems(data)
       setState('success')
     } catch (err) {
-      setError(err?.message || 'Failed to load subscriptions')
+      setError(err?.message || t('dangerSubscriptionsPage.errors.loadFailed'))
       setState('error')
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     load()
@@ -74,21 +80,21 @@ export default function DangerSubscriptionsPage() {
       setEditing(null)
       setCreating(false)
     } catch (err) {
-      setError(err?.message || 'Failed to save subscription')
+      setError(err?.message || t('dangerSubscriptionsPage.errors.saveFailed'))
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleDelete = async (item) => {
-    if (typeof window !== 'undefined' && !window.confirm(`Delete subscription "${item.name}"?`)) {
+    if (typeof window !== 'undefined' && !window.confirm(t('dangerSubscriptionsPage.confirmDelete', { name: item.name }))) {
       return
     }
     try {
       await deleteDangerSubscription(item.id)
       setItems((prev) => prev.filter((it) => it.id !== item.id))
     } catch (err) {
-      setError(err?.message || 'Failed to delete subscription')
+      setError(err?.message || t('dangerSubscriptionsPage.errors.deleteFailed'))
     }
   }
 
@@ -97,10 +103,9 @@ export default function DangerSubscriptionsPage() {
     <div className="siara-ds-page">
       <div className="siara-ds-page__header">
         <div>
-          <h1 className="siara-ds-page__title">Danger subscriptions</h1>
+          <h1 className="siara-ds-page__title">{t('dangerSubscriptionsPage.title')}</h1>
           <p className="siara-ds-page__sub">
-            Get alerted when accidents are reported or risk rises in zones,
-            points, or routes you care about.
+            {t('dangerSubscriptionsPage.subtitle')}
           </p>
         </div>
         {!creating && !editing ? (
@@ -109,7 +114,7 @@ export default function DangerSubscriptionsPage() {
             className="siara-ds-page__btn"
             onClick={() => setCreating(true)}
           >
-            + New subscription
+            {t('dangerSubscriptionsPage.newSubscription')}
           </button>
         ) : null}
       </div>
@@ -134,13 +139,12 @@ export default function DangerSubscriptionsPage() {
       ) : null}
 
       {state === 'loading' ? (
-        <p className="siara-ds-empty">Loading your subscriptions…</p>
+        <p className="siara-ds-empty">{t('dangerSubscriptionsPage.loading')}</p>
       ) : null}
 
       {state === 'success' && items.length === 0 && !creating ? (
         <p className="siara-ds-empty">
-          You don't have any danger subscriptions yet. Click <strong>+ New
-          subscription</strong> to get alerts for a zone, point, or route.
+          {t('dangerSubscriptionsPage.emptyState')}
         </p>
       ) : null}
 
@@ -153,16 +157,16 @@ export default function DangerSubscriptionsPage() {
                 <span className="siara-ds-card__type">{item.type}</span>
               </div>
               <div className="siara-ds-card__meta">
-                <span>{locationSummary(item)}</span>
+                <span>{locationSummary(item, t)}</span>
                 <span>•</span>
-                <span>Threshold: {thresholdLabel(item.riskThreshold)}</span>
-                {item.notifyOnReports ? <span>• reports</span> : null}
-                {item.notifyOnHighRisk ? <span>• risk</span> : null}
-                {item.notifyOnPoliceVerified ? <span>• police-verified</span> : null}
+                <span>{t('dangerSubscriptionsPage.thresholdLabel', { label: thresholdLabel(item.riskThreshold, t) })}</span>
+                {item.notifyOnReports ? <span>• {t('dangerSubscriptionsPage.notify.reports')}</span> : null}
+                {item.notifyOnHighRisk ? <span>• {t('dangerSubscriptionsPage.notify.risk')}</span> : null}
+                {item.notifyOnPoliceVerified ? <span>• {t('dangerSubscriptionsPage.notify.policeVerified')}</span> : null}
                 <span
                   className={`siara-ds-card__pill ${item.isActive ? 'is-active' : 'is-inactive'}`}
                 >
-                  {item.isActive ? 'Active' : 'Paused'}
+                  {item.isActive ? t('dangerSubscriptionsPage.status.active') : t('dangerSubscriptionsPage.status.paused')}
                 </span>
               </div>
               <div className="siara-ds-card__actions">
@@ -171,14 +175,14 @@ export default function DangerSubscriptionsPage() {
                   className="siara-ds-page__btn siara-ds-page__btn--ghost"
                   onClick={() => setEditing(item)}
                 >
-                  Edit
+                  {t('common:actions.edit')}
                 </button>
                 <button
                   type="button"
                   className="siara-ds-page__btn siara-ds-page__btn--danger"
                   onClick={() => handleDelete(item)}
                 >
-                  Delete
+                  {t('common:actions.delete')}
                 </button>
               </div>
             </div>

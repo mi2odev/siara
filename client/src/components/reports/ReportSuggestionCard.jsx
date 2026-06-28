@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import TipsAndUpdatesOutlinedIcon from '@mui/icons-material/TipsAndUpdatesOutlined'
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
 import RepeatOutlinedIcon from '@mui/icons-material/RepeatOutlined'
@@ -8,23 +9,23 @@ import '../../styles/ReportSuggestionCard.css'
 
 const DEBOUNCE_MS = 600
 
-function distanceLabel(meters) {
+function distanceLabel(meters, t) {
   const n = Number(meters)
   if (!Number.isFinite(n)) return ''
-  if (n < 1000) return `${Math.round(n)} m away`
-  return `${(n / 1000).toFixed(1)} km away`
+  if (n < 1000) return t('reportSuggestionCard.distanceMeters', { count: Math.round(n) })
+  return t('reportSuggestionCard.distanceKm', { count: (n / 1000).toFixed(1) })
 }
 
-function formatTimeAgo(iso) {
+function formatTimeAgo(iso, t) {
   if (!iso) return ''
   const ms = Date.now() - new Date(iso).getTime()
   if (!Number.isFinite(ms)) return ''
   const minutes = Math.round(ms / 60000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes} min ago`
+  if (minutes < 1) return t('reportSuggestionCard.timeJustNow')
+  if (minutes < 60) return t('reportSuggestionCard.timeMinutesAgo', { count: minutes })
   const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.round(hours / 24)}d ago`
+  if (hours < 24) return t('reportSuggestionCard.timeHoursAgo', { count: hours })
+  return t('reportSuggestionCard.timeDaysAgo', { count: Math.round(hours / 24) })
 }
 
 export default function ReportSuggestionCard({
@@ -38,6 +39,7 @@ export default function ReportSuggestionCard({
   onApplySeverity,
   onConfirmExisting,
 }) {
+  const { t } = useTranslation(['reports', 'common'])
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -63,7 +65,7 @@ export default function ReportSuggestionCard({
         const result = await getReportSuggestions({ title, description, lat, lng })
         setData(result)
       } catch (err) {
-        setError(err?.message || 'Suggestions unavailable')
+        setError(err?.message || t('reportSuggestionCard.suggestionsUnavailable'))
         setData(null)
       } finally {
         setLoading(false)
@@ -84,13 +86,13 @@ export default function ReportSuggestionCard({
   const duplicateWarning = warnings.find((w) => w.kind === 'duplicate')
 
   return (
-    <div className="siara-suggest" role="region" aria-label="SIARA suggestions">
+    <div className="siara-suggest" role="region" aria-label={t('reportSuggestionCard.ariaLabel')}>
       <div className="siara-suggest__header">
         <span className="siara-suggest__icon" aria-hidden="true">
           <TipsAndUpdatesOutlinedIcon fontSize="inherit" className="icon-info" />
         </span>
-        <h4 className="siara-suggest__title">SIARA suggestions</h4>
-        {loading ? <span className="siara-suggest__hint">Updating…</span> : null}
+        <h4 className="siara-suggest__title">{t('reportSuggestionCard.title')}</h4>
+        {loading ? <span className="siara-suggest__hint">{t('reportSuggestionCard.updating')}</span> : null}
       </div>
 
       {error ? <p className="siara-suggest__loading">{error}</p> : null}
@@ -104,7 +106,7 @@ export default function ReportSuggestionCard({
               onClick={() => onApplyType?.(data.suggestedType)}
               disabled={typeof onApplyType !== 'function'}
             >
-              Use type: {data.suggestedType}
+              {t('reportSuggestionCard.useType', { type: data.suggestedType })}
             </button>
           ) : null}
           {showSuggestSeverity ? (
@@ -114,7 +116,7 @@ export default function ReportSuggestionCard({
               onClick={() => onApplySeverity?.(data.suggestedSeverity)}
               disabled={typeof onApplySeverity !== 'function'}
             >
-              Set severity: {data.suggestedSeverity}
+              {t('reportSuggestionCard.setSeverity', { severity: data.suggestedSeverity })}
             </button>
           ) : null}
         </div>
@@ -141,7 +143,7 @@ export default function ReportSuggestionCard({
       {duplicates.length > 0 ? (
         <div className="siara-suggest__duplicates">
           <h5 className="siara-suggest__duplicates-title">
-            Possibly already reported
+            {t('reportSuggestionCard.possiblyReported')}
           </h5>
           {duplicates.map((dup) => (
             <div key={`dup-${dup.reportId}`}>
@@ -150,15 +152,15 @@ export default function ReportSuggestionCard({
                 className="siara-suggest__duplicate"
               >
                 <span className="siara-suggest__duplicate-title">
-                  {dup.title || `Report #${dup.reportId}`}
+                  {dup.title || t('reportSuggestionCard.reportFallbackTitle', { id: dup.reportId })}
                 </span>
                 <span className="siara-suggest__duplicate-meta">
-                  <span>{dup.incidentType || 'incident'}</span>
+                  <span>{dup.incidentType || t('reportSuggestionCard.incidentFallback')}</span>
                   <span>•</span>
-                  <span>{distanceLabel(dup.distanceMeters)}</span>
+                  <span>{distanceLabel(dup.distanceMeters, t)}</span>
                   <span>•</span>
-                  <span>{formatTimeAgo(dup.createdAt)}</span>
-                  {dup.verifiedByPolice ? <span>• Police-verified</span> : null}
+                  <span>{formatTimeAgo(dup.createdAt, t)}</span>
+                  {dup.verifiedByPolice ? <span>• {t('reportSuggestionCard.policeVerified')}</span> : null}
                 </span>
               </Link>
               {typeof onConfirmExisting === 'function' ? (
@@ -168,7 +170,7 @@ export default function ReportSuggestionCard({
                   style={{ marginTop: 4 }}
                   onClick={() => onConfirmExisting(dup)}
                 >
-                  Confirm this existing report instead
+                  {t('reportSuggestionCard.confirmExisting')}
                 </button>
               ) : null}
             </div>

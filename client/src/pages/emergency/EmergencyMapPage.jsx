@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -35,6 +36,7 @@ function FlyTo({ center, zoom = 14 }) {
 }
 
 export default function EmergencyMapPage() {
+  const { t } = useTranslation(['emergency', 'common'])
   const [selectedId, setSelectedId] = useState(null)
 
   const selected = useMemo(
@@ -48,9 +50,9 @@ export default function EmergencyMapPage() {
     <EmergencyShell unitId="AMB-A12" unitStatus="responding" activeMissions={2}>
       <header className="em-page-head">
         <div>
-          <span className="em-eyebrow">Operational Geography</span>
-          <h1 className="em-page-title">Emergency Map</h1>
-          <p className="em-page-subtitle">Live incidents · units · nearby hospitals</p>
+          <span className="em-eyebrow">{t('emergencyMapPage.eyebrow')}</span>
+          <h1 className="em-page-title">{t('emergencyMapPage.title')}</h1>
+          <p className="em-page-subtitle">{t('emergencyMapPage.subtitle')}</p>
         </div>
       </header>
 
@@ -92,7 +94,7 @@ export default function EmergencyMapPage() {
                 pathOptions={{ color: '#1D4ED8', fillColor: '#1D4ED8', fillOpacity: 0.4, weight: 2 }}
               >
                 <Popup>
-                  <strong>Hospital</strong><br />
+                  <strong>{t('emergencyMapPage.hospitalLabel')}</strong><br />
                   {h.name}
                 </Popup>
               </CircleMarker>
@@ -105,7 +107,7 @@ export default function EmergencyMapPage() {
             <header className="em-section-head">
               <h2 className="em-section-title">
                 <span className="em-section-title-icon"><MapOutlinedIcon fontSize="inherit" /></span>
-                Active Incidents
+                {t('emergencyMapPage.activeIncidents')}
                 <span className="em-section-count">{INCIDENTS.length}</span>
               </h2>
             </header>
@@ -134,7 +136,7 @@ export default function EmergencyMapPage() {
                 <span className="em-section-title-icon" style={{ background: 'var(--em-blue-soft)', color: 'var(--em-blue)' }}>
                   <LocalHospitalOutlinedIcon fontSize="inherit" />
                 </span>
-                Nearby Hospitals
+                {t('emergencyMapPage.nearbyHospitals')}
               </h2>
             </header>
             <div>

@@ -1,5 +1,6 @@
 import React, { useContext, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined'
 import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined'
@@ -11,32 +12,6 @@ import { AuthContext } from '../../contexts/AuthContext'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
 import '../../styles/EmergencyMode.css'
-
-function buildNavGroups(basePath) {
-  return [
-    {
-      title: 'MAIN',
-      items: [
-        { key: 'dashboard', label: 'Dashboard',           icon: <DashboardOutlinedIcon fontSize="inherit" />,           path: basePath },
-        { key: 'assigned',  label: 'Assigned Operations', icon: <AssignmentTurnedInOutlinedIcon fontSize="inherit" />,  path: `${basePath}/assigned`, badge: 2 },
-        { key: 'map',       label: 'Emergency Map',       icon: <MapOutlinedIcon fontSize="inherit" />,                 path: `${basePath}/map` },
-      ],
-    },
-    {
-      title: 'MONITORING',
-      items: [
-        { key: 'alerts', label: 'Emergency Alerts', icon: <WarningAmberRoundedIcon fontSize="inherit" />, path: `${basePath}/alerts`, badge: 3 },
-      ],
-    },
-  ]
-}
-
-const STATUS_COPY = {
-  available:  'AVAILABLE',
-  responding: 'RESPONDING',
-  busy:       'ON-SCENE',
-  offline:    'OFFLINE',
-}
 
 function deriveActiveKey(pathname, basePath) {
   if (!pathname.startsWith(basePath)) return 'dashboard'
@@ -56,6 +31,7 @@ export default function EmergencyShell({
   basePath,
   children,
 }) {
+  const { t } = useTranslation(['emergency', 'common'])
   const navigate = useNavigate()
   const location = useLocation()
   const { logout } = useContext(AuthContext) || {}
@@ -63,7 +39,30 @@ export default function EmergencyShell({
   const resolvedBase = basePath
     ?? (location.pathname.startsWith('/preview/emergency') ? '/preview/emergency' : '/emergency')
 
-  const groups = useMemo(() => buildNavGroups(resolvedBase), [resolvedBase])
+  const groups = useMemo(() => [
+    {
+      title: t('emergencyShell.nav.groupMain'),
+      items: [
+        { key: 'dashboard', label: t('emergencyShell.nav.dashboard'),         icon: <DashboardOutlinedIcon fontSize="inherit" />,           path: resolvedBase },
+        { key: 'assigned',  label: t('emergencyShell.nav.assignedOperations'), icon: <AssignmentTurnedInOutlinedIcon fontSize="inherit" />,  path: `${resolvedBase}/assigned`, badge: 2 },
+        { key: 'map',       label: t('emergencyShell.nav.emergencyMap'),       icon: <MapOutlinedIcon fontSize="inherit" />,                 path: `${resolvedBase}/map` },
+      ],
+    },
+    {
+      title: t('emergencyShell.nav.groupMonitoring'),
+      items: [
+        { key: 'alerts', label: t('emergencyShell.nav.emergencyAlerts'), icon: <WarningAmberRoundedIcon fontSize="inherit" />, path: `${resolvedBase}/alerts`, badge: 3 },
+      ],
+    },
+  ], [resolvedBase, t])
+
+  const statusCopy = {
+    available:  t('emergencyShell.status.available'),
+    responding: t('emergencyShell.status.responding'),
+    busy:       t('emergencyShell.status.onScene'),
+    offline:    t('emergencyShell.status.offline'),
+  }
+
   const activeKey = useMemo(
     () => deriveActiveKey(location.pathname, resolvedBase),
     [location.pathname, resolvedBase],
@@ -82,29 +81,29 @@ export default function EmergencyShell({
       <header className="emergency-topbar">
         <div className="emergency-topbar-brand" onClick={() => navigate(resolvedBase)} role="button" tabIndex={0}>
           <img src={siaraLogo} alt="SIARA" className="emergency-brand-logo" />
-          <span className="emergency-brand-role">Emergency Service</span>
+          <span className="emergency-brand-role">{t('emergencyShell.brandRole')}</span>
         </div>
 
-        <div className="emergency-unit-pill" aria-label="Unit status">
+        <div className="emergency-unit-pill" aria-label={t('emergencyShell.ariaUnitStatus')}>
           <span className="emergency-unit-meta">
             <span className="em-unit-id">{unitId}</span>
             <span className="em-unit-sep" aria-hidden="true" />
-            <span><span className="em-mission-count">{activeMissions}</span> <span className="em-unit-label">active</span></span>
+            <span><span className="em-mission-count">{activeMissions}</span> <span className="em-unit-label">{t('emergencyShell.activeLabel')}</span></span>
           </span>
           <span className={`emergency-status-chip status-${unitStatus}`}>
-            {STATUS_COPY[unitStatus] || 'OFFLINE'}
+            {statusCopy[unitStatus] || t('emergencyShell.status.offline')}
           </span>
         </div>
 
-        <div className="emergency-live" aria-label="Live time">
+        <div className="emergency-live" aria-label={t('emergencyShell.ariaLiveTime')}>
           <span className="emergency-pulse-dot" aria-hidden="true" />
           <span className="emergency-clock">{clock}</span>
-          <span style={{ color: 'var(--em-text-muted)', fontWeight: 500, letterSpacing: '0.04em' }}>LIVE</span>
+          <span style={{ color: 'var(--em-text-muted)', fontWeight: 500, letterSpacing: '0.04em' }}>{t('emergencyShell.liveLabel')}</span>
         </div>
       </header>
 
       <div className="emergency-layout">
-        <aside className="emergency-sidebar" aria-label="Emergency navigation">
+        <aside className="emergency-sidebar" aria-label={t('emergencyShell.ariaEmergencyNav')}>
           {groups.map((group) => (
             <section key={group.title} className="emergency-menu-group">
               <h3 className="emergency-menu-group-title">{group.title}</h3>
@@ -126,7 +125,7 @@ export default function EmergencyShell({
           <section className="emergency-menu-group" style={{ marginTop: 'auto' }}>
             <button type="button" className="emergency-menu-btn" onClick={handleLogout}>
               <span className="emergency-menu-icon"><LogoutRoundedIcon fontSize="inherit" /></span>
-              <span className="emergency-menu-label">Sign Out</span>
+              <span className="emergency-menu-label">{t('common:nav.logout')}</span>
             </button>
           </section>
         </aside>

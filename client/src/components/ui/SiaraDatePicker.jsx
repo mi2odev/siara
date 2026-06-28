@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import './SiaraDatePicker.css'
 
 /**
@@ -124,6 +125,7 @@ export default function SiaraDatePicker({
   className = '',
   id,
 }) {
+  const { t } = useTranslation(['pages', 'common'])
   const isTime = type === 'time'
   const hasTime = type === 'datetime-local' || type === 'time'
   const hasDate = type === 'date' || type === 'datetime-local'
@@ -318,7 +320,7 @@ export default function SiaraDatePicker({
     className,
   ].filter(Boolean).join(' ')
 
-  const label = displayLabel(value, type, placeholder || (isTime ? 'Select time' : 'Select date'))
+  const label = displayLabel(value, type, placeholder || (isTime ? t('siaraDatePicker.selectTime') : t('siaraDatePicker.selectDate')))
   const isEmpty = isTime ? parsed.hours == null : !parsed.date
 
   return (
@@ -341,7 +343,7 @@ export default function SiaraDatePicker({
           ref={popRef}
           className={`siara-dp-popover${coords?.flip ? ' is-flipped' : ''}`}
           role="dialog"
-          aria-label={isTime ? 'Choose time' : 'Choose date'}
+          aria-label={isTime ? t('siaraDatePicker.chooseTime') : t('siaraDatePicker.chooseDate')}
           style={{
             top: coords ? `${coords.top}px` : '-9999px',
             left: coords ? `${coords.left}px` : '-9999px',
@@ -352,21 +354,21 @@ export default function SiaraDatePicker({
             <div className="siara-dp-cal">
               <div className="siara-dp-head">
                 <div className="siara-dp-nav">
-                  <button type="button" className="siara-dp-nav-btn" onClick={() => goYear(-1)} aria-label="Previous year">«</button>
-                  <button type="button" className="siara-dp-nav-btn" onClick={() => goMonth(-1)} aria-label="Previous month"><Chevron dir="left" /></button>
+                  <button type="button" className="siara-dp-nav-btn" onClick={() => goYear(-1)} aria-label={t('siaraDatePicker.prevYear')}>«</button>
+                  <button type="button" className="siara-dp-nav-btn" onClick={() => goMonth(-1)} aria-label={t('siaraDatePicker.prevMonth')}><Chevron dir="left" /></button>
                 </div>
                 <div className="siara-dp-title">
-                  {MONTHS[view.month]} <span>{view.year}</span>
+                  {t(`siaraDatePicker.months.${view.month}`)} <span>{view.year}</span>
                 </div>
                 <div className="siara-dp-nav">
-                  <button type="button" className="siara-dp-nav-btn" onClick={() => goMonth(1)} aria-label="Next month"><Chevron dir="right" /></button>
-                  <button type="button" className="siara-dp-nav-btn" onClick={() => goYear(1)} aria-label="Next year">»</button>
+                  <button type="button" className="siara-dp-nav-btn" onClick={() => goMonth(1)} aria-label={t('siaraDatePicker.nextMonth')}><Chevron dir="right" /></button>
+                  <button type="button" className="siara-dp-nav-btn" onClick={() => goYear(1)} aria-label={t('siaraDatePicker.nextYear')}>»</button>
                 </div>
               </div>
 
               <div className="siara-dp-weekdays">
-                {WEEKDAYS.map((w) => (
-                  <span key={w} className="siara-dp-weekday">{w}</span>
+                {WEEKDAYS.map((w, i) => (
+                  <span key={w} className="siara-dp-weekday">{t(`siaraDatePicker.weekdays.${i}`)}</span>
                 ))}
               </div>
 
@@ -404,7 +406,7 @@ export default function SiaraDatePicker({
                 <span>{pad(time.h)}:{pad(time.m)}</span>
               </div>
               <div className="siara-dp-time-cols">
-                <div className="siara-dp-time-col" role="listbox" aria-label="Hour">
+                <div className="siara-dp-time-col" role="listbox" aria-label={t('siaraDatePicker.hour')}>
                   {range(24).map((h) => (
                     <button
                       key={h}
@@ -417,7 +419,7 @@ export default function SiaraDatePicker({
                   ))}
                 </div>
                 <span className="siara-dp-time-sep">:</span>
-                <div className="siara-dp-time-col" role="listbox" aria-label="Minute">
+                <div className="siara-dp-time-col" role="listbox" aria-label={t('siaraDatePicker.minute')}>
                   {range(60).map((m) => (
                     <button
                       key={m}
@@ -434,18 +436,18 @@ export default function SiaraDatePicker({
           ) : null}
 
           <div className="siara-dp-footer">
-            <button type="button" className="siara-dp-foot-btn" onClick={clear}>Clear</button>
+            <button type="button" className="siara-dp-foot-btn" onClick={clear}>{t('siaraDatePicker.clear')}</button>
             <button type="button" className="siara-dp-foot-btn" onClick={setToday}>
-              {isTime ? 'Now' : 'Today'}
+              {isTime ? t('siaraDatePicker.now') : t('siaraDatePicker.today')}
             </button>
             {!isTime && type === 'datetime-local' ? (
               <button type="button" className="siara-dp-foot-btn is-primary" onClick={() => setOpen(false)}>
-                Done
+                {t('siaraDatePicker.done')}
               </button>
             ) : null}
             {isTime ? (
               <button type="button" className="siara-dp-foot-btn is-primary" onClick={() => setOpen(false)}>
-                Done
+                {t('siaraDatePicker.done')}
               </button>
             ) : null}
           </div>

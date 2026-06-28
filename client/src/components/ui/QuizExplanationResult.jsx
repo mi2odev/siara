@@ -1,12 +1,5 @@
 import React, { useMemo } from 'react'
-
-const SECTION_LABELS = {
-  summary: 'Summary',
-  risk_factors: 'Main risk-increasing factors',
-  protective_factors: 'Main protective factors',
-  advice: 'Practical advice',
-  disclaimer: 'Disclaimer',
-}
+import { useTranslation } from 'react-i18next'
 
 const SECTION_ALIASES = {
   summary: ['short summary', 'summary'],
@@ -168,6 +161,8 @@ export default function QuizExplanationResult({
   riskTone,
   deterministicAdvice,
 }) {
+  const { t } = useTranslation(['pages', 'common'])
+
   const sections = useMemo(
     () => normalizeStructured(structuredExplanation, explanationText),
     [structuredExplanation, explanationText],
@@ -187,20 +182,20 @@ export default function QuizExplanationResult({
     || disclaimerParagraphs.length
   )
 
-  const statusText = isStreaming ? (status || 'Generating explanation...') : 'Explanation ready'
+  const statusText = isStreaming ? (status || t('quizExplanationResult.generatingExplanation')) : t('quizExplanationResult.explanationReady')
 
   return (
     <div className={`quiz-ai-card tone-${riskTone || 'neutral'}`}>
       <div className="quiz-ai-topline">
         <span className={`quiz-ai-status-dot ${isStreaming ? 'active' : ''}`} />
         <span>{statusText}</span>
-        {fallback && <span className="quiz-ai-fallback-pill">Fallback</span>}
+        {fallback && <span className="quiz-ai-fallback-pill">{t('quizExplanationResult.fallback')}</span>}
       </div>
 
       <div className="quiz-ai-header">
         <div>
-          <p className="quiz-ai-eyebrow">SIARA assistant explanation</p>
-          <h3>Driving profile result</h3>
+          <p className="quiz-ai-eyebrow">{t('quizExplanationResult.eyebrow')}</p>
+          <h3>{t('quizExplanationResult.heading')}</h3>
         </div>
         {riskLabel && (
           <div className="quiz-ai-risk-badge">
@@ -220,34 +215,34 @@ export default function QuizExplanationResult({
 
       {hasContent && (
         <div className="quiz-ai-content">
-          <AssistantSection title={SECTION_LABELS.summary} tone="summary">
+          <AssistantSection title={t('quizExplanationResult.sections.summary')} tone="summary">
             {summaryParagraphs.length ? (
               summaryParagraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)
             ) : (
-              <p className="quiz-ai-empty">Waiting for the summary...</p>
+              <p className="quiz-ai-empty">{t('quizExplanationResult.waitingForSummary')}</p>
             )}
           </AssistantSection>
 
           <div className="quiz-ai-two-col">
-            <AssistantSection title={SECTION_LABELS.risk_factors} tone="risk">
+            <AssistantSection title={t('quizExplanationResult.sections.riskFactors')} tone="risk">
               <BulletList
                 items={riskItems}
-                emptyText="Risk-increasing factors will appear here as the explanation streams."
+                emptyText={t('quizExplanationResult.emptyRiskFactors')}
               />
             </AssistantSection>
 
-            <AssistantSection title={SECTION_LABELS.protective_factors} tone="protective">
+            <AssistantSection title={t('quizExplanationResult.sections.protectiveFactors')} tone="protective">
               <BulletList
                 items={protectiveItems}
-                emptyText="Protective factors will appear here as the explanation streams."
+                emptyText={t('quizExplanationResult.emptyProtectiveFactors')}
               />
             </AssistantSection>
           </div>
 
-          <AssistantSection title={SECTION_LABELS.advice} tone="advice">
+          <AssistantSection title={t('quizExplanationResult.sections.advice')} tone="advice">
             <BulletList
               items={adviceItems}
-              emptyText="Practical advice will appear here as the explanation streams."
+              emptyText={t('quizExplanationResult.emptyAdvice')}
             />
           </AssistantSection>
 
@@ -255,7 +250,7 @@ export default function QuizExplanationResult({
             {disclaimerParagraphs.length ? (
               disclaimerParagraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)
             ) : (
-              <p>This explanation is for driving-safety education and does not change the computed score.</p>
+              <p>{t('quizExplanationResult.disclaimerFallback')}</p>
             )}
           </div>
         </div>

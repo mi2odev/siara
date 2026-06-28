@@ -27,5 +27,136 @@
     "phone": "Téléphone",
     "language": "Langue"
   },
-  "saved": "Enregistré"
+  "saved": "Enregistré",
+  "profilePage": {
+    "nav": {
+      "feed": "Fil d'actualité",
+      "report": "Signaler",
+      "dashboard": "Tableau de bord"
+    },
+    "search": {
+      "placeholder": "Rechercher un incident, une route, une wilaya…"
+    },
+    "header": {
+      "userProfileAriaLabel": "Profil utilisateur",
+      "userAvatarAlt": "Avatar utilisateur"
+    },
+    "dropdown": {
+      "myProfile": "Mon profil"
+    },
+    "avatar": {
+      "openAriaLabel": "Ouvrir la photo de profil de {{name}}",
+      "viewAriaLabel": "Voir la photo de profil de {{name}}",
+      "previewAriaLabel": "Aperçu de la photo de profil",
+      "closePreviewAriaLabel": "Fermer l'aperçu de la photo de profil",
+      "profileAlt": "Profil de {{name}}"
+    },
+    "editProfile": "Modifier le profil",
+    "meta": {
+      "joined": "Inscrit le {{date}}"
+    },
+    "stats": {
+      "verified": "Vérifié"
+    },
+    "tabs": {
+      "alerts": "Alertes",
+      "reports": "Signalements",
+      "history": "Historique",
+      "timeline": "Chronologie"
+    },
+    "quiz": {
+      "title": "Profil de comportement du conducteur",
+      "subtitle": "Évaluation personnalisée des risques de conduite",
+      "take": "Passer le quiz",
+      "retake": "Repasser le quiz",
+      "loadingResult": "Chargement de votre dernier résultat…",
+      "noQuizYet": "Vous n'avez pas encore complété le quiz conducteur SIARA. Passez-le pour recevoir un profil de conduite personnalisé.",
+      "riskLabel": "Risque",
+      "driverProfile": "Profil conducteur",
+      "lastCompleted": "Dernier passage le {{date}}"
+    },
+    "activity": {
+      "privateTitle": "Activité privée",
+      "privateAlertsSubtitle": "Ce compte est privé. Les alertes sont cachées aux autres utilisateurs.",
+      "loadingAlerts": "Chargement des alertes…",
+      "noAlertsTitle": "Aucune alerte enregistrée",
+      "noAlertsSub": "Créez une nouvelle alerte pour surveiller vos zones importantes.",
+      "createAlert": "Créer une alerte",
+      "savedAlert": "Alerte enregistrée",
+      "privateReportsTitle": "Signalements privés",
+      "privateReportsSub": "Ce compte est privé. L'historique des signalements est caché aux autres utilisateurs.",
+      "loadingReports": "Chargement des signalements…",
+      "noReportsTitle": "Aucun signalement trouvé",
+      "noReportsSub": "Créez votre premier signalement d'incident pour le voir ici.",
+      "createReport": "Créer un signalement",
+      "untitledReport": "Signalement sans titre"
+    },
+    "history": {
+      "loading": "Chargement de votre historique…",
+      "errorTitle": "Impossible de charger l'historique",
+      "emptyTitle": "Aucun historique",
+      "emptySub": "Vos signalements, alertes et leurs mises à jour apparaîtront ici.",
+      "eventCount_one": "{{count}} événement",
+      "eventCount_other": "{{count}} événements",
+      "toggleSort": "Inverser l'ordre de tri",
+      "newestFirst": "Plus récent d'abord",
+      "oldestFirst": "Plus ancien d'abord"
+    },
+    "timeline": {
+      "loading": "Chargement de votre chronologie…",
+      "errorTitle": "Impossible de charger la chronologie",
+      "emptyTitle": "Aucune activité",
+      "emptySub": "Vos signalements, alertes et leurs mises à jour apparaîtront ici."
+    },
+    "trustScore": {
+      "label": "Score de confiance",
+      "legitReports_one": "{{count}} signalement confirmé légitime",
+      "legitReports_other": "{{count}} signalements confirmés légitimes",
+      "spamReports_one": "{{count}} signalement confirmé spam",
+      "spamReports_other": "{{count}} signalements confirmés spam",
+      "reviewedReports_one": "{{count}} signalement examiné",
+      "reviewedReports_other": "{{count}} signalements examinés",
+      "lastSynced": "Dernière synchronisation {{time}}",
+      "derived": "Dérivé des signalements examinés (synchronisation en attente)",
+      "reviewedFound": "Signalements examinés trouvés",
+      "noReviewed": "Aucun signalement examiné pour l'instant"
+    },
+    "impact": {
+      "label": "Impact de contribution",
+      "alertMatches": "correspondances d'alertes",
+      "aiValidated": "Validé par IA",
+      "mostActiveZone": "zone la plus active"
+    },
+    "recentAlerts": {
+      "label": "Alertes récemment déclenchées",
+      "recentlyTriggered": "Récemment déclenchée",
+      "noRecentTriggers": "Aucun déclenchement récent"
+    },
+    "accountHealth": {
+      "label": "Santé du compte",
+      "emailVerified": "E-mail vérifié",
+      "phoneVerified": "Téléphone vérifié",
+      "locationSet": "Localisation définie",
+      "visibility": "Visibilité : {{value}}"
+    },
+    "defaults": {
+      "siaraUser": "Utilisateur SIARA",
+      "noBio": "Aucune biographie ajoutée.",
+      "locationNotSet": "Localisation non définie",
+      "noContactInfo": "Aucune information de contact",
+      "noZone": "Aucune zone",
+      "monitoredArea": "Zone surveillée",
+      "user": "Utilisateur",
+      "recently": "Récemment",
+      "unknownTime": "Heure inconnue",
+      "neverTriggered": "Jamais déclenchée"
+    },
+    "errors": {
+      "quizLoad": "Impossible de charger le profil du quiz conducteur",
+      "reportsLoad": "Impossible de charger vos signalements pour le moment.",
+      "alertsResolve": "Impossible de récupérer les alertes du profil.",
+      "alertsLoad": "Impossible de charger vos alertes pour le moment.",
+      "timelineLoad": "Impossible de charger votre chronologie pour le moment."
+    }
+  }
 }

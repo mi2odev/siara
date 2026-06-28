@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Marker, Popup } from 'react-leaflet'
 
 import {
@@ -7,13 +8,17 @@ import {
   HEATMAP_LEGEND_COLORS,
 } from './heatmapVisuals'
 
-const SEVERITY_ROWS = [
-  { key: 'high', label: 'High' },
-  { key: 'medium', label: 'Medium' },
-  { key: 'low', label: 'Low' },
-]
+const SEVERITY_ROW_KEYS = ['high', 'medium', 'low']
 
 export default function AccidentHeatClusterMarker({ cluster, onExplain }) {
+  const { t } = useTranslation(['map', 'common'])
+
+  const SEVERITY_ROWS = [
+    { key: 'high', label: t('accidentHeatClusterMarker.severityHigh') },
+    { key: 'medium', label: t('accidentHeatClusterMarker.severityMedium') },
+    { key: 'low', label: t('accidentHeatClusterMarker.severityLow') },
+  ]
+
   const lat = Number(cluster?.lat)
   const lng = Number(cluster?.lon)
   const icon = useMemo(() => buildAccidentHeatClusterIcon(cluster), [cluster])
@@ -29,13 +34,13 @@ export default function AccidentHeatClusterMarker({ cluster, onExplain }) {
       <Popup>
         <div className="accident-heat-popup">
           <p className="accident-heat-popup__title">
-            {reportCount} accident report{reportCount === 1 ? '' : 's'}
+            {t('accidentHeatClusterMarker.reportCount', { count: reportCount })}
           </p>
           <p className="accident-heat-popup__sub">
             <span
               className={`accident-heat-popup__pill accident-heat-popup__pill--${dominant}`}
             >
-              Dominant: {dominant}
+              {t('accidentHeatClusterMarker.dominant', { dominant })}
             </span>
           </p>
           <div className="accident-heat-popup__counts">
@@ -52,7 +57,7 @@ export default function AccidentHeatClusterMarker({ cluster, onExplain }) {
             ))}
           </div>
           <div className="accident-heat-popup__row">
-            <span>Avg severity</span>
+            <span>{t('accidentHeatClusterMarker.avgSeverity')}</span>
             <strong>
               {cluster?.averageSeverity != null
                 ? Number(cluster.averageSeverity).toFixed(2)
@@ -60,11 +65,11 @@ export default function AccidentHeatClusterMarker({ cluster, onExplain }) {
             </strong>
           </div>
           <div className="accident-heat-popup__row">
-            <span>Officer-verified</span>
+            <span>{t('accidentHeatClusterMarker.officerVerified')}</span>
             <strong>{cluster?.verifiedCount || 0}</strong>
           </div>
           <div className="accident-heat-popup__row">
-            <span>Latest report</span>
+            <span>{t('accidentHeatClusterMarker.latestReport')}</span>
             <strong>{formatHeatmapTimestamp(cluster?.latestReportAt)}</strong>
           </div>
           {typeof onExplain === 'function' ? (
@@ -84,7 +89,7 @@ export default function AccidentHeatClusterMarker({ cluster, onExplain }) {
                 cursor: 'pointer',
               }}
             >
-              Why is this dangerous?
+              {t('accidentHeatClusterMarker.whyDangerous')}
             </button>
           ) : null}
         </div>

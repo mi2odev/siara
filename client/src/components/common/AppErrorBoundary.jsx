@@ -1,4 +1,5 @@
 import React from 'react'
+import i18n from '../../i18n/index.js'
 
 /**
  * Top-level error boundary. Without one, any uncaught render/commit error
@@ -46,14 +47,14 @@ export default class AppErrorBoundary extends React.Component {
           maxWidth: '900px',
         }}
       >
-        <h2 style={{ marginTop: 0 }}>Something crashed in the UI</h2>
+        <h2 style={{ marginTop: 0 }}>{i18n.t('pages:appErrorBoundary.heading')}</h2>
         <p style={{ fontWeight: 'bold' }}>{String(error?.message || error)}</p>
         <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px', overflowX: 'auto' }}>
           {error?.stack}
         </pre>
         {info?.componentStack ? (
           <details open>
-            <summary>Component stack</summary>
+            <summary>{i18n.t('pages:appErrorBoundary.componentStack')}</summary>
             <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
               {info.componentStack}
             </pre>
@@ -72,7 +73,7 @@ export default class AppErrorBoundary extends React.Component {
             cursor: 'pointer',
           }}
         >
-          Try again
+          {i18n.t('pages:appErrorBoundary.tryAgain')}
         </button>
       </div>
     )

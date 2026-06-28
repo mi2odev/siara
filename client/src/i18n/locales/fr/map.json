@@ -26,5 +26,629 @@
     "set": "Définir la destination",
     "clear": "Effacer la destination",
     "compute": "Calculer l'itinéraire"
+  },
+  "accidentHeatClusterMarker": {
+    "reportCount_one": "{{count}} signalement d'accident",
+    "reportCount_other": "{{count}} signalements d'accident",
+    "dominant": "Dominant : {{dominant}}",
+    "severityHigh": "Élevé",
+    "severityMedium": "Modéré",
+    "severityLow": "Faible",
+    "avgSeverity": "Gravité moyenne",
+    "officerVerified": "Vérifié par un agent",
+    "latestReport": "Dernier signalement",
+    "whyDangerous": "Pourquoi est-ce dangereux ?"
+  },
+  "bestTimeToLeaveCompact": {
+    "title": "Meilleur moment pour partir",
+    "iconLabel": "Heure",
+    "teaserIdle": "Développez pour comparer les horaires de départ.",
+    "teaserLoading": "Vérification des horaires de départ...",
+    "errorDefault": "Impossible de vérifier les horaires de départ.",
+    "noDataYet": "Aucune donnée de départ disponible.",
+    "teaserWithBest": "Maintenant : {{tier}} | Meilleur à {{bestTime}}",
+    "teaserNow": "Maintenant : {{tier}} ({{percent}})",
+    "checking": "Vérification...",
+    "refresh": "Actualiser",
+    "checkingSafer": "Recherche des horaires de départ les plus sûrs...",
+    "noOptions": "Aucune option de départ disponible.",
+    "useDeparture": "Utiliser ce départ"
+  },
+  "bestTimeToLeavePanel": {
+    "title": "Meilleur moment pour partir",
+    "checking": "Vérification…",
+    "refresh": "Actualiser",
+    "pickOriginDestination": "Choisissez une origine et une destination pour comparer les horaires de départ.",
+    "checkingDepartureTimes": "Vérification des horaires de départ plus sûrs…",
+    "noOptions": "Aucune option de départ disponible.",
+    "bestTimeWithDelta": "Meilleur moment pour partir : {{time}} ({{label}}). Partir à ce moment réduit le risque de {{delta}}% par rapport à maintenant.",
+    "bestWindow": "Meilleure fenêtre : {{label}} à {{time}}.",
+    "optionAriaLabel": "{{label}} — {{time}}",
+    "unavailable": "indisponible",
+    "etaMin": "{{minutes}} min ETA",
+    "etaNA": "heure d'arrivée n/d",
+    "errorFallback": "Impossible de vérifier les horaires de départ plus sûrs."
+  },
+  "currentSegmentCard": {
+    "title": "Segment actuel",
+    "ariaLabel": "Risque du segment de route actuel",
+    "searching": "Recherche du segment de route actuel…",
+    "hint": "Prenez votre itinéraire sélectionné pour voir le risque du segment.",
+    "currentSegment": "Segment actuel",
+    "segmentLabel": "Segment {{index}} sur {{total}}",
+    "segmentLabel_noTotal": "Segment {{index}}",
+    "tier": {
+      "unknown": "Inconnu",
+      "low": "Faible",
+      "medium": "Modéré",
+      "high": "Élevé"
+    },
+    "explanation": {
+      "withScore": "{{segmentLabel}} présente un risque {{tierLabel}} — le modèle a retourné un score de risque de {{score}} % pour cette portion de votre itinéraire.",
+      "noScore": "{{segmentLabel}} — score de risque non disponible pour l'instant, mais SIARA surveille cette portion de votre itinéraire sélectionné.",
+      "topFactors": "Principaux facteurs : {{factors}}."
+    },
+    "fields": {
+      "segment": "Segment",
+      "risk": "Risque",
+      "length": "Longueur",
+      "riskTime": "Heure du risque"
+    }
+  },
+  "dangerForecastChart": {
+    "tooltipDanger": "Danger : {{value}}",
+    "loadingForecast": "Chargement des prévisions…",
+    "noForecast": "Aucune prévision",
+    "updating": "Mise à jour…"
+  },
+  "fallbackLocationBanner": {
+    "defaultLabel": "Utilisation d'un emplacement de test de secours car le GPS est indisponible.",
+    "retrying": "Nouvelle tentative…",
+    "retryGps": "Réessayer le GPS"
+  },
+  "heatmapClusterDetailPanel": {
+    "ariaLabel": "Détails du groupe d'accidents",
+    "title": "Pourquoi cet endroit est-il dangereux ?",
+    "invalidLocation": "Emplacement du groupe invalide.",
+    "loadError": "Impossible de charger les détails du groupe",
+    "metrics": {
+      "reports": "Signalements",
+      "inThisZone": "dans cette zone",
+      "policeVerified": "Vérifié par la police",
+      "percentOfReports": "{{pct}}% des signalements",
+      "peakWindow": "Créneau de pointe",
+      "reportsInWindow": "{{count}} signalements dans ce créneau",
+      "notEnoughData": "données insuffisantes",
+      "latest": "Dernier",
+      "mostRecentReport": "signalement le plus récent"
+    },
+    "commonTypes": "Types courants :",
+    "viewFullProfile": "Voir le profil de sécurité complet de la zone",
+    "reportsInZone": "Signalements dans cette zone ({{count}})",
+    "noReports": "Aucun signalement individuel n'a pu être chargé pour ce groupe.",
+    "reportFallback": "Signalement n°{{id}}",
+    "policeVerifiedBadge": "Vérifié par la police",
+    "showFewer": "Afficher moins",
+    "viewAllReports": "Voir les {{count}} signalements"
+  },
+  "liveLocationMap": {
+    "fallbackTestLocation": "Position de test de secours",
+    "centerOnMyLocation": "Centrer sur ma position",
+    "myLocation": "Ma position",
+    "status": {
+      "idle": "Localisation en cours…",
+      "requesting": "Demande d'autorisation de localisation…",
+      "denied": "L'autorisation de localisation a été refusée. Activez-la dans les paramètres de votre navigateur.",
+      "unavailable": "Localisation actuellement indisponible. Vérifiez le GPS / réseau.",
+      "unsupported": "Ce navigateur ne prend pas en charge la géolocalisation.",
+      "insecure": "La géolocalisation nécessite HTTPS — ouvrez le site via une connexion sécurisée."
+    }
+  },
+  "mapContainer": {
+    "deprecatedStub": "Stub MapContainer obsolète. Voir SiaraMap.jsx pour la carte en direct."
+  },
+  "mapDestinationConfirmCard": {
+    "ariaLabel": "Confirmer la destination",
+    "title": "Commencer votre trajet avec SIARA ?",
+    "fallbackLabel": "Point sélectionné : {{lat}}, {{lng}}",
+    "lookingUpPlace": "Recherche du nom du lieu…",
+    "calculatingRouteRisk": "Calcul du risque d'itinéraire SIARA…",
+    "hintNameError": "Impossible de trouver un nom de lieu, mais vous pouvez toujours voyager en utilisant les coordonnées.",
+    "hintNoName": "Aucun nom de rue trouvé pour ce point — les coordonnées seront utilisées.",
+    "hintDefault": "SIARA calculera le risque routier et vous guidera via l'itinéraire le plus sûr.",
+    "calculatingRoute": "Calcul de l'itinéraire…",
+    "startTravel": "Démarrer le trajet"
+  },
+  "mapLibreNavigationView": {
+    "tabs": {
+      "ariaLabel": "Modes de navigation",
+      "drive": "Conduire",
+      "routes": "Itinéraires",
+      "risk": "Risque"
+    },
+    "controls": {
+      "ariaLabel": "Contrôles de la carte de navigation",
+      "toggleRoutePanel": "Afficher/masquer le panneau d'itinéraire",
+      "toggleDebug": "Afficher/masquer le débogage de navigation",
+      "centerOnLocation": "Centrer sur ma position",
+      "myLocation": "Ma position"
+    },
+    "locationWarning": "Activez la localisation pour utiliser la navigation en direct. Aperçu de l'itinéraire uniquement.",
+    "legend": {
+      "ariaLabel": "Légende des risques de l'itinéraire",
+      "low": "Faible",
+      "medium": "Modéré",
+      "high": "Élevé",
+      "unknown": "Inconnu"
+    },
+    "debug": {
+      "ariaLabel": "Débogage de localisation en direct",
+      "lat": "lat",
+      "lng": "lng",
+      "accuracy": "précision",
+      "heading": "cap",
+      "source": "source",
+      "follow": "suivi",
+      "nav": "nav",
+      "camera": "caméra",
+      "cameraFollow": "suivi",
+      "cameraFree": "libre",
+      "geo": "géo",
+      "fix": "fix",
+      "cameraAt": "caméra à",
+      "lastError": "dernière erreur"
+    },
+    "destinationLabel": "Destination"
+  },
+  "markersLayer": {
+    "markersCount": "Marqueurs : {{count}} (espace réservé)"
+  },
+  "navigationBanner": {
+    "followRoute": "Suivre l'itinéraire",
+    "thenInstruction": "Ensuite {{instruction}}",
+    "thenArrive": "Puis arriver à destination",
+    "inDistance": "Dans {{distance}}"
+  },
+  "navigationDangerAlert": {
+    "severity": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible",
+      "risk": "Risque"
+    },
+    "distance": {
+      "meters": "{{distance}} m devant",
+      "kilometers": "{{distance}} km devant"
+    },
+    "defaultTitle": "Nouvel incident signalé devant",
+    "policeVerified": "Vérifié par la police",
+    "moreAlerts_one": "+ {{count}} alerte supplémentaire sur l'itinéraire",
+    "moreAlerts_other": "+ {{count}} alertes supplémentaires sur l'itinéraire",
+    "keepRoute": "Garder l'itinéraire",
+    "recalculating": "Recalcul en cours…",
+    "findSaferRoute": "Trouver un itinéraire plus sûr"
+  },
+  "navigationSummaryCard": {
+    "tripSummary": "Résumé du trajet",
+    "arrive": "arrivée {{time}}",
+    "remaining": "restant",
+    "destination": "Destination",
+    "exitNavigation": "Quitter la navigation"
+  },
+  "reportMapMarker": {
+    "type": {
+      "accident": "Accident",
+      "traffic": "Circulation",
+      "danger": "Danger",
+      "weather": "Météo",
+      "roadworks": "Travaux routiers",
+      "other": "Autre"
+    },
+    "time": {
+      "unknown": "Heure inconnue",
+      "justNow": "À l'instant",
+      "minutesAgo_one": "il y a {{count}} min",
+      "minutesAgo_other": "il y a {{count}} min",
+      "hoursAgo_one": "il y a {{count}} h",
+      "hoursAgo_other": "il y a {{count}} h",
+      "daysAgo_one": "il y a {{count}} jour",
+      "daysAgo_other": "il y a {{count}} jours"
+    },
+    "titleFallback": "Signalement : {{type}}",
+    "reportedLocation": "Lieu signalé",
+    "severity": {
+      "low": "Faible",
+      "medium": "Modéré",
+      "high": "Élevé"
+    }
+  },
+  "routeComparisonPanel": {
+    "empty": "Aucun itinéraire alternatif disponible pour l'instant.",
+    "routeFallback": "Itinéraire",
+    "recommended": "Recommandé",
+    "selected": "Sélectionné",
+    "riskLevel": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    },
+    "metaShort": "risque {{risk}} • eta {{eta}}",
+    "metaFull": "ETA {{eta}} • distance {{distance}} • danger {{danger}}",
+    "factorsAriaLabel": "Facteurs de risque de l'itinéraire",
+    "highRiskSegmentsTitle": "Tronçons à risque élevé sur cet itinéraire",
+    "highRiskSegLabel": "tronçons à risque",
+    "clustersTitle": "Zones d'accumulation d'accidents dans un rayon de 1,5 km de cet itinéraire",
+    "clusters": "zones à risque",
+    "reportsTitle": "Signalements récents à proximité de cet itinéraire",
+    "reports": "signalements",
+    "units": {
+      "min": "min",
+      "na": "n/d"
+    }
+  },
+  "routeExplanationCard": {
+    "title": "Pourquoi cet itinéraire ?",
+    "ariaCalculating": "Calcul de l'explication de l'itinéraire",
+    "analysingHint": "Analyse des facteurs de risque…",
+    "ariaError": "Erreur d'explication de l'itinéraire",
+    "retryExplanation": "Réessayer l'explication",
+    "ariaEmpty": "Aucune explication d'itinéraire",
+    "emptyHint": "Aucune explication de risque disponible pour cet itinéraire pour l'instant.",
+    "ariaRegion": "Explication de la recommandation d'itinéraire",
+    "recommended": "Recommandé",
+    "ariaComparison": "Comparaison des risques d'itinéraires",
+    "fastest": "Plus rapide",
+    "balanced": "Équilibré",
+    "safest": "Plus sûr",
+    "risk": "risque",
+    "riskFactor": "Facteur de risque",
+    "hideDetails": "Masquer les détails",
+    "viewDetails": "Voir les détails"
+  },
+  "routeOverviewCard": {
+    "ariaLabel": "Aperçu de l'itinéraire sélectionné",
+    "title": "Itinéraire sélectionné",
+    "destination": "Destination",
+    "eta": "Arrivée prévue",
+    "left": "Restant",
+    "tier": {
+      "unknown": "Inconnu",
+      "low": "Faible",
+      "medium": "Modéré",
+      "high": "Élevé"
+    },
+    "whyThisRoute": "Pourquoi cet itinéraire ?",
+    "aiExplanation": "Explication IA",
+    "riskUnavailable": "Itinéraire chargé, mais le score de risque est indisponible.",
+    "analysingRisk": "Analyse des facteurs de risque…",
+    "defaultWhyText": "SIARA a sélectionné cet itinéraire en fonction du risque disponible, de la distance, de l'arrivée prévue et des données de danger par segment.",
+    "riskFactor": "Facteur de risque",
+    "callingOllama": "Appel à Ollama…",
+    "generateAi": "Générer une explication IA",
+    "segmentRiskSummary": "Résumé des risques par segment",
+    "segment": "Segment {{number}}",
+    "switchRoute": "Changer d'itinéraire",
+    "routeAlternativesAriaLabel": "Itinéraires alternatifs",
+    "altRiskPercent": "{{percent}}% de risque",
+    "unknownRisk": "risque inconnu"
+  },
+  "siaraMap": {
+    "errors": {
+      "tileLayer": "Erreur de couche de tuiles : {{error}}",
+      "tileLoad": "Impossible de charger les tuiles OpenStreetMap.",
+      "overlay": "Erreur de superposition : {{error}}",
+      "nearbyRoutes": "Erreur pour les itinéraires à proximité : {{error}}",
+      "guidance": "Erreur de navigation : {{error}}",
+      "explain": "Erreur d’explication : {{error}}"
+    },
+    "tooltips": {
+      "selectedDestination": "Destination sélectionnée",
+      "fallbackStart": "Départ de test de secours",
+      "start": "Départ",
+      "destination": "Destination",
+      "fallbackLocation": "Position de test de secours",
+      "youAreHere": "Vous êtes ici",
+      "nearbyRoute": "Itinéraire à proximité"
+    },
+    "alertZone": {
+      "defaultName": "Zone d’alerte",
+      "severity": "Gravité",
+      "schedule": "Calendrier",
+      "triggers": "Déclencheurs",
+      "lastTrigger": "Dernier déclenchement",
+      "never": "Jamais"
+    },
+    "heatmap": {
+      "loading": "Chargement de la carte thermique des accidents…",
+      "error": "Impossible de charger la carte thermique des accidents.",
+      "noReports": "Aucun signalement d’accident dans cette zone pour la période sélectionnée.",
+      "legendLabel": "Légende de la carte thermique",
+      "legendTitle": "Carte thermique des accidents",
+      "legendSub": "Taille du cercle = nombre de signalements. Anneaux = répartition de la gravité.",
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    },
+    "location": {
+      "locating": "Localisation de votre appareil...",
+      "enableHint": "Activez la localisation pour le risque en direct et la navigation.",
+      "enableBtn": "Activer",
+      "denied": "L’accès à la localisation est bloqué. Activez les autorisations de localisation dans les paramètres de votre navigateur, puis actualisez cette page."
+    },
+    "riskPanel": {
+      "title": "Risque SIARA actuel",
+      "occurrenceSubtitle": "Risque de survenue d’accident",
+      "dangerSubtitle": "Danger relatif — modèle informé par la gravité",
+      "occurrenceDesc": "Probabilité calibrée qu’un accident se produise ici",
+      "occurrenceDescPersonalized": "Probabilité calibrée qu’un accident se produise ici, personnalisée selon votre profil conducteur",
+      "dangerDesc": "Score de danger relatif informé par la gravité. Ce n’est pas une probabilité calibrée de survenue d’accident.",
+      "model": "Modèle",
+      "locationRequired": "La localisation est nécessaire pour la prédiction de risque SIARA.",
+      "accuracy": "précision",
+      "loadingRisk": "Chargement du risque actuel...",
+      "gaugeLow": "Faible",
+      "gaugeMedium": "Modéré",
+      "gaugeHigh": "Élevé",
+      "refreshing": "Actualisation…",
+      "confidence": "Confiance",
+      "dataQuality": "Qualité des données",
+      "hide": "Masquer",
+      "why": "Pourquoi ?",
+      "confidenceDetails": "Détails de confiance",
+      "showConfidenceDetails": "Afficher les détails de confiance"
+    },
+    "severity": {
+      "outlookLabel": "Perspectives de gravité",
+      "outlookTitle": "Perspectives de gravité",
+      "sevLabel": "Grav",
+      "mostLikely": "Le plus probable",
+      "expected": "Attendu"
+    },
+    "occurrenceCard": {
+      "title": "Risque de survenue",
+      "computing": "Calcul du risque de survenue...",
+      "roadModelTitle": "Risque de survenue — modèle route/heure",
+      "calibratedProbability": "Probabilité calibrée",
+      "score": "Score",
+      "modelLabel": "Modèle",
+      "modelNote": "Sortie du modèle de survenue entraîné. À traiter comme un risque opérationnel relatif par tranche horaire — pas une probabilité calibrée — jusqu’à ce que la calibration soit disponible.",
+      "personalizedTitle": "Risque personnalisé — ajusté selon le profil conducteur",
+      "noDriverProfile": "Aucun profil de comportement conducteur n’est disponible. Complétez le quiz conducteur pour personnaliser ce risque.",
+      "latestQuiz": "Dernier quiz"
+    },
+    "explain": {
+      "preparing": "SIARA prépare une explication...",
+      "aiExplanation": "Explication IA",
+      "generatedFromFactors": "Généré à partir des facteurs disponibles",
+      "couldNotGenerate": "SIARA n’a pas pu générer d’explication pour l’instant. Veuillez réessayer.",
+      "noRiskPrediction": "Aucune prédiction de risque n’est disponible pour l’instant."
+    },
+    "route": {
+      "riskUnavailable": "risque non disponible",
+      "distance": "distance",
+      "eta": "ÉTA",
+      "forecastTime": "Heure de prévision de l’itinéraire",
+      "explanationSourceOllama": "Généré par l’explicateur IA SIARA (Ollama). Sources : échantillons de risque d’itinéraire, comparaison d’alternatives, clusters de chaleur à proximité, et heure de la journée.",
+      "explanationSourceFallback": "Explication modèle générée à partir des échantillons de risque d’itinéraire et de la comparaison d’alternatives.",
+      "riskAlongRoute": "Risque le long de l’itinéraire",
+      "selectedProfile": "Profil de l’itinéraire sélectionné",
+      "start": "Départ",
+      "end": "Arrivée",
+      "noProfile": "Aucun profil d’itinéraire disponible pour l’instant.",
+      "aheadTitle": "En amont sur votre itinéraire",
+      "selectedRouteOnly": "Itinéraire sélectionné uniquement",
+      "noHazards": "Aucune concentration de risques importante détectée sur l’itinéraire sélectionné.",
+      "riskSourceLayers": "Couches sources de risque",
+      "comingSoon": "Bientôt disponible",
+      "riskSourceLayersDesc": "L’attribution par source (météo, obscurité, historique, route) sera disponible une fois le scoring côté serveur actif."
+    },
+    "helpPanel": {
+      "title": "Détails de confiance",
+      "close": "Fermer les détails de confiance",
+      "noAnomaly": "Aucune règle d’anomalie déclenchée. Confiance sentinelle : {{confidence}}. Centile OOD : {{oodPct}} (quelque peu inhabituel mais acceptable).",
+      "unusualConditions": "Des conditions inhabituelles ont été détectées mais aucune raison spécifique n’a été retournée.",
+      "sentinelUnavailable": "Sentinelle non disponible",
+      "unknownError": "erreur inconnue",
+      "fallbackQuality": "Affichage des vérifications de qualité d’entrée de secours.",
+      "missingInputs": "entrées manquantes",
+      "oodChecks": "vérifications hors distribution",
+      "sentinelConfidenceUnavailable": "La confiance sentinelle n’est pas disponible. Affichage des vérifications de qualité de base."
+    },
+    "segmentPanel": {
+      "title": "Explication du segment",
+      "close": "Fermer l’explication du segment",
+      "danger": "danger",
+      "confidence": "confiance",
+      "quality": "qualité",
+      "topReasons": "Principales raisons SHAP",
+      "increases": "augmente",
+      "decreases": "diminue"
+    },
+    "guideControls": {
+      "predictionTime": "Heure de prédiction",
+      "using": "Utilisation",
+      "timeImpact": "Impact temporel",
+      "destinationPlaceholder": "Destination...",
+      "searching": "Recherche...",
+      "destinationLabel": "Destination",
+      "computingRoute": "Calcul de l’itinéraire...",
+      "startGuidance": "Démarrer la navigation",
+      "clear": "Effacer",
+      "typeDestinationFirst": "Saisissez d’abord une destination.",
+      "noDestinationFound": "Aucune destination trouvée pour cette recherche."
+    },
+    "status": {
+      "locationLive": "Position en direct",
+      "locationUnavailable": "Position non disponible",
+      "riskUpdated": "Risque mis à jour",
+      "riskNotUpdated": "Risque pas encore mis à jour",
+      "routesUpdated": "Itinéraires mis à jour",
+      "routesNotUpdated": "Itinéraires pas encore mis à jour",
+      "nearbyUpdated": "Proximité mise à jour",
+      "nearbyNotUpdated": "Proximité pas encore mise à jour",
+      "navigationReady": "Navigation prête"
+    },
+    "confirm": {
+      "recalculateRoute": "Utiliser cette heure de départ et recalculer l’itinéraire ?"
+    }
+  },
+  "mapPage": {
+    "nav": {
+      "dashboard": "Tableau de bord"
+    },
+    "search": {
+      "placeholder": "Rechercher un incident, une route, une wilaya…"
+    },
+    "header": {
+      "userProfile": "Profil utilisateur",
+      "userAvatar": "Avatar utilisateur"
+    },
+    "dropdown": {
+      "myProfile": "Mon profil"
+    },
+    "profile": {
+      "bio": "Consultez les signalements en temps réel et partagez vos mises à jour depuis le terrain.",
+      "viewProfile": "Voir le profil"
+    },
+    "filters": {
+      "title": "Filtres",
+      "clear": "Effacer",
+      "period": "Période",
+      "period24h": "24h",
+      "period7d": "7 jours",
+      "period30d": "30 jours",
+      "periodCustom": "Personnalisé",
+      "severity": "Gravité",
+      "severityHigh": "Élevé",
+      "severityMedium": "Modéré",
+      "severityLow": "Faible",
+      "incidentType": "Type d'incident",
+      "zone": "Zone",
+      "allProvinces": "Toutes les wilayas"
+    },
+    "incidentTypes": {
+      "accident": "Accident",
+      "traffic": "Circulation",
+      "danger": "Danger",
+      "weather": "Météo",
+      "roadworks": "Travaux",
+      "other": "Autre"
+    },
+    "actions": {
+      "reportIncident": "Signaler un incident"
+    },
+    "layers": {
+      "points": "Points",
+      "heatmap": "Carte thermique",
+      "zones": "Zones",
+      "aiRisks": "Risques IA",
+      "nearbyRoads": "Routes proches"
+    },
+    "map": {
+      "exitFullscreen": "Quitter le plein écran",
+      "exitFullMap": "Quitter la carte plein écran",
+      "fullscreen": "Plein écran",
+      "fullMap": "Carte plein écran",
+      "myLocation": "Ma position"
+    },
+    "weather": {
+      "positionRequired": "Position requise",
+      "loadingWeather": "Chargement météo…",
+      "weatherUnavailable": "Météo indisponible",
+      "weather": "Météo",
+      "resolvingNeighborhood": "Localisation du quartier…",
+      "currentLocation": "Position actuelle",
+      "unknownPlace": "Lieu inconnu",
+      "visibility": "Visibilité",
+      "wind": "Vent",
+      "humidity": "Humidité",
+      "pressure": "Pression",
+      "enableLocation": "Activez la localisation pour la météo en temps réel",
+      "refreshing": "Actualisation…"
+    },
+    "forecast": {
+      "title": "Danger - prochaines 24h",
+      "updating": "Mise à jour des prévisions…",
+      "noData": "Aucune prévision disponible.",
+      "unavailable": "Prévisions indisponibles."
+    },
+    "status": {
+      "loadingAlertZones": "Chargement des zones d'alerte…",
+      "alertZonesUnavailable": "Zones d'alerte indisponibles",
+      "alertZonesLoaded": "Zones d'alerte • {{count}} zones chargées",
+      "loadingReports": "Chargement des signalements en temps réel…",
+      "reportsUnavailable": "Signalements en temps réel indisponibles",
+      "reportsDisplayed": "Temps réel • {{count}} incidents affichés"
+    },
+    "context": {
+      "alertZones": "Zones d'alerte",
+      "reportsFeed": "Flux de signalements",
+      "loadingAlertZonesDb": "Chargement de vos zones d'alerte depuis la base de données…",
+      "activeAlertZonesReady": "{{count}} zones d'alerte actives sont prêtes à être affichées sur la carte.",
+      "loadingReportsDb": "Chargement des signalements depuis la base de données…",
+      "mappedReportsMatch": "{{count}} signalements cartographiés correspondent aux filtres actuels."
+    },
+    "zones": {
+      "selectedZone": "Zone sélectionnée",
+      "manageAlerts": "Gérer les alertes",
+      "zoneLabel": "Zone",
+      "severityLabel": "Gravité {{severity}}",
+      "triggersCount": "{{count}} déclenchements",
+      "selectZoneHint": "Sélectionnez une zone sur la carte pour inspecter sa règle d'alerte.",
+      "signInToLoad": "Connectez-vous pour charger vos zones d'alerte.",
+      "unableToLoad": "Impossible de charger les zones d'alerte.",
+      "triggersMeta": "{{count}} déclenchements"
+    },
+    "segmentInsight": {
+      "title": "Analyse du segment",
+      "segmentLabel": "Segment {{id}}",
+      "risk": "Risque : {{percent}}% ({{level}})",
+      "impact": "impact : {{value}}"
+    },
+    "legend": {
+      "title": "Légende",
+      "highSeverity": "Gravité élevée",
+      "mediumSeverity": "Gravité modérée",
+      "lowSeverity": "Gravité faible",
+      "zonesNote": "Les zones reflètent la gravité et le calendrier de vos règles d'alerte.",
+      "aiRisk": "Risque IA (0-100 %)"
+    },
+    "trending": {
+      "zoneRules": "Règles des zones",
+      "areasToWatch": "Zones à surveiller",
+      "openAlerts": "Ouvrir les alertes",
+      "loadingActiveZones": "Chargement des zones d'alerte actives…",
+      "noActiveZones": "Aucune zone d'alerte active pour l'instant.",
+      "noReportClusters": "Aucun regroupement de signalements ne correspond aux filtres actuels.",
+      "incidentsMeta": "{{count}} incidents • {{updated}}",
+      "reportedArea": "Zone signalée"
+    },
+    "activeAlerts": {
+      "title": "Alertes actives",
+      "noAlerts": "Aucune alerte active pour l'instant.",
+      "manageMyAlerts": "Gérer mes alertes",
+      "alertLabel": "Alerte"
+    },
+    "stats": {
+      "title": "Statistiques",
+      "today": "Aujourd'hui",
+      "avgSeverity": "Gravité moy.",
+      "verified": "Vérifié"
+    },
+    "location": {
+      "permissionBlocked": "L'autorisation de localisation est bloquée. Activez-la dans les paramètres du navigateur.",
+      "notSupported": "La géolocalisation n'est pas prise en charge par ce navigateur.",
+      "enableForPredictions": "Activez la localisation pour charger les prévisions SIARA.",
+      "fallbackWarning": "Utilisation d'un emplacement de test de secours car le GPS est indisponible."
+    },
+    "time": {
+      "unknown": "Inconnu",
+      "justNow": "À l'instant",
+      "minutes": "{{count}} min",
+      "hours": "{{count}} h",
+      "days": "{{count}} j",
+      "neverTriggered": "Jamais déclenché",
+      "ago": "il y a {{age}}"
+    }
   }
 }

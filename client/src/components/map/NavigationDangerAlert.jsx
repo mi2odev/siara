@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined'
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
@@ -16,19 +17,19 @@ function severityClass(severity) {
   return 'severity-low'
 }
 
-function severityLabel(severity) {
+function getSeverityLabel(severity, t) {
   const text = String(severity || '').toLowerCase()
-  if (text === 'high') return 'High'
-  if (text === 'medium') return 'Medium'
-  if (text === 'low') return 'Low'
-  return 'Risk'
+  if (text === 'high') return t('navigationDangerAlert.severity.high')
+  if (text === 'medium') return t('navigationDangerAlert.severity.medium')
+  if (text === 'low') return t('navigationDangerAlert.severity.low')
+  return t('navigationDangerAlert.severity.risk')
 }
 
-function formatDistance(meters) {
+function getDistanceLabel(meters, t) {
   const n = Number(meters)
   if (!Number.isFinite(n)) return ''
-  if (n < 1000) return `${Math.round(n)} m ahead`
-  return `${(n / 1000).toFixed(1)} km ahead`
+  if (n < 1000) return t('navigationDangerAlert.distance.meters', { distance: Math.round(n) })
+  return t('navigationDangerAlert.distance.kilometers', { distance: (n / 1000).toFixed(1) })
 }
 
 export default function NavigationDangerAlert({
@@ -38,12 +39,14 @@ export default function NavigationDangerAlert({
   onFindSaferRoute,
   rerouting = false,
 }) {
+  const { t } = useTranslation(['map', 'common'])
+
   if (!alert) return null
 
   const sevClass = severityClass(alert.severity)
   const sevConfig = SEVERITY_ICON[String(alert.severity || '').toLowerCase()] || { Icon: WarningAmberOutlinedIcon, color: 'icon-warning' }
   const { Icon, color: iconColor } = sevConfig
-  const distanceLabel = formatDistance(alert.distanceAheadMeters)
+  const distanceLabel = getDistanceLabel(alert.distanceAheadMeters, t)
 
   return (
     <div
@@ -54,10 +57,10 @@ export default function NavigationDangerAlert({
       <div className="siara-nav-alert__top">
         <span className="siara-nav-alert__icon" aria-hidden="true"><Icon fontSize="inherit" className={iconColor} /></span>
         <h5 className="siara-nav-alert__title">
-          {alert.title || 'New incident reported ahead'}
+          {alert.title || t('navigationDangerAlert.defaultTitle')}
         </h5>
         <span className={`siara-nav-alert__chip ${sevClass}`}>
-          {severityLabel(alert.severity)}
+          {getSeverityLabel(alert.severity, t)}
         </span>
       </div>
 
@@ -67,7 +70,7 @@ export default function NavigationDangerAlert({
 
       <div className="siara-nav-alert__meta">
         {distanceLabel ? <span>{distanceLabel}</span> : null}
-        {alert.verifiedByPolice ? <span>Police-verified</span> : null}
+        {alert.verifiedByPolice ? <span>{t('navigationDangerAlert.policeVerified')}</span> : null}
         {alert.createdAt ? (
           <span>{new Date(alert.createdAt).toLocaleTimeString().slice(0, 5)}</span>
         ) : null}
@@ -75,8 +78,7 @@ export default function NavigationDangerAlert({
 
       {totalAlerts > 1 ? (
         <div className="siara-nav-alert__more" aria-live="polite">
-          + {totalAlerts - 1} more {totalAlerts - 1 === 1 ? 'alert' : 'alerts'} on the route
-          ahead
+          {t('navigationDangerAlert.moreAlerts', { count: totalAlerts - 1 })}
         </div>
       ) : null}
 
@@ -88,7 +90,7 @@ export default function NavigationDangerAlert({
             if (typeof onDismiss === 'function') onDismiss(alert)
           }}
         >
-          Keep route
+          {t('navigationDangerAlert.keepRoute')}
         </button>
         {typeof onFindSaferRoute === 'function' ? (
           <button
@@ -97,7 +99,7 @@ export default function NavigationDangerAlert({
             onClick={() => onFindSaferRoute(alert)}
             disabled={rerouting}
           >
-            {rerouting ? 'Recalculating…' : 'Find safer route'}
+            {rerouting ? t('navigationDangerAlert.recalculating') : t('navigationDangerAlert.findSaferRoute')}
           </button>
         ) : null}
       </div>

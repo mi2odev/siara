@@ -15,5 +15,369 @@
   "count_two": "تنبيهان",
   "count_few": "{{count}} تنبيهات",
   "count_many": "{{count}} تنبيهًا",
-  "count_other": "{{count}} تنبيه"
+  "count_other": "{{count}} تنبيه",
+  "dangerSubscriptionForm": {
+    "errorNameRequired": "أعطِ هذا الاشتراك اسمًا قصيرًا (مثل: المنزل، العمل، المسار إلى المكتب).",
+    "errorLatLngRequired": "خط العرض/الطول للمركز مطلوب لاشتراكات المنطقة والنقطة.",
+    "labelName": "الاسم",
+    "placeholderName": "المنزل، العمل، الجامعة، …",
+    "labelType": "النوع",
+    "typeZone": "منطقة (مركز + نصف قطر)",
+    "typePoint": "نقطة (منطقة صغيرة حول مكان)",
+    "typeRoute": "المسار — يُعيَّن من الخريطة (قريبًا)",
+    "labelRiskThreshold": "عتبة الخطر",
+    "thresholdLow": "التنبيه عند أي خطر",
+    "thresholdModerate": "التنبيه عند خطر متوسط أو أعلى",
+    "thresholdHigh": "التنبيه عند خطر مرتفع أو أعلى",
+    "thresholdExtreme": "التنبيه عند الخطر الشديد فقط",
+    "labelCentreLat": "خط عرض المركز",
+    "labelCentreLng": "خط طول المركز",
+    "labelRadius": "نصف القطر (متر)",
+    "hintRadius": "بين 100 م و50 كم. الافتراضي 1500 م للمناطق و500 م للنقاط.",
+    "checkNotifyReports": "إشعاري بالبلاغات الجديدة عن الحوادث",
+    "checkNotifyHighRisk": "إشعاري عندما يتجاوز الخطر الإجمالي عتبتي",
+    "checkNotifyPoliceVerified": "إشعاري بالحوادث المؤكَّدة من قِبل الشرطة",
+    "checkActive": "نشط",
+    "createSubscription": "إنشاء الاشتراك"
+  },
+  "alertsPage": {
+    "searchPlaceholder": "ابحث عن حادث أو طريق أو ولاية...",
+    "ariaUserProfile": "الملف الشخصي للمستخدم",
+    "ariaUserAvatar": "صورة المستخدم",
+    "ariaProfile": "الملف الشخصي",
+    "dropdown": {
+      "myProfile": "ملفي الشخصي"
+    },
+    "profileBio": "تصفّح البلاغات المرورية الحية وشارك التحديثات الميدانية.",
+    "viewProfile": "عرض الملف الشخصي",
+    "newAlert": "+ تنبيه جديد",
+    "alertStatusLabel": "حالة التنبيه",
+    "statusTab": {
+      "active": "نشط",
+      "paused": "موقوف مؤقتاً",
+      "archived": "مؤرشف"
+    },
+    "pageTitle": "تنبيهاتي",
+    "pageDescription": "إدارة قواعد التنبيه للولايات والبلديات ومناطق الرادار.",
+    "filter": {
+      "severity": "الخطورة",
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض",
+      "area": "المنطقة"
+    },
+    "loadingAlerts": "جارٍ تحميل التنبيهات...",
+    "empty": {
+      "title": "لا توجد تنبيهات",
+      "description": "أنشئ تنبيهك الأول لتلقّي الإشعارات.",
+      "createButton": "إنشاء تنبيه"
+    },
+    "card": {
+      "last": "الأخير:",
+      "trigger_one": "تشغيل واحد",
+      "trigger_other": "{{count}} تشغيلات",
+      "pause": "إيقاف مؤقت",
+      "activate": "تفعيل"
+    },
+    "unknown": "غير معروف",
+    "on": "مفعَّل",
+    "off": "معطَّل",
+    "push": {
+      "panelLabel": "تنبيهات النظام",
+      "alertsEnabled": "التنبيهات مفعَّلة",
+      "enableAlerts": "تفعيل التنبيهات",
+      "descOff": "تنبيهات النظام معطَّلة حالياً لهذا المتصفح.",
+      "descAll": "ستظهر تنبيهات المناطق المراقبة ذات الخطورة المتوسطة والمرتفعة كإشعارات في المتصفح.",
+      "descImportantOnly": "ستظهر فقط تنبيهات المناطق المراقبة ذات الخطورة المرتفعة كإشعارات في المتصفح.",
+      "statusBrowser": "المتصفح",
+      "supported": "مدعوم",
+      "unavailable": "غير متوفر",
+      "statusPermission": "الإذن",
+      "permissionAllowed": "مسموح",
+      "permissionBlocked": "محظور",
+      "permissionAskFirst": "اسأل أولاً",
+      "permissionUnavailable": "غير متوفر",
+      "statusSubscription": "الاشتراك",
+      "subscriptionActive": "نشط",
+      "subscriptionInactive": "غير نشط",
+      "loadingSettings": "جارٍ تحميل إعدادات تنبيهات النظام...",
+      "optionHighRiskTitle": "تنبيهات الخطورة المرتفعة فقط",
+      "optionHighRiskCopy": "موصى به للحوادث عالية الخطورة في المناطق المراقبة.",
+      "optionAllTitle": "جميع تنبيهات المناطق المراقبة",
+      "optionAllCopy": "تشمل الحوادث ذات الخطورة المتوسطة والمرتفعة في المناطق المراقبة.",
+      "optionOffTitle": "إيقاف تنبيهات النظام",
+      "optionOffCopy": "الاحتفاظ بإشعارات التطبيق فقط.",
+      "sendTestAlert": "إرسال تنبيه تجريبي",
+      "noticeAllMode": "تشمل تنبيهات النظام الآن الحوادث ذات الخطورة المتوسطة والمرتفعة في المناطق المراقبة.",
+      "noticeImportantOnlyMode": "تركّز تنبيهات النظام الآن على الحوادث عالية الخطورة في المناطق المراقبة.",
+      "noticeTurnedOff": "تم إيقاف تنبيهات النظام لهذا المتصفح.",
+      "noActiveSubscription": "لم يُعثر على اشتراك نشط في المتصفح لحسابك على هذا المتصفح.",
+      "testAlertSent": "تم إرسال التنبيه التجريبي. تحقق من إشعارات متصفحك.",
+      "notSupportedError": "إشعارات النظام غير مدعومة في هذا المتصفح."
+    },
+    "email": {
+      "panelLabel": "تفضيلات البريد الإلكتروني",
+      "descDefault": "اختر رسائل SIARA الإلكترونية التي تودّ تلقّيها في صندوق الوارد.",
+      "descAllOff": "تحديثات البريد الإلكتروني معطَّلة حالياً باستثناء الرسائل التشغيلية الإلزامية.",
+      "descSome": "يمكنك التحكم في الملخصات الأسبوعية وتحديثات المنتج والرسائل التسويقية الاختيارية من هنا.",
+      "loadingSettings": "جارٍ تحميل إعدادات البريد الإلكتروني...",
+      "weeklySummaryTitle": "بريد الملخص الأسبوعي",
+      "weeklySummaryCopy": "ملخص مساء الأحد للحوادث ونشاط التنبيهات في مناطقك المراقبة.",
+      "productUpdatesTitle": "تحديثات المنتج",
+      "productUpdatesCopy": "تحسينات SIARA الدورية وملاحظات الإصدار وتحديثات الميزات.",
+      "marketingUpdatesTitle": "التحديثات التسويقية",
+      "marketingUpdatesCopy": "إعلانات اختيارية حول حملات SIARA وأنشطة التوعية.",
+      "preferencesUpdated": "تم تحديث تفضيلات البريد الإلكتروني."
+    },
+    "summary": {
+      "area": "المنطقة",
+      "wilaya": "الولاية",
+      "schedule": "الجدول الزمني",
+      "triggers": "التشغيلات"
+    },
+    "map": {
+      "monitoredArea": "المنطقة المراقبة",
+      "openZoneOnMap": "فتح المنطقة على الخريطة"
+    },
+    "triggers": {
+      "panelLabel": "التشغيلات الأخيرة",
+      "noTriggers": "لا توجد تشغيلات بعد"
+    },
+    "noSelection": {
+      "title": "لم يُحدَّد أي تنبيه",
+      "description": "حدّد تنبيهاً من القائمة لعرض تفاصيل المنطقة الحية ونشاط التشغيل الأخير.",
+      "createButton": "إنشاء تنبيه جديد"
+    },
+    "toast": {
+      "alertCreated": "تم إنشاء التنبيه «{{name}}» بنجاح",
+      "alertUpdated": "تم تحديث التنبيه «{{name}}» بنجاح",
+      "alertDeleted": "تم حذف التنبيه"
+    },
+    "confirm": {
+      "deleteAlert": "هل تريد حذف هذا التنبيه؟"
+    },
+    "errors": {
+      "unableToLoadAlerts": "تعذّر تحميل التنبيهات.",
+      "unableToLoadPushSettings": "تعذّر تحميل إعدادات تنبيهات النظام.",
+      "unableToLoadEmailPrefs": "تعذّر تحميل تفضيلات البريد الإلكتروني.",
+      "unableToUpdateStatus": "تعذّر تحديث حالة التنبيه.",
+      "unableToDeleteAlert": "تعذّر حذف التنبيه.",
+      "unableToEnablePush": "تعذّر تفعيل تنبيهات النظام.",
+      "unableToDisablePush": "تعذّر إيقاف تنبيهات النظام.",
+      "unableToSendTestAlert": "تعذّر إرسال تنبيه نظام تجريبي الآن.",
+      "unableToUpdateEmailPrefs": "تعذّر تحديث تفضيلات البريد الإلكتروني."
+    }
+  },
+  "createAlertPage": {
+    "steps": {
+      "alertType": "نوع التنبيه",
+      "zone": "المنطقة",
+      "conditions": "الشروط",
+      "frequency": "التكرار",
+      "confirmation": "التأكيد"
+    },
+    "alertTypes": {
+      "accident": {
+        "label": "حادث",
+        "desc": "تصادم، حادث مروري"
+      },
+      "traffic": {
+        "label": "حركة المرور",
+        "desc": "ازدحام مروري، تباطؤ"
+      },
+      "danger": {
+        "label": "خطر",
+        "desc": "عائق، وضع خطير"
+      },
+      "weather": {
+        "label": "الطقس",
+        "desc": "أحوال جوية خطيرة"
+      },
+      "roadworks": {
+        "label": "أشغال الطريق",
+        "desc": "أشغال بناء، إغلاق مسار"
+      },
+      "other": {
+        "label": "أخرى",
+        "desc": "نوع آخر من الحوادث"
+      }
+    },
+    "severityOptions": {
+      "high": {
+        "label": "مرتفع",
+        "desc": "حوادث عاجلة تستدعي اهتماماً فورياً."
+      },
+      "medium": {
+        "label": "متوسط",
+        "desc": "حوادث مهمة ذات تأثير متوسط."
+      },
+      "low": {
+        "label": "منخفض",
+        "desc": "حوادث طفيفة مفيدة للتوعية."
+      }
+    },
+    "timeRange": {
+      "allDay": "طوال اليوم",
+      "daytime": "النهار",
+      "night": "الليل",
+      "custom": "مخصص"
+    },
+    "frequency": {
+      "immediate": {
+        "label": "فوري",
+        "desc": "تلقَّ إشعاراً فور اكتشاف حادث مطابق."
+      },
+      "digest": {
+        "label": "ملخص",
+        "desc": "تجميع الحوادث في ملخص للحصول على إشعارات أقل."
+      },
+      "firstOnly": {
+        "label": "الأول فقط",
+        "desc": "إشعار بأول حادث مطابق فقط، ثم تجاهل التحديثات المتكررة."
+      }
+    },
+    "delivery": {
+      "inApp": "إشعارات داخل التطبيق",
+      "inAppDesc": "تظهر داخل مركز إشعارات SIARA الخاص بك.",
+      "email": "البريد الإلكتروني",
+      "emailDesc": "إرسال التنبيهات المطابقة إلى بريدك الإلكتروني.",
+      "sms": "رسالة نصية",
+      "smsDesc": "التسليم عبر رسالة نصية إذا كان حسابك يدعم ذلك."
+    },
+    "nav": {
+      "feed": "الموجز",
+      "report": "البلاغ",
+      "dashboard": "لوحة التحكم"
+    },
+    "searchPlaceholder": "البحث عن حادث أو طريق أو ولاية…",
+    "userProfileAriaLabel": "الملف الشخصي للمستخدم",
+    "userAvatarAlt": "صورة المستخدم",
+    "dropdown": {
+      "myProfile": "ملفي الشخصي"
+    },
+    "editAlert": "تعديل التنبيه",
+    "createAlert": "إنشاء تنبيه",
+    "trustNotice": {
+      "title": "تنبيهات آمنة",
+      "desc": "تُشغِّل الإشعاراتِ الحوادثُ المطابقة لفلاتركم ومنطقتكم المحددة فقط."
+    },
+    "step1": {
+      "title": "ما نوع التنبيه الذي تريد إنشاءه؟",
+      "subtitle": "اختر فئة واحدة أو أكثر تتوافق مع تنبيهك.",
+      "hint": "اختر نوع تنبيه للمتابعة."
+    },
+    "step2": {
+      "title": "أين يجب أن يراقب SIARA؟",
+      "subtitle": "ولاية أو بلدية أو نطاق حول نقطة."
+    },
+    "zone": {
+      "wilaya": "الولاية",
+      "commune": "البلدية",
+      "radius": "نطاق",
+      "selectWilaya": "اختر ولاية",
+      "chooseWilaya": "اختر ولاية",
+      "loadingWilayas": "جارٍ تحميل الولايات…",
+      "chooseWilayaFirst": "اختر الولاية أولاً",
+      "loadingCommunes": "جارٍ تحميل البلديات…",
+      "chooseCommune": "اختر بلدية",
+      "radiusLabel": "نطاق {{radius}} كم",
+      "radiusValue": "{{radius}} كم",
+      "selectedWilaya": "الولاية المختارة",
+      "selectedCommune": "البلدية المختارة",
+      "zone": "المنطقة"
+    },
+    "step3": {
+      "title": "الشروط",
+      "subtitle": "اختر مستوى الخطورة والجدول الزمني.",
+      "severityHint": "اختر مستوى خطورة واحداً على الأقل.",
+      "timeRangeLabel": "النطاق الزمني",
+      "timeFrom": "من",
+      "timeTo": "إلى"
+    },
+    "severity": {
+      "notSet": "غير محدد"
+    },
+    "step4": {
+      "title": "التكرار",
+      "subtitle": "حدد مدى تكرار إشعارات SIARA.",
+      "highVolumeTitle": "وضع الحجم العالي:",
+      "highVolumeDesc": "يمكن أن تكون التنبيهات الفورية متكررة خلال ذروة الحوادث.",
+      "digestInterval": "فترة الملخص",
+      "autoDeliveryNote": "تُدار قنوات التسليم تلقائياً من خلال إعدادات الإشعارات في حسابك.",
+      "notifyVia": "الإشعار عبر"
+    },
+    "digestIntervals": {
+      "hourly": "كل ساعة",
+      "daily": "يومياً",
+      "weekly": "أسبوعياً"
+    },
+    "step5": {
+      "title": "التأكيد",
+      "subtitle": "راجع إعدادات تنبيهك قبل الحفظ.",
+      "alertNamePlaceholder": "اسم التنبيه",
+      "summaryTypes": "الأنواع",
+      "summaryZone": "المنطقة",
+      "summarySeverity": "الخطورة",
+      "summaryFrequency": "التكرار",
+      "summaryTimeRange": "النطاق الزمني",
+      "summaryDelivery": "قناة التسليم",
+      "readyBanner": "تنبيهك جاهز. انقر على <strong>{{action}}</strong> لتفعيله."
+    },
+    "saveChanges": "حفظ التغييرات",
+    "createAlertBtn": "إنشاء تنبيه",
+    "continue": "متابعة",
+    "saving": "جارٍ الحفظ…",
+    "preview": {
+      "title": "معاينة مباشرة",
+      "alertLabel": "التنبيه",
+      "newAlert": "تنبيه جديد",
+      "schedule": "الجدول الزمني",
+      "estimatedVolume": "الحجم المقدر",
+      "signalsPerWeek": "{{count}} إشارة/أسبوع",
+      "whyLabel": "لماذا ستتلقى إشعارات",
+      "whyText": "سيُعلمك SIARA عند تطابق حوادث {{types}} مع فلاترك في {{zone}}.",
+      "whyOr": "أو",
+      "whyTextIncomplete": "أكمل الخطوات لرؤية شرح مخصص."
+    },
+    "errors": {
+      "loadWilayas": "تعذّر تحميل الولايات.",
+      "loadCommunes": "تعذّر تحميل البلديات.",
+      "saveFailed": "تعذّر حفظ هذا التنبيه."
+    }
+  },
+  "dangerSubscriptionsPage": {
+    "title": "الاشتراكات في مناطق الخطر",
+    "subtitle": "احصل على تنبيهات عند الإبلاغ عن حوادث أو ارتفاع مستوى الخطر في المناطق أو النقاط أو المسارات التي تهمّك.",
+    "newSubscription": "+ اشتراك جديد",
+    "loading": "جارٍ تحميل اشتراكاتك…",
+    "emptyState": "ليس لديك أي اشتراكات في مناطق الخطر بعد. انقر على + اشتراك جديد للحصول على تنبيهات لمنطقة أو نقطة أو مسار.",
+    "confirmDelete": "هل تريد حذف الاشتراك «{{name}}»؟",
+    "thresholdLabel": "الحد الأدنى: {{label}}",
+    "threshold": {
+      "low": "أي خطر",
+      "moderate": "متوسط فأعلى",
+      "high": "مرتفع فأعلى",
+      "extreme": "شديد فقط"
+    },
+    "location": {
+      "routePoints": "{{count}} نقاط مسار",
+      "routeSubscription": "اشتراك مسار",
+      "radius": "نطاق {{meters}} م",
+      "radiusNA": "النطاق غير متاح"
+    },
+    "notify": {
+      "reports": "البلاغات",
+      "risk": "الخطر",
+      "policeVerified": "مؤكَّد من الشرطة"
+    },
+    "status": {
+      "active": "نشط",
+      "paused": "موقوف مؤقتاً"
+    },
+    "errors": {
+      "loadFailed": "فشل تحميل الاشتراكات",
+      "saveFailed": "فشل حفظ الاشتراك",
+      "deleteFailed": "فشل حذف الاشتراك"
+    }
+  }
 }

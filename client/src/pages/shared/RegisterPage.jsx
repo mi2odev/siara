@@ -1,21 +1,24 @@
 import React, { useContext, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton'
 import LanguageSelect from '../../components/layout/LanguageSelect'
 import { AuthContext } from '../../contexts/AuthContext'
 import { getAuthenticatedRedirect } from '../../routes/routeAccess'
 import logo from '../../assets/logos/siara-logo.png'
+import i18n from '../../i18n'
 import '../../styles/LoginPage.css'
 import '../../styles/RegisterPage.css'
 
 function getErrorMessage(error) {
-  return error.response?.data?.message || error.message || 'Unable to create your account right now.'
+  return error.response?.data?.message || error.message || i18n.t('auth:registerPage.errors.unableToCreate')
 }
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { register, loginWithGoogle } = useContext(AuthContext)
+  const { t } = useTranslation(['auth', 'common'])
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -34,22 +37,22 @@ export default function RegisterPage() {
     setError('')
 
     if (!fullName.trim() || !email.trim() || !password || !confirmPassword) {
-      setError('Full name, email, and password are required.')
+      setError(t('registerPage.errors.fieldsRequired'))
       return
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long.')
+      setError(t('registerPage.errors.passwordTooShort'))
       return
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.')
+      setError(t('registerPage.errors.passwordsMismatch'))
       return
     }
 
     if (!agree) {
-      setError('Please accept the terms before creating your account.')
+      setError(t('registerPage.errors.mustAgreeTerms'))
       return
     }
 
@@ -72,8 +75,8 @@ export default function RegisterPage() {
         replace: true,
         state: {
           notice: response.emailSent === false
-            ? 'Your account was created, but the verification email could not be delivered yet. You can resend the code from this page.'
-            : 'We sent a 6-digit verification code to your email.',
+            ? t('registerPage.notices.emailNotDelivered')
+            : t('registerPage.notices.verificationSent'),
         },
       })
     } catch (authError) {
@@ -106,7 +109,7 @@ export default function RegisterPage() {
         <aside className="siara-hero">
           <img src={logo} alt="SIARA" className="logo" />
           <div className="siara-hero-main">
-            <div className="hero-kicker">AI Platform - SIARA</div>
+            <div className="hero-kicker">{t('registerPage.hero.kicker')}</div>
             <div className="siara-hero-illustration">
               <div className="hero-orbits">
                 <span />
@@ -114,14 +117,14 @@ export default function RegisterPage() {
                 <span />
               </div>
             </div>
-            <h2 className="title">Create a verified SIARA account.</h2>
+            <h2 className="title">{t('registerPage.hero.title')}</h2>
             <p className="subtitle">
-              Set up your safety workspace, link your alert zones, and receive weekly summaries for the places you watch most closely.
+              {t('registerPage.hero.subtitle')}
             </p>
             <div className="hero-badges">
-              <span className="hero-badge">Email OTP verification</span>
-              <span className="hero-badge">Google login</span>
-              <span className="hero-badge">Secure sessions</span>
+              <span className="hero-badge">{t('registerPage.hero.badges.emailOtp')}</span>
+              <span className="hero-badge">{t('registerPage.hero.badges.googleLogin')}</span>
+              <span className="hero-badge">{t('registerPage.hero.badges.secureSessions')}</span>
             </div>
           </div>
         </aside>
@@ -132,18 +135,18 @@ export default function RegisterPage() {
               <img src={logo} alt="SIARA logo" />
               <div>
                 <div className="brand-name">SIARA</div>
-                <div className="tag">Road Risk Prediction Platform</div>
+                <div className="tag">{t('registerPage.brand.tagline')}</div>
               </div>
             </div>
 
-            <h1 id="registerTitle" className="siara-form-title">Create your account</h1>
-            <p className="siara-form-sub">Verification keeps your alerts, weekly emails, and recovery flows tied to the right inbox.</p>
-            <div className="siara-form-helper">Use Remember me if you want a longer-lived session after verification.</div>
+            <h1 id="registerTitle" className="siara-form-title">{t('registerPage.form.title')}</h1>
+            <p className="siara-form-sub">{t('registerPage.form.subtitle')}</p>
+            <div className="siara-form-helper">{t('registerPage.form.helper')}</div>
 
             {error ? <div className="error-box" role="alert">{error}</div> : null}
 
             <form className="register-form" onSubmit={handleSubmit}>
-              <label htmlFor="register-name" className="field-label">Full name</label>
+              <label htmlFor="register-name" className="field-label">{t('registerPage.form.fullNameLabel')}</label>
               <div className="input-shell">
                 <span className="input-icon" aria-hidden="true">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -154,13 +157,13 @@ export default function RegisterPage() {
                 <input
                   id="register-name"
                   className="siara-input"
-                  placeholder="First Last"
+                  placeholder={t('registerPage.form.fullNamePlaceholder')}
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
                 />
               </div>
 
-              <label htmlFor="register-email" className="field-label">Email</label>
+              <label htmlFor="register-email" className="field-label">{t('registerPage.form.emailLabel')}</label>
               <div className="input-shell">
                 <span className="input-icon" aria-hidden="true">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -173,13 +176,13 @@ export default function RegisterPage() {
                   className="siara-input"
                   type="email"
                   autoComplete="email"
-                  placeholder="you@example.com"
+                  placeholder={t('registerPage.form.emailPlaceholder')}
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                 />
               </div>
 
-              <label htmlFor="register-password" className="field-label">Password</label>
+              <label htmlFor="register-password" className="field-label">{t('registerPage.form.passwordLabel')}</label>
               <div className="input-shell">
                 <span className="input-icon" aria-hidden="true">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -192,7 +195,7 @@ export default function RegisterPage() {
                   className="siara-input has-eye-toggle"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  placeholder="At least 8 characters"
+                  placeholder={t('registerPage.form.passwordPlaceholder')}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                 />
@@ -200,7 +203,7 @@ export default function RegisterPage() {
                   type="button"
                   className={`eye-toggle ${showPassword ? 'eye-open' : 'eye-closed'}`}
                   onClick={() => setShowPassword((current) => !current)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? t('registerPage.form.hidePassword') : t('registerPage.form.showPassword')}
                 >
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path
@@ -223,7 +226,7 @@ export default function RegisterPage() {
                 </button>
               </div>
 
-              <label htmlFor="register-confirm" className="field-label">Confirm password</label>
+              <label htmlFor="register-confirm" className="field-label">{t('registerPage.form.confirmPasswordLabel')}</label>
               <div className="input-shell">
                 <span className="input-icon" aria-hidden="true">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -236,7 +239,7 @@ export default function RegisterPage() {
                   className="siara-input has-eye-toggle"
                   type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  placeholder="Confirm password"
+                  placeholder={t('registerPage.form.confirmPasswordPlaceholder')}
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                 />
@@ -244,7 +247,7 @@ export default function RegisterPage() {
                   type="button"
                   className={`eye-toggle ${showConfirmPassword ? 'eye-open' : 'eye-closed'}`}
                   onClick={() => setShowConfirmPassword((current) => !current)}
-                  aria-label={showConfirmPassword ? 'Hide password confirmation' : 'Show password confirmation'}
+                  aria-label={showConfirmPassword ? t('registerPage.form.hidePasswordConfirm') : t('registerPage.form.showPasswordConfirm')}
                 >
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path
@@ -273,7 +276,7 @@ export default function RegisterPage() {
                   checked={rememberMe}
                   onChange={(event) => setRememberMe(event.target.checked)}
                 />
-                <span>Keep me signed in for around 30 days after verification.</span>
+                <span>{t('registerPage.form.rememberMe')}</span>
               </label>
 
               <label className="agree">
@@ -282,16 +285,16 @@ export default function RegisterPage() {
                   checked={agree}
                   onChange={(event) => setAgree(event.target.checked)}
                 />
-                <span>I agree to SIARA&apos;s terms of use and responsible reporting guidelines.</span>
+                <span>{t('registerPage.form.agreeTerms')}</span>
               </label>
 
               <button className="siara-cta" type="submit" disabled={loading}>
-                {loading ? 'Creating account...' : 'Create account'}
+                {loading ? t('registerPage.form.creatingAccount') : t('registerPage.form.createAccount')}
               </button>
             </form>
 
             <div className="siara-auth-divider">
-              <span>or continue with</span>
+              <span>{t('registerPage.form.orContinueWith')}</span>
             </div>
 
             {googleError ? <div className="error-box" role="alert">{googleError}</div> : null}
@@ -305,7 +308,7 @@ export default function RegisterPage() {
             />
 
             <div className="register-footer">
-              Already registered? <Link to="/login" className="link-accent">Log in</Link>
+              {t('registerPage.form.alreadyRegistered')} <Link to="/login" className="link-accent">{t('registerPage.form.logIn')}</Link>
             </div>
           </div>
         </main>

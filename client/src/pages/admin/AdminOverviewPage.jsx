@@ -1,13 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import FancySelect from '../../components/ui/FancySelect'
 
-const OVERVIEW_TIME_RANGE_OPTIONS = [
-  { value: '1h',  label: 'Last hour' },
-  { value: '24h', label: 'Last 24h' },
-  { value: '7d',  label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-]
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined'
 import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
 import PsychologyAltOutlinedIcon from '@mui/icons-material/PsychologyAltOutlined'
@@ -29,7 +24,7 @@ import {
 import { fetchAdminIncidentCounts } from '../../services/adminIncidentsService'
 
 const EMPTY_OVERVIEW = normalizeOverviewResponse()
-const EMPTY_TEXT = '\u2014'
+const EMPTY_TEXT = '—'
 const KPI_ICONS = {
   incidents: <BoltOutlinedIcon fontSize="inherit" className="icon-danger" />,
   pendingReview: <HourglassEmptyOutlinedIcon fontSize="inherit" className="icon-warning" />,
@@ -37,12 +32,6 @@ const KPI_ICONS = {
   highRiskZones: <LocationOnOutlinedIcon fontSize="inherit" className="icon-danger" />,
   activeAlerts: <NotificationsActiveOutlinedIcon fontSize="inherit" className="icon-success" />,
   reportsPerMin: <RssFeedOutlinedIcon fontSize="inherit" className="icon-info" />,
-}
-const RANGE_TITLE_SUFFIX = {
-  '1h': 'Last hour',
-  '24h': 'Last 24h',
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
 }
 
 /** Direction of a trend string: 'up' | 'down' | 'stable'. */
@@ -76,11 +65,11 @@ function getTrendTone(trend, polarity = 'neutral') {
   return direction === 'up' ? 'bad' : 'good'
 }
 
-function formatTrendText(trend) {
+function formatTrendText(trend, t) {
   if (!trend) return EMPTY_TEXT
   const value = String(trend).trim()
-  if (value.startsWith('+')) return `Up ${value.slice(1)}`
-  if (value.startsWith('-')) return `Down ${value.slice(1)}`
+  if (value.startsWith('+')) return t('adminOverviewPage.trend.up', { value: value.slice(1) })
+  if (value.startsWith('-')) return t('adminOverviewPage.trend.down', { value: value.slice(1) })
   return value
 }
 
@@ -117,18 +106,20 @@ function formatDateTime(value) {
   })
 }
 
-function formatPredictedLabel(value) {
+function formatPredictedLabel(value, t) {
   if (!value) {
-    return 'Unclassified'
+    return t('adminOverviewPage.predictedLabel.unclassified')
   }
 
-  return value === 'spam' ? 'Spam' : 'Real'
+  return value === 'spam'
+    ? t('adminOverviewPage.predictedLabel.spam')
+    : t('adminOverviewPage.predictedLabel.real')
 }
 
-function formatMlStatus(value) {
+function formatMlStatus(value, t) {
   const normalized = String(value || '').trim()
   if (!normalized) {
-    return 'Not started'
+    return t('adminOverviewPage.mlStatus.notStarted')
   }
 
   return normalized
@@ -152,17 +143,17 @@ function getConfidenceFillClass(confidence) {
   return 'danger'
 }
 
-function getConfidenceText(incident) {
+function getConfidenceText(incident, t) {
   if (typeof incident?.confidence === 'number' && incident?.confidenceStatus === 'completed') {
     return `${incident.confidence}%`
   }
 
   if (incident?.confidenceStatus === 'pending') {
-    return 'Pending AI'
+    return t('adminOverviewPage.confidence.pending')
   }
 
   if (incident?.confidenceStatus === 'failed') {
-    return 'AI failed'
+    return t('adminOverviewPage.confidence.failed')
   }
 
   return EMPTY_TEXT
@@ -170,6 +161,7 @@ function getConfidenceText(incident) {
 
 export default function AdminOverviewPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation(['admin', 'common'])
   const [timeRange, setTimeRange] = useState('24h')
   const [overview, setOverview] = useState(EMPTY_OVERVIEW)
   const [incidentCounts, setIncidentCounts] = useState({
@@ -182,6 +174,20 @@ export default function AdminOverviewPage() {
   const [error, setError] = useState(null)
   const [hasResolvedInitialLoad, setHasResolvedInitialLoad] = useState(false)
   const [reloadToken, setReloadToken] = useState(0)
+
+  const OVERVIEW_TIME_RANGE_OPTIONS = [
+    { value: '1h',  label: t('adminOverviewPage.timeRange.lastHour') },
+    { value: '24h', label: t('adminOverviewPage.timeRange.last24h') },
+    { value: '7d',  label: t('adminOverviewPage.timeRange.last7days') },
+    { value: '30d', label: t('adminOverviewPage.timeRange.last30days') },
+  ]
+
+  const RANGE_TITLE_SUFFIX = {
+    '1h': t('adminOverviewPage.timeRange.lastHour'),
+    '24h': t('adminOverviewPage.timeRange.last24h'),
+    '7d': t('adminOverviewPage.timeRange.last7days'),
+    '30d': t('adminOverviewPage.timeRange.last30days'),
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -246,16 +252,16 @@ export default function AdminOverviewPage() {
         >
           <div className="admin-card-header">
             <div>
-              <h2 className="admin-card-title">Overview unavailable</h2>
+              <h2 className="admin-card-title">{t('adminOverviewPage.error.title')}</h2>
               <p className="admin-card-subtitle">
-                {error.message || 'Failed to load the admin overview.'}
+                {error.message || t('adminOverviewPage.error.description')}
               </p>
             </div>
             <button
               className="admin-btn admin-btn-primary"
               onClick={() => setReloadToken((value) => value + 1)}
             >
-              Retry
+              {t('common:actions.retry')}
             </button>
           </div>
         </div>
@@ -276,10 +282,10 @@ export default function AdminOverviewPage() {
 
       <div className="admin-page-header">
         <div>
-          <h1 className="admin-page-title">System Overview</h1>
+          <h1 className="admin-page-title">{t('adminOverviewPage.pageTitle')}</h1>
           <p className="admin-page-subtitle">
-            National Risk Supervision - Real-time
-            {loading && hasResolvedInitialLoad ? <> &middot; Refreshing...</> : null}
+            {t('adminOverviewPage.pageSubtitle')}
+            {loading && hasResolvedInitialLoad ? <> &middot; {t('adminOverviewPage.refreshing')}</> : null}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -287,19 +293,19 @@ export default function AdminOverviewPage() {
             value={timeRange}
             onChange={(v) => setTimeRange(normalizeRange(v))}
             options={OVERVIEW_TIME_RANGE_OPTIONS}
-            label="Range"
+            label={t('adminOverviewPage.rangeLabel')}
           />
           <button className="admin-btn admin-btn-ghost" type="button" onClick={() => navigate('/admin/incidents?filter=suspicious')}>
-            Open Spam Queue
+            {t('adminOverviewPage.openSpamQueue')}
           </button>
         </div>
       </div>
 
       {showInitialLoading ? (
         <div className="admin-card" style={{ marginBottom: 14 }}>
-          <h2 className="admin-card-title">Loading overview...</h2>
+          <h2 className="admin-card-title">{t('adminOverviewPage.loading.title')}</h2>
           <p className="admin-card-subtitle" style={{ marginTop: 6 }}>
-            Pulling real incident, AI, and spam-classification data from the backend.
+            {t('adminOverviewPage.loading.description')}
           </p>
         </div>
       ) : (
@@ -308,7 +314,7 @@ export default function AdminOverviewPage() {
             const operationsKpis = [
               {
                 key: 'incidents',
-                label: `${RANGE_TITLE_SUFFIX[timeRange]} Incidents`,
+                label: t('adminOverviewPage.kpi.incidents', { range: RANGE_TITLE_SUFFIX[timeRange] }),
                 value: overview.kpis.incidents.value,
                 trend: overview.kpis.incidents.trend,
                 polarity: 'negative-up',
@@ -317,7 +323,7 @@ export default function AdminOverviewPage() {
               },
               {
                 key: 'pendingReview',
-                label: 'Pending Review',
+                label: t('adminOverviewPage.kpi.pendingReview'),
                 value: overview.kpis.pendingReview.value,
                 trend: overview.kpis.pendingReview.trend,
                 polarity: 'negative-up',
@@ -326,7 +332,7 @@ export default function AdminOverviewPage() {
               },
               {
                 key: 'aiConfidence',
-                label: 'AI Confidence',
+                label: t('adminOverviewPage.kpi.aiConfidence'),
                 value: formatPercent(overview.kpis.aiConfidence.value),
                 trend: overview.kpis.aiConfidence.trend,
                 polarity: 'positive-up',
@@ -335,7 +341,7 @@ export default function AdminOverviewPage() {
               },
               {
                 key: 'highRiskZones',
-                label: 'High Risk Zones',
+                label: t('adminOverviewPage.kpi.highRiskZones'),
                 value: overview.kpis.highRiskZones.value,
                 trend: overview.kpis.highRiskZones.trend,
                 polarity: 'negative-up',
@@ -344,7 +350,7 @@ export default function AdminOverviewPage() {
               },
               {
                 key: 'activeAlerts',
-                label: 'Active Alerts',
+                label: t('adminOverviewPage.kpi.activeAlerts'),
                 value: overview.kpis.activeAlerts.value,
                 trend: overview.kpis.activeAlerts.trend,
                 polarity: 'neutral',
@@ -353,7 +359,7 @@ export default function AdminOverviewPage() {
               },
               {
                 key: 'reportsPerMin',
-                label: 'Reports/min',
+                label: t('adminOverviewPage.kpi.reportsPerMin'),
                 value: formatDecimal(overview.kpis.reportsPerMin.value),
                 trend: overview.kpis.reportsPerMin.trend,
                 polarity: 'neutral',
@@ -364,27 +370,27 @@ export default function AdminOverviewPage() {
             const spamKpis = [
               {
                 key: 'suspectedSpam',
-                label: 'Suspected Spam Reports',
+                label: t('adminOverviewPage.spam.suspectedSpam'),
                 value: incidentCounts.suspicious,
-                hint: 'Live admin queue count',
+                hint: t('adminOverviewPage.spam.liveQueueCount'),
                 icon: <FlagOutlinedIcon fontSize="inherit" className="icon-warning" />,
                 iconTone: 'warning',
               },
               {
                 key: 'pendingManualReview',
-                label: 'Pending Manual Review',
+                label: t('adminOverviewPage.spam.pendingManualReview'),
                 value: incidentCounts['pending-review'],
-                hint: 'Spam-labelled, not yet reviewed',
+                hint: t('adminOverviewPage.spam.pendingManualReviewHint'),
                 icon: <HourglassBottomOutlinedIcon fontSize="inherit" className="icon-warning" />,
                 iconTone: 'warning',
               },
               {
                 key: 'spamRate',
-                label: 'Spam Rate',
+                label: t('adminOverviewPage.spam.spamRate'),
                 value: formatPercent(spamRate),
                 hint: incidentCounts.all
-                  ? `${incidentCounts.suspicious} of ${incidentCounts.all} reports`
-                  : 'No reports yet',
+                  ? t('adminOverviewPage.spam.spamRateHint', { suspicious: incidentCounts.suspicious, all: incidentCounts.all })
+                  : t('adminOverviewPage.spam.noReports'),
                 icon: <PercentOutlinedIcon fontSize="inherit" className="icon-info" />,
                 iconTone: 'primary',
               },
@@ -393,14 +399,14 @@ export default function AdminOverviewPage() {
             const renderTrend = (kpi) => {
               const tone = getTrendTone(kpi.trend, kpi.polarity)
               if (isZeroTrend(kpi.trend)) {
-                return <span className="admin-kpi-trend stable">No change</span>
+                return <span className="admin-kpi-trend stable">{t('adminOverviewPage.trend.noChange')}</span>
               }
               const direction = getTrendDirection(kpi.trend)
               const Icon = TREND_DIRECTION_ICON[direction] || RemoveRoundedIcon
               return (
                 <span className={`admin-kpi-trend ${tone}`}>
                   <Icon sx={{ fontSize: 11 }} />
-                  {formatTrendText(kpi.trend)}
+                  {formatTrendText(kpi.trend, t)}
                 </span>
               )
             }
@@ -420,7 +426,7 @@ export default function AdminOverviewPage() {
                   ))}
                 </div>
 
-                <div className="admin-kpi-section-label">Spam Triage</div>
+                <div className="admin-kpi-section-label">{t('adminOverviewPage.spam.sectionLabel')}</div>
                 <div className="admin-kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 14 }}>
                   {spamKpis.map((kpi) => (
                     <div className={`admin-kpi admin-kpi--${kpi.iconTone}`} key={kpi.key}>
@@ -440,16 +446,16 @@ export default function AdminOverviewPage() {
           <div className="admin-card" style={{ marginBottom: 14 }}>
             <div className="admin-card-header">
               <div>
-                <h2 className="admin-card-title">Review Queue</h2>
+                <h2 className="admin-card-title">{t('adminOverviewPage.reviewQueue.title')}</h2>
                 <p className="admin-card-subtitle">
-                  Pending and flagged incidents across all time &middot; {reviewQueueCount} open
+                  {t('adminOverviewPage.reviewQueue.subtitle', { count: reviewQueueCount })}
                 </p>
               </div>
               <button
                 className="admin-btn admin-btn-primary"
                 onClick={() => navigate('/admin/incidents?filter=pending-review')}
               >
-                Review Spam Queue &rarr;
+                {t('adminOverviewPage.reviewQueue.openButton')} &rarr;
               </button>
             </div>
             <div className="admin-table-wrapper">
@@ -457,14 +463,14 @@ export default function AdminOverviewPage() {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>ID</th>
-                      <th>Location</th>
-                      <th>Severity</th>
-                      <th>Spam Analysis</th>
-                      <th>AI Confidence</th>
-                      <th>Review</th>
-                      <th>Since Reported</th>
-                      <th>Action</th>
+                      <th>{t('adminOverviewPage.table.id')}</th>
+                      <th>{t('adminOverviewPage.table.location')}</th>
+                      <th>{t('adminOverviewPage.table.severity')}</th>
+                      <th>{t('adminOverviewPage.table.spamAnalysis')}</th>
+                      <th>{t('adminOverviewPage.table.aiConfidence')}</th>
+                      <th>{t('adminOverviewPage.table.review')}</th>
+                      <th>{t('adminOverviewPage.table.sinceReported')}</th>
+                      <th>{t('adminOverviewPage.table.action')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -490,14 +496,14 @@ export default function AdminOverviewPage() {
                           <div style={{ display: 'grid', gap: 4, minWidth: 170 }}>
                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                               <span className={`admin-pill ${incident.predictedLabel === 'spam' ? 'warning' : incident.predictedLabel === 'real' ? 'success' : ''}`}>
-                                {formatPredictedLabel(incident.predictedLabel)}
+                                {formatPredictedLabel(incident.predictedLabel, t)}
                               </span>
                               <span className={`admin-pill ${incident.pendingSpamReview ? 'warning' : ''}`}>
-                                {incident.pendingSpamReview ? 'Pending review' : formatMlStatus(incident.mlStatus)}
+                                {incident.pendingSpamReview ? t('adminOverviewPage.table.pendingReview') : formatMlStatus(incident.mlStatus, t)}
                               </span>
                             </div>
                             <div style={{ fontSize: 11, color: 'var(--admin-text-secondary)' }}>
-                              Score {formatPercent(incident.spamScore)} · ML {formatPercent(incident.mlConfidence)} · {incident.modelVersion || EMPTY_TEXT}
+                              {t('adminOverviewPage.table.scoreRow', { score: formatPercent(incident.spamScore), ml: formatPercent(incident.mlConfidence), version: incident.modelVersion || EMPTY_TEXT })}
                             </div>
                           </div>
                         </td>
@@ -518,12 +524,12 @@ export default function AdminOverviewPage() {
                                 fontVariantNumeric: incident.confidenceStatus === 'completed' ? 'tabular-nums' : 'normal',
                               }}
                             >
-                              {getConfidenceText(incident)}
+                              {getConfidenceText(incident, t)}
                             </span>
                           </div>
                         </td>
                         <td style={{ fontSize: 11, color: 'var(--admin-text-secondary)', whiteSpace: 'nowrap', minWidth: 150 }}>
-                          <div>{incident.reviewVerdict || (incident.pendingSpamReview ? 'Awaiting review' : EMPTY_TEXT)}</div>
+                          <div>{incident.reviewVerdict || (incident.pendingSpamReview ? t('adminOverviewPage.table.awaitingReview') : EMPTY_TEXT)}</div>
                           <div style={{ marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{formatDateTime(incident.classifiedAt)}</div>
                         </td>
                         <td
@@ -542,7 +548,7 @@ export default function AdminOverviewPage() {
                             className="admin-btn admin-btn-sm admin-btn-primary"
                             onClick={() => navigate(`/admin/incidents/${incident.reportId}`)}
                           >
-                            Review
+                            {t('adminOverviewPage.table.reviewButton')}
                           </button>
                         </td>
                       </tr>
@@ -551,7 +557,7 @@ export default function AdminOverviewPage() {
                 </table>
               ) : (
                 <div style={{ padding: '18px 4px', color: 'var(--admin-text-muted)', fontSize: 11.5 }}>
-                  No pending or flagged incidents are waiting in the review queue.
+                  {t('adminOverviewPage.reviewQueue.empty')}
                 </div>
               )}
             </div>
@@ -559,7 +565,7 @@ export default function AdminOverviewPage() {
 
           <div className="admin-grid-3">
             <div className="admin-card">
-              <h3 className="admin-card-title">Weekly Incident Volume</h3>
+              <h3 className="admin-card-title">{t('adminOverviewPage.charts.weeklyVolume')}</h3>
               <div className="admin-chart-placeholder" style={{ height: 120 }}>
                 {overview.weeklyVolume.map((entry) => {
                   const height = maxWeeklyCount > 0 ? (entry.count / maxWeeklyCount) * 100 : 0
@@ -590,12 +596,12 @@ export default function AdminOverviewPage() {
             </div>
 
             <div className="admin-card">
-              <h3 className="admin-card-title">Severity Distribution</h3>
+              <h3 className="admin-card-title">{t('adminOverviewPage.charts.severityDistribution')}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
                 {[
-                  { label: 'High', pct: overview.severityDistribution.high, cls: 'danger' },
-                  { label: 'Medium', pct: overview.severityDistribution.medium, cls: 'warning' },
-                  { label: 'Low', pct: overview.severityDistribution.low, cls: 'success' },
+                  { label: t('adminOverviewPage.severity.high'), pct: overview.severityDistribution.high, cls: 'danger' },
+                  { label: t('adminOverviewPage.severity.medium'), pct: overview.severityDistribution.medium, cls: 'warning' },
+                  { label: t('adminOverviewPage.severity.low'), pct: overview.severityDistribution.low, cls: 'success' },
                 ].map((segment) => (
                   <div key={segment.label}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
@@ -614,7 +620,7 @@ export default function AdminOverviewPage() {
             </div>
 
             <div className="admin-card">
-              <h3 className="admin-card-title">Top Risk Zones</h3>
+              <h3 className="admin-card-title">{t('adminOverviewPage.charts.topRiskZones')}</h3>
               {overview.topRiskZones.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
                   {overview.topRiskZones.map((zone) => (
@@ -633,7 +639,7 @@ export default function AdminOverviewPage() {
                           {zone.zone}
                         </div>
                         <div style={{ fontSize: 10, color: 'var(--admin-text-muted)' }}>
-                          {zone.incidents} incidents
+                          {t('adminOverviewPage.charts.zoneIncidents', { count: zone.incidents })}
                         </div>
                       </div>
                       <span className={`admin-pill ${zone.risk}`}>{zone.risk}</span>
@@ -642,7 +648,7 @@ export default function AdminOverviewPage() {
                 </div>
               ) : (
                 <p style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginTop: 8 }}>
-                  No zone activity was found for this time range.
+                  {t('adminOverviewPage.charts.noZoneActivity')}
                 </p>
               )}
             </div>

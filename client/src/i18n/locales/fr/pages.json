@@ -1,0 +1,1590 @@
+{
+  "app": {
+    "toggleNavMenu": "Ouvrir/fermer le menu de navigation"
+  },
+  "appErrorBoundary": {
+    "heading": "Une erreur s'est produite dans l'interface",
+    "componentStack": "Pile des composants",
+    "tryAgain": "Réessayer"
+  },
+  "banBanner": {
+    "justNow": "à l'instant",
+    "permanentlyBanned": "Votre compte est définitivement banni.",
+    "temporarilyBanned": "Votre compte est temporairement banni.",
+    "cannotPostPermanent": "Vous ne pouvez pas publier de signalements, commentaires ou réactions, et votre accès sera révoqué à la prochaine connexion.",
+    "cannotPostTemporary": "Vous ne pouvez pas publier de signalements, commentaires ou réactions.",
+    "reason": "Motif :",
+    "banEndsIn": "Le bannissement se termine dans"
+  },
+  "warningBanner": {
+    "justNow": "à l'instant",
+    "acknowledgeError": "Impossible de confirmer l'avertissement",
+    "title": "Avertissement de l'admin.",
+    "body": "Un modérateur vous a adressé un avertissement formel. Des infractions répétées peuvent entraîner une suspension ou un bannissement.",
+    "reasonLabel": "Motif :",
+    "issued": "Émis le {{date}}",
+    "autoClearsIn": "effacement automatique dans {{time}}",
+    "iUnderstand": "Je comprends"
+  },
+  "contactForm": {
+    "name": "Nom",
+    "email": "E-mail",
+    "message": "Message",
+    "send": "Envoyer"
+  },
+  "predictForm": {
+    "locationLabel": "Lieu",
+    "locationPlaceholder": "Ville, région ou coordonnées",
+    "dateLabel": "Date (facultative)",
+    "runPrediction": "Lancer la prévision"
+  },
+  "feedSidebarNav": {
+    "nav": {
+      "newsFeed": "Fil d'actualité",
+      "incidentMap": "Carte des incidents",
+      "myReports": "Mes signalements",
+      "contact": "Contact",
+      "about": "À propos",
+      "overview": "Aperçu",
+      "driverQuiz": "Quiz conducteur"
+    },
+    "section": {
+      "navigation": "NAVIGATION",
+      "tools": "OUTILS",
+      "info": "INFO",
+      "account": "COMPTE"
+    },
+    "panel": {
+      "ariaLabel": "Panneau d'information rapide"
+    },
+    "contact": {
+      "kicker": "Support",
+      "title": "Contacter SIARA",
+      "subtitle": "Partagez votre demande et notre équipe vous répondra rapidement.",
+      "closeAriaLabel": "Fermer le formulaire de contact",
+      "labelName": "Nom",
+      "labelEmail": "E-mail",
+      "labelMessage": "Message",
+      "sending": "Envoi en cours…",
+      "sendButton": "Envoyer le message",
+      "emailDirectly": "Envoyer un e-mail directement",
+      "sideAriaLabel": "Informations d'assistance",
+      "responseWindowTitle": "Délai de réponse",
+      "responseWindowText": "La plupart des demandes sont traitées dans un délai d'un jour ouvrable.",
+      "bestForTitle": "Idéal pour ce formulaire",
+      "bestForText": "Assistance compte, retours sur la plateforme, partenariats et questions sur le flux d'incidents.",
+      "directContactTitle": "Contact direct",
+      "errorName": "Veuillez entrer un nom valide.",
+      "errorEmail": "Veuillez entrer une adresse e-mail valide.",
+      "errorMessage": "Le message doit comporter au moins 10 caractères.",
+      "successMessage": "Merci. Nous vous répondrons dans les plus brefs délais.",
+      "submitError": "Impossible d'envoyer votre message. Veuillez réessayer."
+    },
+    "about": {
+      "kicker": "Aperçu",
+      "title": "À propos de SIARA",
+      "closeAriaLabel": "Fermer le panneau À propos",
+      "brandCaption": "Plateforme d'intelligence pour la sécurité routière",
+      "lead": "SIARA est une plateforme d'intelligence pour la sécurité routière combinant signalement en temps réel, cartographie et analyses IA pour améliorer la gestion des incidents.",
+      "missionTitle": "Mission",
+      "missionText": "Réduire les risques routiers grâce à une coordination rapide et fondée sur des preuves.",
+      "visionTitle": "Vision",
+      "visionText": "Construire des systèmes de sécurité urbaine connectés et assistés par IA pour une mobilité plus intelligente.",
+      "approachTitle": "Approche",
+      "approachText": "Combiner les signaux citoyens, le contexte géospatial et l'analyse opérationnelle dans un seul flux de travail.",
+      "riskMappingTitle": "Carte des risques",
+      "riskMappingText": "Identifier les points chauds et les zones de forte densité d'incidents en temps réel.",
+      "alertIntelTitle": "Intelligence des alertes",
+      "alertIntelText": "Prioriser les événements à fort impact grâce aux indicateurs de gravité et de fiabilité.",
+      "responseCoordTitle": "Coordination de l'intervention",
+      "responseCoordText": "Accélérer les décisions de terrain grâce à une vue opérationnelle partagée.",
+      "performanceTitle": "Suivi des performances",
+      "performanceText": "Mesurer les résultats de vérification et d'intervention pour une amélioration continue."
+    },
+    "overview": {
+      "kicker": "Flux de service",
+      "title": "Aperçu du flux de travail SIARA",
+      "closeAriaLabel": "Fermer le panneau Aperçu",
+      "lead": "SIARA offre un pipeline opérationnel clair, du recueil des signalements jusqu'à la diffusion des alertes validées.",
+      "step1Title": "Réception des incidents",
+      "step1Text": "Capturer les signalements avec localisation, médias et métadonnées contextuelles.",
+      "step2Title": "Validation des données",
+      "step2Text": "Normaliser et vérifier les enregistrements entrants pour les préparer à l'analyse.",
+      "step3Title": "Évaluation des risques",
+      "step3Text": "Estimer l'urgence et la fiabilité grâce à un scoring assisté par IA.",
+      "step4Title": "Révision opérationnelle",
+      "step4Text": "Les équipes autorisées valident les incidents et définissent les priorités d'intervention.",
+      "step5Title": "Diffusion des alertes",
+      "step5Text": "Transmettre les alertes pertinentes aux utilisateurs et aux parties prenantes opérationnelles.",
+      "techStackLabel": "Stack technologique :",
+      "techStackText": "Score de risque IA, cartographie géospatiale, événements en temps réel et flux de vérification."
+    }
+  },
+  "footer": {
+    "ariaLabel": "Pied de page",
+    "logoAlt": "Logo SIARA",
+    "address": "Alger, Algérie",
+    "linksHeading": "Liens",
+    "about": "À propos",
+    "contact": "Contact",
+    "contactHeading": "Contact",
+    "socialLinkedIn": "LinkedIn",
+    "socialTwitter": "Twitter",
+    "socialGitHub": "GitHub"
+  },
+  "header": {
+    "nav": {
+      "dashboard": "Tableau de bord",
+      "contact": "Contact",
+      "overview": "Vue d'ensemble",
+      "incidents": "Incidents",
+      "zones": "Zones",
+      "system": "Système"
+    },
+    "logoAdmin": "Admin SIARA",
+    "logoHome": "Accueil SIARA",
+    "mainNav": "Navigation principale",
+    "ctaAdmin": "Ouvrir l'administration",
+    "ctaDashboard": "Ouvrir le tableau de bord",
+    "adminLabel": "Admin",
+    "dashboardLabel": "Tableau de bord"
+  },
+  "leftNavLayout": {
+    "defaultUser": "Utilisateur SIARA",
+    "profileBio": "Consultez les signalements routiers en direct et partagez des mises à jour depuis le terrain.",
+    "viewProfile": "Voir le profil"
+  },
+  "leftQuickInfoLinks": {
+    "defaultTitle": "Pages rapides",
+    "nav": {
+      "contact": "Contact",
+      "about": "À propos",
+      "overview": "Aperçu"
+    },
+    "panel": {
+      "ariaLabel": "Panneau d'information rapide"
+    },
+    "contact": {
+      "kicker": "Assistance",
+      "heading": "Contacter SIARA",
+      "subheading": "Partagez votre demande et notre équipe vous répondra rapidement.",
+      "closeAriaLabel": "Fermer le formulaire de contact",
+      "form": {
+        "nameLbl": "Nom",
+        "emailLbl": "E-mail",
+        "messageLbl": "Message",
+        "sending": "Envoi en cours…",
+        "sendBtn": "Envoyer le message",
+        "emailDirectly": "Envoyer un e-mail direct"
+      },
+      "errors": {
+        "invalidName": "Veuillez entrer un nom valide.",
+        "invalidEmail": "Veuillez entrer une adresse e-mail valide.",
+        "messageTooShort": "Le message doit comporter au moins 10 caractères."
+      },
+      "successMessage": "Merci. Nous vous répondrons dans les plus brefs délais.",
+      "submitError": "Impossible d'envoyer votre message. Veuillez réessayer.",
+      "side": {
+        "ariaLabel": "Informations d'assistance",
+        "responseWindowTitle": "Délai de réponse",
+        "responseWindowText": "La plupart des demandes sont traitées dans un délai d'un jour ouvrable.",
+        "bestForTitle": "Idéal pour ce formulaire",
+        "bestForText": "Assistance compte, retours sur la plateforme, partenariats et questions sur le flux de gestion des incidents.",
+        "directContactTitle": "Contact direct"
+      }
+    },
+    "about": {
+      "kicker": "Aperçu",
+      "heading": "À propos de SIARA",
+      "closeAriaLabel": "Fermer le panneau À propos",
+      "brandCaption": "Plateforme de sécurité routière intelligente",
+      "lead": "SIARA est une plateforme de sécurité routière combinant les signalements en direct, la cartographie et les analyses IA pour améliorer la réponse aux incidents.",
+      "pillars": {
+        "missionTitle": "Mission",
+        "missionText": "Réduire les risques routiers grâce à une coordination rapide et fondée sur des données probantes.",
+        "visionTitle": "Vision",
+        "visionText": "Construire des systèmes de sécurité urbaine connectés et assistés par l'IA pour une mobilité plus intelligente.",
+        "approachTitle": "Approche",
+        "approachText": "Combiner les signaux citoyens, le contexte géospatial et les analyses opérationnelles dans un seul flux de travail."
+      },
+      "cards": {
+        "riskMappingTitle": "Cartographie des risques",
+        "riskMappingText": "Identifier les points chauds et les zones de densité d'incidents en temps réel.",
+        "alertIntelTitle": "Intelligence des alertes",
+        "alertIntelText": "Prioriser les événements à fort impact à l'aide d'indicateurs de gravité et de fiabilité.",
+        "responseCoordTitle": "Coordination de la réponse",
+        "responseCoordText": "Soutenir des décisions de terrain plus rapides grâce à une vue opérationnelle partagée.",
+        "perfTrackingTitle": "Suivi des performances",
+        "perfTrackingText": "Mesurer les résultats de vérification et de réponse pour s'améliorer en continu."
+      }
+    },
+    "overview": {
+      "kicker": "Flux de service",
+      "heading": "Aperçu du flux de travail SIARA",
+      "closeAriaLabel": "Fermer le panneau aperçu",
+      "lead": "SIARA fournit un pipeline opérationnel clair, de la réception des signalements à la diffusion des alertes validées.",
+      "steps": {
+        "intakeTitle": "Réception de l'incident",
+        "intakeText": "Saisir les signalements avec localisation, médias et métadonnées contextuelles.",
+        "validationTitle": "Validation des données",
+        "validationText": "Normaliser et vérifier les enregistrements entrants pour les préparer à l'analyse.",
+        "riskTitle": "Évaluation des risques",
+        "riskText": "Estimer l'urgence et la fiabilité à l'aide d'un scoring assisté par IA.",
+        "reviewTitle": "Révision opérationnelle",
+        "reviewText": "Les équipes autorisées valident les incidents et attribuent les priorités de réponse.",
+        "distributionTitle": "Diffusion des alertes",
+        "distributionText": "Diffuser les alertes pertinentes aux utilisateurs et aux parties prenantes opérationnelles."
+      },
+      "techStackLabel": "Stack technologique :",
+      "techStackText": "Scoring IA des risques, cartographie géospatiale, événements en temps réel et flux de vérification."
+    }
+  },
+  "sidebar": {
+    "links": {
+      "dashboard": "Tableau de bord",
+      "home": "Accueil",
+      "news": "Actualités",
+      "contact": "Contact",
+      "about": "À propos",
+      "description": "Description",
+      "overview": "Vue d'ensemble",
+      "incidents": "Incidents",
+      "alerts": "Alertes",
+      "serviceControl": "Contrôle des services",
+      "system": "Système"
+    }
+  },
+  "addMobileDeviceModal": {
+    "title": "Ajouter un appareil mobile",
+    "subtitle": "Scannez ce QR code avec l'application mobile SIARA en étant connecté au même compte.",
+    "generatingCode": "Génération du code d'appairage…",
+    "pairingFailed": "Échec de l'appairage.",
+    "qrAlt": "QR code d'appairage de l'appareil mobile SIARA",
+    "expiresIn": "Expire dans",
+    "pasteUrlSummary": "Ou collez cette URL dans l'application",
+    "qrExpired": "Le QR code a expiré avant la fin de l'appairage.",
+    "generateNewQr": "Générer un nouveau QR",
+    "deviceConnected": "Appareil mobile connecté. Vous pouvez fermer cette fenêtre.",
+    "done": "Terminé"
+  },
+  "notificationBell": {
+    "timeNow": "Maintenant",
+    "timeMinutes_one": "{{count}} min",
+    "timeMinutes_other": "{{count}} min",
+    "timeHours_one": "{{count}} h",
+    "timeHours_other": "{{count}} h",
+    "timeDays_one": "{{count}} j",
+    "timeDays_other": "{{count}} j",
+    "ariaLabel": "Notifications",
+    "badgeAriaLabel": "{{count}} notifications non lues",
+    "kicker": "Notifications",
+    "unreadTitle": "{{count}} non lues",
+    "allCaughtUp": "Tout est à jour",
+    "markAllRead": "Tout marquer comme lu",
+    "loading": "Chargement des notifications…",
+    "empty": "Vous n'avez pas encore de notifications.",
+    "monitoredArea": "Zone surveillée",
+    "markRead": "Marquer comme lu",
+    "seeAll": "Voir toutes les notifications"
+  },
+  "notificationToasts": {
+    "priority": {
+      "high": "Élevée",
+      "medium": "Modérée",
+      "info": "Info"
+    },
+    "priorityKicker": "Priorité {{label}}",
+    "viewDetails": "Voir les détails",
+    "dismissAriaLabel": "Ignorer la notification"
+  },
+  "roadSafetyProfileCard": {
+    "title": "Profil de sécurité routière / zone",
+    "noProfileData": "Aucune donnée de profil disponible.",
+    "severityLow": "faible",
+    "vsPrev30d": "vs 30j préc.",
+    "stableVsPrev30d": "stable vs 30j préc.",
+    "metrics": {
+      "reports": "Signalements",
+      "inRadius": "dans {{radius}} m",
+      "avgRisk": "Risque moyen",
+      "approximate": "approximatif",
+      "last30Days": "30 derniers jours",
+      "vsPrev": "vs {{count}} préc.",
+      "policeVerified": "Vérifié par la police",
+      "allTime": "depuis toujours",
+      "peakWindow": "Créneau de pointe",
+      "mostCommonHour": "heure la plus fréquente"
+    },
+    "reportsPerMonth": "Signalements par mois (6 derniers mois)",
+    "mostCommonTypes": "Types les plus fréquents",
+    "peakDays": "Jours de pointe",
+    "recentReports": "Signalements récents dans cette zone",
+    "verified": "vérifié"
+  },
+  "globalHeaderSearch": {
+    "placeholder": "Rechercher des utilisateurs, incidents, routes, zones…",
+    "searchSuggestions": "Suggestions de recherche",
+    "loadingSuggestions": "Chargement des suggestions…",
+    "feedContributor": "Contributeur au fil d'actualité",
+    "reportedIncident": "Incident signalé",
+    "incidentReport": "Signalement d'incident",
+    "avatarAlt": "Avatar de {{name}}",
+    "kindAccount": "Compte",
+    "kindReport": "Signalement",
+    "noResults": "Aucun compte ou accident correspondant trouvé."
+  },
+  "personalSafetyScoreCard": {
+    "title": "Votre score de sécurité SIARA",
+    "errorFallback": "Impossible de charger le résumé de sécurité",
+    "emptyState": "Effectuez votre premier trajet guidé par SIARA pour commencer à suivre votre score de sécurité personnel, vos préférences d'itinéraire et les tendances de risque hebdomadaires.",
+    "noRatings": "aucune note",
+    "scoreSub": "Calculé à partir de {{tripCount}} trajet{{tripCount, plural, one {} other {s}}} effectué{{tripCount, plural, one {} other {s}}} — risque moyen {{avgRiskLabel}}, {{highRiskTripCount}} trajet{{highRiskTripCount, plural, one {} other {s}}} à haut risque.",
+    "scoreLabel": {
+      "notEnough": "Pas encore assez de trajets",
+      "excellent": "Excellent",
+      "strong": "Très bien",
+      "fair": "Passable",
+      "needsImprovement": "À améliorer",
+      "highRisk": "Comportement à haut risque"
+    },
+    "metrics": {
+      "trips": "Trajets",
+      "completed": "effectués",
+      "distance": "Distance",
+      "totalDriven": "total parcouru",
+      "avgRisk": "Risque moyen",
+      "acrossTrips": "sur tous les trajets",
+      "safestRouteUsed": "Itinéraire le plus sûr utilisé",
+      "times": "fois",
+      "avgRating": "Note moyenne",
+      "yourFeedback": "vos retours"
+    },
+    "weeklyAvgRisk": "Risque moyen hebdomadaire"
+  },
+  "routeReplayMap": {
+    "noGeometry": "Aucune géométrie d'itinéraire n'a été capturée pour ce trajet — la relecture est indisponible.",
+    "start": "Départ",
+    "end": "Arrivée",
+    "pause": "Pause",
+    "replayAgain": "Rejouer",
+    "play": "Lecture",
+    "reset": "Réinitialiser",
+    "speed": "Vitesse",
+    "progress": "Progression",
+    "distance": "Distance",
+    "overallRisk": "Risque global",
+    "routeType": "Type d'itinéraire"
+  },
+  "travelHistoryDetailModal": {
+    "tripRatingAriaLabel": "Note du trajet",
+    "tripDetails": "Détails du trajet",
+    "fromOrigin": "De {{name}}",
+    "savedTrip": "Trajet enregistré",
+    "loadingTripDetails": "Chargement des détails du trajet…",
+    "tripNotFound": "Trajet introuvable.",
+    "errorLoadFailed": "Impossible de charger les détails du trajet",
+    "errorUpdateFailed": "Impossible de mettre à jour la note",
+    "saved": "Enregistré",
+    "labelFrom": "De",
+    "labelTo": "À",
+    "labelStarted": "Départ",
+    "labelArrived": "Arrivée",
+    "labelDuration": "Durée",
+    "labelDistance": "Distance",
+    "labelRouteType": "Type d'itinéraire",
+    "labelOverallRisk": "Risque global",
+    "yourRating": "Votre note",
+    "feedbackPlaceholder": "Partagez votre avis sur ce trajet (facultatif)",
+    "saving": "Enregistrement…",
+    "saveRating": "Enregistrer la note",
+    "hideReplay": "Masquer la relecture",
+    "replayTrip": "Relire le trajet",
+    "roadSegments": "Tronçons routiers ({{count}})",
+    "noSegmentData": "Aucune donnée de tronçon n'a été capturée pour ce trajet.",
+    "colIndex": "#",
+    "colSegment": "Tronçon",
+    "colDistance": "Distance",
+    "colRisk": "Risque",
+    "colWindow": "Fenêtre",
+    "colTime": "Heure",
+    "segmentId": "Tronçon {{id}}",
+    "segmentIndex": "Tronçon {{index}}"
+  },
+  "cTA": {
+    "contactUs": "Contactez-nous"
+  },
+  "dateTimePicker": {
+    "selectDateTime": "Sélectionner date & heure",
+    "prevMonth": "Mois précédent",
+    "nextMonth": "Mois suivant",
+    "timeLabel": "Heure",
+    "now": "Maintenant",
+    "done": "Terminé",
+    "weekdays": {
+      "mo": "Lu",
+      "tu": "Ma",
+      "we": "Me",
+      "th": "Je",
+      "fr": "Ve",
+      "sa": "Sa",
+      "su": "Di"
+    },
+    "months": {
+      "january": "Janvier",
+      "february": "Février",
+      "march": "Mars",
+      "april": "Avril",
+      "may": "Mai",
+      "june": "Juin",
+      "july": "Juillet",
+      "august": "Août",
+      "september": "Septembre",
+      "october": "Octobre",
+      "november": "Novembre",
+      "december": "Décembre"
+    }
+  },
+  "drivingQuiz": {
+    "title": "Évaluation du profil conducteur",
+    "subtitle": "Répondez aux questions, puis nous envoyons les scores au service de modèle",
+    "skipQuizAria": "Ignorer le quiz",
+    "progress": "{{answered}} sur {{total}} questions",
+    "sectionCounter": "Section {{current}}/{{total}}",
+    "questionCounter": "Question {{current}} sur {{total}}",
+    "skipForNow": "Ignorer pour l'instant",
+    "answers": {
+      "never": "Jamais",
+      "rarely": "Rarement",
+      "sometimes": "Parfois",
+      "often": "Souvent",
+      "very_often": "Très souvent",
+      "always": "Toujours"
+    },
+    "stream": {
+      "starting": "Préparation de l'explication...",
+      "loadingModel": "Chargement du modèle de langage local...",
+      "generating": "Génération de l'explication...",
+      "finalizing": "Finalisation de la réponse...",
+      "fallback": "Utilisation de l'explication de secours déterministe...",
+      "done": "Explication prête.",
+      "working": "Travail sur l'explication..."
+    },
+    "errors": {
+      "modelExplanationFailed": "Impossible d'obtenir l'explication en direct du modèle",
+      "streamFailed": "Le flux d'explication en direct a échoué. Veuillez réessayer."
+    },
+    "results": {
+      "title": "Résultat du modèle",
+      "riskScore": "Score de risque : {{score}}% ({{label}})",
+      "savedToProfile": "Enregistré dans votre profil SIARA.",
+      "continue": "Continuer"
+    },
+    "impact": {
+      "pushedHigher": "a augmenté le risque",
+      "reducedRisk": "a contribué à réduire le risque",
+      "noImpact": "aucun impact notable",
+      "limitedProtective": "effet protecteur limité",
+      "shapTooltip": "SHAP : {{value}} ({{text}})"
+    },
+    "sections": {
+      "attention": {
+        "title": "Attention et concentration",
+        "q1": "À quelle fréquence votre esprit s'éloigne-t-il de la conduite lorsque vous êtes au volant ?",
+        "q2": "À quelle fréquence réalisez-vous que vous avez manqué quelque chose sur la route parce que vous n'étiez pas pleinement attentif ?"
+      },
+      "anxiety": {
+        "title": "Anxiété au volant",
+        "q3": "À quelle fréquence vous sentez-vous nerveux ou tendu en conduisant, même dans un trafic normal ?",
+        "q4": "À quelle fréquence craignez-vous d'avoir un accident pendant que vous conduisez ?"
+      },
+      "risk-taking": {
+        "title": "Prise de risque",
+        "q5": "À quelle fréquence prenez-vous des risques en conduisant, comme dépasser quand c'est un peu risqué ?",
+        "q6": "À quelle fréquence vous sentez-vous à l'aise pour conduire plus vite que les autres lorsque la route est dégagée ?",
+        "q7": "À quelle fréquence vous poussez-vous à conduire dans des situations que vous savez un peu dangereuses (comme sur des routes étroites ou très fréquentées) ?"
+      },
+      "anger": {
+        "title": "Colère et agressivité",
+        "q8": "À quelle fréquence vous sentez-vous en colère ou furieux contre d'autres conducteurs lorsqu'ils vous agacent ?",
+        "q9": "À quelle fréquence vous sentez-vous frustré et conduisez-vous de manière plus agressive après avoir été coupé ?",
+        "q10": "À quelle fréquence criez-vous contre d'autres conducteurs ou leur faites-vous des gestes irrespectueux ?"
+      },
+      "sensation": {
+        "title": "Recherche de sensations",
+        "q11": "À quelle fréquence conduisez-vous beaucoup plus vite que la limite de vitesse pour le frisson que cela procure ?",
+        "q12": "À quelle fréquence ressentez-vous de l'excitation en conduisant à très grande vitesse sur des routes ouvertes ?"
+      },
+      "stress-relief": {
+        "title": "Soulagement du stress",
+        "q13": "À quelle fréquence conduisez-vous pour vous détendre ou réduire votre stress ?",
+        "q14": "À quelle fréquence faites-vous un tour en voiture juste pour vous vider la tête ou vous calmer ?",
+        "q15": "À quelle fréquence vous sentez-vous moins stressé après un long trajet ?"
+      },
+      "patience": {
+        "title": "Patience et calme",
+        "q16": "À quelle fréquence restez-vous calme et patient même lorsque vous êtes coincé dans un embouteillage ?",
+        "q17": "À quelle fréquence gardez-vous votre calme lorsque d'autres conducteurs sont lents ou font des erreurs ?"
+      },
+      "safety": {
+        "title": "Conscience de la sécurité",
+        "q18": "À quelle fréquence conduisez-vous prudemment pour éviter les accidents ?",
+        "q19": "À quelle fréquence respectez-vous toutes les règles de circulation (limites de vitesse, feux, etc.) parce que la sécurité est importante pour vous ?",
+        "q20": "À quelle fréquence prêtez-vous une attention particulière à la route et à l'environnement pour éviter les erreurs ?"
+      },
+      "violations": {
+        "title": "Infractions au code de la route",
+        "q21": "À quelle fréquence dépassez-vous la limite de vitesse en conduisant ?",
+        "q22": "À quelle fréquence collez-vous (suivez de trop près) le véhicule devant vous ?",
+        "q23": "À quelle fréquence dépassez-vous un autre véhicule en circulant brièvement dans la voie opposée ?",
+        "q24": "À quelle fréquence brûlez-vous un feu rouge ou ne vous arrêtez-vous pas complètement à un panneau stop ?",
+        "q25": "À quelle fréquence utilisez-vous votre téléphone portable (écrire ou appeler) en conduisant ?",
+        "q26": "À quelle fréquence vous mettez-vous en colère contre d'autres conducteurs et l'exprimez-vous en criant ou en klaxonnant ?"
+      },
+      "errors": {
+        "title": "Erreurs de conduite",
+        "q27": "À quelle fréquence mal évaluez-vous la distance ou la vitesse d'un autre véhicule lors d'un dépassement ou d'une insertion ?",
+        "q28": "À quelle fréquence appuyez-vous accidentellement sur l'accélérateur alors que vous vouliez freiner (ou vice versa) ?",
+        "q29": "À quelle fréquence ne remarquez-vous un panneau ou un signal de circulation que lorsqu'il est trop tard ?",
+        "q30": "À quelle fréquence négligez-vous un piéton ou un cycliste lorsque vous tournez ?",
+        "q31": "À quelle fréquence devez-vous freiner brusquement parce que vous venez seulement de remarquer quelque chose que vous aviez manqué ?"
+      },
+      "lapses": {
+        "title": "Lacunes de mémoire",
+        "q32": "À quelle fréquence vous retrouvez-vous à conduire en « pilote automatique », arrivant à destination sans vous souvenir de certaines parties du trajet ?",
+        "q33": "À quelle fréquence ratez-vous votre sortie ou votre virage parce que vous étiez distrait ou en train de rêvasser ?",
+        "q34": "À quelle fréquence vous perdez-vous ou oubliez-vous quelle direction prendre en conduisant ?",
+        "q35": "À quelle fréquence oubliez-vous où vous avez garé votre voiture ?"
+      },
+      "habits": {
+        "title": "Habitudes de conduite",
+        "q36": "À quelle fréquence oubliez-vous de signaler lorsque vous changez de voie ou tournez ?",
+        "q37": "À quelle fréquence oubliez-vous de vérifier vos rétroviseurs ou vos angles morts avant de changer de voie ?",
+        "q38": "À quelle fréquence vous laissez-vous distraire (par un téléphone ou de la musique, par exemple) et ratez-vous quelque chose qui se passe sur la route ?",
+        "q39": "À quelle fréquence commencez-vous à conduire sans attacher votre ceinture de sécurité et vous en rendez-vous compte peu après ?",
+        "q40": "À quelle fréquence vous retrouvez-vous en train de faire plusieurs choses à la fois (comme régler la radio ou attraper quelque chose) et à sortir brièvement de votre voie ?"
+      }
+    }
+  },
+  "fancySelect": {
+    "placeholder": "Sélectionner…",
+    "optionsLabel": "Options"
+  },
+  "quizExplanationResult": {
+    "generatingExplanation": "Génération de l'explication…",
+    "explanationReady": "Explication prête",
+    "fallback": "Repli",
+    "eyebrow": "Explication de l'assistant SIARA",
+    "heading": "Résultat du profil de conduite",
+    "sections": {
+      "summary": "Résumé",
+      "riskFactors": "Principaux facteurs aggravants",
+      "protectiveFactors": "Principaux facteurs protecteurs",
+      "advice": "Conseils pratiques",
+      "disclaimer": "Avertissement"
+    },
+    "waitingForSummary": "En attente du résumé…",
+    "emptyRiskFactors": "Les facteurs aggravants apparaîtront ici au fil de l'explication.",
+    "emptyProtectiveFactors": "Les facteurs protecteurs apparaîtront ici au fil de l'explication.",
+    "emptyAdvice": "Les conseils pratiques apparaîtront ici au fil de l'explication.",
+    "disclaimerFallback": "Cette explication est à visée éducative en matière de sécurité routière et ne modifie pas le score calculé."
+  },
+  "siaraDatePicker": {
+    "selectDate": "Sélectionner une date",
+    "selectTime": "Sélectionner une heure",
+    "chooseDate": "Choisir une date",
+    "chooseTime": "Choisir une heure",
+    "prevYear": "Année précédente",
+    "prevMonth": "Mois précédent",
+    "nextMonth": "Mois suivant",
+    "nextYear": "Année suivante",
+    "hour": "Heure",
+    "minute": "Minute",
+    "clear": "Effacer",
+    "now": "Maintenant",
+    "today": "Aujourd'hui",
+    "done": "Terminé",
+    "months": {
+      "0": "Janvier",
+      "1": "Février",
+      "2": "Mars",
+      "3": "Avril",
+      "4": "Mai",
+      "5": "Juin",
+      "6": "Juillet",
+      "7": "Août",
+      "8": "Septembre",
+      "9": "Octobre",
+      "10": "Novembre",
+      "11": "Décembre"
+    },
+    "weekdays": {
+      "0": "Lu",
+      "1": "Ma",
+      "2": "Me",
+      "3": "Je",
+      "4": "Ve",
+      "5": "Sa",
+      "6": "Di"
+    }
+  },
+  "notificationContext": {
+    "unableToLoad": "Impossible de charger les notifications."
+  },
+  "navigationPreviewPage": {
+    "tabs": {
+      "ariaLabel": "Modes d'aperçu",
+      "drive": "Conduire",
+      "routes": "Itinéraires",
+      "risk": "Risque"
+    },
+    "instruction": {
+      "ariaLabel": "Instruction de navigation",
+      "in450m": "Dans 450 m",
+      "keepRight": "Restez à droite vers le Boulevard Krim Belkacem",
+      "continueStraight": "Puis continuez tout droit après la prochaine intersection"
+    },
+    "controls": {
+      "ariaLabel": "Contrôles de la carte",
+      "toggleRoutePanel": "Afficher/masquer le panneau d'itinéraire sélectionné",
+      "toggleDebug": "Afficher/masquer le panneau de débogage",
+      "centerLocation": "Centrer sur ma position",
+      "myLocation": "Ma position"
+    },
+    "routePanel": {
+      "ariaLabel": "Panneau d'itinéraire sélectionné",
+      "selectedRoute": "Itinéraire sélectionné",
+      "safer": "Plus sûr",
+      "destination": "Destination",
+      "metricsAriaLabel": "Métriques de l'itinéraire",
+      "eta": "Heure d'arrivée",
+      "distance": "Distance",
+      "whyThisRoute": "Pourquoi cet itinéraire ?",
+      "whyThisRouteText": "Temps de trajet équilibré avec moins de segments à haut risque que l'option la plus rapide, tout en gardant l'itinéraire suffisamment direct pour une navigation active.",
+      "segmentRiskSummary": "Résumé des risques par segment",
+      "segment": "Segment {{number}}",
+      "alternatives": "Alternatives",
+      "riskPercent": "{{percent}}% de risque"
+    },
+    "segmentRisk": {
+      "ariaLabel": "Risque du segment actuel",
+      "currentSegment": "Segment actuel",
+      "untilNextSegment": "{{distance}} km jusqu'au prochain segment"
+    },
+    "legend": {
+      "ariaLabel": "Légende de la carte",
+      "low": "Faible",
+      "moderate": "Modéré",
+      "high": "Élevé"
+    },
+    "summary": {
+      "ariaLabel": "Résumé de l'itinéraire",
+      "eta": "Heure d'arrivée",
+      "remaining": "restant",
+      "exitNavigation": "Quitter la navigation"
+    },
+    "debug": {
+      "ariaLabel": "Débogage de la localisation en direct"
+    }
+  },
+  "routeExplanationPreviewPage": {
+    "heading": "RouteExplanationCard — aperçu du design",
+    "sections": {
+      "default": {
+        "label": "État par défaut (itinéraire équilibré, risque modéré)",
+        "summary": "SIARA recommande cet itinéraire car il évite 2 zones d'accidents à risque élevé et présente un risque prédit inférieur de 32 % par rapport à l'itinéraire le plus rapide. Il ajoute 4 minutes mais contourne une zone à haute gravité près de la destination.",
+        "details": "Modèle de risque : SIARA v2 (gradient-boosted)\n12 points échantillonnés le long de l'itinéraire\nGrappes de carte thermique dans un rayon de 200 m : 2\nSignalements dans un rayon de 500 m (7 derniers jours) : 3 (2 vérifiés par la police)\nMétéo : clair, bonne visibilité\nAjustement selon l'heure : +5 % (heure de pointe du soir)"
+      },
+      "highRisk": {
+        "label": "État d'avertissement à risque élevé (itinéraire le plus rapide, risque élevé)",
+        "summary": "L'itinéraire le plus rapide traverse 3 zones d'accidents à risque élevé. Envisagez l'alternative plus sûre — elle ajoute 6 minutes mais réduit le risque prédit de plus de moitié.",
+        "reasons": {
+          "h1": {
+            "label": "3 zones à risque élevé sur l'itinéraire",
+            "detail": "Bab Ezzouar, El Harrach, RN5 km 18",
+            "impactLabel": "+34 % de risque"
+          },
+          "h2": {
+            "label": "5 signalements récents graves",
+            "detail": "4 dans les dernières 24 h, 2 vérifiés par la police",
+            "impactLabel": "élevé"
+          },
+          "h3": {
+            "label": "2 segments dangereux traversés",
+            "detail": "Tous deux signalés comme hautement graves au cours des 30 derniers jours",
+            "impactLabel": "+12 % de risque"
+          }
+        }
+      },
+      "loading": {
+        "label": "État de chargement"
+      },
+      "error": {
+        "label": "État d'erreur",
+        "errorMessage": "Impossible de générer une explication. Affichage des chiffres de risque uniquement."
+      },
+      "empty": {
+        "label": "État vide"
+      }
+    },
+    "reasons": {
+      "r1": {
+        "label": "Évite 2 zones d'accidents à risque élevé",
+        "detail": "Carrefour Bab Ezzouar & RN24 km 12 (18 signalements ces 30 derniers jours)",
+        "impactLabel": "−24 % de risque"
+      },
+      "r2": {
+        "label": "1 segment routier à risque élevé évité",
+        "detail": "Courbe prononcée sur la RN5 avec 4 signalements graves",
+        "impactLabel": "−8 % de risque"
+      },
+      "r3": {
+        "label": "3 signalements récents à proximité de l'itinéraire",
+        "detail": "2 vérifiés par la police, 1 en attente de vérification",
+        "impactLabel": "à surveiller"
+      },
+      "r4": {
+        "label": "Heure de pointe du soir à venir",
+        "detail": "Départ à 17 h 42 — fenêtre de risque maximal 17 h 00–20 h 00",
+        "impactLabel": "+5 % de risque"
+      },
+      "r5": {
+        "label": "Ajoute 4 minutes par rapport à l'itinéraire le plus rapide",
+        "detail": "Recommandé pour un risque prédit inférieur de 32 %",
+        "impactLabel": "+4 min"
+      }
+    }
+  },
+  "aboutPage": {
+    "brandCaption": "Plateforme de sécurité routière intelligente",
+    "kicker": "Identité du projet",
+    "badge": "Vision SIARA",
+    "title": "À propos de SIARA",
+    "intro": "SIARA est une plateforme de sécurité routière intelligente qui combine signalements, cartes et IA pour favoriser une mobilité plus sûre et une réponse aux incidents plus rapide.",
+    "metrics": {
+      "realtime": {
+        "title": "Coordination en temps réel",
+        "desc": "Intelligence cartographique en direct pour les équipes de terrain et les usagers de la route."
+      },
+      "ai": {
+        "title": "Priorisation assistée par IA",
+        "desc": "Scoring de gravité et de fiabilité pour de meilleures décisions d'intervention."
+      },
+      "visibility": {
+        "title": "Visibilité opérationnelle",
+        "desc": "Alertes, signalements et analyses unifiés dans un seul espace de travail SIARA."
+      }
+    },
+    "features": {
+      "overview": {
+        "title": "Qu'est-ce que SIARA",
+        "desc": "SIARA centralise le signalement des incidents, la surveillance et la visibilité opérationnelle dans une plateforme unifiée."
+      },
+      "mission": {
+        "title": "Mission",
+        "desc": "Améliorer la sécurité routière et la réponse aux incidents grâce à des informations précises, opportunes et exploitables."
+      },
+      "vision": {
+        "title": "Vision",
+        "desc": "Soutenir l'intégration à la ville intelligente grâce à l'IA et aux données connectées pour une sécurité publique proactive."
+      }
+    },
+    "impact": {
+      "title": "Comment SIARA crée de l'impact",
+      "lead": "SIARA est conçu pour transformer des données d'incidents fragmentées en actions coordonnées. Au lieu de s'appuyer sur des signalements isolés, il relie les citoyens, les intervenants et les superviseurs via une plateforme prête à la décision.",
+      "steps": {
+        "capture": {
+          "title": "1. Capturer",
+          "desc": "Les citoyens soumettent des incidents avec localisation, médias et contexte depuis le terrain."
+        },
+        "analyze": {
+          "title": "2. Analyser",
+          "desc": "Les modèles IA classifient les risques, détectent les anomalies et classent l'urgence pour les opérateurs."
+        },
+        "act": {
+          "title": "3. Agir",
+          "desc": "La police et les équipes valident les événements, déclenchent des alertes et coordonnent rapidement les interventions."
+        }
+      }
+    },
+    "capabilities": {
+      "title": "Capacités essentielles de SIARA",
+      "riskMapping": {
+        "title": "Cartographie des risques",
+        "desc": "Visualisez les corridors dangereux et les zones critiques avec des couches de densité d'incidents et de gravité."
+      },
+      "alertEngine": {
+        "title": "Moteur d'alertes",
+        "desc": "Générez des alertes ciblées par localisation, type d'incident et niveau de priorité en temps réel."
+      },
+      "analytics": {
+        "title": "Analytique opérationnelle",
+        "desc": "Suivez les tendances, les performances de réponse et le débit de vérification sur l'ensemble du réseau."
+      },
+      "coordination": {
+        "title": "Coordination inter-équipes",
+        "desc": "Soutenez une prise de décision cohérente entre les agents de terrain, le dispatch et les superviseurs."
+      }
+    },
+    "values": {
+      "title": "Valeurs clés",
+      "safety": "Sécurité",
+      "efficiency": "Efficacité",
+      "innovation": "Innovation"
+    }
+  },
+  "descriptionPage": {
+    "brandCaption": "Plateforme d'intelligence pour la sécurité routière",
+    "kicker": "Flux du système",
+    "badge": "Flux opérationnel",
+    "title": "Description de la plateforme",
+    "intro": "SIARA est une plateforme d'intelligence opérationnelle pour la sécurité routière. Elle convertit les données d'incidents en décisions structurées, permettant une coordination plus rapide et une réponse terrain plus cohérente.",
+    "overview": {
+      "title": "Aperçu général",
+      "body": "La plateforme combine les signalements citoyens, le contexte géospatial et l'évaluation assistée par IA pour améliorer la conscience situationnelle dans les opérations de sécurité routière.",
+      "highlights": {
+        "clarity": {
+          "heading": "Clarté opérationnelle",
+          "detail": "Une vue partagée des incidents, des priorités et du statut des interventions."
+        },
+        "response": {
+          "heading": "Cycles de réponse plus rapides",
+          "detail": "Une priorisation claire réduit le délai entre la détection et l'action."
+        },
+        "decision": {
+          "heading": "Aide à la décision cohérente",
+          "detail": "Un scoring standardisé aide les équipes à s'aligner sur l'urgence et les prochaines étapes."
+        }
+      }
+    },
+    "workflow": {
+      "title": "Flux de service",
+      "lead": "Un processus de bout en bout transparent, de la réception à la communication validée.",
+      "steps": {
+        "intake": {
+          "title": "Réception des incidents",
+          "detail": "Les signalements sont enregistrés avec la localisation, les médias et les métadonnées contextuelles provenant des utilisateurs et des opérateurs."
+        },
+        "validation": {
+          "title": "Validation des données",
+          "detail": "Les contrôles de qualité des entrées standardisent les enregistrements et préparent les événements pour l'analyse en aval."
+        },
+        "riskAssessment": {
+          "title": "Évaluation des risques",
+          "detail": "Les modèles de scoring estiment l'urgence et la fiabilité pour appuyer les décisions de priorisation."
+        },
+        "operationalReview": {
+          "title": "Revue opérationnelle",
+          "detail": "Les équipes autorisées vérifient les incidents et affectent le flux de réponse approprié."
+        },
+        "alertDistribution": {
+          "title": "Distribution des alertes",
+          "detail": "Les alertes validées sont distribuées aux utilisateurs, zones et canaux opérationnels concernés."
+        }
+      }
+    },
+    "tech": {
+      "title": "Technologie et gouvernance",
+      "lead": "SIARA équilibre l'automatisation intelligente et la validation humaine pour maintenir la fiabilité et la responsabilité.",
+      "tagsAriaLabel": "Technologies",
+      "tags": {
+        "aiRiskScoring": "Scoring des risques par IA",
+        "geospatialMapping": "Cartographie géospatiale",
+        "realtimeEventStream": "Flux d'événements en temps réel",
+        "verificationWorkflow": "Flux de vérification",
+        "notificationPipeline": "Pipeline de notification",
+        "operationalAnalytics": "Analytique opérationnelle"
+      }
+    }
+  },
+  "contactPage": {
+    "brandCaption": "Plateforme d'intelligence pour la sécurité routière",
+    "kicker": "Centre d'assistance",
+    "title": "Contact",
+    "intro": "Contactez SIARA pour obtenir de l'aide, poser vos questions ou explorer des opportunités de partenariat.",
+    "infoSection": {
+      "title": "Informations de contact",
+      "emailLabel": "E-mail :",
+      "sendEmailLink": "Envoyer un e-mail directement"
+    },
+    "form": {
+      "hideForm": "Masquer le formulaire de contact",
+      "openForm": "Ouvrir le formulaire de contact",
+      "title": "Formulaire de contact",
+      "nameLabel": "Nom",
+      "emailLabel": "E-mail",
+      "messageLabel": "Message",
+      "sending": "Envoi en cours…",
+      "submit": "Envoyer"
+    },
+    "errors": {
+      "invalidName": "Veuillez entrer un nom valide.",
+      "invalidEmail": "Veuillez entrer une adresse e-mail valide.",
+      "messageTooShort": "Le message doit contenir au moins 10 caractères.",
+      "sendFailed": "Impossible d'envoyer votre message. Veuillez réessayer."
+    },
+    "successMessage": "Merci. Nous vous répondrons dans les plus brefs délais.",
+    "responseNote": "Nous vous répondrons dans les plus brefs délais."
+  },
+  "homePage": {
+    "logoAlt": "Logo SIARA",
+    "hero": {
+      "eyebrow": "Plateforme de sécurité routière propulsée par l'IA",
+      "title": "Rendez les routes plus sûres",
+      "titleHighlight": "avec l'IA",
+      "subtitle": "Analysez, prédisez et prévenez les accidents avant qu'ils ne surviennent.",
+      "cta": {
+        "getStarted": "Commencer",
+        "discover": "Découvrir nos services"
+      }
+    },
+    "how": {
+      "title": "Comment fonctionne SIARA ?",
+      "step01": {
+        "label": "Étape 01",
+        "title": "Collecte de données",
+        "description": "Données routières agrégées, historique des accidents, météo et densité du trafic."
+      },
+      "step02": {
+        "label": "Étape 02",
+        "title": "Analyse et IA prédictive",
+        "description": "Modèles d'apprentissage automatique pour estimer les zones de risque en temps réel."
+      },
+      "step03": {
+        "label": "Étape 03",
+        "title": "Alertes en temps réel",
+        "description": "Notifications et visualisations pour anticiper et prévenir les accidents."
+      }
+    },
+    "mission": {
+      "eyebrow": "Notre Mission",
+      "title": "Zéro accident évitable.",
+      "description": "Réduire significativement les accidents de la route en mettant la puissance de l'IA et des données au service des conducteurs, des autorités et des développeurs d'infrastructures intelligentes."
+    },
+    "stats": {
+      "deathsLabel": "décès / an dans le monde",
+      "reductionLabel": "objectif de réduction d'ici 2030",
+      "accuracyLabel": "Précision simulée",
+      "zonesLabel": "Zones à haut risque cartographiées"
+    },
+    "services": {
+      "sectionTitle": "Services SIARA",
+      "learnMore": "En savoir plus",
+      "analytics": {
+        "tag": "Analytique",
+        "title": "Tableau de bord analytique",
+        "description": "Visualisations agrégées, tendances temporelles et filtres dynamiques pour comprendre l'évolution des risques."
+      },
+      "mapping": {
+        "tag": "Cartographie",
+        "title": "Carte des prévisions",
+        "description": "Carte interactive mettant en évidence les zones à risque au niveau local avec des superpositions d'incidents en temps réel."
+      },
+      "mobile": {
+        "tag": "Mobile",
+        "title": "Application Mobile SIARA",
+        "description": "Alertes embarquées, notifications de risque et conseils préventifs à portée de main."
+      }
+    },
+    "join": {
+      "title": "Rejoignez l'Initiative",
+      "description": "Collaborez pour rendre les routes algériennes plus sûres grâce aux données et à l'intelligence artificielle.",
+      "cta": "Créez votre compte"
+    }
+  },
+  "newsPage": {
+    "severity": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible",
+      "unknown": "Inconnu"
+    },
+    "time": {
+      "unknown": "Heure inconnue",
+      "justNow": "À l'instant",
+      "minAgo_one": "Il y a {{count}} min",
+      "minAgo_other": "Il y a {{count}} min",
+      "hoursAgo_one": "Il y a {{count}} heure",
+      "hoursAgo_other": "Il y a {{count}} heures",
+      "daysAgo_one": "Il y a {{count}} jour",
+      "daysAgo_other": "Il y a {{count}} jours"
+    },
+    "qualityBadge": {
+      "officerVerified": "Vérifié par un agent",
+      "aiVerified": "Vérifié par IA",
+      "needsReview": "À vérifier",
+      "probablySpam": "Probablement du spam",
+      "outOfContext": "Hors contexte",
+      "invalidLocation": "Localisation invalide",
+      "checking": "Vérification…",
+      "unverified": "Non vérifié"
+    },
+    "role": {
+      "citizen": "Citoyen",
+      "admin": "Admin",
+      "policeSupervisor": "Superviseur",
+      "police": "Police",
+      "emergency": "Urgence",
+      "officialReporter": "Rapporteur officiel"
+    },
+    "card": {
+      "viewProfile": "Voir le profil de {{name}}",
+      "officialReporterTitle": "Rapporteur officiel",
+      "trustScoreTitle": "Score de confiance : {{score}}",
+      "reportedLocation": "Localisation non précisée",
+      "spamConfidenceTitle": "Score de spam : {{spam}}% · Confiance : {{confidence}}%",
+      "credibility": "crédibilité",
+      "spam": "Spam",
+      "whyThisScore": "Pourquoi ce score ?",
+      "credibilityEmpty": "Aucun détail disponible.",
+      "viewDetails": "Voir les détails",
+      "untitledReport": "Signalement sans titre",
+      "noDescription": "Aucune description fournie.",
+      "readMore": "Lire la suite",
+      "openPhoto": "Ouvrir la photo {{index}} sur {{total}}",
+      "reportPhoto": "Photo du signalement",
+      "reportImage": "Image du signalement",
+      "openIncident": "Ouvrir l'incident"
+    },
+    "actions": {
+      "shareTitle": "Incident SIARA",
+      "like": "J'aime",
+      "sawIt": "Je l'ai vu",
+      "comment": "Commenter",
+      "shareReport": "Partager le signalement",
+      "copied": "Copié !",
+      "share": "Partager"
+    },
+    "comment": {
+      "errorPost": "Échec de l'envoi du commentaire.",
+      "errorLoad": "Échec du chargement des commentaires.",
+      "count_one": "{{count}} commentaire",
+      "count_other": "{{count}} commentaires",
+      "comments": "Commentaires",
+      "anonymous": "Anonyme",
+      "deleteComment": "Supprimer le commentaire",
+      "viewAll_one": "Voir {{count}} commentaire",
+      "viewAll_other": "Voir les {{count}} commentaires",
+      "you": "Vous",
+      "placeholder": "Ajouter un commentaire…",
+      "signInPlaceholder": "Connectez-vous pour commenter",
+      "postComment": "Publier le commentaire"
+    },
+    "lightbox": {
+      "photoPreview": "Aperçu de la photo",
+      "zoomOut": "Dézoomer",
+      "resetZoom": "Réinitialiser le zoom",
+      "zoomIn": "Zoomer",
+      "closePreview": "Fermer l'aperçu",
+      "prevPhoto": "Photo précédente",
+      "nextPhoto": "Photo suivante"
+    },
+    "feedTab": {
+      "latest": "Récents",
+      "nearby": "À proximité",
+      "verified": "Vérifiés",
+      "following": "Abonnements"
+    },
+    "sortOption": {
+      "mostRecent": "Plus récent",
+      "severity": "Gravité"
+    },
+    "nearby": {
+      "finding": "Recherche de votre position…",
+      "showingWithin": "Signalements dans un rayon de {{km}} km",
+      "unavailable": "Position indisponible. Affichage des derniers signalements."
+    },
+    "feed": {
+      "errorLoad": "Échec du chargement des signalements.",
+      "errorLoadMore": "Échec du chargement de plus de signalements.",
+      "loadingLive": "Chargement du flux en direct…",
+      "unavailable": "Flux indisponible",
+      "noReports": "Aucun signalement trouvé",
+      "foundMatching_one": "{{count}} résultat correspondant à votre recherche",
+      "foundMatching_other": "{{count}} résultats correspondant à votre recherche",
+      "showing_one": "Affichage de {{count}} signalement",
+      "showing_other": "Affichage de {{count}} signalements",
+      "sortBy": "Trier par :",
+      "sortReports": "Trier les signalements",
+      "sortOptions": "Options de tri",
+      "errorTitle": "Erreur du flux",
+      "loadingTitle": "Chargement…",
+      "loadingDesc": "Récupération des derniers signalements.",
+      "followingUnavailable": "Abonnements non disponibles",
+      "noReportsFound": "Aucun signalement trouvé",
+      "tryDifferentSearch": "Essayez un autre terme de recherche.",
+      "followingDesc": "Le flux des abonnements n'est pas encore disponible. Essayez Récents ou À proximité.",
+      "trySwitching": "Essayez de changer d'onglet.",
+      "loadingMore": "Chargement en cours…",
+      "showMore": "Afficher plus",
+      "endOfFeed": "Vous avez atteint la fin du flux."
+    },
+    "search": {
+      "feedContributor": "Contributeur au flux",
+      "reportedIncident": "Incident signalé",
+      "incidentReport": "Signalement d'incident",
+      "placeholder": "Rechercher des incidents ou des personnes…",
+      "ariaLabel": "Rechercher",
+      "menuAriaLabel": "Suggestions de recherche",
+      "avatarAlt": "Avatar de {{name}}",
+      "account": "Compte",
+      "report": "Signalement",
+      "noMatch": "Aucun résultat trouvé"
+    },
+    "profile": {
+      "guestDriver": "Conducteur invité",
+      "ariaLabel": "Menu utilisateur",
+      "avatarAlt": "Votre avatar",
+      "alt": "Avatar du profil",
+      "bio": "Membre de la communauté de sécurité routière",
+      "viewProfile": "Voir le profil"
+    },
+    "dropdown": {
+      "myProfile": "Mon profil"
+    },
+    "nav": {
+      "feed": "Fil d'actualité",
+      "report": "Signaler",
+      "dashboard": "Tableau de bord"
+    },
+    "filters": {
+      "smartFilters": "Filtres intelligents",
+      "hide": "Masquer",
+      "show": "Afficher",
+      "feedMode": "Mode du flux",
+      "sort": "Tri",
+      "severity": "Gravité",
+      "low": "Faible",
+      "medium": "Modéré",
+      "high": "Élevé",
+      "savedFilters": "Filtres sauvegardés",
+      "latestReports": "Derniers signalements",
+      "verifiedSevere": "Vérifiés & graves",
+      "reportsNearMe": "Signalements près de moi"
+    },
+    "cta": {
+      "wantToReport": "Vous avez été témoin d'un incident ? Partagez-le avec la communauté.",
+      "goToReportPage": "Signaler un incident"
+    },
+    "widget": {
+      "incidentsNearYou": "Incidents près de vous",
+      "yourLocation": "Votre position",
+      "mappedReports_one": "{{count}} signalement sur la carte",
+      "mappedReports_other": "{{count}} signalements sur la carte",
+      "noMappedReports": "Aucun signalement sur la carte",
+      "openFullMap": "Ouvrir la carte complète",
+      "trendingIncidents": "Incidents tendance",
+      "info": "Info",
+      "report": "Signalement",
+      "trendingEmpty": "Aucun incident tendance pour le moment.",
+      "seeMore": "Voir plus sur la carte",
+      "priorityAlerts": "Alertes prioritaires",
+      "alertItem": "{{title}} — {{location}}",
+      "selectedArea": "Zone sélectionnée",
+      "alertsEmpty": "Aucune alerte prioritaire pour le moment.",
+      "enableAlerts": "Activer les alertes",
+      "quickActions": "Actions rapides",
+      "addReport": "Ajouter un signalement",
+      "openIncidentMap": "Ouvrir la carte des incidents"
+    }
+  },
+  "notificationsPage": {
+    "time": {
+      "justNow": "À l'instant",
+      "minutesAgo_one": "il y a {{count}} min",
+      "minutesAgo_other": "il y a {{count}} min",
+      "hoursAgo_one": "il y a {{count}} h",
+      "hoursAgo_other": "il y a {{count}} h",
+      "daysAgo_one": "il y a {{count}} j",
+      "daysAgo_other": "il y a {{count}} j",
+      "unknown": "Heure inconnue"
+    },
+    "actionNeeded": "Action requise",
+    "unread": "Non lu",
+    "read": "Lu",
+    "aboutThisReport": "À propos de ce signalement",
+    "severityLabel": "gravité",
+    "moderatorQuestion": "Question du modérateur",
+    "reply": {
+      "sent": "Réponse envoyée.",
+      "sentDetail": "Le modérateur a été notifié — il fera un suivi sur votre signalement.",
+      "sentDetailPanel": "Le modérateur a été notifié — il fera un suivi sur ce signalement.",
+      "placeholder": "Saisissez votre réponse au modérateur…",
+      "placeholderPanel": "Saisissez les informations supplémentaires demandées par le modérateur…",
+      "sending": "Envoi…",
+      "sendReply": "Envoyer la réponse",
+      "sendResponse": "Envoyer la réponse",
+      "sendError": "Échec de l'envoi de la réponse"
+    },
+    "support": {
+      "yourOriginalMessage": "Votre message d'origine",
+      "yourMessage": "Votre message",
+      "repliedBy": "{{name}} a répondu",
+      "siaraTeamReplied": "L'équipe SIARA a répondu"
+    },
+    "signInPrompt": {
+      "title": "Connectez-vous pour voir vos notifications",
+      "body": "Les alertes d'incidents en direct apparaissent ici après connexion et création de règles d'alerte.",
+      "cta": "Aller à la connexion"
+    },
+    "searchPlaceholder": "Rechercher des notifications, incidents, zones...",
+    "userAvatarAlt": "Avatar de l'utilisateur",
+    "dropdown": {
+      "myProfile": "Mon profil"
+    },
+    "filters": {
+      "title": "Filtres",
+      "status": "Statut",
+      "all": "Tous",
+      "unread": "Non lus",
+      "read": "Lus",
+      "priority": "Priorité",
+      "time": "Période",
+      "allTime": "Tout",
+      "today": "Aujourd'hui",
+      "sevenDays": "7 jours"
+    },
+    "priority": {
+      "high": "Élevée",
+      "med": "Moy",
+      "medium": "Moyenne",
+      "low": "Faible",
+      "normal": "Normale"
+    },
+    "prioritySuffix": "Priorité",
+    "summary": {
+      "title": "Résumé",
+      "visible": "Visibles",
+      "total": "Total"
+    },
+    "profileBio": "Consultez les signalements routiers en direct et partagez des mises à jour du terrain.",
+    "viewProfile": "Voir le profil",
+    "unreadBadge": "{{count}} non lus",
+    "markAllRead": "Tout marquer comme lu",
+    "loadingDetail": "Vos dernières alertes arrivent.",
+    "empty": {
+      "title": "Aucune notification",
+      "body": "Créez une alerte pour commencer à recevoir des mises à jour d'incidents en direct.",
+      "createAlert": "Créer une alerte",
+      "exploreMap": "Explorer la carte"
+    },
+    "groups": {
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "older": "Plus anciens"
+    },
+    "description": "Description",
+    "conversation": "Conversation",
+    "subject": "Objet",
+    "incidentDetails": "Détails de l'incident",
+    "detail": {
+      "report": "Signalement",
+      "zone": "Zone",
+      "location": "Localisation",
+      "occurred": "Survenu le",
+      "event": "Événement"
+    },
+    "dangerScore": "Score de danger",
+    "dangerScale": {
+      "low": "Faible",
+      "medium": "Moyen",
+      "high": "Élevé"
+    },
+    "quickActions": "Actions rapides",
+    "sendAnotherMessage": "Envoyer un autre message",
+    "markAsRead": "Marquer comme lu",
+    "respondToModerator": "Répondre au modérateur",
+    "openRelatedIncident": "Ouvrir l'incident associé",
+    "viewOnMap": "Voir sur la carte",
+    "recentAlerts": "Alertes récentes",
+    "noSelected": {
+      "title": "Aucune notification sélectionnée",
+      "body": "Cliquez sur une notification dans la liste pour en voir les détails complets ici."
+    }
+  },
+  "predictionsPage": {
+    "searchPlaceholder": "Rechercher un incident, une route, une wilaya…",
+    "ariaUserProfile": "Profil utilisateur",
+    "ariaUserAvatar": "Avatar utilisateur",
+    "ariaProfile": "Profil",
+    "profileBio": "Consultez les signalements en direct et partagez des mises à jour depuis le terrain.",
+    "viewProfile": "Voir le profil",
+    "modelSidebar": {
+      "title": "Modèle IA",
+      "version": "Version",
+      "algorithm": "Algorithme",
+      "lastUpdate": "Dernière mise à jour",
+      "today": "Aujourd'hui",
+      "status": "Statut",
+      "active": "Actif",
+      "accuracy": "Précision"
+    },
+    "dataSourcesTitle": "Sources de données",
+    "dataSources": {
+      "citizenReports": "Signalements citoyens",
+      "weatherSensors": "Capteurs météo (ONM)",
+      "trafficFlow": "Flux de trafic DGRSDT",
+      "historicalData": "Données historiques DGSN"
+    },
+    "hero": {
+      "aiModelActive": "Modèle IA actif",
+      "title": "Prévisions",
+      "titleHighlight": "Avancées",
+      "subtitle": "Exploitez la puissance de notre moteur prédictif basé sur l'apprentissage automatique pour anticiper les zones à risque, analyser les tendances temporelles et prendre des décisions éclairées en temps réel.",
+      "kpiDataPoints": "Points de données analysés",
+      "kpiProvinces": "Provinces couvertes",
+      "kpiAccuracy": "Précision",
+      "kpiResponseTime": "Temps de réponse"
+    },
+    "features": {
+      "statusReady": "Prêt",
+      "statusBeta": "Bêta",
+      "statusComingSoon": "Bientôt disponible",
+      "heatmaps": {
+        "title": "Cartes de chaleur",
+        "description": "Visualisation des zones de densité d'accidents avec superposition dynamique de la couche de risque sur 48 provinces.",
+        "update": "Mise à jour : 5 min",
+        "coverage": "48 provinces"
+      },
+      "timeSeries": {
+        "title": "Séries temporelles",
+        "description": "Analyse prédictive par créneau horaire et saisonnalité avec des modèles LSTM et LightGBM entraînés sur 5 ans de données.",
+        "horizon": "Horizon : 24h"
+      },
+      "export": {
+        "title": "Export & Rapports",
+        "description": "Génération automatique de rapports PDF et export CSV/GeoJSON pour les autorités et les chercheurs.",
+        "certified": "Certifié"
+      }
+    },
+    "viz": {
+      "title": "Aperçu prédictif — Distribution des risques par zone",
+      "tabHeatmap": "Carte de chaleur",
+      "tabTimeline": "Chronologie",
+      "tabClusters": "Clusters",
+      "overlayText": "Visualisation complète bientôt disponible",
+      "overlaySub": "Le modèle est en cours de calibrage sur vos données régionales"
+    },
+    "zones": {
+      "title": "Classement des zones à risque",
+      "updated": "Mis à jour : {{time}}",
+      "colZone": "Zone",
+      "colWilaya": "Wilaya",
+      "colScore": "Score",
+      "colTrend": "Tendance",
+      "colLevel": "Niveau"
+    },
+    "severity": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    },
+    "howItWorks": {
+      "title": "Comment ça fonctionne ?",
+      "step1": {
+        "title": "Collecte de données",
+        "description": "Signalements citoyens, capteurs météo ONM, données historiques DGSN (5 ans) et flux de trafic DGRSDT en temps réel combinés dans un pipeline unifié."
+      },
+      "step2": {
+        "title": "Ingénierie des variables",
+        "description": "Extraction de plus de 120 variables : conditions météo, densité routière, heure/jour/saison, proximité des écoles/hôpitaux, historique par zone."
+      },
+      "step3": {
+        "title": "Modèle prédictif",
+        "description": "Ensemble LightGBM + CatBoost avec validation croisée temporelle. Score de risque 0–100 généré par zone géographique et créneau horaire."
+      },
+      "step4": {
+        "title": "Alertes intelligentes",
+        "description": "Notifications push proactives envoyées aux utilisateurs avant d'entrer dans une zone à haut risque, avec suggestion d'itinéraire alternatif."
+      }
+    },
+    "techStack": {
+      "title": "Stack technologique"
+    },
+    "modelStatus": {
+      "title": "Statut du modèle",
+      "lastUpdateValue": "Aujourd'hui, 08h30",
+      "overallConfidence": "Confiance globale",
+      "recall": "Rappel",
+      "f1Score": "Score F1"
+    },
+    "forecast": {
+      "title": "Prévisions des risques"
+    },
+    "featureImportance": {
+      "title": "Importance des variables",
+      "weather": "Météo",
+      "hour": "Heure",
+      "traffic": "Trafic",
+      "history": "Historique",
+      "roadInfra": "Infra. routière",
+      "daySeason": "Jour/Saison"
+    },
+    "liveActivity": {
+      "title": "Activité en direct"
+    },
+    "activity": {
+      "riskPeakRN5": "Pic de risque détecté – RN5 Alger",
+      "modelRecalibrated": "Modèle recalibré – Zone de Bab Ezzouar",
+      "riskReducedHydra": "Risque réduit – Hydra après travaux",
+      "newWeatherDataset": "Nouveau jeu de données météo intégré",
+      "schoolAlertBMR": "Alerte scolaire – Bir Mourad Raïs 08h"
+    },
+    "cta": {
+      "title": "Accès anticipé",
+      "description": "Soyez parmi les premiers à tester les prévisions en temps réel sur votre trajet quotidien.",
+      "button": "Voir sur la carte"
+    },
+    "predictiveAlerts": {
+      "title": "Alertes prédictives",
+      "alert1": "• Pic de risque prévu à 17h – Centre d'Alger",
+      "alert2": "• Pluies abondantes prévues demain matin",
+      "alert3": "• Zone scolaire – risque accru de 08h à 09h",
+      "alert4": "• Brouillard prévu sur A1 – visibilité réduite",
+      "manageButton": "Gérer les alertes"
+    }
+  },
+  "roadProfilePage": {
+    "title": "Profil de sécurité route / zone",
+    "subtitle": "Consultez l'historique des accidents d'une zone — heures de pointe, types de signalements courants, activité récente et tendance.",
+    "fields": {
+      "latitude": "Latitude",
+      "latitudePlaceholder": "36.7538",
+      "longitude": "Longitude",
+      "longitudePlaceholder": "3.0588",
+      "radius": "Rayon (m)"
+    },
+    "actions": {
+      "loadProfile": "Charger le profil"
+    },
+    "status": {
+      "loadingProfile": "Chargement du profil…",
+      "noReports": "Aucun signalement d'accident enregistré dans cette zone. Essayez un rayon plus grand ou un autre point."
+    },
+    "errors": {
+      "invalidCoords": "Veuillez saisir une latitude et une longitude valides.",
+      "loadFailed": "Échec du chargement du profil"
+    }
+  },
+  "userDashboardPage": {
+    "unavailable": "Indisponible",
+    "errors": {
+      "loadDashboard": "Impossible de charger votre tableau de bord pour le moment.",
+      "loadTravelHistory": "Impossible de charger l'historique de déplacements"
+    },
+    "nav": {
+      "feed": "Actualités",
+      "report": "Signaler",
+      "dashboard": "Tableau de bord"
+    },
+    "searchPlaceholder": "Rechercher un incident, une route, une wilaya…",
+    "userProfileAriaLabel": "Profil utilisateur",
+    "userAvatarAlt": "Avatar utilisateur",
+    "dropdown": {
+      "myProfile": "Mon Profil"
+    },
+    "profileBio": "Consultez les signalements routiers en direct et partagez des mises à jour depuis le terrain.",
+    "viewProfile": "Voir le profil",
+    "dashboardUnavailable": "Tableau de bord indisponible",
+    "loadingDashboard": "Chargement du tableau de bord en direct…",
+    "loadingDashboardCaption": "Récupération des données d'incidents, alertes et risques SIARA en cours.",
+    "riskOverview": {
+      "title": "Aperçu de votre risque actuel",
+      "updated": "Mis à jour {{time}}",
+      "vsYesterday": "vs hier",
+      "aiConfidence": "Confiance IA :",
+      "sevenDayTrend": "Tendance sur 7 jours"
+    },
+    "volatility": {
+      "title": "Indice de volatilité des risques",
+      "period24h": "24h"
+    },
+    "severityPressure": {
+      "title": "Pression de gravité",
+      "changeVsLastWeek": "Variation par rapport à la semaine dernière"
+    },
+    "severity": {
+      "high": "Élevé",
+      "medium": "Modéré",
+      "low": "Faible"
+    },
+    "distribution": {
+      "title": "Répartition des incidents sur 24 heures",
+      "incidents": "{{count}} incidents",
+      "caption": "Basé sur les incidents des dernières 24 heures dans votre {{scope}}.",
+      "watchedZones": "zones surveillées",
+      "systemFallback": "données système de secours"
+    },
+    "factors": {
+      "title": "Principaux facteurs contributifs",
+      "noData": "Aucune donnée de facteur disponible pour le moment.",
+      "caption": "Explique pourquoi le risque a augmenté."
+    },
+    "exposure": {
+      "title": "Votre indice d'exposition",
+      "monitoredZones": "Zones surveillées",
+      "activeAlerts": "Alertes actives",
+      "commuteDetected": "Trajet domicile-travail détecté"
+    },
+    "forecast": {
+      "title": "Prévisions des risques — 48 heures à venir",
+      "noData": "Les données de prévisions ne sont pas encore disponibles."
+    },
+    "roads": {
+      "title": "Classement des routes à risque élevé",
+      "colRoad": "Route",
+      "colRiskScore": "Score de risque",
+      "colChange": "Variation",
+      "noData": "Aucune donnée de risque routier disponible pour le moment."
+    },
+    "travelHistory": {
+      "title": "Mon historique de déplacements",
+      "refresh": "Actualiser",
+      "loading": "Chargement de vos trajets effectués…",
+      "empty": "Aucun trajet effectué pour le moment. Lancez la navigation depuis la carte pour construire votre historique.",
+      "savedTrip": "Trajet enregistré",
+      "distance": "Distance",
+      "duration": "Durée",
+      "route": "Itinéraire",
+      "notRated": "Pas encore noté",
+      "viewDetails": "Voir les détails"
+    },
+    "alerts": {
+      "title": "Alertes actives",
+      "viewAll": "Voir tout",
+      "triggeredThisWeek": "Déclenchées cette semaine",
+      "matchedHighSeverity": "Gravité élevée correspondante",
+      "falseAlertRatio": "Taux de fausses alertes",
+      "colAlert": "Alerte",
+      "colArea": "Zone",
+      "colSeverity": "Gravité",
+      "colLastTrigger": "Dernier déclenchement",
+      "colStatus": "Statut",
+      "noData": "Aucune alerte active pour le moment.",
+      "statusActive": "Active",
+      "statusScheduled": "Planifiée"
+    },
+    "volatileZone": {
+      "title": "Zone la plus volatile aujourd'hui",
+      "risk": "Risque :",
+      "riskChange": "variation du risque",
+      "viewOnMap": "Voir sur la carte",
+      "noData": "Aucune volatilité de zone détectée pour le moment."
+    },
+    "insight": {
+      "title": "Analyse IA de la semaine",
+      "noData": "Les analyses apparaîtront dès que SIARA disposera d'une activité récente suffisante."
+    },
+    "systemOverview": {
+      "title": "Aperçu du système",
+      "totalIncidents": "Total des incidents",
+      "aiConfidence": "Confiance IA",
+      "vsLastWeek": "vs semaine dernière"
+    },
+    "quickActions": {
+      "title": "Actions rapides",
+      "reportIncident": "Signaler un incident",
+      "createAlert": "Créer une alerte",
+      "drivingQuiz": "Quiz de conduite"
+    }
+  }
+}

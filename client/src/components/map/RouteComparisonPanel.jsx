@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import LocalFireDepartmentOutlinedIcon from '@mui/icons-material/LocalFireDepartmentOutlined'
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
@@ -16,11 +17,6 @@ function normaliseLevel(level, percent) {
   return 'low'
 }
 
-function levelLabel(level) {
-  if (!level) return '—'
-  return level.charAt(0).toUpperCase() + level.slice(1)
-}
-
 function countHighRiskSegments(route) {
   const segments = Array.isArray(route?.segments) ? route.segments : []
   let count = 0
@@ -36,14 +32,14 @@ function formatRiskPercent(value) {
   return Number.isFinite(n) ? `${Math.round(n)}%` : '—'
 }
 
-function formatMinutes(value) {
+function formatMinutes(value, t) {
   const n = Number(value)
-  return Number.isFinite(n) ? `${n.toFixed(1)} min` : 'n/a'
+  return Number.isFinite(n) ? `${n.toFixed(1)} ${t('routeComparisonPanel.units.min')}` : t('routeComparisonPanel.units.na')
 }
 
-function formatKm(value) {
+function formatKm(value, t) {
   const n = Number(value)
-  return Number.isFinite(n) ? `${n.toFixed(1)} km` : 'n/a'
+  return Number.isFinite(n) ? `${n.toFixed(1)} km` : t('routeComparisonPanel.units.na')
 }
 
 export default function RouteComparisonPanel({
@@ -53,6 +49,8 @@ export default function RouteComparisonPanel({
   clustersNearbyByRouteType = null,
   reportsNearbyByRouteType = null,
 }) {
+  const { t } = useTranslation(['map', 'common'])
+
   const items = useMemo(() => {
     if (!Array.isArray(routes)) return []
     return routes.map((route) => {
@@ -80,7 +78,7 @@ export default function RouteComparisonPanel({
   if (!items.length) {
     return (
       <p className="siara-route-comparison-empty">
-        No alternative routes available yet.
+        {t('routeComparisonPanel.empty')}
       </p>
     )
   }
@@ -107,36 +105,38 @@ export default function RouteComparisonPanel({
             aria-pressed={isSelected}
           >
             <span className="siara-route-card__header">
-              <span>{route.route_label || route.route_type || 'Route'}</span>
+              <span>{route.route_label || route.route_type || t('routeComparisonPanel.routeFallback')}</span>
               <span className="siara-route-card__badges">
                 <span
                   className={`siara-route-card__risk-pill risk-${route.normalisedRiskLevel}`}
                 >
-                  {levelLabel(route.normalisedRiskLevel)}
+                  {t(`routeComparisonPanel.riskLevel.${route.normalisedRiskLevel}`)}
                 </span>
                 {route.is_recommended && (
-                  <span className="siara-route-card__badge">Recommended</span>
+                  <span className="siara-route-card__badge">{t('routeComparisonPanel.recommended')}</span>
                 )}
                 {isSelected && (
-                  <span className="siara-route-card__badge is-selected">Selected</span>
+                  <span className="siara-route-card__badge is-selected">{t('routeComparisonPanel.selected')}</span>
                 )}
               </span>
             </span>
 
             <span className="siara-route-card__meta">
-              risk {dangerPercent} • eta {formatMinutes(route?.duration_min)}
+              {t('routeComparisonPanel.metaShort', { risk: dangerPercent, eta: formatMinutes(route?.duration_min, t) })}
             </span>
 
             <span className="siara-route-card__meta siara-route-card__meta--summary">
-              ETA {formatMinutes(route?.duration_min)}
-              {' • '}distance {formatKm(route?.distance_km)}
-              {' • '}danger {dangerPercent}
+              {t('routeComparisonPanel.metaFull', {
+                eta: formatMinutes(route?.duration_min, t),
+                distance: formatKm(route?.distance_km, t),
+                danger: dangerPercent,
+              })}
             </span>
 
-            <span className="siara-route-card__factors" aria-label="Route risk factors">
+            <span className="siara-route-card__factors" aria-label={t('routeComparisonPanel.factorsAriaLabel')}>
               <span
                 className={`siara-route-card__factor ${route.highRiskSegmentCount > 0 ? 'is-warning' : ''}`}
-                title="High-risk road segments on this route"
+                title={t('routeComparisonPanel.highRiskSegmentsTitle')}
               >
                 <span className="siara-route-card__factor-icon" aria-hidden="true">
                   <RouteOutlinedIcon fontSize="inherit" />
@@ -144,11 +144,11 @@ export default function RouteComparisonPanel({
                 <span className="siara-route-card__factor-value">
                   {route.highRiskSegmentCount}
                 </span>
-                <span>high-risk seg.</span>
+                <span>{t('routeComparisonPanel.highRiskSegLabel')}</span>
               </span>
               <span
                 className={`siara-route-card__factor ${route.clustersNearby > 0 ? 'is-warning' : ''}`}
-                title="Accident heat clusters within 1.5 km of this route"
+                title={t('routeComparisonPanel.clustersTitle')}
               >
                 <span className="siara-route-card__factor-icon" aria-hidden="true">
                   <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" />
@@ -156,12 +156,12 @@ export default function RouteComparisonPanel({
                 <span className="siara-route-card__factor-value">
                   {route.clustersNearby}
                 </span>
-                <span>clusters</span>
+                <span>{t('routeComparisonPanel.clusters')}</span>
               </span>
               {reportsNearbyByRouteType ? (
                 <span
                   className={`siara-route-card__factor ${route.reportsNearby > 0 ? 'is-warning' : ''}`}
-                  title="Recent reports near this route"
+                  title={t('routeComparisonPanel.reportsTitle')}
                 >
                   <span className="siara-route-card__factor-icon" aria-hidden="true">
                     <LocationOnOutlinedIcon fontSize="inherit" />
@@ -169,7 +169,7 @@ export default function RouteComparisonPanel({
                   <span className="siara-route-card__factor-value">
                     {route.reportsNearby}
                   </span>
-                  <span>reports</span>
+                  <span>{t('routeComparisonPanel.reports')}</span>
                 </span>
               ) : null}
             </span>

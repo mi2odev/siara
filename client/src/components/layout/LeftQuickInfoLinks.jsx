@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
@@ -10,13 +11,16 @@ import { submitSupportMessage } from '../../services/supportMessagesService'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const INFO_LINKS = [
-  { key: 'contact', label: 'Contact', icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
-  { key: 'about', label: 'About', icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
-  { key: 'overview', label: 'Overview', icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/overview' },
-]
+export default function LeftQuickInfoLinks({ title, className = '' }) {
+  const { t } = useTranslation(['pages', 'common'])
 
-export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = '' }) {
+  const INFO_LINKS = [
+    { key: 'contact', label: t('leftQuickInfoLinks.nav.contact'), icon: <PhoneOutlinedIcon fontSize="inherit" />, path: '/contact' },
+    { key: 'about', label: t('leftQuickInfoLinks.nav.about'), icon: <InfoOutlinedIcon fontSize="inherit" />, path: '/about' },
+    { key: 'overview', label: t('leftQuickInfoLinks.nav.overview'), icon: <MenuBookOutlinedIcon fontSize="inherit" />, path: '/overview' },
+  ]
+
+  const resolvedTitle = title ?? t('leftQuickInfoLinks.defaultTitle')
   const [openPanel, setOpenPanel] = useState(null)
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' })
   const [contactErrors, setContactErrors] = useState({})
@@ -60,15 +64,15 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
     const nextErrors = {}
 
     if (contactForm.name.trim().length < 2) {
-      nextErrors.name = 'Please enter a valid name.'
+      nextErrors.name = t('leftQuickInfoLinks.contact.errors.invalidName')
     }
 
     if (!EMAIL_REGEX.test(contactForm.email.trim())) {
-      nextErrors.email = 'Please enter a valid email address.'
+      nextErrors.email = t('leftQuickInfoLinks.contact.errors.invalidEmail')
     }
 
     if (contactForm.message.trim().length < 10) {
-      nextErrors.message = 'Message must be at least 10 characters.'
+      nextErrors.message = t('leftQuickInfoLinks.contact.errors.messageTooShort')
     }
 
     setContactErrors(nextErrors)
@@ -87,10 +91,10 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
         email: contactForm.email.trim(),
         message: contactForm.message.trim(),
       })
-      setContactSuccess('Thank you. We will respond as soon as possible.')
+      setContactSuccess(t('leftQuickInfoLinks.contact.successMessage'))
       setContactForm({ name: '', email: '', message: '' })
     } catch (error) {
-      setContactSubmitError(error?.message || 'Could not send your message. Please try again.')
+      setContactSubmitError(error?.message || t('leftQuickInfoLinks.contact.submitError'))
     } finally {
       setContactSubmitting(false)
     }
@@ -99,7 +103,7 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
   return (
     <>
       <section className={`left-quick-links ${className}`.trim()}>
-        <h3 className="left-quick-links-title">{title}</h3>
+        <h3 className="left-quick-links-title">{resolvedTitle}</h3>
         <div className="left-quick-links-list">
           {INFO_LINKS.map((item) => (
             <button
@@ -117,7 +121,7 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
 
       {openPanel && typeof document !== 'undefined'
         ? createPortal(
-            <div className="left-info-backdrop" onClick={() => setOpenPanel(null)} role="dialog" aria-modal="true" aria-label="Quick information panel">
+            <div className="left-info-backdrop" onClick={() => setOpenPanel(null)} role="dialog" aria-modal="true" aria-label={t('leftQuickInfoLinks.panel.ariaLabel')}>
               <div className={`left-info-modal left-info-panel-${openPanel}`} onClick={(event) => event.stopPropagation()}>
                 {openPanel === 'contact' ? (
                   <>
@@ -126,20 +130,20 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
                         <div className="left-info-brand">
                           <img src={siaraLogo} alt="SIARA" className="left-info-brand-logo" />
                           <div>
-                            <span className="left-info-kicker">Support</span>
-                            <h3>Contact SIARA</h3>
+                            <span className="left-info-kicker">{t('leftQuickInfoLinks.contact.kicker')}</span>
+                            <h3>{t('leftQuickInfoLinks.contact.heading')}</h3>
                           </div>
                         </div>
-                        <p className="left-info-sub">Share your request and our team will get back to you quickly.</p>
+                        <p className="left-info-sub">{t('leftQuickInfoLinks.contact.subheading')}</p>
                       </div>
-                      <button type="button" className="left-info-close" onClick={() => setOpenPanel(null)} aria-label="Close contact form">×</button>
+                      <button type="button" className="left-info-close" onClick={() => setOpenPanel(null)} aria-label={t('leftQuickInfoLinks.contact.closeAriaLabel')}>×</button>
                     </div>
 
                     <div className="left-info-layout">
                       <form className="left-info-form" onSubmit={submitContactForm} noValidate>
                         <div className="left-info-grid">
                           <div>
-                            <label htmlFor="left-info-contact-name">Name</label>
+                            <label htmlFor="left-info-contact-name">{t('leftQuickInfoLinks.contact.form.nameLbl')}</label>
                             <input
                               id="left-info-contact-name"
                               name="name"
@@ -151,7 +155,7 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
                           </div>
 
                           <div>
-                            <label htmlFor="left-info-contact-email">Email</label>
+                            <label htmlFor="left-info-contact-email">{t('leftQuickInfoLinks.contact.form.emailLbl')}</label>
                             <input
                               id="left-info-contact-email"
                               name="email"
@@ -163,7 +167,7 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
                           </div>
                         </div>
 
-                        <label htmlFor="left-info-contact-message">Message</label>
+                        <label htmlFor="left-info-contact-message">{t('leftQuickInfoLinks.contact.form.messageLbl')}</label>
                         <textarea
                           id="left-info-contact-message"
                           name="message"
@@ -176,26 +180,26 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
 
                         <div className="left-info-actions">
                           <button type="submit" className="left-info-submit" disabled={contactSubmitting}>
-                            {contactSubmitting ? 'Sending…' : 'Send Message'}
+                            {contactSubmitting ? t('leftQuickInfoLinks.contact.form.sending') : t('leftQuickInfoLinks.contact.form.sendBtn')}
                           </button>
-                          <a className="left-info-mail" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">Email directly</a>
+                          <a className="left-info-mail" href="https://mail.google.com/mail/?view=cm&fs=1&to=siara.ai.app@gmail.com" target="_blank" rel="noopener noreferrer">{t('leftQuickInfoLinks.contact.form.emailDirectly')}</a>
                         </div>
                         {contactSubmitError ? (
                           <p className="left-info-error" role="alert">{contactSubmitError}</p>
                         ) : null}
                       </form>
 
-                      <aside className="left-info-side" aria-label="Support information">
+                      <aside className="left-info-side" aria-label={t('leftQuickInfoLinks.contact.side.ariaLabel')}>
                         <article>
-                          <h4>Response Window</h4>
-                          <p>Most requests are reviewed within one business day.</p>
+                          <h4>{t('leftQuickInfoLinks.contact.side.responseWindowTitle')}</h4>
+                          <p>{t('leftQuickInfoLinks.contact.side.responseWindowText')}</p>
                         </article>
                         <article>
-                          <h4>Best for This Form</h4>
-                          <p>Account support, platform feedback, partnerships, and incident workflow questions.</p>
+                          <h4>{t('leftQuickInfoLinks.contact.side.bestForTitle')}</h4>
+                          <p>{t('leftQuickInfoLinks.contact.side.bestForText')}</p>
                         </article>
                         <article>
-                          <h4>Direct Contact</h4>
+                          <h4>{t('leftQuickInfoLinks.contact.side.directContactTitle')}</h4>
                           <p>siara.ai.app@gmail.com</p>
                         </article>
                       </aside>
@@ -209,53 +213,52 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
                   <>
                     <div className="left-info-head">
                       <div>
-                        <span className="left-info-kicker">Overview</span>
-                        <h3>About SIARA</h3>
+                        <span className="left-info-kicker">{t('leftQuickInfoLinks.about.kicker')}</span>
+                        <h3>{t('leftQuickInfoLinks.about.heading')}</h3>
                       </div>
-                      <button type="button" className="left-info-close" onClick={() => setOpenPanel(null)} aria-label="Close about panel">×</button>
+                      <button type="button" className="left-info-close" onClick={() => setOpenPanel(null)} aria-label={t('leftQuickInfoLinks.about.closeAriaLabel')}>×</button>
                     </div>
                     <div className="left-info-block">
                       <div className="left-info-brand">
                         <img src={siaraLogo} alt="SIARA" className="left-info-mini-logo" />
                         <div>
                           <p className="left-info-brand-name">SIARA</p>
-                          <p className="left-info-brand-caption">Road Safety Intelligence Platform</p>
+                          <p className="left-info-brand-caption">{t('leftQuickInfoLinks.about.brandCaption')}</p>
                         </div>
                       </div>
                       <p className="left-info-lead">
-                        SIARA is a road safety intelligence platform combining live reporting, mapping, and AI insights
-                        to improve incident response.
+                        {t('leftQuickInfoLinks.about.lead')}
                       </p>
                       <div className="left-info-pillars">
                         <article>
-                          <h4>Mission</h4>
-                          <p>Reduce road risk with fast, evidence-based incident coordination.</p>
+                          <h4>{t('leftQuickInfoLinks.about.pillars.missionTitle')}</h4>
+                          <p>{t('leftQuickInfoLinks.about.pillars.missionText')}</p>
                         </article>
                         <article>
-                          <h4>Vision</h4>
-                          <p>Build connected, AI-supported urban safety systems for smarter mobility.</p>
+                          <h4>{t('leftQuickInfoLinks.about.pillars.visionTitle')}</h4>
+                          <p>{t('leftQuickInfoLinks.about.pillars.visionText')}</p>
                         </article>
                         <article>
-                          <h4>Approach</h4>
-                          <p>Combine citizen signals, geospatial context, and operational analytics in one workflow.</p>
+                          <h4>{t('leftQuickInfoLinks.about.pillars.approachTitle')}</h4>
+                          <p>{t('leftQuickInfoLinks.about.pillars.approachText')}</p>
                         </article>
                       </div>
                       <div className="left-info-mini-cards">
                         <article>
-                          <h4>Risk Mapping</h4>
-                          <p>Identify hotspots and incident density zones in real time.</p>
+                          <h4>{t('leftQuickInfoLinks.about.cards.riskMappingTitle')}</h4>
+                          <p>{t('leftQuickInfoLinks.about.cards.riskMappingText')}</p>
                         </article>
                         <article>
-                          <h4>Alert Intelligence</h4>
-                          <p>Prioritize high-impact events using severity and reliability indicators.</p>
+                          <h4>{t('leftQuickInfoLinks.about.cards.alertIntelTitle')}</h4>
+                          <p>{t('leftQuickInfoLinks.about.cards.alertIntelText')}</p>
                         </article>
                         <article>
-                          <h4>Response Coordination</h4>
-                          <p>Support faster field decisions with one shared operational view.</p>
+                          <h4>{t('leftQuickInfoLinks.about.cards.responseCoordTitle')}</h4>
+                          <p>{t('leftQuickInfoLinks.about.cards.responseCoordText')}</p>
                         </article>
                         <article>
-                          <h4>Performance Tracking</h4>
-                          <p>Measure verification and response outcomes to improve continuously.</p>
+                          <h4>{t('leftQuickInfoLinks.about.cards.perfTrackingTitle')}</h4>
+                          <p>{t('leftQuickInfoLinks.about.cards.perfTrackingText')}</p>
                         </article>
                       </div>
                     </div>
@@ -266,24 +269,24 @@ export default function LeftQuickInfoLinks({ title = 'Quick Pages', className = 
                   <>
                     <div className="left-info-head">
                       <div>
-                        <span className="left-info-kicker">Service Flow</span>
-                        <h3>SIARA Workflow Overview</h3>
+                        <span className="left-info-kicker">{t('leftQuickInfoLinks.overview.kicker')}</span>
+                        <h3>{t('leftQuickInfoLinks.overview.heading')}</h3>
                       </div>
-                      <button type="button" className="left-info-close" onClick={() => setOpenPanel(null)} aria-label="Close overview panel">×</button>
+                      <button type="button" className="left-info-close" onClick={() => setOpenPanel(null)} aria-label={t('leftQuickInfoLinks.overview.closeAriaLabel')}>×</button>
                     </div>
                     <div className="left-info-block">
                       <p className="left-info-lead">
-                        SIARA provides a clear operational pipeline from report intake to validated alert delivery.
+                        {t('leftQuickInfoLinks.overview.lead')}
                       </p>
                       <ol className="left-info-steps left-info-steps-pro">
-                        <li><strong>Incident Intake</strong><span>Capture reports with location, media, and contextual metadata.</span></li>
-                        <li><strong>Data Validation</strong><span>Normalize and verify incoming records for analysis readiness.</span></li>
-                        <li><strong>Risk Assessment</strong><span>Estimate urgency and confidence using AI-assisted scoring.</span></li>
-                        <li><strong>Operational Review</strong><span>Authorized teams validate incidents and assign response priorities.</span></li>
-                        <li><strong>Alert Distribution</strong><span>Deliver relevant alerts to users and operational stakeholders.</span></li>
+                        <li><strong>{t('leftQuickInfoLinks.overview.steps.intakeTitle')}</strong><span>{t('leftQuickInfoLinks.overview.steps.intakeText')}</span></li>
+                        <li><strong>{t('leftQuickInfoLinks.overview.steps.validationTitle')}</strong><span>{t('leftQuickInfoLinks.overview.steps.validationText')}</span></li>
+                        <li><strong>{t('leftQuickInfoLinks.overview.steps.riskTitle')}</strong><span>{t('leftQuickInfoLinks.overview.steps.riskText')}</span></li>
+                        <li><strong>{t('leftQuickInfoLinks.overview.steps.reviewTitle')}</strong><span>{t('leftQuickInfoLinks.overview.steps.reviewText')}</span></li>
+                        <li><strong>{t('leftQuickInfoLinks.overview.steps.distributionTitle')}</strong><span>{t('leftQuickInfoLinks.overview.steps.distributionText')}</span></li>
                       </ol>
                       <p className="left-info-tech">
-                        <strong>Technology stack:</strong> AI risk scoring, geospatial mapping, real-time events, and verification workflow.
+                        <strong>{t('leftQuickInfoLinks.overview.techStackLabel')}</strong> {t('leftQuickInfoLinks.overview.techStackText')}
                       </p>
                     </div>
                   </>

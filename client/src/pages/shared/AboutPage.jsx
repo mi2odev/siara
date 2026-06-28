@@ -1,8 +1,11 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import '../../styles/InfoPages.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
 export default function AboutPage() {
+  const { t } = useTranslation(['pages', 'common'])
+
   return (
     <div className="info-page-root">
       <main className="info-page-shell">
@@ -11,30 +14,29 @@ export default function AboutPage() {
             <img src={siaraLogo} alt="SIARA" className="info-brand-logo" />
             <div>
               <p className="info-brand-name">SIARA</p>
-              <p className="info-brand-caption">Road Safety Intelligence Platform</p>
+              <p className="info-brand-caption">{t('aboutPage.brandCaption')}</p>
             </div>
           </div>
           <div className="info-head-topline">
-            <span className="info-head-kicker">Project Identity</span>
-            <span className="info-page-badge">SIARA Vision</span>
+            <span className="info-head-kicker">{t('aboutPage.kicker')}</span>
+            <span className="info-page-badge">{t('aboutPage.badge')}</span>
           </div>
-          <h1 className="info-page-title">About SIARA</h1>
+          <h1 className="info-page-title">{t('aboutPage.title')}</h1>
           <p className="info-page-intro">
-            SIARA is a smart road safety platform that combines reports, maps, and AI to support
-            safer mobility and faster incident response.
+            {t('aboutPage.intro')}
           </p>
           <div className="info-about-metrics">
             <article>
-              <strong>Real-time coordination</strong>
-              <span>Live map intelligence for field teams and road users.</span>
+              <strong>{t('aboutPage.metrics.realtime.title')}</strong>
+              <span>{t('aboutPage.metrics.realtime.desc')}</span>
             </article>
             <article>
-              <strong>AI-assisted prioritization</strong>
-              <span>Severity and reliability scoring for better response decisions.</span>
+              <strong>{t('aboutPage.metrics.ai.title')}</strong>
+              <span>{t('aboutPage.metrics.ai.desc')}</span>
             </article>
             <article>
-              <strong>Operational visibility</strong>
-              <span>Unified alerts, reports, and analytics in one SIARA workspace.</span>
+              <strong>{t('aboutPage.metrics.visibility.title')}</strong>
+              <span>{t('aboutPage.metrics.visibility.desc')}</span>
             </article>
           </div>
         </header>
@@ -42,85 +44,84 @@ export default function AboutPage() {
         <section className="info-section-card info-simple-grid">
           <article className="info-feature-card">
             <div className="info-feature-icon" aria-hidden="true">OV</div>
-            <h3>What is SIARA</h3>
+            <h3>{t('aboutPage.features.overview.title')}</h3>
             <p>
-              SIARA centralizes incident reporting, monitoring, and operational visibility in one unified platform.
+              {t('aboutPage.features.overview.desc')}
             </p>
           </article>
           <article className="info-feature-card">
             <div className="info-feature-icon" aria-hidden="true">MS</div>
-            <h3>Mission</h3>
-            <p>Improve road safety and incident response with accurate, timely, and actionable information.</p>
+            <h3>{t('aboutPage.features.mission.title')}</h3>
+            <p>{t('aboutPage.features.mission.desc')}</p>
           </article>
           <article className="info-feature-card">
             <div className="info-feature-icon" aria-hidden="true">VS</div>
-            <h3>Vision</h3>
-            <p>Support smart city integration using AI and connected data for proactive public safety.</p>
+            <h3>{t('aboutPage.features.vision.title')}</h3>
+            <p>{t('aboutPage.features.vision.desc')}</p>
           </article>
         </section>
 
         <section className="info-section-card info-about-story">
-          <h2 className="info-section-title">How SIARA Creates Impact</h2>
+          <h2 className="info-section-title">{t('aboutPage.impact.title')}</h2>
           <p className="info-section-lead">
-            SIARA is built to turn fragmented incident data into coordinated action. Instead of relying on isolated
-            reports, it connects citizens, responders, and supervisors through one decision-ready platform.
+            {t('aboutPage.impact.lead')}
           </p>
           <div className="info-about-story-grid">
             <article>
-              <h3>1. Capture</h3>
-              <p>Citizens submit incidents with location, media, and context from the field.</p>
+              <h3>{t('aboutPage.impact.steps.capture.title')}</h3>
+              <p>{t('aboutPage.impact.steps.capture.desc')}</p>
             </article>
             <article>
-              <h3>2. Analyze</h3>
-              <p>AI models classify risk, detect anomalies, and rank urgency for operators.</p>
+              <h3>{t('aboutPage.impact.steps.analyze.title')}</h3>
+              <p>{t('aboutPage.impact.steps.analyze.desc')}</p>
             </article>
             <article>
-              <h3>3. Act</h3>
-              <p>Police and teams validate events, trigger alerts, and coordinate interventions quickly.</p>
+              <h3>{t('aboutPage.impact.steps.act.title')}</h3>
+              <p>{t('aboutPage.impact.steps.act.desc')}</p>
             </article>
           </div>
         </section>
 
         <section className="info-section-card">
-          <h2 className="info-section-title">SIARA Core Capabilities</h2>
+          <h2 className="info-section-title">{t('aboutPage.capabilities.title')}</h2>
           <div className="info-card-grid">
             <article className="info-feature-card">
               <div className="info-feature-icon" aria-hidden="true">RM</div>
-              <h3>Risk Mapping</h3>
-              <p>Visualize dangerous corridors and hotspot zones with incident density and severity layers.</p>
+              <h3>{t('aboutPage.capabilities.riskMapping.title')}</h3>
+              <p>{t('aboutPage.capabilities.riskMapping.desc')}</p>
             </article>
             <article className="info-feature-card">
               <div className="info-feature-icon" aria-hidden="true">AL</div>
-              <h3>Alert Engine</h3>
-              <p>Generate targeted alerts by location, incident type, and priority level in real time.</p>
+              <h3>{t('aboutPage.capabilities.alertEngine.title')}</h3>
+              <p>{t('aboutPage.capabilities.alertEngine.desc')}</p>
             </article>
             <article className="info-feature-card">
               <div className="info-feature-icon" aria-hidden="true">AN</div>
-              <h3>Operational Analytics</h3>
-              <p>Track trends, response performance, and verification throughput across the network.</p>
+              <h3>{t('aboutPage.capabilities.analytics.title')}</h3>
+              <p>{t('aboutPage.capabilities.analytics.desc')}</p>
             </article>
             <article className="info-feature-card">
               <div className="info-feature-icon" aria-hidden="true">CO</div>
-              <h3>Cross-Team Coordination</h3>
-              <p>Support consistent decision-making between field agents, dispatch, and supervisors.</p>
+              <h3>{t('aboutPage.capabilities.coordination.title')}</h3>
+              <p>{t('aboutPage.capabilities.coordination.desc')}</p>
             </article>
           </div>
         </section>
 
         <section className="info-section-card">
-          <h2 className="info-section-title">Key Values</h2>
+          <h2 className="info-section-title">{t('aboutPage.values.title')}</h2>
           <div className="info-card-grid info-values-grid">
             <article className="info-feature-card">
               <div className="info-feature-icon" aria-hidden="true">SV</div>
-              <h3>Safety</h3>
+              <h3>{t('aboutPage.values.safety')}</h3>
             </article>
             <article className="info-feature-card">
               <div className="info-feature-icon" aria-hidden="true">EF</div>
-              <h3>Efficiency</h3>
+              <h3>{t('aboutPage.values.efficiency')}</h3>
             </article>
             <article className="info-feature-card">
               <div className="info-feature-icon" aria-hidden="true">IN</div>
-              <h3>Innovation</h3>
+              <h3>{t('aboutPage.values.innovation')}</h3>
             </article>
           </div>
         </section>

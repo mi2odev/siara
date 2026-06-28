@@ -1,28 +1,31 @@
 import React, { useContext } from 'react'
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { AuthContext } from '../../contexts/AuthContext'
 import { ADMIN_LANDING_PATH, isAdminUser } from '../../routes/routeAccess'
 
-const userLinks = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/home', label: 'Home' },
-  { to: '/news', label: 'News' },
-  { to: '/contact', label: 'Contact' },
-  { to: '/about', label: 'About' },
-  { to: '/description', label: 'Description' },
-]
-
-const adminLinks = [
-  { to: ADMIN_LANDING_PATH, label: 'Overview' },
-  { to: '/admin/incidents', label: 'Incidents' },
-  { to: '/admin/alerts', label: 'Alerts' },
-  { to: '/admin/services', label: 'Service Control' },
-  { to: '/admin/system', label: 'System' },
-]
-
 export default function Sidebar() {
+  const { t } = useTranslation(['pages', 'common'])
   const { user } = useContext(AuthContext)
+
+  const userLinks = [
+    { to: '/dashboard', label: t('sidebar.links.dashboard') },
+    { to: '/home', label: t('sidebar.links.home') },
+    { to: '/news', label: t('sidebar.links.news') },
+    { to: '/contact', label: t('sidebar.links.contact') },
+    { to: '/about', label: t('sidebar.links.about') },
+    { to: '/description', label: t('sidebar.links.description') },
+  ]
+
+  const adminLinks = [
+    { to: ADMIN_LANDING_PATH, label: t('sidebar.links.overview') },
+    { to: '/admin/incidents', label: t('sidebar.links.incidents') },
+    { to: '/admin/alerts', label: t('sidebar.links.alerts') },
+    { to: '/admin/services', label: t('sidebar.links.serviceControl') },
+    { to: '/admin/system', label: t('sidebar.links.system') },
+  ]
+
   const links = isAdminUser(user) ? adminLinks : userLinks
 
   return (

@@ -1,17 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useNotificationStore } from '../../stores/notificationStore'
 
-function formatRelativeTime(value) {
+function formatRelativeTime(value, t) {
   if (!value) {
-    return 'Now'
+    return t('notificationBell.timeNow')
   }
 
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
-    return 'Now'
+    return t('notificationBell.timeNow')
   }
 
   const diffMs = Date.now() - date.getTime()
@@ -20,16 +21,16 @@ function formatRelativeTime(value) {
   const dayMs = 24 * hourMs
 
   if (diffMs < minuteMs) {
-    return 'Now'
+    return t('notificationBell.timeNow')
   }
   if (diffMs < hourMs) {
-    return `${Math.floor(diffMs / minuteMs)}m`
+    return t('notificationBell.timeMinutes', { count: Math.floor(diffMs / minuteMs) })
   }
   if (diffMs < dayMs) {
-    return `${Math.floor(diffMs / hourMs)}h`
+    return t('notificationBell.timeHours', { count: Math.floor(diffMs / hourMs) })
   }
 
-  return `${Math.floor(diffMs / dayMs)}d`
+  return t('notificationBell.timeDays', { count: Math.floor(diffMs / dayMs) })
 }
 
 function getPriorityTone(priority) {
@@ -63,6 +64,7 @@ function BellIcon() {
 
 export default function NotificationBell() {
   const navigate = useNavigate()
+  const { t } = useTranslation(['pages', 'common'])
   const shellRef = useRef(null)
 
   // Panel open-state is local so multiple mounted bells (e.g. the responsive
@@ -159,26 +161,26 @@ export default function NotificationBell() {
       <button
         type="button"
         className="notif-bell-btn"
-        aria-label="Notifications"
+        aria-label={t('notificationBell.ariaLabel')}
         aria-haspopup="dialog"
         aria-expanded={isPanelOpen}
         onClick={() => { void handleTogglePanel() }}
       >
         <BellIcon />
         {unreadCount > 0 ? (
-          <span className="notif-bell-badge" aria-label={`${unreadCount} unread notifications`}>
+          <span className="notif-bell-badge" aria-label={t('notificationBell.badgeAriaLabel', { count: unreadCount })}>
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         ) : null}
       </button>
 
       {isPanelOpen ? (
-        <div className="notif-bell-panel" role="dialog" aria-label="Notifications">
+        <div className="notif-bell-panel" role="dialog" aria-label={t('notificationBell.ariaLabel')}>
           <div className="notif-bell-panel-head">
             <div className="notif-bell-heading">
-              <span className="notif-bell-kicker">Notifications</span>
+              <span className="notif-bell-kicker">{t('notificationBell.kicker')}</span>
               <h3 className="notif-bell-title">
-                {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+                {unreadCount > 0 ? t('notificationBell.unreadTitle', { count: unreadCount }) : t('notificationBell.allCaughtUp')}
               </h3>
             </div>
             <button
@@ -187,17 +189,17 @@ export default function NotificationBell() {
               onClick={handleMarkAllRead}
               disabled={unreadCount === 0}
             >
-              Mark all read
+              {t('notificationBell.markAllRead')}
             </button>
           </div>
 
           <div className="notif-bell-list">
             {isLoading && latestNotifications.length === 0 ? (
-              <div className="notif-bell-empty">Loading notifications…</div>
+              <div className="notif-bell-empty">{t('notificationBell.loading')}</div>
             ) : latestNotifications.length === 0 ? (
               <div className="notif-bell-empty">
                 <span className="notif-bell-empty-icon"><BellIcon /></span>
-                You have no notifications yet.
+                {t('notificationBell.empty')}
               </div>
             ) : (
               latestNotifications.map((notification) => (
@@ -218,12 +220,12 @@ export default function NotificationBell() {
                   <div className="notif-bell-item-main">
                     <div className="notif-bell-item-top">
                       <span className="notif-bell-item-title">{notification.title}</span>
-                      <span className="notif-bell-item-time">{formatRelativeTime(notification.createdAt)}</span>
+                      <span className="notif-bell-item-time">{formatRelativeTime(notification.createdAt, t)}</span>
                     </div>
                     <span className="notif-bell-item-body">{notification.body}</span>
                     <div className="notif-bell-item-foot">
                       <span className="notif-bell-item-zone">
-                        {notification.data?.zoneName || notification.data?.locationLabel || 'Monitored area'}
+                        {notification.data?.zoneName || notification.data?.locationLabel || t('notificationBell.monitoredArea')}
                       </span>
                       {!notification.readAt ? (
                         <button
@@ -231,7 +233,7 @@ export default function NotificationBell() {
                           className="notif-bell-read"
                           onClick={(event) => { void handleMarkOneRead(event, notification.id) }}
                         >
-                          Mark read
+                          {t('notificationBell.markRead')}
                         </button>
                       ) : null}
                     </div>
@@ -250,7 +252,7 @@ export default function NotificationBell() {
                 navigate('/notifications')
               }}
             >
-              See all notifications
+              {t('notificationBell.seeAll')}
             </button>
           </div>
         </div>

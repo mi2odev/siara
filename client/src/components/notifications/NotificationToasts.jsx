@@ -1,21 +1,23 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useNotificationStore } from '../../stores/notificationStore'
 
-function getPriorityLabel(priority) {
+function getPriorityLabel(priority, t) {
   if (priority <= 1) {
-    return 'High'
+    return t('notificationToasts.priority.high')
   }
   if (priority === 2) {
-    return 'Medium'
+    return t('notificationToasts.priority.medium')
   }
-  return 'Info'
+  return t('notificationToasts.priority.info')
 }
 
 function ToastItem({ notification }) {
   const navigate = useNavigate()
+  const { t } = useTranslation(['pages', 'common'])
   const dismissToast = useNotificationStore((state) => state.dismissToast)
   const { markNotificationRead } = useNotifications()
 
@@ -63,7 +65,7 @@ function ToastItem({ notification }) {
       </span>
 
       <div className="notif-toast-copy">
-        <span className="notif-toast-kicker">{getPriorityLabel(notification.priority)} priority</span>
+        <span className="notif-toast-kicker">{t('notificationToasts.priorityKicker', { label: getPriorityLabel(notification.priority, t) })}</span>
         <span className="notif-toast-title">{notification.title}</span>
         <span className="notif-toast-body">{notification.body}</span>
         <button
@@ -74,7 +76,7 @@ function ToastItem({ notification }) {
             void handleView()
           }}
         >
-          View details
+          {t('notificationToasts.viewDetails')}
         </button>
       </div>
 
@@ -85,7 +87,7 @@ function ToastItem({ notification }) {
           event.stopPropagation()
           dismissToast(notification.id)
         }}
-        aria-label="Dismiss notification"
+        aria-label={t('notificationToasts.dismissAriaLabel')}
       >
         ×
       </button>

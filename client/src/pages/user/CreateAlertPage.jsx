@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Circle, MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import FancySelect from '../../components/ui/FancySelect'
@@ -69,88 +70,8 @@ import '../../styles/DashboardPage.css'
 import siaraLogo from '../../assets/logos/siara-logo.png'
 
 const ALGIERS = { lat: 36.753, lng: 3.0588 }
-const STEPS = ['Alert Type', 'Zone', 'Conditions', 'Frequency', 'Confirmation']
-
-const ALERT_TYPES = [
-  { id: 'accident', icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" />, label: 'Accident', desc: 'Collision, road accident' },
-  { id: 'traffic', icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'Traffic', desc: 'Traffic jam, slowdown' },
-  { id: 'danger', icon: <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" />, label: 'Danger', desc: 'Obstacle, dangerous situation' },
-  { id: 'weather', icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" />, label: 'Weather', desc: 'Dangerous weather conditions' },
-  { id: 'roadworks', icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'Roadworks', desc: 'Construction, lane closure' },
-  { id: 'other', icon: <HelpOutlineOutlinedIcon fontSize="inherit" className="icon-muted" />, label: 'Other', desc: 'Other type of incident' },
-]
-
-const SEVERITY_OPTIONS = [
-  {
-    id: 'high',
-    label: 'High',
-    desc: 'Urgent incidents that need immediate attention.',
-    color: '#DC2626',
-  },
-  {
-    id: 'medium',
-    label: 'Medium',
-    desc: 'Important incidents with moderate impact.',
-    color: '#F59E0B',
-  },
-  {
-    id: 'low',
-    label: 'Low',
-    desc: 'Minor incidents useful for awareness.',
-    color: '#10B981',
-  },
-]
-
-const TIME_RANGE_OPTIONS = [
-  { id: 'all', label: 'All day' },
-  { id: 'day', label: 'Daytime' },
-  { id: 'night', label: 'Night' },
-  { id: 'custom', label: 'Custom' },
-]
-
-const FREQUENCY_OPTIONS = [
-  {
-    id: 'immediate',
-    icon: <BoltOutlinedIcon fontSize="inherit" />,
-    label: 'Immediate',
-    desc: 'Receive a notification as soon as a matching incident is detected.',
-  },
-  {
-    id: 'digest',
-    icon: <CalendarMonthOutlinedIcon fontSize="inherit" />,
-    label: 'Digest',
-    desc: 'Bundle incidents in a summary so you receive fewer notifications.',
-  },
-  {
-    id: 'first',
-    icon: <NotificationsOffOutlinedIcon fontSize="inherit" />,
-    label: 'First only',
-    desc: 'Notify on the first matching incident, then silence repeated updates.',
-  },
-]
 
 const DIGEST_INTERVALS = ['hourly', 'daily', 'weekly']
-
-const DELIVERY_OPTIONS = [
-  {
-    key: 'deliveryApp',
-    icon: <NotificationsOutlinedIcon fontSize="inherit" />,
-    label: 'In-app notifications',
-    desc: 'Appear inside your SIARA notification center.',
-  },
-  {
-    key: 'deliveryEmail',
-    icon: <MailOutlineOutlinedIcon fontSize="inherit" />,
-    label: 'Email',
-    desc: 'Send matching alerts to your account email.',
-  },
-  {
-    key: 'deliverySms',
-    icon: <ChatBubbleOutlineOutlinedIcon fontSize="inherit" />,
-    label: 'SMS',
-    desc: 'Text message delivery when your account supports it.',
-  },
-]
 
 function renderHeaderIcon(type) {
   if (type === 'notification') {
@@ -190,8 +111,8 @@ function renderHeaderIcon(type) {
   )
 }
 
-function renderTypeIcon(type) {
-  return ALERT_TYPES.find((item) => item.id === type)?.icon || <HelpOutlineOutlinedIcon fontSize="inherit" />
+function renderTypeIcon(type, alertTypes) {
+  return alertTypes.find((item) => item.id === type)?.icon || <HelpOutlineOutlinedIcon fontSize="inherit" />
 }
 
 function getInitialState(editAlert) {
@@ -235,41 +156,129 @@ function zoneReady(data) {
   return false
 }
 
-function formatTimeRangeLabel(alertData) {
+function formatTimeRangeLabel(alertData, timeRangeOptions, t) {
   if (alertData.timeRange === 'custom') {
     if (alertData.timeStart && alertData.timeEnd) {
       return `${alertData.timeStart} - ${alertData.timeEnd}`
     }
-    return 'Custom'
+    return t('createAlertPage.timeRange.custom')
   }
 
-  const option = TIME_RANGE_OPTIONS.find((item) => item.id === alertData.timeRange)
-  return option?.label || 'All day'
+  const option = timeRangeOptions.find((item) => item.id === alertData.timeRange)
+  return option?.label || t('createAlertPage.timeRange.allDay')
 }
 
-function formatSeverityLabelList(ids = []) {
+function formatSeverityLabelList(ids = [], severityOptions, t) {
   const labels = ids
-    .map((id) => SEVERITY_OPTIONS.find((item) => item.id === id)?.label)
+    .map((id) => severityOptions.find((item) => item.id === id)?.label)
     .filter(Boolean)
 
-  return labels.length > 0 ? labels.join(', ') : 'Not set'
+  return labels.length > 0 ? labels.join(', ') : t('createAlertPage.severity.notSet')
 }
 
-function formatDeliveryLabelList(alertData) {
-  const labels = DELIVERY_OPTIONS
+function formatDeliveryLabelList(alertData, deliveryOptions, t) {
+  const labels = deliveryOptions
     .filter((option) => alertData[option.key])
     .map((option) => option.label)
 
-  return labels.length > 0 ? labels.join(', ') : 'In-app notifications'
+  return labels.length > 0 ? labels.join(', ') : t('createAlertPage.delivery.inApp')
 }
 
 export default function CreateAlertPage() {
+  const { t } = useTranslation(['alerts', 'common'])
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useContext(AuthContext)
   const editAlert = location.state?.editAlert || null
   const isEditMode = Boolean(editAlert)
   const initialState = useMemo(() => getInitialState(editAlert), [editAlert])
+
+  const STEPS = [
+    t('createAlertPage.steps.alertType'),
+    t('createAlertPage.steps.zone'),
+    t('createAlertPage.steps.conditions'),
+    t('createAlertPage.steps.frequency'),
+    t('createAlertPage.steps.confirmation'),
+  ]
+
+  const ALERT_TYPES = [
+    { id: 'accident', icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" />, label: t('createAlertPage.alertTypes.accident.label'), desc: t('createAlertPage.alertTypes.accident.desc') },
+    { id: 'traffic', icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" />, label: t('createAlertPage.alertTypes.traffic.label'), desc: t('createAlertPage.alertTypes.traffic.desc') },
+    { id: 'danger', icon: <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" />, label: t('createAlertPage.alertTypes.danger.label'), desc: t('createAlertPage.alertTypes.danger.desc') },
+    { id: 'weather', icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" />, label: t('createAlertPage.alertTypes.weather.label'), desc: t('createAlertPage.alertTypes.weather.desc') },
+    { id: 'roadworks', icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" />, label: t('createAlertPage.alertTypes.roadworks.label'), desc: t('createAlertPage.alertTypes.roadworks.desc') },
+    { id: 'other', icon: <HelpOutlineOutlinedIcon fontSize="inherit" className="icon-muted" />, label: t('createAlertPage.alertTypes.other.label'), desc: t('createAlertPage.alertTypes.other.desc') },
+  ]
+
+  const SEVERITY_OPTIONS = [
+    {
+      id: 'high',
+      label: t('createAlertPage.severityOptions.high.label'),
+      desc: t('createAlertPage.severityOptions.high.desc'),
+      color: '#DC2626',
+    },
+    {
+      id: 'medium',
+      label: t('createAlertPage.severityOptions.medium.label'),
+      desc: t('createAlertPage.severityOptions.medium.desc'),
+      color: '#F59E0B',
+    },
+    {
+      id: 'low',
+      label: t('createAlertPage.severityOptions.low.label'),
+      desc: t('createAlertPage.severityOptions.low.desc'),
+      color: '#10B981',
+    },
+  ]
+
+  const TIME_RANGE_OPTIONS = [
+    { id: 'all', label: t('createAlertPage.timeRange.allDay') },
+    { id: 'day', label: t('createAlertPage.timeRange.daytime') },
+    { id: 'night', label: t('createAlertPage.timeRange.night') },
+    { id: 'custom', label: t('createAlertPage.timeRange.custom') },
+  ]
+
+  const FREQUENCY_OPTIONS = [
+    {
+      id: 'immediate',
+      icon: <BoltOutlinedIcon fontSize="inherit" />,
+      label: t('createAlertPage.frequency.immediate.label'),
+      desc: t('createAlertPage.frequency.immediate.desc'),
+    },
+    {
+      id: 'digest',
+      icon: <CalendarMonthOutlinedIcon fontSize="inherit" />,
+      label: t('createAlertPage.frequency.digest.label'),
+      desc: t('createAlertPage.frequency.digest.desc'),
+    },
+    {
+      id: 'first',
+      icon: <NotificationsOffOutlinedIcon fontSize="inherit" />,
+      label: t('createAlertPage.frequency.firstOnly.label'),
+      desc: t('createAlertPage.frequency.firstOnly.desc'),
+    },
+  ]
+
+  const DELIVERY_OPTIONS = [
+    {
+      key: 'deliveryApp',
+      icon: <NotificationsOutlinedIcon fontSize="inherit" />,
+      label: t('createAlertPage.delivery.inApp'),
+      desc: t('createAlertPage.delivery.inAppDesc'),
+    },
+    {
+      key: 'deliveryEmail',
+      icon: <MailOutlineOutlinedIcon fontSize="inherit" />,
+      label: t('createAlertPage.delivery.email'),
+      desc: t('createAlertPage.delivery.emailDesc'),
+    },
+    {
+      key: 'deliverySms',
+      icon: <ChatBubbleOutlineOutlinedIcon fontSize="inherit" />,
+      label: t('createAlertPage.delivery.sms'),
+      desc: t('createAlertPage.delivery.smsDesc'),
+    },
+  ]
 
   const [showDropdown, setShowDropdown] = useState(false)
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
@@ -290,12 +299,12 @@ export default function CreateAlertPage() {
 
   const zoneLabel =
     alertData.zoneType === 'radius'
-      ? `${alertData.zoneRadius} km radius`
+      ? t('createAlertPage.zone.radiusLabel', { radius: alertData.zoneRadius })
       : alertData.zoneType === 'wilaya'
-        ? selectedWilaya?.name || 'Selected wilaya'
+        ? selectedWilaya?.name || t('createAlertPage.zone.selectedWilaya')
         : alertData.zoneType === 'commune'
-          ? [selectedCommune?.name, selectedWilaya?.name].filter(Boolean).join(', ') || 'Selected commune'
-          : 'Zone'
+          ? [selectedCommune?.name, selectedWilaya?.name].filter(Boolean).join(', ') || t('createAlertPage.zone.selectedCommune')
+          : t('createAlertPage.zone.zone')
 
   const userAvatarUrl = getUserAvatarUrl(user)
   const profileInitials = getInitialsFromName(user?.name || user?.email || 'User')
@@ -308,7 +317,7 @@ export default function CreateAlertPage() {
         const items = await fetchWilayas()
         if (!ignore) setWilayas(items)
       } catch (error) {
-        if (!ignore) setErrorMessage(error.response?.data?.message || 'Unable to load wilayas.')
+        if (!ignore) setErrorMessage(error.response?.data?.message || t('createAlertPage.errors.loadWilayas'))
       } finally {
         if (!ignore) setLoadingWilayas(false)
       }
@@ -333,7 +342,7 @@ export default function CreateAlertPage() {
         const items = await fetchCommunes(alertData.zoneWilayaId)
         if (!ignore) setCommunes(items)
       } catch (error) {
-        if (!ignore) setErrorMessage(error.response?.data?.message || 'Unable to load communes.')
+        if (!ignore) setErrorMessage(error.response?.data?.message || t('createAlertPage.errors.loadCommunes'))
       } finally {
         if (!ignore) setLoadingCommunes(false)
       }
@@ -521,7 +530,7 @@ export default function CreateAlertPage() {
           : { newAlert: saved?.name || alertData.name },
       })
     } catch (error) {
-      setErrorMessage(error.response?.data?.message || 'Unable to save this alert.')
+      setErrorMessage(error.response?.data?.message || t('createAlertPage.errors.saveFailed'))
       setIsSaving(false)
     }
   }
@@ -536,12 +545,12 @@ export default function CreateAlertPage() {
             </div>
 
             <nav className="dash-header-tabs">
-              <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
-              <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
-              <button className="dash-tab dash-tab-active" onClick={() => navigate('/alerts')}>Alerts</button>
-              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
-              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
-              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <button className="dash-tab" onClick={() => navigate('/news')}>{t('createAlertPage.nav.feed')}</button>
+              <button className="dash-tab" onClick={() => navigate('/map')}>{t('common:nav.map')}</button>
+              <button className="dash-tab dash-tab-active" onClick={() => navigate('/alerts')}>{t('common:nav.alerts')}</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>{t('createAlertPage.nav.report')}</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>{t('createAlertPage.nav.dashboard')}</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>{t('common:nav.predictions')}</button>
               <PoliceModeTab user={user} />
             </nav>
           </div>
@@ -551,8 +560,8 @@ export default function CreateAlertPage() {
               navigate={navigate}
               query={headerSearchQuery}
               setQuery={setHeaderSearchQuery}
-              placeholder="Search for an incident, a road, a wilaya..."
-              ariaLabel="Search"
+              placeholder={t('createAlertPage.searchPlaceholder')}
+              ariaLabel={t('common:actions.search')}
               currentUser={user}
             />
           </div>
@@ -560,7 +569,7 @@ export default function CreateAlertPage() {
           <div className="dash-header-right">
             <NotificationBell />
 
-            <button className="dash-icon-btn" aria-label="Messages">
+            <button className="dash-icon-btn" aria-label={t('common:nav.notifications')}>
               {renderHeaderIcon('message')}
             </button>
 
@@ -568,12 +577,12 @@ export default function CreateAlertPage() {
               <button
                 className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`}
                 onClick={() => setShowDropdown(!showDropdown)}
-                aria-label="User profile"
+                aria-label={t('createAlertPage.userProfileAriaLabel')}
               >
                 {userAvatarUrl ? (
                   <img
                     src={userAvatarUrl}
-                    alt="User avatar"
+                    alt={t('createAlertPage.userAvatarAlt')}
                     className="dash-avatar-image"
                     loading="lazy"
                   />
@@ -591,7 +600,7 @@ export default function CreateAlertPage() {
                       navigate('/profile')
                     }}
                   >
-                    My Profile
+                    {t('createAlertPage.dropdown.myProfile')}
                   </button>
                   <button
                     className="dropdown-item"
@@ -600,7 +609,7 @@ export default function CreateAlertPage() {
                       navigate('/settings')
                     }}
                   >
-                    Settings
+                    {t('common:nav.settings')}
                   </button>
                   <button
                     className="dropdown-item"
@@ -609,7 +618,7 @@ export default function CreateAlertPage() {
                       navigate('/notifications')
                     }}
                   >
-                    Notifications
+                    {t('common:nav.notifications')}
                   </button>
                   <div className="dropdown-divider"></div>
                   <button
@@ -619,7 +628,7 @@ export default function CreateAlertPage() {
                       navigate('/home')
                     }}
                   >
-                    Log Out
+                    {t('common:nav.logout')}
                   </button>
                 </div>
               )}
@@ -632,7 +641,7 @@ export default function CreateAlertPage() {
         <aside className="create-left">
           <div className="stepper-header">
             <span className="stepper-icon"><NotificationsOutlinedIcon fontSize="inherit" /></span>
-            <h2>{isEditMode ? 'Edit alert' : 'Create an alert'}</h2>
+            <h2>{isEditMode ? t('createAlertPage.editAlert') : t('createAlertPage.createAlert')}</h2>
           </div>
 
           <div className="stepper">
@@ -655,15 +664,15 @@ export default function CreateAlertPage() {
           <div className="trust-notice">
             <span className="trust-icon"><ShieldOutlinedIcon fontSize="inherit" className="icon-security" /></span>
             <div className="trust-text">
-              <strong>Secure alerts</strong>
-              <p>Only incidents matching your selected filters and area trigger notifications.</p>
+              <strong>{t('createAlertPage.trustNotice.title')}</strong>
+              <p>{t('createAlertPage.trustNotice.desc')}</p>
             </div>
           </div>
 
           <LeftQuickInfoLinks />
 
           <button className="cancel-btn" onClick={() => navigate('/alerts')}>
-            <CloseRoundedIcon fontSize="inherit" className="icon-danger" /> Cancel
+            <CloseRoundedIcon fontSize="inherit" className="icon-danger" /> {t('common:actions.cancel')}
           </button>
         </aside>
 
@@ -677,8 +686,8 @@ export default function CreateAlertPage() {
           {currentStep === 1 && (
             <div className="step-panel create-alert-type-step">
               <div className="step-header">
-                <h1>What type of alert do you want to create?</h1>
-                <p>Select one or more categories that match your alert.</p>
+                <h1>{t('createAlertPage.step1.title')}</h1>
+                <p>{t('createAlertPage.step1.subtitle')}</p>
               </div>
 
               <div className="type-grid">
@@ -689,7 +698,7 @@ export default function CreateAlertPage() {
                     onClick={() => toggleInList('types', type.id)}
                   >
                     <div className="type-check">{alertData.types.includes(type.id) ? <CheckRoundedIcon fontSize="inherit" /> : ''}</div>
-                    <span className="type-icon">{renderTypeIcon(type.id)}</span>
+                    <span className="type-icon">{renderTypeIcon(type.id, ALERT_TYPES)}</span>
                     <span className="type-label">{type.label}</span>
                     <span className="type-desc">{type.desc}</span>
                   </div>
@@ -697,7 +706,7 @@ export default function CreateAlertPage() {
               </div>
 
               {alertData.types.length === 0 && (
-                <p className="step-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" /> Select an alert type to continue.</p>
+                <p className="step-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" /> {t('createAlertPage.step1.hint')}</p>
               )}
             </div>
           )}
@@ -705,8 +714,8 @@ export default function CreateAlertPage() {
           {currentStep === 2 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Where should SIARA watch?</h1>
-                <p>Wilaya, commune, or a radius around a point.</p>
+                <h1>{t('createAlertPage.step2.title')}</h1>
+                <p>{t('createAlertPage.step2.subtitle')}</p>
               </div>
 
               <div className="zone-options">
@@ -716,7 +725,7 @@ export default function CreateAlertPage() {
                 >
                   <span className="zone-icon"><LocationCityOutlinedIcon fontSize="inherit" /></span>
                   <div className="zone-info">
-                    <span className="zone-label">Wilaya</span>
+                    <span className="zone-label">{t('createAlertPage.zone.wilaya')}</span>
                   </div>
                 </div>
 
@@ -726,7 +735,7 @@ export default function CreateAlertPage() {
                 >
                   <span className="zone-icon"><PushPinOutlinedIcon fontSize="inherit" /></span>
                   <div className="zone-info">
-                    <span className="zone-label">Commune</span>
+                    <span className="zone-label">{t('createAlertPage.zone.commune')}</span>
                   </div>
                 </div>
 
@@ -736,19 +745,19 @@ export default function CreateAlertPage() {
                 >
                   <span className="zone-icon"><LocationOnOutlinedIcon fontSize="inherit" /></span>
                   <div className="zone-info">
-                    <span className="zone-label">Radius</span>
+                    <span className="zone-label">{t('createAlertPage.zone.radius')}</span>
                   </div>
                 </div>
 
                 {alertData.zoneType === 'wilaya' && (
                   <div className="zone-config">
-                    <label>Select a wilaya</label>
+                    <label>{t('createAlertPage.zone.selectWilaya')}</label>
                     <FancySelect
                       value={alertData.zoneWilayaId}
                       onChange={(value) => setAlertData((prev) => ({ ...prev, zoneWilayaId: value }))}
                       menuAlign="left"
                       options={[
-                        { value: '', label: loadingWilayas ? 'Loading wilayas...' : 'Choose a wilaya' },
+                        { value: '', label: loadingWilayas ? t('createAlertPage.zone.loadingWilayas') : t('createAlertPage.zone.chooseWilaya') },
                         ...wilayas.map((w) => ({ value: w.id, label: w.name })),
                       ]}
                     />
@@ -757,7 +766,7 @@ export default function CreateAlertPage() {
 
                 {alertData.zoneType === 'commune' && (
                   <div className="zone-config">
-                    <label>Wilaya</label>
+                    <label>{t('createAlertPage.zone.wilaya')}</label>
                     <FancySelect
                       value={alertData.zoneWilayaId}
                       onChange={(value) =>
@@ -769,12 +778,12 @@ export default function CreateAlertPage() {
                       }
                       menuAlign="left"
                       options={[
-                        { value: '', label: loadingWilayas ? 'Loading wilayas...' : 'Choose a wilaya' },
+                        { value: '', label: loadingWilayas ? t('createAlertPage.zone.loadingWilayas') : t('createAlertPage.zone.chooseWilaya') },
                         ...wilayas.map((w) => ({ value: w.id, label: w.name })),
                       ]}
                     />
 
-                    <label style={{ marginTop: 12 }}>Commune</label>
+                    <label style={{ marginTop: 12 }}>{t('createAlertPage.zone.commune')}</label>
                     <FancySelect
                       value={alertData.zoneCommuneId}
                       onChange={(value) => setAlertData((prev) => ({ ...prev, zoneCommuneId: value }))}
@@ -784,10 +793,10 @@ export default function CreateAlertPage() {
                         {
                           value: '',
                           label: !alertData.zoneWilayaId
-                            ? 'Choose a wilaya first'
+                            ? t('createAlertPage.zone.chooseWilayaFirst')
                             : loadingCommunes
-                              ? 'Loading communes...'
-                              : 'Choose a commune',
+                              ? t('createAlertPage.zone.loadingCommunes')
+                              : t('createAlertPage.zone.chooseCommune'),
                         },
                         ...communes.map((c) => ({ value: c.id, label: c.name })),
                       ]}
@@ -797,7 +806,7 @@ export default function CreateAlertPage() {
 
                 {alertData.zoneType === 'radius' && (
                   <div className="zone-config">
-                    <label>Radius</label>
+                    <label>{t('createAlertPage.zone.radius')}</label>
                     <div className="radius-slider">
                       <input
                         type="range"
@@ -808,7 +817,7 @@ export default function CreateAlertPage() {
                           setAlertData((prev) => ({ ...prev, zoneRadius: Number(event.target.value) }))
                         }
                       />
-                      <span className="radius-value">{alertData.zoneRadius} km</span>
+                      <span className="radius-value">{t('createAlertPage.zone.radiusValue', { radius: alertData.zoneRadius })}</span>
                     </div>
 
                     <div className="map-preview" style={{ height: 260 }}>
@@ -856,8 +865,8 @@ export default function CreateAlertPage() {
           {currentStep === 3 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Conditions</h1>
-                <p>Choose severity and schedule.</p>
+                <h1>{t('createAlertPage.step3.title')}</h1>
+                <p>{t('createAlertPage.step3.subtitle')}</p>
               </div>
 
               <div className="severity-grid">
@@ -878,11 +887,11 @@ export default function CreateAlertPage() {
               </div>
 
               {alertData.severities.length === 0 && (
-                <p className="step-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><WarningAmberOutlinedIcon fontSize="inherit" /> Select at least one severity level.</p>
+                <p className="step-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><WarningAmberOutlinedIcon fontSize="inherit" /> {t('createAlertPage.step3.severityHint')}</p>
               )}
 
               <div className="digest-config" style={{ marginTop: 20 }}>
-                <label>Time range</label>
+                <label>{t('createAlertPage.step3.timeRangeLabel')}</label>
                 <div className="digest-options">
                   {TIME_RANGE_OPTIONS.map((option) => (
                     <button
@@ -900,14 +909,14 @@ export default function CreateAlertPage() {
               {alertData.timeRange === 'custom' && (
                 <div className="custom-time">
                   <div className="time-input">
-                    <label>From</label>
+                    <label>{t('createAlertPage.step3.timeFrom')}</label>
                     <TimeField
                       value={alertData.timeStart}
                       onChange={(next) => setAlertData((prev) => ({ ...prev, timeStart: next }))}
                     />
                   </div>
                   <div className="time-input">
-                    <label>To</label>
+                    <label>{t('createAlertPage.step3.timeTo')}</label>
                     <TimeField
                       value={alertData.timeEnd}
                       onChange={(next) => setAlertData((prev) => ({ ...prev, timeEnd: next }))}
@@ -921,8 +930,8 @@ export default function CreateAlertPage() {
           {currentStep === 4 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Frequency</h1>
-                <p>Set how often SIARA should notify you.</p>
+                <h1>{t('createAlertPage.step4.title')}</h1>
+                <p>{t('createAlertPage.step4.subtitle')}</p>
               </div>
 
               <div className="frequency-card-grid">
@@ -947,17 +956,17 @@ export default function CreateAlertPage() {
 
               {alertData.frequency === 'immediate' && (
                 <div className="frequency-note">
-                  <strong>High volume mode:</strong> Immediate alerts can be frequent during peak incidents.
+                  <strong>{t('createAlertPage.step4.highVolumeTitle')}</strong> {t('createAlertPage.step4.highVolumeDesc')}
                 </div>
               )}
 
               {alertData.frequency === 'digest' && (
                 <div className="digest-config">
-                  <label>Digest interval</label>
+                  <label>{t('createAlertPage.step4.digestInterval')}</label>
 
                   <div className="frequency-autodelivery-note">
                     <span className="frequency-autodelivery-icon"><NotificationsOutlinedIcon fontSize="inherit" /></span>
-                    <p>Delivery channels are managed automatically by your account notification settings.</p>
+                    <p>{t('createAlertPage.step4.autoDeliveryNote')}</p>
                   </div>
 
                   <div className="digest-options digest-options-tight">
@@ -968,14 +977,14 @@ export default function CreateAlertPage() {
                         className={`digest-btn ${alertData.digestInterval === value ? 'selected' : ''}`}
                         onClick={() => setAlertData((prev) => ({ ...prev, digestInterval: value }))}
                       >
-                        {value}
+                        {t(`createAlertPage.digestIntervals.${value}`)}
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              <p className="delivery-section-label">Notify via</p>
+              <p className="delivery-section-label">{t('createAlertPage.step4.notifyVia')}</p>
               <div className="delivery-grid">
                 {DELIVERY_OPTIONS.map(({ key, icon, label, desc }) => (
                   <label
@@ -1007,14 +1016,14 @@ export default function CreateAlertPage() {
           {currentStep === 5 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Confirmation</h1>
-                <p>Review your alert settings before saving.</p>
+                <h1>{t('createAlertPage.step5.title')}</h1>
+                <p>{t('createAlertPage.step5.subtitle')}</p>
               </div>
 
               {/* Editable alert name */}
               <div className="conf-name-card">
                 <span className="conf-name-icon" aria-hidden="true">
-                  {ALERT_TYPES.find((t) => t.id === alertData.types[0])?.icon || <NotificationsOutlinedIcon fontSize="inherit" />}
+                  {ALERT_TYPES.find((type) => type.id === alertData.types[0])?.icon || <NotificationsOutlinedIcon fontSize="inherit" />}
                 </span>
                 <input
                   className="conf-name-input"
@@ -1023,7 +1032,7 @@ export default function CreateAlertPage() {
                     setNameDirty(true)
                     setAlertData((prev) => ({ ...prev, name: event.target.value }))
                   }}
-                  placeholder="Alert name"
+                  placeholder={t('createAlertPage.step5.alertNamePlaceholder')}
                 />
                 <span className="conf-name-edit-hint" aria-hidden="true"><EditRoundedIcon fontSize="inherit" /></span>
               </div>
@@ -1032,7 +1041,7 @@ export default function CreateAlertPage() {
               <div className="conf-summary">
                 <div className="conf-row">
                   <span className="conf-row-icon" aria-hidden="true"><AssignmentOutlinedIcon fontSize="inherit" /></span>
-                  <span className="conf-row-label">Types</span>
+                  <span className="conf-row-label">{t('createAlertPage.step5.summaryTypes')}</span>
                   <span className="conf-row-value">
                     {alertData.types
                       .map((type) => ALERT_TYPES.find((item) => item.id === type)?.label || type)
@@ -1042,13 +1051,13 @@ export default function CreateAlertPage() {
 
                 <div className="conf-row">
                   <span className="conf-row-icon" aria-hidden="true"><LocationOnOutlinedIcon fontSize="inherit" /></span>
-                  <span className="conf-row-label">Zone</span>
+                  <span className="conf-row-label">{t('createAlertPage.step5.summaryZone')}</span>
                   <span className="conf-row-value">{zoneLabel}</span>
                 </div>
 
                 <div className="conf-row">
                   <span className="conf-row-icon" aria-hidden="true"><WarningAmberOutlinedIcon fontSize="inherit" /></span>
-                  <span className="conf-row-label">Severity</span>
+                  <span className="conf-row-label">{t('createAlertPage.step5.summarySeverity')}</span>
                   <span className="conf-row-value conf-row-badges">
                     {alertData.severities.map((sev) => (
                       <span key={sev} className={`conf-sev-badge conf-sev-badge--${sev}`}>
@@ -1060,7 +1069,7 @@ export default function CreateAlertPage() {
 
                 <div className="conf-row">
                   <span className="conf-row-icon" aria-hidden="true"><RepeatOutlinedIcon fontSize="inherit" /></span>
-                  <span className="conf-row-label">Frequency</span>
+                  <span className="conf-row-label">{t('createAlertPage.step5.summaryFrequency')}</span>
                   <span className="conf-row-value">
                     {FREQUENCY_OPTIONS.find((f) => f.id === alertData.frequency)?.label || alertData.frequency}
                   </span>
@@ -1068,21 +1077,21 @@ export default function CreateAlertPage() {
 
                 <div className="conf-row">
                   <span className="conf-row-icon" aria-hidden="true"><AccessTimeRoundedIcon fontSize="inherit" /></span>
-                  <span className="conf-row-label">Time range</span>
-                  <span className="conf-row-value">{formatTimeRangeLabel(alertData)}</span>
+                  <span className="conf-row-label">{t('createAlertPage.step5.summaryTimeRange')}</span>
+                  <span className="conf-row-value">{formatTimeRangeLabel(alertData, TIME_RANGE_OPTIONS, t)}</span>
                 </div>
 
                 <div className="conf-row">
                   <span className="conf-row-icon" aria-hidden="true"><PhoneIphoneOutlinedIcon fontSize="inherit" /></span>
-                  <span className="conf-row-label">Delivery</span>
-                  <span className="conf-row-value">{formatDeliveryLabelList(alertData)}</span>
+                  <span className="conf-row-label">{t('createAlertPage.step5.summaryDelivery')}</span>
+                  <span className="conf-row-value">{formatDeliveryLabelList(alertData, DELIVERY_OPTIONS, t)}</span>
                 </div>
               </div>
 
               {/* Ready banner */}
               <div className="conf-ready-banner">
                 <span className="conf-ready-icon" aria-hidden="true"><CheckRoundedIcon fontSize="inherit" className="icon-success" /></span>
-                <p>Your alert is ready. Click <strong>{isEditMode ? 'Save Changes' : 'Create Alert'}</strong> to activate it.</p>
+                <p>{t('createAlertPage.step5.readyBanner', { action: isEditMode ? t('createAlertPage.saveChanges') : t('createAlertPage.createAlertBtn') })}</p>
               </div>
             </div>
           )}
@@ -1090,7 +1099,7 @@ export default function CreateAlertPage() {
           <div className="step-nav">
             {currentStep > 1 && (
               <button className="nav-btn back" onClick={() => setCurrentStep((prev) => prev - 1)}>
-                <ArrowBackRoundedIcon fontSize="inherit" /> Back
+                <ArrowBackRoundedIcon fontSize="inherit" /> {t('common:actions.back')}
               </button>
             )}
 
@@ -1101,7 +1110,7 @@ export default function CreateAlertPage() {
                 className={`nav-btn next ${shakeNav ? 'shake' : ''}`}
                 onClick={() => (isStepValid(currentStep) ? setCurrentStep((prev) => prev + 1) : bounce())}
               >
-                Continue <ArrowForwardRoundedIcon fontSize="inherit" />
+                {t('createAlertPage.continue')} <ArrowForwardRoundedIcon fontSize="inherit" />
               </button>
             ) : (
               <button
@@ -1109,7 +1118,7 @@ export default function CreateAlertPage() {
                 onClick={saveAlert}
                 disabled={isSaving}
               >
-                {isSaving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Alert'}
+                {isSaving ? t('createAlertPage.saving') : isEditMode ? t('createAlertPage.saveChanges') : t('createAlertPage.createAlertBtn')}
               </button>
             )}
           </div>
@@ -1117,44 +1126,44 @@ export default function CreateAlertPage() {
 
         <aside className="create-right">
           <div className="preview-header">
-            <h3>Live Preview</h3>
+            <h3>{t('createAlertPage.preview.title')}</h3>
           </div>
 
           <div className="preview-section">
-            <span className="preview-label">Alert</span>
+            <span className="preview-label">{t('createAlertPage.preview.alertLabel')}</span>
             <div className="alert-preview-card">
               <div className="apc-header">
                 <span className="apc-icons">
                   {alertData.types.length > 0 ? (
                     alertData.types.slice(0, 2).map((type) => (
                       <span key={type} className="apc-icon-chip">
-                        {renderTypeIcon(type)}
+                        {renderTypeIcon(type, ALERT_TYPES)}
                       </span>
                     ))
                   ) : (
                     <span className="apc-icon-chip">{renderHeaderIcon('notification')}</span>
                   )}
                 </span>
-                <span className="apc-name">{alertData.name || 'New alert'}</span>
+                <span className="apc-name">{alertData.name || t('createAlertPage.preview.newAlert')}</span>
               </div>
 
               <div className="apc-body">
                 <div className="apc-row">
-                  <span className="apc-label">Zone</span>
+                  <span className="apc-label">{t('createAlertPage.step5.summaryZone')}</span>
                   <span className="apc-value">{zoneLabel}</span>
                 </div>
                 <div className="apc-row">
-                  <span className="apc-label">Severity</span>
-                  <span className="apc-value">{formatSeverityLabelList(alertData.severities)}</span>
+                  <span className="apc-label">{t('createAlertPage.step5.summarySeverity')}</span>
+                  <span className="apc-value">{formatSeverityLabelList(alertData.severities, SEVERITY_OPTIONS, t)}</span>
                 </div>
                 <div className="apc-row">
-                  <span className="apc-label">Schedule</span>
-                  <span className="apc-value">{formatTimeRangeLabel(alertData)}</span>
+                  <span className="apc-label">{t('createAlertPage.preview.schedule')}</span>
+                  <span className="apc-value">{formatTimeRangeLabel(alertData, TIME_RANGE_OPTIONS, t)}</span>
                 </div>
                 <div className="apc-row">
-                  <span className="apc-label">Estimated volume</span>
+                  <span className="apc-label">{t('createAlertPage.preview.estimatedVolume')}</span>
                   <span className="apc-value">
-                    {alertData.types.length + alertData.severities.length} signals/week
+                    {t('createAlertPage.preview.signalsPerWeek', { count: alertData.types.length + alertData.severities.length })}
                   </span>
                 </div>
               </div>
@@ -1162,13 +1171,16 @@ export default function CreateAlertPage() {
           </div>
 
           <div className="preview-section why-section">
-            <span className="preview-label">Why you will be notified</span>
+            <span className="preview-label">{t('createAlertPage.preview.whyLabel')}</span>
             <p className="why-text">
               {alertData.types.length > 0 && zoneReady(alertData)
-                ? `SIARA will notify you when ${alertData.types
-                    .map((type) => ALERT_TYPES.find((item) => item.id === type)?.label.toLowerCase())
-                    .join(' or ')} incidents match your filters in ${zoneLabel}.`
-                : 'Complete the steps to see a personalized explanation.'}
+                ? t('createAlertPage.preview.whyText', {
+                    types: alertData.types
+                      .map((type) => ALERT_TYPES.find((item) => item.id === type)?.label.toLowerCase())
+                      .join(` ${t('createAlertPage.preview.whyOr')} `),
+                    zone: zoneLabel,
+                  })
+                : t('createAlertPage.preview.whyTextIncomplete')}
             </p>
           </div>
         </aside>

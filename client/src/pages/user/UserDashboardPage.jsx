@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined'
 import AirOutlinedIcon from '@mui/icons-material/AirOutlined'
 import FilterDramaOutlinedIcon from '@mui/icons-material/FilterDramaOutlined'
@@ -160,12 +161,13 @@ function RiskBar({ score }) {
   return <div className="ud-risk-bar-track"><div className={`ud-risk-bar-fill ${riskTone(score)}`} style={{ width: `${Math.max(0, Math.min(100, Number(score || 0)))}%` }} /></div>
 }
 
-function SeverityPill({ level }) {
-  return <span className={`ud-severity-pill ${level === 'high' ? 'high' : level === 'medium' ? 'medium' : 'low'}`}>{level === 'high' ? 'High' : level === 'medium' ? 'Medium' : 'Low'}</span>
+function SeverityPill({ level, t }) {
+  return <span className={`ud-severity-pill ${level === 'high' ? 'high' : level === 'medium' ? 'medium' : 'low'}`}>{level === 'high' ? t('userDashboardPage.severity.high') : level === 'medium' ? t('userDashboardPage.severity.medium') : t('userDashboardPage.severity.low')}</span>
 }
 
 export default function UserDashboardPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation(['pages', 'common'])
   const { user, logout } = useContext(AuthContext)
   const [showDropdown, setShowDropdown] = useState(false)
   const [headerSearchQuery, setHeaderSearchQuery] = useState('')
@@ -185,11 +187,11 @@ export default function UserDashboardPage() {
       const payload = await fetchDashboard({ refresh })
       setDashboardData(payload || EMPTY_DASHBOARD)
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Unable to load your dashboard right now.')
+      setError(err.response?.data?.message || err.message || t('userDashboardPage.errors.loadDashboard'))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     loadDashboard()
@@ -203,10 +205,10 @@ export default function UserDashboardPage() {
       setTravelHistoryItems(Array.isArray(payload?.items) ? payload.items : [])
       setTravelHistoryState('success')
     } catch (err) {
-      setTravelHistoryError(err.message || 'Unable to load travel history')
+      setTravelHistoryError(err.message || t('userDashboardPage.errors.loadTravelHistory'))
       setTravelHistoryState('error')
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     loadTravelHistory()
@@ -235,7 +237,7 @@ export default function UserDashboardPage() {
   const userAvatarUrl = getUserAvatarUrl(user)
   const profileAvatarUrl = userAvatarUrl || profileAvatar
   const profileInitials = getInitialsFromName(profileName)
-  const updatedAt = dashboard.currentRiskOverview?.updatedAt ? new Date(dashboard.currentRiskOverview.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Unavailable'
+  const updatedAt = dashboard.currentRiskOverview?.updatedAt ? new Date(dashboard.currentRiskOverview.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : t('userDashboardPage.unavailable')
   const forecastPoints = Array.isArray(dashboard.riskForecast48h?.points) ? dashboard.riskForecast48h.points : []
   const hourlyDist = dashboard.incidentDistribution24h.map((item) => ({ ...item, count: Number(item.incidents || 0) }))
   const peakDist = Math.max(...hourlyDist.map((item) => item.count), 1)
@@ -245,10 +247,10 @@ export default function UserDashboardPage() {
   const insightItems = Array.isArray(dashboard.aiInsightOfWeek?.items) ? dashboard.aiInsightOfWeek.items : []
 
   const sevPressure = useMemo(() => ([
-    { key: 'high', label: 'High', pct: Number(dashboard.severityPressure?.high || 0), change: Number(dashboard.severityPressure?.highChange || 0) },
-    { key: 'medium', label: 'Medium', pct: Number(dashboard.severityPressure?.medium || 0), change: Number(dashboard.severityPressure?.mediumChange || 0) },
-    { key: 'low', label: 'Low', pct: Number(dashboard.severityPressure?.low || 0), change: Number(dashboard.severityPressure?.lowChange || 0) },
-  ]), [dashboard])
+    { key: 'high', label: t('userDashboardPage.severity.high'), pct: Number(dashboard.severityPressure?.high || 0), change: Number(dashboard.severityPressure?.highChange || 0) },
+    { key: 'medium', label: t('userDashboardPage.severity.medium'), pct: Number(dashboard.severityPressure?.medium || 0), change: Number(dashboard.severityPressure?.mediumChange || 0) },
+    { key: 'low', label: t('userDashboardPage.severity.low'), pct: Number(dashboard.severityPressure?.low || 0), change: Number(dashboard.severityPressure?.lowChange || 0) },
+  ]), [dashboard, t])
 
   const openMostVolatileZone = () => {
     if (dashboard.mostVolatileZoneToday?.alertId) {
@@ -259,12 +261,12 @@ export default function UserDashboardPage() {
   }
 
   const headerActions = [
-    { label: 'Feed', path: '/news' },
-    { label: 'Map', path: '/map' },
-    { label: 'Alerts', path: '/alerts' },
-    { label: 'Report', path: '/report' },
-    { label: 'Dashboard', active: true },
-    { label: 'Predictions', path: '/predictions' },
+    { label: t('userDashboardPage.nav.feed'), path: '/news' },
+    { label: t('common:nav.map'), path: '/map' },
+    { label: t('common:nav.alerts'), path: '/alerts' },
+    { label: t('userDashboardPage.nav.report'), path: '/report' },
+    { label: t('userDashboardPage.nav.dashboard'), active: true },
+    { label: t('common:nav.predictions'), path: '/predictions' },
   ]
 
   return (
@@ -287,26 +289,26 @@ export default function UserDashboardPage() {
               navigate={navigate}
               query={headerSearchQuery}
               setQuery={setHeaderSearchQuery}
-              placeholder="Search for an incident, a road, a wilaya..."
-              ariaLabel="Search"
+              placeholder={t('userDashboardPage.searchPlaceholder')}
+              ariaLabel={t('common:actions.search')}
               currentUser={user}
             />
           </div>
           <div className="dash-header-right">
             <NotificationBell />
             <div className="dash-avatar-wrapper">
-              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label={t('userDashboardPage.userProfileAriaLabel')}>
                 {userAvatarUrl ? (
-                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                  <img src={userAvatarUrl} alt={t('userDashboardPage.userAvatarAlt')} className="dash-avatar-image" loading="lazy" />
                 ) : profileInitials}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => navigate('/profile')}>My Profile</button>
-                  <button className="dropdown-item" onClick={() => navigate('/settings')}>Settings</button>
-                  <button className="dropdown-item" onClick={() => navigate('/notifications')}>Notifications</button>
+                  <button className="dropdown-item" onClick={() => navigate('/profile')}>{t('userDashboardPage.dropdown.myProfile')}</button>
+                  <button className="dropdown-item" onClick={() => navigate('/settings')}>{t('common:nav.settings')}</button>
+                  <button className="dropdown-item" onClick={() => navigate('/notifications')}>{t('common:nav.notifications')}</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => Promise.resolve(logout()).finally(() => navigate('/home'))}>Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => Promise.resolve(logout()).finally(() => navigate('/home'))}>{t('common:nav.logout')}</button>
                 </div>
               )}
             </div>
@@ -318,82 +320,82 @@ export default function UserDashboardPage() {
         <aside className="sidebar-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />            </div>
+              <img src={profileAvatarUrl} alt={t('common:nav.profile')} className="profile-avatar-large" loading="lazy" />            </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
               <span className={`role-badge ${roleBadgeClass}`}>{roleBadgeLabel}</span>
-              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
-              <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
+              <p className="profile-bio">{t('userDashboardPage.profileBio')}</p>
+              <button className="profile-view-link" onClick={() => navigate('/profile')}>{t('userDashboardPage.viewProfile')}</button>
             </div>
           </div>
           <FeedSidebarNav activeKey="dashboard" onOpenQuiz={() => setShowQuiz(true)} />
         </aside>
 
         <main className="feed-center ud-feed-wide">
-          {error && <section className="card ud-section" style={{ marginBottom: 16 }}><div className="ud-section-header"><h3 className="ud-mini-title" style={{ marginBottom: 0 }}>Dashboard unavailable</h3><button className="ud-link-btn" onClick={() => loadDashboard(true)}>Retry</button></div><p className="ud-forecast-caption" style={{ marginBottom: 0 }}>{error}</p></section>}
-          {isLoading && !dashboardData && <section className="card ud-section" style={{ marginBottom: 16 }}><h3 className="ud-mini-title">Loading live dashboard...</h3><p className="ud-forecast-caption" style={{ marginBottom: 0 }}>Pulling current SIARA incident, alert, and risk data.</p></section>}
+          {error && <section className="card ud-section" style={{ marginBottom: 16 }}><div className="ud-section-header"><h3 className="ud-mini-title" style={{ marginBottom: 0 }}>{t('userDashboardPage.dashboardUnavailable')}</h3><button className="ud-link-btn" onClick={() => loadDashboard(true)}>{t('common:actions.retry')}</button></div><p className="ud-forecast-caption" style={{ marginBottom: 0 }}>{error}</p></section>}
+          {isLoading && !dashboardData && <section className="card ud-section" style={{ marginBottom: 16 }}><h3 className="ud-mini-title">{t('userDashboardPage.loadingDashboard')}</h3><p className="ud-forecast-caption" style={{ marginBottom: 0 }}>{t('userDashboardPage.loadingDashboardCaption')}</p></section>}
 
           <section className="card ud-section ud-risk-overview">
-            <div className="ud-section-header"><h2 className="ud-section-title">Your Current Risk Overview</h2><div className="ud-freshness"><span className="ud-pulse-dot"></span>Updated {updatedAt}</div></div>
+            <div className="ud-section-header"><h2 className="ud-section-title">{t('userDashboardPage.riskOverview.title')}</h2><div className="ud-freshness"><span className="ud-pulse-dot"></span>{t('userDashboardPage.riskOverview.updated', { time: updatedAt })}</div></div>
             <div className="ud-risk-hero">
               <div className="ud-risk-level-block">
                 <div className={`ud-risk-badge ${String(dashboard.currentRiskOverview?.label || '').toLowerCase() === 'high' ? 'high' : String(dashboard.currentRiskOverview?.label || '').toLowerCase() === 'medium' ? 'medium' : 'low'}`}>
                   <span className="ud-risk-score">{dashboard.currentRiskOverview?.score ?? '--'}</span>
-                  <span className="ud-risk-label-text">{dashboard.currentRiskOverview?.label || 'Unavailable'}</span>
+                  <span className="ud-risk-label-text">{dashboard.currentRiskOverview?.label || t('userDashboardPage.unavailable')}</span>
                 </div>
                 <div className="ud-risk-meta">
-                  <span className={`ud-trend ${trendTone(dashboard.currentRiskOverview?.changeVsYesterday)}`}>{Number(dashboard.currentRiskOverview?.changeVsYesterday || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(dashboard.currentRiskOverview?.changeVsYesterday)} vs yesterday</span>
-                  <span className="ud-confidence">AI Confidence: <strong>{metric(dashboard.currentRiskOverview?.aiConfidence, '%')}</strong></span>
+                  <span className={`ud-trend ${trendTone(dashboard.currentRiskOverview?.changeVsYesterday)}`}>{Number(dashboard.currentRiskOverview?.changeVsYesterday || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(dashboard.currentRiskOverview?.changeVsYesterday)} {t('userDashboardPage.riskOverview.vsYesterday')}</span>
+                  <span className="ud-confidence">{t('userDashboardPage.riskOverview.aiConfidence')} <strong>{metric(dashboard.currentRiskOverview?.aiConfidence, '%')}</strong></span>
                 </div>
               </div>
-              <div className="ud-risk-sparkline"><span className="ud-sparkline-label">7-day trend</span><Sparkline data={dashboard.currentRiskOverview?.trend7d || []} gid="riskSpk" /><div className="ud-sparkline-days">{weekLabels.map((day) => <span key={day}>{day}</span>)}</div></div>
+              <div className="ud-risk-sparkline"><span className="ud-sparkline-label">{t('userDashboardPage.riskOverview.sevenDayTrend')}</span><Sparkline data={dashboard.currentRiskOverview?.trend7d || []} gid="riskSpk" /><div className="ud-sparkline-days">{weekLabels.map((day) => <span key={day}>{day}</span>)}</div></div>
             </div>
           </section>
 
           <div className="ud-grid-2up">
             <section className="card ud-section ud-volatility">
-              <h3 className="ud-mini-title">Risk Volatility Index</h3>
-              <div className="ud-vol-row"><div className="ud-vol-score-block"><span className="ud-vol-score">{dashboard.riskVolatilityIndex?.score ?? 0}</span><span className="ud-vol-of">/100</span></div><div className="ud-vol-meta"><span className={`ud-vol-change ${trendTone(dashboard.riskVolatilityIndex?.change24h)}`}>{Number(dashboard.riskVolatilityIndex?.change24h || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(dashboard.riskVolatilityIndex?.change24h)} <span className="ud-vol-period">24h</span></span><span className={`ud-vol-level ${String(dashboard.riskVolatilityIndex?.label || '').toLowerCase().includes('high') ? 'high' : String(dashboard.riskVolatilityIndex?.label || '').toLowerCase().includes('medium') ? 'medium' : 'low'}`}>{dashboard.riskVolatilityIndex?.label || 'Unavailable'}</span></div></div>
+              <h3 className="ud-mini-title">{t('userDashboardPage.volatility.title')}</h3>
+              <div className="ud-vol-row"><div className="ud-vol-score-block"><span className="ud-vol-score">{dashboard.riskVolatilityIndex?.score ?? 0}</span><span className="ud-vol-of">/100</span></div><div className="ud-vol-meta"><span className={`ud-vol-change ${trendTone(dashboard.riskVolatilityIndex?.change24h)}`}>{Number(dashboard.riskVolatilityIndex?.change24h || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(dashboard.riskVolatilityIndex?.change24h)} <span className="ud-vol-period">{t('userDashboardPage.volatility.period24h')}</span></span><span className={`ud-vol-level ${String(dashboard.riskVolatilityIndex?.label || '').toLowerCase().includes('high') ? 'high' : String(dashboard.riskVolatilityIndex?.label || '').toLowerCase().includes('medium') ? 'medium' : 'low'}`}>{dashboard.riskVolatilityIndex?.label || t('userDashboardPage.unavailable')}</span></div></div>
               <Sparkline data={dashboard.riskVolatilityIndex?.trend7d || []} w={320} h={40} gid="volSpk" />
               <div className="ud-sparkline-days ud-sparkline-days--sm">{weekLabels.map((day) => <span key={day}>{day}</span>)}</div>
             </section>
 
             <section className="card ud-section ud-severity-pressure">
-              <h3 className="ud-mini-title">Severity Pressure</h3>
+              <h3 className="ud-mini-title">{t('userDashboardPage.severityPressure.title')}</h3>
               <div className="ud-sev-bar-track">{sevPressure.map((item) => <div key={item.key} className={`ud-sev-seg ${item.key}`} style={{ width: `${item.pct}%` }}></div>)}</div>
               <div className="ud-sev-legend">{sevPressure.map((item) => <div key={item.key} className="ud-sev-item"><span className={`ud-sev-dot ${item.key}`}></span><span className="ud-sev-key">{item.label}</span><span className="ud-sev-pct">{item.pct}%</span><span className={`ud-sev-arrow ${trendTone(item.change)}`}>{Number(item.change) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {Math.abs(item.change)}%</span></div>)}</div>
-              <p className="ud-sev-caption">Change vs last week</p>
+              <p className="ud-sev-caption">{t('userDashboardPage.severityPressure.changeVsLastWeek')}</p>
             </section>
           </div>
 
           <section className="card ud-section ud-distribution">
-            <h3 className="ud-mini-title">24-Hour Incident Distribution</h3>
-            <div className="ud-dist-bars">{hourlyDist.map((block) => <div key={block.bucket} className={`ud-dist-row ${block.count === peakDist && peakDist > 0 ? 'peak' : ''}`}><span className="ud-dist-label">{block.bucket}</span><div className="ud-dist-bar-track"><div className={`ud-dist-bar-fill ${block.count === peakDist && peakDist > 0 ? 'peak' : ''}`} style={{ width: `${(block.count / peakDist) * 100}%` }}></div></div><span className="ud-dist-count">{block.count} incidents</span></div>)}</div>
-            <p className="ud-dist-caption">Powered by the last 24 hours of incidents in your {dashboard.meta?.scopeMode === 'watched_zones' ? 'watched zones' : 'system fallback'}.</p>
+            <h3 className="ud-mini-title">{t('userDashboardPage.distribution.title')}</h3>
+            <div className="ud-dist-bars">{hourlyDist.map((block) => <div key={block.bucket} className={`ud-dist-row ${block.count === peakDist && peakDist > 0 ? 'peak' : ''}`}><span className="ud-dist-label">{block.bucket}</span><div className="ud-dist-bar-track"><div className={`ud-dist-bar-fill ${block.count === peakDist && peakDist > 0 ? 'peak' : ''}`} style={{ width: `${(block.count / peakDist) * 100}%` }}></div></div><span className="ud-dist-count">{t('userDashboardPage.distribution.incidents', { count: block.count })}</span></div>)}</div>
+            <p className="ud-dist-caption">{t('userDashboardPage.distribution.caption', { scope: dashboard.meta?.scopeMode === 'watched_zones' ? t('userDashboardPage.distribution.watchedZones') : t('userDashboardPage.distribution.systemFallback') })}</p>
           </section>
 
           <div className="ud-grid-2up">
             <section className="card ud-section ud-factors">
-              <h3 className="ud-mini-title">Top Contributing Factors</h3>
-              <div className="ud-factor-list">{factors.length === 0 ? <p className="ud-factor-caption">No factor data available yet.</p> : factors.map((factor) => <div key={factor.name} className="ud-factor-row"><span className="ud-factor-icon">{factor.icon}</span><span className="ud-factor-label">{factor.name}</span><span className="ud-factor-pct">{factor.impactPct == null ? '--' : `+${Math.round(Number(factor.impactPct))}%`}</span></div>)}</div>
-              <p className="ud-factor-caption">Explains why risk increased.</p>
+              <h3 className="ud-mini-title">{t('userDashboardPage.factors.title')}</h3>
+              <div className="ud-factor-list">{factors.length === 0 ? <p className="ud-factor-caption">{t('userDashboardPage.factors.noData')}</p> : factors.map((factor) => <div key={factor.name} className="ud-factor-row"><span className="ud-factor-icon">{factor.icon}</span><span className="ud-factor-label">{factor.name}</span><span className="ud-factor-pct">{factor.impactPct == null ? '--' : `+${Math.round(Number(factor.impactPct))}%`}</span></div>)}</div>
+              <p className="ud-factor-caption">{t('userDashboardPage.factors.caption')}</p>
             </section>
             <section className="card ud-section ud-exposure">
-              <h3 className="ud-mini-title">Your Exposure Index</h3>
-              <div className="ud-exp-level-row"><div className={`ud-exp-badge ${String(dashboard.exposureIndex?.label || '').toLowerCase() === 'high' ? 'high' : String(dashboard.exposureIndex?.label || '').toLowerCase() === 'medium' ? 'medium' : 'low'}`}>{dashboard.exposureIndex?.label || 'Unavailable'}</div></div>
-              <div className="ud-exp-metrics"><div className="ud-exp-metric"><span className="ud-exp-value">{dashboard.exposureIndex?.monitoredZones ?? 0}</span><span className="ud-exp-label">Monitored zones</span></div><div className="ud-exp-metric"><span className="ud-exp-value">{dashboard.exposureIndex?.activeAlerts ?? 0}</span><span className="ud-exp-label">Active alerts</span></div><div className="ud-exp-metric"><span className="ud-exp-value">{dashboard.exposureIndex?.commutePattern || 'n/a'}</span><span className="ud-exp-label">Commute detected</span></div></div>
+              <h3 className="ud-mini-title">{t('userDashboardPage.exposure.title')}</h3>
+              <div className="ud-exp-level-row"><div className={`ud-exp-badge ${String(dashboard.exposureIndex?.label || '').toLowerCase() === 'high' ? 'high' : String(dashboard.exposureIndex?.label || '').toLowerCase() === 'medium' ? 'medium' : 'low'}`}>{dashboard.exposureIndex?.label || t('userDashboardPage.unavailable')}</div></div>
+              <div className="ud-exp-metrics"><div className="ud-exp-metric"><span className="ud-exp-value">{dashboard.exposureIndex?.monitoredZones ?? 0}</span><span className="ud-exp-label">{t('userDashboardPage.exposure.monitoredZones')}</span></div><div className="ud-exp-metric"><span className="ud-exp-value">{dashboard.exposureIndex?.activeAlerts ?? 0}</span><span className="ud-exp-label">{t('userDashboardPage.exposure.activeAlerts')}</span></div><div className="ud-exp-metric"><span className="ud-exp-value">{dashboard.exposureIndex?.commutePattern || 'n/a'}</span><span className="ud-exp-label">{t('userDashboardPage.exposure.commuteDetected')}</span></div></div>
             </section>
           </div>
 
           <section className="card ud-section ud-forecast">
-            <div className="ud-section-header"><h3 className="ud-mini-title" style={{ marginBottom: 0 }}>Risk Forecast — Next 48 Hours</h3></div>
+            <div className="ud-section-header"><h3 className="ud-mini-title" style={{ marginBottom: 0 }}>{t('userDashboardPage.forecast.title')}</h3></div>
             <ForecastChart points={forecastPoints} />
-            <p className="ud-forecast-caption">{dashboard.riskForecast48h?.note || 'Forecast data is not available yet.'}</p>
+            <p className="ud-forecast-caption">{dashboard.riskForecast48h?.note || t('userDashboardPage.forecast.noData')}</p>
           </section>
 
           <section className="card ud-section ud-roads">
-            <div className="ud-section-header"><h3 className="ud-mini-title" style={{ marginBottom: 0 }}>High-Risk Road Ranking</h3></div>
-            <div className="ud-table-wrapper"><table className="ud-table"><thead><tr><th>#</th><th>Road</th><th>Risk Score</th><th>Change</th><th></th></tr></thead><tbody>{topRoads.length === 0 ? <tr><td colSpan="5" className="ud-cell-muted">No road risk data available yet.</td></tr> : topRoads.map((road) => <tr key={road.rank}><td className="ud-road-rank">{road.rank}</td><td className="ud-cell-primary">{road.road}</td><td><div className="ud-score-cell"><span className={`ud-score-value ${riskTone(road.riskScore)}`}>{road.riskScore}</span><RiskBar score={road.riskScore} /></div></td><td><span className={`ud-trend ${trendTone(road.change)}`}>{Number(road.change || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(road.change)}</span></td><td><button className="ud-map-btn" onClick={() => navigate('/map')}>Map <ArrowForwardRoundedIcon fontSize="inherit" /></button></td></tr>)}</tbody></table></div>
+            <div className="ud-section-header"><h3 className="ud-mini-title" style={{ marginBottom: 0 }}>{t('userDashboardPage.roads.title')}</h3></div>
+            <div className="ud-table-wrapper"><table className="ud-table"><thead><tr><th>#</th><th>{t('userDashboardPage.roads.colRoad')}</th><th>{t('userDashboardPage.roads.colRiskScore')}</th><th>{t('userDashboardPage.roads.colChange')}</th><th></th></tr></thead><tbody>{topRoads.length === 0 ? <tr><td colSpan="5" className="ud-cell-muted">{t('userDashboardPage.roads.noData')}</td></tr> : topRoads.map((road) => <tr key={road.rank}><td className="ud-road-rank">{road.rank}</td><td className="ud-cell-primary">{road.road}</td><td><div className="ud-score-cell"><span className={`ud-score-value ${riskTone(road.riskScore)}`}>{road.riskScore}</span><RiskBar score={road.riskScore} /></div></td><td><span className={`ud-trend ${trendTone(road.change)}`}>{Number(road.change || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(road.change)}</span></td><td><button className="ud-map-btn" onClick={() => navigate('/map')}>{t('common:nav.map')} <ArrowForwardRoundedIcon fontSize="inherit" /></button></td></tr>)}</tbody></table></div>
           </section>
 
           <section className="ud-section" style={{ marginTop: 16 }}>
@@ -402,20 +404,20 @@ export default function UserDashboardPage() {
 
           <section className="card ud-section">
             <div className="ud-section-header">
-              <h2 className="ud-section-title">My Travel History</h2>
+              <h2 className="ud-section-title">{t('userDashboardPage.travelHistory.title')}</h2>
               {travelHistoryState === 'success' && (
-                <button className="ud-link-btn" onClick={() => loadTravelHistory()}>Refresh</button>
+                <button className="ud-link-btn" onClick={() => loadTravelHistory()}>{t('userDashboardPage.travelHistory.refresh')}</button>
               )}
             </div>
             {travelHistoryState === 'loading' && (
-              <p className="ud-forecast-caption">Loading your completed trips…</p>
+              <p className="ud-forecast-caption">{t('userDashboardPage.travelHistory.loading')}</p>
             )}
             {travelHistoryState === 'error' && (
               <p className="ud-forecast-caption" role="alert">{travelHistoryError}</p>
             )}
             {travelHistoryState === 'success' && travelHistoryItems.length === 0 && (
               <div className="ud-travel-empty">
-                No completed trips yet. Start route guidance from the map to build your travel history.
+                {t('userDashboardPage.travelHistory.empty')}
               </div>
             )}
             {travelHistoryState === 'success' && travelHistoryItems.length > 0 && (
@@ -459,7 +461,7 @@ export default function UserDashboardPage() {
                       <div className="ud-travel-card-header">
                         <div>
                           <p className="ud-travel-destination">
-                            {trip.destinationName || 'Saved trip'}
+                            {trip.destinationName || t('userDashboardPage.travelHistory.savedTrip')}
                           </p>
                           <p className="ud-travel-date">{dateLabel}</p>
                         </div>
@@ -467,26 +469,26 @@ export default function UserDashboardPage() {
                       </div>
                       <div className="ud-travel-meta">
                         <div className="ud-travel-meta-item">
-                          <span>Distance</span>
+                          <span>{t('userDashboardPage.travelHistory.distance')}</span>
                           <strong>{distanceLabel}</strong>
                         </div>
                         <div className="ud-travel-meta-item">
-                          <span>Duration</span>
+                          <span>{t('userDashboardPage.travelHistory.duration')}</span>
                           <strong>{durationLabel}</strong>
                         </div>
                         <div className="ud-travel-meta-item">
-                          <span>Route</span>
+                          <span>{t('userDashboardPage.travelHistory.route')}</span>
                           <strong>{trip.routeType || '—'}</strong>
                         </div>
                       </div>
                       <div className="ud-travel-card-footer">
                         <div className={`ud-travel-stars ${stars === 0 ? 'is-empty' : ''}`}>
                           {stars === 0
-                            ? 'Not rated yet'
+                            ? t('userDashboardPage.travelHistory.notRated')
                             : <>{Array.from({ length: stars }).map((_, i) => <StarRoundedIcon key={`f${i}`} fontSize="inherit" className="icon-rating" />)}{Array.from({ length: 5 - stars }).map((_, i) => <StarBorderRoundedIcon key={`e${i}`} fontSize="inherit" className="icon-rating-empty" />)}</>}
                         </div>
                         <button className="ud-link-btn" onClick={() => setSelectedTripId(trip.id)}>
-                          View details <ArrowForwardRoundedIcon fontSize="inherit" />
+                          {t('userDashboardPage.travelHistory.viewDetails')} <ArrowForwardRoundedIcon fontSize="inherit" />
                         </button>
                       </div>
                     </article>
@@ -504,28 +506,28 @@ export default function UserDashboardPage() {
           />
 
           <section className="card ud-section ud-alerts-section">
-            <div className="ud-section-header"><h2 className="ud-section-title">Active Alerts</h2><button className="ud-link-btn" onClick={() => navigate('/alerts')}>View all <ArrowForwardRoundedIcon fontSize="inherit" /></button></div>
-            <div className="ud-efficiency-strip"><div className="ud-eff-kpi"><span className="ud-eff-value">{dashboard.activeAlerts?.triggeredThisWeek ?? 0}</span><span className="ud-eff-label">Triggered this week</span></div><div className="ud-eff-kpi"><span className="ud-eff-value">{dashboard.activeAlerts?.matchedHighSeverityPct == null ? '--' : `${dashboard.activeAlerts.matchedHighSeverityPct}%`}</span><span className="ud-eff-label">Matched high severity</span></div><div className="ud-eff-kpi"><span className="ud-eff-value">{dashboard.activeAlerts?.falseAlertRatio == null ? '--' : `${dashboard.activeAlerts.falseAlertRatio}%`}</span><span className="ud-eff-label">False alert ratio</span></div></div>
-            <div className="ud-table-wrapper"><table className="ud-table"><thead><tr><th>Alert</th><th>Area</th><th>Severity</th><th>Last Trigger</th><th>Status</th></tr></thead><tbody>{activeAlerts.length === 0 ? <tr><td colSpan="5" className="ud-cell-muted">No active alerts yet.</td></tr> : activeAlerts.map((alert) => <tr key={alert.id}><td className="ud-cell-primary">{alert.title}</td><td>{alert.area}</td><td><SeverityPill level={alert.severity} /></td><td className="ud-cell-muted">{alert.lastTrigger}</td><td><span className={`ud-status-dot ${alert.status}`}></span>{alert.status === 'active' ? 'Active' : 'Scheduled'}</td></tr>)}</tbody></table></div>
+            <div className="ud-section-header"><h2 className="ud-section-title">{t('userDashboardPage.alerts.title')}</h2><button className="ud-link-btn" onClick={() => navigate('/alerts')}>{t('userDashboardPage.alerts.viewAll')} <ArrowForwardRoundedIcon fontSize="inherit" /></button></div>
+            <div className="ud-efficiency-strip"><div className="ud-eff-kpi"><span className="ud-eff-value">{dashboard.activeAlerts?.triggeredThisWeek ?? 0}</span><span className="ud-eff-label">{t('userDashboardPage.alerts.triggeredThisWeek')}</span></div><div className="ud-eff-kpi"><span className="ud-eff-value">{dashboard.activeAlerts?.matchedHighSeverityPct == null ? '--' : `${dashboard.activeAlerts.matchedHighSeverityPct}%`}</span><span className="ud-eff-label">{t('userDashboardPage.alerts.matchedHighSeverity')}</span></div><div className="ud-eff-kpi"><span className="ud-eff-value">{dashboard.activeAlerts?.falseAlertRatio == null ? '--' : `${dashboard.activeAlerts.falseAlertRatio}%`}</span><span className="ud-eff-label">{t('userDashboardPage.alerts.falseAlertRatio')}</span></div></div>
+            <div className="ud-table-wrapper"><table className="ud-table"><thead><tr><th>{t('userDashboardPage.alerts.colAlert')}</th><th>{t('userDashboardPage.alerts.colArea')}</th><th>{t('userDashboardPage.alerts.colSeverity')}</th><th>{t('userDashboardPage.alerts.colLastTrigger')}</th><th>{t('userDashboardPage.alerts.colStatus')}</th></tr></thead><tbody>{activeAlerts.length === 0 ? <tr><td colSpan="5" className="ud-cell-muted">{t('userDashboardPage.alerts.noData')}</td></tr> : activeAlerts.map((alert) => <tr key={alert.id}><td className="ud-cell-primary">{alert.title}</td><td>{alert.area}</td><td><SeverityPill level={alert.severity} t={t} /></td><td className="ud-cell-muted">{alert.lastTrigger}</td><td><span className={`ud-status-dot ${alert.status}`}></span>{alert.status === 'active' ? t('userDashboardPage.alerts.statusActive') : t('userDashboardPage.alerts.statusScheduled')}</td></tr>)}</tbody></table></div>
           </section>
         </main>
 
         <aside className="sidebar-right ud-sidebar-right">
           <div className="card ud-context-card">
-            <h3 className="ud-context-title"><span className="ud-context-icon"><SearchOutlinedIcon fontSize="inherit" /></span>Most Volatile Zone Today</h3>
-            {dashboard.mostVolatileZoneToday ? <><div className="ud-volatile-zone"><span className="ud-zone-name">{dashboard.mostVolatileZoneToday.name}</span><span className="ud-zone-score">Risk: <strong>{dashboard.mostVolatileZoneToday.risk}</strong></span><span className={`ud-zone-change ${trendTone(dashboard.mostVolatileZoneToday.change)}`}>{Number(dashboard.mostVolatileZoneToday.change || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(dashboard.mostVolatileZoneToday.change)} risk change</span></div><button className="ud-context-btn" onClick={openMostVolatileZone}>View on Map <ArrowForwardRoundedIcon fontSize="inherit" /></button></> : <p className="ud-factor-caption" style={{ marginBottom: 0 }}>No zone volatility detected yet.</p>}
+            <h3 className="ud-context-title"><span className="ud-context-icon"><SearchOutlinedIcon fontSize="inherit" /></span>{t('userDashboardPage.volatileZone.title')}</h3>
+            {dashboard.mostVolatileZoneToday ? <><div className="ud-volatile-zone"><span className="ud-zone-name">{dashboard.mostVolatileZoneToday.name}</span><span className="ud-zone-score">{t('userDashboardPage.volatileZone.risk')} <strong>{dashboard.mostVolatileZoneToday.risk}</strong></span><span className={`ud-zone-change ${trendTone(dashboard.mostVolatileZoneToday.change)}`}>{Number(dashboard.mostVolatileZoneToday.change || 0) >= 0 ? <ArrowUpwardRoundedIcon fontSize="inherit" /> : <ArrowDownwardRoundedIcon fontSize="inherit" />} {signedPct(dashboard.mostVolatileZoneToday.change)} {t('userDashboardPage.volatileZone.riskChange')}</span></div><button className="ud-context-btn" onClick={openMostVolatileZone}>{t('userDashboardPage.volatileZone.viewOnMap')} <ArrowForwardRoundedIcon fontSize="inherit" /></button></> : <p className="ud-factor-caption" style={{ marginBottom: 0 }}>{t('userDashboardPage.volatileZone.noData')}</p>}
           </div>
           <div className="card ud-context-card ud-insight-card">
-            <h3 className="ud-context-title"><span className="ud-context-icon"><PsychologyOutlinedIcon fontSize="inherit" /></span>{dashboard.aiInsightOfWeek?.title || 'AI Insight of the Week'}</h3>
-            {insightItems.length === 0 ? <p className="ud-factor-caption" style={{ marginBottom: 0 }}>Insights will appear as soon as SIARA has enough recent activity.</p> : <ul className="ud-insight-list">{insightItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>}
+            <h3 className="ud-context-title"><span className="ud-context-icon"><PsychologyOutlinedIcon fontSize="inherit" /></span>{dashboard.aiInsightOfWeek?.title || t('userDashboardPage.insight.title')}</h3>
+            {insightItems.length === 0 ? <p className="ud-factor-caption" style={{ marginBottom: 0 }}>{t('userDashboardPage.insight.noData')}</p> : <ul className="ud-insight-list">{insightItems.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>}
           </div>
           <div className="card ud-context-card">
-            <h3 className="ud-context-title"><span className="ud-context-icon"><BarChartOutlinedIcon fontSize="inherit" /></span>System Overview</h3>
-            <div className="ud-sys-kpis"><div className="ud-sys-kpi"><span className="ud-sys-value">{dashboard.systemOverview?.totalIncidents ?? 0}</span><span className="ud-sys-label">Total incidents</span></div><div className="ud-sys-kpi"><span className="ud-sys-value">{metric(dashboard.systemOverview?.aiConfidence, '%')}</span><span className="ud-sys-label">AI confidence</span></div><div className="ud-sys-kpi"><span className={`ud-sys-value ud-trend ${trendTone(dashboard.systemOverview?.changeVsLastWeek)}`}>{signedPct(dashboard.systemOverview?.changeVsLastWeek)}</span><span className="ud-sys-label">vs last week</span></div></div>
+            <h3 className="ud-context-title"><span className="ud-context-icon"><BarChartOutlinedIcon fontSize="inherit" /></span>{t('userDashboardPage.systemOverview.title')}</h3>
+            <div className="ud-sys-kpis"><div className="ud-sys-kpi"><span className="ud-sys-value">{dashboard.systemOverview?.totalIncidents ?? 0}</span><span className="ud-sys-label">{t('userDashboardPage.systemOverview.totalIncidents')}</span></div><div className="ud-sys-kpi"><span className="ud-sys-value">{metric(dashboard.systemOverview?.aiConfidence, '%')}</span><span className="ud-sys-label">{t('userDashboardPage.systemOverview.aiConfidence')}</span></div><div className="ud-sys-kpi"><span className={`ud-sys-value ud-trend ${trendTone(dashboard.systemOverview?.changeVsLastWeek)}`}>{signedPct(dashboard.systemOverview?.changeVsLastWeek)}</span><span className="ud-sys-label">{t('userDashboardPage.systemOverview.vsLastWeek')}</span></div></div>
           </div>
           <div className="card ud-context-card">
-            <h3 className="ud-context-title"><span className="ud-context-icon"><BoltOutlinedIcon fontSize="inherit" /></span>Quick Actions</h3>
-            <div className="ud-quick-actions"><button className="ud-action-link" onClick={() => navigate('/report')}><EditNoteOutlinedIcon fontSize="inherit" /> Report Incident</button><button className="ud-action-link" onClick={() => navigate('/alerts/create')}><NotificationsOutlinedIcon fontSize="inherit" /> Create Alert</button><button className="ud-action-link" onClick={() => setShowQuiz(true)}><DirectionsCarOutlinedIcon fontSize="inherit" /> Driving Quiz</button></div>
+            <h3 className="ud-context-title"><span className="ud-context-icon"><BoltOutlinedIcon fontSize="inherit" /></span>{t('userDashboardPage.quickActions.title')}</h3>
+            <div className="ud-quick-actions"><button className="ud-action-link" onClick={() => navigate('/report')}><EditNoteOutlinedIcon fontSize="inherit" /> {t('userDashboardPage.quickActions.reportIncident')}</button><button className="ud-action-link" onClick={() => navigate('/alerts/create')}><NotificationsOutlinedIcon fontSize="inherit" /> {t('userDashboardPage.quickActions.createAlert')}</button><button className="ud-action-link" onClick={() => setShowQuiz(true)}><DirectionsCarOutlinedIcon fontSize="inherit" /> {t('userDashboardPage.quickActions.drivingQuiz')}</button></div>
           </div>
         </aside>
       </div>

@@ -26,5 +26,629 @@
     "set": "Set destination",
     "clear": "Clear destination",
     "compute": "Compute route"
+  },
+  "accidentHeatClusterMarker": {
+    "reportCount_one": "{{count}} accident report",
+    "reportCount_other": "{{count}} accident reports",
+    "dominant": "Dominant: {{dominant}}",
+    "severityHigh": "High",
+    "severityMedium": "Medium",
+    "severityLow": "Low",
+    "avgSeverity": "Avg severity",
+    "officerVerified": "Officer-verified",
+    "latestReport": "Latest report",
+    "whyDangerous": "Why is this dangerous?"
+  },
+  "bestTimeToLeaveCompact": {
+    "title": "Best time to leave",
+    "iconLabel": "Time",
+    "teaserIdle": "Expand to compare departure times.",
+    "teaserLoading": "Checking departure times...",
+    "errorDefault": "Could not check departure times.",
+    "noDataYet": "No departure data yet.",
+    "teaserWithBest": "Now: {{tier}} | Best at {{bestTime}}",
+    "teaserNow": "Now: {{tier}} ({{percent}})",
+    "checking": "Checking...",
+    "refresh": "Refresh",
+    "checkingSafer": "Checking safer departure times...",
+    "noOptions": "No departure options available.",
+    "useDeparture": "Use this departure"
+  },
+  "bestTimeToLeavePanel": {
+    "title": "Best time to leave",
+    "checking": "Checking…",
+    "refresh": "Refresh",
+    "pickOriginDestination": "Pick an origin and destination to compare departure times.",
+    "checkingDepartureTimes": "Checking safer departure times…",
+    "noOptions": "No departure options available.",
+    "bestTimeWithDelta": "Best time to leave: {{time}} ({{label}}). Leaving then reduces risk by {{delta}}% versus leaving now.",
+    "bestWindow": "Best window: {{label}} at {{time}}.",
+    "optionAriaLabel": "{{label}} — {{time}}",
+    "unavailable": "unavailable",
+    "etaMin": "{{minutes}} min ETA",
+    "etaNA": "eta n/a",
+    "errorFallback": "Could not check safer departure times."
+  },
+  "currentSegmentCard": {
+    "title": "Current segment",
+    "ariaLabel": "Current road segment risk",
+    "searching": "Searching current road segment…",
+    "hint": "Drive onto your selected route to see segment risk.",
+    "currentSegment": "Current segment",
+    "segmentLabel": "Segment {{index}} of {{total}}",
+    "segmentLabel_noTotal": "Segment {{index}}",
+    "tier": {
+      "unknown": "Unknown",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "explanation": {
+      "withScore": "{{segmentLabel}} is {{tierLabel}} risk — the model returned a {{score}}% risk score for this stretch of your route.",
+      "noScore": "{{segmentLabel}} — risk score not available yet, but SIARA is tracking this stretch of your selected route.",
+      "topFactors": "Top factors: {{factors}}."
+    },
+    "fields": {
+      "segment": "Segment",
+      "risk": "Risk",
+      "length": "Length",
+      "riskTime": "Risk time"
+    }
+  },
+  "dangerForecastChart": {
+    "tooltipDanger": "Danger: {{value}}",
+    "loadingForecast": "Loading forecast...",
+    "noForecast": "No forecast",
+    "updating": "Updating..."
+  },
+  "fallbackLocationBanner": {
+    "defaultLabel": "Using fallback test location because GPS is unavailable.",
+    "retrying": "Retrying…",
+    "retryGps": "Retry GPS"
+  },
+  "heatmapClusterDetailPanel": {
+    "ariaLabel": "Accident cluster details",
+    "title": "Why is this place dangerous?",
+    "invalidLocation": "Invalid cluster location.",
+    "loadError": "Could not load cluster details",
+    "metrics": {
+      "reports": "Reports",
+      "inThisZone": "in this zone",
+      "policeVerified": "Police-verified",
+      "percentOfReports": "{{pct}}% of reports",
+      "peakWindow": "Peak window",
+      "reportsInWindow": "{{count}} reports in window",
+      "notEnoughData": "not enough data",
+      "latest": "Latest",
+      "mostRecentReport": "most recent report"
+    },
+    "commonTypes": "Common types:",
+    "viewFullProfile": "View full zone safety profile",
+    "reportsInZone": "Reports in this zone ({{count}})",
+    "noReports": "No individual reports could be loaded for this cluster.",
+    "reportFallback": "Report #{{id}}",
+    "policeVerifiedBadge": "Police-verified",
+    "showFewer": "Show fewer",
+    "viewAllReports": "View all {{count}} reports"
+  },
+  "liveLocationMap": {
+    "fallbackTestLocation": "Fallback test location",
+    "centerOnMyLocation": "Center on my location",
+    "myLocation": "My Location",
+    "status": {
+      "idle": "Locating…",
+      "requesting": "Requesting location permission…",
+      "denied": "Location permission was denied. Enable it in your browser settings.",
+      "unavailable": "Location currently unavailable. Check GPS / network.",
+      "unsupported": "This browser does not support geolocation.",
+      "insecure": "Geolocation needs HTTPS — open the site over a secure connection."
+    }
+  },
+  "mapContainer": {
+    "deprecatedStub": "Deprecated MapContainer stub. See SiaraMap.jsx for the live map."
+  },
+  "mapDestinationConfirmCard": {
+    "ariaLabel": "Confirm destination",
+    "title": "Start your travel with SIARA?",
+    "fallbackLabel": "Selected point: {{lat}}, {{lng}}",
+    "lookingUpPlace": "Looking up place name…",
+    "calculatingRouteRisk": "Calculating SIARA route risk…",
+    "hintNameError": "Could not look up a place name, but you can still travel using the coordinates.",
+    "hintNoName": "No street name found for this point — coordinates will be used.",
+    "hintDefault": "SIARA will calculate road risk and guide you using the safest route.",
+    "calculatingRoute": "Calculating route…",
+    "startTravel": "Start travel"
+  },
+  "mapLibreNavigationView": {
+    "tabs": {
+      "ariaLabel": "Navigation modes",
+      "drive": "Drive",
+      "routes": "Routes",
+      "risk": "Risk"
+    },
+    "controls": {
+      "ariaLabel": "Navigation map controls",
+      "toggleRoutePanel": "Toggle selected route panel",
+      "toggleDebug": "Toggle navigation debug",
+      "centerOnLocation": "Center on my location",
+      "myLocation": "My Location"
+    },
+    "locationWarning": "Enable location to use live navigation. Showing route preview only.",
+    "legend": {
+      "ariaLabel": "Route risk legend",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "unknown": "Unknown"
+    },
+    "debug": {
+      "ariaLabel": "Live location debug",
+      "lat": "lat",
+      "lng": "lng",
+      "accuracy": "accuracy",
+      "heading": "heading",
+      "source": "source",
+      "follow": "follow",
+      "nav": "nav",
+      "camera": "camera",
+      "cameraFollow": "follow",
+      "cameraFree": "free",
+      "geo": "geo",
+      "fix": "fix",
+      "cameraAt": "camera at",
+      "lastError": "last error"
+    },
+    "destinationLabel": "Destination"
+  },
+  "markersLayer": {
+    "markersCount": "Markers: {{count}} (placeholder)"
+  },
+  "navigationBanner": {
+    "followRoute": "Follow the route",
+    "thenInstruction": "Then {{instruction}}",
+    "thenArrive": "Then arrive at destination",
+    "inDistance": "In {{distance}}"
+  },
+  "navigationDangerAlert": {
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "risk": "Risk"
+    },
+    "distance": {
+      "meters": "{{distance}} m ahead",
+      "kilometers": "{{distance}} km ahead"
+    },
+    "defaultTitle": "New incident reported ahead",
+    "policeVerified": "Police-verified",
+    "moreAlerts_one": "+ {{count}} more alert on the route ahead",
+    "moreAlerts_other": "+ {{count}} more alerts on the route ahead",
+    "keepRoute": "Keep route",
+    "recalculating": "Recalculating…",
+    "findSaferRoute": "Find safer route"
+  },
+  "navigationSummaryCard": {
+    "tripSummary": "Trip summary",
+    "arrive": "arrive {{time}}",
+    "remaining": "remaining",
+    "destination": "Destination",
+    "exitNavigation": "Exit navigation"
+  },
+  "reportMapMarker": {
+    "type": {
+      "accident": "Accident",
+      "traffic": "Traffic",
+      "danger": "Danger",
+      "weather": "Weather",
+      "roadworks": "Roadworks",
+      "other": "Other"
+    },
+    "time": {
+      "unknown": "Unknown time",
+      "justNow": "Just now",
+      "minutesAgo_one": "{{count}} min ago",
+      "minutesAgo_other": "{{count}} min ago",
+      "hoursAgo_one": "{{count}} h ago",
+      "hoursAgo_other": "{{count}} h ago",
+      "daysAgo_one": "{{count}} day ago",
+      "daysAgo_other": "{{count}} days ago"
+    },
+    "titleFallback": "{{type}} report",
+    "reportedLocation": "Reported location",
+    "severity": {
+      "low": "Low",
+      "medium": "Moderate",
+      "high": "High"
+    }
+  },
+  "routeComparisonPanel": {
+    "empty": "No alternative routes available yet.",
+    "routeFallback": "Route",
+    "recommended": "Recommended",
+    "selected": "Selected",
+    "riskLevel": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "metaShort": "risk {{risk}} • eta {{eta}}",
+    "metaFull": "ETA {{eta}} • distance {{distance}} • danger {{danger}}",
+    "factorsAriaLabel": "Route risk factors",
+    "highRiskSegmentsTitle": "High-risk road segments on this route",
+    "highRiskSegLabel": "high-risk seg.",
+    "clustersTitle": "Accident heat clusters within 1.5 km of this route",
+    "clusters": "clusters",
+    "reportsTitle": "Recent reports near this route",
+    "reports": "reports",
+    "units": {
+      "min": "min",
+      "na": "n/a"
+    }
+  },
+  "routeExplanationCard": {
+    "title": "Why this route?",
+    "ariaCalculating": "Calculating route explanation",
+    "analysingHint": "Analysing risk factors…",
+    "ariaError": "Route explanation error",
+    "retryExplanation": "Retry explanation",
+    "ariaEmpty": "No route explanation",
+    "emptyHint": "No risk explanation available for this route yet.",
+    "ariaRegion": "Route recommendation explanation",
+    "recommended": "Recommended",
+    "ariaComparison": "Route risk comparison",
+    "fastest": "Fastest",
+    "balanced": "Balanced",
+    "safest": "Safest",
+    "risk": "risk",
+    "riskFactor": "Risk factor",
+    "hideDetails": "Hide details",
+    "viewDetails": "View details"
+  },
+  "routeOverviewCard": {
+    "ariaLabel": "Selected route overview",
+    "title": "Selected route",
+    "destination": "Destination",
+    "eta": "ETA",
+    "left": "Left",
+    "tier": {
+      "unknown": "Unknown",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "whyThisRoute": "Why this route?",
+    "aiExplanation": "AI explanation",
+    "riskUnavailable": "Route loaded, but risk scoring is unavailable.",
+    "analysingRisk": "Analysing risk factors…",
+    "defaultWhyText": "SIARA selected this route based on the available route risk, distance, ETA and segment danger data.",
+    "riskFactor": "Risk factor",
+    "callingOllama": "Calling Ollama…",
+    "generateAi": "Generate AI explanation",
+    "segmentRiskSummary": "Segment risk summary",
+    "segment": "Segment {{number}}",
+    "switchRoute": "Switch route",
+    "routeAlternativesAriaLabel": "Route alternatives",
+    "altRiskPercent": "{{percent}}% risk",
+    "unknownRisk": "unknown risk"
+  },
+  "siaraMap": {
+    "errors": {
+      "tileLayer": "Tile layer error: {{error}}",
+      "tileLoad": "Unable to fetch OpenStreetMap tiles.",
+      "overlay": "Overlay error: {{error}}",
+      "nearbyRoutes": "Nearby routes error: {{error}}",
+      "guidance": "Guidance error: {{error}}",
+      "explain": "Explain error: {{error}}"
+    },
+    "tooltips": {
+      "selectedDestination": "Selected destination",
+      "fallbackStart": "Fallback test start",
+      "start": "Start",
+      "destination": "Destination",
+      "fallbackLocation": "Fallback test location",
+      "youAreHere": "You are here",
+      "nearbyRoute": "Nearby route"
+    },
+    "alertZone": {
+      "defaultName": "Alert zone",
+      "severity": "Severity",
+      "schedule": "Schedule",
+      "triggers": "Triggers",
+      "lastTrigger": "Last trigger",
+      "never": "Never"
+    },
+    "heatmap": {
+      "loading": "Loading accident heatmap…",
+      "error": "Could not load accident heatmap.",
+      "noReports": "No accident reports in this area for the selected period.",
+      "legendLabel": "Heatmap legend",
+      "legendTitle": "Accident heatmap",
+      "legendSub": "Circle size = number of reports. Rings = severity mix.",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "location": {
+      "locating": "Locating your device...",
+      "enableHint": "Enable location for live risk and navigation.",
+      "enableBtn": "Enable",
+      "denied": "Location access is blocked. Enable location permissions in your browser settings, then refresh this page."
+    },
+    "riskPanel": {
+      "title": "Current SIARA risk",
+      "occurrenceSubtitle": "Accident occurrence risk",
+      "dangerSubtitle": "Relative danger — severity-informed model",
+      "occurrenceDesc": "Calibrated probability that an accident occurs here",
+      "occurrenceDescPersonalized": "Calibrated probability that an accident occurs here, personalized to your driver profile",
+      "dangerDesc": "Severity-informed relative danger score. This is not a calibrated accident-occurrence probability.",
+      "model": "Model",
+      "locationRequired": "Location is required for SIARA risk prediction.",
+      "accuracy": "accuracy",
+      "loadingRisk": "Loading current risk...",
+      "gaugeLow": "Low",
+      "gaugeMedium": "Medium",
+      "gaugeHigh": "High",
+      "refreshing": "Refreshing…",
+      "confidence": "Confidence",
+      "dataQuality": "Data quality",
+      "hide": "Hide",
+      "why": "Why?",
+      "confidenceDetails": "Confidence details",
+      "showConfidenceDetails": "Show confidence details"
+    },
+    "severity": {
+      "outlookLabel": "Severity outlook",
+      "outlookTitle": "Severity outlook",
+      "sevLabel": "Sev",
+      "mostLikely": "Most likely",
+      "expected": "Expected"
+    },
+    "occurrenceCard": {
+      "title": "Occurrence Risk",
+      "computing": "Computing occurrence risk...",
+      "roadModelTitle": "Occurrence risk — road/time model",
+      "calibratedProbability": "Calibrated probability",
+      "score": "Score",
+      "modelLabel": "Model",
+      "modelNote": "Trained occurrence model output. Treat as relative operational risk per hour bucket — not a calibrated probability — until calibration is shipped.",
+      "personalizedTitle": "Personalized risk — adjusted by driver profile",
+      "noDriverProfile": "No driver behavior profile is available yet. Complete the driver quiz to personalize this risk.",
+      "latestQuiz": "Latest quiz"
+    },
+    "explain": {
+      "preparing": "SIARA is preparing an explanation...",
+      "aiExplanation": "AI explanation",
+      "generatedFromFactors": "Generated from available factors",
+      "couldNotGenerate": "SIARA could not generate an explanation right now. Please try again.",
+      "noRiskPrediction": "No risk prediction is available yet."
+    },
+    "route": {
+      "riskUnavailable": "risk unavailable",
+      "distance": "distance",
+      "eta": "ETA",
+      "forecastTime": "Route forecast time",
+      "explanationSourceOllama": "Generated by SIARA AI explainer (Ollama). Sources: route risk samples, alternative comparison, nearby heat clusters, and time-of-day.",
+      "explanationSourceFallback": "Template explanation generated from route risk samples and alternative comparison.",
+      "riskAlongRoute": "Risk along route",
+      "selectedProfile": "Selected route profile",
+      "start": "Start",
+      "end": "End",
+      "noProfile": "No route profile available yet.",
+      "aheadTitle": "Ahead on your route",
+      "selectedRouteOnly": "Selected route only",
+      "noHazards": "No strong hazard concentration detected on the selected route.",
+      "riskSourceLayers": "Risk source layers",
+      "comingSoon": "Coming soon",
+      "riskSourceLayersDesc": "Per-source attribution (weather, darkness, history, road) will be available once backend source scoring is live."
+    },
+    "helpPanel": {
+      "title": "Confidence details",
+      "close": "Close confidence details",
+      "noAnomaly": "No anomaly rules triggered. Sentinel confidence: {{confidence}}. OOD percentile: {{oodPct}} (somewhat unusual but acceptable).",
+      "unusualConditions": "Unusual conditions detected but no specific reason was returned.",
+      "sentinelUnavailable": "Sentinel unavailable",
+      "unknownError": "unknown error",
+      "fallbackQuality": "Showing fallback input-quality checks.",
+      "missingInputs": "missing inputs",
+      "oodChecks": "out-of-distribution checks",
+      "sentinelConfidenceUnavailable": "Sentinel confidence is unavailable. Showing basic input-quality checks."
+    },
+    "segmentPanel": {
+      "title": "Segment Explanation",
+      "close": "Close segment explanation",
+      "danger": "danger",
+      "confidence": "confidence",
+      "quality": "quality",
+      "topReasons": "Top SHAP reasons",
+      "increases": "increases",
+      "decreases": "decreases"
+    },
+    "guideControls": {
+      "predictionTime": "Prediction time",
+      "using": "Using",
+      "timeImpact": "Time impact",
+      "destinationPlaceholder": "Destination...",
+      "searching": "Searching...",
+      "destinationLabel": "Destination",
+      "computingRoute": "Computing route...",
+      "startGuidance": "Start guidance",
+      "clear": "Clear",
+      "typeDestinationFirst": "Type a destination first.",
+      "noDestinationFound": "No destination found for that query."
+    },
+    "status": {
+      "locationLive": "Location live",
+      "locationUnavailable": "Location unavailable",
+      "riskUpdated": "Risk updated",
+      "riskNotUpdated": "Risk not updated yet",
+      "routesUpdated": "Routes updated",
+      "routesNotUpdated": "Routes not updated yet",
+      "nearbyUpdated": "Nearby updated",
+      "nearbyNotUpdated": "Nearby not updated yet",
+      "navigationReady": "Navigation ready"
+    },
+    "confirm": {
+      "recalculateRoute": "Use this departure time and recalculate route?"
+    }
+  },
+  "mapPage": {
+    "nav": {
+      "dashboard": "Dashboard"
+    },
+    "search": {
+      "placeholder": "Search for an incident, a road, a wilaya…"
+    },
+    "header": {
+      "userProfile": "User profile",
+      "userAvatar": "User avatar"
+    },
+    "dropdown": {
+      "myProfile": "My Profile"
+    },
+    "profile": {
+      "bio": "Browse live road reports and share updates from the field.",
+      "viewProfile": "View Profile"
+    },
+    "filters": {
+      "title": "Filters",
+      "clear": "Clear",
+      "period": "Period",
+      "period24h": "24h",
+      "period7d": "7 days",
+      "period30d": "30 days",
+      "periodCustom": "Custom",
+      "severity": "Severity",
+      "severityHigh": "High",
+      "severityMedium": "Medium",
+      "severityLow": "Low",
+      "incidentType": "Incident Type",
+      "zone": "Zone",
+      "allProvinces": "All provinces"
+    },
+    "incidentTypes": {
+      "accident": "Accident",
+      "traffic": "Traffic",
+      "danger": "Danger",
+      "weather": "Weather",
+      "roadworks": "Roadworks",
+      "other": "Other"
+    },
+    "actions": {
+      "reportIncident": "Report an Incident"
+    },
+    "layers": {
+      "points": "Points",
+      "heatmap": "Heatmap",
+      "zones": "Zones",
+      "aiRisks": "AI Risks",
+      "nearbyRoads": "Nearby Roads"
+    },
+    "map": {
+      "exitFullscreen": "Exit fullscreen",
+      "exitFullMap": "Exit Full Map",
+      "fullscreen": "Fullscreen",
+      "fullMap": "Full Map",
+      "myLocation": "My Location"
+    },
+    "weather": {
+      "positionRequired": "Position required",
+      "loadingWeather": "Loading weather…",
+      "weatherUnavailable": "Weather unavailable",
+      "weather": "Weather",
+      "resolvingNeighborhood": "Resolving neighborhood…",
+      "currentLocation": "Current location",
+      "unknownPlace": "Unknown place",
+      "visibility": "Visibility",
+      "wind": "Wind",
+      "humidity": "Humidity",
+      "pressure": "Pressure",
+      "enableLocation": "Enable location for live weather",
+      "refreshing": "Refreshing…"
+    },
+    "forecast": {
+      "title": "Danger - next 24h",
+      "updating": "Updating forecast…",
+      "noData": "No forecast available.",
+      "unavailable": "Forecast unavailable."
+    },
+    "status": {
+      "loadingAlertZones": "Loading alert zones…",
+      "alertZonesUnavailable": "Alert zones unavailable",
+      "alertZonesLoaded": "Alert zones • {{count}} zones loaded",
+      "loadingReports": "Loading real-time reports…",
+      "reportsUnavailable": "Real-time reports unavailable",
+      "reportsDisplayed": "Real-time • {{count}} incidents displayed"
+    },
+    "context": {
+      "alertZones": "Alert Zones",
+      "reportsFeed": "Reports Feed",
+      "loadingAlertZonesDb": "Loading your alert zones from the database…",
+      "activeAlertZonesReady": "{{count}} active alert zones are ready to render on the map.",
+      "loadingReportsDb": "Loading reports from the database…",
+      "mappedReportsMatch": "{{count}} mapped reports match the current filters."
+    },
+    "zones": {
+      "selectedZone": "Selected Zone",
+      "manageAlerts": "Manage alerts",
+      "zoneLabel": "Zone",
+      "severityLabel": "{{severity}} severity",
+      "triggersCount": "{{count}} triggers",
+      "selectZoneHint": "Select a zone on the map to inspect its alert rule.",
+      "signInToLoad": "Sign in to load your alert zones.",
+      "unableToLoad": "Unable to load alert zones.",
+      "triggersMeta": "{{count}} triggers"
+    },
+    "segmentInsight": {
+      "title": "Segment Insight",
+      "segmentLabel": "Segment {{id}}",
+      "risk": "Risk: {{percent}}% ({{level}})",
+      "impact": "impact: {{value}}"
+    },
+    "legend": {
+      "title": "Legend",
+      "highSeverity": "High Severity",
+      "mediumSeverity": "Medium Severity",
+      "lowSeverity": "Low Severity",
+      "zonesNote": "Zones reflect your alert rule severity and schedule.",
+      "aiRisk": "AI Risk (0-100%)"
+    },
+    "trending": {
+      "zoneRules": "Zone Rules",
+      "areasToWatch": "Areas to Watch",
+      "openAlerts": "Open alerts",
+      "loadingActiveZones": "Loading active alert zones…",
+      "noActiveZones": "No active alert zones yet.",
+      "noReportClusters": "No report clusters match the current filters.",
+      "incidentsMeta": "{{count}} incidents • {{updated}}",
+      "reportedArea": "Reported area"
+    },
+    "activeAlerts": {
+      "title": "Active Alerts",
+      "noAlerts": "No active alerts right now.",
+      "manageMyAlerts": "Manage My Alerts",
+      "alertLabel": "Alert"
+    },
+    "stats": {
+      "title": "Statistics",
+      "today": "Today",
+      "avgSeverity": "Avg. Severity",
+      "verified": "Verified"
+    },
+    "location": {
+      "permissionBlocked": "Location permission is blocked. Enable it in browser settings.",
+      "notSupported": "Geolocation is not supported by this browser.",
+      "enableForPredictions": "Enable location to load SIARA predictions.",
+      "fallbackWarning": "Using fallback test location because GPS is unavailable."
+    },
+    "time": {
+      "unknown": "Unknown",
+      "justNow": "Just now",
+      "minutes": "{{count}} min",
+      "hours": "{{count}} h",
+      "days": "{{count}} d",
+      "neverTriggered": "Never triggered",
+      "ago": "{{age}} ago"
+    }
   }
 }

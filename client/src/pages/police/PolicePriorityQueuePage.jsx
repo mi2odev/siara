@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
+import { useTranslation } from 'react-i18next'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import PoliceSortControl from '../../components/police/PoliceSortControl'
@@ -8,21 +9,22 @@ import { getPolicePriorityQueue } from '../../services/policeService'
 import { usePoliceSort, QUEUE_SORT_ACCESSORS, QUEUE_SORT_OPTIONS } from '../../utils/policeSort'
 import '../../styles/PolicePriorityQueue.css'
 
-function formatTimeAgo(value) {
+function formatTimeAgo(value, t) {
   if (!value) return ''
   const date = new Date(value)
   const ms = Date.now() - date.getTime()
   if (!Number.isFinite(ms)) return ''
   const minutes = Math.round(ms / 60000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes} min ago`
+  if (minutes < 1) return t('policePriorityQueuePage.timeAgo.justNow')
+  if (minutes < 60) return t('policePriorityQueuePage.timeAgo.minutesAgo', { count: minutes })
   const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+  if (hours < 24) return t('policePriorityQueuePage.timeAgo.hoursAgo', { count: hours })
   const days = Math.round(hours / 24)
-  return `${days}d ago`
+  return t('policePriorityQueuePage.timeAgo.daysAgo', { count: days })
 }
 
 export default function PolicePriorityQueuePage() {
+  const { t } = useTranslation(['police', 'common'])
   const [items, setItems] = useState([])
   const [state, setState] = useState('loading')
   const [error, setError] = useState('')
@@ -36,10 +38,10 @@ export default function PolicePriorityQueuePage() {
       setItems(Array.isArray(data?.items) ? data.items : [])
       setState('success')
     } catch (err) {
-      setError(err?.message || 'Failed to load priority queue')
+      setError(err?.message || t('policePriorityQueuePage.errorLoad'))
       setState('error')
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     load()
@@ -50,10 +52,9 @@ export default function PolicePriorityQueuePage() {
       <div className="siara-pq">
         <div className="siara-pq__header">
           <div>
-            <h2 className="siara-pq__title">Priority queue</h2>
+            <h2 className="siara-pq__title">{t('policePriorityQueuePage.title')}</h2>
             <p className="siara-pq__sub">
-              Incidents ranked by severity, recency, community confirmation,
-              and nearby cluster density.
+              {t('policePriorityQueuePage.subtitle')}
             </p>
           </div>
           <div className="police-page-toolbar-actions">
@@ -73,7 +74,7 @@ export default function PolicePriorityQueuePage() {
               disabled={state === 'loading'}
             >
               <RefreshRoundedIcon fontSize="inherit" className={state === 'loading' ? 'is-spinning' : ''} />
-              <span>Refresh</span>
+              <span>{t('policePriorityQueuePage.refresh')}</span>
             </button>
           </div>
         </div>
@@ -92,8 +93,7 @@ export default function PolicePriorityQueuePage() {
 
         {state === 'success' && items.length === 0 ? (
           <p className="siara-pq__empty">
-            No pending incidents need triage right now. New high-priority
-            reports will appear here as soon as they're filed.
+            {t('policePriorityQueuePage.empty')}
           </p>
         ) : null}
 
@@ -113,13 +113,13 @@ export default function PolicePriorityQueuePage() {
                     </span>
                     {item.locationLabel ? <span>{item.locationLabel}</span> : null}
                     {item.createdAt ? (
-                      <span>{formatTimeAgo(item.createdAt)}</span>
+                      <span>{formatTimeAgo(item.createdAt, t)}</span>
                     ) : null}
                     {item.sawItTooCount > 0 ? (
-                      <span>{item.sawItTooCount} confirmations</span>
+                      <span>{t('policePriorityQueuePage.confirmations', { count: item.sawItTooCount })}</span>
                     ) : null}
                     {item.reportsWithin500m > 0 ? (
-                      <span>{item.reportsWithin500m} reports within 500m</span>
+                      <span>{t('policePriorityQueuePage.reportsWithin500m', { count: item.reportsWithin500m })}</span>
                     ) : null}
                   </div>
                   <div className="siara-pq__reasons">
@@ -138,10 +138,10 @@ export default function PolicePriorityQueuePage() {
                     to={`/police/incident/${item.reportId}`}
                     className="siara-pq__btn siara-pq__btn--primary"
                   >
-                    Open
+                    {t('policePriorityQueuePage.open')}
                   </Link>
                   <Link to={`/incident/${item.reportId}`} className="siara-pq__btn">
-                    Public view
+                    {t('policePriorityQueuePage.publicView')}
                   </Link>
                 </div>
               </li>

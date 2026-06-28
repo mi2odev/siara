@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import {
   formatDistanceMeters,
   formatDurationSeconds,
@@ -29,6 +30,8 @@ export default function NavigationSummaryCard({
   progressFraction,
   onExit,
 }) {
+  const { t } = useTranslation(['map', 'common'])
+
   if (!open) return null
 
   const distanceLabel = formatDistanceMeters(distanceRemainingM)
@@ -52,7 +55,7 @@ export default function NavigationSummaryCard({
     : 0
 
   return (
-    <div className="siara-nav-summary" role="region" aria-label="Trip summary">
+    <div className="siara-nav-summary" role="region" aria-label={t('navigationSummaryCard.tripSummary')}>
       <div className="siara-nav-summary__progress" aria-hidden="true">
         <div
           className={`siara-nav-summary__progress-fill risk-${riskTier}`}
@@ -63,11 +66,11 @@ export default function NavigationSummaryCard({
         <div className="siara-nav-summary__main">
           <div className="siara-nav-summary__eta">
             <span className="siara-nav-summary__eta-value">{etaLabel}</span>
-            <span className="siara-nav-summary__eta-sub">arrive {arrivalText}</span>
+            <span className="siara-nav-summary__eta-sub">{t('navigationSummaryCard.arrive', { time: arrivalText })}</span>
           </div>
           <div className="siara-nav-summary__distance">
             <span className="siara-nav-summary__distance-value">{distanceLabel}</span>
-            <span className="siara-nav-summary__distance-sub">remaining</span>
+            <span className="siara-nav-summary__distance-sub">{t('navigationSummaryCard.remaining')}</span>
           </div>
           <div className={`siara-nav-summary__risk risk-${riskTier}`}>
             <span className="siara-nav-summary__risk-value">{riskPercentLabel}</span>
@@ -76,7 +79,7 @@ export default function NavigationSummaryCard({
         </div>
         <div className="siara-nav-summary__meta">
           <span className="siara-nav-summary__meta-label">
-            {destinationName || 'Destination'}
+            {destinationName || t('navigationSummaryCard.destination')}
           </span>
           {routeType ? (
             <span className="siara-nav-summary__meta-tag">{routeType}</span>
@@ -87,7 +90,7 @@ export default function NavigationSummaryCard({
           className="siara-nav-summary__exit"
           onClick={onExit}
         >
-          Exit navigation
+          {t('navigationSummaryCard.exitNavigation')}
         </button>
       </div>
     </div>

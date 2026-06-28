@@ -19,5 +19,485 @@
   "count_two": "بلاغان",
   "count_few": "{{count}} بلاغات",
   "count_many": "{{count}} بلاغًا",
-  "count_other": "{{count}} بلاغ"
+  "count_other": "{{count}} بلاغ",
+  "reportCredibilityBadge": {
+    "levelHigh": "مصداقية عالية",
+    "levelMedium": "مصداقية متوسطة",
+    "levelLow": "مصداقية منخفضة",
+    "levelUnknown": "المصداقية قيد المراجعة",
+    "labelCompact": "المصداقية {{score}}",
+    "labelFallback": "المصداقية",
+    "ariaLabel": "{{level}}، النتيجة {{score}} من 100",
+    "spam": "بريد مزعج",
+    "tooltipTitle": "لماذا هذه المصداقية؟"
+  },
+  "reportSuggestionCard": {
+    "ariaLabel": "اقتراحات SIARA",
+    "title": "اقتراحات SIARA",
+    "updating": "جارٍ التحديث…",
+    "suggestionsUnavailable": "الاقتراحات غير متاحة",
+    "useType": "استخدام النوع: {{type}}",
+    "setSeverity": "تعيين الخطورة: {{severity}}",
+    "possiblyReported": "ربما تم الإبلاغ عنه مسبقاً",
+    "reportFallbackTitle": "البلاغ رقم {{id}}",
+    "incidentFallback": "حادث",
+    "policeVerified": "مؤكَّد من الشرطة",
+    "confirmExisting": "تأكيد هذا البلاغ الموجود بدلاً من ذلك",
+    "distanceMeters": "على بُعد {{count}} م",
+    "distanceKm": "على بُعد {{count}} كم",
+    "timeJustNow": "الآن",
+    "timeMinutesAgo": "منذ {{count}} دقيقة",
+    "timeHoursAgo": "منذ {{count}} ساعة",
+    "timeDaysAgo": "منذ {{count}} يوم"
+  },
+  "incidentDetailPage": {
+    "types": {
+      "accident": "حادث",
+      "traffic": "مرور",
+      "danger": "خطر",
+      "weather": "الطقس",
+      "roadworks": "أشغال الطريق",
+      "other": "أخرى",
+      "incident": "حادث"
+    },
+    "status": {
+      "pending": "قيد المراجعة",
+      "verified": "مؤكَّد",
+      "rejected": "مرفوض",
+      "resolved": "تم الحل"
+    },
+    "severity": {
+      "high": "خطورة مرتفعة",
+      "medium": "خطورة متوسطة",
+      "low": "خطورة منخفضة",
+      "unknown": "غير معروف"
+    },
+    "timeAgo": {
+      "unknown": "غير معروف",
+      "justNow": "الآن",
+      "minutesAgo_one": "منذ {{count}} دقيقة",
+      "minutesAgo_other": "منذ {{count}} دقائق",
+      "hoursAgo_one": "منذ {{count}} ساعة",
+      "hoursAgo_other": "منذ {{count}} ساعات",
+      "daysAgo_one": "منذ {{count}} يوم",
+      "daysAgo_other": "منذ {{count}} أيام"
+    },
+    "timeline": {
+      "anonymousUser": "مستخدم معروف",
+      "administrator": "المشرف",
+      "policeOfficer": "ضابط الشرطة",
+      "citizenReporter": "مواطن مُبلِّغ",
+      "reportSubmittedBy": "تم تقديم البلاغ بواسطة {{name}}.",
+      "system": "النظام",
+      "reportDetailsUpdated": "تم تحديث تفاصيل البلاغ.",
+      "authority": "الجهة المختصة",
+      "statusUpdatedTo": "تم تحديث الحالة إلى {{status}}.",
+      "citizen": "مواطن"
+    },
+    "noDescription": "لم يتم تقديم وصف لهذا البلاغ.",
+    "reportedLocation": "الموقع المُبلَّغ عنه",
+    "citizen": "مواطن",
+    "reportImage": "صورة البلاغ",
+    "reportMedia": "وسائط البلاغ",
+    "checkLiveMap": "تحقق من الخريطة المباشرة للمسارات البديلة",
+    "errors": {
+      "failedToLoad": "فشل تحميل البلاغ",
+      "failedToUpdate": "فشل تحديث البلاغ",
+      "failedToDelete": "فشل حذف البلاغ",
+      "titleTooShort": "يجب أن يحتوي العنوان على حرفين على الأقل.",
+      "invalidLatitude": "يجب أن يكون خط العرض رقمًا صحيحًا بين -90 و90.",
+      "invalidLongitude": "يجب أن يكون خط الطول رقمًا صحيحًا بين -180 و180."
+    },
+    "confirmDelete": "هل تريد حذف هذا البلاغ نهائيًا؟",
+    "nav": {
+      "feed": "التغذية الإخبارية",
+      "report": "البلاغ",
+      "dashboard": "لوحة التحكم"
+    },
+    "searchPlaceholder": "ابحث عن حادث، طريق، ولاية…",
+    "ariaLabels": {
+      "messages": "الرسائل",
+      "userProfile": "ملف المستخدم",
+      "userAvatar": "صورة المستخدم",
+      "profile": "الملف الشخصي",
+      "openPhoto": "فتح الصورة",
+      "photoPreview": "معاينة الصورة",
+      "zoomOut": "تصغير",
+      "resetZoom": "إعادة تعيين التكبير",
+      "zoomIn": "تكبير",
+      "closePhotoPreview": "إغلاق معاينة الصورة",
+      "previousPhoto": "الصورة السابقة",
+      "nextPhoto": "الصورة التالية"
+    },
+    "dropdown": {
+      "myProfile": "ملفي الشخصي"
+    },
+    "profileBio": "تصفح بلاغات الطرق المباشرة وشارك تحديثات من الميدان.",
+    "viewProfile": "عرض الملف الشخصي",
+    "reportStatus": "حالة البلاغ",
+    "filter": {
+      "all": "الكل"
+    },
+    "newReport": "+ بلاغ جديد",
+    "loadingReport": "جارٍ تحميل البلاغ…",
+    "reportUnavailable": "البلاغ غير متاح",
+    "reportedBy": "بُلِّغ بواسطة",
+    "statusLabel": "الحالة:",
+    "updatedLabel": "آخر تحديث",
+    "mergedReports": {
+      "title": "البلاغات المدمجة ({{count}})",
+      "description": "قامت SIARA بتجميع {{count}} بلاغات عن نفس الحادث (ضمن 300 م و6 س) في هذا الحادث. يُحتفظ بالبلاغ الأصلي؛ والباقي نسخ مكررة مدمجة.",
+      "original": "الأصلي",
+      "merged": "مدمج",
+      "thisReport": "· هذا البلاغ",
+      "policeVerified": "· مُوثَّق من الشرطة"
+    },
+    "sections": {
+      "description": "الوصف",
+      "photos": "الصور",
+      "timeline": "الجدول الزمني",
+      "communitySignals": "إشارات المجتمع",
+      "location": "الموقع",
+      "recommendations": "التوصيات",
+      "actions": "الإجراءات",
+      "metadata": "البيانات الوصفية"
+    },
+    "showMore": "عرض المزيد",
+    "showLess": "عرض أقل",
+    "signals": {
+      "confirmations": "تأكيدات",
+      "comments": "تعليقات",
+      "availableAfterPublication": "متاح بعد النشر",
+      "iConfirm": "أؤكد"
+    },
+    "noLocationCoordinates": "لا توجد إحداثيات موقع متاحة",
+    "openFullMap": "فتح الخريطة الكاملة",
+    "safety": {
+      "treatWithCaution": "تعامل بحذر",
+      "monitorArea": "راقب هذه المنطقة",
+      "estimatedDelay": "التأخير المقدَّر:",
+      "alternativeRoutes": "المسارات البديلة:"
+    },
+    "actions": {
+      "following": "متابَع",
+      "followIncident": "تتبع هذا الحادث",
+      "createZoneAlert": "إنشاء تنبيه منطقة",
+      "reportUpdate": "الإبلاغ عن تحديث",
+      "editReport": "تعديل البلاغ",
+      "deleting": "جارٍ الحذف…",
+      "deleteReport": "حذف البلاغ",
+      "saving": "جارٍ الحفظ…",
+      "saveChanges": "حفظ التغييرات"
+    },
+    "editForm": {
+      "title": "العنوان",
+      "type": "النوع",
+      "severity": "الخطورة",
+      "status": "الحالة",
+      "locationLabel": "تسمية الموقع",
+      "latitude": "خط العرض",
+      "longitude": "خط الطول",
+      "occurredAt": "وقت الحدوث",
+      "description": "الوصف",
+      "mediaNote": "يتم الاحتفاظ بالوسائط مع البلاغ، لكن تعديلها من هذه الصفحة غير متاح بعد."
+    },
+    "metadata": {
+      "incidentId": "رقم الحادث",
+      "reporter": "المُبلِّغ",
+      "status": "الحالة",
+      "sources": "المصادر",
+      "sourceCount_one": "{{count}} بلاغ",
+      "sourceCount_other": "{{count}} بلاغات",
+      "categories": "الفئات",
+      "lastUpdated": "آخر تحديث"
+    }
+  },
+  "reportIncidentPage": {
+    "header": {
+      "searchPlaceholder": "ابحث عن حادث أو طريق أو ولاية…",
+      "userProfile": "الملف الشخصي للمستخدم",
+      "userAvatar": "صورة المستخدم"
+    },
+    "steps": {
+      "incidentType": "نوع الحادث",
+      "location": "الموقع",
+      "details": "التفاصيل",
+      "media": "الوسائط",
+      "verification": "التحقق"
+    },
+    "incidentTypes": {
+      "accident": {
+        "label": "حادث",
+        "desc": "تصادم، حادث طرق"
+      },
+      "traffic": {
+        "label": "حركة المرور",
+        "desc": "ازدحام مروري، تباطؤ السير"
+      },
+      "danger": {
+        "label": "خطر",
+        "desc": "عائق، وضع خطير"
+      },
+      "weather": {
+        "label": "الطقس",
+        "desc": "أحوال جوية خطرة"
+      },
+      "roadworks": {
+        "label": "أشغال الطريق",
+        "desc": "بناء، إغلاق حارة"
+      },
+      "other": {
+        "label": "أخرى",
+        "desc": "نوع آخر من الحوادث"
+      }
+    },
+    "severity": {
+      "high": {
+        "label": "مرتفع",
+        "desc": "عاجل، خطر فوري"
+      },
+      "medium": {
+        "label": "متوسط",
+        "desc": "مهم، يستوجب الانتباه"
+      },
+      "low": {
+        "label": "منخفض",
+        "desc": "طفيف، للإعلام فقط"
+      }
+    },
+    "timePresets": {
+      "now": "الآن",
+      "5m": "منذ 5 دقائق",
+      "15m": "منذ 15 دقيقة",
+      "30m": "منذ 30 دقيقة",
+      "1h": "منذ ساعة",
+      "2h": "منذ ساعتين"
+    },
+    "locationDetails": {
+      "fullAddress": "العنوان الكامل",
+      "road": "الطريق",
+      "roadType": "نوع الطريق",
+      "neighborhood": "الحي",
+      "district": "الدائرة",
+      "city": "المدينة",
+      "county": "المقاطعة",
+      "state": "الولاية",
+      "postcode": "الرمز البريدي",
+      "country": "البلد",
+      "coordinates": "الإحداثيات"
+    },
+    "location": {
+      "selectedOnMap": "محدد على الخريطة",
+      "gpsAccuracy": "دقة GPS ±{{meters}} م",
+      "highPrecisionGps": "نظام GPS عالي الدقة",
+      "addressSearch": "بحث بالعنوان",
+      "mapSelection": "تحديد على الخريطة"
+    },
+    "errors": {
+      "geolocationNotSupported": "تحديد الموقع الجغرافي غير مدعوم في هذا المتصفح.",
+      "unableToReadCoordinates": "تعذّر قراءة إحداثياتك الحالية.",
+      "locationPermissionDenied": "تم رفض إذن الموقع. اسمح بالوصول إلى الموقع وحاول مجددًا.",
+      "locationUnavailable": "موقعك غير متاح الآن. حاول مرة أخرى بعد لحظات.",
+      "locationTimeout": "انتهت مهلة طلب الموقع. يرجى المحاولة مجددًا.",
+      "unableToGetLocation": "تعذّر الحصول على موقعك الحالي.",
+      "mediaMaxFiles": "يمكنك رفع ما يصل إلى 5 صور لكل بلاغ.",
+      "mediaInvalidType": "يُسمح فقط بصور JPEG وPNG وWebP.",
+      "mediaFileTooLarge": "يجب ألا يتجاوز حجم كل صورة 5 ميغابايت.",
+      "mediaNoValidImages": "لم يتم تحديد صور صالحة.",
+      "mediaUploadFailed": "تم إنشاء بلاغك، لكن تعذّر رفع الصور.",
+      "submitFailed": "فشل إرسال البلاغ."
+    },
+    "preview": {
+      "reportedTitle": "تم الإبلاغ عن {{type}}",
+      "newIncident": "حادث جديد",
+      "heading": "معاينة البلاغ",
+      "howItWillAppear": "كيف سيظهر",
+      "locationPlaceholder": "الموقع…",
+      "descriptionPlaceholder": "وصف الحادث…",
+      "pending": "قيد المراجعة",
+      "locationLabel": "الموقع",
+      "selectLocation": "حدد موقعًا",
+      "verificationStatus": "حالة التحقق",
+      "verifPending": "قيد المراجعة",
+      "verifPendingDesc": "سيتم التحقق منه بعد الإرسال",
+      "timeline": {
+        "aiReview": "مراجعة الذكاء الاصطناعي",
+        "community": "المجتمع",
+        "published": "منشور"
+      },
+      "trustSafety": "الثقة والسلامة",
+      "trust": {
+        "verifiedReports": "بلاغات موثّقة",
+        "protectedData": "بيانات محمية",
+        "moderatedMedia": "وسائط خاضعة للمراجعة",
+        "falseReportsRemoved": "إزالة البلاغات الكاذبة"
+      }
+    },
+    "wizard": {
+      "heading": "الإبلاغ عن حادث",
+      "secureReporting": "إبلاغ آمن",
+      "secureReportingDesc": "بياناتك محمية. قد تُحذف البلاغات الكاذبة.",
+      "cancelReport": "إلغاء البلاغ"
+    },
+    "step1": {
+      "heading": "ما نوع الحادث الذي تريد الإبلاغ عنه؟",
+      "subheading": "اختر الفئة الأنسب.",
+      "selectTypeHint": "اختر نوع الحادث للمتابعة."
+    },
+    "step2": {
+      "heading": "أين يقع الحادث؟",
+      "subheading": "حدد الموقع الدقيق لمساعدة المستخدمين الآخرين.",
+      "detectingLocation": "جارٍ تحديد موقعك…",
+      "useCurrentLocation": "استخدام موقعي الحالي",
+      "pleaseWait": "يرجى الانتظار لحظة",
+      "searchAddressLabel": "أو ابحث عن عنوان",
+      "searchAddressPlaceholder": "مثال: شارع ديدوش مراد، الجزائر العاصمة…",
+      "noAddressFound": "لم يتم العثور على عنوان مطابق.",
+      "selectOnMapLabel": "أو حدد على الخريطة",
+      "mapClickHint": "انقر لوضع العلامة",
+      "locationDetailsAriaLabel": "تفاصيل الموقع المحدد"
+    },
+    "step3": {
+      "heading": "صف الحادث",
+      "subheading": "قدّم تفاصيل لمساعدة الآخرين على فهم الوضع.",
+      "titleLabel": "عنوان البلاغ",
+      "titlePlaceholder": "مثال: حادث تصادم بين مركبتين",
+      "titleMinChars": "الحد الأدنى حرفان",
+      "descriptionLabel": "الوصف",
+      "optional": "اختياري",
+      "descriptionPlaceholder": "صف ما لاحظته. كن موضوعيًا وواقعيًا.",
+      "tips": {
+        "heading": "نصائح",
+        "tip1": "صف الوقائع لا مشاعرك",
+        "tip2": "اذكر عدد المركبات والأشخاص إن كان ذا صلة",
+        "tip3": "أشر إلى ما إذا كانت خدمات الطوارئ حاضرة"
+      },
+      "severityLabel": "مستوى الخطورة",
+      "whenLabel": "متى حدث ذلك؟",
+      "pickDateTime": "اختر التاريخ والوقت",
+      "incidentTimeHint": "وقت الحادث:"
+    },
+    "step4": {
+      "heading": "إضافة وسائط",
+      "subheading": "أضف ما يصل إلى 5 صور لتوثيق الحادث (اختياري).",
+      "uploadTitle": "إضافة صور",
+      "dropHere": "أفلت صورك هنا",
+      "uploadDesc": "انقر أو اسحب صور JPEG أو PNG أو WebP",
+      "uploadLimit": "الحد الأقصى 5 ملفات • 5 ميغابايت لكل ملف",
+      "previewAlt": "معاينة {{index}}",
+      "removeMedia": "حذف",
+      "privacyTitle": "الخصوصية",
+      "privacyDesc": "تخضع الوسائط للمراجعة قبل النشر. قد تُطمس البيانات الشخصية الظاهرة (الوجوه، لوحات الترقيم).",
+      "noMedia": "لا توجد وسائط لإضافتها؟",
+      "skipStep": "تخطي هذه الخطوة"
+    },
+    "step5": {
+      "heading": "مراجعة بلاغك",
+      "subheading": "راجع المعلومات قبل الإرسال.",
+      "reviewLabels": {
+        "incidentType": "نوع الحادث",
+        "location": "الموقع",
+        "title": "العنوان",
+        "description": "الوصف",
+        "severity": "الخطورة",
+        "time": "الوقت",
+        "media": "الوسائط"
+      },
+      "imageCount_one": "صورة واحدة",
+      "imageCount_other": "{{count}} صور",
+      "noMedia": "لا توجد وسائط",
+      "agreementText": "أؤكد أن هذه المعلومات دقيقة وصحيحة.",
+      "reviewNotice": "سيتم التحقق من بلاغك بواسطة نظامنا الآلي ثم إتاحته للمستخدمين الآخرين. قد تؤدي البلاغات الكاذبة إلى تحذير أو حظر الحساب.",
+      "loginRequired": "يجب تسجيل الدخول لإرسال هذا البلاغ."
+    },
+    "nav": {
+      "continue": "متابعة",
+      "submitReport": "إرسال البلاغ",
+      "submitting": "جارٍ الإرسال…"
+    },
+    "success": {
+      "title": "تم إرسال البلاغ!",
+      "reference": "المرجع:",
+      "awaitingVerification": "في انتظار التحقق",
+      "whatHappensNext": "ماذا سيحدث بعد ذلك؟",
+      "nextSteps": {
+        "autoReview": {
+          "title": "مراجعة تلقائية",
+          "desc": "يحلل الذكاء الاصطناعي بلاغك للتحقق من دقته"
+        },
+        "communityConfirmation": {
+          "title": "تأكيد المجتمع",
+          "desc": "يمكن للمستخدمين الآخرين تأكيد الحادث"
+        },
+        "officialValidation": {
+          "title": "التحقق الرسمي",
+          "desc": "التحقق من قِبَل الجهات المختصة إذا لزم الأمر"
+        }
+      },
+      "viewMyReport": "عرض بلاغي",
+      "reportAnother": "الإبلاغ عن حادث آخر",
+      "backToFeed": "رجوع إلى الخلاصة",
+      "trustNotice": "بياناتك الشخصية محمية. تخضع البلاغات للمراجعة لضمان الجودة."
+    }
+  },
+  "reportsPage": {
+    "unknown": "غير معروف",
+    "unknownTime": "وقت غير معروف",
+    "untitledReport": "بلاغ بدون عنوان",
+    "unknownLocation": "موقع غير معروف",
+    "toastResponseSent": "تم إرسال الرد — شكراً على المعلومات الإضافية.",
+    "errorFailedToSend": "فشل إرسال الرد",
+    "errorLoadReports": "تعذّر تحميل بلاغاتك.",
+    "toastSubmitted": "تم إرسال البلاغ «{{name}}» بنجاح",
+    "confirmDelete": "هل تريد حذف هذا البلاغ؟",
+    "toastDeleted": "تم حذف البلاغ",
+    "errorDeleteReport": "تعذّر حذف البلاغ.",
+    "navFeed": "الخلاصة",
+    "navReport": "الإبلاغ",
+    "navDashboard": "لوحة التحكم",
+    "searchPlaceholder": "ابحث عن حادث أو طريق أو ولاية…",
+    "ariaUserProfile": "الملف الشخصي للمستخدم",
+    "altUserAvatar": "صورة المستخدم",
+    "dropdownMyProfile": "ملفي الشخصي",
+    "profileBio": "تصفّح بلاغات الطرق الحية وشارك التحديثات من الميدان.",
+    "viewProfile": "عرض الملف الشخصي",
+    "newReport": "+ بلاغ جديد",
+    "reportStatusLabel": "حالة البلاغ",
+    "filterAll": "الكل",
+    "filterPending": "قيد المراجعة",
+    "filterVerified": "مؤكَّد",
+    "filterResolved": "تم الحل",
+    "filterRejected": "مرفوض",
+    "pageTitle": "بلاغاتي",
+    "pageSubtitle": "تتبّع بلاغات الحوادث الخاصة بك ومراجعتها وإدارتها.",
+    "severityAll": "الخطورة",
+    "severityHigh": "مرتفع",
+    "severityMedium": "متوسط",
+    "severityLow": "منخفض",
+    "loadingReports": "جارٍ تحميل البلاغات…",
+    "emptyTitle": "لا توجد بلاغات",
+    "emptyDesc": "أنشئ أول بلاغ لك لمشاركة حوادث الطريق.",
+    "emptyCreateBtn": "إنشاء بلاغ",
+    "infoRequestTitle": "يحتاج المشرف إلى مزيد من المعلومات",
+    "infoRequestRespond": "الرد",
+    "infoResponseSent": "تم إرسال ردّك.",
+    "infoResponseWaiting": "في انتظار متابعة المشرف.",
+    "cardView": "عرض",
+    "overviewTitle": "نظرة عامة على البلاغات",
+    "overviewTotal": "الإجمالي",
+    "detailPanelTitle": "البلاغ المحدد",
+    "noSelTitle": "لم يتم تحديد أي بلاغ",
+    "noSelDesc": "حدّد بلاغاً من القائمة لعرض التفاصيل الكاملة هنا.",
+    "detailType": "النوع",
+    "detailLocation": "الموقع",
+    "detailOccurred": "وقع في",
+    "detailReference": "المرجع",
+    "viewFullReport": "عرض البلاغ الكامل",
+    "newReportBtn": "بلاغ جديد",
+    "modalTitle": "الرد على المشرف",
+    "modalSubtitle": "ستُرسَل إجابتك إلى المشرف الذي يراجع هذا البلاغ.",
+    "modalPlaceholder": "اكتب ردّك هنا…",
+    "modalSending": "جارٍ الإرسال…",
+    "modalSend": "إرسال الرد"
+  }
 }

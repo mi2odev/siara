@@ -18,6 +18,7 @@
  */
 import React, { useState, useContext, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import GpsFixedOutlinedIcon from '@mui/icons-material/GpsFixedOutlined'
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined'
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
@@ -108,13 +109,13 @@ function MapViewportController({ locationCoords, locationType, defaultCenter, de
 
 /* Relative "when did it happen" quick-picks (most incidents are recent, so this
    replaces the clunky native calendar for the common case). */
-const TIME_PRESETS = [
-  { key: 'now', label: 'Just now', minutes: 0 },
-  { key: '5m',  label: '5 min ago', minutes: 5 },
-  { key: '15m', label: '15 min ago', minutes: 15 },
-  { key: '30m', label: '30 min ago', minutes: 30 },
-  { key: '1h',  label: '1 hour ago', minutes: 60 },
-  { key: '2h',  label: '2 hours ago', minutes: 120 },
+const TIME_PRESET_KEYS = [
+  { key: 'now', minutes: 0 },
+  { key: '5m',  minutes: 5 },
+  { key: '15m', minutes: 15 },
+  { key: '30m', minutes: 30 },
+  { key: '1h',  minutes: 60 },
+  { key: '2h',  minutes: 120 },
 ]
 
 /** Format a Date as a local <input type="datetime-local"> value (YYYY-MM-DDTHH:mm). */
@@ -138,6 +139,7 @@ export default function ReportIncidentPage() {
   /* ═══ ROUTING ═══ */
   const navigate = useNavigate()
   const { user, logout } = useContext(AuthContext)
+  const { t } = useTranslation(['reports', 'common'])
 
   /* Scroll to top on mount — prevents the page from opening mid-scroll */
   useEffect(() => { window.scrollTo(0, 0) }, [])
@@ -180,11 +182,11 @@ export default function ReportIncidentPage() {
 
   /* ═══ WIZARD STEP DEFINITIONS ═══ */
   const steps = [
-    { id: 1, label: 'Incident Type', icon: <GpsFixedOutlinedIcon fontSize="inherit" /> },
-    { id: 2, label: 'Location', icon: <LocationOnOutlinedIcon fontSize="inherit" /> },
-    { id: 3, label: 'Details', icon: <EditNoteOutlinedIcon fontSize="inherit" /> },
-    { id: 4, label: 'Media', icon: <PhotoCameraOutlinedIcon fontSize="inherit" /> },
-    { id: 5, label: 'Verification', icon: <CheckCircleOutlineRoundedIcon fontSize="inherit" /> }
+    { id: 1, label: t('reportIncidentPage.steps.incidentType'), icon: <GpsFixedOutlinedIcon fontSize="inherit" /> },
+    { id: 2, label: t('reportIncidentPage.steps.location'), icon: <LocationOnOutlinedIcon fontSize="inherit" /> },
+    { id: 3, label: t('reportIncidentPage.steps.details'), icon: <EditNoteOutlinedIcon fontSize="inherit" /> },
+    { id: 4, label: t('reportIncidentPage.steps.media'), icon: <PhotoCameraOutlinedIcon fontSize="inherit" /> },
+    { id: 5, label: t('reportIncidentPage.steps.verification'), icon: <CheckCircleOutlineRoundedIcon fontSize="inherit" /> }
   ]
 
   /* Reset center panel scroll to top on every step change */
@@ -195,19 +197,24 @@ export default function ReportIncidentPage() {
 
   /* ═══ STATIC DATA — incident types & severity levels ═══ */
   const incidentTypes = [
-    { id: 'accident', icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" />, label: 'Accident', desc: 'Collision, road accident' },
-    { id: 'traffic', icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'Traffic', desc: 'Traffic jam, slowdown' },
-    { id: 'danger', icon: <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" />, label: 'Danger', desc: 'Obstacle, dangerous situation' },
-    { id: 'weather', icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" />, label: 'Weather', desc: 'Dangerous weather conditions' },
-    { id: 'roadworks', icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" />, label: 'Roadworks', desc: 'Construction, lane closure' },
-    { id: 'other', icon: <HelpOutlineOutlinedIcon fontSize="inherit" className="icon-muted" />, label: 'Other', desc: 'Other type of incident' }
+    { id: 'accident', icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" />, label: t('reportIncidentPage.incidentTypes.accident.label'), desc: t('reportIncidentPage.incidentTypes.accident.desc') },
+    { id: 'traffic', icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" />, label: t('reportIncidentPage.incidentTypes.traffic.label'), desc: t('reportIncidentPage.incidentTypes.traffic.desc') },
+    { id: 'danger', icon: <LocalFireDepartmentOutlinedIcon fontSize="inherit" className="icon-fire" />, label: t('reportIncidentPage.incidentTypes.danger.label'), desc: t('reportIncidentPage.incidentTypes.danger.desc') },
+    { id: 'weather', icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" />, label: t('reportIncidentPage.incidentTypes.weather.label'), desc: t('reportIncidentPage.incidentTypes.weather.desc') },
+    { id: 'roadworks', icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" />, label: t('reportIncidentPage.incidentTypes.roadworks.label'), desc: t('reportIncidentPage.incidentTypes.roadworks.desc') },
+    { id: 'other', icon: <HelpOutlineOutlinedIcon fontSize="inherit" className="icon-muted" />, label: t('reportIncidentPage.incidentTypes.other.label'), desc: t('reportIncidentPage.incidentTypes.other.desc') }
   ]
 
   const severityLevels = [
-    { id: 'high', label: 'High', color: '#DC2626', desc: 'Urgent, immediate danger' },
-    { id: 'medium', label: 'Medium', color: '#F59E0B', desc: 'Important, attention required' },
-    { id: 'low', label: 'Low', color: '#10B981', desc: 'Minor, informational' }
+    { id: 'high', label: t('reportIncidentPage.severity.high.label'), color: '#DC2626', desc: t('reportIncidentPage.severity.high.desc') },
+    { id: 'medium', label: t('reportIncidentPage.severity.medium.label'), color: '#F59E0B', desc: t('reportIncidentPage.severity.medium.desc') },
+    { id: 'low', label: t('reportIncidentPage.severity.low.label'), color: '#10B981', desc: t('reportIncidentPage.severity.low.desc') }
   ]
+
+  const TIME_PRESETS = TIME_PRESET_KEYS.map((preset) => ({
+    ...preset,
+    label: t(`reportIncidentPage.timePresets.${preset.key}`),
+  }))
 
   const DEFAULT_MAP_CENTER = { lat: 28.0339, lng: 1.6596 }
 
@@ -247,30 +254,30 @@ export default function ReportIncidentPage() {
   const buildLocationDetailsRows = (details, coords) => {
     const rows = []
 
-    if (details?.fullAddress) rows.push({ label: 'Full address', value: details.fullAddress })
-    if (details?.road) rows.push({ label: 'Road', value: details.road })
+    if (details?.fullAddress) rows.push({ label: t('reportIncidentPage.locationDetails.fullAddress'), value: details.fullAddress })
+    if (details?.road) rows.push({ label: t('reportIncidentPage.locationDetails.road'), value: details.road })
     if (details?.roadType) {
       const normalizedRoadType = String(details.roadType)
       rows.push({
-        label: 'Road type',
+        label: t('reportIncidentPage.locationDetails.roadType'),
         value: normalizedRoadType.charAt(0).toUpperCase() + normalizedRoadType.slice(1),
       })
     }
-    if (details?.neighborhood) rows.push({ label: 'Neighborhood', value: details.neighborhood })
-    if (details?.district) rows.push({ label: 'District', value: details.district })
-    if (details?.city) rows.push({ label: 'City', value: details.city })
-    if (details?.county) rows.push({ label: 'County', value: details.county })
-    if (details?.state) rows.push({ label: 'State', value: details.state })
-    if (details?.postcode) rows.push({ label: 'Postcode', value: details.postcode })
+    if (details?.neighborhood) rows.push({ label: t('reportIncidentPage.locationDetails.neighborhood'), value: details.neighborhood })
+    if (details?.district) rows.push({ label: t('reportIncidentPage.locationDetails.district'), value: details.district })
+    if (details?.city) rows.push({ label: t('reportIncidentPage.locationDetails.city'), value: details.city })
+    if (details?.county) rows.push({ label: t('reportIncidentPage.locationDetails.county'), value: details.county })
+    if (details?.state) rows.push({ label: t('reportIncidentPage.locationDetails.state'), value: details.state })
+    if (details?.postcode) rows.push({ label: t('reportIncidentPage.locationDetails.postcode'), value: details.postcode })
     if (details?.country || details?.countryCode) {
       const countryValue = [details?.country, details?.countryCode].filter(Boolean).join(' · ')
-      rows.push({ label: 'Country', value: countryValue })
+      rows.push({ label: t('reportIncidentPage.locationDetails.country'), value: countryValue })
     }
 
     const lat = Number(coords?.lat ?? details?.lat)
     const lng = Number(coords?.lng ?? details?.lng)
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      rows.push({ label: 'Coordinates', value: `${lat.toFixed(6)}, ${lng.toFixed(6)}` })
+      rows.push({ label: t('reportIncidentPage.locationDetails.coordinates'), value: `${lat.toFixed(6)}, ${lng.toFixed(6)}` })
     }
 
     return rows
@@ -335,12 +342,12 @@ export default function ReportIncidentPage() {
       && !fullRoadName
     const fullLabel = shouldAppendNeighborhood ? `${baseLabel}, ${neighborhood}` : baseLabel
 
-    return `${fullLabel} (selected on map)`
+    return `${fullLabel} (${t('reportIncidentPage.location.selectedOnMap')})`
   }
 
   const resolveCurrentPosition = () => {
     if (!navigator?.geolocation) {
-      throw new Error('Geolocation is not supported in this browser.')
+      throw new Error(t('reportIncidentPage.errors.geolocationNotSupported'))
     }
 
     return new Promise((resolve, reject) => {
@@ -381,13 +388,13 @@ export default function ReportIncidentPage() {
       const accuracyMeters = Number(position?.coords?.accuracy)
 
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-        throw new Error('Unable to read your current coordinates.')
+        throw new Error(t('reportIncidentPage.errors.unableToReadCoordinates'))
       }
 
       const geoDetails = await reverseGeocodeCoordinates(lat, lng)
       const accuracyLabel = Number.isFinite(accuracyMeters)
-        ? `GPS accuracy ±${Math.max(1, Math.round(accuracyMeters))} m`
-        : 'High-precision GPS'
+        ? t('reportIncidentPage.location.gpsAccuracy', { meters: Math.max(1, Math.round(accuracyMeters)) })
+        : t('reportIncidentPage.location.highPrecisionGps')
 
       setReportData(prev => ({
         ...prev,
@@ -400,13 +407,13 @@ export default function ReportIncidentPage() {
     } catch (error) {
       const code = error?.code
       if (code === 1) {
-        setLocationActionError('Location permission was denied. Allow location access and try again.')
+        setLocationActionError(t('reportIncidentPage.errors.locationPermissionDenied'))
       } else if (code === 2) {
-        setLocationActionError('Your location is unavailable right now. Try again in a few seconds.')
+        setLocationActionError(t('reportIncidentPage.errors.locationUnavailable'))
       } else if (code === 3) {
-        setLocationActionError('Location request timed out. Please try again.')
+        setLocationActionError(t('reportIncidentPage.errors.locationTimeout'))
       } else {
-        setLocationActionError(error?.message || 'Unable to get your current location.')
+        setLocationActionError(error?.message || t('reportIncidentPage.errors.unableToGetLocation'))
       }
     } finally {
       setIsResolvingCurrentLocation(false)
@@ -465,7 +472,7 @@ export default function ReportIncidentPage() {
       locationCoords: { lat, lng },
       locationAddress: displayName,
       locationDetails: details,
-      locationAccuracy: 'Address search',
+      locationAccuracy: t('reportIncidentPage.location.addressSearch'),
     }))
     setAddressQuery(displayName)
     setAddressResults([])
@@ -490,12 +497,12 @@ export default function ReportIncidentPage() {
       ...prev,
       locationType: 'map',
       locationCoords: { lat, lng },
-      locationAddress: `${getLocationFallbackLabel(lat, lng)} (selected on map)`,
+      locationAddress: `${getLocationFallbackLabel(lat, lng)} (${t('reportIncidentPage.location.selectedOnMap')})`,
       locationDetails: {
         lat,
         lng,
       },
-      locationAccuracy: 'Map selection'
+      locationAccuracy: t('reportIncidentPage.location.mapSelection')
     }))
 
     const geoDetails = await reverseGeocodeCoordinates(lat, lng)
@@ -533,7 +540,7 @@ export default function ReportIncidentPage() {
     }
 
     if (remainingSlots === 0) {
-      setMediaError('You can upload up to 5 images per report.')
+      setMediaError(t('reportIncidentPage.errors.mediaMaxFiles'))
       return
     }
 
@@ -542,17 +549,17 @@ export default function ReportIncidentPage() {
 
     for (const file of files) {
       if (!ALLOWED_REPORT_MEDIA_MIME_TYPES.has(file.type)) {
-        nextError = 'Only JPEG, PNG, and WebP images are allowed.'
+        nextError = t('reportIncidentPage.errors.mediaInvalidType')
         continue
       }
 
       if (file.size > MAX_REPORT_MEDIA_FILE_SIZE_BYTES) {
-        nextError = 'Each image must be 5 MB or smaller.'
+        nextError = t('reportIncidentPage.errors.mediaFileTooLarge')
         continue
       }
 
       if (acceptedMedia.length >= remainingSlots) {
-        nextError = 'You can upload up to 5 images per report.'
+        nextError = t('reportIncidentPage.errors.mediaMaxFiles')
         continue
       }
 
@@ -565,7 +572,7 @@ export default function ReportIncidentPage() {
     }
 
     if (!acceptedMedia.length) {
-      setMediaError(nextError || 'No valid images were selected.')
+      setMediaError(nextError || t('reportIncidentPage.errors.mediaNoValidImages'))
       return
     }
 
@@ -623,7 +630,7 @@ export default function ReportIncidentPage() {
   }
 
   /* ═══ STEP VALIDATION & NAVIGATION ═══ */
-  // Per-step validation: returns true if the step’s required fields are filled
+  // Per-step validation: returns true if the step's required fields are filled
   const canProceed = () => {
     switch (currentStep) {
       case 1: return reportData.type !== ''
@@ -679,7 +686,7 @@ export default function ReportIncidentPage() {
         try {
           await uploadReportMedia(createdReport.id, reportData.media.map((mediaItem) => mediaItem.file))
         } catch (error) {
-          setSubmitWarning(error.message || 'Your report was created, but the images could not be uploaded.')
+          setSubmitWarning(error.message || t('reportIncidentPage.errors.mediaUploadFailed'))
         }
       }
 
@@ -689,19 +696,19 @@ export default function ReportIncidentPage() {
       setSubmittedId(createdReport?.id || null)
     } catch (error) {
       setIsSubmitting(false)
-      setSubmitError(error.message || 'Failed to submit report.')
+      setSubmitError(error.message || t('reportIncidentPage.errors.submitFailed'))
     }
   }
 
   /* ═══ DERIVED HELPERS ═══ */
   // Get type info
-  const getTypeInfo = () => incidentTypes.find(t => t.id === reportData.type)
+  const getTypeInfo = () => incidentTypes.find(tp => tp.id === reportData.type)
 
   // Generate preview title
   const getPreviewTitle = () => {
     if (reportData.title) return reportData.title
     const typeInfo = getTypeInfo()
-    return typeInfo ? `${typeInfo.label} reported` : 'New incident'
+    return typeInfo ? t('reportIncidentPage.preview.reportedTitle', { type: typeInfo.label }) : t('reportIncidentPage.preview.newIncident')
   }
 
   const userAvatarUrl = getUserAvatarUrl(user)
@@ -720,12 +727,12 @@ export default function ReportIncidentPage() {
                 <img src={siaraLogo} alt="SIARA" className="header-logo" />
               </div>
               <nav className="dash-header-tabs">
-                <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
-                <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
-                <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-                <button className="dash-tab dash-tab-active" onClick={() => navigate('/report')}>Report</button>
-                <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
-                <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+                <button className="dash-tab" onClick={() => navigate('/news')}>{t('common:nav.feed')}</button>
+                <button className="dash-tab" onClick={() => navigate('/map')}>{t('common:nav.map')}</button>
+                <button className="dash-tab" onClick={() => navigate('/alerts')}>{t('common:nav.alerts')}</button>
+                <button className="dash-tab dash-tab-active" onClick={() => navigate('/report')}>{t('common:nav.reports')}</button>
+                <button className="dash-tab" onClick={() => navigate('/dashboard')}>{t('common:nav.dashboard')}</button>
+                <button className="dash-tab" onClick={() => navigate('/predictions')}>{t('common:nav.predictions')}</button>
                 <PoliceModeTab user={user} />
               </nav>
             </div>
@@ -734,26 +741,26 @@ export default function ReportIncidentPage() {
                 navigate={navigate}
                 query={headerSearchQuery}
                 setQuery={setHeaderSearchQuery}
-                placeholder="Search for an incident, a road, a wilaya…"
-                ariaLabel="Search"
+                placeholder={t('reportIncidentPage.header.searchPlaceholder')}
+                ariaLabel={t('common:actions.search')}
                 currentUser={user}
               />
             </div>
             <div className="dash-header-right">
               <NotificationBell />
               <div className="dash-avatar-wrapper">
-                <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+                <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label={t('reportIncidentPage.header.userProfile')}>
                   {userAvatarUrl ? (
-                    <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" />
+                    <img src={userAvatarUrl} alt={t('reportIncidentPage.header.userAvatar')} className="dash-avatar-image" />
                   ) : userInitials}
                 </button>
                 {showDropdown && (
                   <div className="user-dropdown">
-                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
-                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
-                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
+                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>{t('common:nav.profile')}</button>
+                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>{t('common:nav.settings')}</button>
+                    <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>{t('common:nav.notifications')}</button>
                     <div className="dropdown-divider"></div>
-                    <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
+                    <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>{t('common:nav.logout')}</button>
                   </div>
                 )}
               </div>
@@ -768,40 +775,40 @@ export default function ReportIncidentPage() {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h1 className="success-title">Report submitted!</h1>
-            <p className="success-id">Reference: <strong>{submittedId}</strong></p>
+            <h1 className="success-title">{t('reportIncidentPage.success.title')}</h1>
+            <p className="success-id">{t('reportIncidentPage.success.reference')} <strong>{submittedId}</strong></p>
 
             <div className="success-status">
               <div className="status-badge pending">
                 <span className="status-dot"></span>
-                Awaiting verification
+                {t('reportIncidentPage.success.awaitingVerification')}
               </div>
             </div>
 
             {submitWarning && <p className="step-hint">{submitWarning}</p>}
 
             <div className="success-next">
-              <h3>What happens next?</h3>
+              <h3>{t('reportIncidentPage.success.whatHappensNext')}</h3>
               <div className="next-steps">
                 <div className="next-step">
                   <span className="step-num">1</span>
                   <div className="step-info">
-                    <span className="step-title">Automatic review</span>
-                    <span className="step-desc">AI analyzes your report for accuracy</span>
+                    <span className="step-title">{t('reportIncidentPage.success.nextSteps.autoReview.title')}</span>
+                    <span className="step-desc">{t('reportIncidentPage.success.nextSteps.autoReview.desc')}</span>
                   </div>
                 </div>
                 <div className="next-step">
                   <span className="step-num">2</span>
                   <div className="step-info">
-                    <span className="step-title">Community confirmation</span>
-                    <span className="step-desc">Other users can confirm the incident</span>
+                    <span className="step-title">{t('reportIncidentPage.success.nextSteps.communityConfirmation.title')}</span>
+                    <span className="step-desc">{t('reportIncidentPage.success.nextSteps.communityConfirmation.desc')}</span>
                   </div>
                 </div>
                 <div className="next-step">
                   <span className="step-num">3</span>
                   <div className="step-info">
-                    <span className="step-title">Official validation</span>
-                    <span className="step-desc">Verification by authorities if needed</span>
+                    <span className="step-title">{t('reportIncidentPage.success.nextSteps.officialValidation.title')}</span>
+                    <span className="step-desc">{t('reportIncidentPage.success.nextSteps.officialValidation.desc')}</span>
                   </div>
                 </div>
               </div>
@@ -809,18 +816,18 @@ export default function ReportIncidentPage() {
 
             <div className="success-actions">
               <button className="action-btn primary" onClick={() => navigate(`/incident/${submittedId}`)}>
-                View my report
+                {t('reportIncidentPage.success.viewMyReport')}
               </button>
               <button className="action-btn secondary" onClick={() => { window.location.href = '/report' }}>
-                Report another incident
+                {t('reportIncidentPage.success.reportAnother')}
               </button>
               <button className="action-btn back" onClick={() => navigate('/news')}>
-                <ArrowBackRoundedIcon fontSize="inherit" /> Back to feed
+                <ArrowBackRoundedIcon fontSize="inherit" /> {t('reportIncidentPage.success.backToFeed')}
               </button>
             </div>
 
             <div className="success-trust">
-              <p>Your personal data is protected. Reports are moderated to ensure quality.</p>
+              <p>{t('reportIncidentPage.success.trustNotice')}</p>
             </div>
           </div>
         </div>
@@ -839,12 +846,12 @@ export default function ReportIncidentPage() {
               <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">
-              <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
-              <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
-              <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-              <button className="dash-tab dash-tab-active" onClick={() => navigate('/report')}>Report</button>
-              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
-              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <button className="dash-tab" onClick={() => navigate('/news')}>{t('common:nav.feed')}</button>
+              <button className="dash-tab" onClick={() => navigate('/map')}>{t('common:nav.map')}</button>
+              <button className="dash-tab" onClick={() => navigate('/alerts')}>{t('common:nav.alerts')}</button>
+              <button className="dash-tab dash-tab-active" onClick={() => navigate('/report')}>{t('common:nav.reports')}</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>{t('common:nav.dashboard')}</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>{t('common:nav.predictions')}</button>
               <PoliceModeTab user={user} />
             </nav>
           </div>
@@ -853,26 +860,26 @@ export default function ReportIncidentPage() {
               navigate={navigate}
               query={headerSearchQuery}
               setQuery={setHeaderSearchQuery}
-              placeholder="Search for an incident, a road, a wilaya…"
-              ariaLabel="Search"
+              placeholder={t('reportIncidentPage.header.searchPlaceholder')}
+              ariaLabel={t('common:actions.search')}
               currentUser={user}
             />
           </div>
           <div className="dash-header-right">
             <NotificationBell />
             <div className="dash-avatar-wrapper">
-              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label={t('reportIncidentPage.header.userProfile')}>
                 {userAvatarUrl ? (
-                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" />
+                  <img src={userAvatarUrl} alt={t('reportIncidentPage.header.userAvatar')} className="dash-avatar-image" />
                 ) : userInitials}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>{t('common:nav.profile')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>{t('common:nav.settings')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>{t('common:nav.notifications')}</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>{t('common:nav.logout')}</button>
                 </div>
               )}
             </div>
@@ -886,7 +893,7 @@ export default function ReportIncidentPage() {
         <aside className="report-left">
           <div className="stepper-header">
             <span className="stepper-icon"><CampaignOutlinedIcon fontSize="inherit" /></span>
-            <h2>Report an incident</h2>
+            <h2>{t('reportIncidentPage.wizard.heading')}</h2>
           </div>
           <div className="stepper">
             {steps.map((step, index) => (
@@ -909,13 +916,13 @@ export default function ReportIncidentPage() {
           <div className="trust-notice">
             <span className="trust-icon"><ShieldOutlinedIcon fontSize="inherit" className="icon-security" /></span>
             <div className="trust-text">
-              <strong>Secure reporting</strong>
-              <p>Your data is protected. False reports may be removed.</p>
+              <strong>{t('reportIncidentPage.wizard.secureReporting')}</strong>
+              <p>{t('reportIncidentPage.wizard.secureReportingDesc')}</p>
             </div>
           </div>
 
           <button className="cancel-btn" onClick={() => navigate('/report')}>
-            <CloseRoundedIcon fontSize="inherit" /> Cancel report
+            <CloseRoundedIcon fontSize="inherit" /> {t('reportIncidentPage.wizard.cancelReport')}
           </button>
         </aside>
 
@@ -925,8 +932,8 @@ export default function ReportIncidentPage() {
           {currentStep === 1 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>What type of incident do you want to report?</h1>
-                <p>Select the category that best matches.</p>
+                <h1>{t('reportIncidentPage.step1.heading')}</h1>
+                <p>{t('reportIncidentPage.step1.subheading')}</p>
               </div>
               <div className="type-grid">
                 {incidentTypes.map(type => (
@@ -943,7 +950,7 @@ export default function ReportIncidentPage() {
                 ))}
               </div>
               {reportData.type === '' && (
-                <p className="step-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" /> Select an incident type to continue.</p>
+                <p className="step-hint" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><WarningAmberOutlinedIcon fontSize="inherit" className="icon-warning" /> {t('reportIncidentPage.step1.selectTypeHint')}</p>
               )}
             </div>
           )}
@@ -952,19 +959,19 @@ export default function ReportIncidentPage() {
           {currentStep === 2 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Where is the incident located?</h1>
-                <p>Provide the exact location to help other users.</p>
+                <h1>{t('reportIncidentPage.step2.heading')}</h1>
+                <p>{t('reportIncidentPage.step2.subheading')}</p>
               </div>
               <div className="location-options">
-                <button 
+                <button
                   className={`location-btn ${reportData.locationType === 'gps' ? 'selected' : ''}`}
                   onClick={getCurrentLocation}
                   disabled={isResolvingCurrentLocation}
                 >
                   <span className="loc-icon"><LocationOnOutlinedIcon fontSize="inherit" /></span>
                   <div className="loc-info">
-                    <span className="loc-label">{isResolvingCurrentLocation ? 'Detecting your location...' : 'Use my current location'}</span>
-                    <span className="loc-desc">{isResolvingCurrentLocation ? 'Please wait a moment' : 'High-precision GPS'}</span>
+                    <span className="loc-label">{isResolvingCurrentLocation ? t('reportIncidentPage.step2.detectingLocation') : t('reportIncidentPage.step2.useCurrentLocation')}</span>
+                    <span className="loc-desc">{isResolvingCurrentLocation ? t('reportIncidentPage.step2.pleaseWait') : t('reportIncidentPage.location.highPrecisionGps')}</span>
                   </div>
                   {reportData.locationType === 'gps' && <span className="loc-check"><CheckRoundedIcon fontSize="inherit" /></span>}
                 </button>
@@ -974,12 +981,12 @@ export default function ReportIncidentPage() {
                 )}
 
                 <div className="location-search">
-                  <label>Or search for an address</label>
+                  <label>{t('reportIncidentPage.step2.searchAddressLabel')}</label>
                   <div className="search-input-wrap">
                     <span className="search-icon"><SearchOutlinedIcon fontSize="inherit" /></span>
                     <input
                       type="text"
-                      placeholder="E.g.: Rue Didouche Mourad, Algiers..."
+                      placeholder={t('reportIncidentPage.step2.searchAddressPlaceholder')}
                       value={addressQuery}
                       onChange={(e) => {
                         setAddressQuery(e.target.value)
@@ -1018,12 +1025,12 @@ export default function ReportIncidentPage() {
                     && !isSearchingAddress
                     && addressQuery.trim().length >= 3
                     && addressResults.length === 0 && (
-                    <p className="address-no-results">No matching address found.</p>
+                    <p className="address-no-results">{t('reportIncidentPage.step2.noAddressFound')}</p>
                   )}
                 </div>
 
                 <div className="map-section">
-                  <label>Or select on the map</label>
+                  <label>{t('reportIncidentPage.step2.selectOnMapLabel')}</label>
                   <div className="map-interactive-leaflet">
                     <MapContainer
                       center={[DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng]}
@@ -1048,7 +1055,7 @@ export default function ReportIncidentPage() {
                       )}
                     </MapContainer>
                     {!reportData.locationCoords && (
-                      <p className="map-hint">Click to place the marker</p>
+                      <p className="map-hint">{t('reportIncidentPage.step2.mapClickHint')}</p>
                     )}
                   </div>
                 </div>
@@ -1063,7 +1070,7 @@ export default function ReportIncidentPage() {
                         {reportData.locationAccuracy}
                       </span>
                       {selectedLocationDetailRows.length > 0 && (
-                        <div className="confirm-location-details" role="list" aria-label="Selected location details">
+                        <div className="confirm-location-details" role="list" aria-label={t('reportIncidentPage.step2.locationDetailsAriaLabel')}>
                           {selectedLocationDetailRows.map((item) => (
                             <div key={`${item.label}-${item.value}`} className="confirm-location-row" role="listitem">
                               <span className="confirm-location-key">{item.label}</span>
@@ -1086,16 +1093,16 @@ export default function ReportIncidentPage() {
           {currentStep === 3 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Describe the incident</h1>
-                <p>Provide details to help understand the situation.</p>
+                <h1>{t('reportIncidentPage.step3.heading')}</h1>
+                <p>{t('reportIncidentPage.step3.subheading')}</p>
               </div>
               <div className="details-form">
                 <div className="form-group">
-                  <label>Report title <span className="required">*</span></label>
+                  <label>{t('reportIncidentPage.step3.titleLabel')} <span className="required">*</span></label>
                   <input
                     type="text"
                     className="title-input"
-                    placeholder="E.g.: Accident between two vehicles"
+                    placeholder={t('reportIncidentPage.step3.titlePlaceholder')}
                     value={reportData.title}
                     onChange={(e) => setReportData(prev => ({ ...prev, title: e.target.value.slice(0, 100) }))}
                     maxLength={100}
@@ -1103,17 +1110,17 @@ export default function ReportIncidentPage() {
                   <div className="input-meta">
                     <span className="char-count">{reportData.title.length}/100</span>
                     {reportData.title.length < 2 && reportData.title.length > 0 && (
-                      <span className="input-error">Minimum 2 characters</span>
+                      <span className="input-error">{t('reportIncidentPage.step3.titleMinChars')}</span>
                     )}
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label>Description <span className="optional">(optional)</span></label>
+                  <label>{t('reportIncidentPage.step3.descriptionLabel')} <span className="optional">({t('reportIncidentPage.step3.optional')})</span></label>
                   <div className="desc-field">
                     <textarea
                       className="desc-input"
-                      placeholder="Describe what you observed. Stay factual and objective."
+                      placeholder={t('reportIncidentPage.step3.descriptionPlaceholder')}
                       value={reportData.description}
                       onChange={(e) => setReportData(prev => ({ ...prev, description: e.target.value.slice(0, 500) }))}
                       maxLength={500}
@@ -1126,11 +1133,11 @@ export default function ReportIncidentPage() {
                     </div>
                   </div>
                   <div className="writing-tips">
-                    <span className="tips-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TipsAndUpdatesOutlinedIcon fontSize="inherit" className="icon-info" /> Tips</span>
+                    <span className="tips-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TipsAndUpdatesOutlinedIcon fontSize="inherit" className="icon-info" /> {t('reportIncidentPage.step3.tips.heading')}</span>
                     <ul>
-                      <li>Describe the facts, not your emotions</li>
-                      <li>Mention the number of vehicles/people if relevant</li>
-                      <li>Indicate if emergency services are present</li>
+                      <li>{t('reportIncidentPage.step3.tips.tip1')}</li>
+                      <li>{t('reportIncidentPage.step3.tips.tip2')}</li>
+                      <li>{t('reportIncidentPage.step3.tips.tip3')}</li>
                     </ul>
                   </div>
                 </div>
@@ -1149,7 +1156,7 @@ export default function ReportIncidentPage() {
                         : 'medium'
                   }
                   onApplyType={(suggestedType) => {
-                    if (incidentTypes.some((t) => t.id === suggestedType)) {
+                    if (incidentTypes.some((tp) => tp.id === suggestedType)) {
                       setReportData((prev) => ({ ...prev, type: suggestedType }))
                     }
                   }}
@@ -1165,7 +1172,7 @@ export default function ReportIncidentPage() {
                 />
 
                 <div className="form-group">
-                  <label>Severity level</label>
+                  <label>{t('reportIncidentPage.step3.severityLabel')}</label>
                   <div className="severity-selector">
                     {severityLevels.map(sev => (
                       <button
@@ -1185,7 +1192,7 @@ export default function ReportIncidentPage() {
                 </div>
 
                 <div className="form-group">
-                  <label>When did this happen?</label>
+                  <label>{t('reportIncidentPage.step3.whenLabel')}</label>
                   <div className="time-presets">
                     {TIME_PRESETS.map((preset) => (
                       <button
@@ -1218,7 +1225,7 @@ export default function ReportIncidentPage() {
                       }))}
                     >
                       <CalendarMonthRoundedIcon fontSize="inherit" />
-                      Pick date &amp; time
+                      {t('reportIncidentPage.step3.pickDateTime')}
                     </button>
                   </div>
 
@@ -1235,7 +1242,7 @@ export default function ReportIncidentPage() {
                   {reportData.timeOption === 'earlier' && reportData.customTime && (
                     <p className="time-hint">
                       <TimerOutlinedIcon fontSize="inherit" />
-                      Incident time: <strong>{formatPickedTime(reportData.customTime)}</strong>
+                      {t('reportIncidentPage.step3.incidentTimeHint')} <strong>{formatPickedTime(reportData.customTime)}</strong>
                     </p>
                   )}
                 </div>
@@ -1247,8 +1254,8 @@ export default function ReportIncidentPage() {
           {currentStep === 4 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Add media</h1>
-                <p>Add up to 5 photos to document the incident (optional).</p>
+                <h1>{t('reportIncidentPage.step4.heading')}</h1>
+                <p>{t('reportIncidentPage.step4.subheading')}</p>
               </div>
               <div className="media-section">
                 <div className="media-upload">
@@ -1268,13 +1275,13 @@ export default function ReportIncidentPage() {
                     onDragLeave={handleUploadZoneDragLeave}
                   >
                     <span className="upload-icon"><PhotoCameraOutlinedIcon fontSize="inherit" /></span>
-                    <span className="upload-title">Add photos</span>
+                    <span className="upload-title">{t('reportIncidentPage.step4.uploadTitle')}</span>
                     <span className="upload-desc">
                       {isUploadDragActive
-                        ? 'Drop your images here'
-                        : 'Click or drag JPEG, PNG, or WebP images'}
+                        ? t('reportIncidentPage.step4.dropHere')
+                        : t('reportIncidentPage.step4.uploadDesc')}
                     </span>
-                    <span className="upload-limit">Maximum 5 files • 5 MB each</span>
+                    <span className="upload-limit">{t('reportIncidentPage.step4.uploadLimit')}</span>
                   </label>
                 </div>
 
@@ -1286,8 +1293,8 @@ export default function ReportIncidentPage() {
                   <div className="media-preview-grid">
                     {reportData.media.map((media, index) => (
                       <div key={index} className="media-preview-item">
-                        <img src={media.preview} alt={`Preview ${index + 1}`} />
-                        <button className="remove-media" onClick={() => removeMedia(index)} aria-label="Remove"><CloseRoundedIcon fontSize="inherit" /></button>
+                        <img src={media.preview} alt={t('reportIncidentPage.step4.previewAlt', { index: index + 1 })} />
+                        <button className="remove-media" onClick={() => removeMedia(index)} aria-label={t('reportIncidentPage.step4.removeMedia')}><CloseRoundedIcon fontSize="inherit" /></button>
                       </div>
                     ))}
                   </div>
@@ -1296,14 +1303,14 @@ export default function ReportIncidentPage() {
                   <div className="media-notice">
                     <span className="notice-icon"><LockOutlinedIcon fontSize="inherit" className="icon-security" /></span>
                     <div className="notice-text">
-                      <strong>Privacy</strong>
-                      <p>Media is moderated before publication. Visible personal data (faces, license plates) may be blurred.</p>
+                      <strong>{t('reportIncidentPage.step4.privacyTitle')}</strong>
+                      <p>{t('reportIncidentPage.step4.privacyDesc')}</p>
                   </div>
                 </div>
 
                 <div className="skip-media">
-                  <p>No media to add?</p>
-                  <button className="skip-btn" onClick={nextStep}>Skip this step <ArrowForwardRoundedIcon fontSize="inherit" /></button>
+                  <p>{t('reportIncidentPage.step4.noMedia')}</p>
+                  <button className="skip-btn" onClick={nextStep}>{t('reportIncidentPage.step4.skipStep')} <ArrowForwardRoundedIcon fontSize="inherit" /></button>
                 </div>
               </div>
             </div>
@@ -1313,74 +1320,74 @@ export default function ReportIncidentPage() {
           {currentStep === 5 && (
             <div className="step-panel">
               <div className="step-header">
-                <h1>Review your report</h1>
-                <p>Review the information before submitting.</p>
+                <h1>{t('reportIncidentPage.step5.heading')}</h1>
+                <p>{t('reportIncidentPage.step5.subheading')}</p>
               </div>
               <div className="review-content">
                 <div className="review-section">
                   <div className="review-row">
-                    <span className="review-label">Incident type</span>
+                    <span className="review-label">{t('reportIncidentPage.step5.reviewLabels.incidentType')}</span>
                     <span className="review-value">
                       {getTypeInfo()?.icon} {getTypeInfo()?.label}
                     </span>
-                    <button className="review-edit" onClick={() => setCurrentStep(1)}>Edit</button>
+                    <button className="review-edit" onClick={() => setCurrentStep(1)}>{t('common:actions.edit')}</button>
                   </div>
                   <div className="review-row">
-                    <span className="review-label">Location</span>
+                    <span className="review-label">{t('reportIncidentPage.step5.reviewLabels.location')}</span>
                     <span className="review-value" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><LocationOnOutlinedIcon fontSize="inherit" /> {reportData.locationAddress}</span>
-                    <button className="review-edit" onClick={() => setCurrentStep(2)}>Edit</button>
+                    <button className="review-edit" onClick={() => setCurrentStep(2)}>{t('common:actions.edit')}</button>
                   </div>
                   <div className="review-row">
-                    <span className="review-label">Title</span>
+                    <span className="review-label">{t('reportIncidentPage.step5.reviewLabels.title')}</span>
                     <span className="review-value">{reportData.title}</span>
-                    <button className="review-edit" onClick={() => setCurrentStep(3)}>Edit</button>
+                    <button className="review-edit" onClick={() => setCurrentStep(3)}>{t('common:actions.edit')}</button>
                   </div>
                   {reportData.description && (
                     <div className="review-row">
-                      <span className="review-label">Description</span>
+                      <span className="review-label">{t('reportIncidentPage.step5.reviewLabels.description')}</span>
                       <span className="review-value desc">{reportData.description}</span>
                     </div>
                   )}
                   <div className="review-row">
-                    <span className="review-label">Severity</span>
+                    <span className="review-label">{t('reportIncidentPage.step5.reviewLabels.severity')}</span>
                     <span className="review-value">
                       <span className="sev-indicator" style={{ background: severityLevels.find(s => s.id === reportData.severity)?.color }}></span>
                       {severityLevels.find(s => s.id === reportData.severity)?.label}
                     </span>
                   </div>
                   <div className="review-row">
-                    <span className="review-label">Time</span>
+                    <span className="review-label">{t('reportIncidentPage.step5.reviewLabels.time')}</span>
                     <span className="review-value">
-                      {reportData.timeOption === 'now' ? <><TimerOutlinedIcon fontSize="inherit" /> Just now</> : <><AccessTimeRoundedIcon fontSize="inherit" /> {formatPickedTime(reportData.customTime)}</>}
+                      {reportData.timeOption === 'now' ? <><TimerOutlinedIcon fontSize="inherit" /> {t('reportIncidentPage.timePresets.now')}</> : <><AccessTimeRoundedIcon fontSize="inherit" /> {formatPickedTime(reportData.customTime)}</>}
                     </span>
                   </div>
                   <div className="review-row">
-                    <span className="review-label">Media</span>
+                    <span className="review-label">{t('reportIncidentPage.step5.reviewLabels.media')}</span>
                     <span className="review-value">
-                      {reportData.media.length > 0 
-                        ? <><PhotoCameraOutlinedIcon fontSize="inherit" /> {reportData.media.length} image(s)</>
-                        : 'No media'}
+                      {reportData.media.length > 0
+                        ? <><PhotoCameraOutlinedIcon fontSize="inherit" /> {t('reportIncidentPage.step5.imageCount', { count: reportData.media.length })}</>
+                        : t('reportIncidentPage.step5.noMedia')}
                     </span>
-                    <button className="review-edit" onClick={() => setCurrentStep(4)}>Edit</button>
+                    <button className="review-edit" onClick={() => setCurrentStep(4)}>{t('common:actions.edit')}</button>
                   </div>
                 </div>
 
                 <div className="review-agreement">
                   <label className="checkbox-label">
                     <input type="checkbox" defaultChecked />
-                    <span>I confirm that this information is accurate and truthful.</span>
+                    <span>{t('reportIncidentPage.step5.agreementText')}</span>
                   </label>
                 </div>
 
                 <div className="review-notice">
                   <span className="notice-icon"><InfoOutlinedIcon fontSize="inherit" className="icon-info" /></span>
-                  <p>Your report will be verified by our automated system and then made visible to other users. False reports may result in a warning or an account ban.</p>
+                  <p>{t('reportIncidentPage.step5.reviewNotice')}</p>
                 </div>
 
                 {!user && (
                   <div className="review-notice">
                     <span className="notice-icon"><EnhancedEncryptionOutlinedIcon fontSize="inherit" className="icon-security" /></span>
-                    <p>You need to be logged in to submit this report.</p>
+                    <p>{t('reportIncidentPage.step5.loginRequired')}</p>
                   </div>
                 )}
               </div>
@@ -1397,20 +1404,20 @@ export default function ReportIncidentPage() {
           <div className="step-nav">
             {currentStep > 1 && (
               <button className="nav-btn secondary" onClick={prevStep}>
-                <ArrowBackRoundedIcon fontSize="inherit" /> Back
+                <ArrowBackRoundedIcon fontSize="inherit" /> {t('common:actions.back')}
               </button>
             )}
             <div className="nav-spacer"></div>
             {currentStep < 5 ? (
               <button className="nav-btn primary" onClick={nextStep} disabled={!canProceed()}>
-                Continue <ArrowForwardRoundedIcon fontSize="inherit" />
+                {t('reportIncidentPage.nav.continue')} <ArrowForwardRoundedIcon fontSize="inherit" />
               </button>
             ) : (
               <button className="nav-btn submit" onClick={submitReport} disabled={isSubmitting || !user}>
                 {isSubmitting ? (
-                  <><span className="nav-btn-spinner" />Submitting…</>
+                  <><span className="nav-btn-spinner" />{t('reportIncidentPage.nav.submitting')}</>
                 ) : (
-                  'Submit report'
+                  t('reportIncidentPage.nav.submitReport')
                 )}
               </button>
             )}
@@ -1421,12 +1428,12 @@ export default function ReportIncidentPage() {
         <aside className="report-right">
           <div className="preview-header">
             <span className="preview-icon"><VisibilityOutlinedIcon fontSize="inherit" /></span>
-            <h3>Report preview</h3>
+            <h3>{t('reportIncidentPage.preview.heading')}</h3>
           </div>
 
           {/* Incident Card Preview */}
           <div className="preview-section">
-            <span className="preview-label">How it will appear</span>
+            <span className="preview-label">{t('reportIncidentPage.preview.howItWillAppear')}</span>
             <div className="incident-preview-card">
               <div className="ipc-header">
                 <span className="ipc-icon" style={{ background: `${severityLevels.find(s => s.id === reportData.severity)?.color}20` }}>
@@ -1435,7 +1442,7 @@ export default function ReportIncidentPage() {
                 <div className="ipc-info">
                   <span className="ipc-title">{getPreviewTitle()}</span>
                   <span className="ipc-meta">
-                    {reportData.locationAddress || 'Location...'}
+                    {reportData.locationAddress || t('reportIncidentPage.preview.locationPlaceholder')}
                   </span>
                 </div>
               </div>
@@ -1443,7 +1450,7 @@ export default function ReportIncidentPage() {
                 {reportData.description ? (
                   <p className="ipc-desc">{reportData.description.slice(0, 100)}{reportData.description.length > 100 ? '...' : ''}</p>
                 ) : (
-                  <p className="ipc-desc placeholder">Incident description...</p>
+                  <p className="ipc-desc placeholder">{t('reportIncidentPage.preview.descriptionPlaceholder')}</p>
                 )}
               </div>
               <div className="ipc-footer">
@@ -1451,15 +1458,15 @@ export default function ReportIncidentPage() {
                   <span className="sev-dot-sm" style={{ background: severityLevels.find(s => s.id === reportData.severity)?.color }}></span>
                   {severityLevels.find(s => s.id === reportData.severity)?.label}
                 </span>
-                <span className="ipc-time">Just now</span>
-                <span className="ipc-status" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><HourglassEmptyOutlinedIcon fontSize="inherit" /> Pending</span>
+                <span className="ipc-time">{t('reportIncidentPage.timePresets.now')}</span>
+                <span className="ipc-status" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><HourglassEmptyOutlinedIcon fontSize="inherit" /> {t('reportIncidentPage.preview.pending')}</span>
               </div>
             </div>
           </div>
 
           {/* Mini Map */}
           <div className="preview-section">
-            <span className="preview-label">Location</span>
+            <span className="preview-label">{t('reportIncidentPage.preview.locationLabel')}</span>
             <div className="map-preview">
               <MapContainer
                 center={[DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng]}
@@ -1488,33 +1495,33 @@ export default function ReportIncidentPage() {
                   <Marker position={[reportData.locationCoords.lat, reportData.locationCoords.lng]} />
                 ) : null}
               </MapContainer>
-              {!reportData.locationCoords ? <p className="map-placeholder-text">Select a location</p> : null}
+              {!reportData.locationCoords ? <p className="map-placeholder-text">{t('reportIncidentPage.preview.selectLocation')}</p> : null}
             </div>
           </div>
 
           {/* Verification Status */}
           <div className="preview-section">
-            <span className="preview-label">Verification status</span>
+            <span className="preview-label">{t('reportIncidentPage.preview.verificationStatus')}</span>
             <div className="verification-preview">
               <div className="verif-step">
                 <span className="verif-icon pending"><HourglassEmptyOutlinedIcon fontSize="inherit" /></span>
                 <div className="verif-info">
-                  <span className="verif-title">Pending</span>
-                  <span className="verif-desc">Will be verified after submission</span>
+                  <span className="verif-title">{t('reportIncidentPage.preview.verifPending')}</span>
+                  <span className="verif-desc">{t('reportIncidentPage.preview.verifPendingDesc')}</span>
                 </div>
               </div>
               <div className="verif-timeline">
                 <div className="timeline-step">
                   <span className="tl-dot"></span>
-                  <span className="tl-label">AI Review</span>
+                  <span className="tl-label">{t('reportIncidentPage.preview.timeline.aiReview')}</span>
                 </div>
                 <div className="timeline-step">
                   <span className="tl-dot"></span>
-                  <span className="tl-label">Community</span>
+                  <span className="tl-label">{t('reportIncidentPage.preview.timeline.community')}</span>
                 </div>
                 <div className="timeline-step">
                   <span className="tl-dot"></span>
-                  <span className="tl-label">Published</span>
+                  <span className="tl-label">{t('reportIncidentPage.preview.timeline.published')}</span>
                 </div>
               </div>
             </div>
@@ -1522,12 +1529,12 @@ export default function ReportIncidentPage() {
 
           {/* Trust & Safety */}
           <div className="preview-section trust-preview">
-            <span className="preview-label">Trust & Safety</span>
+            <span className="preview-label">{t('reportIncidentPage.preview.trustSafety')}</span>
             <ul className="trust-list">
-              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckCircleOutlineRoundedIcon fontSize="inherit" className="icon-success" /> Verified reports</li>
-              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ShieldOutlinedIcon fontSize="inherit" className="icon-security" /> Protected data</li>
-              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><VisibilityOutlinedIcon fontSize="inherit" /> Moderated media</li>
-              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><BalanceOutlinedIcon fontSize="inherit" /> False reports removed</li>
+              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckCircleOutlineRoundedIcon fontSize="inherit" className="icon-success" /> {t('reportIncidentPage.preview.trust.verifiedReports')}</li>
+              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ShieldOutlinedIcon fontSize="inherit" className="icon-security" /> {t('reportIncidentPage.preview.trust.protectedData')}</li>
+              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><VisibilityOutlinedIcon fontSize="inherit" /> {t('reportIncidentPage.preview.trust.moderatedMedia')}</li>
+              <li style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><BalanceOutlinedIcon fontSize="inherit" /> {t('reportIncidentPage.preview.trust.falseReportsRemoved')}</li>
             </ul>
           </div>
         </aside>

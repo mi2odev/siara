@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import FancySelect from '../../components/ui/FancySelect'
 import { CircleMarker, MapContainer, TileLayer } from 'react-leaflet'
 import { createPortal } from 'react-dom'
@@ -39,20 +40,25 @@ import profileAvatar from '../../assets/logos/siara-logo1.png'
 const REPORT_ID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-const INCIDENT_TYPE_META = {
-  accident: { label: 'Accident', icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" /> },
-  traffic: { label: 'Traffic', icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" /> },
-  danger: { label: 'Danger', icon: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-fire" /> },
-  weather: { label: 'Weather', icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" /> },
-  roadworks: { label: 'Roadworks', icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" /> },
-  other: { label: 'Other', icon: <LocationOnOutlinedIcon fontSize="inherit" className="icon-muted" /> },
+function getIncidentTypeMeta(type, t) {
+  const INCIDENT_TYPE_META = {
+    accident: { label: t('incidentDetailPage.types.accident'), icon: <CarCrashOutlinedIcon fontSize="inherit" className="icon-danger" /> },
+    traffic: { label: t('incidentDetailPage.types.traffic'), icon: <TrafficOutlinedIcon fontSize="inherit" className="icon-warning" /> },
+    danger: { label: t('incidentDetailPage.types.danger'), icon: <WarningAmberOutlinedIcon fontSize="inherit" className="icon-fire" /> },
+    weather: { label: t('incidentDetailPage.types.weather'), icon: <WaterDropOutlinedIcon fontSize="inherit" className="icon-info" /> },
+    roadworks: { label: t('incidentDetailPage.types.roadworks'), icon: <ConstructionOutlinedIcon fontSize="inherit" className="icon-warning" /> },
+    other: { label: t('incidentDetailPage.types.other'), icon: <LocationOnOutlinedIcon fontSize="inherit" className="icon-muted" /> },
+  }
+  return INCIDENT_TYPE_META[type] || { label: t('incidentDetailPage.types.incident'), icon: <LocationOnOutlinedIcon fontSize="inherit" /> }
 }
 
-const STATUS_META = {
-  pending: { label: 'Pending', icon: 'Pending' },
-  verified: { label: 'Verified', icon: 'Verified' },
-  rejected: { label: 'Rejected', icon: 'Rejected' },
-  resolved: { label: 'Resolved', icon: 'Resolved' },
+function getStatusMeta(t) {
+  return {
+    pending: { label: t('incidentDetailPage.status.pending'), icon: t('incidentDetailPage.status.pending') },
+    verified: { label: t('incidentDetailPage.status.verified'), icon: t('incidentDetailPage.status.verified') },
+    rejected: { label: t('incidentDetailPage.status.rejected'), icon: t('incidentDetailPage.status.rejected') },
+    resolved: { label: t('incidentDetailPage.status.resolved'), icon: t('incidentDetailPage.status.resolved') },
+  }
 }
 
 const severityOptions = ['low', 'medium', 'high']
@@ -107,12 +113,12 @@ function getSeverityColor(severity) {
   }
 }
 
-function getSeverityLabel(severity) {
+function getSeverityLabel(severity, t) {
   switch (severity) {
-    case 'high': return 'High Severity'
-    case 'medium': return 'Medium Severity'
-    case 'low': return 'Low Severity'
-    default: return 'Unknown'
+    case 'high': return t('incidentDetailPage.severity.high')
+    case 'medium': return t('incidentDetailPage.severity.medium')
+    case 'low': return t('incidentDetailPage.severity.low')
+    default: return t('incidentDetailPage.severity.unknown')
   }
 }
 
@@ -173,26 +179,22 @@ function renderNavIcon(type) {
   return <PersonOutlinedIcon fontSize="inherit" />
 }
 
-function getIncidentTypeMeta(type) {
-  return INCIDENT_TYPE_META[type] || { label: 'Incident', icon: <LocationOnOutlinedIcon fontSize="inherit" /> }
-}
-
-function formatTimeAgo(value) {
-  if (!value) return 'Unknown'
+function formatTimeAgo(value, t) {
+  if (!value) return t('incidentDetailPage.timeAgo.unknown')
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Unknown'
+  if (Number.isNaN(date.getTime())) return t('incidentDetailPage.timeAgo.unknown')
 
   const diffMs = Date.now() - date.getTime()
   const diffMinutes = Math.max(0, Math.round(diffMs / 60000))
 
-  if (diffMinutes < 1) return 'Just now'
-  if (diffMinutes < 60) return `${diffMinutes} min ago`
+  if (diffMinutes < 1) return t('incidentDetailPage.timeAgo.justNow')
+  if (diffMinutes < 60) return t('incidentDetailPage.timeAgo.minutesAgo', { count: diffMinutes })
 
   const diffHours = Math.round(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours} h ago`
+  if (diffHours < 24) return t('incidentDetailPage.timeAgo.hoursAgo', { count: diffHours })
 
   const diffDays = Math.round(diffHours / 24)
-  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  return t('incidentDetailPage.timeAgo.daysAgo', { count: diffDays })
 }
 
 function formatClock(value) {
@@ -215,8 +217,8 @@ function toDateTimeLocalValue(value) {
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16)
 }
 
-function formatReporterDisplayName(name) {
-  if (typeof name !== 'string' || !name.trim()) return 'an identified user'
+function formatReporterDisplayName(name, t) {
+  if (typeof name !== 'string' || !name.trim()) return t('incidentDetailPage.timeline.anonymousUser')
 
   return name
     .trim()
@@ -229,9 +231,9 @@ function formatReporterDisplayName(name) {
     .join(' ')
 }
 
-function buildTimelineFromReport(report, viewerUser = null) {
+function buildTimelineFromReport(report, viewerUser = null, t) {
   const reporter = report?.reportedBy || report?.reported_by || null
-  const reporterName = formatReporterDisplayName(reporter?.name || report?.authorName || '')
+  const reporterName = formatReporterDisplayName(reporter?.name || report?.authorName || '', t)
   const reporterId = reporter?.id || report?.reportedById || report?.reported_by_id || null
   const viewerId = viewerUser?.id || viewerUser?.userId || null
   const viewerRoles = getUserRoles(viewerUser)
@@ -244,17 +246,17 @@ function buildTimelineFromReport(report, viewerUser = null) {
   const isPoliceReporter = reporterRoles.includes('police') || reporterRoles.includes('policeofficer')
   const isAdminReporter = reporterRoles.includes('admin')
   const submitterLabel = isAdminReporter
-    ? 'Administrator'
+    ? t('incidentDetailPage.timeline.administrator')
     : isPoliceReporter
-      ? 'Police Officer'
-      : 'Citizen Reporter'
+      ? t('incidentDetailPage.timeline.policeOfficer')
+      : t('incidentDetailPage.timeline.citizenReporter')
 
   const timeline = [
     {
       time: formatClock(report.createdAt),
       source: isPoliceReporter || isAdminReporter ? 'authority' : 'user',
       sourceLabel: submitterLabel,
-      text: `Report submitted by ${reporterName}.`,
+      text: t('incidentDetailPage.timeline.reportSubmittedBy', { name: reporterName }),
     },
   ]
 
@@ -262,18 +264,19 @@ function buildTimelineFromReport(report, viewerUser = null) {
     timeline.push({
       time: formatClock(report.updatedAt),
       source: 'system',
-      sourceLabel: 'System',
-      text: 'Report details were updated.',
+      sourceLabel: t('incidentDetailPage.timeline.system'),
+      text: t('incidentDetailPage.timeline.reportDetailsUpdated'),
     })
   }
 
   if (report.status && report.status !== 'pending') {
-    const statusLabel = STATUS_META[report.status]?.label || report.status
+    const STATUS_META_LOCAL = getStatusMeta(t)
+    const statusLabel = STATUS_META_LOCAL[report.status]?.label || report.status
     timeline.push({
       time: formatClock(report.updatedAt || report.createdAt),
       source: 'authority',
-      sourceLabel: 'Authority',
-      text: `Status updated to ${statusLabel}.`,
+      sourceLabel: t('incidentDetailPage.timeline.authority'),
+      text: t('incidentDetailPage.timeline.statusUpdatedTo', { status: statusLabel }),
     })
   }
 
@@ -294,7 +297,7 @@ function buildEditForm(report) {
   }
 }
 
-function buildDisplayIncident(report, id, viewerUser = null) {
+function buildDisplayIncident(report, id, viewerUser = null, t) {
   if (!report) {
     return { ...mockIncident, id: id || mockIncident.id }
   }
@@ -303,33 +306,34 @@ function buildDisplayIncident(report, id, viewerUser = null) {
     id: report.id,
     type: report.incidentType,
     title: report.title,
-    description: report.description || 'No description was provided for this report.',
+    description: report.description || t('incidentDetailPage.noDescription'),
     severity: report.severity || 'medium',
-    locationLabel: report.locationLabel || 'Reported location',
+    locationLabel: report.locationLabel || t('incidentDetailPage.reportedLocation'),
     location: report.location,
     reportedAt: report.createdAt,
     updatedAt: report.updatedAt,
     status: report.status || 'pending',
-    reporterName: report.reportedBy?.name || 'Citizen',
+    reporterName: report.reportedBy?.name || t('incidentDetailPage.citizen'),
     media: Array.isArray(report.media)
       ? report.media.map((media) => ({
           id: media.id,
           url: media.url,
-          caption: media.mediaType === 'image' ? 'Report image' : media.mediaType || 'Report media',
+          caption: media.mediaType === 'image' ? t('incidentDetailPage.reportImage') : media.mediaType || t('incidentDetailPage.reportMedia'),
           uploadedAt: media.uploadedAt,
         }))
       : [],
-    timeline: buildTimelineFromReport(report, viewerUser),
+    timeline: buildTimelineFromReport(report, viewerUser, t),
     confirmations: 0,
     comments: 0,
-    estimatedDelay: 'Unknown',
-    alternativeRoutes: ['Check the live map for alternate routes'],
+    estimatedDelay: t('incidentDetailPage.timeAgo.unknown'),
+    alternativeRoutes: [t('incidentDetailPage.checkLiveMap')],
     tags: [report.incidentType, report.severity, report.status].filter(Boolean),
     sourceCount: 1,
   }
 }
 
 export default function IncidentDetailPage() {
+  const { t } = useTranslation(['reports', 'common'])
   const navigate = useNavigate()
   const { id } = useParams()
   const { user, logout } = useContext(AuthContext)
@@ -361,7 +365,7 @@ export default function IncidentDetailPage() {
   const canManageReport = Boolean(
     report && user && (isAdmin || user.id === report.reportedBy?.id),
   )
-  const incident = buildDisplayIncident(report, id, user)
+  const incident = buildDisplayIncident(report, id, user, t)
 
   useEffect(() => {
     let isMounted = true
@@ -388,7 +392,7 @@ export default function IncidentDetailPage() {
       })
       .catch((error) => {
         if (!isMounted) return
-        setReportError(error.message || 'Failed to load report')
+        setReportError(error.message || t('incidentDetailPage.errors.failedToLoad'))
         setReport(null)
       })
       .finally(() => {
@@ -474,7 +478,8 @@ export default function IncidentDetailPage() {
     }
   }, [zoomScale])
 
-  const typeMeta = getIncidentTypeMeta(incident.type)
+  const typeMeta = getIncidentTypeMeta(incident.type, t)
+  const STATUS_META = getStatusMeta(t)
   const statusMeta = STATUS_META[incident.status] || STATUS_META.pending
   const normalizedRoles = getUserRoles(user)
   const primaryRole = normalizedRoles.includes('admin')
@@ -572,17 +577,17 @@ export default function IncidentDetailPage() {
     const lng = Number(editForm.lng)
 
     if (!editForm.title.trim() || editForm.title.trim().length < 2) {
-      setSaveError('Title must be at least 2 characters.')
+      setSaveError(t('incidentDetailPage.errors.titleTooShort'))
       return
     }
 
     if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-      setSaveError('Latitude must be a valid number between -90 and 90.')
+      setSaveError(t('incidentDetailPage.errors.invalidLatitude'))
       return
     }
 
     if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
-      setSaveError('Longitude must be a valid number between -180 and 180.')
+      setSaveError(t('incidentDetailPage.errors.invalidLongitude'))
       return
     }
 
@@ -612,7 +617,7 @@ export default function IncidentDetailPage() {
       setEditForm(buildEditForm(updatedReport))
       setIsEditing(false)
     } catch (error) {
-      setSaveError(error.message || 'Failed to update report')
+      setSaveError(error.message || t('incidentDetailPage.errors.failedToUpdate'))
     } finally {
       setIsSaving(false)
     }
@@ -621,7 +626,7 @@ export default function IncidentDetailPage() {
   const handleDeleteReport = async () => {
     if (!report || isDeleting) return
 
-    const confirmed = window.confirm('Delete this report permanently?')
+    const confirmed = window.confirm(t('incidentDetailPage.confirmDelete'))
     if (!confirmed) return
 
     setIsDeleting(true)
@@ -631,7 +636,7 @@ export default function IncidentDetailPage() {
       await deleteReport(report.id)
       navigate('/news')
     } catch (error) {
-      setSaveError(error.message || 'Failed to delete report')
+      setSaveError(error.message || t('incidentDetailPage.errors.failedToDelete'))
       setIsDeleting(false)
     }
   }
@@ -645,12 +650,12 @@ export default function IncidentDetailPage() {
               <img src={siaraLogo} alt="SIARA" className="header-logo" />
             </div>
             <nav className="dash-header-tabs">
-              <button className="dash-tab" onClick={() => navigate('/news')}>Feed</button>
-              <button className="dash-tab" onClick={() => navigate('/map')}>Map</button>
-              <button className="dash-tab" onClick={() => navigate('/alerts')}>Alerts</button>
-              <button className="dash-tab" onClick={() => navigate('/report')}>Report</button>
-              <button className="dash-tab" onClick={() => navigate('/dashboard')}>Dashboard</button>
-              <button className="dash-tab" onClick={() => navigate('/predictions')}>Predictions</button>
+              <button className="dash-tab" onClick={() => navigate('/news')}>{t('incidentDetailPage.nav.feed')}</button>
+              <button className="dash-tab" onClick={() => navigate('/map')}>{t('common:nav.map')}</button>
+              <button className="dash-tab" onClick={() => navigate('/alerts')}>{t('common:nav.alerts')}</button>
+              <button className="dash-tab" onClick={() => navigate('/report')}>{t('incidentDetailPage.nav.report')}</button>
+              <button className="dash-tab" onClick={() => navigate('/dashboard')}>{t('incidentDetailPage.nav.dashboard')}</button>
+              <button className="dash-tab" onClick={() => navigate('/predictions')}>{t('common:nav.predictions')}</button>
               <PoliceModeTab user={user} />
             </nav>
           </div>
@@ -659,27 +664,27 @@ export default function IncidentDetailPage() {
               navigate={navigate}
               query={headerSearchQuery}
               setQuery={setHeaderSearchQuery}
-              placeholder="Search for an incident, a road, a wilaya..."
-              ariaLabel="Search"
+              placeholder={t('incidentDetailPage.searchPlaceholder')}
+              ariaLabel={t('common:actions.search')}
               currentUser={user}
             />
           </div>
           <div className="dash-header-right">
             <NotificationBell />
-            <button className="dash-icon-btn" aria-label="Messages">{renderHeaderIcon('message')}</button>
+            <button className="dash-icon-btn" aria-label={t('incidentDetailPage.ariaLabels.messages')}>{renderHeaderIcon('message')}</button>
             <div className="dash-avatar-wrapper">
-              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label="User profile">
+              <button className={`dash-avatar ${userAvatarUrl ? 'has-image' : ''}`} onClick={() => setShowDropdown(!showDropdown)} aria-label={t('incidentDetailPage.ariaLabels.userProfile')}>
                 {userAvatarUrl ? (
-                  <img src={userAvatarUrl} alt="User avatar" className="dash-avatar-image" loading="lazy" />
+                  <img src={userAvatarUrl} alt={t('incidentDetailPage.ariaLabels.userAvatar')} className="dash-avatar-image" loading="lazy" />
                 ) : userInitials}
               </button>
               {showDropdown && (
                 <div className="user-dropdown">
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>My Profile</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>Settings</button>
-                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>Notifications</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/profile') }}>{t('incidentDetailPage.dropdown.myProfile')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/settings') }}>{t('common:nav.settings')}</button>
+                  <button className="dropdown-item" onClick={() => { setShowDropdown(false); navigate('/notifications') }}>{t('common:nav.notifications')}</button>
                   <div className="dropdown-divider"></div>
-                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>Log Out</button>
+                  <button className="dropdown-item logout" onClick={() => { logout(); navigate('/home') }}>{t('common:nav.logout')}</button>
                 </div>
               )}
             </div>
@@ -691,36 +696,36 @@ export default function IncidentDetailPage() {
         <aside className="incident-sidebar-left al-left">
           <div className="card profile-summary">
             <div className="profile-avatar-container">
-              <img src={profileAvatarUrl} alt="Profile" className="profile-avatar-large" loading="lazy" />            </div>
+              <img src={profileAvatarUrl} alt={t('incidentDetailPage.ariaLabels.profile')} className="profile-avatar-large" loading="lazy" />            </div>
             <div className="profile-info">
               <p className="profile-name">{profileName}</p>
               <span className={`role-badge ${roleClass}`}>{roleLabel}</span>
-              <p className="profile-bio">Browse live road reports and share updates from the field.</p>
-              <button className="profile-view-link" onClick={() => navigate('/profile')}>View Profile</button>
+              <p className="profile-bio">{t('incidentDetailPage.profileBio')}</p>
+              <button className="profile-view-link" onClick={() => navigate('/profile')}>{t('incidentDetailPage.viewProfile')}</button>
             </div>
           </div>
 
           <div className="card al-filter-section">
-            <div className="nav-section-label">REPORT STATUS</div>
+            <div className="nav-section-label">{t('incidentDetailPage.reportStatus')}</div>
             <nav className="al-nav">
               <button className="al-nav-btn active" type="button">
-                <span className="nav-label">All</span>
+                <span className="nav-label">{t('incidentDetailPage.filter.all')}</span>
                 <span className="nav-count">{leftStats.all}</span>
               </button>
               <button className={`al-nav-btn ${incident.status === 'pending' ? 'active' : ''}`} type="button">
-                <span className="nav-label">Pending</span>
+                <span className="nav-label">{t('incidentDetailPage.status.pending')}</span>
                 <span className="nav-count">{leftStats.pending}</span>
               </button>
               <button className={`al-nav-btn ${incident.status === 'verified' ? 'active' : ''}`} type="button">
-                <span className="nav-label">Verified</span>
+                <span className="nav-label">{t('incidentDetailPage.status.verified')}</span>
                 <span className="nav-count">{leftStats.verified}</span>
               </button>
               <button className={`al-nav-btn ${incident.status === 'resolved' ? 'active' : ''}`} type="button">
-                <span className="nav-label">Resolved</span>
+                <span className="nav-label">{t('incidentDetailPage.status.resolved')}</span>
                 <span className="nav-count">{leftStats.resolved}</span>
               </button>
               <button className={`al-nav-btn ${incident.status === 'rejected' ? 'active' : ''}`} type="button">
-                <span className="nav-label">Rejected</span>
+                <span className="nav-label">{t('incidentDetailPage.status.rejected')}</span>
                 <span className="nav-count">{leftStats.rejected}</span>
               </button>
             </nav>
@@ -728,19 +733,19 @@ export default function IncidentDetailPage() {
 
           <FeedSidebarNav activeKey="reports" />
 
-          <button className="al-cta" onClick={() => navigate('/report/create')}>+ New Report</button>
+          <button className="al-cta" onClick={() => navigate('/report/create')}>{t('incidentDetailPage.newReport')}</button>
         </aside>
 
         <main className="incident-main">
           {isLoadingReport && (
             <div className="incident-header-block">
-              <h1 className="incident-title">Loading report...</h1>
+              <h1 className="incident-title">{t('incidentDetailPage.loadingReport')}</h1>
             </div>
           )}
 
           {reportError && (
             <div className="incident-header-block">
-              <h1 className="incident-title">Report unavailable</h1>
+              <h1 className="incident-title">{t('incidentDetailPage.reportUnavailable')}</h1>
               <p>{reportError}</p>
             </div>
           )}
@@ -763,7 +768,7 @@ export default function IncidentDetailPage() {
                   <span className="idp-meta-icon" aria-hidden="true">
                     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5" strokeLinecap="round"/></svg>
                   </span>
-                  <span className="meta-time">{formatTimeAgo(incident.reportedAt)}</span>
+                  <span className="meta-time">{formatTimeAgo(incident.reportedAt, t)}</span>
                   <span className="meta-separator">·</span>
                   <span className="idp-meta-icon" aria-hidden="true">
                     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6c0 3.5 4.5 8.5 4.5 8.5S12.5 9.5 12.5 6c0-2.5-2-4.5-4.5-4.5z"/><circle cx="8" cy="6" r="1.6"/></svg>
@@ -778,29 +783,27 @@ export default function IncidentDetailPage() {
                   style={{ background: `${getSeverityColor(incident.severity)}14`, borderColor: getSeverityColor(incident.severity) }}
                 >
                   <span className="severity-dot" style={{ background: getSeverityColor(incident.severity) }}></span>
-                  <span className="severity-label" style={{ color: getSeverityColor(incident.severity) }}>{getSeverityLabel(incident.severity)}</span>
+                  <span className="severity-label" style={{ color: getSeverityColor(incident.severity) }}>{getSeverityLabel(incident.severity, t)}</span>
                 </div>
                 <div className="idp-strip-meta">
                   <span className="idp-strip-item">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c.8-3.2 3.9-5.5 8-5.5s7.2 2.3 8 5.5" strokeLinecap="round"/></svg>
-                    Reported by <strong>{incident.reporterName}</strong>
+                    {t('incidentDetailPage.reportedBy')} <strong>{incident.reporterName}</strong>
                   </span>
                   <span className="idp-strip-sep">·</span>
-                  <span className="idp-strip-item">Status: <strong>{statusMeta.label}</strong></span>
+                  <span className="idp-strip-item">{t('incidentDetailPage.statusLabel')} <strong>{statusMeta.label}</strong></span>
                   <span className="idp-strip-sep">·</span>
-                  <span className="idp-strip-item">Updated <strong>{formatTimeAgo(incident.updatedAt)}</strong></span>
+                  <span className="idp-strip-item">{t('incidentDetailPage.updatedLabel')} <strong>{formatTimeAgo(incident.updatedAt, t)}</strong></span>
                 </div>
               </div>
 
               {thread && Array.isArray(thread.members) && thread.members.length > 1 ? (
                 <div className="incident-description" style={{ marginBottom: 12 }}>
                   <h2 className="section-title">
-                    Merged reports ({thread.members.length})
+                    {t('incidentDetailPage.mergedReports.title', { count: thread.members.length })}
                   </h2>
                   <p style={{ fontSize: 13, color: '#475569', margin: '4px 0 10px' }}>
-                    SIARA grouped {thread.members.length} reports of the same accident
-                    (within 300&nbsp;m and 6&nbsp;h) into this incident. The original
-                    report is kept; the others are merged duplicates.
+                    {t('incidentDetailPage.mergedReports.description', { count: thread.members.length })}
                   </p>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {thread.members.map((m) => {
@@ -821,19 +824,19 @@ export default function IncidentDetailPage() {
                               color: isPrimary ? '#4338CA' : '#64748B',
                             }}
                           >
-                            {isPrimary ? 'Original' : 'Merged'}
+                            {isPrimary ? t('incidentDetailPage.mergedReports.original') : t('incidentDetailPage.mergedReports.merged')}
                           </span>
                           <span style={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {m.title || `Report #${String(m.reportId).slice(0, 8)}`}
                           </span>
                           {isCurrent ? (
-                            <span style={{ color: '#4338CA', fontWeight: 600 }}>· this report</span>
+                            <span style={{ color: '#4338CA', fontWeight: 600 }}>{t('incidentDetailPage.mergedReports.thisReport')}</span>
                           ) : null}
                           {m.verifiedByPolice ? (
-                            <span style={{ color: '#1E40AF' }}>· police-verified</span>
+                            <span style={{ color: '#1E40AF' }}>{t('incidentDetailPage.mergedReports.policeVerified')}</span>
                           ) : null}
                           <span style={{ marginLeft: 'auto', flexShrink: 0, color: '#94A3B8' }}>
-                            {formatTimeAgo(m.createdAt)}
+                            {formatTimeAgo(m.createdAt, t)}
                           </span>
                         </>
                       )
@@ -866,20 +869,20 @@ export default function IncidentDetailPage() {
               ) : null}
 
               <div className="incident-description">
-                <h2 className="section-title">Description</h2>
+                <h2 className="section-title">{t('incidentDetailPage.sections.description')}</h2>
                 <div className={`description-text ${showFullDescription ? 'expanded' : ''}`}>
                   {showFullDescription ? incident.description : incident.description.split('\n\n')[0]}
                 </div>
                 {incident.description.split('\n\n').length > 1 && (
                   <button className="show-more-btn" onClick={() => setShowFullDescription(!showFullDescription)}>
-                    {showFullDescription ? 'Show less' : 'Show more'}
+                    {showFullDescription ? t('incidentDetailPage.showLess') : t('incidentDetailPage.showMore')}
                   </button>
                 )}
               </div>
 
               {incident.media.length > 0 && (
                 <div className="incident-media">
-                  <h2 className="section-title">Photos</h2>
+                  <h2 className="section-title">{t('incidentDetailPage.sections.photos')}</h2>
                   <div className="media-grid">
                     {incident.media.map((media, index) => (
                       <div key={media.id || index} className="media-item">
@@ -892,9 +895,9 @@ export default function IncidentDetailPage() {
                                 setSelectedMediaIndex(index)
                                 setZoomScale(1)
                               }}
-                              aria-label="Open photo"
+                              aria-label={t('incidentDetailPage.ariaLabels.openPhoto')}
                             >
-                              <img className="media-image" src={media.url} alt={media.caption || 'Report image'} loading="lazy" />
+                              <img className="media-image" src={media.url} alt={media.caption || t('incidentDetailPage.reportImage')} loading="lazy" />
                             </button>
                             <span className="media-caption-badge">{media.caption}</span>
                           </>
@@ -911,7 +914,7 @@ export default function IncidentDetailPage() {
               )}
 
               <div className="incident-timeline">
-                <h2 className="section-title">Timeline</h2>
+                <h2 className="section-title">{t('incidentDetailPage.sections.timeline')}</h2>
                 <div className="timeline-list">
                   {incident.timeline.map((event, index) => (
                     <div key={`${event.time}-${index}`} className="timeline-item">
@@ -923,7 +926,7 @@ export default function IncidentDetailPage() {
                         <span className="timeline-time">{event.time}</span>
                         <span className="timeline-text">{event.text}</span>
                         <span className={`timeline-source ${event.source}`}>
-                          {event.sourceLabel || (event.source === 'user' ? 'Citizen' : event.source === 'authority' ? 'Authority' : 'System')}
+                          {event.sourceLabel || (event.source === 'user' ? t('incidentDetailPage.timeline.citizen') : event.source === 'authority' ? t('incidentDetailPage.timeline.authority') : t('incidentDetailPage.timeline.system'))}
                         </span>
                       </div>
                     </div>
@@ -932,18 +935,18 @@ export default function IncidentDetailPage() {
               </div>
 
               <div className="community-signals">
-                <h2 className="section-title">Community Signals</h2>
+                <h2 className="section-title">{t('incidentDetailPage.sections.communitySignals')}</h2>
                 <div className="signals-row">
                   <div className="signal-item">
                     <span className="signal-count">{incident.confirmations}</span>
-                    <span className="signal-label">Confirmations</span>
+                    <span className="signal-label">{t('incidentDetailPage.signals.confirmations')}</span>
                   </div>
                   <div className="signal-item">
                     <span className="signal-count">{incident.comments}</span>
-                    <span className="signal-label">Comments</span>
+                    <span className="signal-label">{t('incidentDetailPage.signals.comments')}</span>
                   </div>
                   <button className="signal-action-btn" disabled={isRealReport}>
-                    {isRealReport ? 'Available after publication' : 'I confirm'}
+                    {isRealReport ? t('incidentDetailPage.signals.availableAfterPublication') : t('incidentDetailPage.signals.iConfirm')}
                   </button>
                 </div>
               </div>
@@ -953,7 +956,7 @@ export default function IncidentDetailPage() {
 
         <aside className="incident-sidebar-right">
           <div className="context-card mini-map-card">
-            <h3 className="context-title">Location</h3>
+            <h3 className="context-title">{t('incidentDetailPage.sections.location')}</h3>
             <div className="mini-map-container">
               {hasMapLocation ? (
                 <MapContainer center={mapCenter} zoom={14} style={{ width: '100%', height: '100%' }} scrollWheelZoom={false} dragging={true} zoomControl={false}>
@@ -975,7 +978,7 @@ export default function IncidentDetailPage() {
               ) : (
                 <div className="mini-map-empty">
                   <span className="map-empty-icon" aria-hidden="true">{renderNavIcon('map')}</span>
-                  <span>No location coordinates available</span>
+                  <span>{t('incidentDetailPage.noLocationCoordinates')}</span>
                 </div>
               )}
             </div>
@@ -988,20 +991,20 @@ export default function IncidentDetailPage() {
               )}
             </div>
             <button className="open-map-btn" onClick={() => navigate('/map')}>
-              Open full map
+              {t('incidentDetailPage.openFullMap')}
             </button>
           </div>
 
           <div className="context-card safety-card">
-            <h3 className="context-title">Recommendations</h3>
+            <h3 className="context-title">{t('incidentDetailPage.sections.recommendations')}</h3>
             <div className="safety-alert">
-              <span className="safety-text">{incident.status === 'rejected' ? 'Treat with caution' : 'Monitor this area'}</span>
+              <span className="safety-text">{incident.status === 'rejected' ? t('incidentDetailPage.safety.treatWithCaution') : t('incidentDetailPage.safety.monitorArea')}</span>
             </div>
             <div className="delay-estimate">
-              <span className="delay-text">Estimated delay: <strong>{incident.estimatedDelay}</strong></span>
+              <span className="delay-text">{t('incidentDetailPage.safety.estimatedDelay')} <strong>{incident.estimatedDelay}</strong></span>
             </div>
             <div className="alternative-routes">
-              <span className="alt-label">Alternative routes:</span>
+              <span className="alt-label">{t('incidentDetailPage.safety.alternativeRoutes')}</span>
               <ul className="alt-list">
                 {incident.alternativeRoutes.map((route, index) => (
                   <li key={index} className="alt-item">
@@ -1014,24 +1017,24 @@ export default function IncidentDetailPage() {
           </div>
 
           <div className="context-card actions-card">
-            <h3 className="context-title">Actions</h3>
+            <h3 className="context-title">{t('incidentDetailPage.sections.actions')}</h3>
             <button className={`action-btn follow-btn ${isFollowing ? 'following' : ''}`} onClick={() => setIsFollowing(!isFollowing)}>
-              {isFollowing ? 'Following' : 'Follow this incident'}
+              {isFollowing ? t('incidentDetailPage.actions.following') : t('incidentDetailPage.actions.followIncident')}
             </button>
             <button className="action-btn alert-btn" onClick={() => navigate('/alerts/create')}>
-              Create zone alert
+              {t('incidentDetailPage.actions.createZoneAlert')}
             </button>
             <button className="action-btn report-btn" onClick={() => navigate('/report')}>
-              Report an update
+              {t('incidentDetailPage.actions.reportUpdate')}
             </button>
 
             {canManageReport && !isEditing && (
               <div className="owner-tools">
                 <button className="action-btn follow-btn" onClick={handleStartEdit}>
-                  Edit report
+                  {t('incidentDetailPage.actions.editReport')}
                 </button>
                 <button className="action-btn delete-report-btn" onClick={handleDeleteReport} disabled={isDeleting}>
-                  {isDeleting ? 'Deleting...' : 'Delete report'}
+                  {isDeleting ? t('incidentDetailPage.actions.deleting') : t('incidentDetailPage.actions.deleteReport')}
                 </button>
               </div>
             )}
@@ -1039,25 +1042,32 @@ export default function IncidentDetailPage() {
             {canManageReport && isEditing && editForm && (
               <div className="manage-form">
                 <label className="manage-form-label">
-                  Title
+                  {t('incidentDetailPage.editForm.title')}
                   <input className="manage-form-input" value={editForm.title} onChange={(event) => handleEditField('title', event.target.value)} />
                 </label>
 
                 <label className="manage-form-label">
-                  Type
+                  {t('incidentDetailPage.editForm.type')}
                   <FancySelect
                     value={editForm.incidentType}
                     onChange={(value) => handleEditField('incidentType', value)}
                     menuAlign="left"
-                    options={Object.entries(INCIDENT_TYPE_META).map(([key, meta]) => ({
+                    options={Object.entries({
+                      accident: t('incidentDetailPage.types.accident'),
+                      traffic: t('incidentDetailPage.types.traffic'),
+                      danger: t('incidentDetailPage.types.danger'),
+                      weather: t('incidentDetailPage.types.weather'),
+                      roadworks: t('incidentDetailPage.types.roadworks'),
+                      other: t('incidentDetailPage.types.other'),
+                    }).map(([key, label]) => ({
                       value: key,
-                      label: meta.label,
+                      label,
                     }))}
                   />
                 </label>
 
                 <label className="manage-form-label">
-                  Severity
+                  {t('incidentDetailPage.editForm.severity')}
                   <FancySelect
                     value={editForm.severity}
                     onChange={(value) => handleEditField('severity', value)}
@@ -1071,12 +1081,12 @@ export default function IncidentDetailPage() {
 
                 {isAdmin && (
                   <label className="manage-form-label">
-                    Status
+                    {t('incidentDetailPage.editForm.status')}
                     <FancySelect
                       value={editForm.status}
                       onChange={(value) => handleEditField('status', value)}
                       menuAlign="left"
-                      options={Object.entries(STATUS_META).map(([key, meta]) => ({
+                      options={Object.entries(getStatusMeta(t)).map(([key, meta]) => ({
                         value: key,
                         label: meta.label,
                       }))}
@@ -1085,41 +1095,41 @@ export default function IncidentDetailPage() {
                 )}
 
                 <label className="manage-form-label">
-                  Location label
+                  {t('incidentDetailPage.editForm.locationLabel')}
                   <input className="manage-form-input" value={editForm.locationLabel} onChange={(event) => handleEditField('locationLabel', event.target.value)} />
                 </label>
 
                 <div className="manage-form-grid">
                   <label className="manage-form-label">
-                    Latitude
+                    {t('incidentDetailPage.editForm.latitude')}
                     <input type="number" step="any" className="manage-form-input" value={editForm.lat} onChange={(event) => handleEditField('lat', event.target.value)} />
                   </label>
                   <label className="manage-form-label">
-                    Longitude
+                    {t('incidentDetailPage.editForm.longitude')}
                     <input type="number" step="any" className="manage-form-input" value={editForm.lng} onChange={(event) => handleEditField('lng', event.target.value)} />
                   </label>
                 </div>
 
                 <label className="manage-form-label">
-                  Occurred at
+                  {t('incidentDetailPage.editForm.occurredAt')}
                   <input type="datetime-local" className="manage-form-input" value={editForm.occurredAt} onChange={(event) => handleEditField('occurredAt', event.target.value)} />
                 </label>
 
                 <label className="manage-form-label">
-                  Description
+                  {t('incidentDetailPage.editForm.description')}
                   <textarea className="manage-form-input manage-form-textarea" value={editForm.description} onChange={(event) => handleEditField('description', event.target.value)} />
                 </label>
 
-                <p className="manage-form-note">Media is preserved with the report, but media editing from this page is not available yet.</p>
+                <p className="manage-form-note">{t('incidentDetailPage.editForm.mediaNote')}</p>
 
                 {saveError && <p className="manage-form-error">{saveError}</p>}
 
                 <div className="manage-form-actions">
                   <button className="action-btn report-btn" onClick={handleSaveReport} disabled={isSaving}>
-                    {isSaving ? 'Saving...' : 'Save changes'}
+                    {isSaving ? t('incidentDetailPage.actions.saving') : t('incidentDetailPage.actions.saveChanges')}
                   </button>
                   <button className="action-btn follow-btn" onClick={handleCancelEdit} disabled={isSaving}>
-                    Cancel
+                    {t('common:actions.cancel')}
                   </button>
                 </div>
               </div>
@@ -1127,26 +1137,26 @@ export default function IncidentDetailPage() {
           </div>
 
           <div className="context-card metadata-card">
-            <h3 className="context-title">Metadata</h3>
+            <h3 className="context-title">{t('incidentDetailPage.sections.metadata')}</h3>
             <div className="metadata-list">
               <div className="metadata-item">
-                <span className="metadata-label">Incident ID</span>
+                <span className="metadata-label">{t('incidentDetailPage.metadata.incidentId')}</span>
                 <span className="metadata-value">#{incident.id}</span>
               </div>
               <div className="metadata-item">
-                <span className="metadata-label">Reporter</span>
+                <span className="metadata-label">{t('incidentDetailPage.metadata.reporter')}</span>
                 <span className="metadata-value">{incident.reporterName}</span>
               </div>
               <div className="metadata-item">
-                <span className="metadata-label">Status</span>
+                <span className="metadata-label">{t('incidentDetailPage.metadata.status')}</span>
                 <span className="metadata-value">{statusMeta.label}</span>
               </div>
               <div className="metadata-item">
-                <span className="metadata-label">Sources</span>
-                <span className="metadata-value">{incident.sourceCount} report(s)</span>
+                <span className="metadata-label">{t('incidentDetailPage.metadata.sources')}</span>
+                <span className="metadata-value">{t('incidentDetailPage.metadata.sourceCount', { count: incident.sourceCount })}</span>
               </div>
               <div className="metadata-item">
-                <span className="metadata-label">Categories</span>
+                <span className="metadata-label">{t('incidentDetailPage.metadata.categories')}</span>
                 <div className="metadata-tags">
                   {incident.tags.map((tag, index) => (
                     <span key={`${tag}-${index}`} className="metadata-tag">{tag}</span>
@@ -1154,7 +1164,7 @@ export default function IncidentDetailPage() {
                 </div>
               </div>
               <div className="metadata-item">
-                <span className="metadata-label">Last Updated</span>
+                <span className="metadata-label">{t('incidentDetailPage.metadata.lastUpdated')}</span>
                 <span className="metadata-value">{formatClock(incident.updatedAt)}</span>
               </div>
             </div>
@@ -1163,17 +1173,17 @@ export default function IncidentDetailPage() {
       </div>
 
       {activeMedia && createPortal(
-        <div className="media-lightbox" role="dialog" aria-modal="true" aria-label="Photo preview" onClick={() => setSelectedMediaIndex(null)}>
+        <div className="media-lightbox" role="dialog" aria-modal="true" aria-label={t('incidentDetailPage.ariaLabels.photoPreview')} onClick={() => setSelectedMediaIndex(null)}>
           <div className="media-lightbox-content" onClick={(event) => event.stopPropagation()}>
             <div className="media-lightbox-toolbar">
-              <button type="button" className="media-zoom-btn" onClick={zoomOut} aria-label="Zoom out">−</button>
-              <button type="button" className="media-zoom-btn reset" onClick={zoomReset} aria-label="Reset zoom">
+              <button type="button" className="media-zoom-btn" onClick={zoomOut} aria-label={t('incidentDetailPage.ariaLabels.zoomOut')}>−</button>
+              <button type="button" className="media-zoom-btn reset" onClick={zoomReset} aria-label={t('incidentDetailPage.ariaLabels.resetZoom')}>
                 {Math.round(zoomScale * 100)}%
               </button>
-              <button type="button" className="media-zoom-btn" onClick={zoomIn} aria-label="Zoom in">+</button>
+              <button type="button" className="media-zoom-btn" onClick={zoomIn} aria-label={t('incidentDetailPage.ariaLabels.zoomIn')}>+</button>
             </div>
 
-            <button type="button" className="media-lightbox-close" onClick={() => setSelectedMediaIndex(null)} aria-label="Close photo preview">
+            <button type="button" className="media-lightbox-close" onClick={() => setSelectedMediaIndex(null)} aria-label={t('incidentDetailPage.ariaLabels.closePhotoPreview')}>
               ×
             </button>
 
@@ -1187,7 +1197,7 @@ export default function IncidentDetailPage() {
                     setZoomScale(1)
                     setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev - 1 + incident.media.length) % incident.media.length))
                   }}
-                  aria-label="Previous photo"
+                  aria-label={t('incidentDetailPage.ariaLabels.previousPhoto')}
                 >
                   ‹
                 </button>
@@ -1199,7 +1209,7 @@ export default function IncidentDetailPage() {
                     setZoomScale(1)
                     setSelectedMediaIndex((prev) => (prev == null ? 0 : (prev + 1) % incident.media.length))
                   }}
-                  aria-label="Next photo"
+                  aria-label={t('incidentDetailPage.ariaLabels.nextPhoto')}
                 >
                   ›
                 </button>
@@ -1240,7 +1250,7 @@ export default function IncidentDetailPage() {
               <img
                 className="media-lightbox-image"
                 src={activeMedia.url}
-                alt={activeMedia.caption || 'Report image'}
+                alt={activeMedia.caption || t('incidentDetailPage.reportImage')}
                 style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})` }}
               />
             </div>

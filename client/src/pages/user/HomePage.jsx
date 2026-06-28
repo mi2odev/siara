@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
 import { Divider } from '@mui/material'
@@ -7,6 +8,7 @@ import MapPreview from '../../components/map/MapPreview'
 import Footer from '../../components/layout/Footer'
 
 export default function HomePage(){
+  const { t } = useTranslation(['pages', 'common'])
   return (
     <div className="home-root">
 
@@ -14,15 +16,15 @@ export default function HomePage(){
       <section id="hero" className="hero-section">
         <div className="hero-inner">
           <div className="home-hero-logo-top">
-            <img src={logo} alt="Logo SIARA" loading="lazy" className="home-hero-logo" />
+            <img src={logo} alt={t('homePage.logoAlt')} loading="lazy" className="home-hero-logo" />
           </div>
           <div className="hero-copy">
-            <p className="hero-eyebrow">AI-Powered Road Safety Platform</p>
-            <h1 className="hero-h1">Make roads safer <span>with AI</span></h1>
-            <p className="hero-sub">Analyze, predict and prevent accidents before they happen.</p>
+            <p className="hero-eyebrow">{t('homePage.hero.eyebrow')}</p>
+            <h1 className="hero-h1">{t('homePage.hero.title')} <span>{t('homePage.hero.titleHighlight')}</span></h1>
+            <p className="hero-sub">{t('homePage.hero.subtitle')}</p>
             <div className="hero-buttons">
-              <a href="/login" className="btn hero-btn-primary">Get Started <ArrowForwardRoundedIcon fontSize="inherit" /></a>
-              <a href="#services" className="btn hero-btn-secondary">Discover our services</a>
+              <a href="/login" className="btn hero-btn-primary">{t('homePage.hero.cta.getStarted')} <ArrowForwardRoundedIcon fontSize="inherit" /></a>
+              <a href="#services" className="btn hero-btn-secondary">{t('homePage.hero.cta.discover')}</a>
             </div>
           </div>
         </div>
@@ -32,7 +34,7 @@ export default function HomePage(){
 
       {/* ═══════════════════ HOW IT WORKS ═══════════════════ */}
       <section id="how" className="how-section">
-        <h2 className="home-section-title">How does SIARA work?</h2>
+        <h2 className="home-section-title">{t('homePage.how.title')}</h2>
         <div className="how-cards">
           <div className="how-card">
             <div className="how-icon">
@@ -42,9 +44,9 @@ export default function HomePage(){
                 <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
               </svg>
             </div>
-            <span className="how-step">Step 01</span>
-            <h3>Data Collection</h3>
-            <p>Aggregated road data, accident history, weather and traffic density.</p>
+            <span className="how-step">{t('homePage.how.step01.label')}</span>
+            <h3>{t('homePage.how.step01.title')}</h3>
+            <p>{t('homePage.how.step01.description')}</p>
           </div>
           <div className="how-card">
             <div className="how-icon">
@@ -54,9 +56,9 @@ export default function HomePage(){
                 <path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/>
               </svg>
             </div>
-            <span className="how-step">Step 02</span>
-            <h3>Analysis & Predictive AI</h3>
-            <p>Machine learning models to estimate risk zones in real time.</p>
+            <span className="how-step">{t('homePage.how.step02.label')}</span>
+            <h3>{t('homePage.how.step02.title')}</h3>
+            <p>{t('homePage.how.step02.description')}</p>
           </div>
           <div className="how-card">
             <div className="how-icon">
@@ -66,9 +68,9 @@ export default function HomePage(){
                 <circle cx="18" cy="5" r="3" fill="#ef4444" stroke="none"/>
               </svg>
             </div>
-            <span className="how-step">Step 03</span>
-            <h3>Real-Time Alerts</h3>
-            <p>Notifications and visualizations to anticipate and prevent accidents.</p>
+            <span className="how-step">{t('homePage.how.step03.label')}</span>
+            <h3>{t('homePage.how.step03.title')}</h3>
+            <p>{t('homePage.how.step03.description')}</p>
           </div>
         </div>
       </section>
@@ -76,9 +78,9 @@ export default function HomePage(){
       {/* ═══════════════════ MISSION ═══════════════════ */}
       <section id="mission" className="mission-section">
         <div className="mission-inner">
-          <p className="mission-eyebrow">Our Mission</p>
-          <h2 className="mission-title">Zero preventable accidents.</h2>
-          <p>Significantly reduce road accidents by putting the power of AI and data at the service of drivers, authorities and smart infrastructure developers.</p>
+          <p className="mission-eyebrow">{t('homePage.mission.eyebrow')}</p>
+          <h2 className="mission-title">{t('homePage.mission.title')}</h2>
+          <p>{t('homePage.mission.description')}</p>
         </div>
       </section>
 
@@ -87,33 +89,33 @@ export default function HomePage(){
         <div className="stats-grid">
           <div className="stat-card">
             <div className="home-stat-value">1.35M</div>
-            <div className="home-stat-label">deaths / year worldwide</div>
+            <div className="home-stat-label">{t('homePage.stats.deathsLabel')}</div>
           </div>
           <div className="stat-card">
             <div className="home-stat-value">50%</div>
-            <div className="home-stat-label">2030 reduction target</div>
+            <div className="home-stat-label">{t('homePage.stats.reductionLabel')}</div>
           </div>
           <div className="stat-card">
             <div className="home-stat-value">92%</div>
-            <div className="home-stat-label">Simulated accuracy</div>
+            <div className="home-stat-label">{t('homePage.stats.accuracyLabel')}</div>
           </div>
           <div className="stat-card">
             <div className="home-stat-value">+1000</div>
-            <div className="home-stat-label">High-risk zones mapped</div>
+            <div className="home-stat-label">{t('homePage.stats.zonesLabel')}</div>
           </div>
         </div>
       </section>
 
       {/* ═══════════════════ SERVICES ═══════════════════ */}
       <section id="services" className="services-section">
-        <h2 className="section-title">SIARA Services</h2>
+        <h2 className="section-title">{t('homePage.services.sectionTitle')}</h2>
 
         <div className="service-block alt">
           <div className="service-text">
-            <span className="service-tag">Analytics</span>
-            <h3>Analytics Dashboard</h3>
-            <p>Aggregated visualizations, time trends and dynamic filters to understand risk evolution.</p>
-            <a href="/map" className="btn small">Learn more <ArrowForwardRoundedIcon fontSize="inherit" /></a>
+            <span className="service-tag">{t('homePage.services.analytics.tag')}</span>
+            <h3>{t('homePage.services.analytics.title')}</h3>
+            <p>{t('homePage.services.analytics.description')}</p>
+            <a href="/map" className="btn small">{t('homePage.services.learnMore')} <ArrowForwardRoundedIcon fontSize="inherit" /></a>
           </div>
           {/* ── Analytics Dashboard mock ── */}
           <div className="service-art" aria-hidden="true">
@@ -190,19 +192,19 @@ export default function HomePage(){
             </div>
           </div>
           <div className="service-text">
-            <span className="service-tag">Mapping</span>
-            <h3>Prediction Map</h3>
-            <p>Interactive map highlighting risk areas at the local level with real-time incident overlays.</p>
-            <a href="/predictions" className="btn small">Learn more <ArrowForwardRoundedIcon fontSize="inherit" /></a>
+            <span className="service-tag">{t('homePage.services.mapping.tag')}</span>
+            <h3>{t('homePage.services.mapping.title')}</h3>
+            <p>{t('homePage.services.mapping.description')}</p>
+            <a href="/predictions" className="btn small">{t('homePage.services.learnMore')} <ArrowForwardRoundedIcon fontSize="inherit" /></a>
           </div>
         </div>
 
         <div className="service-block alt">
           <div className="service-text">
-            <span className="service-tag">Mobile</span>
-            <h3>SIARA Mobile App</h3>
-            <p>On-board alerts, risk notifications and preventive guidance at your fingertips.</p>
-            <a href="/map" className="btn small">Learn more <ArrowForwardRoundedIcon fontSize="inherit" /></a>
+            <span className="service-tag">{t('homePage.services.mobile.tag')}</span>
+            <h3>{t('homePage.services.mobile.title')}</h3>
+            <p>{t('homePage.services.mobile.description')}</p>
+            <a href="/map" className="btn small">{t('homePage.services.learnMore')} <ArrowForwardRoundedIcon fontSize="inherit" /></a>
           </div>
           {/* ── Mobile App mock ── */}
           <div className="service-art" aria-hidden="true">
@@ -247,9 +249,9 @@ export default function HomePage(){
       {/* ═══════════════════ JOIN CTA ═══════════════════ */}
       <section id="join" className="join-section">
         <div className="join-inner">
-          <h2>Join the Initiative</h2>
-          <p>Collaborate to make Algerian roads safer through data and artificial intelligence.</p>
-          <a href="/register" className="btn join-btn">Create your account <ArrowForwardRoundedIcon fontSize="inherit" /></a>
+          <h2>{t('homePage.join.title')}</h2>
+          <p>{t('homePage.join.description')}</p>
+          <a href="/register" className="btn join-btn">{t('homePage.join.cta')} <ArrowForwardRoundedIcon fontSize="inherit" /></a>
         </div>
       </section>
 

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import StraightOutlinedIcon from '@mui/icons-material/StraightOutlined'
 import {
   formatDistanceMeters,
@@ -11,11 +12,13 @@ export default function NavigationBanner({
   distanceToCurrentStepM,
   routeWarning,
 }) {
+  const { t } = useTranslation(['map', 'common'])
+
   if (!open) return null
 
   const Icon =
     currentStep?.icon || NAVIGATION_TURN_ICONS[currentStep?.turnType] || StraightOutlinedIcon
-  const instruction = currentStep?.instruction || 'Follow the route'
+  const instruction = currentStep?.instruction || t('navigationBanner.followRoute')
   const direction = currentStep?.direction
     ? ` (${currentStep.direction})`
     : ''
@@ -23,9 +26,9 @@ export default function NavigationBanner({
     ? formatDistanceMeters(distanceToCurrentStepM)
     : null
   const nextLabel = nextStep && nextStep.turnType !== 'arrive'
-    ? `Then ${(nextStep.instruction || '').toLowerCase()}`
+    ? t('navigationBanner.thenInstruction', { instruction: (nextStep.instruction || '').toLowerCase() })
     : nextStep && nextStep.turnType === 'arrive'
-      ? 'Then arrive at destination'
+      ? t('navigationBanner.thenArrive')
       : null
 
   return (
@@ -34,7 +37,7 @@ export default function NavigationBanner({
       <div className="siara-nav-banner__body">
         <div className="siara-nav-banner__primary">
           {distanceLabel ? (
-            <span className="siara-nav-banner__distance">In {distanceLabel}</span>
+            <span className="siara-nav-banner__distance">{t('navigationBanner.inDistance', { distance: distanceLabel })}</span>
           ) : null}
           <span className="siara-nav-banner__instruction">
             {instruction}

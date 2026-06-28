@@ -1,0 +1,1339 @@
+{
+  "adminContextPanel": {
+    "liveIntelligence": "المعلومات الآنية",
+    "reviewQueueActive": "قائمة المراجعة نشطة",
+    "pendingReviewOldest": "{{count}} بلاغ قيد المراجعة. الأقدم في القائمة: {{location}}.",
+    "pendingReviewOldest_one": "بلاغ واحد قيد المراجعة. الأقدم في القائمة: {{location}}.",
+    "pendingReviewOldest_other": "{{count}} بلاغات قيد المراجعة. الأقدم في القائمة: {{location}}.",
+    "noIncidentsPending": "لا توجد بلاغات تنتظر حالياً في قائمة المراجعة.",
+    "reviewOldestIncident": "مراجعة أقدم بلاغ",
+    "openQueue": "فتح قائمة الانتظار",
+    "queueLoad": "حمل قائمة الانتظار",
+    "pendingReviews": "المراجعات قيد الانتظار",
+    "communityFlagged": "مُبلَّغ عنه من المجتمع",
+    "aiHighRisk": "خطر مرتفع (الذكاء الاصطناعي)",
+    "workflowSnapshot": "لقطة سير العمل",
+    "mergedReports": "البلاغات المدمجة",
+    "archivedReports": "البلاغات المؤرشفة",
+    "completedAiAssessments": "تقييمات الذكاء الاصطناعي المكتملة",
+    "moderationGuidance": "إرشادات الإشراف",
+    "severityHintsTitle": "تلميحات الخطورة تبقى الخيار الاحتياطي",
+    "severityHintsBody": "تستخدم بلاغات الحوادث تلميح الخطورة المُقدَّم من المستخدم إلى حين توفر تقييم مكتمل من الذكاء الاصطناعي.",
+    "reporterScoreTitle": "درجة المُبلِّغ فارغة عن قصد",
+    "reporterScoreBody": "الثقة وسمعة المُبلِّغ لم تُنفَّذ بعد، لذا تعرض طرق عرض الإشراف شرطة بدلاً من تقييم وهمي."
+  },
+  "adminHeader": {
+    "skipToContent": "تخطى إلى المحتوى",
+    "nav": {
+      "close": "إغلاق التنقل",
+      "open": "فتح التنقل"
+    },
+    "breadcrumb": {
+      "label": "مسار التنقل",
+      "detail": "تفصيل"
+    },
+    "roles": {
+      "admin": "المشرف",
+      "supervisor": "المشرف الميداني",
+      "police": "الشرطة"
+    },
+    "routes": {
+      "overview": "نظرة عامة على النظام",
+      "incidents": "إدارة الحوادث",
+      "alerts": "عمليات التنبيهات",
+      "zones": "المخاطر والمناطق",
+      "ai": "إشراف الذكاء الاصطناعي",
+      "users": "إدارة المستخدمين",
+      "analytics": "التحليلات",
+      "system": "الإعدادات",
+      "inbox": "صندوق الدعم"
+    },
+    "status": {
+      "label": "حالة النظام",
+      "production": "الإنتاج",
+      "systemOperationalTitle": "النظام يعمل",
+      "system": "النظام",
+      "operational": "يعمل",
+      "aiOnlineTitle": "نموذج الذكاء الاصطناعي v1.0 متصل",
+      "ai": "الذكاء الاصطناعي",
+      "aiVersion": "v1.0 متصل"
+    },
+    "profile": {
+      "title": "{{name}} · {{role}}"
+    }
+  },
+  "adminLayout": {
+    "closeNavigation": "إغلاق التنقّل"
+  },
+  "adminSidebar": {
+    "supervisionCentre": "مركز الإشراف",
+    "searchPlaceholder": "البحث في القائمة…",
+    "searchAriaLabel": "البحث في الشريط الجانبي للمشرف",
+    "clearSearch": "مسح البحث",
+    "noLinksMatch": "لا توجد روابط تطابق «{{query}}».",
+    "sections": {
+      "overview": "نظرة عامة",
+      "incidents": "إدارة الحوادث",
+      "alerts": "عمليات التنبيهات",
+      "zones": "المخاطر والمناطق",
+      "ai": "الذكاء الاصطناعي والإشراف على النماذج",
+      "users": "إدارة المستخدمين",
+      "analytics": "البيانات والتحليلات",
+      "inbox": "صندوق بريد الدعم",
+      "system": "النظام"
+    },
+    "links": {
+      "systemOverview": "نظرة عامة على النظام",
+      "allIncidents": "جميع الحوادث",
+      "pendingReview": "قيد المراجعة",
+      "suspectedSpam": "مشتبه به كرسائل مزعجة",
+      "manualSpamReview": "مراجعة يدوية للرسائل المزعجة",
+      "aiFlaggedHighRisk": "خطر مرتفع مُحدَّد بالذكاء الاصطناعي",
+      "communityFlagged": "مُبلَّغ عنه من المجتمع",
+      "mergedIncidents": "الحوادث المدمجة",
+      "archived": "المؤرشفة",
+      "allAlerts": "جميع التنبيهات",
+      "activeAlerts": "التنبيهات النشطة",
+      "scheduledAlerts": "التنبيهات المجدولة",
+      "expiringExpired": "تنتهي قريباً / منتهية",
+      "emergencyBroadcast": "بث الطوارئ",
+      "alertTemplates": "قوالب التنبيهات",
+      "zoneMap": "خريطة المناطق",
+      "zoneManagement": "إدارة المناطق",
+      "wilayaRiskRanking": "تصنيف مخاطر الولايات",
+      "zoneThresholds": "حدود المناطق",
+      "modelPerformance": "أداء النموذج",
+      "confidenceAnalysis": "تحليل الثقة",
+      "confusionMatrix": "مصفوفة الارتباك",
+      "overrideLogs": "سجلات التجاوز",
+      "occurrenceModelBeta": "نموذج التكرار (تجريبي)",
+      "allUsers": "جميع المستخدمين",
+      "activeUsers": "النشطون",
+      "topContributors": "أبرز المساهمين",
+      "atRisk": "في خطر",
+      "banned": "المحظورون",
+      "admins": "المشرفون",
+      "hourlyHeatmap": "خريطة الحرارة بالساعة",
+      "severityDistribution": "توزيع الخطورة",
+      "dangerousRoads": "الطرق الخطرة",
+      "correlations": "الترابطات",
+      "sevenDayPrediction": "توقعات 7 أيام",
+      "allInbox": "جميع الرسائل الواردة",
+      "contactMessages": "رسائل التواصل",
+      "infoRequestReplies": "ردود طلبات المعلومات",
+      "severityRules": "قواعد الخطورة",
+      "notificationLogic": "منطق الإشعارات",
+      "geofencing": "السياج الجغرافي",
+      "general": "عام"
+    }
+  },
+  "adminAIMonitoringPage": {
+    "title": "الإشراف على الذكاء الاصطناعي والنماذج",
+    "lastTrained": "آخر تدريب {{date}}",
+    "retrainModel": "إعادة تدريب النموذج",
+    "downloadReport": "تنزيل التقرير",
+    "driftAlert": "تم اكتشاف انحراف في النموذج: {{drift}}% — يُنصح بإعادة التدريب",
+    "tabs": {
+      "performance": "أداء النموذج",
+      "confusion": "مصفوفة الارتباك",
+      "confidence": "تحليل الثقة",
+      "overrides": "سجل التجاوزات",
+      "occurrence": "نموذج الوقوع (تجريبي)"
+    },
+    "kpi": {
+      "accuracy": "الدقة الكلية",
+      "precision": "الدقة",
+      "recall": "الاسترجاع",
+      "f1Score": "نقاط F1",
+      "modelDrift": "انحراف النموذج"
+    },
+    "falsePositives": {
+      "title": "النتائج الإيجابية الخاطئة",
+      "subtitle": "بالغ الذكاء الاصطناعي في تقدير الخطورة"
+    },
+    "falseNegatives": {
+      "title": "النتائج السلبية الخاطئة",
+      "subtitle": "قلّل الذكاء الاصطناعي من تقدير الخطورة"
+    },
+    "cases_one": "{{count}} حالة",
+    "cases_other": "{{count}} حالات",
+    "modelInfo": {
+      "title": "معلومات النموذج",
+      "modelName": "اسم النموذج",
+      "trainingDataset": "مجموعة بيانات التدريب",
+      "lastTrained": "آخر تدريب",
+      "driftStatus": "حالة الانحراف"
+    },
+    "confusionMatrix": {
+      "title": "مصفوفة الارتباك",
+      "subtitle": "الفعلي (صفوف) مقابل المتوقع (أعمدة) — آخر 30 يومًا",
+      "axisLabel": "الفعلي ↓ / المتوقع →",
+      "diagonalLegend": "القطر = التوقعات الصحيحة",
+      "offDiagonalLegend": "خارج القطر = أخطاء التصنيف (مُبرَّزة عند > 10)"
+    },
+    "confidence": {
+      "meanConfidence": "متوسط الثقة",
+      "meanConfidenceHint": "+1.4% مقارنة بآخر 30 يومًا",
+      "median": "الوسيط",
+      "medianHint": "P50 من جميع التوقعات",
+      "belowThreshold": "أقل من عتبة 50%",
+      "highConfidence": "ثقة عالية (≥70%)",
+      "pctOfPredictions": "{{pct}}% من التوقعات",
+      "distributionTitle": "توزيع الثقة",
+      "distributionSubtitle": "ثقة الذكاء الاصطناعي عبر {{total}} توقع (آخر 30 يومًا)",
+      "legend": {
+        "veryLow": "منخفض جدًا",
+        "low": "منخفض",
+        "moderate": "متوسط",
+        "high": "مرتفع"
+      },
+      "tooltipValue": "{{count}} توقع ({{pct}}%)",
+      "decisionThreshold": "عتبة القرار (50%)",
+      "insightText": "{{pct}}% من التوقعات تقع في نطاقات الثقة العالية (≥70%) — يُنتج النموذج مخرجات حاسمة."
+    },
+    "occurrence": {
+      "loading": "جارٍ تحميل مقاييس نموذج الوقوع…",
+      "cardTitle": "توقع وقوع الحوادث",
+      "version": "الإصدار",
+      "algorithm": "الخوارزمية",
+      "calibration": "المعايرة",
+      "timeWindow": "النافذة الزمنية {{hours}}س",
+      "decisionThreshold": "عتبة القرار {{value}}",
+      "notLoaded": "لم يتم تحميل نموذج Flask للوقوع",
+      "notLoadedSuffix": " ستُعيد نقطة نهاية التوقعات خطأ 503.",
+      "precisionRecallTitle": "الدقة / الاسترجاع عند Top-K",
+      "tableTopK": "الأعلى",
+      "tablePrecision": "الدقة",
+      "tableRecall": "الاسترجاع",
+      "cmThreshold": "(العتبة {{threshold}})",
+      "pred0": "متوقع 0",
+      "pred1": "متوقع 1",
+      "actual0": "فعلي 0",
+      "actual1": "فعلي 1",
+      "modelComparisonTitle": "مقارنة النماذج (التحقق)",
+      "compModel": "النموذج",
+      "compFitSeconds": "وقت التدريب (ث)",
+      "riskThresholdsTitle": "عتبات الخطر",
+      "thresholdModerate": "متوسط",
+      "thresholdHigh": "مرتفع",
+      "thresholdCritical": "حرج",
+      "thresholdExplanation": "المصدر التفسيري",
+      "weatherCoverageTitle": "تغطية الطقس (التدريب)",
+      "weatherAvailableRate": "معدل التوافر",
+      "weatherCacheHitRate": "معدل إصابة الذاكرة المؤقتة",
+      "calibrationCurveTitle": "منحنى المعايرة — LightGBM + أيزوتونيك"
+    },
+    "overrideLog": {
+      "title": "سجل التجاوزات اليدوية",
+      "subtitle": "جميع تجاوزات الخطورة من المشرفين — من، ماذا، لماذا",
+      "exportLog": "تصدير السجل",
+      "colIncident": "الحادث",
+      "colAdmin": "المشرف",
+      "colOriginalNew": "الأصلي / الجديد",
+      "colReason": "السبب",
+      "colTimestamp": "الطابع الزمني"
+    }
+  },
+  "adminAlertsPage": {
+    "tabs": {
+      "all": "جميع التنبيهات",
+      "active": "نشط",
+      "scheduled": "مجدول",
+      "expired": "منتهي / منتهية الصلاحية",
+      "emergency": "الطوارئ",
+      "templates": "القوالب"
+    },
+    "severity": {
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "مرتفع"
+    },
+    "audience": {
+      "usersInZone": "المستخدمون في المنطقة",
+      "allUsers": "جميع المستخدمين",
+      "subscribedOnly": "المستخدمون المشتركون فقط"
+    },
+    "alertType": {
+      "incident": "حادث",
+      "weather": "الطقس",
+      "roadwork": "أشغال الطريق",
+      "closure": "إغلاق الطريق",
+      "emergency": "الطوارئ",
+      "advisory": "إشعار تحذيري"
+    },
+    "emergencyBanner": "وضع الطوارئ جاهز — تعتمد التنبيهات الجديدة إعدادات الطوارئ عالية الخطورة حتى تنشر أو تعيد تعيين المحرر",
+    "resetComposer": "إعادة التعيين ←",
+    "error": {
+      "unavailable": "عمليات التنبيه غير متاحة",
+      "loadFailed": "فشل تحميل التنبيهات التشغيلية.",
+      "saveFailed": "تعذّر حفظ هذا التنبيه."
+    },
+    "emergencyConfirm": {
+      "title": "تفعيل وضع الطوارئ؟",
+      "description": "يؤدي هذا إلى تحويل المحرر إلى إعدادات الطوارئ الافتراضية للتنبيه التشغيلي التالي. لن يُنشر أي شيء حتى تحفظ تنبيهًا.",
+      "confirm": "تأكيد التفعيل"
+    },
+    "cancelModal": {
+      "title": "إلغاء التنبيه التشغيلي؟",
+      "description": "سيتم تعليمه كملغى وسيُسجَّل حدث تدقيق.",
+      "cancelling": "جارٍ الإلغاء…",
+      "confirm": "تأكيد الإلغاء"
+    },
+    "deleteModal": {
+      "title": "حذف التنبيه التشغيلي؟",
+      "description": "سيُحذف بشكل دائم مع سجله وجميع الإشعارات المُرسلة له. لا يمكن التراجع عن هذا الإجراء.",
+      "deleting": "جارٍ الحذف…",
+      "confirm": "تأكيد الحذف"
+    },
+    "keepAlert": "الاحتفاظ بالتنبيه",
+    "pageTitle": "إدارة التنبيهات",
+    "pageSubtitle": "إدارة التنبيهات الجغرافية وبث رسائل الطوارئ والإشعارات الرسمية",
+    "searchPlaceholder": "البحث بالعنوان أو المنطقة أو النوع…",
+    "emergencyModeLabel": "وضع الطوارئ",
+    "newAlert": "+ تنبيه جديد",
+    "form": {
+      "titleEdit": "تعديل التنبيه التشغيلي",
+      "titleFromTemplate": "إنشاء تنبيه من قالب",
+      "titleCreate": "إنشاء تنبيه جديد",
+      "subtitleFromTemplate": "تُملأ الإعدادات الافتراضية للقالب مسبقًا ويمكن تعديلها قبل النشر.",
+      "subtitleCreate": "حدد ولاية أو بلدية، واختر نافذة دورة الحياة، ثم انشر.",
+      "fieldTitle": "العنوان",
+      "titlePlaceholder": "عنوان التنبيه…",
+      "wilayaLabel": "الولاية",
+      "loadingWilayas": "جارٍ تحميل الولايات…",
+      "selectWilaya": "اختر الولاية…",
+      "communeLabel": "البلدية (اختياري)",
+      "selectWilayaFirst": "اختر الولاية أولاً…",
+      "loadingCommunes": "جارٍ تحميل البلديات…",
+      "wilayaWideAlert": "استخدام تنبيه على مستوى الولاية",
+      "severityLabel": "الخطورة",
+      "typeLabel": "النوع",
+      "audienceLabel": "نطاق الجمهور",
+      "startsAtLabel": "يبدأ في",
+      "endsAtLabel": "ينتهي في",
+      "deliveryChannels": "قنوات الإرسال",
+      "channelPush": "إشعار فوري",
+      "channelEmail": "البريد الإلكتروني",
+      "channelSms": "رسالة نصية",
+      "descriptionLabel": "الوصف",
+      "descriptionPlaceholder": "اشرح تأثير التنبيه والتوجيهات والتوقيت…",
+      "notifyOnStart": "إشعار عند البدء",
+      "notifyOnExpire": "إشعار عند الانتهاء",
+      "saving": "جارٍ الحفظ…",
+      "publishing": "جارٍ النشر…",
+      "saveChanges": "حفظ التغييرات",
+      "publishAlert": "نشر التنبيه"
+    },
+    "validation": {
+      "titleRequired": "العنوان مطلوب.",
+      "selectZone": "اختر ولاية أو بلدية لهذا التنبيه.",
+      "datetimeRequired": "تاريخ ووقت البدء والانتهاء مطلوبان.",
+      "endAfterStart": "يجب أن يكون وقت الانتهاء بعد وقت البدء."
+    },
+    "templates": {
+      "loading": "جارٍ تحميل قوالب التنبيهات…",
+      "noMatch": "لا توجد قوالب تطابق بحثك الحالي.",
+      "empty": "لا تتوفر قوالب تنبيهات تشغيلية حتى الآن.",
+      "defaultDuration": "المدة الافتراضية: {{duration}}",
+      "type": "النوع: {{type}}",
+      "useTemplate": "استخدم القالب ←"
+    },
+    "table": {
+      "heading": "التنبيهات التشغيلية",
+      "refreshing": "جارٍ تحديث بيانات دورة الحياة النشطة…",
+      "countSummary_one": "{{total}} تنبيه في هذا العرض",
+      "countSummary_other": "{{total}} تنبيهات في هذا العرض",
+      "colId": "المعرّف",
+      "colTitle": "العنوان",
+      "colZone": "المنطقة",
+      "colSeverity": "الخطورة",
+      "colType": "النوع",
+      "colTrigger": "المُشغِّل",
+      "colDuration": "المدة",
+      "colAudience": "الجمهور",
+      "colStatus": "الحالة",
+      "colActions": "الإجراءات",
+      "emptyEmergency": "لم يتم العثور على تنبيهات تشغيلية للطوارئ.",
+      "emptyGeneric": "لا توجد تنبيهات تشغيلية تطابق هذا العرض حتى الآن.",
+      "loadingAlerts": "جارٍ تحميل التنبيهات التشغيلية…"
+    },
+    "pagination": {
+      "showing": "عرض {{returned}} من أصل {{total}} تنبيهات",
+      "previous": "السابق →",
+      "pageOf": "الصفحة {{page}} / {{totalPages}}",
+      "next": "← التالي"
+    }
+  },
+  "adminAnalyticsPage": {
+    "title": "التحليلات المتقدمة",
+    "subtitle": "رؤى مبنية على البيانات — أنماط الحوادث، ارتباطات المخاطر والتوقعات",
+    "periodLabel": "الفترة",
+    "exportPdf": "تصدير PDF",
+    "loadingAnalytics": "جارٍ تحميل التحليلات…",
+    "noIncidentsInPeriod": "لا توجد حوادث في هذه الفترة بعد.",
+    "errors": {
+      "loadFailed": "فشل تحميل التحليلات"
+    },
+    "warnings": {
+      "partialDataLabel": "بيانات جزئية:",
+      "partialDataBody": "انتهت مهلة الأقسام التالية وتم تخطيها — {{sections}}.",
+      "partialDataHint": " طبّق مؤشرات GiST في db+ (idx_road_segments_geom_gist, idx_accident_reports_location_gist) حتى تستخدم الصلات المكانية مؤشرًا، ثم أعد التحميل."
+    },
+    "period": {
+      "last30days": "آخر 30 يومًا",
+      "last90days": "آخر 90 يومًا",
+      "last6months": "آخر 6 أشهر",
+      "lastYear": "السنة الماضية"
+    },
+    "tabs": {
+      "heatmap": "خريطة حرارية بالساعة",
+      "severity": "توزيع الخطورة",
+      "roads": "الطرق الخطرة",
+      "correlations": "الارتباطات",
+      "predictions": "توقعات 7 أيام"
+    },
+    "kpi": {
+      "totalIncidents": "إجمالي الحوادث",
+      "vsPrevPeriod": "مقارنةً بالفترة السابقة",
+      "avgPerDay": "المتوسط اليومي",
+      "reportsInPrevWindow": "{{count}} بلاغ في الفترة السابقة",
+      "peakHour": "ساعة الذروة",
+      "incidentsInBand": "{{count}} حادث في هذه الفترة",
+      "mostDangerousRoad": "أخطر الطرق",
+      "incidentsCount": "{{count}} حادث"
+    },
+    "heatmap": {
+      "title": "الحوادث حسب الساعة واليوم",
+      "subtitle": "تشير كثافة اللون إلى حجم الحوادث. مرّر الماوس على أي خلية للاطلاع على العدد الدقيق.",
+      "busiestHour": "أكثر ساعة ازدحامًا",
+      "busiestDay": "أكثر يوم ازدحامًا",
+      "peakSingleCell": "أعلى خلية منفردة",
+      "cellTooltip": "{{day}} {{hour}}:00 — {{count}} حادث",
+      "legendLow": "منخفض",
+      "legendHigh": "مرتفع"
+    },
+    "severity": {
+      "title": "توزيع الخطورة",
+      "subtitle": "حصة الحوادث لكل مستوى خطورة مصنَّف بالذكاء الاصطناعي",
+      "topTier": "المستوى الأعلى",
+      "total": "الإجمالي"
+    },
+    "roads": {
+      "title": "أكثر الطرق خطورة",
+      "subtitle": "مرتبة حسب عدد الحوادث",
+      "spatialNote": "يتم مطابقة البلاغات مكانيًا مع أقرب قطعة طريق ضمن نطاق 75 مترًا.",
+      "noRoadsFound": "لا توجد حوادث مرتبطة بقطعة طريق معروفة في هذه الفترة.",
+      "colRank": "الترتيب",
+      "colRoad": "الطريق",
+      "colIncidents": "الحوادث",
+      "colSeverity": "الخطورة",
+      "colRoadClass": "تصنيف الطريق",
+      "colVisual": "مرئي",
+      "unknownClass": "غير معروف"
+    },
+    "correlations": {
+      "roadTypeTitle": "الارتباط بنوع الطريق",
+      "roadTypeSubtitle": "توزيع الحوادث حسب فئة الطريق",
+      "weatherTitle": "الارتباط بالطقس",
+      "weatherSubtitle": "توزيع الحوادث حسب الأحوال الجوية",
+      "weatherNotWired": "غير مفعّل بعد",
+      "weatherNotWiredDesc": "البلاغات المباشرة في app.accident_reports لا تسجّل لقطة الطقس عند الإرسال. صِل هذه البيانات لتعبئة هذا المخطط.",
+      "timeOfDayTitle": "الحوادث حسب وقت اليوم",
+      "timeOfDaySubtitle": "4 فترات ثابتة — فترة الذروة مميزة باللون البنفسجي.",
+      "pctOfTotal": "{{pct}}% من الإجمالي"
+    },
+    "predictions": {
+      "title": "الاتجاه والتوقع لـ 7 أيام",
+      "subtitle": "الأعمدة المصمتة · البلاغات الفعلية يوميًا. الأعمدة المحيطية · توقع بسيط بتأخر 7 أيام (نفس يوم الأسبوع من الأسبوع الماضي).",
+      "noRecentIncidents": "لم يُبلَّغ عن أي حوادث مؤخرًا.",
+      "actualAvg": "المتوسط الفعلي",
+      "predictedAvg": "المتوسط المتوقع",
+      "perDay": "/ يوم",
+      "forecastChange": "التغيير المتوقع",
+      "tooltipReports": "{{count}} بلاغ",
+      "actual": "فعلي",
+      "predicted": "متوقع",
+      "avgLabel": "متوسط {{avg}}",
+      "legendActual": "فعلي (آخر 7 أيام)",
+      "legendPredicted": "متوقع (الـ 7 أيام القادمة)",
+      "aboutForecastTitle": "حول التوقع",
+      "aboutForecastBody": "سلسلة التوقعات هي خط أساسي بسيط بتأخر 7 أيام — كل يوم مستقبلي يعيد استخدام العدد المُسجَّل في نفس يوم الأسبوع ضمن الفترة الفعلية. استبدلها بنموذج توقع حقيقي (مثل نموذج الحدوث) بمجرد تجهيز خط أنابيب التدريب."
+    }
+  },
+  "adminInboxPage": {
+    "title": "صندوق بريد الدعم",
+    "messageCount_one": "رسالة",
+    "messageCount_other": "رسائل",
+    "newCount_one": "{{count}} جديد",
+    "newCount_other": "{{count}} جديدة",
+    "refreshing": "جارٍ التحديث…",
+    "refresh": "تحديث",
+    "searchPlaceholder": "البحث بالاسم أو البريد الإلكتروني أو الموضوع أو المحتوى…",
+    "tabs": {
+      "all": "الكل",
+      "contact": "تواصل",
+      "infoReplies": "ردود المعلومات"
+    },
+    "statusLabel": "الحالة",
+    "statusFilter": {
+      "all": "الكل",
+      "new": "جديد",
+      "read": "مقروء",
+      "replied": "تم الرد",
+      "archived": "مؤرشَف"
+    },
+    "loadError": "فشل التحميل: {{message}}",
+    "unknownError": "خطأ غير معروف",
+    "noMessagesMatch": "لا توجد رسائل تطابق الفلاتر المحددة.",
+    "clearFiltersHint": "جرّب مسح البحث أو فلتر الحالة.",
+    "unknownSender": "مجهول",
+    "allMessages": "كل الرسائل",
+    "noMessageSelected": "لم يتم تحديد أي رسالة",
+    "noMessageSelectedHint": "اختر محادثة من القائمة لقراءة المحادثة كاملة والرد عليها.",
+    "kindChip": {
+      "infoReply": "رد معلومات",
+      "contact": "تواصل"
+    },
+    "statusChip": {
+      "new": "جديد",
+      "read": "مقروء",
+      "replied": "تم الرد",
+      "archived": "مؤرشَف"
+    },
+    "unknownReporter": "مُبلِّغ مجهول",
+    "reportLabel": "البلاغ",
+    "repliedAt": "تم الرد {{time}}",
+    "conversation": "المحادثة",
+    "adminQuestion": "المشرف · سؤال",
+    "reporterAnswer": "المُبلِّغ · إجابة",
+    "actions": "الإجراءات",
+    "openIncident": "فتح الحادث",
+    "emailReporter": "مراسلة المُبلِّغ",
+    "markedAsRead": "تم وضع علامة مقروء",
+    "markAsRead": "وضع علامة مقروء",
+    "archive": "أرشفة",
+    "infoReplyHint": "قدّم المُبلِّغ المعلومات المطلوبة. راجع الإجابة أعلاه واتّخذ الإجراء المناسب بشأن الحادث المرتبط.",
+    "unknownSenderFull": "مُرسِل مجهول",
+    "message": "الرسالة",
+    "replySent": "تم إرسال الرد",
+    "writeReply": "اكتب ردًا",
+    "inAppNotification": "إشعار داخل التطبيق",
+    "anonymousEmailOnly": "مجهول — بريد إلكتروني فقط",
+    "alreadyRepliedNotice": "تم إرسال رد بالفعل. ستُنشئ رسالة جديدة إشعار متابعة.",
+    "replyPlaceholder": "اكتب ردًا مدروسًا لـ {{name}}…",
+    "theSender": "المُرسِل",
+    "emailInstead": "الإرسال بالبريد الإلكتروني",
+    "sending": "جارٍ الإرسال…",
+    "sendReply": "إرسال الرد",
+    "manageThread": "إدارة المحادثة",
+    "markAsReplied": "وضع علامة تم الرد"
+  },
+  "adminIncidentReviewPage": {
+    "loading": {
+      "title": "جارٍ تحميل الحادث...",
+      "subtitle": "جارٍ جلب آخر تفاصيل الحادث وسجل الإشراف."
+    },
+    "errorState": {
+      "title": "الحادث غير متاح",
+      "subtitle": "تعذّر تحميل بلاغ الحادث هذا."
+    },
+    "backToQueue": "العودة إلى القائمة",
+    "actionFailed": {
+      "title": "فشل الإجراء",
+      "subtitle": "يرجى المحاولة مرة أخرى."
+    },
+    "report": {
+      "noDescription": "لم يتم تقديم وصف إضافي لهذا البلاغ.",
+      "status": "الحالة",
+      "reported": "تاريخ البلاغ",
+      "severitySource": "مصدر تحديد الخطورة",
+      "severitySourceAi": "تقييم الذكاء الاصطناعي",
+      "severitySourceHint": "إشارة البلاغ",
+      "openFlags": "التبليغات المفتوحة"
+    },
+    "merge": {
+      "label": "دمج",
+      "mergedInto": "تم الدمج في {{reportId}} بتاريخ {{date}}",
+      "reason": "السبب: {{reason}}"
+    },
+    "mergeGroup": {
+      "title": "البلاغات المدمجة ({{count}})",
+      "subtitle": "بلاغات مكررة لنفس الحادث (ضمن 300 م / 6 ساعات)، مجمّعة في حادث واحد.",
+      "roleOriginal": "الأصلي",
+      "roleMerged": "مدمج",
+      "untitledReport": "بلاغ بلا عنوان",
+      "current": "الحالي"
+    },
+    "evidence": {
+      "title": "الأدلة ({{count}})",
+      "clickHint": "انقر على أي صورة مصغّرة لعرضها بالحجم الكامل",
+      "notAvailable": "غير متاح",
+      "altText": "دليل {{index}}"
+    },
+    "reporter": {
+      "title": "ملف المُبلِّغ",
+      "name": "المُبلِّغ",
+      "trust": "موثوقية المُبلِّغ",
+      "notProvided": "غير مُقدَّم",
+      "totalReports": "إجمالي البلاغات",
+      "joined": "تاريخ الانضمام"
+    },
+    "aiAssessment": {
+      "title": "تقييم الذكاء الاصطناعي",
+      "status": "الحالة",
+      "severity": "الخطورة",
+      "severityAi": "ذكاء اصطناعي {{severity}}",
+      "severityHint": "إشارة البلاغ ({{severity}})",
+      "confidence": "نسبة الثقة",
+      "latestUpdate": "آخر تحديث",
+      "modelVersion": "إصدار النموذج",
+      "notActiveNote": "التحقق بالذكاء الاصطناعي غير مفعّل بالكامل بعد لبلاغات الحوادث، لذا تُستخدم إشارة البلاغ لتحديد الخطورة إلى أن يتوفر تقييم مكتمل.",
+      "pendingAi": "بانتظار الذكاء الاصطناعي",
+      "aiFailed": "فشل الذكاء الاصطناعي",
+      "statusCompleted": "مكتمل",
+      "statusPending": "قيد الانتظار",
+      "statusFailed": "فاشل",
+      "statusNotAvailable": "غير متاح"
+    },
+    "communityFlags": {
+      "title": "تبليغات المجتمع",
+      "allResolved": "تمت معالجة جميع تبليغات المجتمع."
+    },
+    "timeline": {
+      "title": "الجدول الزمني"
+    },
+    "location": {
+      "title": "موقع الحادث",
+      "openFullMap": "فتح الخريطة الكاملة",
+      "noCoordinates": "لم يتم تقديم إحداثيات لهذا الحادث"
+    },
+    "spamAnalysis": {
+      "title": "تحليل البريد المزعج",
+      "predictedLabel": "التصنيف المتوقع",
+      "mlStatus": "حالة التعلم الآلي",
+      "spamScore": "درجة البريد المزعج",
+      "mlConfidence": "ثقة التعلم الآلي",
+      "modelVersion": "إصدار النموذج",
+      "classifiedAt": "تاريخ التصنيف",
+      "reviewVerdict": "حكم المراجعة",
+      "pendingVerdict": "قيد المراجعة",
+      "reviewedBy": "راجعه",
+      "suspiciousNote": "تم تصنيف هذا البلاغ على أنه مشبوه وهو في انتظار المراجعة اليدوية.",
+      "reviewNotes": "ملاحظات المراجعة",
+      "reviewedAt": "تمت المراجعة بتاريخ {{date}}"
+    },
+    "mlStatus": {
+      "notStarted": "لم يبدأ بعد"
+    },
+    "predictedLabel": {
+      "unclassified": "غير مصنَّف",
+      "spam": "بريد مزعج",
+      "real": "حقيقي"
+    },
+    "nearbyReports": {
+      "title": "البلاغات القريبة",
+      "none": "لم يتم العثور على بلاغات قريبة",
+      "clusterDetected": "تم اكتشاف تجمع · {{count}} حوادث في نطاق 5 كم"
+    },
+    "decisionEngine": {
+      "title": "محرك اتخاذ القرار",
+      "subtitle": "اختر إجراءً — كل اختيار يُسجَّل في سجل التدقيق.",
+      "alreadyStatus": "{{status}} بالفعل",
+      "rejectReasonDisplay": "السبب: {{reason}}",
+      "archivedNote": "مخفي من التغذيات العامة. أعِد أرشفته لإعادته إلى قائمة المراجعة.",
+      "unarchiving": "جارٍ إلغاء الأرشفة…",
+      "unarchive": "إلغاء الأرشفة",
+      "aiSuggestion": "اقتراح الذكاء الاصطناعي",
+      "useIt": "استخدمه",
+      "changeTileLabel": "تغيير"
+    },
+    "decisionTiles": {
+      "approve": {
+        "label": "الموافقة",
+        "hint": "يتحقق من البلاغ وينشره في التغذية العامة."
+      },
+      "change": {
+        "label": "تغيير مستوى الخطورة",
+        "hint": "تجاوز خطورة الذكاء الاصطناعي. يبقى البلاغ في حالته الحالية."
+      },
+      "info": {
+        "label": "طلب مزيد من المعلومات",
+        "hint": "اطلب توضيحاً من المُبلِّغ. يبقى البلاغ في قائمة الانتظار."
+      },
+      "flag": {
+        "label": "وضع علامة للمراجعة",
+        "hint": "تصعيد إلى مشرف آخر. يسجّل إدخال تبليغ على البلاغ."
+      },
+      "archive": {
+        "label": "الأرشفة",
+        "hint": "إزالة هادئة دون حكم (مثل البلاغات القديمة)."
+      },
+      "reject": {
+        "label": "الرفض",
+        "hint": "وضع علامة كبريد مزعج مؤكَّد / بلاغ كاذب. يتطلب سبباً."
+      }
+    },
+    "rejectReasons": {
+      "spam": "بريد مزعج",
+      "duplicate": "مكرر",
+      "offTopic": "خارج الموضوع",
+      "falseReport": "بلاغ كاذب",
+      "insufficientEvidence": "أدلة غير كافية",
+      "wrongLocation": "موقع خاطئ",
+      "other": "أخرى"
+    },
+    "infoRequest": {
+      "awaitingResponse": "في انتظار رد المُبلِّغ",
+      "asked": "طُلب بتاريخ {{date}}",
+      "reporterResponded": "استجاب المُبلِّغ",
+      "answered": "أُجيب بتاريخ {{date}}"
+    },
+    "form": {
+      "newSeverity": "مستوى الخطورة الجديد",
+      "rejectionReason": "سبب الرفض",
+      "noteLabel": {
+        "messageToReporter": "رسالة إلى المُبلِّغ",
+        "internalNote": "ملاحظة داخلية",
+        "reviewerNote": "ملاحظة المراجع",
+        "required": "(مطلوب)",
+        "optional": "(اختياري)"
+      },
+      "notePlaceholder": {
+        "info": "ما الذي يحتاج المُبلِّغ إلى توضيحه؟",
+        "reject": "السياق الداخلي لهذا الرفض.",
+        "archive": "ملاحظة اختيارية لسجل التدقيق.",
+        "flag": "لماذا تُصعِّد هذا البلاغ؟",
+        "change": "لماذا يتم تجاوز مستوى الخطورة؟",
+        "default": "ملاحظة المراجع (اختيارية)"
+      },
+      "submitting": "جارٍ الإرسال…",
+      "confirmAction": "تأكيد: {{label}}"
+    },
+    "internalNotes": {
+      "title": "الملاحظات الداخلية",
+      "noNotes": "لا توجد ملاحظات بعد",
+      "placeholder": "أضف ملاحظة داخلية...",
+      "saving": "جارٍ الحفظ...",
+      "add": "إضافة"
+    },
+    "fullscreenMap": {
+      "ariaLabel": "خريطة الحادث",
+      "closeAriaLabel": "إغلاق الخريطة",
+      "legendCurrent": "الحالي",
+      "legendOthers": "أخرى",
+      "loadingOthers": "جارٍ التحميل…",
+      "othersCount": "{{count}} حوادث"
+    },
+    "lightbox": {
+      "ariaLabel": "معاينة الأدلة",
+      "zoomOut": "تصغير",
+      "resetZoom": "إعادة تعيين التكبير",
+      "zoomIn": "تكبير",
+      "closeAriaLabel": "إغلاق معاينة الأدلة",
+      "prevEvidence": "الدليل السابق",
+      "nextEvidence": "الدليل التالي"
+    },
+    "aiRec": {
+      "rejectAsSpam": "رفض كبريد مزعج",
+      "spamExplanation": "صنّف مكتشف البريد المزعج هذا البلاغ كمشبوه (النتيجة {{score}}%).",
+      "approve": "الموافقة",
+      "approveExplanation": "ثقة عالية من الذكاء الاصطناعي ({{confidence}}%) وإشارات بريد مزعج نظيفة — آمن للنشر.",
+      "requestMoreInfo": "طلب مزيد من المعلومات",
+      "infoExplanation": "ثقة الذكاء الاصطناعي متوسطة ({{confidence}}%) — اطلب توضيحاً من المُبلِّغ قبل اتخاذ القرار.",
+      "manualReviewNeeded": "مراجعة يدوية مطلوبة",
+      "manualExplanation": "إشارات الذكاء الاصطناعي غير واضحة أو غير متاحة — راجع الأدلة يدوياً."
+    }
+  },
+  "adminIncidentsPage": {
+    "title": "إدارة الحوادث",
+    "tabs": {
+      "all": "الكل",
+      "pending": "قيد المراجعة",
+      "suspicious": "مشتبه به كرسائل مزعجة",
+      "pending-review": "مراجعة يدوية",
+      "ai-flagged": "مُعلَّم بالذكاء الاصطناعي",
+      "community": "المجتمع",
+      "merged": "مدمج",
+      "archived": "مؤرشف"
+    },
+    "meta": {
+      "incidents": "حوادث",
+      "inFilter": "في {{filter}}",
+      "suspicious": "مشتبه بها",
+      "manualReview": "مراجعة يدوية"
+    },
+    "searchPlaceholder": "بحث بالمعرّف أو العنوان أو الموقع أو المُبلِّغ…",
+    "exportCsv": "تصدير CSV",
+    "sortMenu": {
+      "label": "ترتيب:",
+      "sortBy": "ترتيب حسب",
+      "newestFirst": "الأحدث أولاً",
+      "oldestFirst": "الأقدم أولاً",
+      "severityHighLow": "الخطورة · مرتفع ← منخفض",
+      "severityLowHigh": "الخطورة · منخفض ← مرتفع",
+      "idAZ": "المعرّف · أ ← ي",
+      "idZA": "المعرّف · ي ← أ",
+      "userAZ": "المستخدم · أ ← ي",
+      "userZA": "المستخدم · ي ← أ"
+    },
+    "columns": {
+      "id": "المعرّف",
+      "type": "النوع",
+      "location": "الموقع",
+      "severity": "الخطورة",
+      "spamAnalysis": "تحليل البريد المزعج",
+      "aiConfidence": "ثقة الذكاء الاصطناعي",
+      "reporter": "المُبلِّغ",
+      "reported": "تاريخ البلاغ",
+      "status": "الحالة",
+      "action": "الإجراء"
+    },
+    "loadingIncidents": "جارٍ تحميل الحوادث…",
+    "emptyState": {
+      "title": "لم يُعثر على حوادث",
+      "aiNotActive": "التحقق بالذكاء الاصطناعي غير مفعَّل بعد لبلاغات الحوادث.",
+      "suspicious": "لا توجد بلاغات مصنَّفة حالياً كرسائل مزعجة مشتبه بها.",
+      "pendingReview": "لا توجد بلاغات مصنَّفة كرسائل مزعجة تنتظر المراجعة اليدوية.",
+      "community": "لا توجد بلاغات بها إشارات مجتمعية مفتوحة حالياً.",
+      "merged": "لم يُعثر على حوادث مدمجة.",
+      "archived": "لم يُعثر على حوادث مؤرشفة.",
+      "pending": "لا توجد حوادث معلَّقة تنتظر المراجعة.",
+      "default": "لا توجد حوادث تطابق الفلاتر الحالية."
+    },
+    "error": {
+      "unableToLoad": "تعذَّر تحميل الحوادث.",
+      "tryAgain": "يرجى المحاولة مرة أخرى."
+    },
+    "footer": {
+      "showing": "عرض {{shown}} من أصل {{total}} حادثة",
+      "suspicious": "مشتبه بها",
+      "awaitingReview": "تنتظر المراجعة اليدوية"
+    },
+    "locating": "جارٍ تحديد الموقع…",
+    "mergedTitle": "بلاغ موحَّد — {{count}} بلاغات مدمجة معاً",
+    "mergedBadge": "{{count}} بلاغات مدمجة",
+    "pendingReviewLabel": "قيد المراجعة",
+    "mlStatus": {
+      "notStarted": "لم يبدأ بعد"
+    },
+    "predictedLabel": {
+      "unclassified": "غير مصنَّف",
+      "spam": "رسالة مزعجة",
+      "real": "حقيقي"
+    },
+    "spam": {
+      "spamScore": "نقاط الرسائل المزعجة",
+      "mlConfidence": "ثقة التعلم الآلي",
+      "model": "النموذج"
+    },
+    "aiConfidence": {
+      "pending": "قيد المعالجة بالذكاء الاصطناعي",
+      "failed": "فشل الذكاء الاصطناعي"
+    },
+    "reporter": {
+      "notProvided": "غير متوفر"
+    },
+    "flags_one": "إشارة واحدة",
+    "flags_other": "{{count}} إشارات",
+    "reviewButton": "مراجعة"
+  },
+  "adminOverviewPage": {
+    "timeRange": {
+      "lastHour": "آخر ساعة",
+      "last24h": "آخر 24 ساعة",
+      "last7days": "آخر 7 أيام",
+      "last30days": "آخر 30 يومًا"
+    },
+    "error": {
+      "title": "النظرة العامة غير متاحة",
+      "description": "فشل تحميل نظرة المشرف العامة."
+    },
+    "pageTitle": "نظرة عامة على النظام",
+    "pageSubtitle": "الإشراف الوطني على المخاطر - في الوقت الفعلي",
+    "refreshing": "جارٍ التحديث…",
+    "rangeLabel": "النطاق",
+    "openSpamQueue": "فتح قائمة الرسائل المشبوهة",
+    "loading": {
+      "title": "جارٍ تحميل النظرة العامة…",
+      "description": "جارٍ جلب بيانات الحوادث الفعلية والذكاء الاصطناعي وتصنيف الرسائل المشبوهة من الخادم."
+    },
+    "kpi": {
+      "incidents": "حوادث {{range}}",
+      "pendingReview": "قيد المراجعة",
+      "aiConfidence": "ثقة الذكاء الاصطناعي",
+      "highRiskZones": "مناطق الخطر العالي",
+      "activeAlerts": "التنبيهات النشطة",
+      "reportsPerMin": "بلاغات/دقيقة"
+    },
+    "spam": {
+      "sectionLabel": "فرز الرسائل المشبوهة",
+      "suspectedSpam": "البلاغات المشبوهة",
+      "liveQueueCount": "عدد العناصر في قائمة الإشراف المباشرة",
+      "pendingManualReview": "قيد المراجعة اليدوية",
+      "pendingManualReviewHint": "مصنّف كرسائل مشبوهة، لم تُراجع بعد",
+      "spamRate": "معدل الرسائل المشبوهة",
+      "spamRateHint": "{{suspicious}} من أصل {{all}} بلاغ",
+      "noReports": "لا توجد بلاغات بعد"
+    },
+    "trend": {
+      "noChange": "لا تغيير",
+      "up": "ارتفاع {{value}}",
+      "down": "انخفاض {{value}}"
+    },
+    "predictedLabel": {
+      "unclassified": "غير مصنَّف",
+      "spam": "مشبوه",
+      "real": "حقيقي"
+    },
+    "mlStatus": {
+      "notStarted": "لم يبدأ"
+    },
+    "confidence": {
+      "pending": "قيد تحليل الذكاء الاصطناعي",
+      "failed": "فشل الذكاء الاصطناعي"
+    },
+    "reviewQueue": {
+      "title": "قائمة المراجعة",
+      "subtitle": "الحوادث المعلّقة والمُبلَّغ عنها في كل الأوقات · {{count}} مفتوح",
+      "openButton": "مراجعة قائمة الرسائل المشبوهة",
+      "empty": "لا توجد حوادث معلّقة أو مُبلَّغ عنها في قائمة المراجعة."
+    },
+    "table": {
+      "id": "المعرّف",
+      "location": "الموقع",
+      "severity": "الخطورة",
+      "spamAnalysis": "تحليل الرسائل المشبوهة",
+      "aiConfidence": "ثقة الذكاء الاصطناعي",
+      "review": "المراجعة",
+      "sinceReported": "منذ الإبلاغ",
+      "action": "الإجراء",
+      "pendingReview": "قيد المراجعة",
+      "scoreRow": "النتيجة {{score}} · ML {{ml}} · {{version}}",
+      "awaitingReview": "بانتظار المراجعة",
+      "reviewButton": "مراجعة"
+    },
+    "charts": {
+      "weeklyVolume": "حجم الحوادث الأسبوعية",
+      "severityDistribution": "توزيع الخطورة",
+      "topRiskZones": "أبرز مناطق الخطر",
+      "zoneIncidents": "{{count}} حوادث",
+      "noZoneActivity": "لم يُعثر على أي نشاط في المناطق لهذه الفترة الزمنية."
+    },
+    "severity": {
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض"
+    }
+  },
+  "adminSystemSettingsPage": {
+    "tabs": {
+      "severity": "قواعد الخطورة",
+      "notifications": "منطق الإشعارات",
+      "geofencing": "السياج الجغرافي",
+      "general": "عام"
+    },
+    "severity": {
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "مرتفع"
+    },
+    "archive": {
+      "days": "{{count}} يومًا",
+      "oneYear": "سنة واحدة",
+      "never": "أبدًا"
+    },
+    "retention": {
+      "oneYear": "سنة واحدة",
+      "twoYears": "سنتان",
+      "fiveYears": "5 سنوات",
+      "indefinite": "غير محدود"
+    },
+    "errors": {
+      "loadFailed": "فشل تحميل الإعدادات",
+      "saveFailed": "فشل حفظ الإعدادات",
+      "resetFailed": "فشل إعادة تعيين الإعدادات"
+    },
+    "messages": {
+      "saved": "تم حفظ الإعدادات.",
+      "reset": "تمت إعادة تعيين الإعدادات إلى القيم الافتراضية."
+    },
+    "confirmReset": "هل تريد إعادة تعيين جميع إعدادات النظام إلى قيمها الافتراضية؟ ستُفقد التجاوزات المحفوظة.",
+    "newRuleName": "قاعدة جديدة",
+    "newZoneName": "منطقة جديدة",
+    "neverEdited": "لم يُعدَّل قط",
+    "lastEdited": "آخر تعديل {{date}}",
+    "title": "إعدادات النظام",
+    "subtitle": "إعداد قواعد الخطورة والإشعارات والسياج الجغرافي وسلوك النظام",
+    "resetting": "جارٍ إعادة التعيين…",
+    "resetToDefaults": "إعادة التعيين إلى الافتراضي",
+    "unsavedChanges": "تغييرات غير محفوظة",
+    "loadingSettings": "جارٍ تحميل الإعدادات…",
+    "chips": {
+      "totalRules": "إجمالي القواعد",
+      "enabled": "مفعَّل",
+      "disabled": "معطَّل",
+      "channels": "القنوات",
+      "active": "نشط",
+      "totalZones": "إجمالي المناطق",
+      "totalCoverage": "التغطية الإجمالية",
+      "systemStatus": "حالة النظام",
+      "autoApprove": "الموافقة التلقائية",
+      "apiRateLimit": "حد معدل API"
+    },
+    "severityRules": {
+      "title": "قواعد الخطورة للتصنيف التلقائي",
+      "subtitle": "عندما تتجاوز ثقة الذكاء الاصطناعي في القاعدة المطابقة عتبتها، يُسنَد إلى البلاغ مستوى الخطورة المحدد تلقائيًا.",
+      "addRule": "إضافة قاعدة",
+      "colRuleName": "اسم القاعدة",
+      "colAutoSeverity": "الخطورة التلقائية",
+      "colMinConfidence": "الحد الأدنى للثقة",
+      "colEnabled": "مفعَّل",
+      "empty": "لا توجد قواعد محددة. انقر على إضافة قاعدة لإنشاء واحدة.",
+      "save": "حفظ قواعد الخطورة"
+    },
+    "colActions": "الإجراءات",
+    "ariaToggleRule": "تبديل {{name}}",
+    "ariaDeleteRule": "حذف القاعدة",
+    "unsavedChangesHint": "تغييرات غير محفوظة",
+    "discard": "إلغاء",
+    "saving": "جارٍ الحفظ…",
+    "notificationChannels": {
+      "title": "قنوات الإشعارات",
+      "subtitle": "إعداد كيفية وصول التنبيهات إلى المستخدمين النهائيين. يُطبَّق فلتر الحد الأدنى للخطورة على كل قناة.",
+      "minSeverity": "الحد الأدنى للخطورة",
+      "save": "حفظ إعدادات الإشعارات"
+    },
+    "ariaToggleChannel": "تبديل {{name}}",
+    "geofenceRules": {
+      "title": "قواعد السياج الجغرافي",
+      "subtitle": "حدِّد حدودًا دائرية (مركز + نصف قطر) لتسليم التنبيهات المستهدفة. النقر على وسوم الأحداث يبدّل حالتها.",
+      "addZone": "إضافة منطقة",
+      "colName": "الاسم",
+      "colLatitude": "خط العرض",
+      "colLongitude": "خط الطول",
+      "colRadius": "نصف القطر",
+      "colEventTypes": "أنواع الأحداث",
+      "colActive": "نشط",
+      "empty": "لا توجد مناطق سياج جغرافي محددة. انقر على إضافة منطقة لإنشاء واحدة.",
+      "save": "حفظ قواعد السياج الجغرافي"
+    },
+    "ariaToggleZone": "تبديل المنطقة {{name}}",
+    "ariaDeleteZone": "حذف المنطقة",
+    "status": {
+      "maintenance": "الصيانة",
+      "operational": "تشغيلي"
+    },
+    "autoApproveOn": "مفعَّل (≥ 95٪)",
+    "autoApproveOff": "معطَّل",
+    "systemControls": {
+      "title": "ضوابط النظام",
+      "subtitle": "بدّل السلوك على مستوى المنصة. يعطّل وضع الصيانة جميع نقاط النهاية العامة حتى يتم إيقافه.",
+      "autoApproveTitle": "الموافقة التلقائية على البلاغات ذات الثقة العالية",
+      "autoApproveDesc": "الموافقة تلقائيًا على البلاغات التي تتجاوز ثقة الذكاء الاصطناعي فيها 95٪",
+      "maintenanceModeTitle": "وضع الصيانة",
+      "maintenanceModeDesc": "تعطيل الميزات العامة لأغراض الصيانة"
+    },
+    "ariaToggleAutoApprove": "تبديل الموافقة التلقائية",
+    "ariaToggleMaintenanceMode": "تبديل وضع الصيانة",
+    "dataRetention": {
+      "title": "الاحتفاظ بالبيانات",
+      "subtitle": "عندما يتم أرشفة السجلات الأقدم من العتبة المحددة أو حذفها.",
+      "incidentArchiveAfter": "أرشفة الحوادث بعد",
+      "auditLogRetention": "مدة الاحتفاظ بسجل التدقيق"
+    },
+    "apiConfig": {
+      "title": "إعداد API",
+      "subtitle": "حدود جانب الخادم المطبَّقة على كل طلب موثَّق.",
+      "rateLimit": "حد معدل الطلبات",
+      "maxUploadSize": "الحجم الأقصى للرفع"
+    },
+    "generalSettings": {
+      "save": "حفظ الإعدادات العامة"
+    }
+  },
+  "adminUsersPage": {
+    "title": "إدارة المستخدمين",
+    "subtitle": "تقييم الثقة وتحليل المخاطر وإدارة المستخدمين",
+    "searchPlaceholder": "ابحث بالاسم أو البريد الإلكتروني أو المعرّف…",
+    "sortBy": "ترتيب حسب",
+    "tabs": {
+      "all": "جميع المستخدمين",
+      "active": "نشطون",
+      "trusted": "موثوقون",
+      "at_risk": "في خطر",
+      "banned": "محظورون",
+      "police": "الشرطة",
+      "supervisor": "المشرف الميداني",
+      "admin": "المشرفون"
+    },
+    "sort": {
+      "trust_asc": "الثقة تصاعديًا (الأكثر خطورة أولًا)",
+      "trust_desc": "الثقة تنازليًا (الأكثر موثوقية أولًا)",
+      "reports_desc": "الأكثر بلاغات أولًا",
+      "created_desc": "أحدث الحسابات",
+      "last_active_desc": "النشطون مؤخرًا"
+    },
+    "table": {
+      "id": "المعرّف",
+      "name": "الاسم",
+      "role": "الدور",
+      "trust": "الثقة",
+      "reports": "البلاغات",
+      "falseRatio": "نسبة البلاغات الكاذبة",
+      "risk": "الخطر",
+      "status": "الحالة",
+      "lastActive": "آخر نشاط",
+      "actions": "الإجراءات"
+    },
+    "loadingUsers": "جارٍ تحميل المستخدمين…",
+    "noUsers": "لا يوجد مستخدمون يطابقون المرشحات الحالية.",
+    "actions": {
+      "moderationGroup": "الإشراف",
+      "warnTitle": "تحذير المستخدم…",
+      "banTitle": "حظر المستخدم…",
+      "unbanUser": "رفع الحظر عن المستخدم",
+      "unbanTitleTemp": "رفع الحظر الآن (ينتهي الحظر في {{date}})",
+      "unbanTitlePerm": "رفع الحظر الدائم",
+      "confirmLiftPermBan": "هل تريد رفع الحظر الدائم عن {{name}}؟ سيتمكنون من تسجيل الدخول فورًا.",
+      "promoteTitle": "ترقية إلى مُبلِّغ موثوق",
+      "recalcTitle": "إعادة حساب درجة الثقة",
+      "details": "التفاصيل"
+    },
+    "pagination": {
+      "showing": "عرض {{from}}–{{to}} من أصل {{total}}",
+      "prev": "السابق",
+      "next": "التالي"
+    },
+    "loadingDetails": "جارٍ تحميل التفاصيل…",
+    "unnamedUser": "مستخدم بلا اسم",
+    "verified": "مؤكَّد",
+    "trustRecalc": {
+      "done": "تمت إعادة حساب درجة الثقة لـ {{label}}.",
+      "changed": "تمت إعادة حساب درجة الثقة لـ {{label}}: {{previousScore}} ← {{newScore}}.",
+      "unchanged": "تمت إعادة حساب درجة الثقة لـ {{label}} — لم تتغير وهي {{newScore}}."
+    },
+    "errors": {
+      "failedLoadUsers": "فشل تحميل المستخدمين",
+      "failedUpdateStatus": "فشل تحديث حالة المستخدم",
+      "failedUpdateRoles": "فشل تحديث أدوار المستخدم",
+      "failedPromote": "فشل ترقية المستخدم",
+      "failedRecalc": "فشل إعادة حساب درجة الثقة",
+      "failedLoadDetails": "فشل تحميل تفاصيل المستخدم",
+      "warnReasonRequired": "يجب إدخال سبب حتى يعلم المستخدم سبب التحذير.",
+      "pickFutureWarnDate": "اختر تاريخًا ووقتًا مستقبليًا لانتهاء صلاحية التحذير.",
+      "pickFutureBanDate": "اختر تاريخًا ووقتًا مستقبليًا للحظر المخصص."
+    },
+    "detail": {
+      "trustScore": "درجة الثقة",
+      "riskLabel": "الخطر: {{label}}",
+      "trustUpdated": "تم التحديث {{time}}",
+      "authProvider": "مزود المصادقة",
+      "emailVerified": "البريد الإلكتروني مؤكَّد",
+      "yes": "نعم",
+      "no": "لا",
+      "joined": "تاريخ الانضمام",
+      "lastActive": "آخر نشاط",
+      "timesBanned": "عدد مرات الحظر",
+      "timesWarned": "عدد مرات التحذير",
+      "lastBanned": "آخر حظر {{time}}",
+      "lastWarned": "آخر تحذير {{time}}",
+      "neverBanned": "لم يُحظر أبدًا",
+      "neverWarned": "لم يُحذَّر أبدًا",
+      "lastTime": "آخر مرة {{time}}",
+      "currentRoles": "الأدوار الحالية",
+      "noRoles": "لا يوجد",
+      "reportActivity": "نشاط البلاغات",
+      "falseRatio": "نسبة البلاغات الكاذبة",
+      "driverBehavior": "سلوك السائق",
+      "riskScore": "درجة الخطورة",
+      "result": "النتيجة",
+      "attempts": "عدد المحاولات",
+      "lastCompleted": "آخر إكمال",
+      "noQuiz": "لم يتم إكمال اختبار السائق بعد.",
+      "occurrenceRisk": "أحدث خطر وقوع",
+      "personalized": "مخصَّص",
+      "global": "عام",
+      "recorded": "تم تسجيله",
+      "noOccurrenceRisk": "لا توجد توقعات لخطر الوقوع بعد.",
+      "accountType": "نوع الحساب",
+      "unsavedChanges": "تغييرات غير محفوظة",
+      "noRolesAvailable": "لا توجد أدوار متاحة.",
+      "saving": "جارٍ الحفظ…",
+      "saveRoles": "حفظ الأدوار",
+      "resetRoles": "إعادة تعيين",
+      "roleRequired": "يجب تعيين دور واحد على الأقل.",
+      "recentReports": "البلاغات الأخيرة",
+      "untitled": "(بلا عنوان)",
+      "verdict": "الحكم: {{verdict}}"
+    },
+    "reportTiles": {
+      "total": "الإجمالي",
+      "verified": "مؤكَّدة",
+      "resolved": "تم الحل",
+      "suspicious": "مشبوهة",
+      "spam": "بريد مزعج",
+      "outOfContext": "خارج السياق",
+      "invalidLocation": "موقع غير صالح",
+      "rejected": "مرفوضة"
+    },
+    "warn": {
+      "title": "تحذير المستخدم",
+      "previewAck": "يظل مرئيًا حتى يتجاهله المستخدم",
+      "pickFuture": "اختر تاريخًا ووقتًا مستقبليًا",
+      "untilAcknowledged": "حتى يتم الإقرار به",
+      "autoClearsOn": "يُزال تلقائيًا في {{date}}",
+      "presets": {
+        "ack": "حتى يتم الإقرار به",
+        "7d": "7 أيام",
+        "30d": "30 يومًا",
+        "90d": "90 يومًا",
+        "custom": "تاريخ مخصص…"
+      },
+      "reasonLabel": "السبب (يظهر للمستخدم)",
+      "reasonPlaceholder": "مثال: نشر حادثًا غير مؤكَّد ببيانات ناقصة",
+      "autoClearAfter": "مسح تلقائي بعد",
+      "clearOn": "يُمسح في",
+      "howItShows": "كيف يظهر:",
+      "bannerNote": "تظهر لافتة صفراء في أعلى كل صفحة لهذا المستخدم. ولا يزال بإمكانه النشر والتعليق.",
+      "sending": "جارٍ الإرسال…",
+      "sendWarning": "إرسال التحذير"
+    },
+    "ban": {
+      "title": "حظر المستخدم",
+      "previewPermanent": "دائم (لن يتمكن المستخدم من تسجيل الدخول أبدًا)",
+      "pickFuture": "اختر تاريخًا ووقتًا مستقبليًا",
+      "presets": {
+        "1h": "ساعة واحدة",
+        "24h": "24 ساعة",
+        "7d": "7 أيام",
+        "30d": "30 يومًا",
+        "6mo": "6 أشهر",
+        "custom": "تاريخ مخصص…",
+        "permanent": "دائم"
+      },
+      "durationLabel": "مدة الحظر",
+      "banUntil": "حظر حتى",
+      "reasonLabel": "السبب (يظهر للمستخدم)",
+      "reasonPlaceholder": "مثال: نشر بلاغات كاذبة بشكل متكرر",
+      "permanentBan": "حظر دائم",
+      "effectiveUntil": "ساري حتى",
+      "canLoginNote": "يمكن للمستخدم تسجيل الدخول لرؤية إشعار الحظر لكنه لا يستطيع النشر أو التعليق حتى ذلك الحين.",
+      "banning": "جارٍ الحظر…",
+      "banPermanently": "حظر دائم",
+      "applyBan": "تطبيق الحظر"
+    }
+  },
+  "adminZonesPage": {
+    "title": "مناطق الخطر والإدارة الجغرافية",
+    "subtitle": "{{count}} منطقة ولاية مراقبة",
+    "refreshed": "تم التحديث في {{time}}",
+    "periodLabel": "الفترة",
+    "metricLabel": "المقياس",
+    "exportZones": "تصدير المناطق",
+    "rebuilding": "جارٍ إعادة البناء…",
+    "rebuildSummary": "إعادة بناء الملخص",
+    "errorTitle": "بيانات المنطقة غير متاحة",
+    "errorFallback": "يرجى المحاولة مرة أخرى.",
+    "tabs": {
+      "map": "خريطة المناطق",
+      "table": "إدارة المناطق",
+      "ranking": "ترتيب الولايات",
+      "thresholds": "ضبط العتبات"
+    },
+    "period": {
+      "24h": "24 ساعة",
+      "7d": "7 أيام",
+      "30d": "30 يومًا"
+    },
+    "metric": {
+      "composite": "مركب",
+      "model": "النموذج",
+      "reports": "البلاغات",
+      "alerts": "التنبيهات"
+    },
+    "metricTitle": {
+      "composite": "نتيجة الخطر المركبة",
+      "model": "النتيجة المرجّحة للنموذج",
+      "reports": "نتيجة البلاغات",
+      "alerts": "نتيجة التنبيهات"
+    },
+    "mapTab": {
+      "title": "خريطة المعلومات الاستخباراتية للمناطق",
+      "subtitle": "عرض مخاطر الولاية مُلوَّن حسب {{metric}}"
+    },
+    "statLabel": {
+      "high": "مرتفع",
+      "selectedMetric": "المقياس المحدد"
+    },
+    "riskLevel": {
+      "high": "مرتفع",
+      "medium": "متوسط",
+      "low": "منخفض"
+    },
+    "mapEmpty": "لا يوجد ملخص متعدد الأضلاع متاح لهذه الفترة بعد.",
+    "mapLoading": "جارٍ تحميل مضلعات الولايات وملخصات المخاطر…",
+    "tooltip": {
+      "risk": "الخطر"
+    },
+    "detail": {
+      "finalScore": "النتيجة النهائية",
+      "modelWeighted": "النموذج المرجّح",
+      "recentReports": "البلاغات الأخيرة",
+      "activeAlerts": "التنبيهات النشطة",
+      "confidenceAvg": "متوسط الثقة",
+      "trendVsPrevious": "الاتجاه مقارنةً بالسابق",
+      "topRoad": "المسار الأكثر خطورة",
+      "topRoadRisk": "خطر المسار الرئيسي",
+      "zoneBreakdown": "تفصيل المنطقة",
+      "compositeScore": "النتيجة المركبة",
+      "reportScore": "نتيجة البلاغات",
+      "alertScore": "نتيجة التنبيهات",
+      "verifiedPendingFlagged": "مؤكَّد / قيد المراجعة / مُبلَّغ عنه",
+      "selectedZoneDetails": "تفاصيل المنطقة المحددة",
+      "loadingDetails": "جارٍ تحميل تفاصيل المنطقة…",
+      "topRoads": "أبرز المسارات",
+      "scheduledAlerts": "التنبيهات المجدولة",
+      "noRoads": "لا توجد مسارات مشمولة بالنموذج في هذه الفترة",
+      "clickPrompt": "انقر على منطقة لفحص إشارات الطرق والتنبيهات الخاصة بها.",
+      "selectPrompt": "حدد مضلع ولاية لفحص إشارات المخاطر الخاصة به."
+    },
+    "tableTab": {
+      "title": "إدارة المناطق",
+      "subtitle": "ملخصات ولايات فعلية من ذاكرة التخزين المؤقت للمضلعات الحالية",
+      "colZone": "المنطقة",
+      "colRisk": "الخطر",
+      "colScore": "النتيجة",
+      "colModel": "النموذج",
+      "colReports": "البلاغات",
+      "colAlerts": "التنبيهات",
+      "colTopRoad": "المسار الرئيسي",
+      "colTrend": "الاتجاه",
+      "colAction": "الإجراء",
+      "viewBtn": "عرض"
+    },
+    "rankingTab": {
+      "title": "ترتيب مخاطر الولايات",
+      "subtitle": "مرتَّب حسب نتيجة الخطر المركبة مع ضغط البلاغات والتنبيهات الحالية",
+      "colRank": "الترتيب",
+      "colWilaya": "الولاية",
+      "colRiskLevel": "مستوى الخطر",
+      "colFinalScore": "النتيجة النهائية",
+      "colModelScore": "نتيجة النموذج",
+      "colReports": "البلاغات",
+      "colActiveAlerts": "التنبيهات النشطة",
+      "colTrend": "الاتجاه"
+    },
+    "thresholdsTab": {
+      "title": "ضبط العتبات",
+      "subtitle": "نطاقات نتائج الإصدار الأول الحالية والترجيح المركب المستخدم لتلوين خريطة المناطق",
+      "band": "نطاق {{level}}",
+      "weightModel": "نتيجة النموذج",
+      "weightReport": "نتيجة البلاغات",
+      "weightAlert": "نتيجة التنبيهات",
+      "weightIncident": "سجل الحوادث"
+    }
+  },
+  "serviceControlPage": {
+    "placeholder": "ServiceControlPage (عنصر نائب)"
+  }
+}
