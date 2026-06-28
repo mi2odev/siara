@@ -199,7 +199,6 @@ async function getSupervisorAnalytics(supervisorUser, query = {}, db = pool) {
     busiestZonesResult,
     officerWorkloadResult,
     trendResult,
-    impactResult,
   ] = await Promise.all([
     db.query(
       `
@@ -297,46 +296,15 @@ async function getSupervisorAnalytics(supervisorUser, query = {}, db = pool) {
       `,
       [days],
     ),
-    // Impact metrics. False/verified alert rates and repeat reports are derived
-    // from report statuses (rejected = false alert, verified/dispatched/resolved
-    // = actioned alert, merged = duplicate/repeat). High-risk-zone reduction
-    // compares the count of distinct high-severity zones in this window vs the
-    // immediately preceding window of the same length.
-    db.query(
-      `
-        WITH cur AS (
-          SELECT
-            COUNT(*)::int AS total,
-            COUNT(*) FILTER (WHERE status IN ('verified', 'dispatched', 'resolved'))::int AS verified,
-            COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected,
-            COUNT(*) FILTER (WHERE status = 'merged')::int AS merged,
-            COUNT(*) FILTER (WHERE status = 'resolved')::int AS resolved
-          FROM app.accident_reports
-          WHERE created_at >= NOW() - ($1 || ' days')::interval
-        ),
-        cur_zones AS (
-          SELECT COUNT(DISTINCT location_label)::int AS zones
-          FROM app.accident_reports
-          WHERE created_at >= NOW() - ($1 || ' days')::interval
-            AND COALESCE(severity_hint, 0) >= 3
-            AND location_label IS NOT NULL AND location_label <> ''
-        ),
-        prev_zones AS (
-          SELECT COUNT(DISTINCT location_label)::int AS zones
-          FROM app.accident_reports
-          WHERE created_at >= NOW() - (($1::int * 2) || ' days')::interval
-            AND created_at <  NOW() - ($1 || ' days')::interval
-            AND COALESCE(severity_hint, 0) >= 3
-            AND location_label IS NOT NULL AND location_label <> ''
-        )
-        SELECT cur.total, cur.verified, cur.rejected, cur.merged, cur.resolved,
-               cur_zones.zones AS current_high_risk_zones,
-               prev_zones.zones AS previous_high_risk_zones
-        FROM cur, cur_zones, prev_zones
-      `,
-      [days],
-    ),
   ]);
+
+  // Impact metrics run separately and never break the rest of the analytics
+  // payload: if the query fails (e.g. on an older schema) the page still renders
+  // with zeroed impact cards instead of a 500.
+  const impactResult = await fetchImpactMetrics(days, db).catch((error) => {
+    console.warn("[supervisor/analytics] impact metrics failed:", error?.message || error);
+    return { rows: [{}] };
+  });
 
   const responseStats = avgResponseResult.rows[0] || {};
   const totalCount = Number(responseStats.total_count || 0);
@@ -377,6 +345,49 @@ async function getSupervisorAnalytics(supervisorUser, query = {}, db = pool) {
     })),
     impact: buildImpactMetrics(impactResult.rows[0] || {}),
   };
+}
+
+// Impact metrics. False/verified alert rates and repeat reports are derived from
+// report statuses (rejected = false alert, verified/dispatched/resolved =
+// actioned alert, merged = duplicate/repeat). High-risk-zone reduction compares
+// the count of distinct high-severity zones in this window vs the immediately
+// preceding window of the same length. Uses `$1::int * interval '1 day'`
+// throughout (no text concatenation) so the single parameter has one clear type.
+async function fetchImpactMetrics(days, db = pool) {
+  return db.query(
+    `
+      WITH cur AS (
+        SELECT
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE status IN ('verified', 'dispatched', 'resolved'))::int AS verified,
+          COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected,
+          COUNT(*) FILTER (WHERE status = 'merged')::int AS merged,
+          COUNT(*) FILTER (WHERE status = 'resolved')::int AS resolved
+        FROM app.accident_reports
+        WHERE created_at >= NOW() - ($1::int * interval '1 day')
+      ),
+      cur_zones AS (
+        SELECT COUNT(DISTINCT location_label)::int AS zones
+        FROM app.accident_reports
+        WHERE created_at >= NOW() - ($1::int * interval '1 day')
+          AND COALESCE(severity_hint, 0) >= 3
+          AND location_label IS NOT NULL AND location_label <> ''
+      ),
+      prev_zones AS (
+        SELECT COUNT(DISTINCT location_label)::int AS zones
+        FROM app.accident_reports
+        WHERE created_at >= NOW() - ($1::int * 2 * interval '1 day')
+          AND created_at <  NOW() - ($1::int * interval '1 day')
+          AND COALESCE(severity_hint, 0) >= 3
+          AND location_label IS NOT NULL AND location_label <> ''
+      )
+      SELECT cur.total, cur.verified, cur.rejected, cur.merged, cur.resolved,
+             cur_zones.zones AS current_high_risk_zones,
+             prev_zones.zones AS previous_high_risk_zones
+      FROM cur, cur_zones, prev_zones
+    `,
+    [days],
+  );
 }
 
 // Derive the impact KPIs (false-alert rate, verified-alert rate, repeated
