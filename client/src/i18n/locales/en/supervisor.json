@@ -99,6 +99,130 @@
       "activeIncidents": "Active Incidents",
       "totalHandled": "Total Handled",
       "workload": "Workload"
+    },
+    "impact": {
+      "title": "Impact Measurement",
+      "hint": "Derived from report statuses over the selected period",
+      "verifiedRate": "Verified-Alert Rate",
+      "ofReports": "{{count}} actioned reports",
+      "falseRate": "False-Alert Rate",
+      "rejectedCount": "{{count}} rejected",
+      "repeated": "Repeated Reports",
+      "repeatedSub": "{{pct}}% of reports (duplicates)",
+      "resolved": "Resolved Incidents",
+      "lastDays": "Last {{count}} days",
+      "highRiskZones": "High-Risk Zones",
+      "zonesNow": "{{current}} now vs {{previous}} prior"
+    }
+  },
+  "supervisorPilotDashboardPage": {
+    "eyebrow": "Supervisor — Pilot",
+    "title": "Pilot Dashboard",
+    "subtitle": "Most dangerous segments ranked by verified reports, with severity, occurrence risk, time of day, weather, and police response time",
+    "daysFilter": "{{count}}d",
+    "errorLoad": "Failed to load pilot dashboard",
+    "loading": "Computing dangerous segments...",
+    "empty": "No segments with reports in this period",
+    "betaTitle": "Occurrence risk is a beta model",
+    "betaBody": "Occurrence values are relative risk per segment — not a final, calibrated probability. Use them to compare segments, not as absolute accident chances.",
+    "occBetaHint": "Beta model: relative occurrence risk, not a calibrated probability",
+    "weather": {
+      "unknown": "Current conditions",
+      "wind": "Wind {{kmh}} km/h",
+      "visibility": "Visibility {{km}} km",
+      "precip": "Precip {{mm}} mm",
+      "contextNote": "Current weather at the centroid of the ranked segments"
+    },
+    "sections": {
+      "topSegments": "Top Dangerous Segments — Last {{count}} Days"
+    },
+    "table": {
+      "segment": "Segment",
+      "verifiedReports": "Verified Reports",
+      "severity": "Severity",
+      "occurrenceRisk": "Occurrence Risk (beta)",
+      "timeOfDay": "Peak Time",
+      "responseTime": "Avg Response"
+    },
+    "severity": { "high": "High", "medium": "Medium", "low": "Low" },
+    "occLevel": { "high": "High", "medium": "Medium", "low": "Low" },
+    "bands": {
+      "night": "Night (00–06)",
+      "morning": "Morning (06–12)",
+      "afternoon": "Afternoon (12–18)",
+      "evening": "Evening (18–24)"
+    }
+  },
+  "supervisorInterventionsPage": {
+    "eyebrow": "Supervisor — Field",
+    "title": "Intervention Tracking",
+    "subtitle": "Log counter-measures applied to dangerous zones and record their status and outcome after action",
+    "logIntervention": "Log Intervention",
+    "errorLoad": "Failed to load interventions",
+    "errorUpdate": "Failed to update intervention",
+    "loading": "Loading interventions...",
+    "empty": "No interventions logged yet",
+    "updateStatus": "Update status",
+    "kpi": {
+      "total": "Total",
+      "planned": "Planned",
+      "inProgress": "In Progress",
+      "completed": "Completed"
+    },
+    "filters": {
+      "allStatuses": "All statuses",
+      "allTypes": "All types"
+    },
+    "sections": {
+      "log": "Intervention Log"
+    },
+    "types": {
+      "speed_control": "Speed control",
+      "signage": "Signage",
+      "roadwork": "Roadwork",
+      "lighting": "Lighting",
+      "police_patrol": "Police patrol",
+      "ambulance_response": "Ambulance response",
+      "other": "Other"
+    },
+    "statuses": {
+      "planned": "Planned",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "severity": { "low": "Low", "medium": "Medium", "high": "High" },
+    "form": {
+      "title": "New Intervention",
+      "type": "Type",
+      "status": "Status",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g., Install speed bumps on RN5 km 12",
+      "location": "Location",
+      "locationPlaceholder": "Road or zone name",
+      "severityBefore": "Severity before",
+      "severityNone": "Not set",
+      "description": "Description",
+      "descriptionPlaceholder": "Details of the measure to apply...",
+      "save": "Save intervention",
+      "saving": "Saving...",
+      "errorTitle": "Title is required (min 3 characters)",
+      "errorSubmit": "Failed to save intervention"
+    },
+    "table": {
+      "type": "Type",
+      "titleCol": "Title",
+      "location": "Location",
+      "status": "Status",
+      "outcome": "Outcome",
+      "created": "Created"
+    },
+    "updateModal": {
+      "title": "Update Intervention",
+      "outcome": "Outcome / status after action",
+      "outcomePlaceholder": "What changed after the intervention...",
+      "severityAfter": "Severity after",
+      "save": "Save update"
     }
   },
   "supervisorDashboardPage": {

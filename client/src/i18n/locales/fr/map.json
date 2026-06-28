@@ -330,7 +330,10 @@
     "switchRoute": "Changer d'itinéraire",
     "routeAlternativesAriaLabel": "Itinéraires alternatifs",
     "altRiskPercent": "{{percent}}% de risque",
-    "unknownRisk": "risque inconnu"
+    "unknownRisk": "risque inconnu",
+    "betaChip": "Bêta",
+    "betaRiskNote": "Risque d'occurrence relatif — pas une probabilité finale calibrée.",
+    "betaRiskTooltip": "Ce score provient d'un modèle d'occurrence en version bêta. Considérez-le comme un risque relatif pour comparer les itinéraires, et non comme la probabilité absolue d'un accident."
   },
   "siaraMap": {
     "errors": {
@@ -379,8 +382,8 @@
       "title": "Risque SIARA actuel",
       "occurrenceSubtitle": "Risque de survenue d’accident",
       "dangerSubtitle": "Danger relatif — modèle informé par la gravité",
-      "occurrenceDesc": "Probabilité calibrée qu’un accident se produise ici",
-      "occurrenceDescPersonalized": "Probabilité calibrée qu’un accident se produise ici, personnalisée selon votre profil conducteur",
+      "occurrenceDesc": "Risque d'occurrence relatif pour ce segment (bêta) — pas une probabilité finale calibrée",
+      "occurrenceDescPersonalized": "Risque d'occurrence relatif ici (bêta), personnalisé selon votre profil conducteur — pas une probabilité finale calibrée",
       "dangerDesc": "Score de danger relatif informé par la gravité. Ce n’est pas une probabilité calibrée de survenue d’accident.",
       "model": "Modèle",
       "locationRequired": "La localisation est nécessaire pour la prédiction de risque SIARA.",

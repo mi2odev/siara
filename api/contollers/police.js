@@ -39,8 +39,14 @@ const {
   getSupervisorDashboard,
   getSupervisorAnalytics,
   getSupervisorGlobalMap,
+  getSupervisorPilotDashboard,
   fetchOnDutyZoneOfficers,
 } = require("../services/supervisorService");
+const {
+  listInterventions,
+  createIntervention,
+  updateInterventionStatus,
+} = require("../services/interventionsService");
 
 async function requirePoliceSupervisor(req, res, next) {
   try {
@@ -310,6 +316,38 @@ router.get("/supervisor/analytics", verifyTokenAndPolice, requirePoliceSuperviso
 router.get("/supervisor/global-map", verifyTokenAndPolice, requirePoliceSupervisor, async (req, res, next) => {
   try {
     return res.status(200).json(await getSupervisorGlobalMap(req.user));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/supervisor/pilot-dashboard", verifyTokenAndPolice, requirePoliceSupervisor, async (req, res, next) => {
+  try {
+    return res.status(200).json(await getSupervisorPilotDashboard(req.user, req.query || {}));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/supervisor/interventions", verifyTokenAndPolice, requirePoliceSupervisor, async (req, res, next) => {
+  try {
+    return res.status(200).json(await listInterventions(req.user, req.query || {}));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/supervisor/interventions", verifyTokenAndPolice, requirePoliceSupervisor, async (req, res, next) => {
+  try {
+    return res.status(201).json(await createIntervention(req.user, req.body || {}));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.patch("/supervisor/interventions/:id/status", verifyTokenAndPolice, requirePoliceSupervisor, async (req, res, next) => {
+  try {
+    return res.status(200).json(await updateInterventionStatus(req.user, req.params.id, req.body || {}));
   } catch (error) {
     return next(error);
   }

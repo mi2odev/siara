@@ -19,6 +19,8 @@ import GpsFixedOutlinedIcon from '@mui/icons-material/GpsFixedOutlined'
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined'
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
+import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
 import TrackChangesOutlinedIcon from '@mui/icons-material/TrackChangesOutlined'
@@ -78,6 +80,7 @@ export default function PoliceShell({
   const SUPERVISOR_KEYS = useMemo(() => new Set([
     'supervisor-dashboard', 'incident-coordination', 'officer-monitoring',
     'supervisor-alerts', 'operational-analytics', 'global-map',
+    'pilot-dashboard', 'interventions',
   ]), [])
 
   const isInSupervisorMode = forceMode ? forceMode === 'supervisor' : SUPERVISOR_KEYS.has(activeKey)
@@ -133,6 +136,8 @@ export default function PoliceShell({
         { key: 'officer-monitoring', label: t('policeShell.menu.items.officerMonitoring'), icon: <GroupsOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/officers' },
         { key: 'supervisor-alerts', label: t('policeShell.menu.items.supervisorAlerts'), icon: <CampaignOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/alerts' },
         { key: 'operational-analytics', label: t('policeShell.menu.items.analytics'), icon: <InsightsOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/analytics' },
+        { key: 'pilot-dashboard', label: t('policeShell.menu.items.pilotDashboard'), icon: <WarningAmberOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/pilot' },
+        { key: 'interventions', label: t('policeShell.menu.items.interventions'), icon: <BuildOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/interventions' },
         { key: 'global-map', label: t('policeShell.menu.items.globalMap'), icon: <MapOutlinedIcon fontSize="inherit" />, path: '/police/supervisor/map' },
       ],
     },

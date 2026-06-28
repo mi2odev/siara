@@ -30,6 +30,8 @@
         "officerMonitoring": "Officer Monitoring",
         "supervisorAlerts": "Supervisor Alerts",
         "analytics": "Analytics",
+        "pilotDashboard": "Pilot Dashboard",
+        "interventions": "Interventions",
         "globalMap": "Global Map"
       }
     },

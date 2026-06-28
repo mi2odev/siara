@@ -877,3 +877,47 @@ export async function assignIncidentToOfficer(incidentId, payload = {}) {
     throw normalizeApiError(error, 'Failed to assign incident')
   }
 }
+
+// ─── Pilot dashboard & intervention tracking ────────────────────────────────
+
+export async function getSupervisorPilotDashboard(params = {}) {
+  try {
+    const response = await userRequest.get('/police/supervisor/pilot-dashboard', { params })
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to load pilot dashboard')
+  }
+}
+
+export async function listInterventions(params = {}) {
+  try {
+    const response = await userRequest.get('/police/supervisor/interventions', { params })
+    return {
+      items: Array.isArray(response.data?.items) ? response.data.items : [],
+      stats: response.data?.stats || null,
+    }
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to load interventions')
+  }
+}
+
+export async function createInterventionApi(payload = {}) {
+  try {
+    const response = await userRequest.post('/police/supervisor/interventions', payload)
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to create intervention')
+  }
+}
+
+export async function updateInterventionStatusApi(interventionId, payload = {}) {
+  try {
+    const response = await userRequest.patch(
+      `/police/supervisor/interventions/${interventionId}/status`,
+      payload,
+    )
+    return response.data
+  } catch (error) {
+    throw normalizeApiError(error, 'Failed to update intervention')
+  }
+}

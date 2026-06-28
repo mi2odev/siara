@@ -99,6 +99,130 @@
       "activeIncidents": "Incidents actifs",
       "totalHandled": "Total traité",
       "workload": "Charge de travail"
+    },
+    "impact": {
+      "title": "Mesure de l'impact",
+      "hint": "Calculé à partir des statuts des signalements sur la période sélectionnée",
+      "verifiedRate": "Taux d'alertes vérifiées",
+      "ofReports": "{{count}} signalements traités",
+      "falseRate": "Taux de fausses alertes",
+      "rejectedCount": "{{count}} rejetés",
+      "repeated": "Signalements répétés",
+      "repeatedSub": "{{pct}} % des signalements (doublons)",
+      "resolved": "Incidents résolus",
+      "lastDays": "{{count}} derniers jours",
+      "highRiskZones": "Zones à haut risque",
+      "zonesNow": "{{current}} actuellement vs {{previous}} avant"
+    }
+  },
+  "supervisorPilotDashboardPage": {
+    "eyebrow": "Superviseur — Pilote",
+    "title": "Tableau pilote",
+    "subtitle": "Segments les plus dangereux classés par signalements vérifiés, avec gravité, risque d'occurrence, heure, météo et temps de réponse de la police",
+    "daysFilter": "{{count}}j",
+    "errorLoad": "Échec du chargement du tableau pilote",
+    "loading": "Calcul des segments dangereux...",
+    "empty": "Aucun segment avec signalements sur cette période",
+    "betaTitle": "Le risque d'occurrence est un modèle bêta",
+    "betaBody": "Les valeurs d'occurrence représentent un risque relatif par segment — pas une probabilité finale calibrée. Utilisez-les pour comparer les segments, pas comme probabilités absolues d'accident.",
+    "occBetaHint": "Modèle bêta : risque d'occurrence relatif, non calibré",
+    "weather": {
+      "unknown": "Conditions actuelles",
+      "wind": "Vent {{kmh}} km/h",
+      "visibility": "Visibilité {{km}} km",
+      "precip": "Précip {{mm}} mm",
+      "contextNote": "Météo actuelle au centre des segments classés"
+    },
+    "sections": {
+      "topSegments": "Segments les plus dangereux — {{count}} derniers jours"
+    },
+    "table": {
+      "segment": "Segment",
+      "verifiedReports": "Signalements vérifiés",
+      "severity": "Gravité",
+      "occurrenceRisk": "Risque d'occurrence (bêta)",
+      "timeOfDay": "Heure de pointe",
+      "responseTime": "Réponse moy."
+    },
+    "severity": { "high": "Élevée", "medium": "Moyenne", "low": "Faible" },
+    "occLevel": { "high": "Élevé", "medium": "Moyen", "low": "Faible" },
+    "bands": {
+      "night": "Nuit (00–06)",
+      "morning": "Matin (06–12)",
+      "afternoon": "Après-midi (12–18)",
+      "evening": "Soir (18–24)"
+    }
+  },
+  "supervisorInterventionsPage": {
+    "eyebrow": "Superviseur — Terrain",
+    "title": "Suivi des interventions",
+    "subtitle": "Enregistrez les mesures appliquées aux zones dangereuses et leur statut et résultat après action",
+    "logIntervention": "Enregistrer une intervention",
+    "errorLoad": "Échec du chargement des interventions",
+    "errorUpdate": "Échec de la mise à jour de l'intervention",
+    "loading": "Chargement des interventions...",
+    "empty": "Aucune intervention enregistrée",
+    "updateStatus": "Mettre à jour le statut",
+    "kpi": {
+      "total": "Total",
+      "planned": "Planifiées",
+      "inProgress": "En cours",
+      "completed": "Terminées"
+    },
+    "filters": {
+      "allStatuses": "Tous les statuts",
+      "allTypes": "Tous les types"
+    },
+    "sections": {
+      "log": "Journal des interventions"
+    },
+    "types": {
+      "speed_control": "Contrôle de vitesse",
+      "signage": "Signalisation",
+      "roadwork": "Travaux",
+      "lighting": "Éclairage",
+      "police_patrol": "Patrouille de police",
+      "ambulance_response": "Intervention ambulance",
+      "other": "Autre"
+    },
+    "statuses": {
+      "planned": "Planifiée",
+      "in_progress": "En cours",
+      "completed": "Terminée",
+      "cancelled": "Annulée"
+    },
+    "severity": { "low": "Faible", "medium": "Moyenne", "high": "Élevée" },
+    "form": {
+      "title": "Nouvelle intervention",
+      "type": "Type",
+      "status": "Statut",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "ex. : Installer des ralentisseurs sur la RN5 km 12",
+      "location": "Lieu",
+      "locationPlaceholder": "Nom de la route ou de la zone",
+      "severityBefore": "Gravité avant",
+      "severityNone": "Non défini",
+      "description": "Description",
+      "descriptionPlaceholder": "Détails de la mesure à appliquer...",
+      "save": "Enregistrer l'intervention",
+      "saving": "Enregistrement...",
+      "errorTitle": "Le titre est requis (3 caractères min)",
+      "errorSubmit": "Échec de l'enregistrement de l'intervention"
+    },
+    "table": {
+      "type": "Type",
+      "titleCol": "Titre",
+      "location": "Lieu",
+      "status": "Statut",
+      "outcome": "Résultat",
+      "created": "Créée"
+    },
+    "updateModal": {
+      "title": "Mettre à jour l'intervention",
+      "outcome": "Résultat / statut après action",
+      "outcomePlaceholder": "Ce qui a changé après l'intervention...",
+      "severityAfter": "Gravité après",
+      "save": "Enregistrer"
     }
   },
   "supervisorDashboardPage": {
