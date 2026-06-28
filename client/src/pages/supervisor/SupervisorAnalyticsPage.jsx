@@ -110,6 +110,7 @@ export default function SupervisorAnalyticsPage() {
   }, [load])
 
   const metrics = data?.responseMetrics || {}
+  const impact = data?.impact || {}
   const byStatus = data?.incidentsByStatus || {}
   const bySeverity = data?.incidentsBySeverity || {}
   const zones = data?.busiestZones || []
@@ -192,6 +193,50 @@ export default function SupervisorAnalyticsPage() {
           </div>
         ) : (
           <>
+            {/* Impact measurement */}
+            <div className="sv-section" style={{ marginBottom: 20 }}>
+              <div className="sv-section-head">
+                <h2 className="sv-section-title">
+                  <span className="sv-section-title-icon"><GpsFixedOutlinedIcon fontSize="inherit" /></span>
+                  {t('supervisorAnalyticsPage.impact.title')}
+                </h2>
+                <span className="sv-section-hint">{t('supervisorAnalyticsPage.impact.hint')}</span>
+              </div>
+              <div className="sv-section-body">
+                <div className="sv-kpi-bar">
+                  <div className="sv-kpi-card kpi-good">
+                    <div className="sv-kpi-label">{t('supervisorAnalyticsPage.impact.verifiedRate')}</div>
+                    <div className="sv-kpi-value" style={{ fontSize: 24 }}>{impact.verifiedAlertRate ?? 0}%</div>
+                    <div className="sv-kpi-sub">{t('supervisorAnalyticsPage.impact.ofReports', { count: impact.verifiedAlerts ?? 0 })}</div>
+                  </div>
+                  <div className="sv-kpi-card kpi-warning">
+                    <div className="sv-kpi-label">{t('supervisorAnalyticsPage.impact.falseRate')}</div>
+                    <div className="sv-kpi-value" style={{ fontSize: 24 }}>{impact.falseAlertRate ?? 0}%</div>
+                    <div className="sv-kpi-sub">{t('supervisorAnalyticsPage.impact.rejectedCount', { count: impact.falseAlerts ?? 0 })}</div>
+                  </div>
+                  <div className="sv-kpi-card kpi-accent">
+                    <div className="sv-kpi-label">{t('supervisorAnalyticsPage.impact.repeated')}</div>
+                    <div className="sv-kpi-value" style={{ fontSize: 24 }}>{impact.repeatedReports ?? 0}</div>
+                    <div className="sv-kpi-sub">{t('supervisorAnalyticsPage.impact.repeatedSub', { pct: impact.repeatedReportRate ?? 0 })}</div>
+                  </div>
+                  <div className="sv-kpi-card kpi-primary">
+                    <div className="sv-kpi-label">{t('supervisorAnalyticsPage.impact.resolved')}</div>
+                    <div className="sv-kpi-value" style={{ fontSize: 24 }}>{impact.resolvedIncidents ?? 0}</div>
+                    <div className="sv-kpi-sub">{t('supervisorAnalyticsPage.impact.lastDays', { count: days })}</div>
+                  </div>
+                  <div className={`sv-kpi-card ${(impact.highRiskZones?.reductionPct ?? 0) >= 0 ? 'kpi-good' : 'kpi-warning'}`}>
+                    <div className="sv-kpi-label">{t('supervisorAnalyticsPage.impact.highRiskZones')}</div>
+                    <div className="sv-kpi-value" style={{ fontSize: 22 }}>
+                      {impact.highRiskZones?.reductionPct == null
+                        ? '—'
+                        : `${impact.highRiskZones.reductionPct > 0 ? '↓' : impact.highRiskZones.reductionPct < 0 ? '↑' : ''} ${Math.abs(impact.highRiskZones.reductionPct)}%`}
+                    </div>
+                    <div className="sv-kpi-sub">{t('supervisorAnalyticsPage.impact.zonesNow', { current: impact.highRiskZones?.current ?? 0, previous: impact.highRiskZones?.previous ?? 0 })}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Incident Trends + By Status */}
             <div className="sv-grid-2" style={{ marginBottom: 20 }}>
               <div className="sv-section">

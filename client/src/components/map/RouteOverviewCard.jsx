@@ -126,6 +126,7 @@ export default function RouteOverviewCard({
       durationMin: Number(selectedRoute.duration_min ?? selectedRoute.eta_min),
       dangerPercent: riskAvailable && Number.isFinite(dangerPercent) ? dangerPercent : null,
       riskAvailable,
+      isOccurrence: occ != null,
       riskMessage:
         selectedRoute.riskMessage ||
         selectedRoute.message ||
@@ -189,6 +190,16 @@ export default function RouteOverviewCard({
           <span>{data.tierLabel}</span>
         </div>
       </div>
+
+      {data.riskAvailable && data.isOccurrence ? (
+        <p
+          className="siara-route-overview__beta-note"
+          title={t('routeOverviewCard.betaRiskTooltip')}
+        >
+          <span className="siara-route-overview__beta-chip">{t('routeOverviewCard.betaChip')}</span>
+          {t('routeOverviewCard.betaRiskNote')}
+        </p>
+      ) : null}
 
       <div className="siara-route-overview__why">
         <div className="siara-route-overview__why-head">

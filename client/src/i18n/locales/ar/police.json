@@ -30,6 +30,8 @@
         "officerMonitoring": "مراقبة الضباط",
         "supervisorAlerts": "تنبيهات المشرف",
         "analytics": "التحليلات",
+        "pilotDashboard": "اللوحة التجريبية",
+        "interventions": "التدخلات",
         "globalMap": "الخريطة الشاملة"
       }
     },

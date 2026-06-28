@@ -558,3 +558,26 @@
     transform: translateY(0);
   }
 }
+
+/* Occurrence-model beta disclaimer under the headline risk stat */
+.siara-route-overview__beta-note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #64748B;
+}
+
+.siara-route-overview__beta-chip {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #FEF3C7;
+  color: #92400E;
+}

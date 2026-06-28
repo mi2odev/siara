@@ -330,7 +330,10 @@
     "switchRoute": "Switch route",
     "routeAlternativesAriaLabel": "Route alternatives",
     "altRiskPercent": "{{percent}}% risk",
-    "unknownRisk": "unknown risk"
+    "unknownRisk": "unknown risk",
+    "betaChip": "Beta",
+    "betaRiskNote": "Relative occurrence risk — not a final, calibrated probability.",
+    "betaRiskTooltip": "This score is a beta occurrence-model output. Treat it as relative risk for comparing routes, not as the absolute probability of an accident."
   },
   "siaraMap": {
     "errors": {
@@ -379,8 +382,8 @@
       "title": "Current SIARA risk",
       "occurrenceSubtitle": "Accident occurrence risk",
       "dangerSubtitle": "Relative danger — severity-informed model",
-      "occurrenceDesc": "Calibrated probability that an accident occurs here",
-      "occurrenceDescPersonalized": "Calibrated probability that an accident occurs here, personalized to your driver profile",
+      "occurrenceDesc": "Relative occurrence risk for this segment (beta) — not a final, calibrated probability",
+      "occurrenceDescPersonalized": "Relative occurrence risk here (beta), personalized to your driver profile — not a final, calibrated probability",
       "dangerDesc": "Severity-informed relative danger score. This is not a calibrated accident-occurrence probability.",
       "model": "Model",
       "locationRequired": "Location is required for SIARA risk prediction.",

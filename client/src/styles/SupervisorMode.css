@@ -1484,3 +1484,82 @@
     min-height: 0;
   }
 }
+
+/* ─── Pilot dashboard: beta callout, weather strip, section hint ───────────── */
+.sv-section-hint {
+  font-size: 11px;
+  color: var(--sv-text-muted);
+  font-weight: 500;
+}
+
+.sv-callout {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--sv-radius-sm);
+  border: 1px solid var(--sv-border);
+  background: var(--sv-surface);
+}
+
+.sv-callout-beta {
+  border-color: var(--sv-accent-border);
+  background: var(--sv-accent-soft);
+}
+
+.sv-callout-icon {
+  display: inline-flex;
+  font-size: 20px;
+  color: var(--sv-accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sv-callout strong {
+  display: block;
+  font-size: 13px;
+  color: var(--sv-text);
+  margin-bottom: 2px;
+}
+
+.sv-callout p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--sv-text-muted);
+  line-height: 1.45;
+}
+
+.sv-weather-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--sv-radius-sm);
+  border: 1px solid var(--sv-border);
+  background: var(--sv-surface);
+}
+
+.sv-weather-icon {
+  display: inline-flex;
+  font-size: 18px;
+  color: var(--sv-accent);
+}
+
+.sv-weather-main {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sv-text);
+}
+
+.sv-weather-detail {
+  font-size: 12px;
+  color: var(--sv-text-muted);
+}
+
+.sv-weather-note {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--sv-text-muted);
+  font-style: italic;
+}

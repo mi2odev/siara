@@ -2,6 +2,10 @@ const createError = require("http-errors");
 
 const pool = require("../db");
 const { hasAnyRole, POLICE_SUPERVISOR_ROLE_NAMES, hasRole } = require("../contollers/verifytoken");
+const { getCurrentWeatherUi } = require("./risk/weatherProvider");
+
+// Time-of-day bands used by the pilot dashboard (index = floor(hour / 6)).
+const TIME_OF_DAY_BANDS = ["night", "morning", "afternoon", "evening"];
 
 function normalizeRoleName(value) {
   return String(value || "")
@@ -195,6 +199,7 @@ async function getSupervisorAnalytics(supervisorUser, query = {}, db = pool) {
     busiestZonesResult,
     officerWorkloadResult,
     trendResult,
+    impactResult,
   ] = await Promise.all([
     db.query(
       `
@@ -292,6 +297,45 @@ async function getSupervisorAnalytics(supervisorUser, query = {}, db = pool) {
       `,
       [days],
     ),
+    // Impact metrics. False/verified alert rates and repeat reports are derived
+    // from report statuses (rejected = false alert, verified/dispatched/resolved
+    // = actioned alert, merged = duplicate/repeat). High-risk-zone reduction
+    // compares the count of distinct high-severity zones in this window vs the
+    // immediately preceding window of the same length.
+    db.query(
+      `
+        WITH cur AS (
+          SELECT
+            COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE status IN ('verified', 'dispatched', 'resolved'))::int AS verified,
+            COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected,
+            COUNT(*) FILTER (WHERE status = 'merged')::int AS merged,
+            COUNT(*) FILTER (WHERE status = 'resolved')::int AS resolved
+          FROM app.accident_reports
+          WHERE created_at >= NOW() - ($1 || ' days')::interval
+        ),
+        cur_zones AS (
+          SELECT COUNT(DISTINCT location_label)::int AS zones
+          FROM app.accident_reports
+          WHERE created_at >= NOW() - ($1 || ' days')::interval
+            AND COALESCE(severity_hint, 0) >= 3
+            AND location_label IS NOT NULL AND location_label <> ''
+        ),
+        prev_zones AS (
+          SELECT COUNT(DISTINCT location_label)::int AS zones
+          FROM app.accident_reports
+          WHERE created_at >= NOW() - (($1::int * 2) || ' days')::interval
+            AND created_at <  NOW() - ($1 || ' days')::interval
+            AND COALESCE(severity_hint, 0) >= 3
+            AND location_label IS NOT NULL AND location_label <> ''
+        )
+        SELECT cur.total, cur.verified, cur.rejected, cur.merged, cur.resolved,
+               cur_zones.zones AS current_high_risk_zones,
+               prev_zones.zones AS previous_high_risk_zones
+        FROM cur, cur_zones, prev_zones
+      `,
+      [days],
+    ),
   ]);
 
   const responseStats = avgResponseResult.rows[0] || {};
@@ -331,6 +375,41 @@ async function getSupervisorAnalytics(supervisorUser, query = {}, db = pool) {
       date: row.day ? new Date(row.day).toISOString().slice(0, 10) : null,
       count: row.count,
     })),
+    impact: buildImpactMetrics(impactResult.rows[0] || {}),
+  };
+}
+
+// Derive the impact KPIs (false-alert rate, verified-alert rate, repeated
+// reports, resolved incidents, high-risk-zone reduction) from raw status counts.
+function buildImpactMetrics(row) {
+  const total = Number(row.total || 0);
+  const verified = Number(row.verified || 0);
+  const rejected = Number(row.rejected || 0);
+  const merged = Number(row.merged || 0);
+  const resolved = Number(row.resolved || 0);
+  const currentZones = Number(row.current_high_risk_zones || 0);
+  const previousZones = Number(row.previous_high_risk_zones || 0);
+
+  const pct = (n, d) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
+  // Positive = fewer high-risk zones than the previous window (improvement).
+  const zoneReductionPct = previousZones > 0
+    ? Math.round(((previousZones - currentZones) / previousZones) * 1000) / 10
+    : null;
+
+  return {
+    totalReports: total,
+    falseAlerts: rejected,
+    falseAlertRate: pct(rejected, total),
+    verifiedAlerts: verified,
+    verifiedAlertRate: pct(verified, total),
+    repeatedReports: merged,
+    repeatedReportRate: pct(merged, total),
+    resolvedIncidents: resolved,
+    highRiskZones: {
+      current: currentZones,
+      previous: previousZones,
+      reductionPct: zoneReductionPct,
+    },
   };
 }
 
@@ -484,9 +563,179 @@ async function getSupervisorGlobalMap(supervisorUser, db = pool) {
   };
 }
 
+// =============================================================================
+// Pilot dashboard — ranks the most dangerous road segments by *verified* report
+// volume and enriches each with severity, occurrence risk (latest persisted
+// ml.risk_predictions row), peak time-of-day band, and average police response
+// time. Current weather is fetched once for the centroid of the ranked segments
+// (Open-Meteo, best-effort) and returned as shared context.
+// =============================================================================
+async function getSupervisorPilotDashboard(supervisorUser, query = {}, db = pool) {
+  assertSupervisorUser(supervisorUser);
+
+  const days = Math.min(Math.max(Number(query.days || 30), 7), 180);
+  const limit = Math.min(Math.max(Number(query.limit || 10), 1), 25);
+
+  // Spatial joins use a bounded scan + statement_timeout so a missing GiST index
+  // can't freeze the request (mirrors adminAnalyticsService.fetchDangerousRoads).
+  const client = await db.connect();
+  let segmentRows = [];
+  try {
+    await client.query("BEGIN");
+    await client.query("SET LOCAL statement_timeout = '10s'");
+    const result = await client.query(
+      `
+        WITH windowed AS (
+          SELECT id, incident_location, severity_hint, status, created_at, verified_at
+          FROM app.accident_reports
+          WHERE created_at >= NOW() - ($1::int * interval '1 day')
+            AND incident_location IS NOT NULL
+          ORDER BY created_at DESC
+          LIMIT 3000
+        ),
+        nearest AS (
+          SELECT w.*,
+                 (
+                   SELECT rs.id
+                   FROM gis.road_segments rs
+                   WHERE ST_DWithin(rs.geom, w.incident_location::geometry, 0.0008)
+                   ORDER BY rs.geom <-> w.incident_location::geometry
+                   LIMIT 1
+                 ) AS road_segment_id
+          FROM windowed w
+        ),
+        agg AS (
+          SELECT
+            n.road_segment_id,
+            COUNT(*)::int AS total_reports,
+            COUNT(*) FILTER (WHERE n.status IN ('verified', 'dispatched', 'resolved'))::int AS verified_reports,
+            COUNT(*) FILTER (WHERE COALESCE(n.severity_hint, 0) >= 3)::int AS high_severity_reports,
+            (mode() WITHIN GROUP (ORDER BY COALESCE(n.severity_hint, 1)))::int AS top_severity_hint,
+            ROUND(
+              AVG(EXTRACT(EPOCH FROM (n.verified_at - n.created_at)) * 1000)
+                FILTER (WHERE n.verified_at IS NOT NULL)
+            )::bigint AS avg_response_ms,
+            (mode() WITHIN GROUP (
+              ORDER BY FLOOR(EXTRACT(HOUR FROM n.created_at AT TIME ZONE 'Africa/Algiers') / 6)::int
+            ))::int AS peak_band
+          FROM nearest n
+          WHERE n.road_segment_id IS NOT NULL
+          GROUP BY n.road_segment_id
+          ORDER BY verified_reports DESC, total_reports DESC
+          LIMIT ${limit}
+        )
+        SELECT
+          a.road_segment_id,
+          a.total_reports,
+          a.verified_reports,
+          a.high_severity_reports,
+          a.top_severity_hint,
+          a.avg_response_ms,
+          a.peak_band,
+          rs.name AS road_name,
+          rs.ref AS road_ref,
+          rs.road_class,
+          ST_Y(ST_Centroid(rs.geom)) AS lat,
+          ST_X(ST_Centroid(rs.geom)) AS lng,
+          lp.calibrated_probability AS occurrence_probability,
+          lp.risk_level AS occurrence_level,
+          lp.predicted_at AS occurrence_predicted_at
+        FROM agg a
+        JOIN gis.road_segments rs ON rs.id = a.road_segment_id
+        LEFT JOIN LATERAL (
+          SELECT calibrated_probability, risk_level, predicted_at
+          FROM ml.risk_predictions rp
+          WHERE rp.road_segment_id = a.road_segment_id
+          ORDER BY rp.predicted_at DESC
+          LIMIT 1
+        ) lp ON TRUE
+        ORDER BY a.verified_reports DESC, a.total_reports DESC
+      `,
+      [days],
+    );
+    await client.query("COMMIT");
+    segmentRows = result.rows;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  const segments = segmentRows.map((row) => {
+    const hint = Number(row.top_severity_hint || 1);
+    const occProb = row.occurrence_probability == null ? null : Number(row.occurrence_probability);
+    const label = (row.road_name && row.road_name.trim())
+      || (row.road_ref && row.road_ref.trim())
+      || `${row.road_class || "Road"} segment #${row.road_segment_id}`;
+    return {
+      roadSegmentId: Number(row.road_segment_id),
+      road: label,
+      ref: row.road_ref || null,
+      roadClass: row.road_class || null,
+      lat: row.lat == null ? null : Number(row.lat),
+      lng: row.lng == null ? null : Number(row.lng),
+      totalReports: Number(row.total_reports || 0),
+      verifiedReports: Number(row.verified_reports || 0),
+      highSeverityReports: Number(row.high_severity_reports || 0),
+      severity: hint >= 3 ? "high" : hint >= 2 ? "medium" : "low",
+      severityHint: hint,
+      avgResponseTimeMs: row.avg_response_ms == null ? null : Number(row.avg_response_ms),
+      timeOfDay: TIME_OF_DAY_BANDS[Number(row.peak_band)] || null,
+      occurrence: occProb == null
+        ? null
+        : {
+            // Beta model: relative occurrence risk, NOT a calibrated probability.
+            percent: Math.round(Math.max(0, Math.min(1, occProb)) * 1000) / 10,
+            level: row.occurrence_level || null,
+            predictedAt: row.occurrence_predicted_at
+              ? new Date(row.occurrence_predicted_at).toISOString()
+              : null,
+          },
+    };
+  });
+
+  // Single best-effort weather call for the centroid of the ranked segments.
+  let weatherContext = null;
+  const pts = segments.filter((s) => s.lat != null && s.lng != null);
+  if (pts.length > 0) {
+    const lat = pts.reduce((sum, s) => sum + s.lat, 0) / pts.length;
+    const lng = pts.reduce((sum, s) => sum + s.lng, 0) / pts.length;
+    try {
+      const deadline = Date.now() + 4000;
+      const weather = await getCurrentWeatherUi(lat, lng, null, deadline);
+      if (weather) {
+        weatherContext = {
+          condition: weather.condition || null,
+          temperatureC: weather.temperature_c ?? null,
+          windKmh: weather.wind_kmh ?? null,
+          visibilityKm: weather.visibility_km ?? null,
+          precipitationMm: weather.precipitation_mm ?? null,
+          humidityPct: weather.humidity_pct ?? null,
+          atLat: Math.round(lat * 1000) / 1000,
+          atLng: Math.round(lng * 1000) / 1000,
+        };
+      }
+    } catch (error) {
+      console.warn("[supervisor/pilot] weather lookup failed:", error?.message || error);
+    }
+  }
+
+  return {
+    period: { days },
+    generatedAt: new Date().toISOString(),
+    occurrenceBeta: true,
+    occurrenceDisclaimer:
+      "Occurrence risk is a beta model output — relative risk per segment, not a final calibrated probability.",
+    weatherContext,
+    segments,
+  };
+}
+
 module.exports = {
   getSupervisorDashboard,
   getSupervisorAnalytics,
   getSupervisorGlobalMap,
+  getSupervisorPilotDashboard,
   fetchOnDutyZoneOfficers,
 };

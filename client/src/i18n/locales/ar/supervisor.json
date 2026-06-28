@@ -99,6 +99,130 @@
       "activeIncidents": "الحوادث النشطة",
       "totalHandled": "إجمالي المعالَجة",
       "workload": "عبء العمل"
+    },
+    "impact": {
+      "title": "قياس الأثر",
+      "hint": "محسوب من حالات البلاغات خلال الفترة المحددة",
+      "verifiedRate": "معدل التنبيهات المؤكدة",
+      "ofReports": "{{count}} بلاغ تمت معالجته",
+      "falseRate": "معدل التنبيهات الكاذبة",
+      "rejectedCount": "{{count}} مرفوض",
+      "repeated": "البلاغات المتكررة",
+      "repeatedSub": "{{pct}}٪ من البلاغات (مكررة)",
+      "resolved": "الحوادث المحلولة",
+      "lastDays": "آخر {{count}} يوم",
+      "highRiskZones": "المناطق عالية الخطورة",
+      "zonesNow": "{{current}} حاليًا مقابل {{previous}} سابقًا"
+    }
+  },
+  "supervisorPilotDashboardPage": {
+    "eyebrow": "المشرف — تجريبي",
+    "title": "اللوحة التجريبية",
+    "subtitle": "أخطر المقاطع مرتبة حسب البلاغات المؤكدة، مع الخطورة وخطر الوقوع والوقت من اليوم والطقس وزمن استجابة الشرطة",
+    "daysFilter": "{{count}} يوم",
+    "errorLoad": "فشل تحميل اللوحة التجريبية",
+    "loading": "جارٍ حساب المقاطع الخطرة...",
+    "empty": "لا توجد مقاطع بها بلاغات في هذه الفترة",
+    "betaTitle": "خطر الوقوع نموذج تجريبي",
+    "betaBody": "قيم الوقوع تمثل خطرًا نسبيًا لكل مقطع — وليست احتمالًا نهائيًا معايرًا. استخدمها لمقارنة المقاطع، وليس كاحتمال مطلق لوقوع حادث.",
+    "occBetaHint": "نموذج تجريبي: خطر وقوع نسبي وليس احتمالًا معايرًا",
+    "weather": {
+      "unknown": "الأحوال الحالية",
+      "wind": "رياح {{kmh}} كم/س",
+      "visibility": "الرؤية {{km}} كم",
+      "precip": "هطول {{mm}} مم",
+      "contextNote": "الطقس الحالي عند مركز المقاطع المصنفة"
+    },
+    "sections": {
+      "topSegments": "أخطر المقاطع — آخر {{count}} يوم"
+    },
+    "table": {
+      "segment": "المقطع",
+      "verifiedReports": "البلاغات المؤكدة",
+      "severity": "الخطورة",
+      "occurrenceRisk": "خطر الوقوع (تجريبي)",
+      "timeOfDay": "وقت الذروة",
+      "responseTime": "متوسط الاستجابة"
+    },
+    "severity": { "high": "عالية", "medium": "متوسطة", "low": "منخفضة" },
+    "occLevel": { "high": "عالٍ", "medium": "متوسط", "low": "منخفض" },
+    "bands": {
+      "night": "ليل (00–06)",
+      "morning": "صباح (06–12)",
+      "afternoon": "بعد الظهر (12–18)",
+      "evening": "مساء (18–24)"
+    }
+  },
+  "supervisorInterventionsPage": {
+    "eyebrow": "المشرف — الميدان",
+    "title": "تتبع التدخلات",
+    "subtitle": "سجّل الإجراءات المطبقة على المناطق الخطرة وحالتها ونتيجتها بعد التنفيذ",
+    "logIntervention": "تسجيل تدخل",
+    "errorLoad": "فشل تحميل التدخلات",
+    "errorUpdate": "فشل تحديث التدخل",
+    "loading": "جارٍ تحميل التدخلات...",
+    "empty": "لا توجد تدخلات مسجلة بعد",
+    "updateStatus": "تحديث الحالة",
+    "kpi": {
+      "total": "الإجمالي",
+      "planned": "مخطط لها",
+      "inProgress": "قيد التنفيذ",
+      "completed": "مكتملة"
+    },
+    "filters": {
+      "allStatuses": "كل الحالات",
+      "allTypes": "كل الأنواع"
+    },
+    "sections": {
+      "log": "سجل التدخلات"
+    },
+    "types": {
+      "speed_control": "مراقبة السرعة",
+      "signage": "اللافتات",
+      "roadwork": "أشغال الطريق",
+      "lighting": "الإنارة",
+      "police_patrol": "دورية شرطة",
+      "ambulance_response": "استجابة إسعاف",
+      "other": "أخرى"
+    },
+    "statuses": {
+      "planned": "مخطط",
+      "in_progress": "قيد التنفيذ",
+      "completed": "مكتمل",
+      "cancelled": "ملغى"
+    },
+    "severity": { "low": "منخفضة", "medium": "متوسطة", "high": "عالية" },
+    "form": {
+      "title": "تدخل جديد",
+      "type": "النوع",
+      "status": "الحالة",
+      "titleLabel": "العنوان",
+      "titlePlaceholder": "مثال: تركيب مطبات على الطريق الوطني 5 كم 12",
+      "location": "الموقع",
+      "locationPlaceholder": "اسم الطريق أو المنطقة",
+      "severityBefore": "الخطورة قبل",
+      "severityNone": "غير محدد",
+      "description": "الوصف",
+      "descriptionPlaceholder": "تفاصيل الإجراء المطلوب تطبيقه...",
+      "save": "حفظ التدخل",
+      "saving": "جارٍ الحفظ...",
+      "errorTitle": "العنوان مطلوب (3 أحرف على الأقل)",
+      "errorSubmit": "فشل حفظ التدخل"
+    },
+    "table": {
+      "type": "النوع",
+      "titleCol": "العنوان",
+      "location": "الموقع",
+      "status": "الحالة",
+      "outcome": "النتيجة",
+      "created": "أُنشئ"
+    },
+    "updateModal": {
+      "title": "تحديث التدخل",
+      "outcome": "النتيجة / الحالة بعد التنفيذ",
+      "outcomePlaceholder": "ما الذي تغيّر بعد التدخل...",
+      "severityAfter": "الخطورة بعد",
+      "save": "حفظ التحديث"
     }
   },
   "supervisorDashboardPage": {

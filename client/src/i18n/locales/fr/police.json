@@ -30,6 +30,8 @@
         "officerMonitoring": "Suivi des agents",
         "supervisorAlerts": "Alertes superviseur",
         "analytics": "Analytique",
+        "pilotDashboard": "Tableau pilote",
+        "interventions": "Interventions",
         "globalMap": "Carte globale"
       }
     },

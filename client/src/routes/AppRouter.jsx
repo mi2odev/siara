@@ -41,6 +41,8 @@ import SupervisorOfficerMonitoringPage from "../pages/supervisor/SupervisorOffic
 import SupervisorAlertCenterPage from "../pages/supervisor/SupervisorAlertCenterPage";
 import SupervisorAnalyticsPage from "../pages/supervisor/SupervisorAnalyticsPage";
 import SupervisorOperationsMapPage from "../pages/supervisor/SupervisorOperationsMapPage";
+import SupervisorPilotDashboardPage from "../pages/supervisor/SupervisorPilotDashboardPage";
+import SupervisorInterventionsPage from "../pages/supervisor/SupervisorInterventionsPage";
 import ProfilePage from "../pages/user/ProfilePage";
 import ReportIncidentPage from "../pages/user/ReportIncidentPage";
 import ReportsPage from "../pages/user/ReportsPage";
@@ -132,6 +134,8 @@ export default function AppRouter() {
               <Route path="police/supervisor/officers" element={<SupervisorOfficerMonitoringPage />} />
               <Route path="police/supervisor/alerts" element={<SupervisorAlertCenterPage />} />
               <Route path="police/supervisor/analytics" element={<SupervisorAnalyticsPage />} />
+              <Route path="police/supervisor/pilot" element={<SupervisorPilotDashboardPage />} />
+              <Route path="police/supervisor/interventions" element={<SupervisorInterventionsPage />} />
               <Route path="police/supervisor/map" element={<SupervisorOperationsMapPage />} />
             </Route>
           </Route>
