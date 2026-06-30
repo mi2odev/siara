@@ -552,7 +552,8 @@
       "heatmap": "خريطة حرارية",
       "zones": "المناطق",
       "aiRisks": "مخاطر الذكاء الاصطناعي",
-      "nearbyRoads": "الطرق المجاورة"
+      "nearbyRoads": "الطرق المجاورة",
+      "safety": "السلامة"
     },
     "map": {
       "exitFullscreen": "الخروج من وضع ملء الشاشة",
@@ -621,7 +622,8 @@
       "mediumSeverity": "خطورة متوسطة",
       "lowSeverity": "خطورة منخفضة",
       "zonesNote": "تعكس المناطق خطورة قاعدة التنبيه وجدولها الزمني.",
-      "aiRisk": "مخاطر الذكاء الاصطناعي (٠-١٠٠٪)"
+      "aiRisk": "مخاطر الذكاء الاصطناعي (٠-١٠٠٪)",
+      "safetyMeasure": "إجراء سلامة"
     },
     "trending": {
       "zoneRules": "قواعد المناطق",
@@ -659,6 +661,27 @@
       "days": "{{count}} ي",
       "neverTriggered": "لم يُطلَق قط",
       "ago": "منذ {{age}}"
+    },
+    "safety": {
+      "loading": "جارٍ تحميل إجراءات السلامة…",
+      "unavailable": "طبقة السلامة غير متوفرة",
+      "measuresShown": "{{count}} إجراءات سلامة قريبة",
+      "legendNote": "تحسينات السلامة المرورية التي نفّذتها السلطات.",
+      "types": {
+        "speed_control": "مراقبة السرعة",
+        "signage": "اللافتات",
+        "roadwork": "أشغال الطريق",
+        "lighting": "الإنارة",
+        "police_patrol": "دورية الشرطة",
+        "ambulance_response": "استجابة الإسعاف",
+        "other": "أخرى"
+      },
+      "statuses": {
+        "planned": "مخطط",
+        "in_progress": "قيد التنفيذ",
+        "completed": "مكتمل",
+        "cancelled": "ملغى"
+      }
     }
   }
 }

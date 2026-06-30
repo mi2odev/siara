@@ -106,6 +106,25 @@ function rowToIntervention(row) {
   };
 }
 
+// Public-facing safety overlay projection. Deliberately trimmed: drivers see the
+// what/where/status of a counter-measure, never internal fields (creator/assignee
+// names, audit notes, severity scoring).
+function rowToSafetyItem(row) {
+  return {
+    id: Number(row.id),
+    type: row.intervention_type,
+    title: row.title || "",
+    description: row.description || null,
+    roadName: row.road_name || row.road_ref || null,
+    locationLabel: row.location_label || null,
+    lat: row.lat == null ? null : Number(row.lat),
+    lng: row.lng == null ? null : Number(row.lng),
+    status: row.status,
+    completedAt: row.completed_at ? new Date(row.completed_at).toISOString() : null,
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+  };
+}
+
 const SELECT_COLUMNS = `
   zi.id,
   zi.intervention_type,
@@ -216,6 +235,81 @@ async function listInterventions(user, query = {}, db = pool) {
       cancelled: Number(s.cancelled || 0),
     },
   };
+}
+
+// Phase 2 — citizen safety overlay. Returns only interventions flagged
+// visibility='public' (defaults to infrastructure measures: speed control,
+// signage, roadwork, lighting). No auth required: these are public-safe by
+// design and consumed by the driver-facing map. Cancelled measures are hidden,
+// and completed ones drop off after a retention window so the layer reflects
+// what's currently relevant on the road.
+async function listPublicSafetyOverlay(query = {}, db = pool) {
+  const params = [];
+  const conditions = [
+    "zi.visibility = 'public'",
+    "zi.status <> 'cancelled'",
+    // Must be plottable: an explicit pin or a linked road segment to centroid.
+    "(zi.location IS NOT NULL OR rs.geom IS NOT NULL)",
+  ];
+
+  const type = normalizeType(query.type);
+  if (type && PUBLIC_DEFAULT_TYPES.includes(type)) {
+    params.push(type);
+    conditions.push(`zi.intervention_type = $${params.length}`);
+  }
+
+  // Hide stale "completed" measures after a retention window (default 180 days).
+  const completedWithinDays = Math.min(Math.max(safeInt(query.completedWithinDays) || 180, 1), 365);
+  params.push(completedWithinDays);
+  conditions.push(
+    `(zi.status <> 'completed'
+      OR zi.completed_at IS NULL
+      OR zi.completed_at >= now() - ($${params.length}::int * interval '1 day'))`,
+  );
+
+  // Optional spatial filter around the driver.
+  const lat = Number(query.lat);
+  const lng = Number(query.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    const radiusKm = Number(query.radiusKm);
+    const radiusM = Number.isFinite(radiusKm) && radiusKm > 0
+      ? Math.min(radiusKm, 200) * 1000
+      : 50000;
+    params.push(lat);
+    const pLat = params.length;
+    params.push(lng);
+    const pLng = params.length;
+    params.push(radiusM);
+    const pRad = params.length;
+    conditions.push(
+      `ST_DWithin(
+        COALESCE(zi.location::geometry, ST_Centroid(rs.geom))::geography,
+        ST_SetSRID(ST_MakePoint($${pLng}, $${pLat}), 4326)::geography,
+        $${pRad}
+      )`,
+    );
+  }
+
+  const limit = Math.min(Math.max(safeInt(query.limit) || 200, 1), 500);
+
+  const result = await db.query(
+    `
+      SELECT ${SELECT_COLUMNS}
+      ${FROM_JOINS}
+      WHERE ${conditions.join(" AND ")}
+      ORDER BY zi.updated_at DESC
+      LIMIT ${limit}
+    `,
+    params,
+  );
+
+  // Drop any rows that ended up without a usable coordinate (e.g. a linked
+  // segment whose geometry is null) so the client never plots a (null,null) pin.
+  const items = result.rows
+    .map(rowToSafetyItem)
+    .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng));
+
+  return { items };
 }
 
 async function createIntervention(user, body = {}, db = pool) {
@@ -347,6 +441,7 @@ module.exports = {
   INTERVENTION_TYPES,
   INTERVENTION_STATUSES,
   listInterventions,
+  listPublicSafetyOverlay,
   createIntervention,
   getInterventionById,
   updateInterventionStatus,

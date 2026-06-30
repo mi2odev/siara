@@ -552,7 +552,8 @@
       "heatmap": "Heatmap",
       "zones": "Zones",
       "aiRisks": "AI Risks",
-      "nearbyRoads": "Nearby Roads"
+      "nearbyRoads": "Nearby Roads",
+      "safety": "Safety"
     },
     "map": {
       "exitFullscreen": "Exit fullscreen",
@@ -621,7 +622,8 @@
       "mediumSeverity": "Medium Severity",
       "lowSeverity": "Low Severity",
       "zonesNote": "Zones reflect your alert rule severity and schedule.",
-      "aiRisk": "AI Risk (0-100%)"
+      "aiRisk": "AI Risk (0-100%)",
+      "safetyMeasure": "Safety measure"
     },
     "trending": {
       "zoneRules": "Zone Rules",
@@ -659,6 +661,27 @@
       "days": "{{count}} d",
       "neverTriggered": "Never triggered",
       "ago": "{{age}} ago"
+    },
+    "safety": {
+      "loading": "Loading safety measures…",
+      "unavailable": "Safety overlay unavailable",
+      "measuresShown": "{{count}} safety measures nearby",
+      "legendNote": "Public road-safety improvements logged by authorities.",
+      "types": {
+        "speed_control": "Speed control",
+        "signage": "Signage",
+        "roadwork": "Roadwork",
+        "lighting": "Lighting",
+        "police_patrol": "Police patrol",
+        "ambulance_response": "Ambulance response",
+        "other": "Other"
+      },
+      "statuses": {
+        "planned": "Planned",
+        "in_progress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      }
     }
   }
 }

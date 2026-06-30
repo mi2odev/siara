@@ -62,6 +62,7 @@ import { normalizeReportType } from "../../components/map/reportTypeMeta";
 import useReportMapReports from "../../hooks/useReportMapReports";
 import useLiveLocation from "../../hooks/useLiveLocation";
 import { fetchAlerts } from "../../services/alertService";
+import { getSafetyOverlay } from "../../services/safetyOverlayService";
 
 /* ── MUI Icons ── */
 import LocationOnTwoToneIcon from "@mui/icons-material/LocationOnTwoTone";
@@ -82,7 +83,7 @@ const SEVERITY_SCORES = {
 // page keeps the user's view instead of resetting to defaults.
 const MAP_FILTERS_STORAGE_KEY = "siara_map_filters_v1";
 const ALLOWED_TIME_FILTERS = ["24h", "7d", "30d", "custom"];
-const ALLOWED_MAP_LAYERS = ["points", "heatmap", "zones", "ai", "nearbyRoads"];
+const ALLOWED_MAP_LAYERS = ["points", "heatmap", "zones", "ai", "nearbyRoads", "safety"];
 
 function readStoredMapFilters() {
   if (typeof window === "undefined") return {};
@@ -420,6 +421,11 @@ export default function MapPage() {
   const [alertZones, setAlertZones] = useState([]);
   const [zonesLoading, setZonesLoading] = useState(false);
   const [zonesError, setZonesError] = useState("");
+
+  // Phase 2 — public safety overlay (driver-facing infrastructure measures).
+  const [safetyItems, setSafetyItems] = useState([]);
+  const [safetyLoading, setSafetyLoading] = useState(false);
+  const [safetyError, setSafetyError] = useState("");
   const [selectedZoneId, setSelectedZoneId] = useState(() => location.state?.focusAlertId || null);
 
   // Currently selected incident/segment for the right-sidebar detail panel
@@ -968,6 +974,45 @@ export default function MapPage() {
     };
   }, [location.state?.focusAlertId, mapLayer, user, weatherRefreshTick]);
 
+  // Load the public safety overlay only while its layer is active. When the user
+  // has shared a position we bias the query to nearby measures; otherwise we
+  // fetch the most recent ones platform-wide.
+  useEffect(() => {
+    if (mapLayer !== "safety") {
+      return undefined;
+    }
+
+    let cancelled = false;
+    setSafetyLoading(true);
+    setSafetyError("");
+
+    const params = {};
+    const point = normalizePoint(userPosition);
+    if (point) {
+      params.lat = point.lat;
+      params.lng = point.lng;
+      params.radiusKm = 75;
+    }
+
+    getSafetyOverlay(params)
+      .then((result) => {
+        if (cancelled) return;
+        setSafetyItems(Array.isArray(result?.items) ? result.items : []);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setSafetyItems([]);
+        setSafetyError(error?.message || t('mapPage.safety.unavailable'));
+      })
+      .finally(() => {
+        if (!cancelled) setSafetyLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mapLayer, userPosition, weatherRefreshTick]);
+
   const activeAlertZones = useMemo(
     () =>
       alertZones.filter((alert) => {
@@ -1114,6 +1159,16 @@ export default function MapPage() {
   }, [filteredReports]);
 
   const reportStatusLabel = useMemo(() => {
+    if (mapLayer === "safety") {
+      if (safetyLoading) {
+        return t('mapPage.safety.loading');
+      }
+      if (safetyError) {
+        return t('mapPage.safety.unavailable');
+      }
+      return t('mapPage.safety.measuresShown', { count: safetyItems.length });
+    }
+
     if (mapLayer === "zones") {
       if (zonesLoading) {
         return t('mapPage.status.loadingAlertZones');
@@ -1135,7 +1190,7 @@ export default function MapPage() {
     }
 
     return t('mapPage.status.reportsDisplayed', { count: visibleReportMarkers.length });
-  }, [activeAlertZones.length, mapLayer, reportsError, reportsLoading, visibleReportMarkers.length, zonesError, zonesLoading]);
+  }, [activeAlertZones.length, mapLayer, reportsError, reportsLoading, safetyError, safetyItems.length, safetyLoading, visibleReportMarkers.length, zonesError, zonesLoading]);
 
   /* ──────────────────────── Event Handlers ──────────────────────── */
 
@@ -1430,6 +1485,7 @@ export default function MapPage() {
                 { id: "zones", label: t('mapPage.layers.zones') },
                 { id: "ai", label: t('mapPage.layers.aiRisks') },
                 { id: "nearbyRoads", label: t('mapPage.layers.nearbyRoads') },
+                { id: "safety", label: t('mapPage.layers.safety') },
               ].map((l) => (
                 <button
                   key={l.id}
@@ -1471,6 +1527,7 @@ export default function MapPage() {
               <SiaraMap
                 reportMarkers={visibleReportMarkers}
                 alertZones={activeAlertZones}
+                safetyInterventions={safetyItems}
                 mapLayer={mapLayer}
                 onAlertZoneSelect={setSelectedZoneId}
                 selectedAlertZoneId={selectedZoneId}
@@ -1710,6 +1767,17 @@ export default function MapPage() {
                     <span className="legend-gradient"></span>
                     <span>{t('mapPage.legend.aiRisk')}</span>
                   </div>
+                </>
+              )}
+              {/* Safety-overlay legend: infrastructure counter-measures */}
+              {mapLayer === "safety" && (
+                <>
+                  <hr />
+                  <div className="legend-item">
+                    <span className="legend-dot" style={{ background: "#0ea5e9" }}></span>
+                    <span>{t('mapPage.legend.safetyMeasure')}</span>
+                  </div>
+                  <p className="chart-note">{t('mapPage.safety.legendNote')}</p>
                 </>
               )}
             </div>
