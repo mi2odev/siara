@@ -126,6 +126,7 @@
     "betaTitle": "خطر الوقوع نموذج تجريبي",
     "betaBody": "قيم الوقوع تمثل خطرًا نسبيًا لكل مقطع — وليست احتمالًا نهائيًا معايرًا. استخدمها لمقارنة المقاطع، وليس كاحتمال مطلق لوقوع حادث.",
     "occBetaHint": "نموذج تجريبي: خطر وقوع نسبي وليس احتمالًا معايرًا",
+    "logIntervention": "تسجيل تدخل",
     "weather": {
       "unknown": "الأحوال الحالية",
       "wind": "رياح {{kmh}} كم/س",
@@ -207,7 +208,15 @@
       "save": "حفظ التدخل",
       "saving": "جارٍ الحفظ...",
       "errorTitle": "العنوان مطلوب (3 أحرف على الأقل)",
-      "errorSubmit": "فشل حفظ التدخل"
+      "errorSubmit": "فشل حفظ التدخل",
+      "visibility": "الظهور",
+      "visibilityAuto": "تلقائي (حسب النوع)",
+      "visibilityHint": "«عام» يظهر على خريطة المواطنين؛ «داخلي» يبقى للشرطة فقط.",
+      "linkedSegment": "المقطع المرتبط"
+    },
+    "visibility": {
+      "public": "عام",
+      "internal": "داخلي"
     },
     "table": {
       "type": "النوع",
@@ -452,7 +461,9 @@
       "assignmentLinks": "روابط التعيين",
       "severity": "الخطورة",
       "coverage": "التغطية",
-      "duty": "الخدمة"
+      "duty": "الخدمة",
+      "riskSegments": "المقاطع الخطرة ({{count}})",
+      "interventions": "التدخلات ({{count}})"
     },
     "filter": {
       "all": "الكل",
@@ -482,7 +493,14 @@
     },
     "legend": {
       "incidents": "الحوادث",
-      "officers": "الضباط"
+      "officers": "الضباط",
+      "riskSegments": "المقاطع الخطرة",
+      "interventions": "التدخلات"
+    },
+    "segment": {
+      "occurrenceBeta": "الوقوع (تجريبي)",
+      "verified": "{{count}} بلاغ مؤكد",
+      "logIntervention": "تسجيل تدخل"
     },
     "tabs": {
       "incidents": "الحوادث",

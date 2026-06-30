@@ -126,6 +126,7 @@
     "betaTitle": "Le risque d'occurrence est un modèle bêta",
     "betaBody": "Les valeurs d'occurrence représentent un risque relatif par segment — pas une probabilité finale calibrée. Utilisez-les pour comparer les segments, pas comme probabilités absolues d'accident.",
     "occBetaHint": "Modèle bêta : risque d'occurrence relatif, non calibré",
+    "logIntervention": "Enregistrer une intervention",
     "weather": {
       "unknown": "Conditions actuelles",
       "wind": "Vent {{kmh}} km/h",
@@ -207,7 +208,15 @@
       "save": "Enregistrer l'intervention",
       "saving": "Enregistrement...",
       "errorTitle": "Le titre est requis (3 caractères min)",
-      "errorSubmit": "Échec de l'enregistrement de l'intervention"
+      "errorSubmit": "Échec de l'enregistrement de l'intervention",
+      "visibility": "Visibilité",
+      "visibilityAuto": "Auto (selon le type)",
+      "visibilityHint": "« Public » apparaît sur la carte citoyenne ; « interne » reste réservé à la police.",
+      "linkedSegment": "Segment lié"
+    },
+    "visibility": {
+      "public": "Public",
+      "internal": "Interne"
     },
     "table": {
       "type": "Type",
@@ -452,7 +461,9 @@
       "assignmentLinks": "Liens d'assignation",
       "severity": "Gravité",
       "coverage": "Couverture",
-      "duty": "Service"
+      "duty": "Service",
+      "riskSegments": "Segments à risque ({{count}})",
+      "interventions": "Interventions ({{count}})"
     },
     "filter": {
       "all": "Tous",
@@ -482,7 +493,14 @@
     },
     "legend": {
       "incidents": "Incidents",
-      "officers": "Agents"
+      "officers": "Agents",
+      "riskSegments": "Segments à risque",
+      "interventions": "Interventions"
+    },
+    "segment": {
+      "occurrenceBeta": "occurrence (bêta)",
+      "verified": "{{count}} signalements vérifiés",
+      "logIntervention": "Enregistrer une intervention"
     },
     "tabs": {
       "incidents": "Incidents",

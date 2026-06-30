@@ -35,6 +35,18 @@ const INTERVENTION_STATUSES = Object.freeze([
   "cancelled",
 ]);
 
+const VISIBILITIES = Object.freeze(["public", "internal"]);
+
+// Infrastructure measures are public-safe (useful to drivers); enforcement / EMS
+// deployments default to internal. Supervisors can override per record.
+const PUBLIC_DEFAULT_TYPES = Object.freeze(["speed_control", "signage", "roadwork", "lighting"]);
+
+function normalizeVisibility(value, type) {
+  const v = String(value || "").trim().toLowerCase();
+  if (VISIBILITIES.includes(v)) return v;
+  return PUBLIC_DEFAULT_TYPES.includes(type) ? "public" : "internal";
+}
+
 function assertSupervisorUser(user) {
   const ok = hasAnyRole(user, POLICE_SUPERVISOR_ROLE_NAMES) || hasRole(user, "admin");
   if (!ok) {
@@ -79,6 +91,7 @@ function rowToIntervention(row) {
     locationLabel: row.location_label || null,
     lat: row.lat == null ? null : Number(row.lat),
     lng: row.lng == null ? null : Number(row.lng),
+    visibility: row.visibility || "internal",
     status: row.status,
     outcomeNote: row.outcome_note || null,
     severityBefore: row.severity_before == null ? null : Number(row.severity_before),
@@ -100,6 +113,7 @@ const SELECT_COLUMNS = `
   zi.description,
   zi.road_segment_id,
   zi.location_label,
+  zi.visibility,
   zi.status,
   zi.outcome_note,
   zi.severity_before,
@@ -111,8 +125,9 @@ const SELECT_COLUMNS = `
   zi.updated_at,
   rs.name AS road_name,
   rs.ref AS road_ref,
-  ST_Y(zi.location::geometry) AS lat,
-  ST_X(zi.location::geometry) AS lng,
+  -- Plot point: the explicit pin, else the linked road segment's centroid.
+  COALESCE(ST_Y(zi.location::geometry), ST_Y(ST_Centroid(rs.geom))) AS lat,
+  COALESCE(ST_X(zi.location::geometry), ST_X(ST_Centroid(rs.geom))) AS lng,
   CONCAT_WS(' ', creator.first_name, creator.last_name) AS created_by_name,
   CONCAT_WS(' ', assignee.first_name, assignee.last_name) AS assigned_to_name
 `;
@@ -218,6 +233,7 @@ async function createIntervention(user, body = {}, db = pool) {
   const description = body.description ? String(body.description).trim() : null;
   const locationLabel = body.locationLabel ? String(body.locationLabel).trim() : null;
   const status = normalizeStatus(body.status, "planned");
+  const visibility = normalizeVisibility(body.visibility, type);
   const severityBefore = clampSeverity(body.severityBefore);
   const lat = Number(body.lat);
   const lng = Number(body.lng);
@@ -232,7 +248,7 @@ async function createIntervention(user, body = {}, db = pool) {
     `
       INSERT INTO app.zone_interventions (
         intervention_type, title, description, road_segment_id,
-        location, location_label, status, severity_before,
+        location, location_label, visibility, status, severity_before,
         scheduled_for, created_by, assigned_to,
         started_at
       )
@@ -241,7 +257,7 @@ async function createIntervention(user, body = {}, db = pool) {
         CASE WHEN $5::float8 IS NOT NULL AND $6::float8 IS NOT NULL
           THEN ST_SetSRID(ST_MakePoint($6, $5), 4326)::geography
           ELSE NULL END,
-        $7, $8, $9,
+        $7, $13, $8, $9,
         $10, $11, $12,
         CASE WHEN $8 = 'in_progress' THEN NOW() ELSE NULL END
       )
@@ -260,6 +276,7 @@ async function createIntervention(user, body = {}, db = pool) {
       body.scheduledFor || null,
       userId(user),
       body.assignedTo || null,
+      visibility,
     ],
   );
 

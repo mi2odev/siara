@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined'
 import ThermostatOutlinedIcon from '@mui/icons-material/ThermostatOutlined'
 import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
+import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined'
 
 import PoliceShell from '../../components/layout/PoliceShell'
 import { getSupervisorPilotDashboard } from '../../services/policeService'
@@ -24,10 +26,17 @@ const SEVERITY_BADGE = { high: 'sv-badge-high', medium: 'sv-badge-medium', low: 
 
 export default function SupervisorPilotDashboardPage() {
   const { t } = useTranslation(['supervisor', 'common'])
+  const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [days, setDays] = useState(30)
+
+  const logIntervention = (seg) => {
+    navigate('/police/supervisor/interventions', {
+      state: { prefillSegment: { roadSegmentId: seg.roadSegmentId, locationLabel: seg.road } },
+    })
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -135,6 +144,7 @@ export default function SupervisorPilotDashboardPage() {
                       <th>{t('supervisorPilotDashboardPage.table.occurrenceRisk')}</th>
                       <th>{t('supervisorPilotDashboardPage.table.timeOfDay')}</th>
                       <th>{t('supervisorPilotDashboardPage.table.responseTime')}</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -165,6 +175,16 @@ export default function SupervisorPilotDashboardPage() {
                             : <span style={{ color: 'var(--sv-text-muted)' }}>—</span>}
                         </td>
                         <td>{formatDuration(seg.avgResponseTimeMs)}</td>
+                        <td>
+                          <button
+                            className="sv-btn sv-btn-ghost"
+                            style={{ padding: '4px 10px', whiteSpace: 'nowrap' }}
+                            onClick={() => logIntervention(seg)}
+                            title={t('supervisorPilotDashboardPage.logIntervention')}
+                          >
+                            <BuildOutlinedIcon fontSize="small" /> {t('supervisorPilotDashboardPage.logIntervention')}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
