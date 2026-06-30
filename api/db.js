@@ -52,7 +52,16 @@ console.info("[db] pool_config", {
   ssl_mode: process.env.PGSSLMODE || "disable",
 });
 
-const pool = new Pool(connectionConfig);
+const pool = new Pool({
+  ...connectionConfig,
+  // Tuned for small managed tiers (e.g. Aiven's 20-connection cap). Keep the
+  // app's footprint low so it coexists with node-cron schedulers, the dedicated
+  // LISTEN client, and any admin tools (pgAdmin) without exhausting the cluster.
+  // Raise PG_POOL_MAX on a bigger plan or behind a pooler (PgBouncer).
+  max: Number(process.env.PG_POOL_MAX || 5),
+  idleTimeoutMillis: Number(process.env.PG_POOL_IDLE_MS || 10000),
+  connectionTimeoutMillis: Number(process.env.PG_POOL_CONN_TIMEOUT_MS || 8000),
+});
 
 pool.on("error", (err) => {
   console.error("Unexpected PostgreSQL pool error:", err);
