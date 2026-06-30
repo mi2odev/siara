@@ -104,7 +104,14 @@
   "fallbackLocationBanner": {
     "defaultLabel": "Utilisation d'un emplacement de test de secours car le GPS est indisponible.",
     "retrying": "Nouvelle tentative…",
-    "retryGps": "Réessayer le GPS"
+    "retryGps": "Réessayer le GPS",
+    "helpToggle": "Pourquoi ? Comment corriger",
+    "helpHide": "Masquer",
+    "helpTitle": "Activer la localisation précise sur cet appareil",
+    "helpWindows": "Windows : Paramètres → Confidentialité et sécurité → Localisation → activez « Services de localisation » et « Autoriser les applications de bureau à accéder à votre position », puis redémarrez le navigateur.",
+    "helpChrome": "Navigateur : cliquez sur l'icône de localisation/cadenas dans la barre d'adresse → réglez Localisation sur Autoriser → rechargez la page.",
+    "helpDesktop": "Les PC de bureau n'ont pas de GPS — le navigateur estime votre position via le Wi-Fi, donc être en Wi-Fi (et pas seulement en Ethernet) améliore la précision.",
+    "helpVpn": "Un VPN ou une extension de confidentialité peut bloquer la localisation — désactivez-le pour ce site si le problème persiste."
   },
   "heatmapClusterDetailPanel": {
     "ariaLabel": "Détails du groupe d'accidents",
