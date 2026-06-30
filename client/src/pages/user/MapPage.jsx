@@ -78,6 +78,43 @@ const SEVERITY_SCORES = {
   high: 3,
 };
 
+// Persist the map's filter/layer selections so a refresh or returning to the
+// page keeps the user's view instead of resetting to defaults.
+const MAP_FILTERS_STORAGE_KEY = "siara_map_filters_v1";
+const ALLOWED_TIME_FILTERS = ["24h", "7d", "30d", "custom"];
+const ALLOWED_MAP_LAYERS = ["points", "heatmap", "zones", "ai", "nearbyRoads"];
+
+function readStoredMapFilters() {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(MAP_FILTERS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function storedTimeFilter(fallback = "7d") {
+  const value = readStoredMapFilters().timeFilter;
+  return ALLOWED_TIME_FILTERS.includes(value) ? value : fallback;
+}
+
+function storedStringArray(key) {
+  const value = readStoredMapFilters()[key];
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+}
+
+function storedWilaya(fallback = "all") {
+  const value = readStoredMapFilters().selectedWilaya;
+  return typeof value === "string" && value ? value : fallback;
+}
+
+function storedMapLayer(fallback = "points") {
+  const value = readStoredMapFilters().mapLayer;
+  return ALLOWED_MAP_LAYERS.includes(value) ? value : fallback;
+}
+
 async function getJson(path, signal) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "GET",
@@ -363,21 +400,22 @@ export default function MapPage() {
     setShowQuiz(false);
   };
 
-  // Active time-range filter (24h, 7d, 30d, custom)
-  const [timeFilter, setTimeFilter] = useState("7d");
+  // Active time-range filter (24h, 7d, 30d, custom) — restored from last visit.
+  const [timeFilter, setTimeFilter] = useState(() => storedTimeFilter("7d"));
 
   // Array of selected severity levels (e.g. ["high", "medium"])
-  const [severityFilter, setSeverityFilter] = useState([]);
+  const [severityFilter, setSeverityFilter] = useState(() => storedStringArray("severityFilter"));
 
   // Array of selected incident types (e.g. ["accident", "traffic"])
-  const [typeFilter, setTypeFilter] = useState([]);
+  const [typeFilter, setTypeFilter] = useState(() => storedStringArray("typeFilter"));
 
   // Selected wilaya (province) — "all" means no geographic filter
-  const [selectedWilaya, setSelectedWilaya] = useState("all");
+  const [selectedWilaya, setSelectedWilaya] = useState(() => storedWilaya("all"));
 
-  // Current map visualisation layer (points, heatmap, zones, ai, nearbyRoads)
+  // Current map visualisation layer (points, heatmap, zones, ai, nearbyRoads).
+  // Explicit navigation state (e.g. "open zones") wins over the restored layer.
   const [mapLayer, setMapLayer] = useState(() =>
-    location.state?.mapLayer === "zones" ? "zones" : "points"
+    location.state?.mapLayer === "zones" ? "zones" : storedMapLayer("points")
   );
   const [alertZones, setAlertZones] = useState([]);
   const [zonesLoading, setZonesLoading] = useState(false);
@@ -493,6 +531,20 @@ export default function MapPage() {
       setSelectedZoneId(location.state.focusAlertId);
     }
   }, [location.state]);
+
+  // Remember filter/layer choices for the next visit (best-effort; ignores
+  // storage errors in private mode).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        MAP_FILTERS_STORAGE_KEY,
+        JSON.stringify({ timeFilter, severityFilter, typeFilter, selectedWilaya, mapLayer }),
+      );
+    } catch {
+      /* ignore storage quota / privacy-mode errors */
+    }
+  }, [timeFilter, severityFilter, typeFilter, selectedWilaya, mapLayer]);
 
   const requestLocation = useCallback(() => {
     autoLocateAttemptedRef.current = true;

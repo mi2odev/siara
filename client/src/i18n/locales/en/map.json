@@ -104,7 +104,14 @@
   "fallbackLocationBanner": {
     "defaultLabel": "Using fallback test location because GPS is unavailable.",
     "retrying": "Retrying…",
-    "retryGps": "Retry GPS"
+    "retryGps": "Retry GPS",
+    "helpToggle": "Why? How to fix",
+    "helpHide": "Hide",
+    "helpTitle": "Enable precise location on this device",
+    "helpWindows": "Windows: Settings → Privacy & security → Location → turn ON \"Location services\" and \"Let desktop apps access your location\", then restart your browser.",
+    "helpChrome": "Browser: click the location/lock icon in the address bar → set Location to Allow → reload the page.",
+    "helpDesktop": "Desktop PCs have no GPS — the browser estimates your position from Wi-Fi, so being on Wi-Fi (not Ethernet only) improves accuracy.",
+    "helpVpn": "A VPN or privacy extension can block the location lookup — disable it for this site if the problem persists."
   },
   "heatmapClusterDetailPanel": {
     "ariaLabel": "Accident cluster details",
