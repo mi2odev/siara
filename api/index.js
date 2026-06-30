@@ -58,6 +58,7 @@ const {
   getRiskForecast24h,
 } = require("./contollers/Model/models");
 const { generateRiskExplanation } = require("./services/riskExplanationService");
+const { listPublicSafetyOverlay } = require("./services/interventionsService");
 const {
   generateRouteExplanation,
   streamRouteExplanation,
@@ -235,6 +236,23 @@ app.post("/api/predictions/explain-risk", async (req, res) => {
 });
 app.post("/api/risk/nearby-zones", withRiskDeadline(predictNearbyZones));
 app.post("/api/risk/route", withRiskDeadline(predictRouteGuide));
+
+// Phase 2 — public citizen safety overlay. Serves only visibility='public'
+// interventions (infrastructure counter-measures) for the driver-facing map.
+// Public by design (no token), matching the surrounding /api/risk/* surface.
+const safetyOverlayHandler = async (req, res) => {
+  try {
+    const result = await listPublicSafetyOverlay(req.query || {});
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[safety-overlay] failure", error);
+    }
+    return res.status(500).json({ ok: false, error: "Unable to load safety overlay", items: [] });
+  }
+};
+app.get("/api/risk/safety-overlay", safetyOverlayHandler);
+app.get("/api/model/risk/safety-overlay", safetyOverlayHandler);
 
 const runRouteGuideOnce = async ({ origin, destination, timestamp, maxAlternatives = 3 }) => {
   let captured = { statusCode: null, data: null };

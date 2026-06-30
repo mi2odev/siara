@@ -552,7 +552,8 @@
       "heatmap": "Carte thermique",
       "zones": "Zones",
       "aiRisks": "Risques IA",
-      "nearbyRoads": "Routes proches"
+      "nearbyRoads": "Routes proches",
+      "safety": "Sécurité"
     },
     "map": {
       "exitFullscreen": "Quitter le plein écran",
@@ -621,7 +622,8 @@
       "mediumSeverity": "Gravité modérée",
       "lowSeverity": "Gravité faible",
       "zonesNote": "Les zones reflètent la gravité et le calendrier de vos règles d'alerte.",
-      "aiRisk": "Risque IA (0-100 %)"
+      "aiRisk": "Risque IA (0-100 %)",
+      "safetyMeasure": "Mesure de sécurité"
     },
     "trending": {
       "zoneRules": "Règles des zones",
@@ -659,6 +661,27 @@
       "days": "{{count}} j",
       "neverTriggered": "Jamais déclenché",
       "ago": "il y a {{age}}"
+    },
+    "safety": {
+      "loading": "Chargement des mesures de sécurité…",
+      "unavailable": "Calque de sécurité indisponible",
+      "measuresShown": "{{count}} mesures de sécurité à proximité",
+      "legendNote": "Améliorations de sécurité routière déployées par les autorités.",
+      "types": {
+        "speed_control": "Contrôle de vitesse",
+        "signage": "Signalisation",
+        "roadwork": "Travaux",
+        "lighting": "Éclairage",
+        "police_patrol": "Patrouille de police",
+        "ambulance_response": "Intervention ambulance",
+        "other": "Autre"
+      },
+      "statuses": {
+        "planned": "Planifié",
+        "in_progress": "En cours",
+        "completed": "Terminé",
+        "cancelled": "Annulé"
+      }
     }
   }
 }

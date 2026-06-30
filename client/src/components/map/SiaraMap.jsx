@@ -97,6 +97,17 @@ const occurrenceRiskLabel = (level) => {
   return level.charAt(0).toUpperCase() + level.slice(1);
 };
 
+// Phase 2 — citizen safety overlay. Per-type marker colour for public
+// infrastructure counter-measures. Falls back to a neutral blue.
+const SAFETY_TYPE_COLOR = {
+  speed_control: "#dc2626",
+  signage: "#0ea5e9",
+  roadwork: "#f59e0b",
+  lighting: "#7c3aed",
+};
+
+const safetyTypeColor = (type) => SAFETY_TYPE_COLOR[type] || "#0ea5e9";
+
 // Human-readable labels for occurrence_beta_v1 feature names. The trained
 // model and SHAP fallback both surface raw column names like
 // "num__past_segment_hourofweek_count" which mean nothing to a driver.
@@ -1417,6 +1428,7 @@ const MapClickHandler = ({ enabled, onMapClick }) => {
 const SiaraMap = ({
   alertZones = [],
   reportMarkers,
+  safetyInterventions = [],
   mockMarkers,
   mapLayer,
   onAlertZoneSelect,
@@ -4231,6 +4243,52 @@ const SiaraMap = ({
                 );
               })}
           </Pane>
+
+          {/* Phase 2 — public safety overlay: infrastructure counter-measures
+              (speed control, signage, roadwork, lighting) near the driver. */}
+          {mapLayer === "safety" &&
+            (Array.isArray(safetyInterventions) ? safetyInterventions : []).map((item) => {
+              const position = normalizePosition(item);
+              if (!position) return null;
+              const color = safetyTypeColor(item.type);
+              const typeLabel = t(`mapPage.safety.types.${item.type}`, { defaultValue: item.type });
+              const statusLabel = t(`mapPage.safety.statuses.${item.status}`, { defaultValue: item.status });
+              return (
+                <CircleMarker
+                  key={`safety-${item.id}`}
+                  center={position}
+                  radius={8}
+                  pathOptions={{
+                    color: "#ffffff",
+                    weight: 2,
+                    fillColor: color,
+                    fillOpacity: 0.95,
+                  }}
+                >
+                  <Popup>
+                    <div className="siara-safety-popup">
+                      <strong>{item.title || typeLabel}</strong>
+                      <div className="siara-safety-popup__meta">
+                        <span style={{ color }}>{typeLabel}</span>
+                        {" · "}
+                        <span>{statusLabel}</span>
+                      </div>
+                      {item.roadName || item.locationLabel ? (
+                        <div className="siara-safety-popup__loc">
+                          {item.roadName || item.locationLabel}
+                        </div>
+                      ) : null}
+                      {item.description ? (
+                        <div className="siara-safety-popup__desc">{item.description}</div>
+                      ) : null}
+                    </div>
+                  </Popup>
+                  <Tooltip direction="top" offset={[0, -6]}>
+                    {item.title || typeLabel}
+                  </Tooltip>
+                </CircleMarker>
+              );
+            })}
 
           {userLatLng && !guidedRoute && (
             <CircleMarker
