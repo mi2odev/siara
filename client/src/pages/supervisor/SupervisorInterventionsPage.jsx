@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
@@ -22,7 +23,8 @@ const STATUS_BADGE = {
   cancelled: 'sv-badge-high',
 }
 
-const EMPTY_FORM = { type: 'speed_control', title: '', description: '', locationLabel: '', severityBefore: '', status: 'planned' }
+const VISIBILITIES = ['', 'public', 'internal'] // '' = auto (default by type on the server)
+const EMPTY_FORM = { type: 'speed_control', title: '', description: '', locationLabel: '', severityBefore: '', status: 'planned', visibility: '', roadSegmentId: null }
 
 function formatDate(iso) {
   if (!iso) return '—'
@@ -35,6 +37,7 @@ function formatDate(iso) {
 
 export default function SupervisorInterventionsPage() {
   const { t } = useTranslation(['supervisor', 'common'])
+  const location = useLocation()
   const [data, setData] = useState({ items: [], stats: null })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -73,6 +76,21 @@ export default function SupervisorInterventionsPage() {
     load()
   }, [load])
 
+  // Prefill the create form when arriving from a Pilot Dashboard segment
+  // ("Log intervention" → carries the road segment + label so the new
+  // intervention is linked to it and plots on the operations map).
+  useEffect(() => {
+    const seg = location.state?.prefillSegment
+    if (!seg) return
+    setForm((prev) => ({
+      ...EMPTY_FORM,
+      type: prev.type,
+      locationLabel: seg.locationLabel || '',
+      roadSegmentId: seg.roadSegmentId ?? null,
+    }))
+    setShowForm(true)
+  }, [location.state])
+
   const onFormChange = (e) => {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
@@ -94,6 +112,8 @@ export default function SupervisorInterventionsPage() {
         locationLabel: form.locationLabel.trim() || undefined,
         severityBefore: form.severityBefore ? Number(form.severityBefore) : undefined,
         status: form.status,
+        visibility: form.visibility || undefined,
+        roadSegmentId: form.roadSegmentId ?? undefined,
       })
       setForm(EMPTY_FORM)
       setShowForm(false)
@@ -221,6 +241,23 @@ export default function SupervisorInterventionsPage() {
                       <option value="3">{t('supervisorInterventionsPage.severity.high')}</option>
                     </select>
                   </div>
+                </div>
+                <div className="sv-grid-2">
+                  <div className="sv-form-group">
+                    <label className="sv-form-label">{t('supervisorInterventionsPage.form.visibility')}</label>
+                    <select className="sv-form-select" name="visibility" value={form.visibility} onChange={onFormChange}>
+                      <option value="">{t('supervisorInterventionsPage.form.visibilityAuto')}</option>
+                      <option value="public">{t('supervisorInterventionsPage.visibility.public')}</option>
+                      <option value="internal">{t('supervisorInterventionsPage.visibility.internal')}</option>
+                    </select>
+                    <p className="sv-form-hint">{t('supervisorInterventionsPage.form.visibilityHint')}</p>
+                  </div>
+                  {form.roadSegmentId ? (
+                    <div className="sv-form-group">
+                      <label className="sv-form-label">{t('supervisorInterventionsPage.form.linkedSegment')}</label>
+                      <div><span className="sv-badge sv-badge-accent">#{form.roadSegmentId}{form.locationLabel ? ` · ${form.locationLabel}` : ''}</span></div>
+                    </div>
+                  ) : <div />}
                 </div>
                 <div className="sv-form-group">
                   <label className="sv-form-label">{t('supervisorInterventionsPage.form.description')}</label>

@@ -13,7 +13,11 @@ import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded'
 
 import PoliceShell from '../../components/layout/PoliceShell'
-import { getSupervisorGlobalMap } from '../../services/policeService'
+import {
+  getSupervisorGlobalMap,
+  getSupervisorPilotDashboard,
+  listInterventions,
+} from '../../services/policeService'
 import '../../styles/SupervisorMode.css'
 
 const ALGERIA_CENTER = [28.0339, 1.6596]
@@ -32,6 +36,45 @@ const OFFICER_STATUS = {
   available: { color: '#2563eb', labelKey: 'supervisorOperationsMapPage.officerStatus.available' },
   stale: { color: '#94a3b8', labelKey: 'supervisorOperationsMapPage.officerStatus.stale' },
   off: { color: '#64748b', labelKey: 'supervisorOperationsMapPage.officerStatus.off' },
+}
+
+const INTERVENTION_STATUS_COLOR = {
+  planned: '#d97706',
+  in_progress: '#2563eb',
+  completed: '#16a34a',
+  cancelled: '#94a3b8',
+}
+
+// Hollow ring (distinct from the solid incident pins) — a dangerous segment.
+function segmentIcon(severity) {
+  const cfg = SEVERITY_CONFIG[severity] || SEVERITY_CONFIG.low
+  const size = 26
+  return L.divIcon({
+    className: 'sv-ops-pin',
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;
+      border:3px solid ${cfg.color};background:rgba(255,255,255,0.92);
+      box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;
+      justify-content:center;color:${cfg.color};font-weight:800;font-size:13px;">!</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2 + 4)],
+  })
+}
+
+// Rounded square — an intervention, coloured by status.
+function interventionIcon(status) {
+  const color = INTERVENTION_STATUS_COLOR[status] || '#64748b'
+  const size = 24
+  return L.divIcon({
+    className: 'sv-ops-pin',
+    html: `<div style="width:${size}px;height:${size}px;border-radius:6px;
+      background:${color};color:#fff;border:2px solid rgba(255,255,255,0.9);
+      box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;
+      justify-content:center;font-weight:800;font-size:13px;">+</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2 + 4)],
+  })
 }
 
 function severityKey(inc) {
@@ -131,7 +174,7 @@ export default function SupervisorOperationsMapPage() {
   const mapRef = useRef(null)
   const markerRefs = useRef({})
 
-  const [data, setData] = useState({ incidents: [], officers: [] })
+  const [data, setData] = useState({ incidents: [], officers: [], segments: [], interventions: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [lastRefreshed, setLastRefreshed] = useState(null)
@@ -139,6 +182,8 @@ export default function SupervisorOperationsMapPage() {
   const [showIncidents, setShowIncidents] = useState(true)
   const [showOfficers, setShowOfficers] = useState(true)
   const [showLinks, setShowLinks] = useState(true)
+  const [showSegments, setShowSegments] = useState(true)
+  const [showInterventions, setShowInterventions] = useState(true)
   const [severityFilter, setSeverityFilter] = useState('all')
   const [assignmentFilter, setAssignmentFilter] = useState('all') // all | assigned | unassigned
   const [dutyFilter, setDutyFilter] = useState('all') // all | on | off
@@ -150,8 +195,19 @@ export default function SupervisorOperationsMapPage() {
 
   const load = useCallback(async () => {
     try {
-      const result = await getSupervisorGlobalMap()
-      setData({ incidents: result.incidents || [], officers: result.officers || [] })
+      // Live incidents/officers must succeed; the pilot segments + interventions
+      // overlays are best-effort so they never break the core operations map.
+      const [result, pilot, interventionsRes] = await Promise.all([
+        getSupervisorGlobalMap(),
+        getSupervisorPilotDashboard({ days: 90 }).catch(() => ({ segments: [] })),
+        listInterventions().catch(() => ({ items: [] })),
+      ])
+      setData({
+        incidents: result.incidents || [],
+        officers: result.officers || [],
+        segments: (pilot.segments || []).filter((s) => s.lat != null && s.lng != null),
+        interventions: (interventionsRes.items || []).filter((i) => i.lat != null && i.lng != null),
+      })
       setLastRefreshed(new Date())
       setError(null)
     } catch (err) {
@@ -284,13 +340,24 @@ export default function SupervisorOperationsMapPage() {
     [incidents]
   )
 
+  const visibleSegments = useMemo(
+    () => (showSegments ? data.segments : []),
+    [showSegments, data.segments]
+  )
+  const visibleInterventions = useMemo(
+    () => (showInterventions ? data.interventions : []),
+    [showInterventions, data.interventions]
+  )
+
   // ── Map points for auto-fit ─────────────────────────────────────────────
   const fitPoints = useMemo(
     () => [
       ...visibleIncidents.map((i) => [i.lat, i.lng]),
       ...visibleOfficers.map((o) => [o.lat, o.lng]),
+      ...visibleSegments.map((s) => [s.lat, s.lng]),
+      ...visibleInterventions.map((i) => [i.lat, i.lng]),
     ],
-    [visibleIncidents, visibleOfficers]
+    [visibleIncidents, visibleOfficers, visibleSegments, visibleInterventions]
   )
 
   useEffect(() => {
@@ -368,6 +435,12 @@ export default function SupervisorOperationsMapPage() {
             </button>
             <button className={`sv-filter-btn ${showLinks ? 'active' : ''}`} onClick={() => setShowLinks((v) => !v)}>
               {t('supervisorOperationsMapPage.toolbar.assignmentLinks')}
+            </button>
+            <button className={`sv-filter-btn ${showSegments ? 'active' : ''}`} onClick={() => setShowSegments((v) => !v)}>
+              {t('supervisorOperationsMapPage.toolbar.riskSegments', { count: data.segments.length })}
+            </button>
+            <button className={`sv-filter-btn ${showInterventions ? 'active' : ''}`} onClick={() => setShowInterventions((v) => !v)}>
+              {t('supervisorOperationsMapPage.toolbar.interventions', { count: data.interventions.length })}
             </button>
           </div>
 
@@ -498,6 +571,64 @@ export default function SupervisorOperationsMapPage() {
                   </Marker>
                 )
               })}
+
+              {visibleSegments.map((seg) => {
+                const cfg = SEVERITY_CONFIG[seg.severity] || SEVERITY_CONFIG.low
+                const key = `seg-${seg.roadSegmentId}`
+                return (
+                  <Marker
+                    key={key}
+                    position={[seg.lat, seg.lng]}
+                    icon={segmentIcon(seg.severity)}
+                    ref={(m) => { if (m) markerRefs.current[key] = m }}
+                  >
+                    <Popup minWidth={230}>
+                      <div className="sv-ops-popup">
+                        <div className="sv-ops-popup-title">{seg.road}</div>
+                        <div className="sv-ops-popup-chips">
+                          <span className="sv-ops-chip" style={{ background: cfg.color }}>{t(cfg.labelKey)}</span>
+                          {seg.occurrence && (
+                            <span className="sv-ops-chip sv-ops-chip--muted">{seg.occurrence.percent}% · {t('supervisorOperationsMapPage.segment.occurrenceBeta')}</span>
+                          )}
+                        </div>
+                        <div className="sv-ops-popup-row"><ReportProblemOutlinedIcon fontSize="inherit" /> {t('supervisorOperationsMapPage.segment.verified', { count: seg.verifiedReports })}</div>
+                        <button
+                          className="sv-ops-popup-btn"
+                          onClick={() => navigate('/police/supervisor/interventions', { state: { prefillSegment: { roadSegmentId: seg.roadSegmentId, locationLabel: seg.road } } })}
+                        >
+                          {t('supervisorOperationsMapPage.segment.logIntervention')} <ArrowForwardRoundedIcon fontSize="inherit" />
+                        </button>
+                      </div>
+                    </Popup>
+                  </Marker>
+                )
+              })}
+
+              {visibleInterventions.map((iv) => {
+                const color = INTERVENTION_STATUS_COLOR[iv.status] || '#64748b'
+                const key = `iv-${iv.id}`
+                return (
+                  <Marker
+                    key={key}
+                    position={[iv.lat, iv.lng]}
+                    icon={interventionIcon(iv.status)}
+                    ref={(m) => { if (m) markerRefs.current[key] = m }}
+                  >
+                    <Popup minWidth={220}>
+                      <div className="sv-ops-popup">
+                        <div className="sv-ops-popup-title">{iv.title}</div>
+                        <div className="sv-ops-popup-chips">
+                          <span className="sv-ops-chip" style={{ background: color }}>{t(`supervisorInterventionsPage.statuses.${iv.status}`)}</span>
+                          <span className="sv-ops-chip sv-ops-chip--muted">{t(`supervisorInterventionsPage.types.${iv.type}`)}</span>
+                          <span className="sv-ops-chip sv-ops-chip--muted">{t(`supervisorInterventionsPage.visibility.${iv.visibility}`)}</span>
+                        </div>
+                        {iv.roadName && (<div className="sv-ops-popup-row"><LocationOnOutlinedIcon fontSize="inherit" /> {iv.roadName}</div>)}
+                        {iv.outcomeNote && (<div className="sv-ops-popup-row">{iv.outcomeNote}</div>)}
+                      </div>
+                    </Popup>
+                  </Marker>
+                )
+              })}
             </MapContainer>
 
             {/* Legend */}
@@ -515,6 +646,20 @@ export default function SupervisorOperationsMapPage() {
                 <div key={sk} className="sv-map-legend-item">
                   <span className="sv-map-legend-dot" style={{ background: OFFICER_STATUS[sk].color }} />
                   {t(OFFICER_STATUS[sk].labelKey)}
+                </div>
+              ))}
+              <span className="sv-map-legend-title" style={{ marginTop: 6 }}>{t('supervisorOperationsMapPage.legend.riskSegments')}</span>
+              {['high', 'medium', 'low'].map((sk) => (
+                <div key={`segleg-${sk}`} className="sv-map-legend-item">
+                  <span className="sv-map-legend-dot" style={{ background: 'transparent', border: `2px solid ${SEVERITY_CONFIG[sk].color}` }} />
+                  {t(SEVERITY_CONFIG[sk].labelKey)}
+                </div>
+              ))}
+              <span className="sv-map-legend-title" style={{ marginTop: 6 }}>{t('supervisorOperationsMapPage.legend.interventions')}</span>
+              {['planned', 'in_progress', 'completed', 'cancelled'].map((sk) => (
+                <div key={`ivleg-${sk}`} className="sv-map-legend-item">
+                  <span className="sv-map-legend-dot" style={{ background: INTERVENTION_STATUS_COLOR[sk], borderRadius: 3 }} />
+                  {t(`supervisorInterventionsPage.statuses.${sk}`)}
                 </div>
               ))}
             </div>

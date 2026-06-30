@@ -126,6 +126,7 @@
     "betaTitle": "Occurrence risk is a beta model",
     "betaBody": "Occurrence values are relative risk per segment — not a final, calibrated probability. Use them to compare segments, not as absolute accident chances.",
     "occBetaHint": "Beta model: relative occurrence risk, not a calibrated probability",
+    "logIntervention": "Log intervention",
     "weather": {
       "unknown": "Current conditions",
       "wind": "Wind {{kmh}} km/h",
@@ -207,7 +208,15 @@
       "save": "Save intervention",
       "saving": "Saving...",
       "errorTitle": "Title is required (min 3 characters)",
-      "errorSubmit": "Failed to save intervention"
+      "errorSubmit": "Failed to save intervention",
+      "visibility": "Visibility",
+      "visibilityAuto": "Auto (by type)",
+      "visibilityHint": "Public shows on the citizen safety map; internal stays police-only.",
+      "linkedSegment": "Linked segment"
+    },
+    "visibility": {
+      "public": "Public",
+      "internal": "Internal"
     },
     "table": {
       "type": "Type",
@@ -452,7 +461,9 @@
       "assignmentLinks": "Assignment links",
       "severity": "Severity",
       "coverage": "Coverage",
-      "duty": "Duty"
+      "duty": "Duty",
+      "riskSegments": "Risk segments ({{count}})",
+      "interventions": "Interventions ({{count}})"
     },
     "filter": {
       "all": "All",
@@ -482,7 +493,14 @@
     },
     "legend": {
       "incidents": "Incidents",
-      "officers": "Officers"
+      "officers": "Officers",
+      "riskSegments": "Risk segments",
+      "interventions": "Interventions"
+    },
+    "segment": {
+      "occurrenceBeta": "occurrence (beta)",
+      "verified": "{{count}} verified reports",
+      "logIntervention": "Log intervention"
     },
     "tabs": {
       "incidents": "Incidents",
