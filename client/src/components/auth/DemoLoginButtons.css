@@ -1,0 +1,62 @@
+/* One-click demo login buttons shown below the auth forms. */
+.siara-demo-block {
+  margin-top: 18px;
+}
+
+.siara-demo-hint {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.siara-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.siara-demo-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border: 1px solid #d8dee9;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #1f2937;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.05s ease;
+}
+
+.siara-demo-btn:hover:not(:disabled) {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.siara-demo-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.siara-demo-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.siara-demo-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.siara-demo-label {
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .siara-demo-grid {
+    grid-template-columns: 1fr;
+  }
+}

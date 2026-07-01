@@ -26,6 +26,20 @@ const GOOGLE_PROVIDER = "google";
 const EMAIL_VERIFICATION_REQUIRED_CODE = "EMAIL_VERIFICATION_REQUIRED";
 const IS_DEVELOPMENT = process.env.NODE_ENV !== "production";
 
+// Demo access (one-click role login for showcasing SIARA). Identities + the
+// read-only policy live in ./config/demoAccess so authService and verifytoken
+// share one source of truth. IMPORTANT: the admin demo is read-only (enforced in
+// verifytoken); disable everything with ALLOW_DEMO_LOGIN=false.
+const {
+  DEMO_ROLE_PROFILES,
+  DEMO_ROLE_KEYS,
+  DEMO_CONTACT_EMAIL,
+  isDemoEmail,
+  isReadOnlyDemoEmail,
+  isDemoLoginEnabled,
+  normalizeDemoRole,
+} = require("../config/demoAccess");
+
 let googleClient = null;
 
 const USER_SELECT_SQL = `
@@ -214,6 +228,11 @@ function mapUser(row) {
     email_verified: isEmailVerified(row),
     last_login_at: row.last_login_at || null,
     last_password_reset_at: row.last_password_reset_at || null,
+    // Demo-account flags so the UI can badge the session + show the read-only
+    // notice. Enforcement is server-side (verifytoken), never trusts these.
+    demo: isDemoEmail(row?.email),
+    readOnly: isReadOnlyDemoEmail(row?.email),
+    demoContact: isReadOnlyDemoEmail(row?.email) ? DEMO_CONTACT_EMAIL : null,
   };
 }
 
@@ -809,6 +828,135 @@ async function loginUser({ identifier, password, rememberMe, res }) {
       await client.query("rollback").catch(() => {});
     }
 
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function ensureRoleId(client, roleName) {
+  const existing = await client.query(
+    `select id from auth.roles where lower(name) = lower($1) limit 1`,
+    [roleName],
+  );
+  if (existing.rows[0]?.id) {
+    return existing.rows[0].id;
+  }
+  // Create the role if a fresh DB is missing it (idempotent, mirrors the
+  // WHERE NOT EXISTS seed pattern used by the role migrations).
+  const inserted = await client.query(
+    `insert into auth.roles (name)
+     select $1
+     where not exists (select 1 from auth.roles where lower(name) = lower($1))
+     returning id`,
+    [roleName],
+  );
+  if (inserted.rows[0]?.id) {
+    return inserted.rows[0].id;
+  }
+  const again = await client.query(
+    `select id from auth.roles where lower(name) = lower($1) limit 1`,
+    [roleName],
+  );
+  return again.rows[0]?.id || null;
+}
+
+// One-click demo login. Provisions (or reuses) a labelled account for the
+// requested role, marks it verified/active, assigns the role, and issues a
+// normal session — no password entry required. Gated by ALLOW_DEMO_LOGIN.
+async function demoLogin({ role, rememberMe, res }) {
+  if (!isDemoLoginEnabled()) {
+    throw createError(403, "Demo login is disabled");
+  }
+
+  const key = normalizeDemoRole(role);
+  const profile = key ? DEMO_ROLE_PROFILES[key] : null;
+  if (!profile) {
+    throw createError(400, "Unknown demo role");
+  }
+
+  const client = await pool.connect();
+  let transactionStarted = false;
+
+  try {
+    await client.query("begin");
+    transactionStarted = true;
+
+    const roleId = await ensureRoleId(client, profile.roleName);
+    if (!roleId) {
+      throw createError(500, `Role "${profile.roleName}" is not available`);
+    }
+
+    const existing = await fetchUserByEmail(profile.email, client);
+    let userId = existing?.id || null;
+
+    if (!userId) {
+      // No password path is exposed for demo accounts; store a random hash.
+      const randomSecret = crypto.randomBytes(24).toString("hex");
+      const passwordHash = await bcrypt.hash(randomSecret, PASSWORD_SALT_ROUNDS);
+      const inserted = await client.query(
+        `
+          insert into auth.users (first_name, last_name, email, phone, password_hash, avatar_url)
+          values ($1, $2, $3, null, $4, null)
+          returning id
+        `,
+        [profile.firstName, profile.lastName, profile.email, passwordHash],
+      );
+      userId = inserted.rows[0].id;
+    } else {
+      // Keep the demo account usable even if a previous session deactivated it.
+      await client.query(
+        `
+          update auth.users
+          set is_active = true, moderation_status = 'active', banned_until = null, ban_reason = null, updated_at = now()
+          where id = $1
+        `,
+        [userId],
+      );
+    }
+
+    // Verified security state + email prefs so login-style gates pass.
+    await ensureSupportRows(client, userId, { emailVerifiedAt: new Date().toISOString() });
+
+    // Idempotent role assignment.
+    await client.query(
+      `
+        insert into auth.user_roles (user_id, role_id)
+        select $1, $2
+        where not exists (
+          select 1 from auth.user_roles where user_id = $1 and role_id = $2
+        )
+      `,
+      [userId, roleId],
+    );
+
+    await client.query(
+      `
+        update app.user_security_state
+        set last_login_at = now(), updated_at = now()
+        where user_id = $1
+      `,
+      [userId],
+    );
+
+    await client.query("commit");
+    transactionStarted = false;
+
+    const authenticatedUser = await fetchUserById(userId);
+    const session = issueSession(res, authenticatedUser, normalizeRememberMe(rememberMe));
+
+    return {
+      ok: true,
+      demo: true,
+      role: key,
+      user: mapUser(authenticatedUser),
+      accessToken: session.accessToken,
+      requiresEmailVerification: false,
+    };
+  } catch (error) {
+    if (transactionStarted) {
+      await client.query("rollback").catch(() => {});
+    }
     throw error;
   } finally {
     client.release();
@@ -1547,11 +1695,14 @@ module.exports = {
   JWT_COOKIE_NAME,
   clearSessionCookie,
   confirmEmailVerification,
+  demoLogin,
+  DEMO_ROLE_KEYS,
   fetchEmailPreferences,
   fetchUserActivityTimeline,
   fetchUserByEmail,
   fetchUserById,
   getCookieOptions,
+  isDemoLoginEnabled,
   issueSession,
   loginUser,
   loginWithGoogle,

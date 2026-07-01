@@ -591,35 +591,57 @@ async function getSupervisorPilotDashboard(supervisorUser, query = {}, db = pool
   // can't freeze the request (mirrors adminAnalyticsService.fetchDangerousRoads).
   const client = await db.connect();
   let segmentRows = [];
+  let throughputRow = {};
   try {
     await client.query("BEGIN");
     await client.query("SET LOCAL statement_timeout = '10s'");
     const result = await client.query(
       `
         WITH windowed AS (
-          SELECT id, incident_location, severity_hint, status, created_at, verified_at
+          SELECT id, incident_location, severity_hint, status, created_at, verified_at,
+                 verified_by_officer_id, latest_predicted_label, latest_spam_score
           FROM app.accident_reports
           WHERE created_at >= NOW() - ($1::int * interval '1 day')
             AND incident_location IS NOT NULL
           ORDER BY created_at DESC
           LIMIT 3000
         ),
-        nearest AS (
+        classified AS (
+          -- One mutually-exclusive credibility class per report so a segment ranks
+          -- on ALL its signal, not just the rare officer-verified rows. Precedence:
+          -- officer confirmation > AI spam-flag > explicit rejection > AI "real" > pending.
           SELECT w.*,
+            CASE
+              WHEN (w.status IN ('verified', 'dispatched', 'resolved')
+                    OR w.verified_by_officer_id IS NOT NULL) THEN 'officer'
+              WHEN (w.latest_predicted_label IN ('spam', 'suspicious', 'out_of_context', 'invalid_location')
+                    OR COALESCE(w.latest_spam_score, 0) >= 0.65) THEN 'flagged'
+              WHEN w.status = 'rejected' THEN 'rejected'
+              WHEN (w.latest_predicted_label = 'real'
+                    AND COALESCE(w.latest_spam_score, 1) < 0.35) THEN 'ai'
+              ELSE 'pending'
+            END AS signal_class
+          FROM windowed w
+        ),
+        nearest AS (
+          SELECT c.*,
                  (
                    SELECT rs.id
                    FROM gis.road_segments rs
-                   WHERE ST_DWithin(rs.geom, w.incident_location::geometry, 0.0008)
-                   ORDER BY rs.geom <-> w.incident_location::geometry
+                   WHERE ST_DWithin(rs.geom, c.incident_location::geometry, 0.0008)
+                   ORDER BY rs.geom <-> c.incident_location::geometry
                    LIMIT 1
                  ) AS road_segment_id
-          FROM windowed w
+          FROM classified c
         ),
         agg AS (
           SELECT
             n.road_segment_id,
             COUNT(*)::int AS total_reports,
-            COUNT(*) FILTER (WHERE n.status IN ('verified', 'dispatched', 'resolved'))::int AS verified_reports,
+            COUNT(*) FILTER (WHERE n.signal_class = 'officer')::int AS verified_reports,
+            COUNT(*) FILTER (WHERE n.signal_class = 'ai')::int AS ai_verified_reports,
+            COUNT(*) FILTER (WHERE n.signal_class = 'pending')::int AS pending_reports,
+            COUNT(*) FILTER (WHERE n.signal_class = 'flagged')::int AS flagged_reports,
             COUNT(*) FILTER (WHERE COALESCE(n.severity_hint, 0) >= 3)::int AS high_severity_reports,
             (mode() WITHIN GROUP (ORDER BY COALESCE(n.severity_hint, 1)))::int AS top_severity_hint,
             ROUND(
@@ -628,21 +650,35 @@ async function getSupervisorPilotDashboard(supervisorUser, query = {}, db = pool
             )::bigint AS avg_response_ms,
             (mode() WITHIN GROUP (
               ORDER BY FLOOR(EXTRACT(HOUR FROM n.created_at AT TIME ZONE 'Africa/Algiers') / 6)::int
-            ))::int AS peak_band
+            ))::int AS peak_band,
+            -- Weighted evidence score: confirmed reports count most, AI-verified
+            -- next, raw pending least, with a bump for high-severity signal.
+            ROUND((
+              COUNT(*) FILTER (WHERE n.signal_class = 'officer') * 1.0
+              + COUNT(*) FILTER (WHERE n.signal_class = 'ai') * 0.6
+              + COUNT(*) FILTER (WHERE n.signal_class = 'pending') * 0.3
+              + COUNT(*) FILTER (WHERE COALESCE(n.severity_hint, 0) >= 3) * 0.5
+            )::numeric, 2) AS signal_score
           FROM nearest n
           WHERE n.road_segment_id IS NOT NULL
           GROUP BY n.road_segment_id
-          ORDER BY verified_reports DESC, total_reports DESC
+          -- Drop pure-noise segments (only spam/rejected) from the danger ranking.
+          HAVING COUNT(*) FILTER (WHERE n.signal_class IN ('officer', 'ai', 'pending')) > 0
+          ORDER BY signal_score DESC, total_reports DESC
           LIMIT ${limit}
         )
         SELECT
           a.road_segment_id,
           a.total_reports,
           a.verified_reports,
+          a.ai_verified_reports,
+          a.pending_reports,
+          a.flagged_reports,
           a.high_severity_reports,
           a.top_severity_hint,
           a.avg_response_ms,
           a.peak_band,
+          a.signal_score,
           rs.name AS road_name,
           rs.ref AS road_ref,
           rs.road_class,
@@ -660,12 +696,54 @@ async function getSupervisorPilotDashboard(supervisorUser, query = {}, db = pool
           ORDER BY rp.predicted_at DESC
           LIMIT 1
         ) lp ON TRUE
-        ORDER BY a.verified_reports DESC, a.total_reports DESC
+        ORDER BY a.signal_score DESC, a.total_reports DESC
       `,
       [days],
     );
+
+    // Verification throughput over the whole window (all reports, not just the
+    // ones that mapped to a segment) so supervisors get an actionable "are we
+    // keeping up?" read even when the segment table is thin. Same credibility
+    // taxonomy as the segment ranking above.
+    const throughputResult = await client.query(
+      `
+        WITH classified AS (
+          SELECT verified_at, created_at,
+            CASE
+              WHEN (status IN ('verified', 'dispatched', 'resolved')
+                    OR verified_by_officer_id IS NOT NULL) THEN 'officer'
+              WHEN (latest_predicted_label IN ('spam', 'suspicious', 'out_of_context', 'invalid_location')
+                    OR COALESCE(latest_spam_score, 0) >= 0.65) THEN 'flagged'
+              WHEN status = 'rejected' THEN 'rejected'
+              WHEN (latest_predicted_label = 'real'
+                    AND COALESCE(latest_spam_score, 1) < 0.35) THEN 'ai'
+              ELSE 'pending'
+            END AS signal_class
+          FROM app.accident_reports
+          WHERE created_at >= NOW() - ($1::int * interval '1 day')
+        )
+        SELECT
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE signal_class = 'officer')::int AS officer_verified,
+          COUNT(*) FILTER (WHERE signal_class = 'ai')::int AS ai_verified,
+          COUNT(*) FILTER (WHERE signal_class = 'pending')::int AS pending,
+          COUNT(*) FILTER (WHERE signal_class = 'flagged')::int AS flagged,
+          COUNT(*) FILTER (WHERE signal_class = 'rejected')::int AS rejected,
+          ROUND(
+            AVG(EXTRACT(EPOCH FROM (verified_at - created_at)) * 1000)
+              FILTER (WHERE verified_at IS NOT NULL)
+          )::bigint AS avg_verify_ms,
+          (PERCENTILE_CONT(0.5) WITHIN GROUP (
+            ORDER BY EXTRACT(EPOCH FROM (verified_at - created_at)) * 1000
+          ) FILTER (WHERE verified_at IS NOT NULL))::bigint AS median_verify_ms
+        FROM classified
+      `,
+      [days],
+    );
+
     await client.query("COMMIT");
     segmentRows = result.rows;
+    throughputRow = throughputResult.rows[0] || {};
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
     throw error;
@@ -679,6 +757,11 @@ async function getSupervisorPilotDashboard(supervisorUser, query = {}, db = pool
     const label = (row.road_name && row.road_name.trim())
       || (row.road_ref && row.road_ref.trim())
       || `${row.road_class || "Road"} segment #${row.road_segment_id}`;
+    const officer = Number(row.verified_reports || 0);
+    const ai = Number(row.ai_verified_reports || 0);
+    const pending = Number(row.pending_reports || 0);
+    // Confidence reflects the strongest evidence backing the segment.
+    const confidence = officer > 0 ? "confirmed" : ai > 0 ? "likely" : "unconfirmed";
     return {
       roadSegmentId: Number(row.road_segment_id),
       road: label,
@@ -687,7 +770,12 @@ async function getSupervisorPilotDashboard(supervisorUser, query = {}, db = pool
       lat: row.lat == null ? null : Number(row.lat),
       lng: row.lng == null ? null : Number(row.lng),
       totalReports: Number(row.total_reports || 0),
-      verifiedReports: Number(row.verified_reports || 0),
+      verifiedReports: officer,
+      aiVerifiedReports: ai,
+      pendingReports: pending,
+      flaggedReports: Number(row.flagged_reports || 0),
+      signalScore: row.signal_score == null ? 0 : Number(row.signal_score),
+      confidence,
       highSeverityReports: Number(row.high_severity_reports || 0),
       severity: hint >= 3 ? "high" : hint >= 2 ? "medium" : "low",
       severityHint: hint,
@@ -732,6 +820,30 @@ async function getSupervisorPilotDashboard(supervisorUser, query = {}, db = pool
     }
   }
 
+  // Verification throughput KPIs for the window. "Verified rate" is measured
+  // against credible reports (excluding spam-flagged and rejected noise) so the
+  // percentage reflects how much real work is being confirmed.
+  const tp = throughputRow || {};
+  const tpTotal = Number(tp.total || 0);
+  const tpOfficer = Number(tp.officer_verified || 0);
+  const tpAi = Number(tp.ai_verified || 0);
+  const tpPending = Number(tp.pending || 0);
+  const tpFlagged = Number(tp.flagged || 0);
+  const tpRejected = Number(tp.rejected || 0);
+  const credible = Math.max(0, tpTotal - tpFlagged - tpRejected);
+  const throughput = {
+    totalReports: tpTotal,
+    officerVerified: tpOfficer,
+    aiVerified: tpAi,
+    pending: tpPending,
+    flagged: tpFlagged,
+    rejected: tpRejected,
+    pendingBacklog: tpPending,
+    verifiedRatePct: credible > 0 ? Math.round((tpOfficer / credible) * 1000) / 10 : null,
+    avgTimeToVerifyMs: tp.avg_verify_ms == null ? null : Number(tp.avg_verify_ms),
+    medianTimeToVerifyMs: tp.median_verify_ms == null ? null : Number(tp.median_verify_ms),
+  };
+
   return {
     period: { days },
     generatedAt: new Date().toISOString(),
@@ -739,6 +851,7 @@ async function getSupervisorPilotDashboard(supervisorUser, query = {}, db = pool
     occurrenceDisclaimer:
       "Occurrence risk is a beta model output — relative risk per segment, not a final calibrated probability.",
     weatherContext,
+    throughput,
     segments,
   };
 }

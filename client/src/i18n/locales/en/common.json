@@ -36,5 +36,10 @@
     "logout": "Sign out",
     "login": "Sign in",
     "register": "Sign up"
+  },
+  "demoBanner": {
+    "badge": "Demo admin · read-only",
+    "message": "You can browse and navigate everything, but changes to real data are disabled. You can still change the status of the demo accounts.",
+    "contact": "Need to test a real change? Contact"
   }
 }

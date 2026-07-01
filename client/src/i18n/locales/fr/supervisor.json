@@ -143,15 +143,45 @@
       "severity": "Gravité",
       "occurrenceRisk": "Risque d'occurrence (bêta)",
       "timeOfDay": "Heure de pointe",
-      "responseTime": "Réponse moy."
+      "responseTime": "Réponse moy.",
+      "reports": "Signalements (preuves)",
+      "reportsTotal": "total"
     },
-    "severity": { "high": "Élevée", "medium": "Moyenne", "low": "Faible" },
-    "occLevel": { "high": "Élevé", "medium": "Moyen", "low": "Faible" },
+    "severity": {
+      "high": "Élevée",
+      "medium": "Moyenne",
+      "low": "Faible"
+    },
+    "occLevel": {
+      "high": "Élevé",
+      "medium": "Moyen",
+      "low": "Faible"
+    },
     "bands": {
       "night": "Nuit (00–06)",
       "morning": "Matin (06–12)",
       "afternoon": "Après-midi (12–18)",
       "evening": "Soir (18–24)"
+    },
+    "confidence": {
+      "confirmed": "Confirmé",
+      "likely": "Probable",
+      "unconfirmed": "Non confirmé"
+    },
+    "breakdown": {
+      "officer": "{{count}} vérifiés par agent",
+      "ai": "{{count}} vérifiés par IA",
+      "pending": "{{count}} en attente"
+    },
+    "throughput": {
+      "totalReports": "Signalements reçus",
+      "lastDays": "{{count}} derniers jours",
+      "verifiedRate": "Taux de vérification",
+      "officerCount": "{{count}} vérifiés par agent",
+      "aiAssisted": "Vérifiés par IA",
+      "aiSub": "Jugés authentiques automatiquement",
+      "pendingBacklog": "En attente de revue",
+      "medianVerify": "Vérif. médiane : {{value}}"
     }
   },
   "supervisorInterventionsPage": {
@@ -192,7 +222,11 @@
       "completed": "Terminée",
       "cancelled": "Annulée"
     },
-    "severity": { "low": "Faible", "medium": "Moyenne", "high": "Élevée" },
+    "severity": {
+      "low": "Faible",
+      "medium": "Moyenne",
+      "high": "Élevée"
+    },
     "form": {
       "title": "Nouvelle intervention",
       "type": "Type",

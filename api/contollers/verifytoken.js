@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const createError = require("http-errors");
 
 const pool = require("../db");
+const { isReadOnlyDemoEmail, isDemoEmail, DEMO_CONTACT_EMAIL } = require("../config/demoAccess");
 
 function hasRole(user, roleName) {
   return Array.isArray(user?.roles) && user.roles.includes(roleName);
@@ -331,9 +332,63 @@ async function resolveOptionalAuthenticatedUser(source = {}) {
   }
 }
 
+// --- Read-only demo admin enforcement ---------------------------------------
+// The demo admin account may browse everything but must not mutate real data.
+// The single exception: it may modify the DEMO accounts themselves (e.g. change
+// their status) so the moderation feature stays demoable. Enforced here — the
+// one choke point every authenticated request passes through.
+const DEMO_WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+// Matches an admin user-management target id: /api/admin/users/<uuid>/...
+const ADMIN_USER_TARGET_RE =
+  /\/admin\/users\/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?:\/|\?|$)/;
+
+async function writeTargetsDemoAccount(req) {
+  const url = req.originalUrl || req.url || "";
+  const match = url.match(ADMIN_USER_TARGET_RE);
+  if (!match) {
+    return false;
+  }
+  try {
+    const result = await pool.query(
+      "select email from auth.users where id = $1 limit 1",
+      [match[1]],
+    );
+    return isDemoEmail(result.rows[0]?.email);
+  } catch (_error) {
+    return false;
+  }
+}
+
+// Returns true if the request was blocked (response already sent).
+async function enforceReadOnlyDemo(req, res) {
+  if (!isReadOnlyDemoEmail(req.user?.email)) {
+    return false;
+  }
+  if (!DEMO_WRITE_METHODS.has(String(req.method || "").toUpperCase())) {
+    return false;
+  }
+  // Allow the demo admin to manage the demo accounts (status/roles) only.
+  if (await writeTargetsDemoAccount(req)) {
+    return false;
+  }
+  res.status(403).json({
+    error:
+      "This is a read-only demo admin account — you can browse and navigate everything, but changes to real data are disabled. "
+      + "You can still change the status of the demo accounts. "
+      + `To test actions on real data, please contact ${DEMO_CONTACT_EMAIL}.`,
+    code: "DEMO_READ_ONLY",
+    demo: true,
+    contact: DEMO_CONTACT_EMAIL,
+  });
+  return true;
+}
+
 async function verifyToken(req, res, next) {
   try {
     req.user = await resolveAuthenticatedUser(req);
+    if (await enforceReadOnlyDemo(req, res)) {
+      return undefined;
+    }
     return next();
   } catch (error) {
     if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {

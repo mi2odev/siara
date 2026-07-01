@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton'
+import DemoLoginButtons from '../../components/auth/DemoLoginButtons'
 import LanguageSelect from '../../components/layout/LanguageSelect'
 import { AuthContext } from '../../contexts/AuthContext'
 import { getAuthenticatedRedirect } from '../../routes/routeAccess'
@@ -258,6 +259,8 @@ export default function LoginPage() {
                 setGoogleError(googleAuthError.message)
               }}
             />
+
+            <DemoLoginButtons />
 
             <div className="siara-footer-links">
               <Link to="/about">{t('loginPage.footer.aboutSiara')}</Link>

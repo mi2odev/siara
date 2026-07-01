@@ -143,15 +143,45 @@
       "severity": "Severity",
       "occurrenceRisk": "Occurrence Risk (beta)",
       "timeOfDay": "Peak Time",
-      "responseTime": "Avg Response"
+      "responseTime": "Avg Response",
+      "reports": "Reports (evidence)",
+      "reportsTotal": "total"
     },
-    "severity": { "high": "High", "medium": "Medium", "low": "Low" },
-    "occLevel": { "high": "High", "medium": "Medium", "low": "Low" },
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "occLevel": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
     "bands": {
       "night": "Night (00–06)",
       "morning": "Morning (06–12)",
       "afternoon": "Afternoon (12–18)",
       "evening": "Evening (18–24)"
+    },
+    "confidence": {
+      "confirmed": "Confirmed",
+      "likely": "Likely",
+      "unconfirmed": "Unconfirmed"
+    },
+    "breakdown": {
+      "officer": "{{count}} officer-verified",
+      "ai": "{{count}} AI-verified",
+      "pending": "{{count}} pending"
+    },
+    "throughput": {
+      "totalReports": "Reports received",
+      "lastDays": "Last {{count}} days",
+      "verifiedRate": "Verified rate",
+      "officerCount": "{{count}} officer-verified",
+      "aiAssisted": "AI-verified",
+      "aiSub": "Auto-checked as genuine",
+      "pendingBacklog": "Pending review",
+      "medianVerify": "Median verify: {{value}}"
     }
   },
   "supervisorInterventionsPage": {
@@ -192,7 +222,11 @@
       "completed": "Completed",
       "cancelled": "Cancelled"
     },
-    "severity": { "low": "Low", "medium": "Medium", "high": "High" },
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
     "form": {
       "title": "New Intervention",
       "type": "Type",

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import {
   confirmVerificationCode,
+  demoLogin as demoLoginRequest,
   getSession,
   login as loginRequest,
   loginWithGoogle as loginWithGoogleRequest,
@@ -128,6 +129,22 @@ export const useAuthStore = create((set, get) => ({
 
     try {
       const response = await loginRequest({ email, password, rememberMe })
+      setAuthenticatedState(set, response)
+      return normalizeAuthUser(response.user)
+    } catch (error) {
+      set({
+        ...buildLoggedOutState(),
+        hasCheckedSession: true,
+      })
+      throw error
+    }
+  },
+
+  async demoLogin(role, rememberMe = false) {
+    set({ isAuthLoading: true })
+
+    try {
+      const response = await demoLoginRequest(role, rememberMe)
       setAuthenticatedState(set, response)
       return normalizeAuthUser(response.user)
     } catch (error) {

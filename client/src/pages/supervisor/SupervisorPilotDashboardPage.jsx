@@ -57,6 +57,13 @@ export default function SupervisorPilotDashboardPage() {
 
   const segments = data?.segments || []
   const weather = data?.weatherContext || null
+  const throughput = data?.throughput || null
+
+  const CONFIDENCE_STYLE = {
+    confirmed: { color: '#16a34a', bg: 'rgba(22,163,74,0.12)' },
+    likely: { color: '#0ea5e9', bg: 'rgba(14,165,233,0.12)' },
+    unconfirmed: { color: 'var(--sv-text-muted)', bg: 'rgba(148,163,184,0.14)' },
+  }
 
   const occLabel = (level) => {
     const key = String(level || '').trim().toLowerCase()
@@ -100,6 +107,33 @@ export default function SupervisorPilotDashboardPage() {
           </div>
         </div>
 
+        {/* Verification throughput — how much report volume is being confirmed,
+            so the pilot reads as "alive" even when officer-verified counts are low. */}
+        <div className="sv-kpi-bar" style={{ marginBottom: 20 }}>
+          <div className="sv-kpi-card kpi-primary">
+            <div className="sv-kpi-label">{t('supervisorPilotDashboardPage.throughput.totalReports')}</div>
+            <div className="sv-kpi-value">{loading ? '—' : throughput?.totalReports ?? 0}</div>
+            <div className="sv-kpi-sub">{t('supervisorPilotDashboardPage.throughput.lastDays', { count: days })}</div>
+          </div>
+          <div className="sv-kpi-card kpi-good">
+            <div className="sv-kpi-label">{t('supervisorPilotDashboardPage.throughput.verifiedRate')}</div>
+            <div className="sv-kpi-value" style={{ fontSize: 24 }}>
+              {loading || throughput?.verifiedRatePct == null ? '—' : `${throughput.verifiedRatePct}%`}
+            </div>
+            <div className="sv-kpi-sub">{t('supervisorPilotDashboardPage.throughput.officerCount', { count: throughput?.officerVerified ?? 0 })}</div>
+          </div>
+          <div className="sv-kpi-card kpi-accent">
+            <div className="sv-kpi-label">{t('supervisorPilotDashboardPage.throughput.aiAssisted')}</div>
+            <div className="sv-kpi-value" style={{ fontSize: 24 }}>{loading ? '—' : throughput?.aiVerified ?? 0}</div>
+            <div className="sv-kpi-sub">{t('supervisorPilotDashboardPage.throughput.aiSub')}</div>
+          </div>
+          <div className="sv-kpi-card kpi-warning">
+            <div className="sv-kpi-label">{t('supervisorPilotDashboardPage.throughput.pendingBacklog')}</div>
+            <div className="sv-kpi-value" style={{ fontSize: 24 }}>{loading ? '—' : throughput?.pendingBacklog ?? 0}</div>
+            <div className="sv-kpi-sub">{t('supervisorPilotDashboardPage.throughput.medianVerify', { value: formatDuration(throughput?.medianTimeToVerifyMs) })}</div>
+          </div>
+        </div>
+
         {/* Current weather context (single zone-centroid lookup) */}
         {weather && (
           <div className="sv-weather-strip" style={{ marginBottom: 20 }}>
@@ -139,7 +173,7 @@ export default function SupervisorPilotDashboardPage() {
                     <tr>
                       <th>#</th>
                       <th>{t('supervisorPilotDashboardPage.table.segment')}</th>
-                      <th>{t('supervisorPilotDashboardPage.table.verifiedReports')}</th>
+                      <th>{t('supervisorPilotDashboardPage.table.reports')}</th>
                       <th>{t('supervisorPilotDashboardPage.table.severity')}</th>
                       <th>{t('supervisorPilotDashboardPage.table.occurrenceRisk')}</th>
                       <th>{t('supervisorPilotDashboardPage.table.timeOfDay')}</th>
@@ -156,8 +190,29 @@ export default function SupervisorPilotDashboardPage() {
                           {seg.ref ? <span style={{ color: 'var(--sv-text-muted)', fontWeight: 400 }}> · {seg.ref}</span> : null}
                         </td>
                         <td>
-                          <strong>{seg.verifiedReports}</strong>
-                          <span style={{ color: 'var(--sv-text-muted)', fontSize: 12 }}> / {seg.totalReports}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <span><strong>{seg.totalReports}</strong> <span style={{ color: 'var(--sv-text-muted)', fontSize: 11 }}>{t('supervisorPilotDashboardPage.table.reportsTotal')}</span></span>
+                            <span
+                              className="sv-badge"
+                              style={{
+                                color: (CONFIDENCE_STYLE[seg.confidence] || CONFIDENCE_STYLE.unconfirmed).color,
+                                background: (CONFIDENCE_STYLE[seg.confidence] || CONFIDENCE_STYLE.unconfirmed).bg,
+                              }}
+                            >
+                              {t(`supervisorPilotDashboardPage.confidence.${seg.confidence || 'unconfirmed'}`)}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4, fontSize: 11 }}>
+                            {seg.verifiedReports > 0 && (
+                              <span style={{ color: '#16a34a' }}>{t('supervisorPilotDashboardPage.breakdown.officer', { count: seg.verifiedReports })}</span>
+                            )}
+                            {seg.aiVerifiedReports > 0 && (
+                              <span style={{ color: '#0ea5e9' }}>{t('supervisorPilotDashboardPage.breakdown.ai', { count: seg.aiVerifiedReports })}</span>
+                            )}
+                            {seg.pendingReports > 0 && (
+                              <span style={{ color: 'var(--sv-text-muted)' }}>{t('supervisorPilotDashboardPage.breakdown.pending', { count: seg.pendingReports })}</span>
+                            )}
+                          </div>
                         </td>
                         <td>
                           <span className={`sv-badge ${SEVERITY_BADGE[seg.severity] || 'sv-badge-low'}`}>
