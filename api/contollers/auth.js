@@ -12,8 +12,11 @@ const {
   EMAIL_VERIFICATION_REQUIRED_CODE,
   clearSessionCookie,
   confirmEmailVerification,
+  demoLogin,
+  DEMO_ROLE_KEYS,
   fetchEmailPreferences,
   fetchUserActivityTimeline,
+  isDemoLoginEnabled,
   loginUser,
   loginWithGoogle,
   mapUser,
@@ -577,6 +580,29 @@ router.post("/login", async (req, res, next) => {
       });
     }
 
+    return next(error);
+  }
+});
+
+// Demo access: advertise whether one-click demo login is available + the roles.
+router.get("/demo-login", (req, res) => {
+  return res.status(200).json({
+    enabled: isDemoLoginEnabled(),
+    roles: isDemoLoginEnabled() ? DEMO_ROLE_KEYS : [],
+  });
+});
+
+// Demo access: log straight in as a demo account for the requested role.
+router.post("/demo-login", async (req, res, next) => {
+  try {
+    const result = await demoLogin({
+      role: req.body.role,
+      rememberMe: req.body.rememberMe,
+      res,
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
     return next(error);
   }
 });

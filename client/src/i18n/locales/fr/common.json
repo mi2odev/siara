@@ -36,5 +36,10 @@
     "logout": "Se déconnecter",
     "login": "Se connecter",
     "register": "S'inscrire"
+  },
+  "demoBanner": {
+    "badge": "Admin démo · lecture seule",
+    "message": "Vous pouvez tout consulter et naviguer, mais les modifications des données réelles sont désactivées. Vous pouvez toujours changer le statut des comptes de démonstration.",
+    "contact": "Besoin de tester une modification réelle ? Contactez"
   }
 }

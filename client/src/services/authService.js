@@ -33,6 +33,23 @@ export async function login(payload) {
   return mapAuthResponse(response.data)
 }
 
+export async function getDemoLoginOptions() {
+  try {
+    const response = await publicRequest.get('/auth/demo-login')
+    return {
+      enabled: Boolean(response.data?.enabled),
+      roles: Array.isArray(response.data?.roles) ? response.data.roles : [],
+    }
+  } catch {
+    return { enabled: false, roles: [] }
+  }
+}
+
+export async function demoLogin(role, rememberMe = false) {
+  const response = await publicRequest.post('/auth/demo-login', { role, rememberMe })
+  return mapAuthResponse(response.data)
+}
+
 export async function loginWithGoogle(payload) {
   const response = await publicRequest.post('/auth/google', {
     idToken: payload.idToken || payload.credential,

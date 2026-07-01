@@ -143,15 +143,45 @@
       "severity": "الخطورة",
       "occurrenceRisk": "خطر الوقوع (تجريبي)",
       "timeOfDay": "وقت الذروة",
-      "responseTime": "متوسط الاستجابة"
+      "responseTime": "متوسط الاستجابة",
+      "reports": "البلاغات (الأدلة)",
+      "reportsTotal": "الإجمالي"
     },
-    "severity": { "high": "عالية", "medium": "متوسطة", "low": "منخفضة" },
-    "occLevel": { "high": "عالٍ", "medium": "متوسط", "low": "منخفض" },
+    "severity": {
+      "high": "عالية",
+      "medium": "متوسطة",
+      "low": "منخفضة"
+    },
+    "occLevel": {
+      "high": "عالٍ",
+      "medium": "متوسط",
+      "low": "منخفض"
+    },
     "bands": {
       "night": "ليل (00–06)",
       "morning": "صباح (06–12)",
       "afternoon": "بعد الظهر (12–18)",
       "evening": "مساء (18–24)"
+    },
+    "confidence": {
+      "confirmed": "مؤكَّد",
+      "likely": "مُرجَّح",
+      "unconfirmed": "غير مؤكَّد"
+    },
+    "breakdown": {
+      "officer": "{{count}} تحقّق منها عون",
+      "ai": "{{count}} تحقّق منها الذكاء الاصطناعي",
+      "pending": "{{count}} قيد الانتظار"
+    },
+    "throughput": {
+      "totalReports": "البلاغات الواردة",
+      "lastDays": "آخر {{count}} يوم",
+      "verifiedRate": "معدّل التحقّق",
+      "officerCount": "{{count}} تحقّق منها عون",
+      "aiAssisted": "تحقّق منها الذكاء الاصطناعي",
+      "aiSub": "فُحصت تلقائياً كبلاغات حقيقية",
+      "pendingBacklog": "بانتظار المراجعة",
+      "medianVerify": "وسيط التحقّق: {{value}}"
     }
   },
   "supervisorInterventionsPage": {
@@ -192,7 +222,11 @@
       "completed": "مكتمل",
       "cancelled": "ملغى"
     },
-    "severity": { "low": "منخفضة", "medium": "متوسطة", "high": "عالية" },
+    "severity": {
+      "low": "منخفضة",
+      "medium": "متوسطة",
+      "high": "عالية"
+    },
     "form": {
       "title": "تدخل جديد",
       "type": "النوع",

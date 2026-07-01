@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import GoogleAuthButton from '../../components/auth/GoogleAuthButton'
+import DemoLoginButtons from '../../components/auth/DemoLoginButtons'
 import LanguageSelect from '../../components/layout/LanguageSelect'
 import { AuthContext } from '../../contexts/AuthContext'
 import { getAuthenticatedRedirect } from '../../routes/routeAccess'
@@ -306,6 +307,8 @@ export default function RegisterPage() {
                 setGoogleError(googleAuthError.message)
               }}
             />
+
+            <DemoLoginButtons />
 
             <div className="register-footer">
               {t('registerPage.form.alreadyRegistered')} <Link to="/login" className="link-accent">{t('registerPage.form.logIn')}</Link>

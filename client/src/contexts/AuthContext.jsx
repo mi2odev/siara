@@ -4,6 +4,7 @@ import i18n, { normalizeLanguage } from '../i18n'
 import { getMyPreferences } from '../services/preferencesService'
 import BanBanner from '../components/common/BanBanner'
 import WarningBanner from '../components/common/WarningBanner'
+import DemoReadOnlyBanner from '../components/common/DemoReadOnlyBanner'
 
 export const AuthContext = createContext(null)
 
@@ -11,6 +12,7 @@ export function AuthProvider({ children }) {
   const restoreSession = useAuthStore((state) => state.restoreSession)
   const login = useAuthStore((state) => state.login)
   const register = useAuthStore((state) => state.register)
+  const demoLogin = useAuthStore((state) => state.demoLogin)
   const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle)
   const completeEmailVerification = useAuthStore((state) => state.completeEmailVerification)
   const logout = useAuthStore((state) => state.logout)
@@ -81,6 +83,7 @@ export function AuthProvider({ children }) {
     hasCheckedSession,
     login,
     register,
+    demoLogin,
     loginWithGoogle,
     completeEmailVerification,
     logout,
@@ -88,6 +91,7 @@ export function AuthProvider({ children }) {
     setUser,
   }), [
     completeEmailVerification,
+    demoLogin,
     hasCheckedSession,
     isAdmin,
     isAuthenticated,
@@ -107,6 +111,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={value}>
       {isAuthenticated && <BanBanner user={user} />}
       {isAuthenticated && <WarningBanner user={user} />}
+      {isAuthenticated && <DemoReadOnlyBanner user={user} />}
       {children}
     </AuthContext.Provider>
   )
