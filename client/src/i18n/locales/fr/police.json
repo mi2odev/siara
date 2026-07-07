@@ -775,7 +775,7 @@
     "title": "Sélectionnez votre zone de travail",
     "subtitle": "Configuration de première connexion pour {{name}}",
     "stepLabel": "Étape 1 sur 1",
-    "description": "Choisissez votre Wilaya et Commune actives avant d'entrer en mode Police. Vous pouvez mettre à jour votre zone active ultérieurement si votre affectation change.",
+    "description": "Choisissez votre Wilaya et Commune actives avant d'entrer en mode Police. SIARA limite vos incidents, alertes et file prioritaire à cette zone afin que vous ne voyiez que ce qui vous concerne. Vous pourrez la modifier plus tard si votre affectation change.",
     "wilaya": {
       "label": "Wilaya",
       "placeholder": "Sélectionner une Wilaya",

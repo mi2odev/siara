@@ -682,6 +682,16 @@
         "completed": "Terminé",
         "cancelled": "Annulé"
       }
+    },
+    "manualLocation": {
+      "title": "Votre position",
+      "hint": "GPS indisponible ? Recherchez un lieu pour définir votre position — utilisée par le risque, la météo et la sécurité.",
+      "searchPlaceholder": "Rechercher une ville, un quartier ou une adresse…",
+      "searching": "Recherche…",
+      "noResults": "Aucun lieu trouvé",
+      "searchError": "Échec de la recherche. Réessayez.",
+      "useGps": "Utiliser le GPS",
+      "deniedPrompt": "L'accès à la localisation est bloqué. Recherchez votre ville ou adresse ci-dessous pour la définir manuellement."
     }
   }
 }

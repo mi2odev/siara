@@ -1,0 +1,193 @@
+/* Manual location picker shown in the map's right sidebar. */
+.siara-manual-loc {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e6e9ef;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+/* GPS was denied — pull attention to the manual picker as the recovery path. */
+.siara-manual-loc.is-denied {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.14);
+}
+
+.siara-manual-loc__hint.is-denied {
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.siara-manual-loc__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.siara-manual-loc__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.siara-manual-loc__hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.siara-manual-loc__current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+  background: #eef2ff;
+  border: 1px solid #dfe4ff;
+  border-radius: 10px;
+}
+
+.siara-manual-loc__pin {
+  color: #4f46e5;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.siara-manual-loc__label {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.siara-manual-loc__reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.siara-manual-loc__reset:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+}
+
+.siara-manual-loc__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.siara-manual-loc__search-icon {
+  position: absolute;
+  left: 9px;
+  color: #94a3b8;
+  display: inline-flex;
+  pointer-events: none;
+}
+
+.siara-manual-loc__input {
+  width: 100%;
+  padding: 8px 30px 8px 30px;
+  border: 1px solid #d8dee9;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #1f2937;
+  outline: none;
+}
+
+.siara-manual-loc__input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.siara-manual-loc__clear {
+  position: absolute;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.siara-manual-loc__results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1200;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e6e9ef;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  max-height: 232px;
+  overflow-y: auto;
+}
+
+.siara-manual-loc__status {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.siara-manual-loc__status.is-error {
+  color: #dc2626;
+}
+
+.siara-manual-loc__result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #1f2937;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.siara-manual-loc__result:hover {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.siara-manual-loc__result span {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -415,6 +415,9 @@
       "title": "Report submitted!",
       "reference": "Reference:",
       "awaitingVerification": "Awaiting verification",
+      "queuedTitle": "Saved to send later",
+      "queuedReference": "Saved on this device — it will send automatically once you're online.",
+      "waitingToSend": "Waiting to send",
       "whatHappensNext": "What happens next?",
       "nextSteps": {
         "autoReview": {
@@ -434,6 +437,9 @@
       "reportAnother": "Report another incident",
       "backToFeed": "Back to feed",
       "trustNotice": "Your personal data is protected. Reports are moderated to ensure quality."
+    },
+    "offline": {
+      "queuedNotice": "You're offline, so this report was saved on your device. It will be sent automatically once you're back online."
     }
   },
   "reportsPage": {

@@ -415,6 +415,9 @@
       "title": "Signalement envoyé !",
       "reference": "Référence :",
       "awaitingVerification": "En attente de vérification",
+      "queuedTitle": "Enregistré pour envoi ultérieur",
+      "queuedReference": "Enregistré sur cet appareil — il sera envoyé automatiquement dès que vous serez en ligne.",
+      "waitingToSend": "En attente d'envoi",
       "whatHappensNext": "Que se passe-t-il ensuite ?",
       "nextSteps": {
         "autoReview": {
@@ -434,6 +437,9 @@
       "reportAnother": "Signaler un autre incident",
       "backToFeed": "Retour au fil d'actualité",
       "trustNotice": "Vos données personnelles sont protégées. Les signalements sont modérés pour garantir la qualité."
+    },
+    "offline": {
+      "queuedNotice": "Vous êtes hors ligne : ce signalement a été enregistré sur votre appareil. Il sera envoyé automatiquement dès votre reconnexion."
     }
   },
   "reportsPage": {

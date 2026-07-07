@@ -7,6 +7,17 @@
     "componentStack": "Pile des composants",
     "tryAgain": "Réessayer"
   },
+  "routeErrorBoundary": {
+    "heading": "Cette section a rencontré un problème",
+    "body": "Un élément de cette page a cessé de fonctionner, mais le reste de l'application est intact. Vous pouvez réessayer ou revenir en arrière.",
+    "tryAgain": "Réessayer",
+    "goHome": "Aller à l'accueil"
+  },
+  "offlineBanner": {
+    "offline": "Vous êtes hors ligne. Les signalements que vous envoyez seront enregistrés et transmis automatiquement.",
+    "queued": "{{count}} signalement(s) en attente d'envoi.",
+    "syncing": "De nouveau en ligne — envoi des signalements enregistrés…"
+  },
   "banBanner": {
     "justNow": "à l'instant",
     "permanentlyBanned": "Votre compte est définitivement banni.",

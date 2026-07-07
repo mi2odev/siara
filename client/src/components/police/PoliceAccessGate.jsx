@@ -2,6 +2,7 @@ import React from 'react'
 import { Navigate, Outlet, useLocation, useOutletContext } from 'react-router-dom'
 
 import { getPoliceMe } from '../../services/policeService'
+import RouteErrorBoundary from '../common/RouteErrorBoundary'
 
 export function usePoliceAccess() {
   const context = useOutletContext()
@@ -69,11 +70,13 @@ export default function PoliceAccessGate() {
   }
 
   return (
-    <Outlet
-      context={{
-        policeMe: state.policeMe,
-        refreshPoliceMe,
-      }}
-    />
+    <RouteErrorBoundary resetKey={location.pathname} homePath="/police">
+      <Outlet
+        context={{
+          policeMe: state.policeMe,
+          refreshPoliceMe,
+        }}
+      />
+    </RouteErrorBoundary>
   )
 }
