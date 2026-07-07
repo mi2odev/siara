@@ -7,6 +7,17 @@
     "componentStack": "Component stack",
     "tryAgain": "Try again"
   },
+  "routeErrorBoundary": {
+    "heading": "This section ran into a problem",
+    "body": "Something on this page stopped working, but the rest of the app is fine. You can try again or head back.",
+    "tryAgain": "Try again",
+    "goHome": "Go to home"
+  },
+  "offlineBanner": {
+    "offline": "You're offline. Reports you submit will be saved and sent automatically.",
+    "queued": "{{count}} saved report(s) waiting to send.",
+    "syncing": "Back online — sending saved reports…"
+  },
   "banBanner": {
     "justNow": "just now",
     "permanentlyBanned": "Your account is permanently banned.",

@@ -57,6 +57,7 @@ import profileAvatar from "../../assets/logos/siara-logo1.png";
 import DangerForecastChart from "../../components/map/DangerForecastChart";
 import SiaraMap from "../../components/map/SiaraMap";
 import FallbackLocationBanner from "../../components/map/FallbackLocationBanner";
+import ManualLocationControl from "../../components/map/ManualLocationControl";
 import DrivingQuiz from "../../components/ui/DrivingQuiz";
 import { normalizeReportType } from "../../components/map/reportTypeMeta";
 import useReportMapReports from "../../hooks/useReportMapReports";
@@ -114,6 +115,24 @@ function storedWilaya(fallback = "all") {
 function storedMapLayer(fallback = "points") {
   const value = readStoredMapFilters().mapLayer;
   return ALLOWED_MAP_LAYERS.includes(value) ? value : fallback;
+}
+
+// Manual location the user picked when GPS is unavailable. Persisted so it
+// survives refreshes ("remember last-known location").
+const MANUAL_LOCATION_STORAGE_KEY = "siara_manual_location_v1";
+
+function readStoredManualLocation() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(MANUAL_LOCATION_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && Number.isFinite(Number(parsed.lat)) && Number.isFinite(Number(parsed.lng))) {
+      return { lat: Number(parsed.lat), lng: Number(parsed.lng), label: String(parsed.label || "") };
+    }
+  } catch {
+    /* ignore parse/storage errors */
+  }
+  return null;
 }
 
 async function getJson(path, signal) {
@@ -437,6 +456,8 @@ export default function MapPage() {
   const [locationError, setLocationError] = useState("");
   const [locationWarning, setLocationWarning] = useState("");
   const [locationRequestVersion, setLocationRequestVersion] = useState(0);
+  // Manually-picked location (place search) used when GPS is unavailable.
+  const [manualLocation, setManualLocation] = useState(() => readStoredManualLocation());
   const [selectedTimestampIso, setSelectedTimestampIso] = useState(() => new Date().toISOString());
   const {
     location: liveLocation,
@@ -505,7 +526,7 @@ export default function MapPage() {
   const contextPointKey = useMemo(() => toPointKey(contextPoint), [contextPoint]);
   const hasGrantedLocation = useMemo(
     () =>
-      (locationStatus === "granted" || locationStatus === "fallback") &&
+      (locationStatus === "granted" || locationStatus === "fallback" || locationStatus === "manual") &&
       normalizePoint(userPosition) != null,
     [locationStatus, userPosition],
   );
@@ -561,7 +582,45 @@ export default function MapPage() {
     startLiveLocationTracking();
   }, [startLiveLocationTracking]);
 
+  // A manually-picked location drives risk/weather/safety exactly like a GPS fix.
   useEffect(() => {
+    if (!manualLocation) return;
+    setUserPosition({ lat: manualLocation.lat, lng: manualLocation.lng });
+    setLocationStatus("manual");
+    setLocationError("");
+    setLocationWarning("");
+    if (manualLocation.label) setResolvedPlaceName(manualLocation.label);
+  }, [manualLocation]);
+
+  // Persist the manual location so it survives refreshes (best-effort).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (manualLocation) {
+        window.localStorage.setItem(MANUAL_LOCATION_STORAGE_KEY, JSON.stringify(manualLocation));
+      } else {
+        window.localStorage.removeItem(MANUAL_LOCATION_STORAGE_KEY);
+      }
+    } catch {
+      /* ignore storage quota / privacy-mode errors */
+    }
+  }, [manualLocation]);
+
+  const handleSetManualLocation = useCallback((place) => {
+    const lat = Number(place?.lat);
+    const lng = Number(place?.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    setManualLocation({ lat, lng, label: String(place?.label || "").trim() });
+  }, []);
+
+  const handleClearManualLocation = useCallback(() => {
+    setManualLocation(null);
+    setResolvedPlaceName("");
+    requestLocation(); // resume GPS
+  }, [requestLocation]);
+
+  useEffect(() => {
+    if (manualLocation) return; // manual override wins over GPS/fallback
     if (!liveLocation) return;
     setUserPosition(liveLocation);
     if (liveLocation.isFallback) {
@@ -575,9 +634,10 @@ export default function MapPage() {
     setLocationStatus("granted");
     setLocationError("");
     setLocationWarning(buildLocationWarning(liveLocation));
-  }, [liveLocation]);
+  }, [liveLocation, manualLocation]);
 
   useEffect(() => {
+    if (manualLocation) return; // manual override wins over GPS status changes
     if (liveLocationStatus === "requesting") {
       setLocationStatus(normalizePoint(userPositionRef.current) ? "granted" : "locating");
       setLocationError("");
@@ -604,9 +664,10 @@ export default function MapPage() {
       setLocationError(mapLiveLocationError(liveLocationError, liveLocationStatus));
       setLocationWarning("");
     }
-  }, [liveLocationError, liveLocationStatus]);
+  }, [liveLocationError, liveLocationStatus, manualLocation]);
 
   useEffect(() => {
+    if (manualLocation) return undefined; // don't auto-request GPS while manual is active
     if (!navigator?.geolocation) {
       setUserPosition(null);
       setLocationStatus("error");
@@ -674,7 +735,7 @@ export default function MapPage() {
         permissionStatus.onchange = null;
       }
     };
-  }, [requestLocation]);
+  }, [requestLocation, manualLocation]);
 
   useEffect(() => {
     const forceWeatherRefresh = () => {
@@ -1548,7 +1609,7 @@ export default function MapPage() {
                 riskPanelTarget={isFullscreen ? null : riskPanelHost}
                 guideControlsTarget={!isFullscreen && isCompactLayout ? guideControlsHost : null}
               />
-              {liveLocationIsFallback ? (
+              {liveLocationIsFallback && !manualLocation ? (
                 <div
                   style={{
                     position: 'absolute',
@@ -1583,6 +1644,14 @@ export default function MapPage() {
               (stacked) layouts so they sit in a clean card below the map.
               Stays empty (and hidden) on desktop, where the panel overlays the map. */}
           <div ref={setGuideControlsHost} className="context-guide-slot" />
+
+          {/* ── Manual location picker (works when GPS is unavailable) ── */}
+          <ManualLocationControl
+            currentLocation={manualLocation}
+            locationStatus={locationStatus}
+            onSet={handleSetManualLocation}
+            onClear={handleClearManualLocation}
+          />
 
           {/* ── Current weather widget ── */}
           <div className="context-weather">

@@ -1,0 +1,13 @@
+{
+  "name": "siara-persona-sweep",
+  "private": true,
+  "type": "module",
+  "description": "Browser-driven UX sweep across SIARA personas (role × language).",
+  "scripts": {
+    "postinstall": "playwright install chromium",
+    "sweep": "node persona-sweep.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

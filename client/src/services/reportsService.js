@@ -1,12 +1,18 @@
 import { API_ORIGIN, publicRequest, userRequest } from '../requestMethodes'
 
 function normalizeApiError(error, fallbackMessage) {
-  return new Error(
+  const normalized = new Error(
     error?.response?.data?.message
       || error?.response?.data?.error
       || error?.message
       || fallbackMessage,
   )
+  // Preserve the network-vs-server distinction so callers (e.g. the offline
+  // report queue) can decide whether a failure is worth retrying later. Axios
+  // reports a true connectivity failure with no `response`.
+  normalized.status = error?.response?.status ?? null
+  normalized.isNetworkError = !error?.response
+  return normalized
 }
 
 function tryParseJson(value) {

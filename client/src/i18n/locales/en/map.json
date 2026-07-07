@@ -682,6 +682,16 @@
         "completed": "Completed",
         "cancelled": "Cancelled"
       }
+    },
+    "manualLocation": {
+      "title": "Your location",
+      "hint": "GPS unavailable? Search a place to set your location — risk, weather, and safety use it.",
+      "searchPlaceholder": "Search a city, area, or address…",
+      "searching": "Searching…",
+      "noResults": "No places found",
+      "searchError": "Search failed. Try again.",
+      "useGps": "Use GPS",
+      "deniedPrompt": "Location access is blocked. Search your city or address below to set it manually."
     }
   }
 }

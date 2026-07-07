@@ -4,8 +4,11 @@ import { useTranslation } from 'react-i18next'
 
 import { NotificationProvider } from './contexts/NotificationContext'
 import AppErrorBoundary from './components/common/AppErrorBoundary'
+import SessionExpiryHandler from './components/common/SessionExpiryHandler'
+import OfflineBanner from './components/common/OfflineBanner'
 import AppRouter from './routes/AppRouter'
 import { registerPushServiceWorker } from './services/pushService'
+import { initOfflineReportQueue } from './services/offlineReportQueue'
 import './App.css'
 
 export default function App() {
@@ -15,6 +18,8 @@ export default function App() {
     registerPushServiceWorker().catch((error) => {
       console.warn('[push] service_worker_registration_failed', error)
     })
+    // Retry-deliver any incident reports saved while offline / on a flaky link.
+    initOfflineReportQueue()
   }, [])
 
   useEffect(() => {
@@ -131,6 +136,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <NotificationProvider>
+        <SessionExpiryHandler />
+        <OfflineBanner />
         <AppErrorBoundary>
           <AppRouter />
         </AppErrorBoundary>

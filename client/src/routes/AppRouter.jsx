@@ -1,5 +1,7 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+
+import RouteErrorBoundary from "../components/common/RouteErrorBoundary";
 
 import AdminLayout from "../components/layout/AdminLayout";
 import DashboardPage from "../pages/admin/DashboardPage";
@@ -70,7 +72,9 @@ import EmergencyResponsePage from "../pages/emergency/EmergencyResponsePage";
 import EmergencyAlertsPage from "../pages/emergency/EmergencyAlertsPage";
 
 export default function AppRouter() {
+  const location = useLocation();
   return (
+    <RouteErrorBoundary resetKey={location.pathname}>
     <Routes>
       <Route path="/" element={<DefaultRouteRedirect defaultPath="/home" />} />
 
@@ -170,5 +174,6 @@ export default function AppRouter() {
 
       <Route path="*" element={<DefaultRouteRedirect defaultPath="/home" />} />
     </Routes>
+    </RouteErrorBoundary>
   );
 }

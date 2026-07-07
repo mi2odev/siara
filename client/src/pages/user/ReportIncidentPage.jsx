@@ -57,6 +57,7 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { createReport, uploadReportMedia } from '../../services/reportsService'
+import { enqueueReport } from '../../services/offlineReportQueue'
 import ReportSuggestionCard from '../../components/reports/ReportSuggestionCard'
 import DateTimePicker from '../../components/ui/DateTimePicker'
 import { getInitialsFromName, getUserAvatarUrl } from '../../utils/avatarUtils'
@@ -151,6 +152,7 @@ export default function ReportIncidentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)   // Loading spinner during submit
   const [isSubmitted, setIsSubmitted] = useState(false)     // Switches to success screen
   const [submittedId, setSubmittedId] = useState(null)      // Generated tracking reference
+  const [queuedOffline, setQueuedOffline] = useState(false) // Saved offline, pending delivery
   const [submitError, setSubmitError] = useState('')        // Submission error banner
   const [submitWarning, setSubmitWarning] = useState('')    // Non-blocking warning after report creation
   const [mediaError, setMediaError] = useState('')          // Media validation banner
@@ -670,6 +672,19 @@ export default function ReportIncidentPage() {
     },
   })
 
+  // Persist the report on-device and switch to the success screen in its
+  // "saved offline" variant. Used both when we start offline and when a live
+  // submit fails on the network mid-flight, so the report is never lost.
+  const queueReportOffline = async (payload, files) => {
+    await enqueueReport({ payload, files })
+    releaseMediaPreviews(reportData.media)
+    setIsSubmitting(false)
+    setSubmittedId(null)
+    setQueuedOffline(true)
+    setSubmitWarning(t('reportIncidentPage.offline.queuedNotice'))
+    setIsSubmitted(true)
+  }
+
   const submitReport = async () => {
     if (isSubmitting) {
       return
@@ -677,14 +692,29 @@ export default function ReportIncidentPage() {
 
     setSubmitError('')
     setSubmitWarning('')
+    setQueuedOffline(false)
     setIsSubmitting(true)
 
+    const payload = buildCreatePayload()
+    const files = reportData.media.map((mediaItem) => mediaItem.file)
+
+    // Offline up front — don't even attempt the request; save it for later.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      try {
+        await queueReportOffline(payload, files)
+      } catch {
+        setIsSubmitting(false)
+        setSubmitError(t('reportIncidentPage.errors.submitFailed'))
+      }
+      return
+    }
+
     try {
-      const createdReport = await createReport(buildCreatePayload())
+      const createdReport = await createReport(payload)
 
       if (createdReport?.id && reportData.media.length > 0) {
         try {
-          await uploadReportMedia(createdReport.id, reportData.media.map((mediaItem) => mediaItem.file))
+          await uploadReportMedia(createdReport.id, files)
         } catch (error) {
           setSubmitWarning(error.message || t('reportIncidentPage.errors.mediaUploadFailed'))
         }
@@ -695,6 +725,15 @@ export default function ReportIncidentPage() {
       setIsSubmitted(true)
       setSubmittedId(createdReport?.id || null)
     } catch (error) {
+      // Connectivity dropped mid-submit — queue it instead of losing it.
+      if (error?.isNetworkError) {
+        try {
+          await queueReportOffline(payload, files)
+          return
+        } catch {
+          // Fall through to the generic error below.
+        }
+      }
       setIsSubmitting(false)
       setSubmitError(error.message || t('reportIncidentPage.errors.submitFailed'))
     }
@@ -775,13 +814,23 @@ export default function ReportIncidentPage() {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h1 className="success-title">{t('reportIncidentPage.success.title')}</h1>
-            <p className="success-id">{t('reportIncidentPage.success.reference')} <strong>{submittedId}</strong></p>
+            <h1 className="success-title">
+              {queuedOffline
+                ? t('reportIncidentPage.success.queuedTitle')
+                : t('reportIncidentPage.success.title')}
+            </h1>
+            <p className="success-id">
+              {queuedOffline
+                ? t('reportIncidentPage.success.queuedReference')
+                : <>{t('reportIncidentPage.success.reference')} <strong>{submittedId}</strong></>}
+            </p>
 
             <div className="success-status">
               <div className="status-badge pending">
                 <span className="status-dot"></span>
-                {t('reportIncidentPage.success.awaitingVerification')}
+                {queuedOffline
+                  ? t('reportIncidentPage.success.waitingToSend')
+                  : t('reportIncidentPage.success.awaitingVerification')}
               </div>
             </div>
 
@@ -815,9 +864,11 @@ export default function ReportIncidentPage() {
             </div>
 
             <div className="success-actions">
-              <button className="action-btn primary" onClick={() => navigate(`/incident/${submittedId}`)}>
-                {t('reportIncidentPage.success.viewMyReport')}
-              </button>
+              {!queuedOffline && submittedId && (
+                <button className="action-btn primary" onClick={() => navigate(`/incident/${submittedId}`)}>
+                  {t('reportIncidentPage.success.viewMyReport')}
+                </button>
+              )}
               <button className="action-btn secondary" onClick={() => { window.location.href = '/report' }}>
                 {t('reportIncidentPage.success.reportAnother')}
               </button>

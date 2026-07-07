@@ -775,7 +775,7 @@
     "title": "Select Your Working Zone",
     "subtitle": "First login configuration for {{name}}",
     "stepLabel": "Step 1 of 1",
-    "description": "Choose your active Wilaya and Commune before entering police mode. You can update your active zone later if your assignment changes.",
+    "description": "Choose your active Wilaya and Commune before entering police mode. SIARA scopes your incidents, alerts, and priority queue to this zone so you only see what's relevant to you. You can update it later if your assignment changes.",
     "wilaya": {
       "label": "Wilaya",
       "placeholder": "Select Wilaya",
