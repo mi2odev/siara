@@ -45,16 +45,13 @@ function isReadOnlyDemoEmail(email) {
   return READ_ONLY_DEMO_EMAILS.has(normalizeEmail(email));
 }
 
-// Demo login provisions a REAL, role-bearing session (incl. police/supervisor)
-// with no password, so it must never be on by accident in production. Fail
-// closed: enabled only when ALLOW_DEMO_LOGIN is explicitly "true", except in
-// development where it defaults on for convenience.
+// Demo login is intentionally ON by default: the Algerian authorities use the
+// one-click demo accounts to evaluate the prototype, so it must never be off by
+// accident. Set ALLOW_DEMO_LOGIN=false to disable it. Abuse of this public
+// endpoint is bounded by a dedicated rate limiter (see api/index.js) rather than
+// by turning it off. Admin demo stays read-only (see verifytoken.js).
 function isDemoLoginEnabled() {
-  const raw = process.env.ALLOW_DEMO_LOGIN;
-  if (typeof raw === "string" && raw.trim()) {
-    return raw.trim().toLowerCase() === "true";
-  }
-  return process.env.NODE_ENV !== "production";
+  return String(process.env.ALLOW_DEMO_LOGIN ?? "true").trim().toLowerCase() !== "false";
 }
 
 function normalizeDemoRole(value) {
