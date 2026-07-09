@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { SkeletonList } from '../../components/common/Skeleton'
 import { useLocation, useNavigate } from 'react-router-dom'
 import EditNoteOutlinedIcon from '@mui/icons-material/EditNoteOutlined'
 import NotificationBell from '../../components/notifications/NotificationBell'
@@ -426,7 +427,7 @@ export default function ReportsPage() {
 
           <div className="al-list">
             {loading ? (
-              <div className="al-empty"><h3>{t('reportsPage.loadingReports')}</h3></div>
+              <SkeletonList rows={5} label={t('reportsPage.loadingReports')} />
             ) : filteredReports.length === 0 ? (
               <div className="al-empty">
                 <span className="empty-icon"><EditNoteOutlinedIcon fontSize="inherit" /></span>
