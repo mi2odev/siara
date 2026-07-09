@@ -5,6 +5,8 @@ const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const helmet = require("helmet");
+const { rateLimit } = require("express-rate-limit");
 dotenv.config({
   path: path.join(__dirname, ".env"),
   override: process.env.NODE_ENV !== "production",
@@ -71,10 +73,81 @@ const app = express();
 const httpServer = http.createServer(app);
 const allowedOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173" || "http://127.0.0.1:5173";
 
+// Behind a reverse proxy in production; trust the first hop so req.ip and the
+// rate limiters key on the real client address (X-Forwarded-For), not the proxy.
+app.set("trust proxy", 1);
+
+// Security headers. CSP is disabled here because this process serves JSON + image
+// assets, not the HTML app (that is the client/Vite origin, where CSP belongs).
+// Cross-origin resource policy is relaxed so the client origin can embed
+// /uploads avatars and report photos via <img>.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
+
+// ── Rate limiting ───────────────────────────────────────────────────────────
+// Generous ceilings that never hit normal usage but stop brute-force and
+// resource-abuse floods. Keyed per client IP (see trust proxy above).
+const rateLimitJson = (message) => (req, res) =>
+  res.status(429).json({ error: message });
+
+// Sensitive auth writes: login, register, password reset, email verification,
+// Google sign-in, and demo login. NOT /auth/session or /auth/me, which the app
+// polls on every navigation.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitJson("Too many attempts. Please try again in a few minutes."),
+});
+const SENSITIVE_AUTH_PATHS = new Set([
+  "/login",
+  "/register",
+  "/google",
+  "/demo-login",
+  "/password/forgot",
+  "/password/reset",
+  "/password/verify-code",
+  "/verify-email/send",
+  "/verify-email/confirm",
+]);
+
+// Expensive public compute endpoints (routing, weather, ML/LLM proxies) — these
+// fan out to OSRM/Overpass/Open-Meteo/Flask/Ollama, so cap the abuse rate.
+const computeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 150,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitJson("You are sending requests too quickly. Please slow down."),
+});
+
+// High backstop against raw request floods across the whole API surface.
+const globalApiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitJson("Too many requests. Please slow down."),
+});
+
 app.use(cors({ origin: allowedOrigin, credentials: true }));
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: "50mb" }));
-app.use(express.json()); 
+app.use(express.json());
+
+// Apply limiters before the routes they protect (Express runs middleware in
+// mount order). The compute limiter guards both the canonical and /model aliases.
+app.use("/api", globalApiLimiter);
+app.use("/api/auth", (req, res, next) =>
+  (SENSITIVE_AUTH_PATHS.has(req.path) ? authLimiter(req, res, next) : next()),
+);
+app.use(["/api/risk", "/api/model", "/api/predictions", "/api/navigation", "/api/weather", "/api/location"], computeLimiter);
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Serve trained-model assets (calibration curves, importance plots) for Admin
 // pages. Read-only on disk; safe to expose because they contain no PII.

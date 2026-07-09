@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { SkeletonList } from '../../components/common/Skeleton'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MapContainer, Marker, TileLayer } from 'react-leaflet'
 import FancySelect from '../../components/ui/FancySelect'
@@ -622,7 +623,7 @@ export default function AlertsPage() {
 
           <div className="al-list">
             {loading ? (
-              <div className="al-empty"><h3>{t('alertsPage.loadingAlerts')}</h3></div>
+              <SkeletonList rows={5} label={t('alertsPage.loadingAlerts')} />
             ) : filteredAlerts.length === 0 ? (
               <div className="al-empty">
                 <span className="empty-icon" aria-hidden="true">{icon('notification')}</span>

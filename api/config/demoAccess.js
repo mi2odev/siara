@@ -45,8 +45,16 @@ function isReadOnlyDemoEmail(email) {
   return READ_ONLY_DEMO_EMAILS.has(normalizeEmail(email));
 }
 
+// Demo login provisions a REAL, role-bearing session (incl. police/supervisor)
+// with no password, so it must never be on by accident in production. Fail
+// closed: enabled only when ALLOW_DEMO_LOGIN is explicitly "true", except in
+// development where it defaults on for convenience.
 function isDemoLoginEnabled() {
-  return String(process.env.ALLOW_DEMO_LOGIN ?? "true").trim().toLowerCase() !== "false";
+  const raw = process.env.ALLOW_DEMO_LOGIN;
+  if (typeof raw === "string" && raw.trim()) {
+    return raw.trim().toLowerCase() === "true";
+  }
+  return process.env.NODE_ENV !== "production";
 }
 
 function normalizeDemoRole(value) {

@@ -1,8 +1,8 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { SkeletonList } from '../../components/common/Skeleton'
 import { useTranslation } from 'react-i18next'
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded'
-import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined'
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined'
@@ -816,11 +816,7 @@ export default function NotificationsPage() {
 
           <div className="notif-list">
             {isLoading ? (
-              <div className="notif-empty-state">
-                <div className="notif-empty-icon"><HourglassEmptyOutlinedIcon fontSize="inherit" /></div>
-                <h3>{t('common:actions.loading')}</h3>
-                <p>{t('notificationsPage.loadingDetail')}</p>
-              </div>
+              <SkeletonList rows={6} label={t('common:actions.loading')} />
             ) : filteredNotifications.length === 0 ? (
               <div className="notif-empty-state">
                 <div className="notif-empty-icon"><NotificationsOutlinedIcon fontSize="inherit" /></div>

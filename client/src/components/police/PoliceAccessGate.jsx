@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import { Navigate, Outlet, useLocation, useOutletContext } from 'react-router-dom'
 
 import { getPoliceMe } from '../../services/policeService'
 import RouteErrorBoundary from '../common/RouteErrorBoundary'
+import PageLoader from '../common/PageLoader'
 
 export function usePoliceAccess() {
   const context = useOutletContext()
@@ -71,12 +72,14 @@ export default function PoliceAccessGate() {
 
   return (
     <RouteErrorBoundary resetKey={location.pathname} homePath="/police">
-      <Outlet
-        context={{
-          policeMe: state.policeMe,
-          refreshPoliceMe,
-        }}
-      />
+      <Suspense fallback={<PageLoader />}>
+        <Outlet
+          context={{
+            policeMe: state.policeMe,
+            refreshPoliceMe,
+          }}
+        />
+      </Suspense>
     </RouteErrorBoundary>
   )
 }
