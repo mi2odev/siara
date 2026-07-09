@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import AdminSidebar from './AdminSidebar'
 import AdminHeader from './AdminHeader'
 import RouteErrorBoundary from '../common/RouteErrorBoundary'
+import PageLoader from '../common/PageLoader'
 import '../../styles/AdminPanel.css'
 
 /**
@@ -116,7 +117,9 @@ export default function AdminLayout() {
         />
         <main className="admin-content" role="main" id="admin-main">
           <RouteErrorBoundary resetKey={location.pathname} homePath="/admin">
-            <Outlet />
+            <Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </Suspense>
           </RouteErrorBoundary>
         </main>
       </div>

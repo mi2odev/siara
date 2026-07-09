@@ -1,0 +1,32 @@
+.siara-page-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 40vh;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.siara-page-loader__spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  display: inline-block;
+  animation: siara-page-loader-spin 0.8s linear infinite;
+}
+
+@keyframes siara-page-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .siara-page-loader__spinner {
+    animation-duration: 2s;
+  }
+}
