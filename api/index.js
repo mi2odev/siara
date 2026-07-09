@@ -108,13 +108,24 @@ const SENSITIVE_AUTH_PATHS = new Set([
   "/login",
   "/register",
   "/google",
-  "/demo-login",
   "/password/forgot",
   "/password/reset",
   "/password/verify-code",
   "/verify-email/send",
   "/verify-email/confirm",
 ]);
+
+// Demo login is public and password-less (used by the Algerian authorities to
+// evaluate the prototype), so it needs a generous ceiling that a shared office
+// IP with several evaluators won't hit — while still capping scripted floods of
+// privileged sessions. Separate from the strict brute-force limiter above.
+const demoLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitJson("Too many demo sign-ins from this network. Please wait a moment."),
+});
 
 // Expensive public compute endpoints (routing, weather, ML/LLM proxies) — these
 // fan out to OSRM/Overpass/Open-Meteo/Flask/Ollama, so cap the abuse rate.
@@ -143,9 +154,11 @@ app.use(express.json());
 // Apply limiters before the routes they protect (Express runs middleware in
 // mount order). The compute limiter guards both the canonical and /model aliases.
 app.use("/api", globalApiLimiter);
-app.use("/api/auth", (req, res, next) =>
-  (SENSITIVE_AUTH_PATHS.has(req.path) ? authLimiter(req, res, next) : next()),
-);
+app.use("/api/auth", (req, res, next) => {
+  if (req.path === "/demo-login") return demoLoginLimiter(req, res, next);
+  if (SENSITIVE_AUTH_PATHS.has(req.path)) return authLimiter(req, res, next);
+  return next();
+});
 app.use(["/api/risk", "/api/model", "/api/predictions", "/api/navigation", "/api/weather", "/api/location"], computeLimiter);
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
